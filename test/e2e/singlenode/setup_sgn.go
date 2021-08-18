@@ -1,0 +1,130 @@
+package singlenode
+
+import (
+	"context"
+	"math/big"
+	"os"
+	"os/exec"
+	"path/filepath"
+
+	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
+	tc "github.com/celer-network/sgn-v2/testing/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/spf13/viper"
+)
+
+func setupNewSGNEnv(sgnParams *tc.SGNParams, testName string) []tc.Killable {
+	if sgnParams == nil {
+		sgnParams = &tc.SGNParams{
+			CelrAddr:               tc.E2eProfile.CelrAddr,
+			GovernProposalDeposit:  big.NewInt(1),
+			GovernVoteTimeout:      big.NewInt(1),
+			SlashTimeout:           big.NewInt(50),
+			MaxBondedValidators:    big.NewInt(11),
+			MinValidatorTokens:     big.NewInt(1e18),
+			MinStakingPool:         big.NewInt(100),
+			AdvanceNoticePeriod:    big.NewInt(1),
+			SidechainGoLiveTimeout: big.NewInt(0),
+		}
+	}
+	var tx *types.Transaction
+	tx, tc.E2eProfile.DPoSAddr, tc.E2eProfile.SGNAddr = tc.DeployDPoSSGNContracts(sgnParams)
+	tc.WaitMinedWithChk(context.Background(), tc.EthClient, tx, tc.BlockDelay, tc.PollingInterval, "DeployDPoSSGNContracts")
+
+	updateSGNConfig()
+
+	sgnProc, err := startSidechain("", testName)
+	tc.ChkErr(err, "start sidechain")
+	tc.SetContracts(tc.E2eProfile.DPoSAddr, tc.E2eProfile.SGNAddr)
+
+	killable := []tc.Killable{sgnProc}
+	if sgnParams.StartGateway {
+		gatewayProc, err := StartGateway("", testName)
+		tc.ChkErr(err, "start gateway")
+		killable = append(killable, gatewayProc)
+	}
+
+	return killable
+}
+
+func updateSGNConfig() {
+	log.Infoln("Updating sgn.toml")
+
+	configFilePath := "../../data/.sgncli/config/sgn.toml"
+	configFileViper := viper.New()
+	configFileViper.SetConfigFile(configFilePath)
+	err := configFileViper.ReadInConfig()
+	tc.ChkErr(err, "failed to read config")
+
+	keystore, err := filepath.Abs("../../keys/vethks0.json")
+	tc.ChkErr(err, "get keystore path")
+
+	configFileViper.Set(common.FlagEthGateway, tc.LocalGeth)
+	configFileViper.Set(common.FlagEthCelrAddress, tc.E2eProfile.CelrAddr.Hex())
+	configFileViper.Set(common.FlagEthDPoSAddress, tc.E2eProfile.DPoSAddr.Hex())
+	configFileViper.Set(common.FlagEthSGNAddress, tc.E2eProfile.SGNAddr.Hex())
+	configFileViper.Set(common.FlagEthKeystore, keystore)
+	err = configFileViper.WriteConfig()
+	tc.ChkErr(err, "failed to write config")
+	// Update global viper
+	viper.SetConfigFile(configFilePath)
+	err = viper.ReadInConfig()
+	tc.ChkErr(err, "failed to read config")
+}
+
+func installSgn() error {
+	cmd := exec.Command("make", "install")
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "WITH_CLEVELDB=yes")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// set cmd.Dir under repo root path
+	cmd.Dir, _ = filepath.Abs("../../..")
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	cmd = exec.Command("cp", "./test/data/.sgncli/config/sgn_template.toml", "./test/data/.sgncli/config/sgn.toml")
+	// set cmd.Dir under repo root path
+	cmd.Dir, _ = filepath.Abs("../../..")
+	return cmd.Run()
+}
+
+// startSidechain starts sgn sidechain with the data in test/data
+func startSidechain(rootDir, testName string) (*os.Process, error) {
+	cmd := exec.Command("make", "update-test-data")
+	// set cmd.Dir under repo root path
+	cmd.Dir, _ = filepath.Abs("../../..")
+	if err := cmd.Run(); err != nil {
+		log.Errorln("Failed to run \"make update-test-data\": ", err)
+		return nil, err
+	}
+
+	cmd = exec.Command("sgnd", "start")
+	cmd.Dir, _ = filepath.Abs("../../..")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Start(); err != nil {
+		log.Errorln("Failed to run \"sgnd start\": ", err)
+		return nil, err
+	}
+
+	log.Infoln("sgn pid:", cmd.Process.Pid)
+	return cmd.Process, nil
+}
+
+func StartGateway(rootDir, testName string) (*os.Process, error) {
+	cmd := exec.Command("sgncli", "gateway")
+	cmd.Dir, _ = filepath.Abs("../../..")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+
+	log.Infoln("gateway pid:", cmd.Process.Pid)
+	return cmd.Process, nil
+}

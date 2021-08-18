@@ -1,0 +1,150 @@
+package common
+
+import (
+	"context"
+	"fmt"
+	"math/big"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+
+	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/contracts"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/spf13/viper"
+)
+
+func SetupMainchain() {
+	repoRoot, _ := filepath.Abs("../../..")
+	log.Infoln("make localnet-down")
+	cmd := exec.Command("make", "localnet-down")
+	cmd.Dir = repoRoot
+	if err := cmd.Run(); err != nil {
+		log.Fatal(err)
+	}
+
+	log.Infoln("build dockers, get geth, build sgn binary")
+	cmd = exec.Command("make", "prepare-docker-env")
+	cmd.Dir = repoRoot
+	if err := cmd.Run(); err != nil {
+		log.Error(err)
+	}
+
+	log.Infoln("start geth container")
+	cmd = exec.Command("make", "localnet-start-geth")
+	cmd.Dir = repoRoot
+	if err := cmd.Run(); err != nil {
+		log.Fatal(err)
+	}
+	SleepWithLog(5, "geth start")
+
+	// set up mainchain: deploy contracts, fund addrs, etc
+	addrs := []contracts.Addr{
+		contracts.Hex2Addr(ValEthAddrs[0]),
+		contracts.Hex2Addr(ValEthAddrs[1]),
+		contracts.Hex2Addr(ValEthAddrs[2]),
+		contracts.Hex2Addr(ValEthAddrs[3]),
+		contracts.Hex2Addr(DelEthAddrs[0]),
+		contracts.Hex2Addr(DelEthAddrs[1]),
+		contracts.Hex2Addr(DelEthAddrs[2]),
+		contracts.Hex2Addr(DelEthAddrs[3]),
+		contracts.Hex2Addr(ClientEthAddrs[0]),
+		contracts.Hex2Addr(ClientEthAddrs[1]),
+	}
+	log.Infoln("fund each test addr 100 ETH")
+	err := FundAddrsETH("1"+strings.Repeat("0", 20), addrs)
+	ChkErr(err, "fund each test addr 100 ETH")
+
+	log.Infoln("set up mainchain")
+	SetupEthClients()
+	SetupE2eProfile()
+
+	// fund CELR to each eth account
+	log.Infoln("fund each test addr 10 million CELR")
+	err = FundAddrsErc20(E2eProfile.CelrAddr, addrs, "1"+strings.Repeat("0", 25))
+	ChkErr(err, "fund each test addr 10 million CELR")
+}
+
+func SetupNewSGNEnv(sgnParams *SGNParams, manual bool) {
+	log.Infoln("Deploy DPoS and SGN contracts")
+	if sgnParams == nil {
+		sgnParams = &SGNParams{
+			CelrAddr:               E2eProfile.CelrAddr,
+			GovernProposalDeposit:  big.NewInt(1),
+			GovernVoteTimeout:      big.NewInt(5),
+			SlashTimeout:           big.NewInt(50),
+			MaxBondedValidators:    big.NewInt(7),
+			MinValidatorTokens:     big.NewInt(1e18),
+			MinStakingPool:         big.NewInt(100),
+			AdvanceNoticePeriod:    big.NewInt(1),
+			SidechainGoLiveTimeout: big.NewInt(0),
+		}
+	}
+	var tx *types.Transaction
+	tx, E2eProfile.DPoSAddr, E2eProfile.SGNAddr = DeployDPoSSGNContracts(sgnParams)
+	WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "DeployDPoSSGNContracts")
+
+	log.Infoln("make localnet-down-nodes")
+	cmd := exec.Command("make", "localnet-down-nodes")
+	repoRoot, _ := filepath.Abs("../../..")
+	cmd.Dir = repoRoot
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	ChkErr(err, "Failed to make localnet-down-nodes")
+
+	log.Infoln("make prepare-sgn-data")
+	cmd = exec.Command("make", "prepare-sgn-data")
+	cmd.Dir = repoRoot
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	ChkErr(err, "Failed to make prepare-sgn-data")
+
+	log.Infoln("Updating config files of SGN nodes")
+	for i := 0; i < len(ValEthKs); i++ {
+		configPath := fmt.Sprintf("../../../docker-volumes/node%d/sgncli/config/sgn.toml", i)
+		configFileViper := viper.New()
+		configFileViper.SetConfigFile(configPath)
+		err = configFileViper.ReadInConfig()
+		ChkErr(err, "Failed to read config")
+		configFileViper.Set(common.FlagEthCelrAddress, E2eProfile.CelrAddr.Hex())
+		configFileViper.Set(common.FlagEthDPoSAddress, E2eProfile.DPoSAddr.Hex())
+		configFileViper.Set(common.FlagEthSGNAddress, E2eProfile.SGNAddr.Hex())
+		err = configFileViper.WriteConfig()
+		ChkErr(err, "Failed to write config")
+
+		if manual {
+			genesisPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/genesis.json", i)
+			genesisViper := viper.New()
+			genesisViper.SetConfigFile(genesisPath)
+			err = genesisViper.ReadInConfig()
+			ChkErr(err, "Failed to read genesis")
+			genesisViper.Set("app_state.govern.voting_params.voting_period", "120000000000")
+			err = genesisViper.WriteConfig()
+			ChkErr(err, "Failed to write genesis")
+		}
+	}
+
+	// Update global viper
+	node0ConfigPath := "../../../docker-volumes/node0/sgncli/config/sgn.toml"
+	viper.SetConfigFile(node0ConfigPath)
+	err = viper.ReadInConfig()
+	ChkErr(err, "Failed to read config")
+	viper.Set(common.FlagEthCelrAddress, E2eProfile.CelrAddr.Hex())
+	viper.Set(common.FlagEthDPoSAddress, E2eProfile.DPoSAddr.Hex())
+	viper.Set(common.FlagEthSGNAddress, E2eProfile.SGNAddr.Hex())
+
+	err = SetContracts(E2eProfile.DPoSAddr, E2eProfile.SGNAddr)
+	ChkErr(err, "Failed to SetContracts")
+
+	log.Infoln("make localnet-up-nodes")
+	cmd = exec.Command("make", "localnet-up-nodes")
+	cmd.Dir = repoRoot
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	ChkErr(err, "Failed to make localnet-up-nodes")
+}
