@@ -40,7 +40,7 @@ type Transactor struct {
 	gpe        *GasPriceEstimator
 }
 
-func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc *codec.Codec, gpe *GasPriceEstimator) (*Transactor, error) {
+func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc codec.Codec, gpe *GasPriceEstimator) (*Transactor, error) {
 	kb, err := keyring.New(appName,
 		viper.GetString(common.FlagSgnKeyringBackend), cliHome, nil)
 	if err != nil {
@@ -75,9 +75,9 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc *c
 		panic(err)
 	}
 
-	txConfig := tx.NewTxConfig((*cdc).(*codec.ProtoCodec), tx.DefaultSignModes)
+	txConfig := tx.NewTxConfig((cdc).(*codec.ProtoCodec), tx.DefaultSignModes)
 	cliCtx := client.Context{}.
-		WithCodec(*cdc).
+		WithCodec(cdc).
 		WithFromAddress(key.GetAddress()).
 		WithFromName(key.GetName()).
 		WithNodeURI(nodeURI).
@@ -101,7 +101,7 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc *c
 	return transactor, nil
 }
 
-func NewCliTransactor(cdc *codec.Codec, cliHome string) (*Transactor, error) {
+func NewCliTransactor(cdc codec.Codec, cliHome string) (*Transactor, error) {
 	return NewTransactor(
 		cliHome,
 		viper.GetString(common.FlagSgnChainID),

@@ -11,11 +11,11 @@ type TransactorPool struct {
 	index       uint64
 	cliHome     string
 	chainID     string
-	cdc         *codec.Codec
+	cdc         codec.Codec
 	gpe         *GasPriceEstimator
 }
 
-func NewTransactorPool(cliHome, chainID string, cdc *codec.Codec, gpe *GasPriceEstimator) *TransactorPool {
+func NewTransactorPool(cliHome, chainID string, cdc codec.Codec, gpe *GasPriceEstimator) *TransactorPool {
 	return &TransactorPool{
 		transactors: []*Transactor{},
 		index:       0,

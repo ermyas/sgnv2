@@ -28,17 +28,6 @@ type HashType = ec.Hash
 // Addr is alias to geth common.Address
 type Addr = ec.Address
 
-// DPoSCandidateInfo contains info emitted by DPoS contract
-type DPoSCandidateInfo struct {
-	Initialized     bool
-	MinSelfStake    *big.Int
-	StakingPool     *big.Int
-	Status          *big.Int
-	UnbondTime      *big.Int
-	CommissionRate  *big.Int
-	RateLockEndTime *big.Int
-}
-
 // SidechainAddr is alias to []byte
 type SidechainAddr = []byte
 

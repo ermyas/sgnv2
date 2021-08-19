@@ -6,7 +6,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	"github.com/cosmos/cosmos-sdk/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/gorilla/mux"
@@ -107,8 +106,8 @@ func (AppModule) LegacyQuerierHandler(*codec.LegacyAmino) sdk.Querier {
 
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
 
-func (am AppModule) Route() types.Route {
-	return types.Route{}
+func (am AppModule) Route() sdk.Route {
+	return sdk.Route{}
 }
 
 func (am AppModule) NewHandler() sdk.Handler {

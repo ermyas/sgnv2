@@ -14,19 +14,19 @@ import (
 
 // Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
 type Keeper struct {
+	cdc           codec.Codec  // The wire codec for binary encoding/decoding.
 	storeKey      sdk.StoreKey // Unexposed key to access store from sdk.Context
-	cdc           *codec.Codec // The wire codec for binary encoding/decoding.
 	accountKeeper ante.AccountKeeper
 	stakingKeeper stakingKeeper.Keeper
 	paramstore    params.Subspace
 }
 
 // NewKeeper creates new instances of the validator Keeper
-func NewKeeper(storeKey sdk.StoreKey, cdc *codec.Codec,
+func NewKeeper(cdc codec.Codec, storeKey sdk.StoreKey,
 	accountKeeper ante.AccountKeeper, stakingKeeper stakingKeeper.Keeper, paramstore params.Subspace) Keeper {
 	return Keeper{
-		storeKey:      storeKey,
 		cdc:           cdc,
+		storeKey:      storeKey,
 		accountKeeper: accountKeeper,
 		stakingKeeper: stakingKeeper,
 		paramstore:    paramstore.WithKeyTable(ParamKeyTable()),

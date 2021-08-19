@@ -37,11 +37,12 @@ func DeployDPoSSGNContracts(sgnParams *SGNParams) (*types.Transaction, contracts
 		sgnParams.SlashTimeout,
 		sgnParams.MaxBondedValidators,
 		sgnParams.MinValidatorTokens,
-		sgnParams.AdvanceNoticePeriod)
+		sgnParams.AdvanceNoticePeriod,
+		sgnParams.ValidatorBondInterval)
 
 	ChkErr(err, "failed to deploy DPoS contract")
 
-	sgnAddr, _, _, err := contracts.DeploySGN(EtherBaseAuth, EthClient, sgnParams.CelrAddr, dposAddr)
+	sgnAddr, _, _, err := contracts.DeploySGN(EtherBaseAuth, EthClient, dposAddr)
 	ChkErr(err, "failed to deploy SGN contract")
 
 	// TODO: register SGN address on DPoS contract
@@ -83,8 +84,8 @@ func DeployCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			EtherBaseAuth, err = bind.NewTransactor(
-				strings.NewReader(string(ksBytes)), configFileViper.GetString(common.FlagEthPassphrase))
+			EtherBaseAuth, err = bind.NewTransactorWithChainID(
+				strings.NewReader(string(ksBytes)), configFileViper.GetString(common.FlagEthPassphrase), big.NewInt(viper.GetInt64(common.FlagEthChainID)))
 			if err != nil {
 				return err
 			}
@@ -128,7 +129,7 @@ func DeployCommand() *cobra.Command {
 				tx, err := erc20.Approve(EtherBaseAuth, dposAddr, amt)
 				ChkErr(err, "failed to approve erc20")
 				WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "approve erc20")
-				DposContract, err = contracts.NewDPoS(dposAddr, EthClient)
+				DposContract, _ = contracts.NewDPoS(dposAddr, EthClient)
 				_, err = DposContract.ContributeToMiningPool(EtherBaseAuth, amt)
 				ChkErr(err, "failed to call ContributeToMiningPool of DPoS contract")
 				err = FundAddrsErc20(erc20Addr,

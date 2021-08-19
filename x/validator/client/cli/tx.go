@@ -22,7 +22,7 @@ const (
 	flagDetails = "details"
 )
 
-func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
+func GetTxCmd(storeKey string, cdc codec.Codec) *cobra.Command {
 	validatorTxCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Validator transaction subcommands",
@@ -40,7 +40,7 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 }
 
 // GetCmdSetTransactors is the CLI command for sending a SetTransactors transaction
-func GetCmdSetTransactors(cdc *codec.Codec) *cobra.Command {
+func GetCmdSetTransactors(cdc codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set-transactors",
 		Short: "set transactors based on transactors in config",
@@ -72,7 +72,7 @@ func GetCmdSetTransactors(cdc *codec.Codec) *cobra.Command {
 }
 
 // GetCmdEditCandidateDescription is the CLI command for sending a EditCandidateDescription transaction
-func GetCmdEditCandidateDescription(cdc *codec.Codec) *cobra.Command {
+func GetCmdEditCandidateDescription(cdc codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit-candidate-description",
 		Short: "Edit candidate description",
@@ -120,7 +120,7 @@ func GetCmdEditCandidateDescription(cdc *codec.Codec) *cobra.Command {
 }
 
 // GetCmdWithdrawReward is the CLI command for sending a WithdrawReward transaction
-func GetCmdWithdrawReward(cdc *codec.Codec) *cobra.Command {
+func GetCmdWithdrawReward(cdc codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "withdraw-reward [eth-addr]",
 		Short: "withdraw reward for the eth address",

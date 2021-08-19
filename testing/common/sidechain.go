@@ -27,6 +27,7 @@ type SGNParams struct {
 	MinValidatorTokens     *big.Int
 	MinStakingPool         *big.Int
 	AdvanceNoticePeriod    *big.Int
+	ValidatorBondInterval  *big.Int
 	SidechainGoLiveTimeout *big.Int
 	StartGateway           bool
 }

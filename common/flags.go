@@ -22,6 +22,7 @@ const (
 	FlagEthMonitorStartBlock = "eth.monitor_start_block"
 	FlagEthMinGasPriceGwei   = "eth.min_gas_price_gwei"
 	FlagEthAddGasPriceGwei   = "eth.add_gas_price_gwei"
+	FlagEthMaxBlockDelta     = "eth.max_block_delta"
 
 	FlagSgnValidatorAccount = "sgn.validator_account"
 	FlagSgnTransactors      = "sgn.transactors"
