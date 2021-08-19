@@ -37,6 +37,7 @@ func DeployDPoSSGNContracts(sgnParams *SGNParams) (*types.Transaction, contracts
 		sgnParams.SlashTimeout,
 		sgnParams.MaxBondedValidators,
 		sgnParams.MinValidatorTokens,
+		sgnParams.MinSelfDelegation,
 		sgnParams.AdvanceNoticePeriod,
 		sgnParams.ValidatorBondInterval)
 
@@ -110,8 +111,9 @@ func DeployCommand() *cobra.Command {
 				SlashTimeout:           big.NewInt(15),
 				MaxBondedValidators:    big.NewInt(5),
 				MinValidatorTokens:     big.NewInt(1000000000000000000),
-				MinStakingPool:         big.NewInt(5000000000000000000), // 5 CELR
+				MinSelfDelegation:      big.NewInt(1e18),
 				AdvanceNoticePeriod:    big.NewInt(30),
+				ValidatorBondInterval:  big.NewInt(24 * 3600),
 				SidechainGoLiveTimeout: big.NewInt(0),
 			}
 			tx, dposAddr, sgnAddr := DeployDPoSSGNContracts(sgnParams)

@@ -77,8 +77,9 @@ func SetupNewSGNEnv(sgnParams *SGNParams, manual bool) {
 			SlashTimeout:           big.NewInt(50),
 			MaxBondedValidators:    big.NewInt(7),
 			MinValidatorTokens:     big.NewInt(1e18),
-			MinStakingPool:         big.NewInt(100),
+			MinSelfDelegation:      big.NewInt(1e18),
 			AdvanceNoticePeriod:    big.NewInt(1),
+			ValidatorBondInterval:  big.NewInt(24 * 3600),
 			SidechainGoLiveTimeout: big.NewInt(0),
 		}
 	}

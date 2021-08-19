@@ -17,8 +17,9 @@ func setupValidator(maxValidatorNum *big.Int) {
 		SlashTimeout:           big.NewInt(0),
 		MaxBondedValidators:    maxValidatorNum,
 		MinValidatorTokens:     big.NewInt(1e18),
-		MinStakingPool:         big.NewInt(1),
+		MinSelfDelegation:      big.NewInt(1e18),
 		AdvanceNoticePeriod:    big.NewInt(1),
+		ValidatorBondInterval:  big.NewInt(24 * 3600),
 		SidechainGoLiveTimeout: big.NewInt(0),
 	}
 	tc.SetupNewSGNEnv(p, false)

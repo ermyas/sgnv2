@@ -25,8 +25,9 @@ func setupValidator() []tc.Killable {
 		SlashTimeout:           big.NewInt(10),
 		MaxBondedValidators:    big.NewInt(11),
 		MinValidatorTokens:     big.NewInt(1e18),
-		MinStakingPool:         big.NewInt(1),
+		MinSelfDelegation:      big.NewInt(1e18),
 		AdvanceNoticePeriod:    big.NewInt(1),
+		ValidatorBondInterval:  big.NewInt(24 * 3600),
 		SidechainGoLiveTimeout: big.NewInt(0),
 	}
 	res := setupNewSGNEnv(p, "validator")
