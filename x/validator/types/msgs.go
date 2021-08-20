@@ -3,8 +3,8 @@ package types
 import (
 	"github.com/celer-network/sgn-v2/contracts"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	staking "github.com/cosmos/cosmos-sdk/x/staking/types"
+	sdk_errors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -12,8 +12,8 @@ const RouterKey = ModuleName // this was defined in your key.go file
 
 const (
 	TypeMsgSetTransactors           = "set_transactors"
-	TypeMsgEditCandidateDescription = "edit_candidate_description"
-	TypeMsgWithdrawReward           = "withdraw_reward"
+	TypeMsgEditValidatorDescription = "edit_validator_description"
+	TypeMsgClaimReward              = "claim_reward"
 	TypeMsgSignReward               = "sign_reward"
 )
 
@@ -43,17 +43,17 @@ func (msg MsgSetTransactors) Type() string { return TypeMsgSetTransactors }
 // ValidateBasic runs stateless checks on the message
 func (msg MsgSetTransactors) ValidateBasic() error {
 	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+		return sdk_errors.Wrap(sdk_errors.ErrInvalidAddress, msg.Sender.String())
 	}
 
 	for _, transactor := range msg.Transactors {
 		if transactor.Empty() {
-			return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, transactor.String())
+			return sdk_errors.Wrap(sdk_errors.ErrInvalidAddress, transactor.String())
 		}
 
 		err := sdk.VerifyAddressFormat(transactor)
 		if err != nil {
-			return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, err.Error())
+			return sdk_errors.Wrap(sdk_errors.ErrInvalidAddress, err.Error())
 		}
 	}
 
@@ -71,20 +71,22 @@ func (msg MsgSetTransactors) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
 }
 
-type MsgEditCandidateDescription struct {
-	EthAddress  string              `json:"eth_address"`
-	Description staking.Description `json:"description"`
-	Sender      sdk.AccAddress      `json:"sender"`
+type MsgEditValidatorDescription struct {
+	EthAddress  string                  `json:"eth_address"`
+	Description sdk_staking.Description `json:"description"`
+	Sender      sdk.AccAddress          `json:"sender"`
 }
 
 // TODO
-func (m *MsgEditCandidateDescription) Reset()         { *m = MsgEditCandidateDescription{} }
-func (m *MsgEditCandidateDescription) String() string { return proto.CompactTextString(m) }
-func (*MsgEditCandidateDescription) ProtoMessage()    {}
+func (m *MsgEditValidatorDescription) Reset()         { *m = MsgEditValidatorDescription{} }
+func (m *MsgEditValidatorDescription) String() string { return proto.CompactTextString(m) }
+func (*MsgEditValidatorDescription) ProtoMessage()    {}
 
-// NewMsgEditCandidateDescription is a constructor function for MsgEditCandidateDescription
-func NewMsgEditCandidateDescription(ethAddress string, description staking.Description, sender sdk.AccAddress) MsgEditCandidateDescription {
-	return MsgEditCandidateDescription{
+// NewMsgEditValidatorDescription is a constructor function for MsgEditValidatorDescription
+func NewMsgEditValidatorDescription(
+	ethAddress string, description sdk_staking.Description, sender sdk.AccAddress) MsgEditValidatorDescription {
+
+	return MsgEditValidatorDescription{
 		EthAddress:  contracts.FormatAddrHex(ethAddress),
 		Description: description,
 		Sender:      sender,
@@ -92,84 +94,84 @@ func NewMsgEditCandidateDescription(ethAddress string, description staking.Descr
 }
 
 // Route should return the name of the module
-func (msg MsgEditCandidateDescription) Route() string { return RouterKey }
+func (msg MsgEditValidatorDescription) Route() string { return RouterKey }
 
 // Type should return the action
-func (msg MsgEditCandidateDescription) Type() string { return TypeMsgEditCandidateDescription }
+func (msg MsgEditValidatorDescription) Type() string { return TypeMsgEditValidatorDescription }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgEditCandidateDescription) ValidateBasic() error {
+func (msg MsgEditValidatorDescription) ValidateBasic() error {
 	if msg.EthAddress == "" {
-		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "EthAddress cannot be empty")
+		return sdk_errors.Wrap(sdk_errors.ErrUnknownRequest, "EthAddress cannot be empty")
 	}
 
-	if msg.Description == (staking.Description{}) {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "empty description")
+	if msg.Description == (sdk_staking.Description{}) {
+		return sdk_errors.Wrap(sdk_errors.ErrInvalidRequest, "empty description")
 	}
 
 	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+		return sdk_errors.Wrap(sdk_errors.ErrInvalidAddress, msg.Sender.String())
 	}
 
 	return nil
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgEditCandidateDescription) GetSignBytes() []byte {
+func (msg MsgEditValidatorDescription) GetSignBytes() []byte {
 	// TODO return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 	return nil
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgEditCandidateDescription) GetSigners() []sdk.AccAddress {
+func (msg MsgEditValidatorDescription) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
 }
 
-// MsgWithdrawReward defines a SyncValidator message
-type MsgWithdrawReward struct {
+// MsgClaimReward defines a SyncValidator message
+type MsgClaimReward struct {
 	EthAddress string         `json:"eth_address"`
 	Sender     sdk.AccAddress `json:"sender"`
 }
 
-func NewMsgWithdrawReward(ethAddress string, sender sdk.AccAddress) MsgWithdrawReward {
-	return MsgWithdrawReward{
+func NewMsgClaimReward(ethAddress string, sender sdk.AccAddress) MsgClaimReward {
+	return MsgClaimReward{
 		EthAddress: contracts.FormatAddrHex(ethAddress),
 		Sender:     sender,
 	}
 }
 
 // TODO
-func (m *MsgWithdrawReward) Reset()         { *m = MsgWithdrawReward{} }
-func (m *MsgWithdrawReward) String() string { return proto.CompactTextString(m) }
-func (*MsgWithdrawReward) ProtoMessage()    {}
+func (m *MsgClaimReward) Reset()         { *m = MsgClaimReward{} }
+func (m *MsgClaimReward) String() string { return proto.CompactTextString(m) }
+func (*MsgClaimReward) ProtoMessage()    {}
 
 // Route should return the name of the module
-func (msg MsgWithdrawReward) Route() string { return RouterKey }
+func (msg MsgClaimReward) Route() string { return RouterKey }
 
 // Type should return the action
-func (msg MsgWithdrawReward) Type() string { return TypeMsgWithdrawReward }
+func (msg MsgClaimReward) Type() string { return TypeMsgClaimReward }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgWithdrawReward) ValidateBasic() error {
+func (msg MsgClaimReward) ValidateBasic() error {
 	if msg.EthAddress == "" {
-		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "EthAddress cannot be empty")
+		return sdk_errors.Wrap(sdk_errors.ErrUnknownRequest, "EthAddress cannot be empty")
 	}
 
 	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+		return sdk_errors.Wrap(sdk_errors.ErrInvalidAddress, msg.Sender.String())
 	}
 
 	return nil
 }
 
 // GetSignBytes encodes the message for signing
-func (msg MsgWithdrawReward) GetSignBytes() []byte {
+func (msg MsgClaimReward) GetSignBytes() []byte {
 	// return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
 	return nil
 }
 
 // GetSigners defines whose signature is required
-func (msg MsgWithdrawReward) GetSigners() []sdk.AccAddress {
+func (msg MsgClaimReward) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Sender}
 }
 
@@ -202,15 +204,15 @@ func (*MsgSignReward) ProtoMessage()    {}
 // ValidateBasic runs stateless checks on the message
 func (msg MsgSignReward) ValidateBasic() error {
 	if msg.EthAddress == "" {
-		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "EthAddress cannot be empty")
+		return sdk_errors.Wrap(sdk_errors.ErrUnknownRequest, "EthAddress cannot be empty")
 	}
 
 	if len(msg.Sig) == 0 {
-		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "Sig cannot be empty")
+		return sdk_errors.Wrap(sdk_errors.ErrUnknownRequest, "Sig cannot be empty")
 	}
 
 	if msg.Sender.Empty() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Sender.String())
+		return sdk_errors.Wrap(sdk_errors.ErrInvalidAddress, msg.Sender.String())
 	}
 
 	return nil

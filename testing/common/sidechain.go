@@ -28,6 +28,7 @@ type SGNParams struct {
 	MinSelfDelegation      *big.Int
 	AdvanceNoticePeriod    *big.Int
 	ValidatorBondInterval  *big.Int
+	MaxSlashFactor         *big.Int
 	SidechainGoLiveTimeout *big.Int
 	StartGateway           bool
 }
@@ -47,11 +48,11 @@ func NewTestTransactor(t *testing.T, sgnCLIHome, sgnChainID, sgnNodeURI, sgnValA
 }
 
 func CheckCandidate(t *testing.T, transactor *transactor.Transactor, ethAddr contracts.Addr, valacct string, expAmt *big.Int) {
-	var candidate vtypes.Candidate
+	var candidate vtypes.Validator
 	var err error
 	expectedRes := fmt.Sprintf(`ValAccount: %s, EthAddress: %x, StakingPool: %s`, valacct, ethAddr, expAmt) // defined in Candidate.String()
 	for retry := 0; retry < RetryLimit; retry++ {
-		candidate, err = sgnval.CLIQueryCandidate(transactor.CliCtx, sgnval.RouterKey, ethAddr.Hex())
+		candidate, err = sgnval.CLIQueryValidator(transactor.CliCtx, sgnval.RouterKey, ethAddr.Hex())
 		if err != nil {
 			log.Debugln("retry due to err:", err)
 		}
@@ -82,11 +83,11 @@ func CheckDelegator(t *testing.T, transactor *transactor.Transactor, validatorAd
 	assert.Equal(t, expectedRes, delegator.String(), "The expected result should be: "+expectedRes)
 }
 
-func CheckValidator(t *testing.T, transactor *transactor.Transactor, valacct string, expAmt *big.Int, expStatus stypes.BondStatus) {
+func CheckSgnValidator(t *testing.T, transactor *transactor.Transactor, valacct string, expAmt *big.Int, expStatus stypes.BondStatus) {
 	var validator stypes.Validator
 	var err error
 	for retry := 0; retry < RetryLimit; retry++ {
-		validator, err = sgnval.CLIQueryValidator(transactor.CliCtx, stypes.RouterKey, valacct)
+		validator, err = sgnval.CLIQuerySgnValidator(transactor.CliCtx, stypes.RouterKey, valacct)
 		if err == nil &&
 			validator.Status == expStatus {
 			expToken := sdk.NewIntFromBigInt(expAmt).QuoRaw(common.TokenDec).String()

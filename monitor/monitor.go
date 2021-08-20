@@ -24,7 +24,7 @@ type Monitor struct {
 	*Operator
 	db              dbm.DB
 	ethMonitor      *monitor.Service
-	dposContract    monitor.Contract
+	stakingContract monitor.Contract
 	sgnContract     monitor.Contract
 	verifiedChanges *bigcache.BigCache
 	sidechainAcct   sdk.AccAddress
@@ -48,17 +48,17 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 	ethMonitor := monitor.NewService(watchService, blkDelay, true /* enabled */)
 	ethMonitor.Init()
 
-	dposValidatorStatus, err := operator.EthClient.DPoS.GetValidatorStatus(&bind.CallOpts{}, operator.EthClient.Address)
+	stakingValidatorStatus, err := operator.EthClient.Staking.GetValidatorStatus(&bind.CallOpts{}, operator.EthClient.Address)
 	if err != nil {
 		log.Fatalln("GetValidatorStatus err", err)
 	}
 
-	valnum, err := operator.EthClient.DPoS.GetValidatorNum(&bind.CallOpts{})
+	valnum, err := operator.EthClient.Staking.GetValidatorNum(&bind.CallOpts{})
 	if err != nil {
 		log.Fatalln("GetValidatorNum err", err)
 	}
 
-	dposContract := NewMonitorContractInfo(operator.EthClient.DPoSAddress, contracts.DPoSABI)
+	stakingContract := NewMonitorContractInfo(operator.EthClient.StakingAddress, contracts.StakingABI)
 	sgnContract := NewMonitorContractInfo(operator.EthClient.SGNAddress, contracts.SGNABI)
 
 	verifiedChanges, err := bigcache.NewBigCache(bigcache.DefaultConfig(10 * time.Minute))
@@ -78,10 +78,10 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 		Operator:        operator,
 		db:              db,
 		ethMonitor:      ethMonitor,
-		dposContract:    dposContract,
+		stakingContract: stakingContract,
 		sgnContract:     sgnContract,
 		verifiedChanges: verifiedChanges,
-		bonded:          contracts.IsBonded(dposValidatorStatus),
+		bonded:          contracts.IsBonded(stakingValidatorStatus),
 		bootstrapped:    valnum.Uint64() > 0,
 		executeSlash:    viper.GetBool(common.FlagSgnExecuteSlash),
 		startBlock:      startBlock,

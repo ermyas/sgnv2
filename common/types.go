@@ -86,7 +86,7 @@ func NewEthClientFromConfig() (*contracts.EthClient, error) {
 			AddGasPriceGwei:      viper.GetUint64(FlagEthAddGasPriceGwei),
 			MinGasPriceGwei:      viper.GetUint64(FlagEthMinGasPriceGwei),
 		},
-		viper.GetString(FlagEthDPoSAddress),
+		viper.GetString(FlagEthStakingAddress),
 		viper.GetString(FlagEthSGNAddress),
 	)
 }

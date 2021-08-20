@@ -7,16 +7,13 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	staking "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // EndBlocker called every block, update validator set, distribute rewards
 func EndBlocker(ctx sdk.Context, keeper Keeper) (updates []abci.ValidatorUpdate) {
 	setSyncer(ctx, keeper)
-	miningReward := keeper.MiningReward(ctx)
-	keeper.AddEpochMiningReward(ctx, miningReward)
-	keeper.DistributeReward(ctx)
 
 	return applyAndReturnValidatorSetUpdates(ctx, keeper)
 }
@@ -24,14 +21,14 @@ func EndBlocker(ctx sdk.Context, keeper Keeper) (updates []abci.ValidatorUpdate)
 // Update syncer for every syncerDuration
 func setSyncer(ctx sdk.Context, keeper Keeper) {
 	syncer := keeper.GetSyncer(ctx)
-	validators := keeper.GetBondedValidators(ctx)
+	validators := keeper.GetBondedSgnValidators(ctx)
 	syncerDuration := keeper.SyncerDuration(ctx)
 	vIdx := uint(ctx.BlockHeight()) / syncerDuration % uint(len(validators))
 
-	if syncer.ValidatorIdx != vIdx || syncer.ValidatorAddr.Empty() {
+	if syncer.ValidatorIdx != vIdx || syncer.SgnAddress.Empty() {
 		syncer = NewSyncer(vIdx, sdk.AccAddress(validators[vIdx].OperatorAddress))
 		keeper.SetSyncer(ctx, syncer)
-		log.Infof("set syncer to %s", syncer.ValidatorAddr)
+		log.Infof("set syncer to %s", syncer.SgnAddress)
 	}
 }
 
@@ -123,7 +120,7 @@ func applyAndReturnValidatorSetUpdates(ctx sdk.Context, keeper Keeper) (updates 
 
 type validatorsByAddr map[[1]byte][]byte //TODO
 
-func getLastValidatorsByAddr(ctx sdk.Context, k staking.Keeper) validatorsByAddr {
+func getLastValidatorsByAddr(ctx sdk.Context, k sdk_staking.Keeper) validatorsByAddr {
 	last := make(validatorsByAddr)
 	iterator := k.LastValidatorsIterator(ctx)
 	defer iterator.Close()

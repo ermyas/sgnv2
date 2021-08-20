@@ -16,12 +16,12 @@ var (
 	ErrPeersNotMatch = errors.New("channel peers not match")
 )
 
-func IsBonded(dposValidatorStatus uint8) bool {
-	return dposValidatorStatus == Bonded
+func IsBonded(stakingValidatorStatus uint8) bool {
+	return stakingValidatorStatus == Bonded
 }
 
-func ParseStatus(dposValidatorStatus uint8) sdk.BondStatus {
-	switch dposValidatorStatus {
+func ParseStatus(stakingValidatorStatus uint8) sdk.BondStatus {
+	switch stakingValidatorStatus {
 	case Bonded:
 		return sdk.Bonded
 	case Unbonding:

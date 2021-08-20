@@ -11,7 +11,7 @@ const (
 
 	FlagEthGateway           = "eth.gateway"
 	FlagEthCelrAddress       = "eth.contracts.celr_address"
-	FlagEthDPoSAddress       = "eth.contracts.dpos_address"
+	FlagEthStakingAddress    = "eth.contracts.staking_address"
 	FlagEthSGNAddress        = "eth.contracts.sgn_address"
 	FlagEthKeystore          = "eth.keystore"
 	FlagEthPassphrase        = "eth.passphrase"

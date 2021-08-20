@@ -15,6 +15,6 @@ func init() {
 func RegisterCodec(cdc *codec.Codec) {
 	// cdc.RegisterConcrete(MsgSetTransactors{}, "validator/MsgSetTransactors", nil)
 	// cdc.RegisterConcrete(MsgEditCandidateDescription{}, "validator/MsgEditCandidateDescription", nil)
-	// cdc.RegisterConcrete(MsgWithdrawReward{}, "validator/MsgWithdrawReward", nil)
+	// cdc.RegisterConcrete(MsgClaimReward{}, "validator/MsgClaimReward", nil)
 	// cdc.RegisterConcrete(MsgSignReward{}, "validator/MsgSignReward", nil)
 }

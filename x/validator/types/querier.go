@@ -7,9 +7,9 @@ import (
 const (
 	QuerySyncer              = "syncer"
 	QueryDelegator           = "delegator"
-	QueryCandidate           = "candidate"
-	QueryCandidates          = "candidates"
-	QueryCandidateDelegators = "candidate-delegators"
+	QueryValidator           = "validator"
+	QueryValidators          = "validators"
+	QueryValidatorDelegators = "validator-delegators"
 	QueryReward              = "reward"
 	QueryRewardEpoch         = "reward-epoch"
 	QueryRewardStats         = "reward-stats"
@@ -17,24 +17,24 @@ const (
 )
 
 type QueryDelegatorParams struct {
-	CandidateAddress string
+	ValidatorAddress string
 	DelegatorAddress string
 }
 
-func NewQueryDelegatorParams(candidateAddress, delegatorAddress string) QueryDelegatorParams {
+func NewQueryDelegatorParams(validatorAddress, delegatorAddress string) QueryDelegatorParams {
 	return QueryDelegatorParams{
-		CandidateAddress: contracts.FormatAddrHex(candidateAddress),
+		ValidatorAddress: contracts.FormatAddrHex(validatorAddress),
 		DelegatorAddress: contracts.FormatAddrHex(delegatorAddress),
 	}
 }
 
-type QueryCandidateParams struct {
-	CandidateAddress string
+type QueryValidatorParams struct {
+	ValidatorAddress string
 }
 
-func NewQueryCandidateParams(candidateAddress string) QueryCandidateParams {
-	return QueryCandidateParams{
-		CandidateAddress: contracts.FormatAddrHex(candidateAddress),
+func NewQueryValidatorParams(validatorAddress string) QueryValidatorParams {
+	return QueryValidatorParams{
+		ValidatorAddress: contracts.FormatAddrHex(validatorAddress),
 	}
 }
 

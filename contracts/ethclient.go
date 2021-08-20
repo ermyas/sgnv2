@@ -21,10 +21,10 @@ type EthClient struct {
 	Address    Addr
 
 	// init by SetContracts
-	DPoSAddress Addr
-	DPoS        *DPoS
-	SGNAddress  Addr
-	SGN         *SGN
+	StakingAddress Addr
+	Staking        *Staking
+	SGNAddress     Addr
+	SGN            *SGN
 }
 
 type TransactorConfig struct {
@@ -40,7 +40,7 @@ func NewEthClient(
 	ksfile string,
 	passphrase string,
 	tconfig *TransactorConfig,
-	dposAddrStr string,
+	stakingAddrStr string,
 	sgnAddrStr string) (*EthClient, error) {
 	ethClient := &EthClient{}
 
@@ -50,7 +50,7 @@ func NewEthClient(
 	}
 
 	ethClient.Client = ethclient.NewClient(rpcClient)
-	err = ethClient.setContracts(dposAddrStr, sgnAddrStr)
+	err = ethClient.setContracts(stakingAddrStr, sgnAddrStr)
 	if err != nil {
 		return nil, err
 	}
@@ -96,9 +96,9 @@ func (ethClient *EthClient) setTransactor(ksfile string, passphrase string, tcon
 	return err
 }
 
-func (ethClient *EthClient) setContracts(dposAddrStr, sgnAddrStr string) error {
-	ethClient.DPoSAddress = Hex2Addr(dposAddrStr)
-	dpos, err := NewDPoS(ethClient.DPoSAddress, ethClient.Client)
+func (ethClient *EthClient) setContracts(stakingAddrStr, sgnAddrStr string) error {
+	ethClient.StakingAddress = Hex2Addr(stakingAddrStr)
+	staking, err := NewStaking(ethClient.StakingAddress, ethClient.Client)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func (ethClient *EthClient) setContracts(dposAddrStr, sgnAddrStr string) error {
 		return err
 	}
 
-	ethClient.DPoS = dpos
+	ethClient.Staking = staking
 	ethClient.SGN = sgn
 	return nil
 }

@@ -71,13 +71,13 @@ func validatorTest(t *testing.T) {
 	log.Infof("validator eth address %x", vEthAddr)
 	require.NoError(t, err, "failed to get validator auth")
 
-	log.Infof("add mining reward pool in contract %x", tc.E2eProfile.DPoSAddr)
-	tx, err := tc.E2eProfile.CelrContract.Approve(vAuth, tc.E2eProfile.DPoSAddr, miningPool)
-	require.NoError(t, err, "failed to approve CELR to DPoS contract")
+	log.Infof("add mining reward pool in contract %x", tc.E2eProfile.StakingAddr)
+	tx, err := tc.E2eProfile.CelrContract.Approve(vAuth, tc.E2eProfile.StakingAddr, miningPool)
+	require.NoError(t, err, "failed to approve CELR to Staking contract")
 	tc.WaitMinedWithChk(
-		context.Background(), tc.EthClient, tx, tc.BlockDelay, tc.PollingInterval, "Approve CELR to DPoS contract")
-	_, err = tc.DposContract.ContributeToMiningPool(vAuth, miningPool)
-	require.NoError(t, err, "failed to call ContributeToMiningPool of DPoS contract")
+		context.Background(), tc.EthClient, tx, tc.BlockDelay, tc.PollingInterval, "Approve CELR to Staking contract")
+	_, err = tc.DposContract.ContributeToRewardPool(vAuth, miningPool)
+	require.NoError(t, err, "failed to call ContributeToMiningPool of Staking contract")
 
 	// tc.AddCandidateWithStake(
 	// 	t, transactor, vEthAddr, vAuth, tc.ValAccounts[0], vAmt,
@@ -101,13 +101,13 @@ func validatorTest(t *testing.T) {
 		reward, err2 := validator.CLIQueryReward(transactor.CliCtx, validator.RouterKey, tc.DelEthAddrs[i])
 		require.NoError(t, err2, "failed to query reward on sgn")
 		log.Infoln("sgn reward", reward.String())
-		assert.True(t, reward.MiningReward.IsPositive(), "Minging reward should be larger than 0")
+		assert.True(t, reward.Reward.IsPositive(), "Minging reward should be larger than 0")
 	}
 
 	// log.Info("init withdraw rewards ...")
 	// for i := 0; i < len(tc.DelEthKs); i++ {
-	// 	msgWithdrawReward := validator.NewMsgWithdrawReward(tc.DelEthAddrs[i], transactor.Key.GetAddress())
-	// 	transactor.AddTxMsg(msgWithdrawReward)
+	// 	msgClaimReward := validator.NewMsgClaimReward(tc.DelEthAddrs[i], transactor.Key.GetAddress())
+	// 	transactor.AddTxMsg(msgClaimReward)
 	// }
 
 	// time.Sleep(5 * time.Second)

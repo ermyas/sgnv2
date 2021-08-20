@@ -7,9 +7,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
-	params "github.com/cosmos/cosmos-sdk/x/params/types"
-	stakingKeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
-	staking "github.com/cosmos/cosmos-sdk/x/staking/types"
+	sdk_params "github.com/cosmos/cosmos-sdk/x/params/types"
+	sdk_staking_keepr "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 // Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
@@ -17,13 +17,13 @@ type Keeper struct {
 	cdc           codec.Codec  // The wire codec for binary encoding/decoding.
 	storeKey      sdk.StoreKey // Unexposed key to access store from sdk.Context
 	accountKeeper ante.AccountKeeper
-	stakingKeeper stakingKeeper.Keeper
-	paramstore    params.Subspace
+	stakingKeeper sdk_staking_keepr.Keeper
+	paramstore    sdk_params.Subspace
 }
 
 // NewKeeper creates new instances of the validator Keeper
 func NewKeeper(cdc codec.Codec, storeKey sdk.StoreKey,
-	accountKeeper ante.AccountKeeper, stakingKeeper stakingKeeper.Keeper, paramstore params.Subspace) Keeper {
+	accountKeeper ante.AccountKeeper, stakingKeeper sdk_staking_keepr.Keeper, paramstore sdk_params.Subspace) Keeper {
 	return Keeper{
 		cdc:           cdc,
 		storeKey:      storeKey,
@@ -34,17 +34,17 @@ func NewKeeper(cdc codec.Codec, storeKey sdk.StoreKey,
 }
 
 // Get validators metadata
-func (k Keeper) GetBondedValidators(ctx sdk.Context) []staking.Validator {
+func (k Keeper) GetBondedSgnValidators(ctx sdk.Context) []sdk_staking.Validator {
 	return k.stakingKeeper.GetBondedValidatorsByPower(ctx)
 }
 
 // Get a validator by consencus address
-func (k Keeper) GetValidatorByConsAddr(ctx sdk.Context, addr sdk.ConsAddress) (staking.Validator, bool) {
+func (k Keeper) GetSgnValidatorByConsAddr(ctx sdk.Context, addr sdk.ConsAddress) (sdk_staking.Validator, bool) {
 	return k.stakingKeeper.GetValidatorByConsAddr(ctx, addr)
 }
 
 // Get a validator by validator account address
-func (k Keeper) GetValidator(ctx sdk.Context, addr sdk.ValAddress) (staking.Validator, bool) {
+func (k Keeper) GetSgnValidator(ctx sdk.Context, addr sdk.ValAddress) (sdk_staking.Validator, bool) {
 	return k.stakingKeeper.GetValidator(ctx, addr)
 }
 
@@ -72,23 +72,23 @@ func (k Keeper) SetSyncer(ctx sdk.Context, syncer Syncer) {
 	//store.Set(SyncerKey, k.cdc.MustMarshalBinaryBare(syncer))
 }
 
-// Get the entire Delegator metadata for a candidateAddr and delegatorAddr
-func (k Keeper) GetDelegator(ctx sdk.Context, candidateAddr, delegatorAddr string) (delegator Delegator, found bool) {
+// Get the entire Delegator metadata for a validatorAddr and delegatorAddr
+func (k Keeper) GetDelegator(ctx sdk.Context, validatorAddr, delegatorAddr string) (delegator Delegator, found bool) {
 	store := ctx.KVStore(k.storeKey)
 
-	if !store.Has(GetDelegatorKey(candidateAddr, delegatorAddr)) {
+	if !store.Has(GetDelegatorKey(validatorAddr, delegatorAddr)) {
 		return delegator, false
 	}
 
-	//value := store.Get(GetDelegatorKey(candidateAddr, delegatorAddr))
+	//value := store.Get(GetDelegatorKey(validatorAddr, delegatorAddr))
 	//k.cdc.MustUnmarshalBinaryBare(value, &delegator)
 	return delegator, true
 }
 
 // Get the list of all delegators
-func (k Keeper) GetAllDelegators(ctx sdk.Context, candidateAddr string) (delegators []Delegator) {
+func (k Keeper) GetAllDelegators(ctx sdk.Context, validatorAddr string) (delegators []Delegator) {
 	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, GetDelegatorsKey(candidateAddr))
+	iterator := sdk.KVStorePrefixIterator(store, GetDelegatorsKey(validatorAddr))
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
@@ -99,50 +99,50 @@ func (k Keeper) GetAllDelegators(ctx sdk.Context, candidateAddr string) (delegat
 	return delegators
 }
 
-// Sets the entire Delegator metadata for a candidateAddr and delegatorAddr
+// Sets the entire Delegator metadata for a validatorAddr and delegatorAddr
 func (k Keeper) SetDelegator(ctx sdk.Context, delegator Delegator) {
 	//store := ctx.KVStore(k.storeKey)
-	//store.Set(GetDelegatorKey(delegator.CandidateAddr, delegator.DelegatorAddr), k.cdc.MustMarshalBinaryBare(delegator))
+	//store.Set(GetDelegatorKey(delegator.ValidatorAddr, delegator.DelegatorAddr), k.cdc.MustMarshalBinaryBare(delegator))
 }
 
 func (k Keeper) RemoveDelegator(ctx sdk.Context, delegator Delegator) {
 	store := ctx.KVStore(k.storeKey)
-	store.Delete(GetDelegatorKey(delegator.CandidateAddr, delegator.DelegatorAddr))
+	store.Delete(GetDelegatorKey(delegator.ValidatorAddr, delegator.DelegatorAddr))
 }
 
-// Get the entire Candidate metadata
-func (k Keeper) GetCandidate(ctx sdk.Context, candidateAddr string) (candidate Candidate, found bool) {
+// Get the entire Validator metadata
+func (k Keeper) GetValidator(ctx sdk.Context, validatorAddr string) (validator Validator, found bool) {
 	store := ctx.KVStore(k.storeKey)
-	candidateKey := GetCandidateKey(candidateAddr)
+	validatorKey := GetValidatorKey(validatorAddr)
 
-	if !store.Has(candidateKey) {
-		return candidate, false
+	if !store.Has(validatorKey) {
+		return validator, false
 	}
 
-	//value := store.Get(candidateKey)
-	//k.cdc.MustUnmarshalBinaryBare(value, &candidate)
-	return candidate, true
+	//value := store.Get(validatorKey)
+	//k.cdc.MustUnmarshalBinaryBare(value, &validator)
+	return validator, true
 }
 
-// Get the list of all candidates
-func (k Keeper) GetAllCandidates(ctx sdk.Context) (candidates []Candidate) {
+// Get the list of all validators
+func (k Keeper) GetAllValidators(ctx sdk.Context) (validators []Validator) {
 	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, CandidateKeyPrefix)
+	iterator := sdk.KVStorePrefixIterator(store, ValidatorKeyPrefix)
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
-		var candidate Candidate
-		//k.cdc.MustUnmarshalBinaryBare(iterator.Value(), &candidate)
-		candidates = append(candidates, candidate)
+		var validator Validator
+		//k.cdc.MustUnmarshalBinaryBare(iterator.Value(), &validator)
+		validators = append(validators, validator)
 	}
-	return candidates
+	return validators
 }
 
-// Sets the Candidate metadata
-func (k Keeper) SetCandidate(ctx sdk.Context, candidate Candidate) {
+// Sets the Validator metadata
+func (k Keeper) SetValidator(ctx sdk.Context, validator Validator) {
 	//store := ctx.KVStore(k.storeKey)
-	//candidateKey := GetCandidateKey(candidate.EthAddress)
-	//store.Set(candidateKey, k.cdc.MustMarshalBinaryBare(candidate))
+	//validatorKey := GetValidatorKey(validator.EthAddress)
+	//store.Set(validatorKey, k.cdc.MustMarshalBinaryBare(validator))
 }
 
 // Get the entire Reward metadata for ethAddress
@@ -185,26 +185,6 @@ func (keeper Keeper) GetRewards(ctx sdk.Context) (rewards []Reward) {
 	return
 }
 
-func (k Keeper) GetRewardStats(ctx sdk.Context) RewardStats {
-	stats := NewRewardStats()
-	k.IterateRewards(ctx, func(reward Reward) bool {
-		stats.TotalMiningReward = stats.TotalMiningReward.Add(reward.MiningReward)
-		stats.TotalServiceReward = stats.TotalServiceReward.Add(reward.ServiceReward)
-		sum := reward.MiningReward.Add(reward.ServiceReward)
-		if sum.GT(stats.MaxReward) {
-			stats.MaxReward = sum
-			stats.MaxRewardReceiver = reward.Receiver
-		}
-		stats.NumReceiver++
-		if reward.RewardProtoBytes != nil {
-			stats.NumWithdrawer++
-		}
-		return false
-	})
-
-	return stats
-}
-
 // Sets the Reward metadata for ethAddress
 func (k Keeper) SetReward(ctx sdk.Context, reward Reward) {
 	//store := ctx.KVStore(k.storeKey)
@@ -212,49 +192,16 @@ func (k Keeper) SetReward(ctx sdk.Context, reward Reward) {
 }
 
 // AddReward add reward to a specific ethAddress
-func (k Keeper) AddReward(ctx sdk.Context, ethAddress string, miningReward, serviceReward sdk.Int) {
-	reward, _ := k.GetReward(ctx, ethAddress)
-	reward.MiningReward = reward.MiningReward.Add(miningReward)
-	reward.ServiceReward = reward.ServiceReward.Add(serviceReward)
-	k.SetReward(ctx, reward)
+func (k Keeper) AddReward(ctx sdk.Context, ethAddress string, reward sdk.Int) {
 }
 
 func (k Keeper) distributeEpochReward(ctx sdk.Context) {
-	epoch := k.GetRewardEpoch(ctx)
-	if ctx.BlockHeight()-epoch.StartHeight < int64(k.EpochLength(ctx)) {
-		return
-	}
 
-	candidates := k.GetValidatorCandidates(ctx)
-	totalStake := sdk.ZeroInt()
-
-	for _, candidate := range candidates {
-		if !candidate.StakingPool.IsPositive() {
-			log.Errorln("invalid candidate staking pool", candidate.EthAddress)
-			return
-		}
-		totalStake = totalStake.Add(candidate.StakingPool)
-	}
-	if totalStake.IsZero() {
-		return
-	}
-
-	for _, candidate := range candidates {
-		candidateMiningReward := epoch.MiningReward.Mul(candidate.StakingPool).Quo(totalStake)
-		candidateServiceReward := epoch.ServiceReward.Mul(candidate.StakingPool).Quo(totalStake)
-
-		pendingReward := k.GetPendingReward(ctx, candidate.EthAddress)
-		pendingReward.MiningReward = pendingReward.MiningReward.Add(candidateMiningReward)
-		pendingReward.ServiceReward = pendingReward.ServiceReward.Add(candidateServiceReward)
-		k.SetPendingReward(ctx, pendingReward)
-	}
-
-	k.ResetRewardEpoch(ctx)
 }
 
-func (k Keeper) distributeCandidateReward(ctx sdk.Context) {
+func (k Keeper) distributeValidatorReward(ctx sdk.Context) {
 	cycleLen := k.EpochLength(ctx) * 2
-	validators := k.GetBondedValidators(ctx)
+	validators := k.GetBondedSgnValidators(ctx)
 	var idx uint
 	if uint(len(validators)) >= cycleLen {
 		idx = uint(ctx.BlockHeight()) % uint(len(validators))
@@ -266,73 +213,17 @@ func (k Keeper) distributeCandidateReward(ctx sdk.Context) {
 		idx = uint(ctx.BlockHeight()) / skip % uint(len(validators))
 	}
 	ethAddr := contracts.FormatAddrHex(validators[idx].Description.Identity)
-	k.DistributeCandidatePendingReward(ctx, ethAddr)
+	k.DistributeValidatorPendingReward(ctx, ethAddr)
 }
 
-func (k Keeper) DistributeCandidatePendingReward(ctx sdk.Context, ethAddress string) {
-	log.Debugln("Distribute pending reward for candidate", ethAddress)
-	candidate, found := k.GetCandidate(ctx, ethAddress)
-	if !found {
-		log.Debugf("candidate %s not found", ethAddress)
-		return
-	}
-	pendingReward := k.GetPendingReward(ctx, ethAddress)
-	if pendingReward.IsZero() {
-		log.Debugf("candidate %s has no pending reward", ethAddress)
-		return
-	}
-	if !candidate.StakingPool.IsPositive() {
-		log.Debugln("candidate staking pool is empty", candidate.EthAddress)
-		k.ResetPendingReward(ctx, ethAddress)
-		return
-	}
-
-	miningCommission := sdk.ZeroInt()
-	serviceCommission := sdk.ZeroInt()
-	if pendingReward.MiningReward.IsPositive() {
-		miningCommission = candidate.CommissionRate.MulInt(pendingReward.MiningReward).RoundInt()
-	}
-	if pendingReward.ServiceReward.IsPositive() {
-		serviceCommission = candidate.CommissionRate.MulInt(pendingReward.ServiceReward).RoundInt()
-	}
-	k.AddReward(ctx, ethAddress, miningCommission, serviceCommission)
-
-	delegators := k.GetAllDelegators(ctx, ethAddress)
-	delegatorsMiningReward := pendingReward.MiningReward.Sub(miningCommission)
-	delegatorsServiceReward := pendingReward.ServiceReward.Sub(serviceCommission)
-	for _, delegator := range delegators {
-		miningReward := delegatorsMiningReward.Mul(delegator.DelegatedStake).Quo(candidate.StakingPool)
-		serviceReward := delegatorsServiceReward.Mul(delegator.DelegatedStake).Quo(candidate.StakingPool)
-		k.AddReward(ctx, delegator.DelegatorAddr, miningReward, serviceReward)
-	}
-
-	k.ResetPendingReward(ctx, ethAddress)
+func (k Keeper) DistributeValidatorPendingReward(ctx sdk.Context, ethAddress string) {
+	log.Debugln("Distribute pending reward for validator", ethAddress)
 }
 
 // Distribute epoch rewards to all validators and delegators
 func (k Keeper) DistributeReward(ctx sdk.Context) {
 	k.distributeEpochReward(ctx)
-	k.distributeCandidateReward(ctx)
-}
-
-// GetValidatorCandidates get candidates info for current validators
-func (k Keeper) GetValidatorCandidates(ctx sdk.Context) (candidates []Candidate) {
-	validators := k.GetBondedValidators(ctx)
-
-	for _, validator := range validators {
-		ethAddr := contracts.FormatAddrHex(validator.Description.Identity)
-		if ethAddr == "" {
-			log.Errorf("Miss eth address for validator %s", validator.OperatorAddress)
-			continue
-		}
-		candidate, found := k.GetCandidate(ctx, ethAddr)
-
-		if found && candidate.StakingPool.IsPositive() {
-			candidates = append(candidates, candidate)
-		}
-	}
-
-	return
+	k.distributeValidatorReward(ctx)
 }
 
 func (k Keeper) InitAccount(ctx sdk.Context, accAddress sdk.AccAddress) {
@@ -355,86 +246,4 @@ func (k Keeper) RemoveAccount(ctx sdk.Context, accAddress sdk.AccAddress) {
 		log.Infof("Remove account %s", accAddress)
 		//k.accountKeeper.RemoveAccount(ctx, account)
 	}
-}
-
-func (k Keeper) GetRewardEpoch(ctx sdk.Context) (epoch RewardEpoch) {
-	store := ctx.KVStore(k.storeKey)
-
-	if !store.Has(RewardEpochKey) {
-		epoch = NewRewardEpoch(ctx.BlockHeight())
-		k.SetRewardEpoch(ctx, epoch)
-		return
-	}
-
-	//value := store.Get(RewardEpochKey)
-	//k.cdc.MustUnmarshalBinaryBare(value, &epoch)
-	return
-}
-
-func (k Keeper) SetRewardEpoch(ctx sdk.Context, epoch RewardEpoch) {
-	//store := ctx.KVStore(k.storeKey)
-	//store.Set(RewardEpochKey, k.cdc.MustMarshalBinaryBare(epoch))
-}
-
-func (k Keeper) ResetRewardEpoch(ctx sdk.Context) {
-	k.SetRewardEpoch(ctx, NewRewardEpoch(ctx.BlockHeight()))
-}
-
-func (k Keeper) AddEpochMiningReward(ctx sdk.Context, amount sdk.Int) {
-	epoch := k.GetRewardEpoch(ctx)
-	epoch.MiningReward = epoch.MiningReward.Add(amount)
-	k.SetRewardEpoch(ctx, epoch)
-}
-
-func (k Keeper) AddEpochServiceReward(ctx sdk.Context, amount sdk.Int) {
-	epoch := k.GetRewardEpoch(ctx)
-	epoch.ServiceReward = epoch.ServiceReward.Add(amount)
-	k.SetRewardEpoch(ctx, epoch)
-}
-
-func (k Keeper) GetPendingReward(ctx sdk.Context, ethAddress string) (pendingReward PendingReward) {
-	store := ctx.KVStore(k.storeKey)
-
-	if !store.Has(GetPendingRewardKey(ethAddress)) {
-		pendingReward = NewPendingReward(ethAddress)
-		return
-	}
-
-	//value := store.Get(GetPendingRewardKey(ethAddress))
-	//k.cdc.MustUnmarshalBinaryBare(value, &pendingReward)
-	return
-}
-
-// IteratePendingRewards iterates over the stored penalties
-func (k Keeper) IteratePendingRewards(ctx sdk.Context,
-	handler func(pendingReward PendingReward) (stop bool)) {
-
-	store := ctx.KVStore(k.storeKey)
-	iter := sdk.KVStorePrefixIterator(store, PendingRewardKeyPrefix)
-	defer iter.Close()
-	for ; iter.Valid(); iter.Next() {
-		var pendingReward PendingReward
-		//k.cdc.MustUnmarshalBinaryBare(iter.Value(), &pendingReward)
-		if handler(pendingReward) {
-			break
-		}
-	}
-}
-
-// GetPendingRewards returns all the pendingRewards from store
-func (keeper Keeper) GetPendingRewards(ctx sdk.Context) (pendingRewards []PendingReward) {
-	keeper.IteratePendingRewards(ctx, func(pendingReward PendingReward) bool {
-		pendingRewards = append(pendingRewards, pendingReward)
-		return false
-	})
-	return
-}
-
-func (k Keeper) SetPendingReward(ctx sdk.Context, pendingReward PendingReward) {
-	//store := ctx.KVStore(k.storeKey)
-	//store.Set(GetPendingRewardKey(pendingReward.CandidateAddr), k.cdc.MustMarshalBinaryBare(pendingReward))
-}
-
-func (k Keeper) ResetPendingReward(ctx sdk.Context, ethAddress string) {
-	k.SetPendingReward(ctx, NewPendingReward(ethAddress))
 }

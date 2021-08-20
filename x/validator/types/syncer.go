@@ -6,21 +6,16 @@ import (
 )
 
 type Syncer struct {
-	ValidatorIdx  uint           `json:"validator_idx"`
-	ValidatorAddr sdk.AccAddress `json:"validator_addr"`
+	ValidatorIdx uint           `json:"validator_idx"`
+	SgnAddress   sdk.AccAddress `json:"validator_acct"`
 }
 
-func NewSyncer(validatorIdx uint, validatorAddr sdk.AccAddress) Syncer {
+func NewSyncer(validatorIdx uint, sgnAddress sdk.AccAddress) Syncer {
 	return Syncer{
-		ValidatorIdx:  validatorIdx,
-		ValidatorAddr: validatorAddr,
+		ValidatorIdx: validatorIdx,
+		SgnAddress:   sgnAddress,
 	}
 }
-
-// implement fmt.Stringer
-/* func (r Syncer) String() string {
-	return strings.TrimSpace(fmt.Sprintf(`ValidatorIdx: %d, ValidatorAddr: %x`, r.ValidatorIdx, r.ValidatorAddr))
-} */
 
 func (m Syncer) Reset()         { m = Syncer{} }
 func (m Syncer) String() string { return proto.CompactTextString(m) }

@@ -30,14 +30,14 @@ func setupNewSGNEnv(sgnParams *tc.SGNParams, testName string) []tc.Killable {
 		}
 	}
 	var tx *types.Transaction
-	tx, tc.E2eProfile.DPoSAddr, tc.E2eProfile.SGNAddr = tc.DeployDPoSSGNContracts(sgnParams)
-	tc.WaitMinedWithChk(context.Background(), tc.EthClient, tx, tc.BlockDelay, tc.PollingInterval, "DeployDPoSSGNContracts")
+	tx, tc.E2eProfile.StakingAddr, tc.E2eProfile.SGNAddr = tc.DeployStakingSGNContracts(sgnParams)
+	tc.WaitMinedWithChk(context.Background(), tc.EthClient, tx, tc.BlockDelay, tc.PollingInterval, "DeployStakingSGNContracts")
 
 	updateSGNConfig()
 
 	sgnProc, err := startSidechain("", testName)
 	tc.ChkErr(err, "start sidechain")
-	tc.SetContracts(tc.E2eProfile.DPoSAddr, tc.E2eProfile.SGNAddr)
+	tc.SetContracts(tc.E2eProfile.StakingAddr, tc.E2eProfile.SGNAddr)
 
 	killable := []tc.Killable{sgnProc}
 	if sgnParams.StartGateway {
@@ -63,7 +63,7 @@ func updateSGNConfig() {
 
 	configFileViper.Set(common.FlagEthGateway, tc.LocalGeth)
 	configFileViper.Set(common.FlagEthCelrAddress, tc.E2eProfile.CelrAddr.Hex())
-	configFileViper.Set(common.FlagEthDPoSAddress, tc.E2eProfile.DPoSAddr.Hex())
+	configFileViper.Set(common.FlagEthStakingAddress, tc.E2eProfile.StakingAddr.Hex())
 	configFileViper.Set(common.FlagEthSGNAddress, tc.E2eProfile.SGNAddr.Hex())
 	configFileViper.Set(common.FlagEthKeystore, keystore)
 	err = configFileViper.WriteConfig()

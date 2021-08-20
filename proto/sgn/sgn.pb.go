@@ -22,7 +22,7 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Next Tag: 3
-// This is a generic multi-sig message for DPoS contract to validate any
+// This is a generic multi-sig message for Staking contract to validate any
 // types of request messages
 type MultiSigMessage struct {
 	// serialized message

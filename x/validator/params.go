@@ -5,7 +5,7 @@ import (
 
 	"github.com/celer-network/sgn-v2/x/validator/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	params "github.com/cosmos/cosmos-sdk/x/params/types"
+	sdk_params "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 // Default parameter namespace
@@ -14,8 +14,8 @@ const (
 )
 
 // ParamTable for validator module
-func ParamKeyTable() params.KeyTable {
-	return params.NewKeyTable().RegisterParamSet(&types.Params{})
+func ParamKeyTable() sdk_params.KeyTable {
+	return sdk_params.NewKeyTable().RegisterParamSet(&types.Params{})
 }
 
 // SyncerDuration - syncer duration
@@ -36,9 +36,9 @@ func (k Keeper) MaxValidatorDiff(ctx sdk.Context) (res uint) {
 	return
 }
 
-// WithdrawWindow - withdraw window
-func (k Keeper) WithdrawWindow(ctx sdk.Context) (res time.Duration) {
-	k.paramstore.Get(ctx, types.KeyWithdrawWindow, &res)
+// ClaimWindow - withdraw window
+func (k Keeper) ClaimWindow(ctx sdk.Context) (res time.Duration) {
+	k.paramstore.Get(ctx, types.KeyClaimWindow, &res)
 	return
 }
 
@@ -60,7 +60,7 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 		k.SyncerDuration(ctx),
 		k.EpochLength(ctx),
 		k.MaxValidatorDiff(ctx),
-		k.WithdrawWindow(ctx),
+		k.ClaimWindow(ctx),
 		k.MiningReward(ctx),
 		k.PullerReward(ctx),
 	)

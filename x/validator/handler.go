@@ -5,8 +5,8 @@ import (
 
 	"github.com/celer-network/sgn-v2/seal"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	sdk_errors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 // NewHandler returns a handler for "validator" type messages.
@@ -20,14 +20,14 @@ func NewHandler(keeper Keeper) sdk.Handler {
 		switch msg := msg.(type) {
 		// case MsgSetTransactors:
 		// 	res, err = handleMsgSetTransactors(ctx, keeper, msg, logEntry)
-		// case MsgEditCandidateDescription:
-		// 	res, err = handleMsgEditCandidateDescription(ctx, keeper, msg, logEntry)
-		// case MsgWithdrawReward:
-		// 	res, err = handleMsgWithdrawReward(ctx, keeper, msg, logEntry)
+		// case MsgEditValidatorDescription:
+		// 	res, err = handleMsgEditValidatorDescription(ctx, keeper, msg, logEntry)
+		// case MsgClaimReward:
+		// 	res, err = handleMsgClaimReward(ctx, keeper, msg, logEntry)
 		// case MsgSignReward:
 		// 	res, err = handleMsgSignReward(ctx, keeper, msg, logEntry)
 		default:
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
+			return nil, sdk_errors.Wrapf(sdk_errors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
 
 		if err != nil {
@@ -44,24 +44,24 @@ func handleMsgSetTransactors(ctx sdk.Context, keeper Keeper, msg MsgSetTransacto
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender.String()
 
-	validator, found := keeper.GetValidator(ctx, sdk.ValAddress(msg.Sender))
+	sgnVal, found := keeper.GetSgnValidator(ctx, sdk.ValAddress(msg.Sender))
 	if !found {
 		return nil, fmt.Errorf("Sender is not a validator")
 	}
 
-	candidate, found := keeper.GetCandidate(ctx, validator.Description.Identity)
+	validator, found := keeper.GetValidator(ctx, sgnVal.Description.Identity)
 	if !found {
-		return nil, fmt.Errorf("Candidate does not exist")
+		return nil, fmt.Errorf("Validator does not exist")
 	}
 
 	dedup := make(map[string]bool)
-	oldTransactors := candidate.Transactors
-	candidate.Transactors = []sdk.AccAddress{}
+	oldTransactors := validator.Transactors
+	validator.Transactors = []sdk.AccAddress{}
 	for _, transactor := range msg.Transactors {
-		if !transactor.Equals(candidate.ValAccount) {
+		if !transactor.Equals(validator.SgnAddress) {
 			if _, exist := dedup[transactor.String()]; !exist {
 				logEntry.Transactor = append(logEntry.Transactor, transactor.String())
-				candidate.Transactors = append(candidate.Transactors, transactor)
+				validator.Transactors = append(validator.Transactors, transactor)
 				dedup[transactor.String()] = true
 				keeper.InitAccount(ctx, transactor)
 			}
@@ -74,56 +74,37 @@ func handleMsgSetTransactors(ctx sdk.Context, keeper Keeper, msg MsgSetTransacto
 		}
 	}
 
-	keeper.SetCandidate(ctx, candidate)
+	keeper.SetValidator(ctx, validator)
 	return &sdk.Result{}, nil
 }
 
-// Handle a message to edit candidate description
-func handleMsgEditCandidateDescription(ctx sdk.Context, keeper Keeper, msg MsgEditCandidateDescription, logEntry *seal.MsgLog) (*sdk.Result, error) {
+// Handle a message to edit validator description
+func handleMsgEditValidatorDescription(ctx sdk.Context, keeper Keeper, msg MsgEditValidatorDescription, logEntry *seal.MsgLog) (*sdk.Result, error) {
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender.String()
 	logEntry.EthAddress = msg.EthAddress
 
-	candidate, found := keeper.GetCandidate(ctx, msg.EthAddress)
+	validator, found := keeper.GetValidator(ctx, msg.EthAddress)
 	if !found {
-		return nil, fmt.Errorf("Candidate does not exist")
+		return nil, fmt.Errorf("Validator does not exist")
 	}
 
-	description, err := candidate.Description.UpdateDescription(msg.Description)
+	description, err := validator.Description.UpdateDescription(msg.Description)
 	if err != nil {
 		return nil, err
 	}
 
-	candidate.Description = description
-	keeper.SetCandidate(ctx, candidate)
+	validator.Description = description
+	keeper.SetValidator(ctx, validator)
 	return &sdk.Result{}, nil
 }
 
 // Handle a message to withdraw reward
-func handleMsgWithdrawReward(ctx sdk.Context, keeper Keeper, msg MsgWithdrawReward, logEntry *seal.MsgLog) (*sdk.Result, error) {
+func handleMsgClaimReward(ctx sdk.Context, keeper Keeper, msg MsgClaimReward, logEntry *seal.MsgLog) (*sdk.Result, error) {
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender.String()
 	logEntry.EthAddress = msg.EthAddress
 
-	reward, found := keeper.GetReward(ctx, msg.EthAddress)
-	if !found {
-		return nil, fmt.Errorf("Reward does not exist")
-	}
-
-	if ctx.BlockTime().Before(reward.LastWithdrawTime.Add(keeper.WithdrawWindow(ctx))) {
-		logEntry.Warn = append(logEntry.Warn, "Request too fast")
-		return &sdk.Result{}, nil
-	}
-
-	reward.InitateWithdraw(ctx.BlockTime())
-	keeper.SetReward(ctx, reward)
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			ModuleName,
-			sdk.NewAttribute(sdk.AttributeKeyAction, ActionInitiateWithdraw),
-			sdk.NewAttribute(AttributeKeyEthAddress, msg.EthAddress),
-		),
-	)
 	return &sdk.Result{
 		// sEvents: ctx.EventManager().Events(),
 	}, nil
@@ -139,18 +120,13 @@ func handleMsgSignReward(ctx sdk.Context, keeper Keeper, msg MsgSignReward, logE
 	if !found {
 		return nil, fmt.Errorf("Sender is not validator")
 	}
-	if validator.Status != stakingtypes.Bonded {
+	if validator.Status != sdk_staking.Bonded {
 		return nil, fmt.Errorf("Validator is not bonded")
 	}
 
 	reward, found := keeper.GetReward(ctx, msg.EthAddress)
 	if !found {
 		return nil, fmt.Errorf("Reward does not exist")
-	}
-
-	err := reward.AddSig(msg.Sig, validator.Description.Identity)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to add sig: %s", err)
 	}
 
 	keeper.SetReward(ctx, reward)

@@ -68,7 +68,7 @@ func SetupMainchain() {
 }
 
 func SetupNewSGNEnv(sgnParams *SGNParams, manual bool) {
-	log.Infoln("Deploy DPoS and SGN contracts")
+	log.Infoln("Deploy Staking and SGN contracts")
 	if sgnParams == nil {
 		sgnParams = &SGNParams{
 			CelrAddr:               E2eProfile.CelrAddr,
@@ -84,8 +84,8 @@ func SetupNewSGNEnv(sgnParams *SGNParams, manual bool) {
 		}
 	}
 	var tx *types.Transaction
-	tx, E2eProfile.DPoSAddr, E2eProfile.SGNAddr = DeployDPoSSGNContracts(sgnParams)
-	WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "DeployDPoSSGNContracts")
+	tx, E2eProfile.StakingAddr, E2eProfile.SGNAddr = DeployStakingSGNContracts(sgnParams)
+	WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "DeployStakingSGNContracts")
 
 	log.Infoln("make localnet-down-nodes")
 	cmd := exec.Command("make", "localnet-down-nodes")
@@ -112,7 +112,7 @@ func SetupNewSGNEnv(sgnParams *SGNParams, manual bool) {
 		err = configFileViper.ReadInConfig()
 		ChkErr(err, "Failed to read config")
 		configFileViper.Set(common.FlagEthCelrAddress, E2eProfile.CelrAddr.Hex())
-		configFileViper.Set(common.FlagEthDPoSAddress, E2eProfile.DPoSAddr.Hex())
+		configFileViper.Set(common.FlagEthStakingAddress, E2eProfile.StakingAddr.Hex())
 		configFileViper.Set(common.FlagEthSGNAddress, E2eProfile.SGNAddr.Hex())
 		err = configFileViper.WriteConfig()
 		ChkErr(err, "Failed to write config")
@@ -135,10 +135,10 @@ func SetupNewSGNEnv(sgnParams *SGNParams, manual bool) {
 	err = viper.ReadInConfig()
 	ChkErr(err, "Failed to read config")
 	viper.Set(common.FlagEthCelrAddress, E2eProfile.CelrAddr.Hex())
-	viper.Set(common.FlagEthDPoSAddress, E2eProfile.DPoSAddr.Hex())
+	viper.Set(common.FlagEthStakingAddress, E2eProfile.StakingAddr.Hex())
 	viper.Set(common.FlagEthSGNAddress, E2eProfile.SGNAddr.Hex())
 
-	err = SetContracts(E2eProfile.DPoSAddr, E2eProfile.SGNAddr)
+	err = SetContracts(E2eProfile.StakingAddr, E2eProfile.SGNAddr)
 	ChkErr(err, "Failed to SetContracts")
 
 	log.Infoln("make localnet-up-nodes")

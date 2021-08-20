@@ -6,7 +6,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	params "github.com/cosmos/cosmos-sdk/x/params/types"
+	sdk_params "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 // validator params default values
@@ -14,7 +14,7 @@ const (
 	DefaultSyncerDuration   uint          = 10
 	DefaultEpochLength      uint          = 5
 	DefaultMaxValidatorDiff uint          = 10
-	DefaultWithdrawWindow   time.Duration = time.Hour
+	DefaultClaimWindow      time.Duration = time.Hour
 )
 
 var (
@@ -27,18 +27,18 @@ var (
 	KeySyncerDuration   = []byte("SyncerDuration")
 	KeyEpochLength      = []byte("EpochLength")
 	KeyMaxValidatorDiff = []byte("KeyMaxValidatorDiff")
-	KeyWithdrawWindow   = []byte("WithdrawWindow")
+	KeyClaimWindow      = []byte("ClaimWindow")
 	KeyMiningReward     = []byte("MiningReward")
 	KeyPullerReward     = []byte("PullerReward")
 )
 
-var _ params.ParamSet = (*Params)(nil)
+var _ sdk_params.ParamSet = (*Params)(nil)
 
 type Params struct {
 	SyncerDuration   uint          `json:"syncer_duration" yaml:"syncer_duration"`
 	EpochLength      uint          `json:"epoch_length" yaml:"epoch_length"`
 	MaxValidatorDiff uint          `json:"max_validator_diff" yaml:"max_validator_diff"`
-	WithdrawWindow   time.Duration `json:"withdraw_window" yaml:"withdraw_window"`
+	ClaimWindow      time.Duration `json:"claim_window" yaml:"claim_window"`
 	MiningReward     sdk.Int       `json:"mining_reward" yaml:"mining_reward"`
 	PullerReward     sdk.Int       `json:"puller_reward" yaml:"puller_reward"`
 }
@@ -46,27 +46,27 @@ type Params struct {
 // NewParams creates a new Params instance
 func NewParams(
 	syncerDuration, epochLength, maxValidatorDiff uint,
-	withdrawWindow time.Duration,
+	claimWindow time.Duration,
 	miningReward, pullerReward sdk.Int) Params {
 
 	return Params{
 		SyncerDuration: syncerDuration,
 		EpochLength:    epochLength,
-		WithdrawWindow: withdrawWindow,
+		ClaimWindow:    claimWindow,
 		MiningReward:   miningReward,
 		PullerReward:   pullerReward,
 	}
 }
 
 // Implements params.ParamSet
-func (p *Params) ParamSetPairs() params.ParamSetPairs {
-	return params.ParamSetPairs{
-		params.NewParamSetPair(KeySyncerDuration, &p.SyncerDuration, validateSyncerDuration),
-		params.NewParamSetPair(KeyEpochLength, &p.EpochLength, validateEpochLength),
-		params.NewParamSetPair(KeyMaxValidatorDiff, &p.MaxValidatorDiff, validateMaxValidatorDiff),
-		params.NewParamSetPair(KeyWithdrawWindow, &p.WithdrawWindow, validateWithdrawWindow),
-		params.NewParamSetPair(KeyMiningReward, &p.MiningReward, validateMiningReward),
-		params.NewParamSetPair(KeyPullerReward, &p.PullerReward, validatePullerReward),
+func (p *Params) ParamSetPairs() sdk_params.ParamSetPairs {
+	return sdk_params.ParamSetPairs{
+		sdk_params.NewParamSetPair(KeySyncerDuration, &p.SyncerDuration, validateSyncerDuration),
+		sdk_params.NewParamSetPair(KeyEpochLength, &p.EpochLength, validateEpochLength),
+		sdk_params.NewParamSetPair(KeyMaxValidatorDiff, &p.MaxValidatorDiff, validateMaxValidatorDiff),
+		sdk_params.NewParamSetPair(KeyClaimWindow, &p.ClaimWindow, validateClaimWindow),
+		sdk_params.NewParamSetPair(KeyMiningReward, &p.MiningReward, validateMiningReward),
+		sdk_params.NewParamSetPair(KeyPullerReward, &p.PullerReward, validatePullerReward),
 	}
 }
 
@@ -82,7 +82,7 @@ func (p Params) Equal(p2 Params) bool {
 func DefaultParams() Params {
 	return NewParams(
 		DefaultSyncerDuration, DefaultEpochLength, DefaultMaxValidatorDiff,
-		DefaultWithdrawWindow, DefaultMiningReward, DefaultPullerReward)
+		DefaultClaimWindow, DefaultMiningReward, DefaultPullerReward)
 }
 
 // String returns a human readable string representation of the parameters.
@@ -91,10 +91,10 @@ func (p Params) String() string {
   SyncerDuration:   %d,
   EpochLength:      %d,
   MaxValidatorDiff: %d,
-  WithdrawWindow:   %s,
+  ClaimWindow:      %s,
   MiningReward:     %s,
   PullerReward:     %s`,
-		p.SyncerDuration, p.EpochLength, p.MaxValidatorDiff, p.WithdrawWindow, p.MiningReward, p.PullerReward)
+		p.SyncerDuration, p.EpochLength, p.MaxValidatorDiff, p.ClaimWindow, p.MiningReward, p.PullerReward)
 }
 
 // unmarshal the current validator params value from store key or panic
@@ -125,8 +125,8 @@ func (p Params) Validate() error {
 		return fmt.Errorf("validator parameter EpochLength must be a positive integer")
 	}
 
-	if p.WithdrawWindow <= 0 {
-		return fmt.Errorf("validator parameter WithdrawWindow must be a positive integer")
+	if p.ClaimWindow <= 0 {
+		return fmt.Errorf("validator parameter ClaimWindow must be a positive integer")
 	}
 
 	if p.MiningReward.IsNegative() {
@@ -174,14 +174,14 @@ func validateMaxValidatorDiff(i interface{}) error {
 	return nil
 }
 
-func validateWithdrawWindow(i interface{}) error {
+func validateClaimWindow(i interface{}) error {
 	v, ok := i.(time.Duration)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
 	}
 
 	if v <= 0 {
-		return fmt.Errorf("validator parameter WithdrawWindow must be positive: %d", v)
+		return fmt.Errorf("validator parameter ClaimWindow must be positive: %d", v)
 	}
 
 	return nil

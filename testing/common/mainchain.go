@@ -26,7 +26,7 @@ var (
 
 	EthClient     *ethclient.Client
 	EtherBaseAuth *bind.TransactOpts
-	DposContract  *contracts.DPoS
+	DposContract  *contracts.Staking
 	SgnContract   *contracts.SGN
 
 	Client0 *TestEthClient
@@ -38,7 +38,7 @@ func SetEthBaseKs(prefix string) {
 }
 
 // SetupEthClients sets Client part (Client) and Auth part (PrivateKey, Address, Auth)
-// Contracts part (DPoSAddress, DPoS, SGNAddress, SGN, LedgerAddress, Ledger) is set after deploying DPoS and SGN contracts in SetupNewSGNEnv()
+// Contracts part (StakingAddress, Staking, SGNAddress, SGN, LedgerAddress, Ledger) is set after deploying Staking and SGN contracts in SetupNewSGNEnv()
 func SetupEthClients() {
 	rpcClient, err := rpc.Dial(LocalGeth)
 	if err != nil {
@@ -71,10 +71,10 @@ func SetupTestEthClient(ksfile string) (*TestEthClient, error) {
 	return testClient, nil
 }
 
-func SetContracts(dposAddr, sgnAddr contracts.Addr) error {
-	log.Infof("set contracts dpos %x sgn %x", dposAddr, sgnAddr)
+func SetContracts(stakingAddr, sgnAddr contracts.Addr) error {
+	log.Infof("set contracts staking %x sgn %x", stakingAddr, sgnAddr)
 	var err error
-	DposContract, err = contracts.NewDPoS(dposAddr, EthClient)
+	DposContract, err = contracts.NewStaking(stakingAddr, EthClient)
 	if err != nil {
 		return err
 	}
@@ -178,18 +178,18 @@ func FundAddrsErc20(erc20Addr contracts.Addr, addrs []contracts.Addr, amount str
 
 func DelegateStake(fromAuth *bind.TransactOpts, toEthAddress contracts.Addr, amt *big.Int) error {
 	conn := EthClient
-	dposContract := DposContract
+	stakingContract := DposContract
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 
-	log.Info("Call delegate on dpos contract to delegate stake to the validator eth address...")
-	_, err := E2eProfile.CelrContract.Approve(fromAuth, E2eProfile.DPoSAddr, amt)
+	log.Info("Call delegate on staking contract to delegate stake to the validator eth address...")
+	_, err := E2eProfile.CelrContract.Approve(fromAuth, E2eProfile.StakingAddr, amt)
 	if err != nil {
 		return err
 	}
 
 	fromAuth.GasLimit = 8000000
-	tx, err := dposContract.Delegate(fromAuth, toEthAddress, amt)
+	tx, err := stakingContract.Delegate(fromAuth, toEthAddress, amt)
 	fromAuth.GasLimit = 0
 	if err != nil {
 		return err

@@ -33,7 +33,7 @@ func GetTxCmd(storeKey string, cdc codec.Codec) *cobra.Command {
 	validatorTxCmd.AddCommand(common.PostCommands(
 		GetCmdSetTransactors(cdc),
 		GetCmdEditCandidateDescription(cdc),
-		GetCmdWithdrawReward(cdc),
+		GetCmdClaimReward(cdc),
 	)...)
 
 	return validatorTxCmd
@@ -99,7 +99,7 @@ func GetCmdEditCandidateDescription(cdc codec.Codec) *cobra.Command {
 				return err
 			}
 
-			msg := types.NewMsgEditCandidateDescription(address, description, txr.Key.GetAddress())
+			msg := types.NewMsgEditValidatorDescription(address, description, txr.Key.GetAddress())
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err
@@ -119,8 +119,8 @@ func GetCmdEditCandidateDescription(cdc codec.Codec) *cobra.Command {
 	return cmd
 }
 
-// GetCmdWithdrawReward is the CLI command for sending a WithdrawReward transaction
-func GetCmdWithdrawReward(cdc codec.Codec) *cobra.Command {
+// GetCmdClaimReward is the CLI command for sending a ClaimReward transaction
+func GetCmdClaimReward(cdc codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "withdraw-reward [eth-addr]",
 		Short: "withdraw reward for the eth address",
@@ -131,7 +131,7 @@ func GetCmdWithdrawReward(cdc codec.Codec) *cobra.Command {
 				return err
 			}
 
-			msg := types.NewMsgWithdrawReward(args[0], txr.Key.GetAddress())
+			msg := types.NewMsgClaimReward(args[0], txr.Key.GetAddress())
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err

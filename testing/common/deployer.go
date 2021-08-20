@@ -27,8 +27,8 @@ func DeployERC20Contract() (*types.Transaction, contracts.Addr, *contracts.Erc20
 	return tx, erc20Addr, erc20
 }
 
-func DeployDPoSSGNContracts(sgnParams *SGNParams) (*types.Transaction, contracts.Addr, contracts.Addr) {
-	dposAddr, _, _, err := contracts.DeployDPoS(
+func DeployStakingSGNContracts(sgnParams *SGNParams) (*types.Transaction, contracts.Addr, contracts.Addr) {
+	stakingAddr, _, _, err := contracts.DeployStaking(
 		EtherBaseAuth,
 		EthClient,
 		sgnParams.CelrAddr,
@@ -39,26 +39,27 @@ func DeployDPoSSGNContracts(sgnParams *SGNParams) (*types.Transaction, contracts
 		sgnParams.MinValidatorTokens,
 		sgnParams.MinSelfDelegation,
 		sgnParams.AdvanceNoticePeriod,
-		sgnParams.ValidatorBondInterval)
+		sgnParams.ValidatorBondInterval,
+		sgnParams.MaxSlashFactor)
 
-	ChkErr(err, "failed to deploy DPoS contract")
+	ChkErr(err, "failed to deploy Staking contract")
 
-	sgnAddr, _, _, err := contracts.DeploySGN(EtherBaseAuth, EthClient, dposAddr)
+	sgnAddr, _, _, err := contracts.DeploySGN(EtherBaseAuth, EthClient, stakingAddr)
 	ChkErr(err, "failed to deploy SGN contract")
 
-	// TODO: register SGN address on DPoS contract
-	// dpos, err := contracts.NewDPoS(dposAddr, EthClient)
-	// ChkErr(err, "failed to new DPoS instance")
+	// TODO: register SGN address on Staking contract
+	// staking, err := contracts.NewStaking(stakingAddr, EthClient)
+	// ChkErr(err, "failed to new Staking instance")
 	// EtherBaseAuth.GasLimit = 8000000
-	// tx, err := dpos.RegisterSidechain(EtherBaseAuth, sgnAddr)
+	// tx, err := staking.RegisterSidechain(EtherBaseAuth, sgnAddr)
 	// EtherBaseAuth.GasLimit = 0
-	ChkErr(err, "failed to register SGN address on DPoS contract")
+	ChkErr(err, "failed to register SGN address on Staking contract")
 
-	log.Infoln("DPoS address:", dposAddr.String())
+	log.Infoln("Staking address:", stakingAddr.String())
 	log.Infoln("SGN address:", sgnAddr.String())
 
 	// TODO
-	return nil, dposAddr, sgnAddr
+	return nil, stakingAddr, sgnAddr
 }
 
 func DeployCommand() *cobra.Command {
@@ -116,11 +117,11 @@ func DeployCommand() *cobra.Command {
 				ValidatorBondInterval:  big.NewInt(24 * 3600),
 				SidechainGoLiveTimeout: big.NewInt(0),
 			}
-			tx, dposAddr, sgnAddr := DeployDPoSSGNContracts(sgnParams)
-			WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "DeployDPoSContracts")
+			tx, stakingAddr, sgnAddr := DeployStakingSGNContracts(sgnParams)
+			WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "DeployStakingContracts")
 
 			configFileViper.Set(common.FlagEthCelrAddress, erc20Addr.Hex())
-			configFileViper.Set(common.FlagEthDPoSAddress, dposAddr.Hex())
+			configFileViper.Set(common.FlagEthStakingAddress, stakingAddr.Hex())
 			configFileViper.Set(common.FlagEthSGNAddress, sgnAddr.Hex())
 			err = configFileViper.WriteConfig()
 			ChkErr(err, "failed to write config")
@@ -128,12 +129,12 @@ func DeployCommand() *cobra.Command {
 			if ethurl == LocalGeth {
 				amt := new(big.Int)
 				amt.SetString("1"+strings.Repeat("0", 20), 10)
-				tx, err := erc20.Approve(EtherBaseAuth, dposAddr, amt)
+				tx, err := erc20.Approve(EtherBaseAuth, stakingAddr, amt)
 				ChkErr(err, "failed to approve erc20")
 				WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "approve erc20")
-				DposContract, _ = contracts.NewDPoS(dposAddr, EthClient)
-				_, err = DposContract.ContributeToMiningPool(EtherBaseAuth, amt)
-				ChkErr(err, "failed to call ContributeToMiningPool of DPoS contract")
+				DposContract, _ = contracts.NewStaking(stakingAddr, EthClient)
+				_, err = DposContract.ContributeToRewardPool(EtherBaseAuth, amt)
+				ChkErr(err, "failed to call ContributeToMiningPool of Staking contract")
 				err = FundAddrsErc20(erc20Addr,
 					[]contracts.Addr{
 						contracts.Hex2Addr(ClientEthAddrs[0]),

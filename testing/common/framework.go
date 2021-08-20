@@ -19,7 +19,7 @@ type Killable interface {
 
 type TestProfile struct {
 	DisputeTimeout uint64
-	DPoSAddr       contracts.Addr
+	StakingAddr    contracts.Addr
 	SGNAddr        contracts.Addr
 	CelrAddr       contracts.Addr
 	CelrContract   *contracts.Erc20
