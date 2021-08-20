@@ -6,7 +6,6 @@ import (
 	"github.com/celer-network/sgn-v2/seal"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk_errors "github.com/cosmos/cosmos-sdk/types/errors"
-	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 // NewHandler returns a handler for "validator" type messages.
@@ -22,10 +21,6 @@ func NewHandler(keeper Keeper) sdk.Handler {
 		// 	res, err = handleMsgSetTransactors(ctx, keeper, msg, logEntry)
 		// case MsgEditValidatorDescription:
 		// 	res, err = handleMsgEditValidatorDescription(ctx, keeper, msg, logEntry)
-		// case MsgClaimReward:
-		// 	res, err = handleMsgClaimReward(ctx, keeper, msg, logEntry)
-		// case MsgSignReward:
-		// 	res, err = handleMsgSignReward(ctx, keeper, msg, logEntry)
 		default:
 			return nil, sdk_errors.Wrapf(sdk_errors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
 		}
@@ -96,39 +91,5 @@ func handleMsgEditValidatorDescription(ctx sdk.Context, keeper Keeper, msg MsgEd
 
 	validator.Description = description
 	keeper.SetValidator(ctx, validator)
-	return &sdk.Result{}, nil
-}
-
-// Handle a message to withdraw reward
-func handleMsgClaimReward(ctx sdk.Context, keeper Keeper, msg MsgClaimReward, logEntry *seal.MsgLog) (*sdk.Result, error) {
-	logEntry.Type = msg.Type()
-	logEntry.Sender = msg.Sender.String()
-	logEntry.EthAddress = msg.EthAddress
-
-	return &sdk.Result{
-		// sEvents: ctx.EventManager().Events(),
-	}, nil
-}
-
-// Handle a message to sign reward
-func handleMsgSignReward(ctx sdk.Context, keeper Keeper, msg MsgSignReward, logEntry *seal.MsgLog) (*sdk.Result, error) {
-	logEntry.Type = msg.Type()
-	logEntry.Sender = msg.Sender.String()
-	logEntry.EthAddress = msg.EthAddress
-
-	validator, found := keeper.stakingKeeper.GetValidator(ctx, sdk.ValAddress(msg.Sender))
-	if !found {
-		return nil, fmt.Errorf("Sender is not validator")
-	}
-	if validator.Status != sdk_staking.Bonded {
-		return nil, fmt.Errorf("Validator is not bonded")
-	}
-
-	reward, found := keeper.GetReward(ctx, msg.EthAddress)
-	if !found {
-		return nil, fmt.Errorf("Reward does not exist")
-	}
-
-	keeper.SetReward(ctx, reward)
 	return &sdk.Result{}, nil
 }

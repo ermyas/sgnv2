@@ -9,7 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	stakingTypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/spf13/cobra"
 )
 
@@ -28,12 +28,10 @@ func GetQueryCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 		GetCmdValidator(storeKey, cdc),
 		GetCmdValidators(storeKey, cdc),
 		GetCmdDelegator(storeKey, cdc),
-		GetCmdValidatorDelegators(storeKey, cdc),
-		GetCmdSgnValidator(stakingTypes.StoreKey, cdc),
-		GetCmdSgnValidators(stakingTypes.StoreKey, cdc),
+		GetCmdDelegators(storeKey, cdc),
+		GetCmdSgnValidator(sdk_staking.StoreKey, cdc),
+		GetCmdSgnValidators(sdk_staking.StoreKey, cdc),
 		GetCmdSyncer(storeKey, cdc),
-		GetCmdReward(storeKey, cdc),
-		GetCmdRewardStats(storeKey, cdc),
 		GetCmdQueryParams(storeKey, cdc),
 	)...)
 	return validatorQueryCmd
@@ -124,13 +122,13 @@ func QueryValidators(cliCtx client.Context, queryRoute string) (validators []typ
 	return
 }
 
-// GetCmdValidatorDelegators queries request info
+// GetCmdDelegators queries request info
 // TODO: support pagination
-func GetCmdValidatorDelegators(queryRoute string, cdc *codec.Codec) *cobra.Command {
+func GetCmdDelegators(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{}
 }
 
-func QueryValidatorDelegators(cliCtx client.Context, queryRoute, ethAddress string) (delegators []types.Delegator, err error) {
+func QueryDelegators(cliCtx client.Context, queryRoute, ethAddress string) (delegators []types.Delegator, err error) {
 	return
 }
 
@@ -145,24 +143,24 @@ func GetCmdSgnValidators(queryRoute string, cdc *codec.Codec) *cobra.Command {
 }
 
 // QuerySgnValidators is an interface for convenience to query (all) validators in staking module
-func QuerySgnValidators(cliCtx client.Context, storeName string) (validators stakingTypes.Validators, err error) {
+func QuerySgnValidators(cliCtx client.Context, storeName string) (validators sdk_staking.Validators, err error) {
 	return
 }
 
 // QueryBondedValidators is an interface for convenience to query bonded validators in staking module
-func QueryBondedSgnValidators(cliCtx client.Context, storeName string) (validators stakingTypes.Validators, err error) {
+func QueryBondedSgnValidators(cliCtx client.Context, storeName string) (validators sdk_staking.Validators, err error) {
 	return
 }
 
 // addrStr should be bech32 sgn account address with prefix sgn
-func QuerySgnValidator(cliCtx client.Context, storeName string, addrStr string) (validator stakingTypes.Validator, err error) {
+func QuerySgnValidator(cliCtx client.Context, storeName string, addrStr string) (validator sdk_staking.Validator, err error) {
 	addr, err := sdk.AccAddressFromBech32(addrStr)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 
-	res, _, err := cliCtx.QueryStore(stakingTypes.GetValidatorKey(sdk.ValAddress(addr)), storeName)
+	res, _, err := cliCtx.QueryStore(sdk_staking.GetValidatorKey(sdk.ValAddress(addr)), storeName)
 	if err != nil {
 		return
 	}
@@ -172,32 +170,8 @@ func QuerySgnValidator(cliCtx client.Context, storeName string, addrStr string) 
 		return
 	}
 
-	validator = stakingTypes.MustUnmarshalValidator(cliCtx.Codec, res)
+	validator = sdk_staking.MustUnmarshalValidator(cliCtx.Codec, res)
 	return
-}
-
-// GetCmdReward queries reward info
-func GetCmdReward(queryRoute string, cdc *codec.Codec) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "reward [eth-address]",
-		Short: "query reward info by delegator or validator ETH address",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return nil
-		},
-	}
-	cmd.Flags().Bool(flagCheckMainchain, false, "Check info on mainchain")
-
-	return cmd
-}
-
-// Query reward info
-func QueryReward(cliCtx client.Context, queryRoute string, ethAddress string) (reward types.Reward, err error) {
-	return
-}
-
-func GetCmdRewardStats(queryRoute string, cdc *codec.Codec) *cobra.Command {
-	return &cobra.Command{}
 }
 
 // GetCmdQueryParams implements the params query command.

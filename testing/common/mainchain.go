@@ -24,10 +24,10 @@ type TestEthClient struct {
 var (
 	etherBaseKs = EnvDir + "/keystore/etherbase.json"
 
-	EthClient     *ethclient.Client
-	EtherBaseAuth *bind.TransactOpts
-	DposContract  *contracts.Staking
-	SgnContract   *contracts.SGN
+	EthClient       *ethclient.Client
+	EtherBaseAuth   *bind.TransactOpts
+	StakingContract *contracts.Staking
+	SgnContract     *contracts.SGN
 
 	Client0 *TestEthClient
 	Client1 *TestEthClient
@@ -74,7 +74,7 @@ func SetupTestEthClient(ksfile string) (*TestEthClient, error) {
 func SetContracts(stakingAddr, sgnAddr contracts.Addr) error {
 	log.Infof("set contracts staking %x sgn %x", stakingAddr, sgnAddr)
 	var err error
-	DposContract, err = contracts.NewStaking(stakingAddr, EthClient)
+	StakingContract, err = contracts.NewStaking(stakingAddr, EthClient)
 	if err != nil {
 		return err
 	}
@@ -178,7 +178,7 @@ func FundAddrsErc20(erc20Addr contracts.Addr, addrs []contracts.Addr, amount str
 
 func DelegateStake(fromAuth *bind.TransactOpts, toEthAddress contracts.Addr, amt *big.Int) error {
 	conn := EthClient
-	stakingContract := DposContract
+	stakingContract := StakingContract
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 

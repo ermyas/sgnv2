@@ -10,7 +10,6 @@ type GenesisState struct {
 	Syncer     Syncer      `json:"syncer" yaml:"syncer"`
 	Validators []Validator `json:"validators" yaml:"validators"`
 	Delegators []Delegator `json:"delegators" yaml:"delegators"`
-	Rewards    []Reward    `json:"rewards" yaml:"rewards"`
 }
 
 func NewGenesisState(params Params) GenesisState {
@@ -41,10 +40,6 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) []abci.Valid
 		keeper.SetDelegator(ctx, delegator)
 	}
 
-	for _, reward := range data.Rewards {
-		keeper.SetReward(ctx, reward)
-	}
-
 	return []abci.ValidatorUpdate{}
 }
 
@@ -53,7 +48,6 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) GenesisState {
 	syncer := keeper.GetSyncer(ctx)
 	validators := keeper.GetAllValidators(ctx)
 	delegators := []Delegator{}
-	rewards := keeper.GetRewards(ctx)
 
 	for _, validator := range validators {
 		delegators = append(delegators, keeper.GetAllDelegators(ctx, validator.EthAddress)...)
@@ -64,6 +58,5 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) GenesisState {
 		Syncer:     syncer,
 		Validators: validators,
 		Delegators: delegators,
-		Rewards:    rewards,
 	}
 }

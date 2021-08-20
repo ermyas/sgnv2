@@ -132,8 +132,8 @@ func DeployCommand() *cobra.Command {
 				tx, err := erc20.Approve(EtherBaseAuth, stakingAddr, amt)
 				ChkErr(err, "failed to approve erc20")
 				WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "approve erc20")
-				DposContract, _ = contracts.NewStaking(stakingAddr, EthClient)
-				_, err = DposContract.ContributeToRewardPool(EtherBaseAuth, amt)
+				StakingContract, _ = contracts.NewStaking(stakingAddr, EthClient)
+				_, err = StakingContract.ContributeToRewardPool(EtherBaseAuth, amt)
 				ChkErr(err, "failed to call ContributeToMiningPool of Staking contract")
 				err = FundAddrsErc20(erc20Addr,
 					[]contracts.Addr{

@@ -32,8 +32,7 @@ func GetTxCmd(storeKey string, cdc codec.Codec) *cobra.Command {
 
 	validatorTxCmd.AddCommand(common.PostCommands(
 		GetCmdSetTransactors(cdc),
-		GetCmdEditCandidateDescription(cdc),
-		GetCmdClaimReward(cdc),
+		GetCmdEditValidatorDescription(cdc),
 	)...)
 
 	return validatorTxCmd
@@ -71,8 +70,8 @@ func GetCmdSetTransactors(cdc codec.Codec) *cobra.Command {
 	return cmd
 }
 
-// GetCmdEditCandidateDescription is the CLI command for sending a EditCandidateDescription transaction
-func GetCmdEditCandidateDescription(cdc codec.Codec) *cobra.Command {
+// GetCmdEditValidatorDescription is the CLI command for sending a EditValidatorDescription transaction
+func GetCmdEditValidatorDescription(cdc codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit-candidate-description",
 		Short: "Edit candidate description",
@@ -117,29 +116,4 @@ func GetCmdEditCandidateDescription(cdc codec.Codec) *cobra.Command {
 	cmd.Flags().String(flagDetails, staking.DoNotModifyDesc, "The candidate's details")
 
 	return cmd
-}
-
-// GetCmdClaimReward is the CLI command for sending a ClaimReward transaction
-func GetCmdClaimReward(cdc codec.Codec) *cobra.Command {
-	return &cobra.Command{
-		Use:   "withdraw-reward [eth-addr]",
-		Short: "withdraw reward for the eth address",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			txr, err := transactor.NewCliTransactor(cdc, viper.GetString(flags.FlagHome))
-			if err != nil {
-				return err
-			}
-
-			msg := types.NewMsgClaimReward(args[0], txr.Key.GetAddress())
-			err = msg.ValidateBasic()
-			if err != nil {
-				return err
-			}
-
-			// TODO txr.CliSendTxMsgWaitMined(msg)
-
-			return nil
-		},
-	}
 }

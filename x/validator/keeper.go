@@ -2,7 +2,6 @@ package validator
 
 import (
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/contracts"
 	"github.com/celer-network/sgn-v2/x/validator/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -143,87 +142,6 @@ func (k Keeper) SetValidator(ctx sdk.Context, validator Validator) {
 	//store := ctx.KVStore(k.storeKey)
 	//validatorKey := GetValidatorKey(validator.EthAddress)
 	//store.Set(validatorKey, k.cdc.MustMarshalBinaryBare(validator))
-}
-
-// Get the entire Reward metadata for ethAddress
-func (k Keeper) GetReward(ctx sdk.Context, ethAddress string) (Reward, bool) {
-	store := ctx.KVStore(k.storeKey)
-	rewardKey := GetRewardKey(ethAddress)
-
-	if !store.Has(rewardKey) {
-		return NewReward(ethAddress), false
-	}
-
-	var reward Reward
-	//value := store.Get(rewardKey)
-	//k.cdc.MustUnmarshalBinaryBare(value, &reward)
-	return reward, true
-}
-
-// IterateRewards iterates over the stored penalties
-func (k Keeper) IterateRewards(ctx sdk.Context,
-	handler func(reward Reward) (stop bool)) {
-
-	store := ctx.KVStore(k.storeKey)
-	iter := sdk.KVStorePrefixIterator(store, RewardKeyPrefix)
-	defer iter.Close()
-	for ; iter.Valid(); iter.Next() {
-		var reward Reward
-		//k.cdc.MustUnmarshalBinaryBare(iter.Value(), &reward)
-		if handler(reward) {
-			break
-		}
-	}
-}
-
-// GetRewards returns all the rewards from store
-func (keeper Keeper) GetRewards(ctx sdk.Context) (rewards []Reward) {
-	keeper.IterateRewards(ctx, func(reward Reward) bool {
-		rewards = append(rewards, reward)
-		return false
-	})
-	return
-}
-
-// Sets the Reward metadata for ethAddress
-func (k Keeper) SetReward(ctx sdk.Context, reward Reward) {
-	//store := ctx.KVStore(k.storeKey)
-	//store.Set(GetRewardKey(reward.Receiver), k.cdc.MustMarshalBinaryBare(reward))
-}
-
-// AddReward add reward to a specific ethAddress
-func (k Keeper) AddReward(ctx sdk.Context, ethAddress string, reward sdk.Int) {
-}
-
-func (k Keeper) distributeEpochReward(ctx sdk.Context) {
-
-}
-
-func (k Keeper) distributeValidatorReward(ctx sdk.Context) {
-	cycleLen := k.EpochLength(ctx) * 2
-	validators := k.GetBondedSgnValidators(ctx)
-	var idx uint
-	if uint(len(validators)) >= cycleLen {
-		idx = uint(ctx.BlockHeight()) % uint(len(validators))
-	} else {
-		skip := cycleLen/uint(len(validators)) + 1
-		if uint(ctx.BlockHeight())%skip != 0 {
-			return
-		}
-		idx = uint(ctx.BlockHeight()) / skip % uint(len(validators))
-	}
-	ethAddr := contracts.FormatAddrHex(validators[idx].Description.Identity)
-	k.DistributeValidatorPendingReward(ctx, ethAddr)
-}
-
-func (k Keeper) DistributeValidatorPendingReward(ctx sdk.Context, ethAddress string) {
-	log.Debugln("Distribute pending reward for validator", ethAddress)
-}
-
-// Distribute epoch rewards to all validators and delegators
-func (k Keeper) DistributeReward(ctx sdk.Context) {
-	k.distributeEpochReward(ctx)
-	k.distributeValidatorReward(ctx)
 }
 
 func (k Keeper) InitAccount(ctx sdk.Context, accAddress sdk.AccAddress) {

@@ -47,7 +47,7 @@ func NewTestTransactor(t *testing.T, sgnCLIHome, sgnChainID, sgnNodeURI, sgnValA
 	return nil
 }
 
-func CheckCandidate(t *testing.T, transactor *transactor.Transactor, ethAddr contracts.Addr, valacct string, expAmt *big.Int) {
+func CheckValidator(t *testing.T, transactor *transactor.Transactor, ethAddr contracts.Addr, valacct string, expAmt *big.Int) {
 	var candidate vtypes.Validator
 	var err error
 	expectedRes := fmt.Sprintf(`ValAccount: %s, EthAddress: %x, StakingPool: %s`, valacct, ethAddr, expAmt) // defined in Candidate.String()

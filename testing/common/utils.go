@@ -1,7 +1,6 @@
 package common
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"io/ioutil"
@@ -11,13 +10,10 @@ import (
 	"github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/contracts"
-	"github.com/celer-network/sgn-v2/proto/chain"
-	"github.com/celer-network/sgn-v2/proto/entity"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/golang/protobuf/proto"
 )
 
 func GetAuth(ksfile string) (addr contracts.Addr, auth *bind.TransactOpts, err error) {
@@ -84,37 +80,4 @@ func SleepWithLog(second time.Duration, waitFor string) {
 
 func SleepBlocksWithLog(count time.Duration, waitFor string) {
 	SleepWithLog(count*SgnBlockInterval, waitFor)
-}
-
-func PrepareSignedSimplexState(seqNum uint64, channelId, peerFrom []byte, peer0, peer1 *TestEthClient) (*chain.SignedSimplexState, error) {
-	simplexPaymentChannelBytes, err := proto.Marshal(&entity.SimplexPaymentChannel{
-		SeqNum:    seqNum,
-		ChannelId: channelId,
-		PeerFrom:  peerFrom,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	lo, hi := peer0, peer1
-	if bytes.Compare(peer0.Address.Bytes(), peer1.Address.Bytes()) > 0 {
-		lo, hi = peer1, peer0
-	}
-
-	siglo, err := lo.Signer.SignEthMessage(simplexPaymentChannelBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	sighi, err := hi.Signer.SignEthMessage(simplexPaymentChannelBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	signedSimplexStateProto := &chain.SignedSimplexState{
-		SimplexState: simplexPaymentChannelBytes,
-		Sigs:         [][]byte{siglo, sighi},
-	}
-
-	return signedSimplexStateProto, nil
 }

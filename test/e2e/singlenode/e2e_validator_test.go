@@ -1,19 +1,15 @@
 package singlenode
 
 import (
-	"context"
 	"math/big"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/contracts"
 	tc "github.com/celer-network/sgn-v2/testing/common"
-	"github.com/celer-network/sgn-v2/x/validator"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,6 +24,7 @@ func setupValidator() []tc.Killable {
 		MinSelfDelegation:      big.NewInt(1e18),
 		AdvanceNoticePeriod:    big.NewInt(1),
 		ValidatorBondInterval:  big.NewInt(24 * 3600),
+		MaxSlashFactor:         big.NewInt(1e5),
 		SidechainGoLiveTimeout: big.NewInt(0),
 	}
 	res := setupNewSGNEnv(p, "validator")
@@ -67,23 +64,9 @@ func validatorTest(t *testing.T) {
 	miningPool := new(big.Int)
 	miningPool.SetString("1"+strings.Repeat("0", 20), 10)
 
-	vEthAddr, vAuth, err := tc.GetAuth(tc.ValEthKs[0])
+	vEthAddr, _, err := tc.GetAuth(tc.ValEthKs[0])
 	log.Infof("validator eth address %x", vEthAddr)
 	require.NoError(t, err, "failed to get validator auth")
-
-	log.Infof("add mining reward pool in contract %x", tc.E2eProfile.StakingAddr)
-	tx, err := tc.E2eProfile.CelrContract.Approve(vAuth, tc.E2eProfile.StakingAddr, miningPool)
-	require.NoError(t, err, "failed to approve CELR to Staking contract")
-	tc.WaitMinedWithChk(
-		context.Background(), tc.EthClient, tx, tc.BlockDelay, tc.PollingInterval, "Approve CELR to Staking contract")
-	_, err = tc.DposContract.ContributeToRewardPool(vAuth, miningPool)
-	require.NoError(t, err, "failed to call ContributeToMiningPool of Staking contract")
-
-	// tc.AddCandidateWithStake(
-	// 	t, transactor, vEthAddr, vAuth, tc.ValAccounts[0], vAmt,
-	// 	big.NewInt(100000), /* minSelfStake */
-	// 	big.NewInt(200) /* commission rate 2% */, big.NewInt(10000) /* rate lock end time */, true)
-	// tc.CheckValidatorNum(t, transactor, 1)
 
 	log.Info("add delegators ...")
 	for i := 0; i < len(tc.DelEthKs); i++ {
@@ -94,41 +77,4 @@ func validatorTest(t *testing.T) {
 	for i := 0; i < len(tc.DelEthKs); i++ {
 		tc.CheckDelegator(t, transactor, vEthAddr, contracts.Hex2Addr(tc.DelEthAddrs[i]), dAmts[i])
 	}
-
-	time.Sleep(10 * time.Second)
-	log.Info("check rewards ...")
-	for i := 0; i < len(tc.DelEthKs); i++ {
-		reward, err2 := validator.CLIQueryReward(transactor.CliCtx, validator.RouterKey, tc.DelEthAddrs[i])
-		require.NoError(t, err2, "failed to query reward on sgn")
-		log.Infoln("sgn reward", reward.String())
-		assert.True(t, reward.Reward.IsPositive(), "Minging reward should be larger than 0")
-	}
-
-	// log.Info("init withdraw rewards ...")
-	// for i := 0; i < len(tc.DelEthKs); i++ {
-	// 	msgClaimReward := validator.NewMsgClaimReward(tc.DelEthAddrs[i], transactor.Key.GetAddress())
-	// 	transactor.AddTxMsg(msgClaimReward)
-	// }
-
-	// time.Sleep(5 * time.Second)
-	// log.Info("withdraw rewards on mainchain ...")
-	// var lastTx *types.Transaction
-	// for i := 0; i < len(tc.DelEthKs); i++ {
-	// 	reward, err2 := validator.CLIQueryReward(transactor.CliCtx, validator.RouterKey, tc.DelEthAddrs[i])
-	// 	require.NoError(t, err2, "failed to query reward on sgn")
-	// 	_, dAuth, _ := tc.GetAuth(tc.DelEthKs[i])
-	// 	tx, err2 := tc.SgnContract.RedeemReward(dAuth, reward.GetRewardRequest())
-	// 	require.NoError(t, err2, "failed to redeem reward on mainchain")
-	// 	log.Infoln("redeem reward on mainchain, tx", tx.Hash().Hex())
-	// 	lastTx = tx
-	// }
-	// tc.WaitMinedWithChk(
-	// 	context.Background(), tc.EthClient, lastTx, tc.BlockDelay, tc.PollingInterval, "redeem reward on mainchain")
-
-	// for i := 0; i < len(tc.DelEthKs); i++ {
-	// 	r, err2 := tc.DposContract.RedeemedMiningReward(&bind.CallOpts{}, contracts.Hex2Addr(tc.DelEthAddrs[i]))
-	// 	require.NoError(t, err2, "failed to query reward on mainchain")
-	// 	log.Infof("redeemed reward of delegator %s is %s", tc.DelEthAddrs[i], r)
-	// 	assert.True(t, r.Cmp(big.NewInt(0)) > 0, "Redeemed reward should be larger than 0")
-	// }
 }

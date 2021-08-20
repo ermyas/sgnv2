@@ -5,32 +5,15 @@ import (
 	"os"
 	"time"
 
-	"github.com/celer-network/sgn-v2/proto/chain"
-	"github.com/celer-network/sgn-v2/proto/entity"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/golang/protobuf/proto"
 	"github.com/spf13/viper"
 )
 
 const (
 	retryTimeout = 500 * time.Millisecond
 )
-
-func UnmarshalSignedSimplexStateBytes(input []byte) (*chain.SignedSimplexState, *entity.SimplexPaymentChannel, error) {
-	var signedSimplexState chain.SignedSimplexState
-	err := proto.Unmarshal(input, &signedSimplexState)
-	if err != nil {
-		return nil, nil, err
-	}
-	var simplexChannel entity.SimplexPaymentChannel
-	err = proto.Unmarshal(signedSimplexState.SimplexState, &simplexChannel)
-	if err != nil {
-		return nil, nil, err
-	}
-	return &signedSimplexState, &simplexChannel, nil
-}
 
 func ParseTransactorAddrs(ts []string) ([]sdk.AccAddress, error) {
 	var transactors []sdk.AccAddress

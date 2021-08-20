@@ -6,29 +6,22 @@ import (
 )
 
 const (
-	ModuleName               = types.ModuleName
-	RouterKey                = types.RouterKey
-	StoreKey                 = types.StoreKey
-	QuerySyncer              = types.QuerySyncer
-	QueryDelegator           = types.QueryDelegator
-	QueryValidator           = types.QueryValidator
-	QueryValidators          = types.QueryValidators
-	QueryValidatorDelegators = types.QueryValidatorDelegators
-	QueryReward              = types.QueryReward
-	QueryRewardEpoch         = types.QueryRewardEpoch
-	QueryRewardStats         = types.QueryRewardStats
-	QueryParameters          = types.QueryParameters
-	TypeMsgClaimReward       = types.TypeMsgClaimReward
-	AttributeKeyEthAddress   = types.AttributeKeyEthAddress
-	ActionInitiateWithdraw   = types.ActionInitiateWithdraw
+	ModuleName             = types.ModuleName
+	RouterKey              = types.RouterKey
+	StoreKey               = types.StoreKey
+	QuerySyncer            = types.QuerySyncer
+	QueryDelegator         = types.QueryDelegator
+	QueryValidator         = types.QueryValidator
+	QueryValidators        = types.QueryValidators
+	QueryDelegators        = types.QueryDelegators
+	QueryParameters        = types.QueryParameters
+	AttributeKeyEthAddress = types.AttributeKeyEthAddress
+	ActionInitiateWithdraw = types.ActionInitiateWithdraw
 )
 
 var (
 	NewMsgSetTransactors           = types.NewMsgSetTransactors
-	NewMsgClaimReward              = types.NewMsgClaimReward
 	NewMsgEditValidatorDescription = types.NewMsgEditValidatorDescription
-	NewMsgSignReward               = types.NewMsgSignReward
-	NewQueryRewardParams           = types.NewQueryRewardParams
 	ModuleCdc                      = types.ModuleCdc
 	RegisterCodec                  = types.RegisterCodec
 	SyncerKey                      = types.SyncerKey
@@ -36,20 +29,13 @@ var (
 	GetDelegatorKey                = types.GetDelegatorKey
 	GetDelegatorsKey               = types.GetDelegatorsKey
 	GetValidatorKey                = types.GetValidatorKey
-	RewardKeyPrefix                = types.RewardKeyPrefix
-	GetRewardKey                   = types.GetRewardKey
-	PendingRewardKeyPrefix         = types.PendingRewardKeyPrefix
-	GetPendingRewardKey            = types.GetPendingRewardKey
-	RewardEpochKey                 = types.RewardEpochKey
 	NewSyncer                      = types.NewSyncer
 	NewDelegator                   = types.NewDelegator
 	NewValidator                   = types.NewValidator
-	NewReward                      = types.NewReward
 	CLIQuerySyncer                 = cli.QuerySyncer
 	CLIQueryValidator              = cli.QueryValidator
 	CLIQueryValidators             = cli.QueryValidators
-	CLIQueryValidatorDelegators    = cli.QueryValidatorDelegators
-	CLIQueryReward                 = cli.QueryReward
+	CLIQueryDelegators             = cli.QueryDelegators
 	CLIQueryDelegator              = cli.QueryDelegator
 	CLIQuerySgnValidator           = cli.QuerySgnValidator
 	CLIQuerySgnValidators          = cli.QuerySgnValidators
@@ -63,12 +49,8 @@ type (
 	Params                      = types.Params
 	Delegator                   = types.Delegator
 	Validator                   = types.Validator
-	Reward                      = types.Reward
 	QueryDelegatorParams        = types.QueryDelegatorParams
 	QueryValidatorParams        = types.QueryValidatorParams
-	QueryRewardParams           = types.QueryRewardParams
 	MsgSetTransactors           = types.MsgSetTransactors
 	MsgEditValidatorDescription = types.MsgEditValidatorDescription
-	MsgClaimReward              = types.MsgClaimReward
-	MsgSignReward               = types.MsgSignReward
 )
