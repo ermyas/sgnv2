@@ -51,7 +51,7 @@ func GetCmdSyncer(queryRoute string, cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			return cliCtx.PrintProto(syncer)
+			return cliCtx.PrintProto(&syncer)
 		},
 	}
 }
@@ -82,7 +82,7 @@ func GetCmdDelegator(queryRoute string, cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			return cliCtx.PrintProto(delegator)
+			return cliCtx.PrintProto(&delegator)
 		},
 	}
 }
@@ -105,7 +105,7 @@ func GetCmdValidator(queryRoute string, cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			return cliCtx.PrintProto(validator)
+			return cliCtx.PrintProto(&validator)
 		},
 	}
 }

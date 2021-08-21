@@ -66,7 +66,7 @@ func (k Keeper) GetSyncer(ctx sdk.Context) types.Syncer {
 }
 
 // Sets the entire Syncer metadata
-func (k Keeper) SetSyncer(ctx sdk.Context, syncer Syncer) {
+func (k Keeper) SetSyncer(ctx sdk.Context, syncer *Syncer) {
 	//store := ctx.KVStore(k.storeKey)
 	//store.Set(SyncerKey, k.cdc.MustMarshalBinaryBare(syncer))
 }
@@ -85,7 +85,7 @@ func (k Keeper) GetDelegator(ctx sdk.Context, validatorAddr, delegatorAddr strin
 }
 
 // Get the list of all delegators
-func (k Keeper) GetAllDelegators(ctx sdk.Context, validatorAddr string) (delegators []Delegator) {
+func (k Keeper) GetAllDelegators(ctx sdk.Context, validatorAddr string) (delegators []*Delegator) {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, GetDelegatorsKey(validatorAddr))
 	defer iterator.Close()
@@ -93,20 +93,20 @@ func (k Keeper) GetAllDelegators(ctx sdk.Context, validatorAddr string) (delegat
 	for ; iterator.Valid(); iterator.Next() {
 		var delegator Delegator
 		//k.cdc.MustUnmarshalBinaryBare(iterator.Value(), &delegator)
-		delegators = append(delegators, delegator)
+		delegators = append(delegators, &delegator)
 	}
 	return delegators
 }
 
 // Sets the entire Delegator metadata for a validatorAddr and delegatorAddr
-func (k Keeper) SetDelegator(ctx sdk.Context, delegator Delegator) {
+func (k Keeper) SetDelegator(ctx sdk.Context, delegator *Delegator) {
 	//store := ctx.KVStore(k.storeKey)
 	//store.Set(GetDelegatorKey(delegator.ValidatorAddr, delegator.DelegatorAddr), k.cdc.MustMarshalBinaryBare(delegator))
 }
 
 func (k Keeper) RemoveDelegator(ctx sdk.Context, delegator Delegator) {
 	store := ctx.KVStore(k.storeKey)
-	store.Delete(GetDelegatorKey(delegator.ValidatorAddr, delegator.DelegatorAddr))
+	store.Delete(GetDelegatorKey(delegator.ValAddress, delegator.EthAddress))
 }
 
 // Get the entire Validator metadata
@@ -124,7 +124,7 @@ func (k Keeper) GetValidator(ctx sdk.Context, validatorAddr string) (validator V
 }
 
 // Get the list of all validators
-func (k Keeper) GetAllValidators(ctx sdk.Context) (validators []Validator) {
+func (k Keeper) GetAllValidators(ctx sdk.Context) (validators []*Validator) {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, ValidatorKeyPrefix)
 	defer iterator.Close()
@@ -132,13 +132,13 @@ func (k Keeper) GetAllValidators(ctx sdk.Context) (validators []Validator) {
 	for ; iterator.Valid(); iterator.Next() {
 		var validator Validator
 		//k.cdc.MustUnmarshalBinaryBare(iterator.Value(), &validator)
-		validators = append(validators, validator)
+		validators = append(validators, &validator)
 	}
 	return validators
 }
 
 // Sets the Validator metadata
-func (k Keeper) SetValidator(ctx sdk.Context, validator Validator) {
+func (k Keeper) SetValidator(ctx sdk.Context, validator *Validator) {
 	//store := ctx.KVStore(k.storeKey)
 	//validatorKey := GetValidatorKey(validator.EthAddress)
 	//store.Set(validatorKey, k.cdc.MustMarshalBinaryBare(validator))

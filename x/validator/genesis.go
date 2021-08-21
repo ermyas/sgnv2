@@ -5,16 +5,9 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-type GenesisState struct {
-	Params     Params      `json:"params" yaml:"params"`
-	Syncer     Syncer      `json:"syncer" yaml:"syncer"`
-	Validators []Validator `json:"validators" yaml:"validators"`
-	Delegators []Delegator `json:"delegators" yaml:"delegators"`
-}
-
 func NewGenesisState(params Params) GenesisState {
 	return GenesisState{
-		Params: params,
+		Params: &params,
 	}
 }
 
@@ -28,7 +21,7 @@ func DefaultGenesisState() GenesisState {
 
 func InitGenesis(ctx sdk.Context, keeper Keeper, data GenesisState) []abci.ValidatorUpdate {
 	keeper.SetParams(ctx, data.Params)
-	if !data.Syncer.SgnAddress.Empty() {
+	if data.Syncer.SgnAddress != "" {
 		keeper.SetSyncer(ctx, data.Syncer)
 	}
 
@@ -47,15 +40,15 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) GenesisState {
 	params := keeper.GetParams(ctx)
 	syncer := keeper.GetSyncer(ctx)
 	validators := keeper.GetAllValidators(ctx)
-	delegators := []Delegator{}
+	delegators := []*Delegator{}
 
 	for _, validator := range validators {
 		delegators = append(delegators, keeper.GetAllDelegators(ctx, validator.EthAddress)...)
 	}
 
 	return GenesisState{
-		Params:     params,
-		Syncer:     syncer,
+		Params:     &params,
+		Syncer:     &syncer,
 		Validators: validators,
 		Delegators: delegators,
 	}

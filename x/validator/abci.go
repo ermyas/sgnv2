@@ -23,11 +23,11 @@ func setSyncer(ctx sdk.Context, keeper Keeper) {
 	syncer := keeper.GetSyncer(ctx)
 	validators := keeper.GetBondedSgnValidators(ctx)
 	syncerDuration := keeper.SyncerDuration(ctx)
-	vIdx := uint(ctx.BlockHeight()) / syncerDuration % uint(len(validators))
+	vIdx := uint64(ctx.BlockHeight()) / syncerDuration % uint64(len(validators))
 
-	if syncer.ValidatorIdx != vIdx || syncer.SgnAddress.Empty() {
-		syncer = NewSyncer(vIdx, sdk.AccAddress(validators[vIdx].OperatorAddress))
-		keeper.SetSyncer(ctx, syncer)
+	if syncer.ValIndex != vIdx || syncer.SgnAddress == "" {
+		syncer = NewSyncer(vIdx, validators[vIdx].OperatorAddress)
+		keeper.SetSyncer(ctx, &syncer)
 		log.Infof("set syncer to %s", syncer.SgnAddress)
 	}
 }

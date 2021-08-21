@@ -1,16 +1,12 @@
 package cli
 
 import (
-	"io/ioutil"
-
 	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/contracts"
 	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/validator/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
-	staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -32,7 +28,6 @@ func GetTxCmd(storeKey string, cdc codec.Codec) *cobra.Command {
 
 	validatorTxCmd.AddCommand(common.PostCommands(
 		GetCmdSetTransactors(cdc),
-		GetCmdEditValidatorDescription(cdc),
 	)...)
 
 	return validatorTxCmd
@@ -45,17 +40,19 @@ func GetCmdSetTransactors(cdc codec.Codec) *cobra.Command {
 		Short: "set transactors based on transactors in config",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			transactors, err := common.ParseTransactorAddrs(viper.GetStringSlice(common.FlagSgnTransactors))
-			if err != nil {
-				return err
-			}
+			/*
+				transactors, err := common.ParseTransactorAddrs(viper.GetStringSlice(common.FlagSgnTransactors))
+				if err != nil {
+					return err
+				}*/
+			transactors := viper.GetStringSlice(common.FlagSgnTransactors)
 
 			txr, err := transactor.NewCliTransactor(cdc, viper.GetString(flags.FlagHome))
 			if err != nil {
 				return err
 			}
 
-			msg := types.NewMsgSetTransactors(transactors, txr.Key.GetAddress())
+			msg := types.NewMsgSetTransactors(transactors, txr.Key.GetAddress().String())
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err
@@ -66,54 +63,6 @@ func GetCmdSetTransactors(cdc codec.Codec) *cobra.Command {
 			return nil
 		},
 	}
-
-	return cmd
-}
-
-// GetCmdEditValidatorDescription is the CLI command for sending a EditValidatorDescription transaction
-func GetCmdEditValidatorDescription(cdc codec.Codec) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "edit-candidate-description",
-		Short: "Edit candidate description",
-		Args:  cobra.ExactArgs(0),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			moniker, _ := cmd.Flags().GetString(flagMoniker)
-			website, _ := cmd.Flags().GetString(flagWebsite)
-			contact, _ := cmd.Flags().GetString(flagContact)
-			details, _ := cmd.Flags().GetString(flagDetails)
-			description := staking.NewDescription(moniker, staking.DoNotModifyDesc, website, contact, details)
-
-			txr, err := transactor.NewCliTransactor(cdc, viper.GetString(flags.FlagHome))
-			if err != nil {
-				return err
-			}
-
-			ksBytes, err := ioutil.ReadFile(viper.GetString(common.FlagEthKeystore))
-			if err != nil {
-				return err
-			}
-
-			address, err := contracts.GetAddressFromKeystore(ksBytes)
-			if err != nil {
-				return err
-			}
-
-			msg := types.NewMsgEditValidatorDescription(address, description, txr.Key.GetAddress())
-			err = msg.ValidateBasic()
-			if err != nil {
-				return err
-			}
-
-			// TODO: txr.CliSendTxMsgWaitMined(msg)
-
-			return nil
-		},
-	}
-
-	cmd.Flags().String(flagMoniker, staking.DoNotModifyDesc, "The candidate's name")
-	cmd.Flags().String(flagWebsite, staking.DoNotModifyDesc, "The candidate's website")
-	cmd.Flags().String(flagContact, staking.DoNotModifyDesc, "The candidate's security contact email")
-	cmd.Flags().String(flagDetails, staking.DoNotModifyDesc, "The candidate's details")
 
 	return cmd
 }

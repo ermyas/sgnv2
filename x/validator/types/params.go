@@ -3,15 +3,14 @@ package types
 import (
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/codec"
 	sdk_params "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 // validator params default values
 const (
-	DefaultSyncerDuration   uint = 10
-	DefaultEpochLength      uint = 5
-	DefaultMaxValidatorDiff uint = 10
+	DefaultSyncerDuration   uint64 = 10
+	DefaultEpochLength      uint64 = 5
+	DefaultMaxValidatorDiff uint64 = 10
 )
 
 // nolint - Keys for parameter access
@@ -23,15 +22,9 @@ var (
 
 var _ sdk_params.ParamSet = (*Params)(nil)
 
-type Params struct {
-	SyncerDuration   uint `json:"syncer_duration" yaml:"syncer_duration"`
-	EpochLength      uint `json:"epoch_length" yaml:"epoch_length"`
-	MaxValidatorDiff uint `json:"max_validator_diff" yaml:"max_validator_diff"`
-}
-
 // NewParams creates a new Params instance
 func NewParams(
-	syncerDuration, epochLength, maxValidatorDiff uint) Params {
+	syncerDuration, epochLength, maxValidatorDiff uint64) Params {
 
 	return Params{
 		SyncerDuration: syncerDuration,
@@ -60,33 +53,6 @@ func (p Params) Equal(p2 Params) bool {
 func DefaultParams() Params {
 	return NewParams(
 		DefaultSyncerDuration, DefaultEpochLength, DefaultMaxValidatorDiff)
-}
-
-// String returns a human readable string representation of the parameters.
-func (p Params) String() string {
-	return fmt.Sprintf(`Params:
-  SyncerDuration:   %d,
-  EpochLength:      %d,
-  MaxValidatorDiff: %d,`,
-		p.SyncerDuration, p.EpochLength, p.MaxValidatorDiff)
-}
-
-// unmarshal the current validator params value from store key or panic
-func MustUnmarshalParams(cdc *codec.Codec, value []byte) Params {
-	params, err := UnmarshalParams(cdc, value)
-	if err != nil {
-		panic(err)
-	}
-	return params
-}
-
-// unmarshal the current validator params value from store key
-func UnmarshalParams(cdc *codec.Codec, value []byte) (params Params, err error) {
-	// err = cdc.UnmarshalLengthPrefixed(value, &params)
-	// if err != nil {
-	// 	return
-	// }
-	return
 }
 
 // validate a set of params

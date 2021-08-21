@@ -1,22 +1,8 @@
 package types
 
-import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/gogo/protobuf/proto"
-)
-
-type Syncer struct {
-	ValidatorIdx uint           `json:"validator_idx"`
-	SgnAddress   sdk.AccAddress `json:"validator_acct"`
-}
-
-func NewSyncer(validatorIdx uint, sgnAddress sdk.AccAddress) Syncer {
+func NewSyncer(validatorIdx uint64, sgnAddress string) Syncer {
 	return Syncer{
-		ValidatorIdx: validatorIdx,
-		SgnAddress:   sgnAddress,
+		ValIndex:   validatorIdx,
+		SgnAddress: sgnAddress,
 	}
 }
-
-func (m Syncer) Reset()         { m = Syncer{} }
-func (m Syncer) String() string { return proto.CompactTextString(m) }
-func (Syncer) ProtoMessage()    {}

@@ -17,19 +17,19 @@ func ParamKeyTable() sdk_params.KeyTable {
 }
 
 // SyncerDuration - syncer duration
-func (k Keeper) SyncerDuration(ctx sdk.Context) (res uint) {
+func (k Keeper) SyncerDuration(ctx sdk.Context) (res uint64) {
 	k.paramstore.Get(ctx, types.KeySyncerDuration, &res)
 	return
 }
 
 // EpochLength - epoch length
-func (k Keeper) EpochLength(ctx sdk.Context) (res uint) {
+func (k Keeper) EpochLength(ctx sdk.Context) (res uint64) {
 	k.paramstore.Get(ctx, types.KeyEpochLength, &res)
 	return
 }
 
 // MaxValidatorDiff - max validator add
-func (k Keeper) MaxValidatorDiff(ctx sdk.Context) (res uint) {
+func (k Keeper) MaxValidatorDiff(ctx sdk.Context) (res uint64) {
 	k.paramstore.Get(ctx, types.KeyMaxValidatorDiff, &res)
 	return
 }
@@ -44,6 +44,6 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 }
 
 // set the params
-func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
-	k.paramstore.SetParamSet(ctx, &params)
+func (k Keeper) SetParams(ctx sdk.Context, params *types.Params) {
+	k.paramstore.SetParamSet(ctx, params)
 }

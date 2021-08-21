@@ -53,4 +53,5 @@ type (
 	QueryValidatorParams        = types.QueryValidatorParams
 	MsgSetTransactors           = types.MsgSetTransactors
 	MsgEditValidatorDescription = types.MsgEditValidatorDescription
+	GenesisState                = types.GenesisState
 )
