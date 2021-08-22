@@ -7,7 +7,6 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/x/validator/types"
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/spf13/cobra"
@@ -17,7 +16,7 @@ const (
 	flagCheckMainchain = "check-mainchain"
 )
 
-func GetQueryCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
+func GetQueryCmd() *cobra.Command {
 	validatorQueryCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Querying commands for the validator module",
@@ -25,26 +24,27 @@ func GetQueryCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 	validatorQueryCmd.AddCommand(common.GetCommands(
-		GetCmdValidator(storeKey, cdc),
-		GetCmdValidators(storeKey, cdc),
-		GetCmdDelegator(storeKey, cdc),
-		GetCmdDelegators(storeKey, cdc),
-		GetCmdSgnValidator(sdk_staking.StoreKey, cdc),
-		GetCmdSgnValidators(sdk_staking.StoreKey, cdc),
-		GetCmdSyncer(storeKey, cdc),
-		GetCmdQueryParams(storeKey, cdc),
+		GetCmdValidator(types.StoreKey),
+		GetCmdValidators(types.StoreKey),
+		GetCmdDelegator(types.StoreKey),
+		GetCmdDelegators(types.StoreKey),
+		GetCmdSdkValidator(sdk_staking.StoreKey),
+		GetCmdSdkValidators(sdk_staking.StoreKey),
+		GetCmdSyncer(types.StoreKey),
+		GetCmdQueryParams(types.StoreKey),
 	)...)
 	return validatorQueryCmd
 }
 
 // GetCmdSyncer queries syncer info
-func GetCmdSyncer(queryRoute string, cdc *codec.Codec) *cobra.Command {
+func GetCmdSyncer(queryRoute string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "syncer",
 		Short: "query syncer info",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := common.NewQueryCLIContext(cdc)
+			clientCtx, err := client.GetClientTxContext(cmd)
+			cliCtx := common.NewQueryCLIContext(&clientCtx.Codec)
 			syncer, err := QuerySyncer(cliCtx, queryRoute)
 			if err != nil {
 				log.Errorln("query error", err)
@@ -69,13 +69,14 @@ func QuerySyncer(cliCtx client.Context, queryRoute string) (syncer types.Syncer,
 }
 
 // GetCmdDelegator queries request info
-func GetCmdDelegator(queryRoute string, cdc *codec.Codec) *cobra.Command {
+func GetCmdDelegator(queryRoute string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "delegator [validator-eth-addr] [delegator-eth-addr]",
 		Short: "query delegator info by validator and delegator ETH addresses",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := common.NewQueryCLIContext(cdc)
+			clientCtx, err := client.GetClientTxContext(cmd)
+			cliCtx := common.NewQueryCLIContext(&clientCtx.Codec)
 			delegator, err := QueryDelegator(cliCtx, queryRoute, args[0], args[1])
 			if err != nil {
 				log.Errorln("query error", err)
@@ -92,13 +93,14 @@ func QueryDelegator(cliCtx client.Context, queryRoute, validatorAddress, delegat
 }
 
 // GetCmdValidator queries request info
-func GetCmdValidator(queryRoute string, cdc *codec.Codec) *cobra.Command {
+func GetCmdValidator(queryRoute string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "validator [validator-eth-addr]",
 		Short: "query validator info by validator ETH address",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := common.NewQueryCLIContext(cdc)
+			clientCtx, err := client.GetClientTxContext(cmd)
+			cliCtx := common.NewQueryCLIContext(&clientCtx.Codec)
 			validator, err := QueryValidator(cliCtx, queryRoute, args[0])
 			if err != nil {
 				log.Errorln("query error", err)
@@ -114,7 +116,7 @@ func QueryValidator(cliCtx client.Context, queryRoute, ethAddress string) (valid
 	return
 }
 
-func GetCmdValidators(queryRoute string, cdc *codec.Codec) *cobra.Command {
+func GetCmdValidators(queryRoute string) *cobra.Command {
 	return &cobra.Command{}
 }
 
@@ -124,7 +126,7 @@ func QueryValidators(cliCtx client.Context, queryRoute string) (validators []typ
 
 // GetCmdDelegators queries request info
 // TODO: support pagination
-func GetCmdDelegators(queryRoute string, cdc *codec.Codec) *cobra.Command {
+func GetCmdDelegators(queryRoute string) *cobra.Command {
 	return &cobra.Command{}
 }
 
@@ -133,27 +135,27 @@ func QueryDelegators(cliCtx client.Context, queryRoute, ethAddress string) (dele
 }
 
 // GetCmdValidator queries validator info
-func GetCmdSgnValidator(queryRoute string, cdc *codec.Codec) *cobra.Command {
+func GetCmdSdkValidator(queryRoute string) *cobra.Command {
 	return &cobra.Command{}
 }
 
 // GetCmdValidator queries validator info
-func GetCmdSgnValidators(queryRoute string, cdc *codec.Codec) *cobra.Command {
+func GetCmdSdkValidators(queryRoute string) *cobra.Command {
 	return &cobra.Command{}
 }
 
-// QuerySgnValidators is an interface for convenience to query (all) validators in staking module
-func QuerySgnValidators(cliCtx client.Context, storeName string) (validators sdk_staking.Validators, err error) {
+// QuerySdkValidators is an interface for convenience to query (all) validators in staking module
+func QuerySdkValidators(cliCtx client.Context, storeName string) (validators sdk_staking.Validators, err error) {
 	return
 }
 
 // QueryBondedValidators is an interface for convenience to query bonded validators in staking module
-func QueryBondedSgnValidators(cliCtx client.Context, storeName string) (validators sdk_staking.Validators, err error) {
+func QueryBondedSdkValidators(cliCtx client.Context, storeName string) (validators sdk_staking.Validators, err error) {
 	return
 }
 
 // addrStr should be bech32 sgn account address with prefix sgn
-func QuerySgnValidator(cliCtx client.Context, storeName string, addrStr string) (validator sdk_staking.Validator, err error) {
+func QuerySdkValidator(cliCtx client.Context, storeName string, addrStr string) (validator sdk_staking.Validator, err error) {
 	addr, err := sdk.AccAddressFromBech32(addrStr)
 	if err != nil {
 		log.Error(err)
@@ -175,7 +177,7 @@ func QuerySgnValidator(cliCtx client.Context, storeName string, addrStr string) 
 }
 
 // GetCmdQueryParams implements the params query command.
-func GetCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
+func GetCmdQueryParams(queryRoute string) *cobra.Command {
 	return &cobra.Command{}
 }
 

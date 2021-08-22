@@ -56,15 +56,15 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		// everything that is iterated in this loop is becoming or already a
 		// part of the bonded validator set
 		valAddr := sdk.ValAddress(iterator.Value())
-		validator := mustGetValidator(ctx, k.sdkval, valAddr)
+		sdkVal := mustGetValidator(ctx, k.sdkval, valAddr)
 
-		if validator.Jailed {
+		if sdkVal.Jailed {
 			panic("should never retrieve a jailed validator from the power store")
 		}
 
 		// if we get to a zero-power validator (which we don't bond),
 		// there are no more possible bonded validators
-		if validator.PotentialConsensusPower(powerReduction) == 0 {
+		if sdkVal.PotentialConsensusPower(powerReduction) == 0 {
 			break
 		}
 
@@ -74,12 +74,12 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 			return nil, err
 		}
 		oldPowerBytes, found := last[valAddrStr]
-		newPower := validator.ConsensusPower(powerReduction)
+		newPower := sdkVal.ConsensusPower(powerReduction)
 		newPowerBytes := k.cdc.MustMarshal(&gogotypes.Int64Value{Value: newPower})
 
 		// update the validator set if power has changed
 		if !found || !bytes.Equal(oldPowerBytes, newPowerBytes) {
-			updates = append(updates, validator.ABCIValidatorUpdate(powerReduction))
+			updates = append(updates, sdkVal.ABCIValidatorUpdate(powerReduction))
 
 			k.sdkval.SetLastValidatorPower(ctx, valAddr, newPower)
 		}
@@ -95,9 +95,9 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		return nil, err
 	}
 	for _, valAddrBytes := range noLongerBonded {
-		validator := mustGetValidator(ctx, k.sdkval, sdk.ValAddress(valAddrBytes))
-		k.sdkval.DeleteLastValidatorPower(ctx, validator.GetOperator())
-		updates = append(updates, validator.ABCIValidatorUpdateZero())
+		sdkVal := mustGetValidator(ctx, k.sdkval, sdk.ValAddress(valAddrBytes))
+		k.sdkval.DeleteLastValidatorPower(ctx, sdkVal.GetOperator())
+		updates = append(updates, sdkVal.ABCIValidatorUpdateZero())
 	}
 
 	// set total power on lookup index if there are any updates
@@ -159,10 +159,10 @@ func sortNoLongerBonded(last validatorsByAddr) ([][]byte, error) {
 }
 
 func mustGetValidator(ctx sdk.Context, sdkval sdk_staking_keeper.Keeper, addr sdk.ValAddress) sdk_staking.Validator {
-	validator, found := sdkval.GetValidator(ctx, addr)
+	sdkVal, found := sdkval.GetValidator(ctx, addr)
 	if !found {
 		panic(fmt.Sprintf("validator record not found for address: %X\n", addr))
 	}
 
-	return validator
+	return sdkVal
 }

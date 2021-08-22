@@ -18,7 +18,7 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) (updates []abci.Validator
 // Update syncer for every syncerDuration
 func setSyncer(ctx sdk.Context, keeper keeper.Keeper) {
 	syncer := keeper.GetSyncer(ctx)
-	validators := keeper.GetBondedSgnValidators(ctx)
+	validators := keeper.GetBondedSdkValidators(ctx)
 	syncerDuration := keeper.SyncerDuration(ctx)
 	vIdx := uint64(ctx.BlockHeight()) / syncerDuration % uint64(len(validators))
 

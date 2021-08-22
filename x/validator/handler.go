@@ -41,12 +41,12 @@ func handleMsgSetTransactors(ctx sdk.Context, keeper keeper.Keeper, msg *types.M
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender
 
-	sgnVal, found := keeper.GetSgnValidator(ctx, sdk.ValAddress(msg.Sender))
+	sdkVal, found := keeper.GetSdkValidator(ctx, sdk.ValAddress(msg.Sender))
 	if !found {
 		return nil, fmt.Errorf("Sender is not a validator")
 	}
 
-	validator, found := keeper.GetValidator(ctx, sgnVal.Description.Identity)
+	validator, found := keeper.GetValidator(ctx, sdkVal.Description.Identity)
 	if !found {
 		return nil, fmt.Errorf("Validator does not exist")
 	}

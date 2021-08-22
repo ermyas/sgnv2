@@ -6,8 +6,6 @@ import (
 	sdk_errors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
-const RouterKey = ModuleName
-
 const (
 	TypeMsgSetTransactors  = "set_transactors"
 	TypeMsgEditDescription = "edit_validator_description"

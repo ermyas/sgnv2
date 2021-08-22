@@ -6,7 +6,6 @@ import (
 	"github.com/celer-network/sgn-v2/x/validator/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -18,7 +17,7 @@ const (
 	flagDetails = "details"
 )
 
-func GetTxCmd(storeKey string, cdc codec.Codec) *cobra.Command {
+func GetTxCmd() *cobra.Command {
 	validatorTxCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Validator transaction subcommands",
@@ -27,19 +26,23 @@ func GetTxCmd(storeKey string, cdc codec.Codec) *cobra.Command {
 	}
 
 	validatorTxCmd.AddCommand(common.PostCommands(
-		GetCmdSetTransactors(cdc),
+		GetCmdSetTransactors(),
 	)...)
 
 	return validatorTxCmd
 }
 
 // GetCmdSetTransactors is the CLI command for sending a SetTransactors transaction
-func GetCmdSetTransactors(cdc codec.Codec) *cobra.Command {
+func GetCmdSetTransactors() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set-transactors",
 		Short: "set transactors based on transactors in config",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
 			/*
 				transactors, err := common.ParseTransactorAddrs(viper.GetStringSlice(common.FlagSgnTransactors))
 				if err != nil {
@@ -47,7 +50,7 @@ func GetCmdSetTransactors(cdc codec.Codec) *cobra.Command {
 				}*/
 			transactors := viper.GetStringSlice(common.FlagSgnTransactors)
 
-			txr, err := transactor.NewCliTransactor(cdc, viper.GetString(flags.FlagHome))
+			txr, err := transactor.NewCliTransactor(clientCtx.Codec, viper.GetString(flags.FlagHome))
 			if err != nil {
 				return err
 			}

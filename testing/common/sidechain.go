@@ -83,11 +83,11 @@ func CheckDelegator(t *testing.T, transactor *transactor.Transactor, validatorAd
 	assert.Equal(t, expectedRes, delegator.String(), "The expected result should be: "+expectedRes)
 }
 
-func CheckSgnValidator(t *testing.T, transactor *transactor.Transactor, valacct string, expAmt *big.Int, expStatus stypes.BondStatus) {
+func CheckSdkValidator(t *testing.T, transactor *transactor.Transactor, valacct string, expAmt *big.Int, expStatus stypes.BondStatus) {
 	var validator stypes.Validator
 	var err error
 	for retry := 0; retry < RetryLimit; retry++ {
-		validator, err = cli.QuerySgnValidator(transactor.CliCtx, stypes.RouterKey, valacct)
+		validator, err = cli.QuerySdkValidator(transactor.CliCtx, stypes.RouterKey, valacct)
 		if err == nil &&
 			validator.Status == expStatus {
 			expToken := sdk.NewIntFromBigInt(expAmt).QuoRaw(common.TokenDec).String()

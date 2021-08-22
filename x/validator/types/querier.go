@@ -5,13 +5,23 @@ import (
 )
 
 const (
-	QuerySyncer     = "syncer"
 	QueryValidator  = "validator"
 	QueryValidators = "validators"
 	QueryDelegator  = "delegator"
 	QueryDelegators = "delegators"
+	QuerySyncer     = "syncer"
 	QueryParameters = "parameters"
 )
+
+type QueryValidatorParams struct {
+	ValidatorAddress string
+}
+
+func NewQueryValidatorParams(validatorAddress string) QueryValidatorParams {
+	return QueryValidatorParams{
+		ValidatorAddress: contracts.FormatAddrHex(validatorAddress),
+	}
+}
 
 type QueryDelegatorParams struct {
 	ValidatorAddress string
@@ -22,15 +32,5 @@ func NewQueryDelegatorParams(validatorAddress, delegatorAddress string) QueryDel
 	return QueryDelegatorParams{
 		ValidatorAddress: contracts.FormatAddrHex(validatorAddress),
 		DelegatorAddress: contracts.FormatAddrHex(delegatorAddress),
-	}
-}
-
-type QueryValidatorParams struct {
-	ValidatorAddress string
-}
-
-func NewQueryValidatorParams(validatorAddress string) QueryValidatorParams {
-	return QueryValidatorParams{
-		ValidatorAddress: contracts.FormatAddrHex(validatorAddress),
 	}
 }
