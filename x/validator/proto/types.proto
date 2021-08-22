@@ -46,7 +46,7 @@ message MsgSetTransactors {
     string sender = 2;
 }
 
-message MsgEditValidatorDescription {
+message MsgEditDescription {
     string eth_address = 1;
     Description description = 2;
     string sender = 3;

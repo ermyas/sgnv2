@@ -1,4 +1,4 @@
-package validator
+package keeper
 
 import (
 	"github.com/celer-network/sgn-v2/x/validator/types"
@@ -35,7 +35,7 @@ func (k Keeper) MaxValidatorDiff(ctx sdk.Context) (res uint64) {
 }
 
 // Get all parameteras as types.Params
-func (k Keeper) GetParams(ctx sdk.Context) types.Params {
+func (k Keeper) GetParams(ctx sdk.Context) *types.Params {
 	return types.NewParams(
 		k.SyncerDuration(ctx),
 		k.EpochLength(ctx),

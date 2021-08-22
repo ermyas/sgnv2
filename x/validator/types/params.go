@@ -24,9 +24,9 @@ var _ sdk_params.ParamSet = (*Params)(nil)
 
 // NewParams creates a new Params instance
 func NewParams(
-	syncerDuration, epochLength, maxValidatorDiff uint64) Params {
+	syncerDuration, epochLength, maxValidatorDiff uint64) *Params {
 
-	return Params{
+	return &Params{
 		SyncerDuration: syncerDuration,
 		EpochLength:    epochLength,
 	}
@@ -42,7 +42,7 @@ func (p *Params) ParamSetPairs() sdk_params.ParamSetPairs {
 }
 
 // Equal returns a boolean determining if two Param types are identical.
-func (p Params) Equal(p2 Params) bool {
+func (p *Params) Equal(p2 *Params) bool {
 	// bz1 := ModuleCdc.MustMarshalLengthPrefixed(&p)
 	// bz2 := ModuleCdc.MustMarshalLengthPrefixed(&p2)
 	// return bytes.Equal(bz1, bz2)
@@ -50,13 +50,13 @@ func (p Params) Equal(p2 Params) bool {
 }
 
 // DefaultParams returns a default set of parameters.
-func DefaultParams() Params {
+func DefaultParams() *Params {
 	return NewParams(
 		DefaultSyncerDuration, DefaultEpochLength, DefaultMaxValidatorDiff)
 }
 
 // validate a set of params
-func (p Params) Validate() error {
+func (p *Params) Validate() error {
 	if p.SyncerDuration == 0 {
 		return fmt.Errorf("validator parameter SyncerDuration must be a positive integer")
 	}

@@ -4,12 +4,14 @@ import (
 	"fmt"
 
 	"github.com/celer-network/sgn-v2/seal"
+	"github.com/celer-network/sgn-v2/x/validator/keeper"
+	"github.com/celer-network/sgn-v2/x/validator/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk_errors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 // NewHandler returns a handler for "validator" type messages.
-func NewHandler(keeper Keeper) sdk.Handler {
+func NewHandler(keeper keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		logEntry := seal.NewMsgLog()
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
@@ -17,12 +19,12 @@ func NewHandler(keeper Keeper) sdk.Handler {
 		var err error
 
 		switch msg := msg.(type) {
-		// case MsgSetTransactors:
-		// 	res, err = handleMsgSetTransactors(ctx, keeper, msg, logEntry)
-		// case MsgEditValidatorDescription:
-		// 	res, err = handleMsgEditValidatorDescription(ctx, keeper, msg, logEntry)
+		case *types.MsgSetTransactors:
+			res, err = handleMsgSetTransactors(ctx, keeper, msg, logEntry)
+		case *types.MsgEditDescription:
+			res, err = handleMsgEditDescription(ctx, keeper, msg, logEntry)
 		default:
-			return nil, sdk_errors.Wrapf(sdk_errors.ErrUnknownRequest, "unrecognized %s message type: %T", ModuleName, msg)
+			return nil, sdk_errors.Wrapf(sdk_errors.ErrUnknownRequest, "unrecognized %s message type: %T", types.ModuleName, msg)
 		}
 
 		if err != nil {
@@ -35,7 +37,7 @@ func NewHandler(keeper Keeper) sdk.Handler {
 }
 
 // Handle a message to set transactors
-func handleMsgSetTransactors(ctx sdk.Context, keeper Keeper, msg MsgSetTransactors, logEntry *seal.MsgLog) (*sdk.Result, error) {
+func handleMsgSetTransactors(ctx sdk.Context, keeper keeper.Keeper, msg *types.MsgSetTransactors, logEntry *seal.MsgLog) (*sdk.Result, error) {
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender
 
@@ -72,12 +74,12 @@ func handleMsgSetTransactors(ctx sdk.Context, keeper Keeper, msg MsgSetTransacto
 		}
 	}
 
-	keeper.SetValidator(ctx, &validator)
+	keeper.SetValidator(ctx, validator)
 	return &sdk.Result{}, nil
 }
 
 // Handle a message to edit validator description
-func handleMsgEditValidatorDescription(ctx sdk.Context, keeper Keeper, msg MsgEditValidatorDescription, logEntry *seal.MsgLog) (*sdk.Result, error) {
+func handleMsgEditDescription(ctx sdk.Context, keeper keeper.Keeper, msg *types.MsgEditDescription, logEntry *seal.MsgLog) (*sdk.Result, error) {
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender
 	logEntry.EthAddress = msg.EthAddress
@@ -89,6 +91,6 @@ func handleMsgEditValidatorDescription(ctx sdk.Context, keeper Keeper, msg MsgEd
 	// TODO: copy update validator description from sdk_staking
 
 	validator.Description = msg.Description
-	keeper.SetValidator(ctx, &validator)
+	keeper.SetValidator(ctx, validator)
 	return &sdk.Result{}, nil
 }

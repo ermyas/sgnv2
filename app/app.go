@@ -31,6 +31,8 @@ import (
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
+	valkeeper "github.com/celer-network/sgn-v2/x/validator/keeper"
+	valtypes "github.com/celer-network/sgn-v2/x/validator/types"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
@@ -105,7 +107,7 @@ type SgnApp struct {
 	stakingKeeper   stakingkeeper.Keeper
 	paramsKeeper    paramskeeper.Keeper
 	upgradeKeeper   upgradekeeper.Keeper
-	validatorKeeper validator.Keeper
+	validatorKeeper valkeeper.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -154,7 +156,7 @@ func NewSgnApp(
 		keyStaking:   sdk.NewKVStoreKey(stakingtypes.StoreKey),
 		keyParams:    sdk.NewKVStoreKey(paramstypes.StoreKey),
 		keyUpgrade:   sdk.NewKVStoreKey(upgradetypes.StoreKey),
-		keyValidator: sdk.NewKVStoreKey(validator.StoreKey),
+		keyValidator: sdk.NewKVStoreKey(valtypes.StoreKey),
 	}
 
 	app.paramsKeeper = paramskeeper.NewKeeper(appCodec, legacyAmino, app.keyParams, app.tkeyParams)
@@ -162,7 +164,7 @@ func NewSgnApp(
 	authSubspace := app.paramsKeeper.Subspace(authtypes.ModuleName)
 	bankSupspace := app.paramsKeeper.Subspace(banktypes.ModuleName)
 	stakingSubspace := app.paramsKeeper.Subspace(stakingtypes.ModuleName)
-	validatorSubspace := app.paramsKeeper.Subspace(validator.ModuleName)
+	validatorSubspace := app.paramsKeeper.Subspace(valtypes.ModuleName)
 
 	// The AccountKeeper handles address -> account lookups
 	app.accountKeeper = authkeeper.NewAccountKeeper(
@@ -185,7 +187,7 @@ func NewSgnApp(
 		stakingtypes.NewMultiStakingHooks(),
 	)
 
-	app.validatorKeeper = validator.NewKeeper(
+	app.validatorKeeper = valkeeper.NewKeeper(
 		appCodec, app.keyValidator, app.accountKeeper, app.stakingKeeper, validatorSubspace,
 	)
 
@@ -204,14 +206,14 @@ func NewSgnApp(
 	)
 
 	app.mm.SetOrderBeginBlockers(upgradetypes.ModuleName)
-	app.mm.SetOrderEndBlockers(validator.ModuleName)
+	app.mm.SetOrderEndBlockers(valtypes.ModuleName)
 
 	app.mm.SetOrderInitGenesis(
 		stakingtypes.ModuleName,
 		authtypes.ModuleName,
 		banktypes.ModuleName,
 		genutiltypes.ModuleName,
-		validator.ModuleName,
+		valtypes.ModuleName,
 	)
 
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter(), encodingConfig.Amino)
