@@ -5,10 +5,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 )
 
-func NewDelegator(validatorAddr, delegatorAddr string) *Delegator {
+func NewDelegator(valAddr, delAddr string) *Delegator {
 	return &Delegator{
-		EthAddress: contracts.FormatAddrHex(delegatorAddr),
-		ValAddress: contracts.FormatAddrHex(delegatorAddr),
+		ValAddress: contracts.FormatAddrHex(valAddr),
+		DelAddress: contracts.FormatAddrHex(delAddr),
 	}
 }
 

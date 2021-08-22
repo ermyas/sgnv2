@@ -23,7 +23,7 @@ func (k Keeper) GetValidator(ctx sdk.Context, ethAddr string) (validator *types.
 // Get the list of all validators
 func (k Keeper) GetAllValidators(ctx sdk.Context) (validators []*types.Validator) {
 	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, types.ValidatorKeyPrefix)
+	iterator := sdk.KVStorePrefixIterator(store, types.ValidatorKey)
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {

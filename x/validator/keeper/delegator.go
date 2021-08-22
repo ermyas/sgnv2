@@ -34,11 +34,11 @@ func (k Keeper) GetAllDelegators(ctx sdk.Context, valAddr string) (delegators []
 // Sets the entire Delegator metadata for a validatorAddr and delegatorAddr
 func (k Keeper) SetDelegator(ctx sdk.Context, delegator *types.Delegator) {
 	store := ctx.KVStore(k.storeKey)
-	delegatorKey := types.GetDelegatorKey(delegator.ValAddress, delegator.EthAddress)
+	delegatorKey := types.GetDelegatorKey(delegator.ValAddress, delegator.DelAddress)
 	store.Set(delegatorKey, types.MustMarshalDelegator(k.cdc, delegator))
 }
 
 func (k Keeper) RemoveDelegator(ctx sdk.Context, delegator *types.Delegator) {
 	store := ctx.KVStore(k.storeKey)
-	store.Delete(types.GetDelegatorKey(delegator.ValAddress, delegator.EthAddress))
+	store.Delete(types.GetDelegatorKey(delegator.ValAddress, delegator.DelAddress))
 }

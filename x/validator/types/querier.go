@@ -14,23 +14,23 @@ const (
 )
 
 type QueryValidatorParams struct {
-	ValidatorAddress string
+	EthAddress string
 }
 
-func NewQueryValidatorParams(validatorAddress string) QueryValidatorParams {
+func NewQueryValidatorParams(ethAddress string) QueryValidatorParams {
 	return QueryValidatorParams{
-		ValidatorAddress: contracts.FormatAddrHex(validatorAddress),
+		EthAddress: contracts.FormatAddrHex(ethAddress),
 	}
 }
 
 type QueryDelegatorParams struct {
-	ValidatorAddress string
-	DelegatorAddress string
+	ValAddress string
+	DelAddress string
 }
 
-func NewQueryDelegatorParams(validatorAddress, delegatorAddress string) QueryDelegatorParams {
+func NewQueryDelegatorParams(valAddress, delAddress string) QueryDelegatorParams {
 	return QueryDelegatorParams{
-		ValidatorAddress: contracts.FormatAddrHex(validatorAddress),
-		DelegatorAddress: contracts.FormatAddrHex(delegatorAddress),
+		ValAddress: contracts.FormatAddrHex(valAddress),
+		DelAddress: contracts.FormatAddrHex(delAddress),
 	}
 }

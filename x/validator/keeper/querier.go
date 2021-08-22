@@ -9,47 +9,109 @@ import (
 )
 
 // NewQuerier is the module level router for state queries
-func NewQuerier(keeper Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
+func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 	return func(ctx sdk.Context, path []string, req abci.RequestQuery) ([]byte, error) {
 		switch path[0] {
 		case types.QueryValidator:
-			return queryValidator(ctx, req, keeper)
+			return queryValidator(ctx, req, k, legacyQuerierCdc)
 		case types.QueryValidators:
-			return queryValidators(ctx, req, keeper)
+			return queryValidators(ctx, req, k, legacyQuerierCdc)
 		case types.QueryDelegator:
-			return queryDelegator(ctx, req, keeper)
+			return queryDelegator(ctx, req, k, legacyQuerierCdc)
 		case types.QueryDelegators:
-			return queryDelegators(ctx, req, keeper)
+			return queryDelegators(ctx, req, k, legacyQuerierCdc)
 		case types.QuerySyncer:
-			return querySyncer(ctx, req, keeper)
+			return querySyncer(ctx, req, k, legacyQuerierCdc)
 		case types.QueryParameters:
-			return queryParameters(ctx, keeper)
+			return queryParameters(ctx, k, legacyQuerierCdc)
 		default:
 			return nil, sdk_errors.Wrap(sdk_errors.ErrUnknownRequest, "Unknown validator query endpoint")
 		}
 	}
 }
 
-func queryValidator(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
-	return nil, nil
+func queryValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var params types.QueryValidatorParams
+
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONUnmarshal, err.Error())
+	}
+
+	validator, found := k.GetValidator(ctx, params.EthAddress)
+	if !found {
+		return nil, types.ErrNoValidatorFound
+	}
+
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, validator)
+	if err != nil {
+		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
 }
 
-func queryValidators(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
-	return nil, nil
+func queryValidators(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	validators := k.GetAllValidators(ctx)
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, validators)
+	if err != nil {
+		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+	}
+	return res, nil
 }
 
-func queryDelegator(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
-	return nil, nil
+func queryDelegator(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var params types.QueryDelegatorParams
+
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONUnmarshal, err.Error())
+	}
+
+	delegator, found := k.GetDelegator(ctx, params.ValAddress, params.DelAddress)
+	if !found {
+		return nil, types.ErrNoDelegatorFound
+	}
+
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, delegator)
+	if err != nil {
+		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
 }
 
-func queryDelegators(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
-	return nil, nil
+// query all delegators of a given validator
+func queryDelegators(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var params types.QueryValidatorParams
+
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONUnmarshal, err.Error())
+	}
+
+	delegators := k.GetAllDelegators(ctx, params.EthAddress)
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, delegators)
+	if err != nil {
+		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+	}
+	return res, nil
 }
 
-func querySyncer(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
-	return nil, nil
+func querySyncer(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	syncer := k.GetSyncer(ctx)
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, syncer)
+	if err != nil {
+		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+	}
+	return res, nil
 }
 
-func queryParameters(ctx sdk.Context, k Keeper) ([]byte, error) {
-	return nil, nil
+func queryParameters(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	params := k.GetParams(ctx)
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, params)
+	if err != nil {
+		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+	}
+	return res, nil
 }

@@ -26,8 +26,8 @@ message Description {
 }
 
 message Delegator {
-    string eth_address = 1;
-    string val_address = 2;
+    string val_address = 1;
+    string del_address = 2;
 }
 
 message Syncer {
