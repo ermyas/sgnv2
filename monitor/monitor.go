@@ -90,4 +90,21 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 	if err != nil {
 		log.Fatalln("Sidechain acct error")
 	}
+
+	go m.monitorValidatorParamsUpdate()
+	go m.monitorValidatorStatusUpdate()
+	go m.monitorDelegationUpdate()
+	go m.monitorSgnAddrUpdate()
+}
+
+func (m *Monitor) monitorValidatorParamsUpdate() {
+}
+
+func (m *Monitor) monitorValidatorStatusUpdate() {
+}
+
+func (m *Monitor) monitorDelegationUpdate() {
+}
+
+func (m *Monitor) monitorSgnAddrUpdate() {
 }
