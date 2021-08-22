@@ -63,3 +63,14 @@ func RobustQuery(cliCtx client.Context, route string) ([]byte, error) {
 
 	return res, err
 }
+
+func RobustQueryWithData(cliCtx client.Context, route string, data []byte) ([]byte, error) {
+	res, _, err := cliCtx.QueryWithData(route, data)
+	if err != nil {
+		time.Sleep(retryTimeout)
+		res, _, err = cliCtx.QueryWithData(route, data)
+		return res, err
+	}
+
+	return res, err
+}
