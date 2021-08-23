@@ -1,0 +1,41 @@
+# SGN-specific configs
+
+[eth]
+block_delay = 1
+chain_id = 883
+gateway = "http://192.168.10.1:8545"
+keystore = "./keys/vethks3.json"
+passphrase = ""
+poll_interval = 1
+
+[eth.check_interval]
+confirm_param_proposal = 2
+intend_settle = 1
+intend_withdraw_channel = 1
+
+[eth.contracts]
+celr_address = ""
+dpos_address = ""
+ledger_address = ""
+sgn_address = ""
+
+[log]
+color = false
+level = "debug"
+
+[sgn]
+base_gas_price = 0
+chain_id = "sgntest"
+execute_slash = true
+gas_adjustment = 1.5
+keyring_backend = "file"
+node_uri = "tcp://localhost:26657"
+passphrase = "12341234"
+pubkey = "sgnvalconspub1zcjduepqqjgqn6d54442zys0cn3d6cf3g6g9a0uwjnv98dtr4xnfh3wk8k3skr9u87"
+timeout_commit = 2
+transactors = []
+validator_account = "sgn1rjr9uaewus3qh4vs4sqdkdvepwyxq8ql84udfh"
+
+[sgn.check_interval]
+guard_queue = 2
+slash_queue = 2
