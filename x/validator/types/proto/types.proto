@@ -6,15 +6,23 @@ option go_package = "github.com/celer-network/sgn-v2/x/validator/types";
 
 // --------------- states ----------------
 
+enum ValidatorStatus {
+    Null = 0;
+    Unbonded = 1;
+    Unbonding = 2;
+    Bonded = 3;
+}
+
 message Validator {
     string eth_address = 1;
     string eth_signer = 2;
-    string sgn_address = 3;
-    repeated string transactors = 4;
-    string tokens = 5;
-    string shares = 6;
-    uint64 commission_rate = 7;
-    Description description = 8;
+    ValidatorStatus status = 3;
+    string sgn_address = 4;
+    repeated string transactors = 5;
+    string tokens = 6;
+    string shares = 7;
+    uint64 commission_rate = 8;
+    Description description = 9;
 }
 
 message Description {
@@ -28,6 +36,7 @@ message Description {
 message Delegator {
     string val_address = 1;
     string del_address = 2;
+    string shares = 3;
 }
 
 message Syncer {

@@ -8,18 +8,33 @@ option go_package = "github.com/celer-network/sgn-v2/x/sync/types";
 
 enum UpdateType {
     Invalid = 0;
-    EthBlk = 1;
-    ConfirmParam = 2;
-    SgnAddr = 3;
-    Delegator = 4;
-    Validator = 5;
+    EthBlkNum = 1;
+    StakingContractParam = 2;
+    ValidatorSigner = 3;
+    ValidatorStatus = 4;
+    ValidatorTokenShare = 5;
+    ValidatorCommissionRate = 6;
+    ValidatorSgnAddr = 7;
+    DelegatorShare = 8;
 }
 
 enum UpdateStatus {
-    NULL = 0;
-    ACTIVE = 1;
-    PASSED = 2;
-    FAILED = 4;
+    Null = 0;
+    Pending = 1;
+    Passed = 2;
+    Failed = 4;
+}
+
+enum VoteOption {
+    Empty = 0;
+    Yes = 1;
+    Abstain = 2;
+    No = 3;
+}
+
+message Vote {
+    string voter = 1;
+    VoteOption option = 2;
 }
 
 message Update {
@@ -28,11 +43,10 @@ message Update {
     bytes data = 3;
     uint64 eth_block = 4;
     string proposer = 5;
-    repeated string voters = 6;
+    repeated Vote votes = 6;
     UpdateStatus status = 7;
     uint64 submit_ts = 8;
-    uint64 voting_end_ts = 9;
-    bool rewardable = 10;
+    uint64 closing_ts = 9;
 }
 
 message Params {
@@ -42,6 +56,11 @@ message Params {
 
 // --------------- tx messages ----------------
 
+message StakingContractParamData {
+    uint64 record = 1;
+    string value = 2;
+}
+
 message MsgSubmitUpdate {
     UpdateType type = 1;
     bytes data = 2;
@@ -49,8 +68,13 @@ message MsgSubmitUpdate {
     string sender = 4;
 }
 
-message MsgApproveUpdate {
+message VoteUpdate {
     uint64 id = 1;
+    VoteOption option = 2;
+}
+
+message MsgVoteUpdates {
+    repeated VoteUpdate votes = 1;
     string sender = 2;
 }
 
