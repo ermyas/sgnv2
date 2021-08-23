@@ -10,6 +10,7 @@ func NewValidator(ethAddress, ethSigner, sgnAddress string) *Validator {
 		EthAddress: contracts.FormatAddrHex(ethAddress),
 		EthSigner:  contracts.FormatAddrHex(ethSigner),
 		SgnAddress: sgnAddress,
+		Status:     ValidatorStatus_Unbonded,
 	}
 }
 

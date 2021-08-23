@@ -7,20 +7,6 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
-func NewGenesisState(params *types.Params) *types.GenesisState {
-	return &types.GenesisState{
-		Params: params,
-	}
-}
-
-func ValidateGenesis(data *types.GenesisState) error {
-	return data.Params.Validate()
-}
-
-func DefaultGenesisState() *types.GenesisState {
-	return NewGenesisState(types.DefaultParams())
-}
-
 func InitGenesis(ctx sdk.Context, keeper keeper.Keeper, data *types.GenesisState) []abci.ValidatorUpdate {
 	keeper.SetParams(ctx, data.Params)
 	if data.Syncer.SgnAddress != "" {
@@ -54,4 +40,8 @@ func ExportGenesis(ctx sdk.Context, keeper keeper.Keeper) *types.GenesisState {
 		Validators: validators,
 		Delegators: delegators,
 	}
+}
+
+func ValidateGenesis(data *types.GenesisState) error {
+	return data.Params.Validate()
 }

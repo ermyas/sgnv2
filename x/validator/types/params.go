@@ -41,14 +41,6 @@ func (p *Params) ParamSetPairs() sdk_params.ParamSetPairs {
 	}
 }
 
-// Equal returns a boolean determining if two Param types are identical.
-func (p *Params) Equal(p2 *Params) bool {
-	// bz1 := ModuleCdc.MustMarshalLengthPrefixed(&p)
-	// bz2 := ModuleCdc.MustMarshalLengthPrefixed(&p2)
-	// return bytes.Equal(bz1, bz2)
-	return false //TODO
-}
-
 // DefaultParams returns a default set of parameters.
 func DefaultParams() *Params {
 	return NewParams(
@@ -69,7 +61,7 @@ func (p *Params) Validate() error {
 }
 
 func validateSyncerDuration(i interface{}) error {
-	v, ok := i.(uint)
+	v, ok := i.(uint64)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
 	}
@@ -82,7 +74,7 @@ func validateSyncerDuration(i interface{}) error {
 }
 
 func validateEpochLength(i interface{}) error {
-	v, ok := i.(uint)
+	v, ok := i.(uint64)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
 	}
@@ -95,7 +87,7 @@ func validateEpochLength(i interface{}) error {
 }
 
 func validateMaxValidatorDiff(i interface{}) error {
-	_, ok := i.(uint)
+	_, ok := i.(uint64)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
 	}

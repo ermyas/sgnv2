@@ -10,12 +10,11 @@ enum UpdateType {
     Invalid = 0;
     EthBlkNum = 1;
     StakingContractParam = 2;
-    ValidatorSigner = 3;
+    ValidatorAddrs = 3; // update validator signer and sgn addresses
     ValidatorStatus = 4;
     ValidatorTokenShare = 5;
     ValidatorCommissionRate = 6;
-    ValidatorSgnAddr = 7;
-    DelegatorShare = 8;
+    DelegatorShare = 7;
 }
 
 enum UpdateStatus {
@@ -61,11 +60,15 @@ message StakingContractParamData {
     string value = 2;
 }
 
-message MsgSubmitUpdate {
+message SubmitUpdate {
     UpdateType type = 1;
     bytes data = 2;
     uint64 eth_block = 3;
-    string sender = 4;
+}
+
+message MsgSubmitUpdates {
+    repeated SubmitUpdate updates = 1;
+    string sender = 2;
 }
 
 message VoteUpdate {
