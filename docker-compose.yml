@@ -1,0 +1,65 @@
+version: "3"
+
+services:
+  geth:
+    container_name: geth
+    image: "celer-network/geth"
+    ports:
+      - "8545-8546:8545-8546"
+    volumes:
+      - ./docker-volumes/geth-env:/geth/env:Z
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.1
+
+  sgnnode0:
+    container_name: sgnv2node0
+    image: "celer-network/sgnv2node"
+    ports:
+      - "26656-26657:26656-26657"
+    volumes:
+      - ./docker-volumes/node0:/sgn-v2/env:Z
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.2
+
+  sgnnode1:
+    container_name: sgnv2node1
+    image: "celer-network/sgnv2node"
+    ports:
+      - "26659-26660:26656-26657"
+    volumes:
+      - ./docker-volumes/node1:/sgn-v2/env:Z
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.3
+
+  sgnnode2:
+    container_name: sgnv2node2
+    image: "celer-network/sgnv2node"
+    ports:
+      - "26661-26662:26656-26657"
+    volumes:
+      - ./docker-volumes/node2:/sgn-v2/env:Z
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.4
+
+  sgnnode3:
+    container_name: sgnv2node3
+    image: "celer-network/sgnv2node"
+    ports:
+      - "26663-26664:26656-26657"
+    volumes:
+      - ./docker-volumes/node3:/sgn-v2/env:Z
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.5
+
+networks:
+  localnet:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.10.0/16
