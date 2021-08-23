@@ -22,8 +22,8 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 			return queryDelegators(ctx, req, k, legacyQuerierCdc)
 		case types.QuerySyncer:
 			return querySyncer(ctx, req, k, legacyQuerierCdc)
-		case types.QueryParameters:
-			return queryParameters(ctx, k, legacyQuerierCdc)
+		case types.QueryParams:
+			return queryParams(ctx, k, legacyQuerierCdc)
 		default:
 			return nil, sdk_errors.Wrap(sdk_errors.ErrUnknownRequest, "Unknown validator query endpoint")
 		}
@@ -107,7 +107,7 @@ func querySyncer(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerier
 	return res, nil
 }
 
-func queryParameters(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+func queryParams(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
 	params := k.GetParams(ctx)
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, params)
 	if err != nil {

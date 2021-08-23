@@ -6,7 +6,7 @@ import (
 
 func NewUpdate(
 	id uint64, updateType UpdateType, data []byte, ethBlock uint64,
-	proposer string, submitTs, closingTs uint64) *Update {
+	proposer string, proposeTs, closingTs uint64) *Update {
 
 	return &Update{
 		Id:        id,
@@ -14,7 +14,7 @@ func NewUpdate(
 		Data:      data,
 		EthBlock:  ethBlock,
 		Proposer:  proposer,
-		SubmitTs:  submitTs,
+		ProposeTs: proposeTs,
 		ClosingTs: closingTs,
 	}
 }

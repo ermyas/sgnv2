@@ -127,7 +127,7 @@ func QuerySyncer(cliCtx client.Context) (syncer types.Syncer, err error) {
 
 // Query params info
 func QueryParams(cliCtx client.Context) (params types.Params, err error) {
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryParameters)
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryParams)
 	res, err := common.RobustQuery(cliCtx, route)
 	if err != nil {
 		return

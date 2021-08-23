@@ -28,17 +28,17 @@ func (msg *MsgSetTransactors) Type() string { return TypeMsgSetTransactors }
 // ValidateBasic runs stateless checks on the message
 func (msg *MsgSetTransactors) ValidateBasic() error {
 	if msg.Sender == "" {
-		return sdk_errors.Wrap(sdk_errors.ErrInvalidAddress, msg.Sender)
+		return sdk_errors.Wrap(ErrInvalidAddress, msg.Sender)
 	}
 
 	for _, transactor := range msg.Transactors {
 		if transactor == "" {
-			return sdk_errors.Wrap(sdk_errors.ErrInvalidAddress, transactor)
+			return sdk_errors.Wrap(ErrInvalidAddress, transactor)
 		}
 
 		_, err := sdk.AccAddressFromBech32(transactor)
 		if err != nil {
-			return sdk_errors.Wrap(sdk_errors.ErrInvalidAddress, err.Error())
+			return sdk_errors.Wrap(ErrInvalidAddress, err.Error())
 		}
 	}
 
@@ -47,8 +47,8 @@ func (msg *MsgSetTransactors) ValidateBasic() error {
 
 // GetSignBytes encodes the message for signing
 func (msg *MsgSetTransactors) GetSignBytes() []byte {
-	// TODO return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
-	return nil
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
 }
 
 // GetSigners defines whose signature is required
@@ -80,11 +80,11 @@ func (msg *MsgEditDescription) Type() string { return TypeMsgEditDescription }
 // ValidateBasic runs stateless checks on the message
 func (msg *MsgEditDescription) ValidateBasic() error {
 	if msg.EthAddress == "" {
-		return sdk_errors.Wrap(sdk_errors.ErrUnknownRequest, "EthAddress cannot be empty")
+		return sdk_errors.Wrap(ErrInvalidAddress, "EthAddress cannot be empty")
 	}
 
 	if msg.Sender == "" {
-		return sdk_errors.Wrap(sdk_errors.ErrInvalidAddress, msg.Sender)
+		return sdk_errors.Wrap(ErrInvalidAddress, msg.Sender)
 	}
 
 	return nil
@@ -92,8 +92,8 @@ func (msg *MsgEditDescription) ValidateBasic() error {
 
 // GetSignBytes encodes the message for signing
 func (msg *MsgEditDescription) GetSignBytes() []byte {
-	// TODO return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(msg))
-	return nil
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
 }
 
 // GetSigners defines whose signature is required

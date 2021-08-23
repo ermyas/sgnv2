@@ -10,7 +10,7 @@ const (
 	QueryDelegator  = "delegator"
 	QueryDelegators = "delegators"
 	QuerySyncer     = "syncer"
-	QueryParameters = "parameters"
+	QueryParams     = "params"
 )
 
 type QueryValidatorParams struct {

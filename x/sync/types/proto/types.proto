@@ -44,7 +44,7 @@ message Update {
     string proposer = 5;
     repeated Vote votes = 6;
     UpdateStatus status = 7;
-    uint64 submit_ts = 8;
+    uint64 propose_ts = 8;
     uint64 closing_ts = 9;
 }
 
@@ -60,15 +60,15 @@ message StakingContractParamData {
     string value = 2;
 }
 
-message SubmitUpdate {
+message ProposeUpdate {
     UpdateType type = 1;
     bytes data = 2;
-    uint64 eth_block = 3;
 }
 
-message MsgSubmitUpdates {
-    repeated SubmitUpdate updates = 1;
-    string sender = 2;
+message MsgProposeUpdates {
+    repeated ProposeUpdate updates = 1;
+    uint64 eth_block = 2;
+    string sender = 3;
 }
 
 message VoteUpdate {
