@@ -126,5 +126,4 @@ func printAccount(info cKeys.Info) {
 	}
 
 	log.Infof(string(jsonString))
-	return
 }

@@ -12,10 +12,12 @@ import (
 	vtypes "github.com/celer-network/sgn-v2/x/validator/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	clienttx "github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
 	"github.com/gammazero/deque"
 	"github.com/spf13/viper"
@@ -30,10 +32,10 @@ const (
 	maxGasRetry     = 5
 )
 
-var gasErrCode = fmt.Errorf("code 11")
+var errGasCode = fmt.Errorf("code 11")
 
 type Transactor struct {
-	TxBuilder  client.TxBuilder
+	TxFactory  clienttx.Factory
 	CliCtx     client.Context
 	Key        keyring.Info
 	passphrase string
@@ -71,9 +73,9 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc co
 		}
 	}
 
-	fees, err := sdk.ParseCoinsNormalized(viper.GetString(flags.FlagFees))
-	if err != nil {
-		panic(err)
+	gasAdjustment := viper.GetFloat64(common.FlagSgnGasAdjustment)
+	if gasAdjustment == 0 {
+		gasAdjustment = common.DefaultSgnGasAdjustment
 	}
 
 	txConfig := tx.NewTxConfig((cdc).(*codec.ProtoCodec), tx.DefaultSignModes)
@@ -87,12 +89,22 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc co
 		WithBroadcastMode(flags.BroadcastSync).
 		WithTxConfig(txConfig)
 
-	txBldr := cliCtx.TxConfig.NewTxBuilder()
-	txBldr.SetFeeAmount(fees)
-	txBldr.SetGasLimit(common.DefaultSgnGasLimit)
+	f := clienttx.Factory{}.
+		WithKeybase(cliCtx.Keyring).
+		WithTxConfig(cliCtx.TxConfig).
+		WithAccountNumber(viper.GetUint64(flags.FlagAccountNumber)).
+		WithSequence(viper.GetUint64(flags.FlagSequence)).
+		WithGas(common.DefaultSgnGasLimit).
+		WithGasAdjustment(gasAdjustment).
+		WithChainID(chainID).
+		WithMemo(viper.GetString(flags.FlagNote)).
+		WithFees(viper.GetString(flags.FlagFees)).
+		WithGasPrices(viper.GetString(flags.FlagGasPrices)).
+		WithSignMode(signing.SignMode_SIGN_MODE_TEXTUAL).
+		WithSimulateAndExecute(true)
 
 	transactor := &Transactor{
-		TxBuilder:  txBldr,
+		TxFactory:  f,
 		CliCtx:     cliCtx,
 		Key:        key,
 		passphrase: passphrase,
@@ -157,9 +169,6 @@ func (t *Transactor) sendTxMsgsWaitMined(msgs []sdk.Msg) (*sdk.TxResponse, error
 		logEntry := seal.NewTransactorLog(t.Key.GetAddress().String())
 		logEntry.MsgNum = uint32(len(msgs))
 		logEntry.MsgsId = msgsId
-		// for _, msg := range msgs {
-		// 	logEntry.MsgType[msg.Type()] = logEntry.MsgType[msg.Type()] + 1
-		// }
 		txResponse, err = t.sendTxMsgs(msgs, gas)
 		if txResponse != nil {
 			logEntry.TxHash = txResponse.TxHash
@@ -171,7 +180,6 @@ func (t *Transactor) sendTxMsgsWaitMined(msgs []sdk.Msg) (*sdk.TxResponse, error
 			return txResponse, err
 		}
 		logEntry.Status = seal.TxMsgStatus_SENT
-		//logEntry.GasWanted = int64(stdSignMsg.Fee.Gas)
 		seal.CommitTransactorLog(logEntry)
 
 		// wait till transaction is mined or failed
@@ -181,7 +189,7 @@ func (t *Transactor) sendTxMsgsWaitMined(msgs []sdk.Msg) (*sdk.TxResponse, error
 			logEntry.GasUsed = txResponse.GasUsed
 		}
 		if err != nil {
-			if errors.Is(err, gasErrCode) && retryNum < maxGasRetry {
+			if errors.Is(err, errGasCode) && retryNum < maxGasRetry {
 				gas = uint64(txResponse.GasUsed) * 2
 				logEntry.Warn = append(logEntry.Warn, err.Error()+". retry...")
 				retry = true
@@ -199,79 +207,75 @@ func (t *Transactor) sendTxMsgsWaitMined(msgs []sdk.Msg) (*sdk.TxResponse, error
 		} else {
 			break
 		}
-
 	}
 	return txResponse, err
 }
 
 func (t *Transactor) sendTxMsgs(msgs []sdk.Msg, gas uint64) (*sdk.TxResponse, error) {
-	// var txResponseErr error
-	// for try := 0; try < maxTxRetry; try++ {
-	// 	txBytes, stdSignMsg, err := t.buildAndSignTx(msgs, gas)
-	// 	if err != nil {
-	// 		return nil, nil, fmt.Errorf("buildAndSignTx err: %w", err)
-	// 	}
-	// 	txResponse, err := t.CliCtx.BroadcastTx(txBytes)
-	// 	if err != nil {
-	// 		return nil, stdSignMsg, fmt.Errorf("BroadcastTx err: %w", err)
-	// 	}
+	var txResponseErr error
+	for try := 0; try < maxTxRetry; try++ {
+		txBytes, err := t.buildAndSignTx(msgs, gas)
+		if err != nil {
+			return nil, fmt.Errorf("buildAndSignTx err: %w", err)
+		}
+		txResponse, err := t.CliCtx.BroadcastTx(txBytes)
+		if err != nil {
+			return nil, fmt.Errorf("BroadcastTx err: %w", err)
+		}
 
-	// 	if txResponse.Code == sdkerrors.SuccessABCICode {
-	// 		return &txResponse, stdSignMsg, nil
-	// 	}
+		if txResponse.Code == sdkerrors.SuccessABCICode {
+			return txResponse, nil
+		}
 
-	// 	txResponseErr = fmt.Errorf("BroadcastTx failed with code: %d, rawLog: %s, stdSignMsg chainId: %s acct: %s accnum: %d seq: %d",
-	// 		txResponse.Code, txResponse.RawLog, stdSignMsg.ChainID, t.Key.GetAddress(), stdSignMsg.AccountNumber, stdSignMsg.Sequence)
-	// 	if txResponse.Code == sdkerrors.ErrUnauthorized.ABCICode() {
-	// 		log.Warnln(txResponseErr.Error(), "retrying")
-	// 		time.Sleep(txRetryDelay)
-	// 	} else {
-	// 		return &txResponse, stdSignMsg, txResponseErr
-	// 	}
-	// }
-	return nil, nil
+		txResponseErr = fmt.Errorf("BroadcastTx failed with code: %d, rawLog: %s, acct: %s",
+			txResponse.Code, txResponse.RawLog, t.Key.GetAddress())
+		if txResponse.Code == sdkerrors.ErrUnauthorized.ABCICode() {
+			log.Warnln(txResponseErr.Error(), "retrying")
+			time.Sleep(txRetryDelay)
+		} else {
+			return txResponse, txResponseErr
+		}
+	}
+	return nil, txResponseErr
 }
 
-// func (t *Transactor) buildAndSignTx(msgs []sdk.Msg, gas uint64) ([]byte, *types.StdSignMsg, error) {
-// 	if t.gpe != nil {
-// 		t.TxBuilder = t.TxBuilder.WithGasPrices(t.gpe.GetGasPrice())
-// 	}
+func (t *Transactor) buildAndSignTx(msgs []sdk.Msg, gas uint64) ([]byte, error) {
+	txf := t.TxFactory
 
-// 	txBldr, err := utils.PrepareTxBuilder(t.TxBuilder, t.CliCtx)
-// 	if err != nil {
-// 		return nil, nil, fmt.Errorf("PrepareTxBuilder err: %w", err)
-// 	}
+	if t.gpe != nil {
+		txf = txf.WithGasPrices(t.gpe.GetGasPrice())
+	}
 
-// 	if gas != 0 {
-// 		txBldr = txBldr.WithGas(gas)
-// 	} else if txBldr.SimulateAndExecute() || t.CliCtx.Simulate {
-// 		txBldr, err = utils.EnrichWithGas(txBldr, t.CliCtx, msgs)
-// 		if err != nil {
-// 			return nil, nil, fmt.Errorf("EnrichWithGas err: %w", err)
-// 		}
-// 	}
+	txf, err := prepareFactory(t.CliCtx, txf)
+	if err != nil {
+		return nil, err
+	}
 
-// 	var txBytes []byte
-// 	var stdSignMsg types.StdSignMsg
-// 	for try := 0; try < maxSignRetry; try++ {
-// 		stdSignMsg, err = txBldr.BuildSignMsg(msgs)
-// 		if err != nil {
-// 			return nil, nil, err
-// 		}
-// 		txBytes, err = txBldr.Sign(t.Key.GetName(), t.passphrase, stdSignMsg)
-// 		if err == nil {
-// 			return txBytes, &stdSignMsg, nil
-// 		}
-// 		if !strings.Contains(err.Error(), "resource temporarily unavailable") {
-// 			break
-// 		}
-// 		if try != maxSignRetry-1 {
-// 			log.Debugln("Failed to call txBldr.BuildAndSign. Will retry it.")
-// 			time.Sleep(signRetryDelay)
-// 		}
-// 	}
-// 	return nil, nil, nil
-// }
+	if gas != 0 {
+		txf = txf.WithGas(gas)
+	} else if txf.SimulateAndExecute() || t.CliCtx.Simulate {
+		_, adjusted, err := clienttx.CalculateGas(t.CliCtx, t.TxFactory, msgs...)
+		if err != nil {
+			return nil, err
+		}
+
+		txf = txf.WithGas(adjusted)
+	}
+
+	tx, err := clienttx.BuildUnsignedTx(txf, msgs...)
+	if err != nil {
+		return nil, err
+	}
+
+	tx.SetFeeGranter(t.CliCtx.GetFeeGranterAddress())
+
+	err = clienttx.Sign(txf, t.CliCtx.GetFromName(), tx, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return t.CliCtx.TxConfig.TxEncoder()(tx.GetTx())
+}
 
 func (t *Transactor) waitMined(txHash string) (*sdk.TxResponse, error) {
 	var err error
@@ -288,7 +292,7 @@ func (t *Transactor) waitMined(txHash string) (*sdk.TxResponse, error) {
 		return txResponse, fmt.Errorf("tx not mined, err: %w", err)
 	} else if txResponse.Code != sdkerrors.SuccessABCICode {
 		if txResponse.Code == 11 { // out of gas
-			return txResponse, fmt.Errorf("tx failed with %w, %s", gasErrCode, txResponse.RawLog)
+			return txResponse, fmt.Errorf("tx failed with %w, %s", errGasCode, txResponse.RawLog)
 		} else {
 			return txResponse, fmt.Errorf("tx failed with code %d, %s", txResponse.Code, txResponse.RawLog)
 		}
@@ -303,4 +307,34 @@ func (t *Transactor) CliSendTxMsgWaitMined(msg sdk.Msg) {
 func (t *Transactor) CliSendTxMsgsWaitMined(msgs []sdk.Msg) {
 	res, _ := t.sendTxMsgsWaitMined(msgs)
 	t.CliCtx.PrintProto(res)
+}
+
+// prepareFactory ensures the account defined by ctx.GetFromAddress() exists and
+// if the account number and/or the account sequence number are zero (not set),
+// they will be queried for and set on the provided Factory. A new Factory with
+// the updated fields will be returned.
+func prepareFactory(clientCtx client.Context, txf clienttx.Factory) (clienttx.Factory, error) {
+	from := clientCtx.GetFromAddress()
+
+	if err := txf.AccountRetriever().EnsureExists(clientCtx, from); err != nil {
+		return txf, err
+	}
+
+	initNum, initSeq := txf.AccountNumber(), txf.Sequence()
+	if initNum == 0 || initSeq == 0 {
+		num, seq, err := txf.AccountRetriever().GetAccountNumberSequence(clientCtx, from)
+		if err != nil {
+			return txf, err
+		}
+
+		if initNum == 0 {
+			txf = txf.WithAccountNumber(num)
+		}
+
+		if initSeq == 0 {
+			txf = txf.WithSequence(seq)
+		}
+	}
+
+	return txf, nil
 }
