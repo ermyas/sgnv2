@@ -1,8 +1,6 @@
 package types
 
-import (
-	"github.com/celer-network/sgn-v2/contracts"
-)
+import "github.com/celer-network/sgn-v2/eth"
 
 const (
 	// module name
@@ -26,15 +24,15 @@ var (
 
 // get delegators key from validator address
 func GetDelegatorsKey(valAddr string) []byte {
-	return append(DelegatorKey, contracts.Hex2Addr(valAddr).Bytes()...)
+	return append(DelegatorKey, eth.Hex2Addr(valAddr).Bytes()...)
 }
 
 // get delegator key from validator address and delegator address
 func GetDelegatorKey(valAddr, delAddr string) []byte {
-	return append(GetDelegatorsKey(valAddr), contracts.Hex2Addr(delAddr).Bytes()...)
+	return append(GetDelegatorsKey(valAddr), eth.Hex2Addr(delAddr).Bytes()...)
 }
 
 // get validator key from valAddr
 func GetValidatorKey(ethAddr string) []byte {
-	return append(ValidatorKey, contracts.Hex2Addr(ethAddr).Bytes()...)
+	return append(ValidatorKey, eth.Hex2Addr(ethAddr).Bytes()...)
 }

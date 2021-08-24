@@ -11,7 +11,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/contracts"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/spf13/viper"
 )
@@ -41,17 +41,17 @@ func SetupMainchain() {
 	SleepWithLog(5, "geth start")
 
 	// set up mainchain: deploy contracts, fund addrs, etc
-	addrs := []contracts.Addr{
-		contracts.Hex2Addr(ValEthAddrs[0]),
-		contracts.Hex2Addr(ValEthAddrs[1]),
-		contracts.Hex2Addr(ValEthAddrs[2]),
-		contracts.Hex2Addr(ValEthAddrs[3]),
-		contracts.Hex2Addr(DelEthAddrs[0]),
-		contracts.Hex2Addr(DelEthAddrs[1]),
-		contracts.Hex2Addr(DelEthAddrs[2]),
-		contracts.Hex2Addr(DelEthAddrs[3]),
-		contracts.Hex2Addr(ClientEthAddrs[0]),
-		contracts.Hex2Addr(ClientEthAddrs[1]),
+	addrs := []eth.Addr{
+		eth.Hex2Addr(ValEthAddrs[0]),
+		eth.Hex2Addr(ValEthAddrs[1]),
+		eth.Hex2Addr(ValEthAddrs[2]),
+		eth.Hex2Addr(ValEthAddrs[3]),
+		eth.Hex2Addr(DelEthAddrs[0]),
+		eth.Hex2Addr(DelEthAddrs[1]),
+		eth.Hex2Addr(DelEthAddrs[2]),
+		eth.Hex2Addr(DelEthAddrs[3]),
+		eth.Hex2Addr(ClientEthAddrs[0]),
+		eth.Hex2Addr(ClientEthAddrs[1]),
 	}
 	log.Infoln("fund each test addr 100 ETH")
 	err := FundAddrsETH("1"+strings.Repeat("0", 20), addrs)

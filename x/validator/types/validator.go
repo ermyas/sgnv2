@@ -1,14 +1,14 @@
 package types
 
 import (
-	"github.com/celer-network/sgn-v2/contracts"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/cosmos/cosmos-sdk/codec"
 )
 
 func NewValidator(ethAddress, ethSigner, sgnAddress string) *Validator {
 	return &Validator{
-		EthAddress: contracts.FormatAddrHex(ethAddress),
-		EthSigner:  contracts.FormatAddrHex(ethSigner),
+		EthAddress: eth.FormatAddrHex(ethAddress),
+		EthSigner:  eth.FormatAddrHex(ethSigner),
 		SgnAddress: sgnAddress,
 		Status:     ValidatorStatus_Unbonded,
 	}

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/contracts"
+	"github.com/celer-network/sgn-v2/eth"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 )
 
@@ -27,7 +27,7 @@ func (m *Monitor) processPullerQueue() {
 	iterator.Close()
 	m.lock.RUnlock()
 
-	validators := make(map[contracts.Addr]bool)
+	validators := make(map[eth.Addr]bool)
 	delegators := make(map[string]bool)
 	for i, key := range keys {
 		event := NewEventFromBytes(vals[i])
@@ -39,16 +39,16 @@ func (m *Monitor) processPullerQueue() {
 		}
 
 		switch event.ParseEvent(m.EthClient).(type) {
-		case *contracts.StakingValidatorParamsUpdate:
+		case *eth.StakingValidatorParamsUpdate:
 			//TODO
 
-		case *contracts.StakingValidatorStatusUpdate:
+		case *eth.StakingValidatorStatusUpdate:
 			//TODO
 
-		case *contracts.StakingDelegationUpdate:
+		case *eth.StakingDelegationUpdate:
 			//TODO
 
-		case *contracts.SGNSgnAddrUpdate:
+		case *eth.SGNSgnAddrUpdate:
 			//TODO
 		}
 	}
@@ -59,8 +59,8 @@ func (m *Monitor) processPullerQueue() {
 		}
 	}
 	for delegatorKey := range delegators {
-		candidatorAddr := contracts.Hex2Addr(strings.Split(delegatorKey, ":")[0])
-		delegatorAddr := contracts.Hex2Addr(strings.Split(delegatorKey, ":")[1])
+		candidatorAddr := eth.Hex2Addr(strings.Split(delegatorKey, ":")[0])
+		delegatorAddr := eth.Hex2Addr(strings.Split(delegatorKey, ":")[1])
 		m.SyncDelegator(candidatorAddr, delegatorAddr)
 	}
 }

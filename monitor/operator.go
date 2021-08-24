@@ -3,7 +3,7 @@ package monitor
 import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/contracts"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/transactor"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
@@ -18,7 +18,7 @@ import (
 )
 
 type Operator struct {
-	EthClient  *contracts.EthClient
+	EthClient  *eth.EthClient
 	Transactor *transactor.Transactor
 
 	PubKeyAny *codectypes.Any
@@ -66,7 +66,7 @@ func NewOperator(cdc codec.Codec, cliHome string, tmCfg *tmcfg.Config) (operator
 }
 
 // return true if already updated or no need for retry
-func (o *Operator) SyncValidator(valEthAddr contracts.Addr) bool {
+func (o *Operator) SyncValidator(valEthAddr eth.Addr) bool {
 
 	// TODO
 	// candidate, err := validator.CLIQueryCandidate(o.Transactor.CliCtx, validator.RouterKey, valEthAddr.Hex())
@@ -89,10 +89,10 @@ func (o *Operator) SyncValidator(valEthAddr contracts.Addr) bool {
 
 	newVal := sdk_staking.Validator{
 		Description: sdk_staking.Description{
-			Identity: contracts.Addr2Hex(valEthAddr), // TODO: Use a dedicated field instead of Identity
+			Identity: eth.Addr2Hex(valEthAddr), // TODO: Use a dedicated field instead of Identity
 		},
 		Tokens: sdk.NewIntFromBigInt(valInfo.Tokens), // not QuoRaw(common.TokenDec) yet
-		Status: contracts.ParseStatus(valInfo.Status),
+		Status: eth.ParseStatus(valInfo.Status),
 		// Commission: commission,
 	}
 
@@ -102,6 +102,6 @@ func (o *Operator) SyncValidator(valEthAddr contracts.Addr) bool {
 	return false
 }
 
-func (o *Operator) SyncDelegator(candidatorAddr, delegatorAddr contracts.Addr) {
+func (o *Operator) SyncDelegator(candidatorAddr, delegatorAddr eth.Addr) {
 	// TODO
 }

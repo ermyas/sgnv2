@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/celer-network/sgn-v2/contracts"
+	"github.com/celer-network/sgn-v2/eth"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk_errors "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -65,7 +65,7 @@ func NewMsgEditDescription(
 	ethAddress string, description *Description, sender string) MsgEditDescription {
 
 	return MsgEditDescription{
-		EthAddress:  contracts.FormatAddrHex(ethAddress),
+		EthAddress:  eth.FormatAddrHex(ethAddress),
 		Description: description,
 		Sender:      sender,
 	}

@@ -1,8 +1,6 @@
 package types
 
-import (
-	"github.com/celer-network/sgn-v2/contracts"
-)
+import "github.com/celer-network/sgn-v2/eth"
 
 const (
 	QueryValidator  = "validator"
@@ -19,7 +17,7 @@ type QueryValidatorParams struct {
 
 func NewQueryValidatorParams(ethAddress string) QueryValidatorParams {
 	return QueryValidatorParams{
-		EthAddress: contracts.FormatAddrHex(ethAddress),
+		EthAddress: eth.FormatAddrHex(ethAddress),
 	}
 }
 
@@ -30,7 +28,7 @@ type QueryDelegatorParams struct {
 
 func NewQueryDelegatorParams(valAddress, delAddress string) QueryDelegatorParams {
 	return QueryDelegatorParams{
-		ValAddress: contracts.FormatAddrHex(valAddress),
-		DelAddress: contracts.FormatAddrHex(delAddress),
+		ValAddress: eth.FormatAddrHex(valAddress),
+		DelAddress: eth.FormatAddrHex(delAddress),
 	}
 }

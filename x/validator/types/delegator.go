@@ -1,14 +1,14 @@
 package types
 
 import (
-	"github.com/celer-network/sgn-v2/contracts"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/cosmos/cosmos-sdk/codec"
 )
 
 func NewDelegator(valAddr, delAddr string) *Delegator {
 	return &Delegator{
-		ValAddress: contracts.FormatAddrHex(valAddr),
-		DelAddress: contracts.FormatAddrHex(delAddr),
+		ValAddress: eth.FormatAddrHex(valAddr),
+		DelAddress: eth.FormatAddrHex(delAddr),
 	}
 }
 

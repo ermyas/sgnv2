@@ -6,9 +6,9 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/celer-network/goutils/eth"
+	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/contracts"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -16,9 +16,9 @@ import (
 )
 
 type TestEthClient struct {
-	Address contracts.Addr
+	Address eth.Addr
 	Auth    *bind.TransactOpts
-	Signer  eth.Signer
+	Signer  ethutils.Signer
 }
 
 var (
@@ -26,8 +26,8 @@ var (
 
 	EthClient       *ethclient.Client
 	EtherBaseAuth   *bind.TransactOpts
-	StakingContract *contracts.Staking
-	SgnContract     *contracts.SGN
+	StakingContract *eth.Staking
+	SgnContract     *eth.SGN
 
 	Client0 *TestEthClient
 	Client1 *TestEthClient
@@ -67,18 +67,18 @@ func SetupTestEthClient(ksfile string) (*TestEthClient, error) {
 		Auth:    auth,
 	}
 	ksBytes, err := ioutil.ReadFile(ksfile)
-	testClient.Signer, err = eth.NewSignerFromKeystore(string(ksBytes), "", nil)
+	testClient.Signer, err = ethutils.NewSignerFromKeystore(string(ksBytes), "", nil)
 	return testClient, nil
 }
 
-func SetContracts(stakingAddr, sgnAddr contracts.Addr) error {
+func SetContracts(stakingAddr, sgnAddr eth.Addr) error {
 	log.Infof("set contracts staking %x sgn %x", stakingAddr, sgnAddr)
 	var err error
-	StakingContract, err = contracts.NewStaking(stakingAddr, EthClient)
+	StakingContract, err = eth.NewStaking(stakingAddr, EthClient)
 	if err != nil {
 		return err
 	}
-	SgnContract, err = contracts.NewSGN(sgnAddr, EthClient)
+	SgnContract, err = eth.NewSGN(sgnAddr, EthClient)
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func SetupE2eProfile() {
 	}
 }
 
-func FundAddrsETH(amt string, recipients []contracts.Addr) error {
+func FundAddrsETH(amt string, recipients []eth.Addr) error {
 	conn, auth, ctx, senderAddr, connErr := prepareEtherBaseClient()
 	if connErr != nil {
 		return connErr
@@ -122,7 +122,7 @@ func FundAddrsETH(amt string, recipients []contracts.Addr) error {
 		if err != nil {
 			return err
 		}
-		if addr == contracts.ZeroAddr {
+		if addr == eth.ZeroAddr {
 			log.Info("Advancing block")
 		} else {
 			log.Infof("Sending ETH %s to %x from %x", amt, addr, senderAddr)
@@ -136,7 +136,7 @@ func FundAddrsETH(amt string, recipients []contracts.Addr) error {
 	}
 	ctx2, cancel := context.WithTimeout(ctx, waitMinedTimeout)
 	defer cancel()
-	receipt, err := eth.WaitMined(ctx2, conn, lastTx, eth.WithBlockDelay(BlockDelay), eth.WithPollingInterval(PollingInterval))
+	receipt, err := ethutils.WaitMined(ctx2, conn, lastTx, ethutils.WithBlockDelay(BlockDelay), ethutils.WithPollingInterval(PollingInterval))
 	if err != nil {
 		log.Error(err)
 	}
@@ -144,7 +144,7 @@ func FundAddrsETH(amt string, recipients []contracts.Addr) error {
 		log.Errorf("last tx failed. tx hash: %x", receipt.TxHash)
 	} else {
 		for _, addr := range recipients {
-			if addr == contracts.ZeroAddr {
+			if addr == eth.ZeroAddr {
 				head, _ := conn.HeaderByNumber(ctx, nil)
 				log.Infoln("Current block number:", head.Number.String())
 			} else {
@@ -156,8 +156,8 @@ func FundAddrsETH(amt string, recipients []contracts.Addr) error {
 	return nil
 }
 
-func FundAddrsErc20(erc20Addr contracts.Addr, addrs []contracts.Addr, amount string) error {
-	erc20Contract, err := contracts.NewErc20(erc20Addr, EthClient)
+func FundAddrsErc20(erc20Addr eth.Addr, addrs []eth.Addr, amount string) error {
+	erc20Contract, err := eth.NewErc20(erc20Addr, EthClient)
 	if err != nil {
 		return err
 	}
@@ -172,11 +172,11 @@ func FundAddrsErc20(erc20Addr contracts.Addr, addrs []contracts.Addr, amount str
 		lastTx = tx
 		log.Infof("Sending ERC20 %s to %x from %x", amount, addr, EtherBaseAuth.From)
 	}
-	_, err = eth.WaitMined(context.Background(), EthClient, lastTx, eth.WithBlockDelay(BlockDelay), eth.WithPollingInterval(PollingInterval))
+	_, err = ethutils.WaitMined(context.Background(), EthClient, lastTx, ethutils.WithBlockDelay(BlockDelay), ethutils.WithPollingInterval(PollingInterval))
 	return err
 }
 
-func DelegateStake(fromAuth *bind.TransactOpts, toEthAddress contracts.Addr, amt *big.Int) error {
+func DelegateStake(fromAuth *bind.TransactOpts, toEthAddress eth.Addr, amt *big.Int) error {
 	conn := EthClient
 	stakingContract := StakingContract
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
@@ -199,24 +199,24 @@ func DelegateStake(fromAuth *bind.TransactOpts, toEthAddress contracts.Addr, amt
 }
 
 func prepareEtherBaseClient() (
-	*ethclient.Client, *bind.TransactOpts, context.Context, contracts.Addr, error) {
+	*ethclient.Client, *bind.TransactOpts, context.Context, eth.Addr, error) {
 	conn, err := ethclient.Dial(LocalGeth)
 	if err != nil {
-		return nil, nil, nil, contracts.Addr{}, err
+		return nil, nil, nil, eth.Addr{}, err
 	}
 	log.Infoln("EtherBaseKs: ", etherBaseKs)
 	etherBaseKsBytes, err := ioutil.ReadFile(etherBaseKs)
 	if err != nil {
-		return nil, nil, nil, contracts.Addr{}, err
+		return nil, nil, nil, eth.Addr{}, err
 	}
-	etherBaseAddrStr, err := contracts.GetAddressFromKeystore(etherBaseKsBytes)
+	etherBaseAddrStr, err := eth.GetAddressFromKeystore(etherBaseKsBytes)
 	if err != nil {
-		return nil, nil, nil, contracts.Addr{}, err
+		return nil, nil, nil, eth.Addr{}, err
 	}
-	etherBaseAddr := contracts.Hex2Addr(etherBaseAddrStr)
+	etherBaseAddr := eth.Hex2Addr(etherBaseAddrStr)
 	auth, err := bind.NewTransactor(strings.NewReader(string(etherBaseKsBytes)), "")
 	if err != nil {
-		return nil, nil, nil, contracts.Addr{}, err
+		return nil, nil, nil, eth.Addr{}, err
 	}
 	return conn, auth, context.Background(), etherBaseAddr, nil
 }

@@ -7,7 +7,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/contracts"
+	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/testing/common"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
@@ -75,6 +75,6 @@ func validatorTest(t *testing.T) {
 		go tc.DelegateStake(dAuth, vEthAddr, dAmts[i])
 	}
 	for i := 0; i < len(tc.DelEthKs); i++ {
-		tc.CheckDelegator(t, transactor, vEthAddr, contracts.Hex2Addr(tc.DelEthAddrs[i]), dAmts[i])
+		tc.CheckDelegator(t, transactor, vEthAddr, eth.Hex2Addr(tc.DelEthAddrs[i]), dAmts[i])
 	}
 }

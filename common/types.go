@@ -6,9 +6,9 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/celer-network/goutils/eth"
+	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/contracts"
+	"github.com/celer-network/sgn-v2/eth"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/viper"
 )
@@ -48,13 +48,13 @@ func (r Sig) String() string {
 }
 
 func AddSig(sigs []Sig, msg []byte, sig []byte, expectedSigner string) ([]Sig, error) {
-	signer, err := eth.RecoverSigner(msg, sig)
+	signer, err := ethutils.RecoverSigner(msg, sig)
 	if err != nil {
 		return nil, err
 	}
 
-	signerAddr := contracts.Addr2Hex(signer)
-	if signerAddr != contracts.FormatAddrHex(expectedSigner) {
+	signerAddr := eth.Addr2Hex(signer)
+	if signerAddr != eth.FormatAddrHex(expectedSigner) {
 		err = fmt.Errorf("invalid signer address %s %s", signerAddr, expectedSigner)
 		return nil, err
 	}
@@ -74,12 +74,12 @@ func AddSig(sigs []Sig, msg []byte, sig []byte, expectedSigner string) ([]Sig, e
 	return append(sigs, NewSig(signerAddr, sig)), nil
 }
 
-func NewEthClientFromConfig() (*contracts.EthClient, error) {
-	return contracts.NewEthClient(
+func NewEthClientFromConfig() (*eth.EthClient, error) {
+	return eth.NewEthClient(
 		viper.GetString(FlagEthGateway),
 		viper.GetString(FlagEthKeystore),
 		viper.GetString(FlagEthPassphrase),
-		&contracts.TransactorConfig{
+		&eth.TransactorConfig{
 			BlockDelay:           viper.GetUint64(FlagEthBlockDelay),
 			BlockPollingInterval: viper.GetUint64(FlagEthPollInterval),
 			ChainId:              big.NewInt(viper.GetInt64(FlagEthChainID)),

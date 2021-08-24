@@ -8,7 +8,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/contracts"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/validator/client/cli"
 	"github.com/celer-network/sgn-v2/x/validator/types"
@@ -19,7 +19,7 @@ import (
 )
 
 type SGNParams struct {
-	CelrAddr               contracts.Addr
+	CelrAddr               eth.Addr
 	GovernProposalDeposit  *big.Int
 	GovernVoteTimeout      *big.Int
 	SlashTimeout           *big.Int
@@ -47,7 +47,7 @@ func NewTestTransactor(t *testing.T, sgnCLIHome, sgnChainID, sgnNodeURI, sgnValA
 	return nil
 }
 
-func CheckValidator(t *testing.T, transactor *transactor.Transactor, ethAddr contracts.Addr, valacct string, expAmt *big.Int) {
+func CheckValidator(t *testing.T, transactor *transactor.Transactor, ethAddr eth.Addr, valacct string, expAmt *big.Int) {
 	var candidate *types.Validator
 	var err error
 	expectedRes := fmt.Sprintf(`ValAccount: %s, EthAddress: %x, StakingPool: %s`, valacct, ethAddr, expAmt) // defined in Candidate.String()
@@ -66,11 +66,11 @@ func CheckValidator(t *testing.T, transactor *transactor.Transactor, ethAddr con
 	assert.Equal(t, expectedRes, candidate.String(), "The expected result should be: "+expectedRes)
 }
 
-func CheckDelegator(t *testing.T, transactor *transactor.Transactor, validatorAddr, delegatorAddr contracts.Addr, expAmt *big.Int) {
+func CheckDelegator(t *testing.T, transactor *transactor.Transactor, validatorAddr, delegatorAddr eth.Addr, expAmt *big.Int) {
 	var delegator *types.Delegator
 	var err error
 	expectedRes := fmt.Sprintf(`CandidateAddr: %s, DelegatorAddr: %s, DelegatedStake: %s`,
-		contracts.Addr2Hex(validatorAddr), contracts.Addr2Hex(delegatorAddr), expAmt) // defined in Delegator.String()
+		eth.Addr2Hex(validatorAddr), eth.Addr2Hex(delegatorAddr), expAmt) // defined in Delegator.String()
 	for retry := 0; retry < RetryLimit; retry++ {
 		delegator, err = cli.QueryDelegator(transactor.CliCtx, validatorAddr.Hex(), delegatorAddr.Hex())
 		if err == nil && expectedRes == delegator.String() {

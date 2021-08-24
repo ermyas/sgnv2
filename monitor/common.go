@@ -4,16 +4,16 @@ import (
 	"math/big"
 
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/contracts"
+	"github.com/celer-network/sgn-v2/eth"
 	validatorcli "github.com/celer-network/sgn-v2/x/validator/client/cli"
 )
 
 type MonitorContractInfo struct {
-	address contracts.Addr
+	address eth.Addr
 	abi     string
 }
 
-func (info *MonitorContractInfo) GetAddr() contracts.Addr {
+func (info *MonitorContractInfo) GetAddr() eth.Addr {
 	return info.address
 }
 
@@ -21,7 +21,7 @@ func (info *MonitorContractInfo) GetABI() string {
 	return info.abi
 }
 
-func NewMonitorContractInfo(address contracts.Addr, abi string) *MonitorContractInfo {
+func NewMonitorContractInfo(address eth.Addr, abi string) *MonitorContractInfo {
 	return &MonitorContractInfo{
 		address: address,
 		abi:     abi,

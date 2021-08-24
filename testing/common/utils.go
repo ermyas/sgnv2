@@ -7,16 +7,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/celer-network/goutils/eth"
+	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/contracts"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-func GetAuth(ksfile string) (addr contracts.Addr, auth *bind.TransactOpts, err error) {
+func GetAuth(ksfile string) (addr eth.Addr, auth *bind.TransactOpts, err error) {
 	keystoreBytes, err := ioutil.ReadFile(ksfile)
 	if err != nil {
 		return
@@ -55,7 +55,7 @@ func WaitMinedWithChk(
 ) {
 	ctx2, cancel := context.WithTimeout(ctx, waitMinedTimeout)
 	defer cancel()
-	receipt, err := eth.WaitMined(ctx2, conn, tx, eth.WithBlockDelay(blockDelay), eth.WithPollingInterval(pollingInterval))
+	receipt, err := ethutils.WaitMined(ctx2, conn, tx, ethutils.WithBlockDelay(blockDelay), ethutils.WithPollingInterval(pollingInterval))
 	ChkErr(err, "WaitMined error")
 	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
 		log.Fatalln(txname, "tx failed")

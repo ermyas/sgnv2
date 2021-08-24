@@ -2,7 +2,7 @@ package common
 
 import (
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/contracts"
+	"github.com/celer-network/sgn-v2/eth"
 )
 
 // runtime variables, will be initialized before each test
@@ -19,10 +19,10 @@ type Killable interface {
 
 type TestProfile struct {
 	DisputeTimeout uint64
-	StakingAddr    contracts.Addr
-	SGNAddr        contracts.Addr
-	CelrAddr       contracts.Addr
-	CelrContract   *contracts.Erc20
+	StakingAddr    eth.Addr
+	SGNAddr        eth.Addr
+	CelrAddr       eth.Addr
+	CelrContract   *eth.Erc20
 }
 
 func TearDown(tokill []Killable) {

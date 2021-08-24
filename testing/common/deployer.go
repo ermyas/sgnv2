@@ -8,7 +8,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/contracts"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -17,18 +17,18 @@ import (
 	"github.com/spf13/viper"
 )
 
-func DeployERC20Contract() (*types.Transaction, contracts.Addr, *contracts.Erc20) {
+func DeployERC20Contract() (*types.Transaction, eth.Addr, *eth.Erc20) {
 	initAmt := new(big.Int)
 	initAmt.SetString("1"+strings.Repeat("0", 28), 10)
-	erc20Addr, tx, erc20, err := contracts.DeployErc20(EtherBaseAuth, EthClient, "Celer", "CELR", initAmt, 18)
+	erc20Addr, tx, erc20, err := eth.DeployErc20(EtherBaseAuth, EthClient, "Celer", "CELR", initAmt, 18)
 	ChkErr(err, "failed to deploy ERC20")
 
 	log.Infoln("Erc20 address:", erc20Addr.String())
 	return tx, erc20Addr, erc20
 }
 
-func DeployStakingSGNContracts(sgnParams *SGNParams) (*types.Transaction, contracts.Addr, contracts.Addr) {
-	stakingAddr, _, _, err := contracts.DeployStaking(
+func DeployStakingSGNContracts(sgnParams *SGNParams) (*types.Transaction, eth.Addr, eth.Addr) {
+	stakingAddr, _, _, err := eth.DeployStaking(
 		EtherBaseAuth,
 		EthClient,
 		sgnParams.CelrAddr,
@@ -44,11 +44,11 @@ func DeployStakingSGNContracts(sgnParams *SGNParams) (*types.Transaction, contra
 
 	ChkErr(err, "failed to deploy Staking contract")
 
-	sgnAddr, _, _, err := contracts.DeploySGN(EtherBaseAuth, EthClient, stakingAddr)
+	sgnAddr, _, _, err := eth.DeploySGN(EtherBaseAuth, EthClient, stakingAddr)
 	ChkErr(err, "failed to deploy SGN contract")
 
 	// TODO: register SGN address on Staking contract
-	// staking, err := contracts.NewStaking(stakingAddr, EthClient)
+	// staking, err := eth.NewStaking(stakingAddr, EthClient)
 	// ChkErr(err, "failed to new Staking instance")
 	// EtherBaseAuth.GasLimit = 8000000
 	// tx, err := staking.RegisterSidechain(EtherBaseAuth, sgnAddr)
@@ -95,10 +95,10 @@ func DeployCommand() *cobra.Command {
 			if ethurl == LocalGeth {
 				SetEthBaseKs("./docker-volumes/geth-env")
 				err = FundAddrsETH("1"+strings.Repeat("0", 20),
-					[]contracts.Addr{
-						contracts.Hex2Addr(ValEthAddrs[0]),
-						contracts.Hex2Addr(ClientEthAddrs[0]),
-						contracts.Hex2Addr(ClientEthAddrs[1]),
+					[]eth.Addr{
+						eth.Hex2Addr(ValEthAddrs[0]),
+						eth.Hex2Addr(ClientEthAddrs[0]),
+						eth.Hex2Addr(ClientEthAddrs[1]),
 					})
 				ChkErr(err, "fund ETH to validator and clients")
 			}
@@ -132,13 +132,13 @@ func DeployCommand() *cobra.Command {
 				tx, err := erc20.Approve(EtherBaseAuth, stakingAddr, amt)
 				ChkErr(err, "failed to approve erc20")
 				WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "approve erc20")
-				StakingContract, _ = contracts.NewStaking(stakingAddr, EthClient)
+				StakingContract, _ = eth.NewStaking(stakingAddr, EthClient)
 				_, err = StakingContract.ContributeToRewardPool(EtherBaseAuth, amt)
 				ChkErr(err, "failed to call ContributeToMiningPool of Staking contract")
 				err = FundAddrsErc20(erc20Addr,
-					[]contracts.Addr{
-						contracts.Hex2Addr(ClientEthAddrs[0]),
-						contracts.Hex2Addr(ClientEthAddrs[1]),
+					[]eth.Addr{
+						eth.Hex2Addr(ClientEthAddrs[0]),
+						eth.Hex2Addr(ClientEthAddrs[1]),
 					},
 					"1"+strings.Repeat("0", 20),
 				)

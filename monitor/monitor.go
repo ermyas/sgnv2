@@ -10,7 +10,7 @@ import (
 	"github.com/celer-network/goutils/eth/watcher"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/contracts"
+	"github.com/celer-network/sgn-v2/eth"
 	vtypes "github.com/celer-network/sgn-v2/x/validator/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -60,8 +60,8 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 		log.Fatalln("GetValidatorNum err", err)
 	}
 
-	stakingContract := NewMonitorContractInfo(operator.EthClient.StakingAddress, contracts.StakingABI)
-	sgnContract := NewMonitorContractInfo(operator.EthClient.SGNAddress, contracts.SGNABI)
+	stakingContract := NewMonitorContractInfo(operator.EthClient.StakingAddress, eth.StakingABI)
+	sgnContract := NewMonitorContractInfo(operator.EthClient.SGNAddress, eth.SGNABI)
 
 	verifiedChanges, err := bigcache.NewBigCache(bigcache.DefaultConfig(10 * time.Minute))
 	if err != nil {
@@ -83,7 +83,7 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 		stakingContract: stakingContract,
 		sgnContract:     sgnContract,
 		verifiedChanges: verifiedChanges,
-		bonded:          contracts.IsBonded(stakingValidatorStatus),
+		bonded:          eth.IsBonded(stakingValidatorStatus),
 		bootstrapped:    valnum.Uint64() > 0,
 		executeSlash:    viper.GetBool(common.FlagSgnExecuteSlash),
 		startBlock:      startBlock,
