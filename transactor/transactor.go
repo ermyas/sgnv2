@@ -42,7 +42,7 @@ type Transactor struct {
 
 func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc codec.Codec, gpe *GasPriceEstimator) (*Transactor, error) {
 	kb, err := keyring.New(appName,
-		viper.GetString(common.FlagSgnKeyringBackend), cliHome, nil)
+		viper.GetString(common.FlagSgnKeyringBackend), cliHome, strings.NewReader(passphrase))
 	if err != nil {
 		return nil, err
 	}

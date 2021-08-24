@@ -6,6 +6,7 @@ require (
 	github.com/allegro/bigcache v1.2.1
 	github.com/celer-network/goutils v0.1.32
 	github.com/cosmos/cosmos-sdk v0.43.0
+	github.com/cosmos/go-bip39 v1.0.0
 	github.com/ethereum/go-ethereum v1.10.7
 	github.com/gammazero/deque v0.1.0
 	github.com/gogo/protobuf v1.3.3

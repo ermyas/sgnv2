@@ -1,12 +1,19 @@
 package transactor
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/keys"
+	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
+	"github.com/cosmos/go-bip39"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -26,7 +33,7 @@ func AccountsCommand() *cobra.Command {
 		Use:   "accounts",
 		Short: "Add accounts in batch",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			addresses, err := addAccounts()
+			addresses, err := addAccounts(cmd)
 			if err != nil {
 				return err
 			}
@@ -58,66 +65,66 @@ func AccountsCommand() *cobra.Command {
 	cmd.Flags().String(namePrefixFlag, "transactor", "account prefix")
 	cmd.Flags().Int(countFlag, 1, "account count")
 	cmd.Flags().String(genesisCoinFlag, "", "amount of coin adding to genesis for the account")
-	// TODO: cmd.Flags().String(flags.FlagKeyringBackend, cKeys.BackendFile, "Select keyring's backend (os|file|test)")
+	cmd.Flags().String(flags.FlagKeyringBackend, cKeys.BackendFile, "Select keyring's backend (os|file|test)")
 	return cmd
 }
 
-func addAccounts() ([]string, error) {
+func addAccounts(cmd *cobra.Command) ([]string, error) {
 	var addresses []string
 
-	// passphrase := viper.GetString(passphraseFlag)
-	// np := viper.GetString(namePrefixFlag)
-	// count := viper.GetInt(countFlag)
-	// kb, err := cKeys.NewKeyringWithPassphrase(appName,
-	// 	viper.GetString(flags.FlagKeyringBackend), viper.GetString(flags.FlagHome), passphrase)
-	// if err != nil {
-	// 	return addresses, err
-	// }
+	passphrase := viper.GetString(passphraseFlag)
+	np := viper.GetString(namePrefixFlag)
+	count := viper.GetInt(countFlag)
+	kb, err := cKeys.New(appName,
+		viper.GetString(flags.FlagKeyringBackend), viper.GetString(flags.FlagHome), strings.NewReader(passphrase))
+	if err != nil {
+		return addresses, err
+	}
 
-	// for i := 0; i < count; i++ {
-	// 	name := fmt.Sprintf("%s_%d", np, i)
-	// 	info, err := kb.Get(name)
-	// 	if err == nil {
-	// 		log.Infof("Account %s has existed", name)
-	// 		printAccount(info)
-	// 		addresses = append(addresses, info.GetAddress().String())
-	// 		continue
-	// 	}
+	for i := 0; i < count; i++ {
+		name := fmt.Sprintf("%s_%d", np, i)
+		info, err := kb.Key(name)
+		if err == nil {
+			log.Infof("Account %s has existed", name)
+			printAccount(info)
+			addresses = append(addresses, info.GetAddress().String())
+			continue
+		}
 
-	// 	entropySeed, err := bip39.NewEntropy(mnemonicEntropySize)
-	// 	if err != nil {
-	// 		return addresses, err
-	// 	}
+		entropySeed, err := bip39.NewEntropy(mnemonicEntropySize)
+		if err != nil {
+			return addresses, err
+		}
 
-	// 	mnemonic, err := bip39.NewMnemonic(entropySeed[:])
-	// 	if err != nil {
-	// 		return addresses, err
-	// 	}
+		mnemonic, err := bip39.NewMnemonic(entropySeed[:])
+		if err != nil {
+			return addresses, err
+		}
 
-	// 	info, err = kb.CreateAccount(name, mnemonic, "", passphrase, "", cKeys.Secp256k1)
-	// 	if err != nil {
-	// 		return addresses, err
-	// 	}
+		info, err = kb.NewAccount(name, mnemonic, passphrase, "", hd.Secp256k1)
+		if err != nil {
+			return addresses, err
+		}
 
-	// 	log.Infof("Account %s created", name)
-	// 	printAccount(info)
-	// 	addresses = append(addresses, info.GetAddress().String())
-	// }
+		log.Infof("Account %s created", name)
+		printAccount(info)
+		addresses = append(addresses, info.GetAddress().String())
+	}
 
 	return addresses, nil
 }
 
-// func printAccount(info cKeys.Info) {
-// 	out, err := cKeys.Bech32KeyOutput(info)
-// 	if err != nil {
-// 		return
-// 	}
+func printAccount(info cKeys.Info) {
+	out, err := cKeys.MkAccKeyOutput(info)
+	if err != nil {
+		return
+	}
 
-// 	jsonString, err := keys.MarshalJSON(out)
-// 	if err != nil {
-// 		return
-// 	}
+	jsonString, err := keys.MarshalJSON(out)
+	if err != nil {
+		return
+	}
 
-// 	log.Infof(string(jsonString))
-// 	return
-// }
+	log.Infof(string(jsonString))
+	return
+}
