@@ -19,13 +19,22 @@ const (
 )
 
 var (
-	UpdateKey   = []byte{0x01}
-	UpdateIdKey = []byte{0x11}
+	PendingUpdateKey   = []byte{0x01}
+	PendingUpdateIdKey = []byte{0x11}
 )
 
 // ChangeKey gets a specific change from the store
-func GetUpdateKey(updateId uint64) []byte {
-	idbytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(idbytes, updateId)
-	return append(UpdateKey, idbytes...)
+func GetPendingUpdateKey(updateId uint64) []byte {
+	return append(PendingUpdateKey, GetPendingUpdateIdBytes(updateId)...)
+}
+
+// GetChangeIDFromBytes returns changeID in uint64 format from a byte array
+func GetPendingUpdateIdFromBytes(bz []byte) (updateId uint64) {
+	return binary.BigEndian.Uint64(bz)
+}
+
+func GetPendingUpdateIdBytes(changeID uint64) (idBytes []byte) {
+	idBytes = make([]byte, 8)
+	binary.BigEndian.PutUint64(idBytes, changeID)
+	return
 }

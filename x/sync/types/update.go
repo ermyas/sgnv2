@@ -4,13 +4,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 )
 
-func NewUpdate(
-	id uint64, updateType UpdateType, data []byte, ethBlock uint64,
-	proposer string, proposeTs, closingTs uint64) *Update {
+func NewPendingUpdate(
+	id uint64, dataType DataType, data []byte, ethBlock uint64,
+	proposer string, proposeTs, closingTs uint64) *PendingUpdate {
 
-	return &Update{
+	return &PendingUpdate{
 		Id:        id,
-		Type:      updateType,
+		Type:      dataType,
 		Data:      data,
 		EthBlock:  ethBlock,
 		Proposer:  proposer,
@@ -19,12 +19,12 @@ func NewUpdate(
 	}
 }
 
-func MustMarshalUpdate(cdc codec.BinaryCodec, update *Update) []byte {
+func MustMarshalPendingUpdate(cdc codec.BinaryCodec, update *PendingUpdate) []byte {
 	return cdc.MustMarshal(update)
 }
 
-func MustUnmarshalUpdate(cdc codec.BinaryCodec, value []byte) Update {
-	update, err := UnmarshalUpdate(cdc, value)
+func MustUnmarshalPendingUpdate(cdc codec.BinaryCodec, value []byte) PendingUpdate {
+	update, err := UnmarshalPendingUpdate(cdc, value)
 	if err != nil {
 		panic(err)
 	}
@@ -32,7 +32,7 @@ func MustUnmarshalUpdate(cdc codec.BinaryCodec, value []byte) Update {
 	return update
 }
 
-func UnmarshalUpdate(cdc codec.BinaryCodec, value []byte) (u Update, err error) {
+func UnmarshalPendingUpdate(cdc codec.BinaryCodec, value []byte) (u PendingUpdate, err error) {
 	err = cdc.Unmarshal(value, &u)
 	return u, err
 }

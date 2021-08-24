@@ -7,7 +7,6 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/x/validator/types"
 	"github.com/cosmos/cosmos-sdk/client"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
@@ -71,8 +70,11 @@ func QueryDelegators(cliCtx client.Context, ethAddress string) (delegators []*ty
 
 // addrStr should be bech32 sgn account address with prefix sgn
 func QuerySdkValidator(cliCtx client.Context, sgnAddr string) (sdkval *sdk_staking.Validator, err error) {
-	addr, err := sdk.AccAddressFromBech32(sgnAddr)
-	params := sdk_staking.NewQueryValidatorParams(sdk.ValAddress(addr), 0, 0)
+	vaddr, err := types.SdkValAddrFromSgnBech32(sgnAddr)
+	if err != nil {
+		return nil, err
+	}
+	params := sdk_staking.NewQueryValidatorParams(vaddr, 0, 0)
 	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
 	if err != nil {
 		return nil, err

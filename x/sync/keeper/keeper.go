@@ -1,35 +1,33 @@
 package keeper
 
 import (
+	valkeeper "github.com/celer-network/sgn-v2/x/validator/keeper"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk_auth_keeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
+	sdk_bank "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	sdk_params "github.com/cosmos/cosmos-sdk/x/params/types"
-	sdk_staking_keeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 )
 
 // Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
 type Keeper struct {
 	cdc        codec.BinaryCodec // The wire codec for binary encoding/decoding.
 	storeKey   sdk.StoreKey      // Unexposed key to access store from sdk.Context
-	sdkacct    sdk_auth_keeper.AccountKeeperI
-	sdkval     sdk_staking_keeper.Keeper
 	paramstore sdk_params.Subspace
+	bankKeeper sdk_bank.Keeper
+	valKeeper  valkeeper.Keeper
 }
 
 // NewKeeper creates new instances of the validator Keeper
 func NewKeeper(
 	cdc codec.BinaryCodec,
 	storeKey sdk.StoreKey,
-	sdkacct sdk_auth_keeper.AccountKeeperI,
-	sdkval sdk_staking_keeper.Keeper,
+	valKeeper valkeeper.Keeper,
 	paramstore sdk_params.Subspace,
 ) Keeper {
 	return Keeper{
 		cdc:        cdc,
 		storeKey:   storeKey,
-		sdkacct:    sdkacct,
-		sdkval:     sdkval,
+		valKeeper:  valKeeper,
 		paramstore: paramstore.WithKeyTable(ParamKeyTable()),
 	}
 }

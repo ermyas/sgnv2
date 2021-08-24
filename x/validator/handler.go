@@ -10,7 +10,6 @@ import (
 	sdk_errors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
-// NewHandler returns a handler for "validator" type messages.
 func NewHandler(keeper keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		logEntry := seal.NewMsgLog()
@@ -37,7 +36,9 @@ func NewHandler(keeper keeper.Keeper) sdk.Handler {
 }
 
 // Handle a message to set transactors
-func handleMsgSetTransactors(ctx sdk.Context, keeper keeper.Keeper, msg *types.MsgSetTransactors, logEntry *seal.MsgLog) (*sdk.Result, error) {
+func handleMsgSetTransactors(
+	ctx sdk.Context, keeper keeper.Keeper, msg *types.MsgSetTransactors, logEntry *seal.MsgLog) (*sdk.Result, error) {
+
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender
 
@@ -60,8 +61,10 @@ func handleMsgSetTransactors(ctx sdk.Context, keeper keeper.Keeper, msg *types.M
 				logEntry.Transactor = append(logEntry.Transactor, transactor)
 				validator.Transactors = append(validator.Transactors, transactor)
 				dedup[transactor] = true
-				// TODO: err checking
-				acctAddr, _ := sdk.AccAddressFromBech32(transactor)
+				acctAddr, err := types.SdkAccAddrFromSgnBech32(transactor)
+				if err != nil {
+					return nil, fmt.Errorf("Invalid bech32 addr %s, %s", transactor, err)
+				}
 				keeper.InitAccount(ctx, acctAddr)
 			}
 		}
@@ -69,7 +72,10 @@ func handleMsgSetTransactors(ctx sdk.Context, keeper keeper.Keeper, msg *types.M
 
 	for _, transactor := range oldTransactors {
 		if _, exist := dedup[transactor]; !exist {
-			acctAddr, _ := sdk.AccAddressFromBech32(transactor)
+			acctAddr, err := types.SdkAccAddrFromSgnBech32(transactor)
+			if err != nil {
+				return nil, fmt.Errorf("Invalid bech32 addr %s, %s", transactor, err)
+			}
 			keeper.RemoveAccount(ctx, acctAddr)
 		}
 	}
@@ -79,7 +85,9 @@ func handleMsgSetTransactors(ctx sdk.Context, keeper keeper.Keeper, msg *types.M
 }
 
 // Handle a message to edit validator description
-func handleMsgEditDescription(ctx sdk.Context, keeper keeper.Keeper, msg *types.MsgEditDescription, logEntry *seal.MsgLog) (*sdk.Result, error) {
+func handleMsgEditDescription(
+	ctx sdk.Context, keeper keeper.Keeper, msg *types.MsgEditDescription, logEntry *seal.MsgLog) (*sdk.Result, error) {
+
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender
 	logEntry.EthAddress = msg.EthAddress

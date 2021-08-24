@@ -1,18 +1,18 @@
 package types
 
 const (
-	QueryParams  = "params"
-	QueryUpdate  = "update"
-	QueryUpdates = "updates"
+	QueryParams         = "params"
+	QueryPendingUpdate  = "update"
+	QueryPendingUpdates = "updates"
 )
 
-type QueryUpdateParams struct {
-	Id uint64
+type QueryPendingUpdateParams struct {
+	UpdateId uint64
 }
 
 // NewQueryChangeParams creates a new instance of QueryChangeParams
-func NewQueryUpdateParams(id uint64) QueryUpdateParams {
-	return QueryUpdateParams{
-		Id: id,
+func NewQueryPendingUpdateParams(id uint64) QueryPendingUpdateParams {
+	return QueryPendingUpdateParams{
+		UpdateId: id,
 	}
 }

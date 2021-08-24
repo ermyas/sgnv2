@@ -28,9 +28,6 @@ type HashType = ec.Hash
 // Addr is alias to geth common.Address
 type Addr = ec.Address
 
-// SidechainAddr is alias to []byte
-type SidechainAddr = []byte
-
 // ========== Hex/Bytes ==========
 
 // Hex2Bytes supports hex string with or without 0x prefix

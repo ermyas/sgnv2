@@ -15,13 +15,13 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 		case types.QueryValidator:
 			return queryValidator(ctx, req, k, legacyQuerierCdc)
 		case types.QueryValidators:
-			return queryValidators(ctx, req, k, legacyQuerierCdc)
+			return queryValidators(ctx, k, legacyQuerierCdc)
 		case types.QueryDelegator:
 			return queryDelegator(ctx, req, k, legacyQuerierCdc)
 		case types.QueryDelegators:
 			return queryDelegators(ctx, req, k, legacyQuerierCdc)
 		case types.QuerySyncer:
-			return querySyncer(ctx, req, k, legacyQuerierCdc)
+			return querySyncer(ctx, k, legacyQuerierCdc)
 		case types.QueryParams:
 			return queryParams(ctx, k, legacyQuerierCdc)
 		default:
@@ -51,7 +51,7 @@ func queryValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuer
 	return res, nil
 }
 
-func queryValidators(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+func queryValidators(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
 	validators := k.GetAllValidators(ctx)
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, validators)
 	if err != nil {
@@ -98,7 +98,7 @@ func queryDelegators(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQue
 	return res, nil
 }
 
-func querySyncer(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+func querySyncer(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
 	syncer := k.GetSyncer(ctx)
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, syncer)
 	if err != nil {

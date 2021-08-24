@@ -36,7 +36,7 @@ func (msg *MsgSetTransactors) ValidateBasic() error {
 			return sdk_errors.Wrap(ErrInvalidAddress, transactor)
 		}
 
-		_, err := sdk.AccAddressFromBech32(transactor)
+		_, err := SdkAccAddrFromSgnBech32(transactor)
 		if err != nil {
 			return sdk_errors.Wrap(ErrInvalidAddress, err.Error())
 		}
@@ -53,7 +53,7 @@ func (msg *MsgSetTransactors) GetSignBytes() []byte {
 
 // GetSigners defines whose signature is required
 func (msg *MsgSetTransactors) GetSigners() []sdk.AccAddress {
-	addr, err := sdk.AccAddressFromBech32(msg.Sender)
+	addr, err := SdkAccAddrFromSgnBech32(msg.Sender)
 	if err != nil {
 		panic(err)
 	}
@@ -98,7 +98,7 @@ func (msg *MsgEditDescription) GetSignBytes() []byte {
 
 // GetSigners defines whose signature is required
 func (msg *MsgEditDescription) GetSigners() []sdk.AccAddress {
-	addr, err := sdk.AccAddressFromBech32(msg.Sender)
+	addr, err := SdkAccAddrFromSgnBech32(msg.Sender)
 	if err != nil {
 		panic(err)
 	}

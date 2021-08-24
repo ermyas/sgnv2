@@ -6,22 +6,14 @@ option go_package = "github.com/celer-network/sgn-v2/x/sync/types";
 
 // --------------- states ----------------
 
-enum UpdateType {
+enum DataType {
     Invalid = 0;
     EthBlkNum = 1;
     StakingContractParam = 2;
     ValidatorAddrs = 3; // update validator signer and sgn addresses
-    ValidatorStatus = 4;
-    ValidatorTokenShare = 5;
-    ValidatorCommissionRate = 6;
-    DelegatorShare = 7;
-}
-
-enum UpdateStatus {
-    Null = 0;
-    Pending = 1;
-    Passed = 2;
-    Failed = 4;
+    ValidatorStates = 4; // status, token, share
+    ValidatorCommissionRate = 5;
+    DelegatorShares = 6;
 }
 
 enum VoteOption {
@@ -36,14 +28,13 @@ message Vote {
     VoteOption option = 2;
 }
 
-message Update {
+message PendingUpdate {
     uint64 id = 1;
-    UpdateType type = 2;
+    DataType type = 2;
     bytes data = 3;
     uint64 eth_block = 4;
     string proposer = 5;
     repeated Vote votes = 6;
-    UpdateStatus status = 7;
     uint64 propose_ts = 8;
     uint64 closing_ts = 9;
 }
@@ -61,7 +52,7 @@ message StakingContractParamData {
 }
 
 message ProposeUpdate {
-    UpdateType type = 1;
+    DataType type = 1;
     bytes data = 2;
 }
 
