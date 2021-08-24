@@ -32,7 +32,7 @@ func NewOperator(cdc codec.Codec, cliHome string, tmCfg *tmcfg.Config) (operator
 
 	txr, err := transactor.NewTransactor(
 		cliHome,
-		viper.GetString(common.FlagSgnChainID),
+		viper.GetString(common.FlagSgnChainId),
 		viper.GetString(common.FlagSgnNodeURI),
 		viper.GetString(common.FlagSgnValidatorAccount),
 		viper.GetString(common.FlagSgnPassphrase),
@@ -75,7 +75,7 @@ func (o *Operator) SyncValidator(valEthAddr eth.Addr) bool {
 	// 	return false
 	// }
 
-	valInfo, err := o.EthClient.Staking.Validators(&bind.CallOpts{}, valEthAddr)
+	valInfo, err := o.EthClient.Contracts.Staking.Validators(&bind.CallOpts{}, valEthAddr)
 	if err != nil {
 		log.Errorln("Failed to query validator info:", err)
 		return false

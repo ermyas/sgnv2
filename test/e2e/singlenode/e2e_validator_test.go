@@ -49,7 +49,7 @@ func validatorTest(t *testing.T) {
 	transactor := tc.NewTestTransactor(
 		t,
 		CLIHome,
-		viper.GetString(common.FlagSgnChainID),
+		viper.GetString(common.FlagSgnChainId),
 		viper.GetString(common.FlagSgnNodeURI),
 		viper.GetStringSlice(common.FlagSgnTransactors)[0],
 		viper.GetString(common.FlagSgnPassphrase),

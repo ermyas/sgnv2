@@ -117,7 +117,7 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc co
 func NewCliTransactor(cdc codec.Codec, cliHome string) (*Transactor, error) {
 	return NewTransactor(
 		cliHome,
-		viper.GetString(common.FlagSgnChainID),
+		viper.GetString(common.FlagSgnChainId),
 		viper.GetString(common.FlagSgnNodeURI),
 		viper.GetString(common.FlagSgnValidatorAccount),
 		viper.GetString(common.FlagSgnPassphrase),

@@ -58,13 +58,13 @@ func (e *EventWrapper) ParseEvent(ethClient *eth.EthClient) interface{} {
 	var err error
 	switch e.Name {
 	case ValidatorParamsUpdate:
-		res, err = ethClient.Staking.ParseValidatorParamsUpdate(e.Log)
+		res, err = ethClient.Contracts.Staking.ParseValidatorParamsUpdate(e.Log)
 	case ValidatorStatusUpdate:
-		res, err = ethClient.Staking.ParseValidatorStatusUpdate(e.Log)
+		res, err = ethClient.Contracts.Staking.ParseValidatorStatusUpdate(e.Log)
 	case DelegationUpdate:
-		res, err = ethClient.Staking.ParseDelegationUpdate(e.Log)
+		res, err = ethClient.Contracts.Staking.ParseDelegationUpdate(e.Log)
 	case SgnAddrUpdate:
-		res, err = ethClient.SGN.ParseSgnAddrUpdate(e.Log)
+		res, err = ethClient.Contracts.Sgn.ParseSgnAddrUpdate(e.Log)
 	default:
 		panic("Unsupported event")
 	}

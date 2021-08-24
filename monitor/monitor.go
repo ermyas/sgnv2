@@ -26,12 +26,9 @@ type Monitor struct {
 	*Operator
 	db              dbm.DB
 	ethMonitor      *monitor.Service
-	stakingContract monitor.Contract
-	sgnContract     monitor.Contract
-	verifiedChanges *bigcache.BigCache
-	sidechainAcct   sdk.AccAddress
+	verifiedUpdates *bigcache.BigCache
+	sgnAcct         sdk.AccAddress
 	bonded          bool
-	executeSlash    bool
 	bootstrapped    bool // SGN has bootstrapped with at least one bonded validator on the mainchain contract
 	startBlock      *big.Int
 	lock            sync.RWMutex
@@ -50,20 +47,17 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 	ethMonitor := monitor.NewService(watchService, blkDelay, true /* enabled */)
 	ethMonitor.Init()
 
-	stakingValidatorStatus, err := operator.EthClient.Staking.GetValidatorStatus(&bind.CallOpts{}, operator.EthClient.Address)
+	stakingValidatorStatus, err := operator.EthClient.Contracts.Staking.GetValidatorStatus(&bind.CallOpts{}, operator.EthClient.Address)
 	if err != nil {
 		log.Fatalln("GetValidatorStatus err", err)
 	}
 
-	valnum, err := operator.EthClient.Staking.GetValidatorNum(&bind.CallOpts{})
+	valnum, err := operator.EthClient.Contracts.Staking.GetValidatorNum(&bind.CallOpts{})
 	if err != nil {
 		log.Fatalln("GetValidatorNum err", err)
 	}
 
-	stakingContract := NewMonitorContractInfo(operator.EthClient.StakingAddress, eth.StakingABI)
-	sgnContract := NewMonitorContractInfo(operator.EthClient.SGNAddress, eth.SGNABI)
-
-	verifiedChanges, err := bigcache.NewBigCache(bigcache.DefaultConfig(10 * time.Minute))
+	verifiedUpdates, err := bigcache.NewBigCache(bigcache.DefaultConfig(10 * time.Minute))
 	if err != nil {
 		log.Fatalln("NewBigCache err", err)
 	}
@@ -80,15 +74,12 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 		Operator:        operator,
 		db:              db,
 		ethMonitor:      ethMonitor,
-		stakingContract: stakingContract,
-		sgnContract:     sgnContract,
-		verifiedChanges: verifiedChanges,
+		verifiedUpdates: verifiedUpdates,
 		bonded:          eth.IsBonded(stakingValidatorStatus),
 		bootstrapped:    valnum.Uint64() > 0,
-		executeSlash:    viper.GetBool(common.FlagSgnExecuteSlash),
 		startBlock:      startBlock,
 	}
-	m.sidechainAcct, err = vtypes.SdkAccAddrFromSgnBech32(viper.GetString(common.FlagSgnValidatorAccount))
+	m.sgnAcct, err = vtypes.SdkAccAddrFromSgnBech32(viper.GetString(common.FlagSgnValidatorAccount))
 	if err != nil {
 		log.Fatalln("Sidechain acct error")
 	}
@@ -126,9 +117,7 @@ func (m *Monitor) processQueues() {
 			//m.verifyActiveChanges()
 
 		case <-slashTicker.C:
-			if m.executeSlash {
-				//m.processPenaltyQueue()
-			}
+			//m.processPenaltyQueue()
 		}
 	}
 }

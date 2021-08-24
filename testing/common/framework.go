@@ -18,11 +18,11 @@ type Killable interface {
 }
 
 type TestProfile struct {
-	DisputeTimeout uint64
-	StakingAddr    eth.Addr
-	SGNAddr        eth.Addr
-	CelrAddr       eth.Addr
-	CelrContract   *eth.Erc20
+	DisputeTimeout      uint64
+	StakingContractAddr eth.Addr
+	SgnContractAddr     eth.Addr
+	CelrAddr            eth.Addr
+	CelrContract        *eth.Erc20
 }
 
 func TearDown(tokill []Killable) {

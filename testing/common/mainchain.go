@@ -38,7 +38,7 @@ func SetEthBaseKs(prefix string) {
 }
 
 // SetupEthClients sets Client part (Client) and Auth part (PrivateKey, Address, Auth)
-// Contracts part (StakingAddress, Staking, SGNAddress, SGN, LedgerAddress, Ledger) is set after deploying Staking and SGN contracts in SetupNewSGNEnv()
+// Contracts part is set after deploying Staking and SGN contracts in SetupNewSGNEnv()
 func SetupEthClients() {
 	rpcClient, err := rpc.Dial(LocalGeth)
 	if err != nil {
@@ -71,14 +71,14 @@ func SetupTestEthClient(ksfile string) (*TestEthClient, error) {
 	return testClient, nil
 }
 
-func SetContracts(stakingAddr, sgnAddr eth.Addr) error {
-	log.Infof("set contracts staking %x sgn %x", stakingAddr, sgnAddr)
+func SetContracts(stakingContractAddr, sgnContractAddr eth.Addr) error {
+	log.Infof("set contracts staking %x sgn %x", stakingContractAddr, sgnContractAddr)
 	var err error
-	StakingContract, err = eth.NewStaking(stakingAddr, EthClient)
+	StakingContract, err = eth.NewStaking(stakingContractAddr, EthClient)
 	if err != nil {
 		return err
 	}
-	SgnContract, err = eth.NewSGN(sgnAddr, EthClient)
+	SgnContract, err = eth.NewSGN(sgnContractAddr, EthClient)
 	if err != nil {
 		return err
 	}
@@ -183,7 +183,7 @@ func DelegateStake(fromAuth *bind.TransactOpts, toEthAddress eth.Addr, amt *big.
 	defer cancel()
 
 	log.Info("Call delegate on staking contract to delegate stake to the validator eth address...")
-	_, err := E2eProfile.CelrContract.Approve(fromAuth, E2eProfile.StakingAddr, amt)
+	_, err := E2eProfile.CelrContract.Approve(fromAuth, E2eProfile.StakingContractAddr, amt)
 	if err != nil {
 		return err
 	}

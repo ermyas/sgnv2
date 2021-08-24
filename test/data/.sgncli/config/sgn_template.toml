@@ -13,10 +13,10 @@ confirm_param_proposal = 2
 intend_settle = 1
 intend_withdraw_channel = 1
 
-[eth.contracts]
-celr_address = ""
-staking_address = ""
-sgn_address = ""
+[eth.contract_address]
+celr = ""
+staking = ""
+sgn = ""
 
 [log]
 color = true

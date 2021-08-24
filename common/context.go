@@ -10,6 +10,6 @@ func NewQueryCLIContext(cdc *codec.Codec) client.Context {
 	ctx := client.Context{}.
 		WithCodec(*cdc).
 		WithNodeURI(viper.GetString(FlagSgnNodeURI)).
-		WithChainID(viper.GetString(FlagSgnChainID))
+		WithChainID(viper.GetString(FlagSgnChainId))
 	return ctx
 }

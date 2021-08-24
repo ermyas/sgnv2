@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/celer-network/goutils/eth"
+	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -16,15 +16,16 @@ import (
 type EthClient struct {
 	// init by NewEthClient
 	Client     *ethclient.Client
-	Transactor *eth.Transactor
-	Signer     eth.Signer
+	Transactor *ethutils.Transactor
+	Signer     ethutils.Signer
 	Address    Addr
-
 	// init by SetContracts
-	StakingAddress Addr
-	Staking        *Staking
-	SGNAddress     Addr
-	SGN            *SGN
+	Contracts *Contracts
+}
+
+type Contracts struct {
+	Staking *Staking
+	Sgn     *SGN
 }
 
 type TransactorConfig struct {
@@ -40,8 +41,8 @@ func NewEthClient(
 	ksfile string,
 	passphrase string,
 	tconfig *TransactorConfig,
-	stakingAddrStr string,
-	sgnAddrStr string) (*EthClient, error) {
+	stakingContract string,
+	sgnContract string) (*EthClient, error) {
 	ethClient := &EthClient{}
 
 	rpcClient, err := ethrpc.Dial(ethurl)
@@ -50,7 +51,7 @@ func NewEthClient(
 	}
 
 	ethClient.Client = ethclient.NewClient(rpcClient)
-	err = ethClient.setContracts(stakingAddrStr, sgnAddrStr)
+	err = ethClient.setContracts(stakingContract, sgnContract)
 	if err != nil {
 		return nil, err
 	}
@@ -77,40 +78,37 @@ func (ethClient *EthClient) setTransactor(ksfile string, passphrase string, tcon
 	}
 
 	ethClient.Address = key.Address
-	ethClient.Signer, err = eth.NewSigner(hex.EncodeToString(crypto.FromECDSA(key.PrivateKey)), tconfig.ChainId)
+	ethClient.Signer, err = ethutils.NewSigner(hex.EncodeToString(crypto.FromECDSA(key.PrivateKey)), tconfig.ChainId)
 	if err != nil {
 		return err
 	}
 
-	ethClient.Transactor, err = eth.NewTransactor(
+	ethClient.Transactor, err = ethutils.NewTransactor(
 		string(ksBytes),
 		passphrase,
 		ethClient.Client,
 		tconfig.ChainId,
-		eth.WithBlockDelay(tconfig.BlockDelay),
-		eth.WithPollingInterval(time.Duration(tconfig.BlockPollingInterval)*time.Second),
-		eth.WithAddGasGwei(tconfig.AddGasPriceGwei),
-		eth.WithMinGasGwei(tconfig.MinGasPriceGwei),
+		ethutils.WithBlockDelay(tconfig.BlockDelay),
+		ethutils.WithPollingInterval(time.Duration(tconfig.BlockPollingInterval)*time.Second),
+		ethutils.WithAddGasGwei(tconfig.AddGasPriceGwei),
+		ethutils.WithMinGasGwei(tconfig.MinGasPriceGwei),
 	)
 
 	return err
 }
 
-func (ethClient *EthClient) setContracts(stakingAddrStr, sgnAddrStr string) error {
-	ethClient.StakingAddress = Hex2Addr(stakingAddrStr)
-	staking, err := NewStaking(ethClient.StakingAddress, ethClient.Client)
+func (ethClient *EthClient) setContracts(stakingContract, sgnContract string) error {
+	var err error
+	ethClient.Contracts.Staking, err = NewStaking(Hex2Addr(stakingContract), ethClient.Client)
 	if err != nil {
 		return err
 	}
 
-	ethClient.SGNAddress = Hex2Addr(sgnAddrStr)
-	sgn, err := NewSGN(ethClient.SGNAddress, ethClient.Client)
+	ethClient.Contracts.Sgn, err = NewSGN(Hex2Addr(sgnContract), ethClient.Client)
 	if err != nil {
 		return err
 	}
 
-	ethClient.Staking = staking
-	ethClient.SGN = sgn
 	return nil
 }
 

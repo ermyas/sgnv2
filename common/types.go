@@ -82,11 +82,11 @@ func NewEthClientFromConfig() (*eth.EthClient, error) {
 		&eth.TransactorConfig{
 			BlockDelay:           viper.GetUint64(FlagEthBlockDelay),
 			BlockPollingInterval: viper.GetUint64(FlagEthPollInterval),
-			ChainId:              big.NewInt(viper.GetInt64(FlagEthChainID)),
+			ChainId:              big.NewInt(viper.GetInt64(FlagEthChainId)),
 			AddGasPriceGwei:      viper.GetUint64(FlagEthAddGasPriceGwei),
 			MinGasPriceGwei:      viper.GetUint64(FlagEthMinGasPriceGwei),
 		},
-		viper.GetString(FlagEthStakingAddress),
-		viper.GetString(FlagEthSGNAddress),
+		viper.GetString(FlagEthContractStaking),
+		viper.GetString(FlagEthContractSgn),
 	)
 }
