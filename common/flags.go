@@ -27,7 +27,6 @@ const (
 	FlagSgnValidatorAccount = "sgn.validator_account"
 	FlagSgnTransactors      = "sgn.transactors"
 	FlagSgnPassphrase       = "sgn.passphrase"
-	FlagSgnPubKey           = "sgn.pubkey"
 	FlagSgnChainID          = "sgn.chain_id"
 	FlagSgnNodeURI          = "sgn.node_uri"
 	FlagSgnBaseGasPrice     = "sgn.base_gas_price"

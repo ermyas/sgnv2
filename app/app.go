@@ -11,6 +11,7 @@ import (
 	"github.com/celer-network/sgn-v2/x/validator"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
+	tmcfg "github.com/tendermint/tendermint/config"
 	tlog "github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
 	dbm "github.com/tendermint/tm-db"
@@ -115,8 +116,12 @@ type SgnApp struct {
 
 // NewSgnApp is a constructor function for sgnApp
 func NewSgnApp(
-	logger tlog.Logger, db dbm.DB, skipUpgradeHeights map[int64]bool, homePath string,
-	encodingConfig simappparams.EncodingConfig, baseAppOptions ...func(*baseapp.BaseApp),
+	logger tlog.Logger,
+	db dbm.DB,
+	skipUpgradeHeights map[int64]bool, homePath string,
+	encodingConfig simappparams.EncodingConfig,
+	tmCfg *tmcfg.Config,
+	baseAppOptions ...func(*baseapp.BaseApp),
 ) *SgnApp {
 	viper.SetDefault(common.FlagEthPollInterval, 15)
 	viper.SetDefault(common.FlagEthBlockDelay, 5)
@@ -253,7 +258,7 @@ func NewSgnApp(
 		tmos.Exit(err.Error())
 	}
 
-	go app.startMonitor(db)
+	go app.startMonitor(db, tmCfg)
 
 	return app
 }
@@ -315,8 +320,8 @@ func (app *SgnApp) InterfaceRegistry() types.InterfaceRegistry {
 	return app.interfaceRegistry
 }
 
-func (app *SgnApp) startMonitor(db dbm.DB) {
-	operator, err := monitor.NewOperator(app.appCodec, viper.GetString(common.FlagCLIHome))
+func (app *SgnApp) startMonitor(db dbm.DB, tmCfg *tmcfg.Config) {
+	operator, err := monitor.NewOperator(app.appCodec, viper.GetString(common.FlagCLIHome), tmCfg)
 	if err != nil {
 		tmos.Exit(err.Error())
 	}
