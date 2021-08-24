@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/allegro/bigcache"
@@ -33,7 +34,7 @@ type Monitor struct {
 	executeSlash    bool
 	bootstrapped    bool // SGN has bootstrapped with at least one bonded validator on the mainchain contract
 	startBlock      *big.Int
-	//lock            sync.RWMutex
+	lock            sync.RWMutex
 }
 
 func NewMonitor(operator *Operator, db dbm.DB) {
@@ -92,10 +93,44 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 		log.Fatalln("Sidechain acct error")
 	}
 
+	go m.processQueues()
+
 	go m.monitorValidatorParamsUpdate()
 	go m.monitorValidatorStatusUpdate()
 	go m.monitorDelegationUpdate()
 	go m.monitorSgnAddrUpdate()
+}
+
+func (m *Monitor) processQueues() {
+	pullerInterval := time.Duration(viper.GetUint64(common.FlagEthPollInterval)) * time.Second
+	slashInterval := time.Duration(viper.GetUint64(common.FlagSgnCheckIntervalSlashQueue)) * time.Second
+	log.Infof("Queue process interval: puller %s, guard %s, slash %s", pullerInterval, slashInterval)
+
+	pullerTicker := time.NewTicker(pullerInterval)
+	slashTicker := time.NewTicker(slashInterval)
+	defer func() {
+		pullerTicker.Stop()
+		slashTicker.Stop()
+	}()
+
+	blkNum := m.getCurrentBlockNumber().Uint64()
+	for {
+		select {
+		case <-pullerTicker.C:
+			newblk := m.getCurrentBlockNumber().Uint64()
+			if blkNum == newblk {
+				continue
+			}
+			blkNum = newblk
+			m.processPullerQueue()
+			//m.verifyActiveChanges()
+
+		case <-slashTicker.C:
+			if m.executeSlash {
+				//m.processPenaltyQueue()
+			}
+		}
+	}
 }
 
 func (m *Monitor) monitorValidatorParamsUpdate() {

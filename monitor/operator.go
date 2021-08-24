@@ -38,3 +38,14 @@ func NewOperator(cdc codec.Codec, cliHome string) (operator *Operator, err error
 		Transactor: txr,
 	}, nil
 }
+
+// return true if already updated or no need for retry
+func (o *Operator) SyncValidator(candidateAddr contracts.Addr) bool {
+
+	// TODO
+	return false
+}
+
+func (o *Operator) SyncDelegator(candidatorAddr, delegatorAddr contracts.Addr) {
+	// TODO
+}
