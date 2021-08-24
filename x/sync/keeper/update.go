@@ -3,15 +3,11 @@ package keeper
 import (
 	"github.com/celer-network/sgn-v2/x/sync/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk_errors "github.com/cosmos/cosmos-sdk/types/errors"
 	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 func (k Keeper) ProposeUpdates(ctx sdk.Context, updates []*types.ProposeUpdate, ethBlock uint64, sender string) error {
-	updateId, err := k.GetPendingUpdateId(ctx)
-	if err != nil {
-		return err
-	}
+	updateId := k.GetNextUpdateId(ctx)
 	proposeTs := uint64(ctx.BlockHeader().Time.Unix())
 	closingTs := proposeTs + k.VotingPeriod(ctx)
 
@@ -21,7 +17,7 @@ func (k Keeper) ProposeUpdates(ctx sdk.Context, updates []*types.ProposeUpdate, 
 		updateId++
 	}
 
-	k.SetPendingUpdateId(ctx, updateId)
+	k.SetNextUpdateId(ctx, updateId)
 	return nil
 }
 
@@ -71,22 +67,20 @@ func (keeper Keeper) RemovePendingUpdate(ctx sdk.Context, updateId uint64) {
 	store.Delete(types.GetPendingUpdateKey(updateId))
 }
 
-// GetPendingUpdateId gets the highest update id
-func (k Keeper) GetPendingUpdateId(ctx sdk.Context) (udpateId uint64, err error) {
+// GetNextUpdateId gets the highest update id
+func (k Keeper) GetNextUpdateId(ctx sdk.Context) uint64 {
 	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.PendingUpdateIdKey)
+	bz := store.Get(types.NextUpdateIdKey)
 	if bz == nil {
-		return 0, sdk_errors.Wrap(types.ErrInvalidGenesis, "initial change ID hasn't been set")
+		return 0
 	}
-
-	udpateId = types.GetPendingUpdateIdFromBytes(bz)
-	return udpateId, nil
+	return types.GetUpdateIdFromBytes(bz)
 }
 
-// SetPendingUpdateId sets the new change ID to the store
-func (k Keeper) SetPendingUpdateId(ctx sdk.Context, changeID uint64) {
+// SetNextUpdateId sets the new update ID to the store
+func (k Keeper) SetNextUpdateId(ctx sdk.Context, updateId uint64) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(types.PendingUpdateIdKey, types.GetPendingUpdateIdBytes(changeID))
+	store.Set(types.NextUpdateIdKey, types.GetUpdateIdToBytes(updateId))
 }
 
 func (k Keeper) GetBondedValidators(ctx sdk.Context) []sdk_staking.Validator {

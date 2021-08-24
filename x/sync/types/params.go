@@ -33,6 +33,18 @@ func DefaultParams() *Params {
 	return NewParams(DefaultVotingPeriod, DefaultTallyThreshoold)
 }
 
+func (p *Params) Validate() error {
+	if p.VotingPeriod == 0 {
+		return fmt.Errorf("validator parameter VotingPeriod must be a positive integer")
+	}
+
+	if p.TallyThreshold == 0 {
+		return fmt.Errorf("validator parameter TallyThreshold must be a positive integer")
+	}
+
+	return nil
+}
+
 func validateVotingPeriod(i interface{}) error {
 	v, ok := i.(uint64)
 	if !ok {

@@ -5,10 +5,10 @@ import (
 )
 
 var (
-	ErrUnknownChange         = sdk_errors.Register(ModuleName, 1, "unknown change")
+	ErrUnknownUpdate         = sdk_errors.Register(ModuleName, 1, "unknown update")
 	ErrDoubleVote            = sdk_errors.Register(ModuleName, 2, "double vote")
-	ErrInvalidChangeType     = sdk_errors.Register(ModuleName, 3, "invalid change type")
-	ErrInvalidChangeData     = sdk_errors.Register(ModuleName, 4, "invalid change data")
+	ErrInvalidUpdateType     = sdk_errors.Register(ModuleName, 3, "invalid update type")
+	ErrInvalidUpdateData     = sdk_errors.Register(ModuleName, 4, "invalid update data")
 	ErrInvalidGenesis        = sdk_errors.Register(ModuleName, 5, "invalid genesis state")
 	ErrInvalidMsg            = sdk_errors.Register(ModuleName, 6, "invalid request")
 	ErrInvalidAddress        = sdk_errors.Register(ModuleName, 7, "invalid address")

@@ -39,7 +39,7 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 		}
 
 		if yesVotes.GT(threshold) {
-			log.Infof("Change approved by majority. id: %d, type: %s, votes: %s, threshold %s",
+			log.Infof("Update approved by majority. id: %d, type: %s, votes: %s, threshold %s",
 				update.Id, update.Type, yesVotes, threshold)
 			keeper.ApplyUpdate(ctx, update)
 			keeper.RemovePendingUpdate(ctx, update.Id)
