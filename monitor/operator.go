@@ -91,7 +91,7 @@ func (o *Operator) SyncValidator(valEthAddr eth.Addr) bool {
 			Identity: eth.Addr2Hex(valEthAddr), // TODO: Use a dedicated field instead of Identity
 		},
 		Tokens: sdk.NewIntFromBigInt(valInfo.Tokens), // not QuoRaw(common.TokenDec) yet
-		Status: eth.ParseStatus(valInfo.Status),
+		Status: sdk_staking.BondStatus(valInfo.Status),
 		// Commission: commission,
 	}
 

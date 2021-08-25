@@ -82,12 +82,12 @@ func DeployCommand() *cobra.Command {
 			EthClient = ethclient.NewClient(rpcClient)
 
 			var ksBytes []byte
-			ksBytes, err = ioutil.ReadFile(configFileViper.GetString(common.FlagEthKeystore))
+			ksBytes, err = ioutil.ReadFile(configFileViper.GetString(common.FlagEthSignerKeystore))
 			if err != nil {
 				return err
 			}
 			EtherBaseAuth, err = bind.NewTransactorWithChainID(
-				strings.NewReader(string(ksBytes)), configFileViper.GetString(common.FlagEthPassphrase), big.NewInt(viper.GetInt64(common.FlagEthChainId)))
+				strings.NewReader(string(ksBytes)), configFileViper.GetString(common.FlagEthSignerPassphrase), big.NewInt(viper.GetInt64(common.FlagEthChainId)))
 			if err != nil {
 				return err
 			}

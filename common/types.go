@@ -77,8 +77,8 @@ func AddSig(sigs []Sig, msg []byte, sig []byte, expectedSigner string) ([]Sig, e
 func NewEthClientFromConfig() (*eth.EthClient, error) {
 	return eth.NewEthClient(
 		viper.GetString(FlagEthGateway),
-		viper.GetString(FlagEthKeystore),
-		viper.GetString(FlagEthPassphrase),
+		viper.GetString(FlagEthSignerKeystore),
+		viper.GetString(FlagEthSignerPassphrase),
 		&eth.TransactorConfig{
 			BlockDelay:           viper.GetUint64(FlagEthBlockDelay),
 			BlockPollingInterval: viper.GetUint64(FlagEthPollInterval),

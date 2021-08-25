@@ -2,7 +2,6 @@ package monitor
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
@@ -31,34 +30,27 @@ func (m *Monitor) processPullerQueue() {
 	delegators := make(map[string]bool)
 	for i, key := range keys {
 		event := eth.NewEventFromBytes(vals[i])
-		logmsg := fmt.Sprintf("Process puller event %s at mainchain block %d", event.Name, event.Log.BlockNumber)
+		logmsg := fmt.Sprintf("Process puller event %s at block %d", event.Name, event.Log.BlockNumber)
 		err = m.dbDelete(key)
 		if err != nil {
 			log.Errorf("%s. db Delete err: %s", logmsg, err)
 			continue
 		}
 
-		switch event.ParseEvent(m.EthClient).(type) {
+		switch e := event.ParseEvent(m.EthClient).(type) {
 		case *eth.StakingValidatorNotice:
-			//TODO
+			log.Infof("%s. validator %x notice key %d", logmsg, e.ValAddr, e.Key)
+			validators[e.ValAddr] = true
 
 		case *eth.StakingValidatorStatusUpdate:
-			//TODO
+			log.Infof("%s. validator %x %s", logmsg, e.ValAddr, eth.ParseValStatus(e.Status))
+			validators[e.ValAddr] = true
 
 		case *eth.StakingDelegationUpdate:
-			//TODO
+			log.Infof("%s. delegation update validator %x tokens %s delta %s, delegator %x shares %s",
+				logmsg, e.ValAddr, e.ValTokens, e.TokenDiff, e.DelAddr, e.DelShares)
+			delegators[getDelegatorKey(e.ValAddr, e.DelAddr)] = true
 		}
-	}
-
-	if m.isBootstrapped() {
-		for validatorAddr := range validators {
-			m.SyncValidator(validatorAddr)
-		}
-	}
-	for delegatorKey := range delegators {
-		candidatorAddr := eth.Hex2Addr(strings.Split(delegatorKey, ":")[0])
-		delegatorAddr := eth.Hex2Addr(strings.Split(delegatorKey, ":")[1])
-		m.SyncDelegator(candidatorAddr, delegatorAddr)
 	}
 }
 

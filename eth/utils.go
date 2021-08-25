@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/x/staking/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -16,17 +15,17 @@ var (
 	ErrPeersNotMatch = errors.New("channel peers not match")
 )
 
-func ParseStatus(stakingValidatorStatus uint8) sdk.BondStatus {
-	switch stakingValidatorStatus {
+func ParseValStatus(valStatus uint8) string {
+	switch valStatus {
 	case Bonded:
-		return sdk.Bonded
+		return "bonded"
 	case Unbonding:
-		return sdk.Unbonding
+		return "unbonding"
 	case Unbonded:
-		return sdk.Unbonded
+		return "unbonded"
 	}
 
-	return sdk.Unbonded
+	return "null"
 }
 
 // GetEventSignature accepts the string of an event signature and return the hex

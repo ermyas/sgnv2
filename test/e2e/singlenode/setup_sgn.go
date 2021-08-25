@@ -65,7 +65,7 @@ func updateSGNConfig() {
 	configFileViper.Set(common.FlagEthContractCelr, tc.E2eProfile.CelrAddr.Hex())
 	configFileViper.Set(common.FlagEthContractStaking, tc.E2eProfile.StakingContractAddr.Hex())
 	configFileViper.Set(common.FlagEthContractSgn, tc.E2eProfile.SgnContractAddr.Hex())
-	configFileViper.Set(common.FlagEthKeystore, keystore)
+	configFileViper.Set(common.FlagEthSignerKeystore, keystore)
 	err = configFileViper.WriteConfig()
 	tc.ChkErr(err, "failed to write config")
 	// Update global viper

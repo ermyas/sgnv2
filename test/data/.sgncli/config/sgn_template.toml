@@ -4,8 +4,9 @@
 block_delay = 0
 chain_id = 883
 gateway = "http://127.0.0.1:8545"
-keystore = "/Users/moz/workspace/sgn/test/keys/vethks0.json"
-passphrase = ""
+signer_keystore = "/Users/moz/workspace/sgn/test/keys/vethks0.json"
+signer_passphrase = ""
+validator_address = ""
 poll_interval = 1
 
 [eth.check_interval]

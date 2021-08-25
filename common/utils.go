@@ -33,13 +33,13 @@ func ParseTransactorAddrs(ts []string) ([]sdk.AccAddress, error) {
 func SetupUserPassword() error {
 	buf := bufio.NewReader(os.Stdin)
 
-	if viper.Get(FlagEthPassphrase) == nil {
+	if viper.Get(FlagEthSignerPassphrase) == nil {
 		pass, err := input.GetString("Enter eth keystore passphrase:", buf)
 		if err != nil {
 			return err
 		}
 
-		viper.Set(FlagEthPassphrase, pass)
+		viper.Set(FlagEthSignerPassphrase, pass)
 	}
 
 	if viper.Get(FlagSgnPassphrase) == nil {

@@ -6,21 +6,19 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-type EventName string
-
 const (
-	EventValidatorNotice       EventName = "ValidatorNotice"
-	EventValidatorStatusUpdate EventName = "ValidatorStatusUpdate"
-	EventDelegationUpdate      EventName = "DelegationUpdate"
+	EventValidatorNotice       = "ValidatorNotice"
+	EventValidatorStatusUpdate = "ValidatorStatusUpdate"
+	EventDelegationUpdate      = "DelegationUpdate"
 )
 
 // Wrapper for ethereum Event
 type EventWrapper struct {
-	Name EventName `json:"name"`
+	Name string    `json:"name"`
 	Log  types.Log `json:"log"`
 }
 
-func NewEvent(name EventName, l types.Log) *EventWrapper {
+func NewEvent(name string, l types.Log) *EventWrapper {
 	return &EventWrapper{
 		Name: name,
 		Log:  l,

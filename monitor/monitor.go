@@ -27,6 +27,7 @@ type Monitor struct {
 	db              dbm.DB
 	ethMonitor      *monitor.Service
 	verifiedUpdates *bigcache.BigCache
+	valAddr         eth.Addr
 	sgnAcct         sdk.AccAddress
 	bonded          bool
 	bootstrapped    bool // SGN is bootstrapped with at least one bonded validator on the mainchain contract
@@ -73,10 +74,12 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 		db:              db,
 		ethMonitor:      ethMonitor,
 		verifiedUpdates: verifiedUpdates,
+		valAddr:         eth.Hex2Addr(viper.GetString(common.FlagEthValidatorAddress)),
 		bonded:          validatorStatus == eth.Bonded,
 		bootstrapped:    bondedValNum.Uint64() > 0,
 		startEthBlock:   startEthBlock,
 	}
+
 	m.sgnAcct, err = vtypes.SdkAccAddrFromSgnBech32(viper.GetString(common.FlagSgnValidatorAccount))
 	if err != nil {
 		log.Fatalln("Sidechain acct error")
