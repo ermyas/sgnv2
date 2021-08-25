@@ -221,7 +221,7 @@ func (m *Monitor) verifyDelegatorShares(update *synctypes.PendingUpdate) (done, 
 
 	if d.Shares != dFromEth.Shares.String() {
 		if m.cmpBlkNum(update.EthBlock) == 1 {
-			log.Infof("%s. validator commission rate not match mainchain value: %s", logmsg, dFromEth.Shares.String())
+			log.Infof("%s. delegator shares not match mainchain value: %s", logmsg, dFromEth.Shares.String())
 			return true, false
 		}
 		log.Infof("%s. mainchain block not passed, mainchain value: %s", logmsg, dFromEth.Shares.String())

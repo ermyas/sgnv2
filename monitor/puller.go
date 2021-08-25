@@ -2,9 +2,11 @@ package monitor
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
+	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 )
 
@@ -51,6 +53,33 @@ func (m *Monitor) processPullerQueue() {
 				logmsg, e.ValAddr, e.ValTokens, e.TokenDiff, e.DelAddr, e.DelShares)
 			delegators[getDelegatorKey(e.ValAddr, e.DelAddr)] = true
 		}
+	}
+
+	msgs := synctypes.MsgProposeUpdates{
+		Updates:  make([]*synctypes.ProposeUpdate, 0),
+		EthBlock: m.getCurrentBlockNumber().Uint64(),
+		Sender:   string(m.Transactor.Key.GetAddress()),
+	}
+
+	if m.isBootstrapped() {
+		for validatorAddr := range validators {
+			updates := m.SyncValidatorMsgs(validatorAddr)
+			if len(updates) > 0 {
+				msgs.Updates = append(msgs.Updates, updates...)
+			}
+		}
+	}
+	for delegatorKey := range delegators {
+		validatorAddr := eth.Hex2Addr(strings.Split(delegatorKey, ":")[0])
+		delegatorAddr := eth.Hex2Addr(strings.Split(delegatorKey, ":")[1])
+		update := m.SyncDelegatorMsg(validatorAddr, delegatorAddr)
+		if update != nil {
+			msgs.Updates = append(msgs.Updates, update)
+		}
+	}
+
+	if len(msgs.Updates) > 0 {
+		m.Transactor.AddTxMsg(&msgs)
 	}
 }
 

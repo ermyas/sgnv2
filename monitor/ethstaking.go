@@ -218,7 +218,7 @@ func (m *Monitor) bondValidator() {
 func (m *Monitor) selfSyncValidator() {
 	var i int
 	for i = 1; i < 5; i++ {
-		updated := m.SyncValidator(m.EthClient.Address)
+		updated := m.SyncValidator(m.EthClient.Address, m.ethMonitor.GetCurrentBlockNumber())
 		if updated {
 			return
 		}

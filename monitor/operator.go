@@ -1,15 +1,18 @@
 package monitor
 
 import (
+	"math/big"
+
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/transactor"
+	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
+	validatorcli "github.com/celer-network/sgn-v2/x/validator/client/cli"
+	validatortypes "github.com/celer-network/sgn-v2/x/validator/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/spf13/viper"
 	tmcfg "github.com/tendermint/tendermint/config"
@@ -64,43 +67,98 @@ func NewOperator(cdc codec.Codec, cliHome string, tmCfg *tmcfg.Config) (operator
 	}, nil
 }
 
-// return true if already updated or no need for retry
-func (o *Operator) SyncValidator(valEthAddr eth.Addr) bool {
+func (o *Operator) SyncValidator(valEthAddr eth.Addr, currentBlkNum *big.Int) bool {
+	updates := o.SyncValidatorMsgs(valEthAddr)
+	if len(updates) > 0 {
+		msgs := synctypes.MsgProposeUpdates{
+			Updates:  make([]*synctypes.ProposeUpdate, 0),
+			EthBlock: currentBlkNum.Uint64(),
+			Sender:   string(o.Transactor.Key.GetAddress()),
+		}
+		msgs.Updates = append(msgs.Updates, updates...)
+		if len(msgs.Updates) > 0 {
+			o.Transactor.AddTxMsg(&msgs)
+		}
+		return true
+	} else {
+		return false
+	}
+}
 
-	// TODO
-	// candidate, err := validator.CLIQueryCandidate(o.Transactor.CliCtx, validator.RouterKey, valEthAddr.Hex())
-	// if err != nil {
-	// 	log.Errorln("sidechain query candidate err:", err)
-	// 	return false
-	// }
-
+func (o *Operator) SyncValidatorMsgs(valEthAddr eth.Addr) []*synctypes.ProposeUpdate {
 	valInfo, err := o.EthClient.Contracts.Staking.Validators(&bind.CallOpts{}, valEthAddr)
 	if err != nil {
 		log.Errorln("Failed to query validator info:", err)
-		return false
+		return nil
 	}
 
-	// commission, err := common.NewCommission(o.EthClient, valInfo.CommissionRate)
-	// if err != nil {
-	// 	log.Errorln("Failed to create new commission:", err)
-	// 	return false
-	// }
+	sgnAddr, err := o.EthClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, valEthAddr)
+	if err != nil {
+		log.Errorf("Failed to query sgn address err: %s", err)
+		return nil
+	}
 
-	newVal := sdk_staking.Validator{
-		Description: sdk_staking.Description{
-			Identity: eth.Addr2Hex(valEthAddr), // TODO: Use a dedicated field instead of Identity
+	newVal := validatortypes.Validator{
+		EthAddress: valEthAddr.Hex(),
+		EthSigner:  valInfo.Signer.Hex(),
+		Status:     validatortypes.ValidatorStatus(valInfo.Status),
+		SgnAddress: string(sgnAddr),
+		Tokens:     valInfo.Tokens.String(),
+		Shares:     valInfo.Shares.String(),
+		Description: &validatortypes.Description{
+			Identity: eth.Addr2Hex(valEthAddr),
 		},
-		Tokens: sdk.NewIntFromBigInt(valInfo.Tokens), // not QuoRaw(common.TokenDec) yet
-		Status: sdk_staking.BondStatus(valInfo.Status),
-		// Commission: commission,
 	}
 
-	if o.EthClient.Address == valEthAddr {
-		newVal.ConsensusPubkey = o.PubKeyAny
+	storedVal, err := validatorcli.QueryValidator(o.Transactor.CliCtx, valEthAddr.Hex())
+	if err != nil {
+		log.Errorln("sgn query validator err:", err)
+		return nil
 	}
-	return false
+
+	updates := make([]*synctypes.ProposeUpdate, 0)
+	if newVal.SgnAddress != storedVal.SgnAddress {
+		update := &synctypes.ProposeUpdate{
+			Type: synctypes.DataType_ValidatorAddrs,
+			Data: o.Transactor.CliCtx.Codec.MustMarshal(&newVal),
+		}
+		updates = append(updates, update)
+	}
+	if newVal.Status != storedVal.Status {
+		update := &synctypes.ProposeUpdate{
+			Type: synctypes.DataType_ValidatorStates,
+			Data: o.Transactor.CliCtx.Codec.MustMarshal(&newVal),
+		}
+		updates = append(updates, update)
+	}
+
+	return updates
 }
 
-func (o *Operator) SyncDelegator(candidatorAddr, delegatorAddr eth.Addr) {
-	// TODO
+func (o *Operator) SyncDelegatorMsg(valEthAddr, delEthAddr eth.Addr) *synctypes.ProposeUpdate {
+	dInfo, err := o.EthClient.Contracts.Staking.GetDelegatorInfo(&bind.CallOpts{}, valEthAddr, delEthAddr)
+	if err != nil {
+		log.Errorf("failed to query delegator info err: %s", err)
+		return nil
+	}
+
+	newVal := validatortypes.Delegator{
+		ValAddress: valEthAddr.Hex(),
+		DelAddress: delEthAddr.Hex(),
+		Shares:     dInfo.Shares.String(),
+	}
+
+	storeVal, err := validatorcli.QueryDelegator(o.Transactor.CliCtx, valEthAddr.Hex(), delEthAddr.Hex())
+	if err != nil {
+		return nil
+	}
+
+	if storeVal.Shares != newVal.Shares {
+		return &synctypes.ProposeUpdate{
+			Type: synctypes.DataType_DelegatorShares,
+			Data: o.Transactor.CliCtx.Codec.MustMarshal(&newVal),
+		}
+	} else {
+		return nil
+	}
 }
