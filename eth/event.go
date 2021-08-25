@@ -9,10 +9,9 @@ import (
 type EventName string
 
 const (
-	EventValidatorParamsUpdate EventName = "ValidatorParamsUpdate"
+	EventValidatorNotice       EventName = "ValidatorNotice"
 	EventValidatorStatusUpdate EventName = "ValidatorStatusUpdate"
 	EventDelegationUpdate      EventName = "DelegationUpdate"
-	EventSgnAddrUpdate         EventName = "SgnAddrUpdate"
 )
 
 // Wrapper for ethereum Event
@@ -56,14 +55,12 @@ func (e *EventWrapper) ParseEvent(ethClient *EthClient) interface{} {
 	var res interface{}
 	var err error
 	switch e.Name {
-	case EventValidatorParamsUpdate:
-		res, err = ethClient.Contracts.Staking.ParseValidatorParamsUpdate(e.Log)
+	case EventValidatorNotice:
+		res, err = ethClient.Contracts.Staking.ParseValidatorNotice(e.Log)
 	case EventValidatorStatusUpdate:
 		res, err = ethClient.Contracts.Staking.ParseValidatorStatusUpdate(e.Log)
 	case EventDelegationUpdate:
 		res, err = ethClient.Contracts.Staking.ParseDelegationUpdate(e.Log)
-	case EventSgnAddrUpdate:
-		res, err = ethClient.Contracts.Sgn.ParseSgnAddrUpdate(e.Log)
 	default:
 		panic("Unsupported event")
 	}

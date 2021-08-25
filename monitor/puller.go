@@ -39,16 +39,13 @@ func (m *Monitor) processPullerQueue() {
 		}
 
 		switch event.ParseEvent(m.EthClient).(type) {
-		case *eth.StakingValidatorParamsUpdate:
+		case *eth.StakingValidatorNotice:
 			//TODO
 
 		case *eth.StakingValidatorStatusUpdate:
 			//TODO
 
 		case *eth.StakingDelegationUpdate:
-			//TODO
-
-		case *eth.SGNSgnAddrUpdate:
 			//TODO
 		}
 	}

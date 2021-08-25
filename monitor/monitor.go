@@ -82,10 +82,9 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 		log.Fatalln("Sidechain acct error")
 	}
 
-	m.monitorEthValidatorParamsUpdate()
+	m.monitorEthValidatorNotice()
 	m.monitorEthValidatorStatusUpdate()
 	m.monitorEthDelegationUpdate()
-	m.monitorEthSgnAddrUpdate()
 
 	go m.monitorSgnchainCreateValidator()
 
