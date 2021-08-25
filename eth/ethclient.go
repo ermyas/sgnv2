@@ -24,8 +24,8 @@ type EthClient struct {
 }
 
 type Contracts struct {
-	Staking *Staking
-	Sgn     *SGN
+	Staking *StakingContract
+	Sgn     *SgnContract
 }
 
 type TransactorConfig struct {
@@ -99,12 +99,12 @@ func (ethClient *EthClient) setTransactor(ksfile string, passphrase string, tcon
 
 func (ethClient *EthClient) setContracts(stakingContract, sgnContract string) error {
 	var err error
-	ethClient.Contracts.Staking, err = NewStaking(Hex2Addr(stakingContract), ethClient.Client)
+	ethClient.Contracts.Staking, err = NewStakingContract(Hex2Addr(stakingContract), ethClient.Client)
 	if err != nil {
 		return err
 	}
 
-	ethClient.Contracts.Sgn, err = NewSGN(Hex2Addr(sgnContract), ethClient.Client)
+	ethClient.Contracts.Sgn, err = NewSgnContract(Hex2Addr(sgnContract), ethClient.Client)
 	if err != nil {
 		return err
 	}
