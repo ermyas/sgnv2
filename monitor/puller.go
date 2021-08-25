@@ -30,7 +30,7 @@ func (m *Monitor) processPullerQueue() {
 	validators := make(map[eth.Addr]bool)
 	delegators := make(map[string]bool)
 	for i, key := range keys {
-		event := NewEventFromBytes(vals[i])
+		event := eth.NewEventFromBytes(vals[i])
 		logmsg := fmt.Sprintf("Process puller event %s at mainchain block %d", event.Name, event.Log.BlockNumber)
 		err = m.dbDelete(key)
 		if err != nil {

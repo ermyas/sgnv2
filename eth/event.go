@@ -1,9 +1,8 @@
-package monitor
+package eth
 
 import (
 	"encoding/json"
 
-	"github.com/celer-network/sgn-v2/eth"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -53,7 +52,7 @@ func (e *EventWrapper) MustUnMarshal(input []byte) {
 	}
 }
 
-func (e *EventWrapper) ParseEvent(ethClient *eth.EthClient) interface{} {
+func (e *EventWrapper) ParseEvent(ethClient *EthClient) interface{} {
 	var res interface{}
 	var err error
 	switch e.Name {

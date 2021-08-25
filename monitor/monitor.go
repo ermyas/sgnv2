@@ -30,7 +30,7 @@ type Monitor struct {
 	sgnAcct         sdk.AccAddress
 	bonded          bool
 	bootstrapped    bool // SGN is bootstrapped with at least one bonded validator on the mainchain contract
-	startBlock      *big.Int
+	startEthBlock   *big.Int
 	lock            sync.RWMutex
 }
 
@@ -63,9 +63,9 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 		log.Fatalln("NewBigCache err", err)
 	}
 
-	startBlock := big.NewInt(viper.GetInt64(common.FlagEthMonitorStartBlock))
-	if startBlock.Sign() == 0 {
-		startBlock = ethMonitor.GetCurrentBlockNumber()
+	startEthBlock := big.NewInt(viper.GetInt64(common.FlagEthMonitorStartBlock))
+	if startEthBlock.Sign() == 0 {
+		startEthBlock = ethMonitor.GetCurrentBlockNumber()
 	}
 
 	m := Monitor{
@@ -75,17 +75,19 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 		verifiedUpdates: verifiedUpdates,
 		bonded:          validatorStatus == eth.Bonded,
 		bootstrapped:    bondedValNum.Uint64() > 0,
-		startBlock:      startBlock,
+		startEthBlock:   startEthBlock,
 	}
 	m.sgnAcct, err = vtypes.SdkAccAddrFromSgnBech32(viper.GetString(common.FlagSgnValidatorAccount))
 	if err != nil {
 		log.Fatalln("Sidechain acct error")
 	}
 
-	m.monitorValidatorParamsUpdate()
-	m.monitorValidatorStatusUpdate()
-	m.monitorDelegationUpdate()
-	m.monitorSgnAddrUpdate()
+	m.monitorEthValidatorParamsUpdate()
+	m.monitorEthValidatorStatusUpdate()
+	m.monitorEthDelegationUpdate()
+	m.monitorEthSgnAddrUpdate()
+
+	go m.monitorSgnchainCreateValidator()
 
 	go m.processQueues()
 }
@@ -101,6 +103,7 @@ func (m *Monitor) processQueues() {
 	slashTicker := time.NewTicker(slashInterval)
 	defer func() {
 		pullerTicker.Stop()
+		syncBlkTicker.Stop()
 		slashTicker.Stop()
 	}()
 
@@ -123,16 +126,4 @@ func (m *Monitor) processQueues() {
 			m.processSlashQueue()
 		}
 	}
-}
-
-func (m *Monitor) monitorValidatorParamsUpdate() {
-}
-
-func (m *Monitor) monitorValidatorStatusUpdate() {
-}
-
-func (m *Monitor) monitorDelegationUpdate() {
-}
-
-func (m *Monitor) monitorSgnAddrUpdate() {
 }
