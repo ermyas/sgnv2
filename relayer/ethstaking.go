@@ -1,4 +1,4 @@
-package monitor
+package relayer
 
 import (
 	"fmt"
@@ -13,26 +13,26 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
-func (m *Monitor) monitorEthValidatorNotice() {
-	_, err := m.ethMonitor.Monitor(
+func (r *Relayer) monitorEthValidatorNotice() {
+	_, err := r.ethMonitor.Monitor(
 		&monitor.Config{
 			EventName:     eth.EventValidatorNotice,
-			Contract:      m.EthClient.Contracts.Staking,
-			StartBlock:    m.startEthBlock,
+			Contract:      r.EthClient.Contracts.Staking,
+			StartBlock:    r.startEthBlock,
 			Reset:         true,
 			CheckInterval: getEventCheckInterval(eth.EventValidatorNotice),
 		},
 		func(cb monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-			e, err := m.EthClient.Contracts.Staking.ParseValidatorNotice(eLog)
+			e, err := r.EthClient.Contracts.Staking.ParseValidatorNotice(eLog)
 			if err != nil {
 				log.Errorln("parse event err", err)
 			}
-			if e.From != eth.ZeroAddr && e.From != m.EthClient.Contracts.Sgn.Address {
+			if e.From != eth.ZeroAddr && e.From != r.EthClient.Contracts.Sgn.Address {
 				return
 			}
 			log.Infof("Catch event ValidatorNotice %s, tx hash: %x, blknum: %d", e.Key, eLog.TxHash, eLog.BlockNumber)
 			event := eth.NewEvent(eth.EventValidatorNotice, eLog)
-			err = m.dbSet(GetPullerKey(eLog), event.MustMarshal())
+			err = r.dbSet(GetPullerKey(eLog), event.MustMarshal())
 			if err != nil {
 				log.Errorln("db Set err", err)
 			}
@@ -44,38 +44,38 @@ func (m *Monitor) monitorEthValidatorNotice() {
 	}
 }
 
-func (m *Monitor) monitorEthValidatorStatusUpdate() {
-	_, err := m.ethMonitor.Monitor(
+func (r *Relayer) monitorEthValidatorStatusUpdate() {
+	_, err := r.ethMonitor.Monitor(
 		&monitor.Config{
 			EventName:     eth.EventValidatorStatusUpdate,
-			Contract:      m.EthClient.Contracts.Staking,
-			StartBlock:    m.startEthBlock,
+			Contract:      r.EthClient.Contracts.Staking,
+			StartBlock:    r.startEthBlock,
 			Reset:         true,
 			CheckInterval: getEventCheckInterval(eth.EventValidatorStatusUpdate),
 		},
 		func(cb monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 			logmsg := fmt.Sprintf("Catch event ValidatorStatusUpdate, tx hash: %x, blknum: %d", eLog.TxHash, eLog.BlockNumber)
-			e, err := m.EthClient.Contracts.Staking.ParseValidatorStatusUpdate(eLog)
+			e, err := r.EthClient.Contracts.Staking.ParseValidatorStatusUpdate(eLog)
 			if err != nil {
 				log.Errorf("%s. parse event err: %s", logmsg, err)
 			}
 			if e.Status == eth.Bonded {
-				m.setBootstrapped()
-				if e.ValAddr == m.valAddr {
+				r.setBootstrapped()
+				if e.ValAddr == r.valAddr {
 					log.Infof("%s. Init my own validator.", logmsg)
-					m.setBonded()
-					go m.selfSyncValidator()
+					r.setBonded()
+					go r.selfSyncValidator()
 				} else {
 					log.Infof("%s. Validator %x bonded.", logmsg, e.ValAddr)
 				}
 			} else {
 				// only put unbonding or unbonded event to puller queue
 				log.Infof("%s. Validator %x %s.", logmsg, e.ValAddr, eth.ParseValStatus(e.Status))
-				if e.ValAddr == m.valAddr {
-					m.clearBonded()
+				if e.ValAddr == r.valAddr {
+					r.clearBonded()
 				}
 				event := eth.NewEvent(eth.EventValidatorStatusUpdate, eLog)
-				err = m.dbSet(GetPullerKey(eLog), event.MustMarshal())
+				err = r.dbSet(GetPullerKey(eLog), event.MustMarshal())
 				if err != nil {
 					log.Errorln("db Set err", err)
 				}
@@ -88,30 +88,30 @@ func (m *Monitor) monitorEthValidatorStatusUpdate() {
 	}
 }
 
-func (m *Monitor) monitorEthDelegationUpdate() {
-	_, err := m.ethMonitor.Monitor(
+func (r *Relayer) monitorEthDelegationUpdate() {
+	_, err := r.ethMonitor.Monitor(
 		&monitor.Config{
 			EventName:     eth.EventDelegationUpdate,
-			Contract:      m.EthClient.Contracts.Staking,
-			StartBlock:    m.startEthBlock,
+			Contract:      r.EthClient.Contracts.Staking,
+			StartBlock:    r.startEthBlock,
 			Reset:         true,
 			CheckInterval: getEventCheckInterval(eth.EventDelegationUpdate),
 		},
 		func(cb monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 			log.Infof("Catch event DelegationUpdate, tx hash: %x, blknum: %d", eLog.TxHash, eLog.BlockNumber)
 			event := eth.NewEvent(eth.EventDelegationUpdate, eLog)
-			err := m.dbSet(GetPullerKey(eLog), event.MustMarshal())
+			err := r.dbSet(GetPullerKey(eLog), event.MustMarshal())
 			if err != nil {
 				log.Errorln("db Set err", err)
 			}
-			if !m.isBonded() {
-				e, err2 := m.EthClient.Contracts.Staking.ParseDelegationUpdate(eLog)
+			if !r.isBonded() {
+				e, err2 := r.EthClient.Contracts.Staking.ParseDelegationUpdate(eLog)
 				if err2 != nil {
 					log.Errorln("parse event err", err2)
 					return
 				}
-				if e.ValAddr == m.valAddr && m.shouldBondValidator() {
-					m.bondValidator()
+				if e.ValAddr == r.valAddr && r.shouldBondValidator() {
+					r.bondValidator()
 				}
 			}
 			return false
@@ -122,9 +122,9 @@ func (m *Monitor) monitorEthDelegationUpdate() {
 	}
 }
 
-func (m *Monitor) shouldBondValidator() bool {
+func (r *Relayer) shouldBondValidator() bool {
 	// TODO: use eth dry run?
-	validator, err := m.EthClient.Contracts.Staking.Validators(&bind.CallOpts{}, m.valAddr)
+	validator, err := r.EthClient.Contracts.Staking.Validators(&bind.CallOpts{}, r.valAddr)
 	if err != nil {
 		log.Errorln("get validator err", err)
 		return false
@@ -141,7 +141,7 @@ func (m *Monitor) shouldBondValidator() bool {
 	}
 
 	hasMinRequiredTokens, err :=
-		m.EthClient.Contracts.Staking.HasMinRequiredTokens(&bind.CallOpts{}, m.valAddr, true)
+		r.EthClient.Contracts.Staking.HasMinRequiredTokens(&bind.CallOpts{}, r.valAddr, true)
 	if err != nil {
 		log.Errorln("Get min required tokens err", err)
 		return false
@@ -151,7 +151,7 @@ func (m *Monitor) shouldBondValidator() bool {
 		return false
 	}
 
-	minValTokens, err := m.EthClient.Contracts.Staking.GetMinValidatorTokens(&bind.CallOpts{})
+	minValTokens, err := r.EthClient.Contracts.Staking.GetMinValidatorTokens(&bind.CallOpts{})
 	if err != nil {
 		log.Errorln("Get min validator tokens err", err)
 		return false
@@ -161,13 +161,13 @@ func (m *Monitor) shouldBondValidator() bool {
 		return false
 	}
 
-	currBlkNum := m.ethMonitor.GetCurrentBlockNumber()
+	currBlkNum := r.getCurrentBlockNumber()
 	if currBlkNum.Cmp(validator.BondBlock) < 0 {
 		log.Debugf("Not validator bond block %d yet", validator.BondBlock)
 		return false
 	}
 
-	nextBondBlock, err := m.EthClient.Contracts.Staking.NextBondBlock(&bind.CallOpts{})
+	nextBondBlock, err := r.EthClient.Contracts.Staking.NextBondBlock(&bind.CallOpts{})
 	if err != nil {
 		log.Errorln("Get next bond block err", err)
 		return false
@@ -177,21 +177,21 @@ func (m *Monitor) shouldBondValidator() bool {
 		return false
 	}
 
-	sgnAddr, err := m.EthClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, m.valAddr)
+	sgnAddr, err := r.EthClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, r.valAddr)
 	if err != nil {
 		log.Errorln("Get sgn addr err", err)
 		return false
 	}
-	if !sdk.AccAddress(sgnAddr).Equals(m.sgnAcct) {
-		log.Debugf("sidechain address not match, %s %s", sdk.AccAddress(sgnAddr), m.sgnAcct)
+	if !sdk.AccAddress(sgnAddr).Equals(r.sgnAcct) {
+		log.Debugf("sidechain address not match, %s %s", sdk.AccAddress(sgnAddr), r.sgnAcct)
 		return false
 	}
 
 	return true
 }
 
-func (m *Monitor) bondValidator() {
-	_, err := m.EthClient.Transactor.Transact(
+func (r *Relayer) bondValidator() {
+	_, err := r.EthClient.Transactor.Transact(
 		&ethutils.TransactionStateHandler{
 			OnMined: func(receipt *ethtypes.Receipt) {
 				if receipt.Status == ethtypes.ReceiptStatusSuccessful {
@@ -205,20 +205,20 @@ func (m *Monitor) bondValidator() {
 			},
 		},
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
-			return m.EthClient.Contracts.Staking.BondValidator(opts)
+			return r.EthClient.Contracts.Staking.BondValidator(opts)
 		},
 	)
 	if err != nil {
 		log.Errorln("BondValidator tx err", err)
 		return
 	}
-	log.Infof("Bond validator %x on mainchain", m.valAddr)
+	log.Infof("Bond validator %x on mainchain", r.valAddr)
 }
 
-func (m *Monitor) selfSyncValidator() {
+func (r *Relayer) selfSyncValidator() {
 	var i int
 	for i = 1; i < 5; i++ {
-		updated := m.SyncValidator(m.EthClient.Address, m.ethMonitor.GetCurrentBlockNumber())
+		updated := r.SyncValidator(r.EthClient.Address, r.getCurrentBlockNumber())
 		if updated {
 			return
 		}

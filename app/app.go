@@ -7,7 +7,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/monitor"
+	"github.com/celer-network/sgn-v2/relayer"
 	"github.com/celer-network/sgn-v2/x/validator"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -258,7 +258,7 @@ func NewSgnApp(
 		tmos.Exit(err.Error())
 	}
 
-	go app.startMonitor(db, tmCfg)
+	go app.startRelayer(db, tmCfg)
 
 	return app
 }
@@ -320,8 +320,8 @@ func (app *SgnApp) InterfaceRegistry() types.InterfaceRegistry {
 	return app.interfaceRegistry
 }
 
-func (app *SgnApp) startMonitor(db dbm.DB, tmCfg *tmcfg.Config) {
-	operator, err := monitor.NewOperator(app.appCodec, viper.GetString(common.FlagCLIHome), tmCfg)
+func (app *SgnApp) startRelayer(db dbm.DB, tmCfg *tmcfg.Config) {
+	operator, err := relayer.NewOperator(app.appCodec, viper.GetString(common.FlagCLIHome), tmCfg)
 	if err != nil {
 		tmos.Exit(err.Error())
 	}
@@ -332,5 +332,5 @@ func (app *SgnApp) startMonitor(db dbm.DB, tmCfg *tmcfg.Config) {
 		_, err = rpc.GetChainHeight(operator.Transactor.CliCtx)
 	}
 
-	monitor.NewMonitor(operator, db)
+	relayer.NewRelayer(operator, db)
 }

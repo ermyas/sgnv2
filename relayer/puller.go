@@ -1,4 +1,4 @@
-package monitor
+package relayer
 
 import (
 	"fmt"
@@ -10,13 +10,13 @@ import (
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 )
 
-func (m *Monitor) processPullerQueue() {
-	if !m.isSyncer() {
+func (r *Relayer) processPullerQueue() {
+	if !r.isSyncer() {
 		return
 	}
 	var keys, vals [][]byte
-	m.lock.RLock()
-	iterator, err := m.db.Iterator(PullerKeyPrefix, storetypes.PrefixEndBytes(PullerKeyPrefix))
+	r.lock.RLock()
+	iterator, err := r.db.Iterator(PullerKeyPrefix, storetypes.PrefixEndBytes(PullerKeyPrefix))
 	if err != nil {
 		log.Errorln("Create db iterator err", err)
 		return
@@ -26,20 +26,20 @@ func (m *Monitor) processPullerQueue() {
 		vals = append(vals, iterator.Value())
 	}
 	iterator.Close()
-	m.lock.RUnlock()
+	r.lock.RUnlock()
 
 	validators := make(map[eth.Addr]bool)
 	delegators := make(map[string]bool)
 	for i, key := range keys {
 		event := eth.NewEventFromBytes(vals[i])
 		logmsg := fmt.Sprintf("Process puller event %s at block %d", event.Name, event.Log.BlockNumber)
-		err = m.dbDelete(key)
+		err = r.dbDelete(key)
 		if err != nil {
 			log.Errorf("%s. db Delete err: %s", logmsg, err)
 			continue
 		}
 
-		switch e := event.ParseEvent(m.EthClient).(type) {
+		switch e := event.ParseEvent(r.EthClient).(type) {
 		case *eth.StakingValidatorNotice:
 			log.Infof("%s. validator %x notice key %d", logmsg, e.ValAddr, e.Key)
 			validators[e.ValAddr] = true
@@ -57,13 +57,13 @@ func (m *Monitor) processPullerQueue() {
 
 	msgs := synctypes.MsgProposeUpdates{
 		Updates:  make([]*synctypes.ProposeUpdate, 0),
-		EthBlock: m.getCurrentBlockNumber().Uint64(),
-		Sender:   string(m.Transactor.Key.GetAddress()),
+		EthBlock: r.getCurrentBlockNumber().Uint64(),
+		Sender:   string(r.Transactor.Key.GetAddress()),
 	}
 
-	if m.isBootstrapped() {
+	if r.isBootstrapped() {
 		for validatorAddr := range validators {
-			updates := m.SyncValidatorMsgs(validatorAddr)
+			updates := r.SyncValidatorMsgs(validatorAddr)
 			if len(updates) > 0 {
 				msgs.Updates = append(msgs.Updates, updates...)
 			}
@@ -72,19 +72,19 @@ func (m *Monitor) processPullerQueue() {
 	for delegatorKey := range delegators {
 		validatorAddr := eth.Hex2Addr(strings.Split(delegatorKey, ":")[0])
 		delegatorAddr := eth.Hex2Addr(strings.Split(delegatorKey, ":")[1])
-		update := m.SyncDelegatorMsg(validatorAddr, delegatorAddr)
+		update := r.SyncDelegatorMsg(validatorAddr, delegatorAddr)
 		if update != nil {
 			msgs.Updates = append(msgs.Updates, update)
 		}
 	}
 
 	if len(msgs.Updates) > 0 {
-		m.Transactor.AddTxMsg(&msgs)
+		r.Transactor.AddTxMsg(&msgs)
 	}
 }
 
-func (m *Monitor) syncBlkNum() {
-	if !m.isSyncer() {
+func (r *Relayer) syncBlkNum() {
+	if !r.isSyncer() {
 		return
 	}
 

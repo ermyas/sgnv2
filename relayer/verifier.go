@@ -1,4 +1,4 @@
-package monitor
+package relayer
 
 import (
 	"fmt"
@@ -15,13 +15,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-func (m *Monitor) verifyPendingUpdates() {
-	v, _ := validatorcli.QueryValidator(m.Transactor.CliCtx, m.Transactor.Key.GetAddress().String())
+func (r *Relayer) verifyPendingUpdates() {
+	v, _ := validatorcli.QueryValidator(r.Transactor.CliCtx, r.Transactor.Key.GetAddress().String())
 	if v.GetStatus() != validatortypes.ValidatorStatus_Bonded {
 		log.Traceln("skip verifying pending updates as I am not a bonded validator")
 		return
 	}
-	pendingUpdates, err := synccli.QueryPendingUpdates(m.Transactor.CliCtx)
+	pendingUpdates, err := synccli.QueryPendingUpdates(r.Transactor.CliCtx)
 	if err != nil {
 		log.Errorln("Query pending updates error:", err)
 		return
@@ -29,18 +29,18 @@ func (m *Monitor) verifyPendingUpdates() {
 
 	msgs := synctypes.MsgProposeUpdates{
 		Updates:  make([]*synctypes.ProposeUpdate, 0),
-		EthBlock: m.getCurrentBlockNumber().Uint64(),
-		Sender:   string(m.Transactor.Key.GetAddress()),
+		EthBlock: r.getCurrentBlockNumber().Uint64(),
+		Sender:   string(r.Transactor.Key.GetAddress()),
 	}
 	for _, update := range pendingUpdates {
-		_, err = m.verifiedUpdates.Get(strconv.Itoa(int(update.Id)))
+		_, err = r.verifiedUpdates.Get(strconv.Itoa(int(update.Id)))
 		if err == nil {
 			continue
 		}
 
-		done, approve := m.verifyUpdate(update)
+		done, approve := r.verifyUpdate(update)
 		if done {
-			err = m.verifiedUpdates.Set(strconv.Itoa(int(update.Id)), []byte{})
+			err = r.verifiedUpdates.Set(strconv.Itoa(int(update.Id)), []byte{})
 			if err != nil {
 				log.Errorln("verifiedChanges Set err", err)
 				continue
@@ -55,33 +55,33 @@ func (m *Monitor) verifyPendingUpdates() {
 	}
 
 	if len(msgs.Updates) > 0 {
-		m.Transactor.AddTxMsg(&msgs)
+		r.Transactor.AddTxMsg(&msgs)
 	}
 }
 
-func (m *Monitor) verifyUpdate(update *synctypes.PendingUpdate) (done, approve bool) {
+func (r *Relayer) verifyUpdate(update *synctypes.PendingUpdate) (done, approve bool) {
 	switch update.Type {
 	case synctypes.DataType_EthBlkNum:
-		return m.verifyEthBlkNum(update)
+		return r.verifyEthBlkNum(update)
 	case synctypes.DataType_StakingContractParam:
-		return m.verifyStakingContractParam(update)
+		return r.verifyStakingContractParam(update)
 	case synctypes.DataType_ValidatorAddrs:
-		return m.verifyValidatorAddrs(update)
+		return r.verifyValidatorAddrs(update)
 	case synctypes.DataType_ValidatorStates:
-		return m.verifyValidatorStates(update)
+		return r.verifyValidatorStates(update)
 	case synctypes.DataType_ValidatorCommissionRate:
-		return m.verifyValidatorCommissionRate(update)
+		return r.verifyValidatorCommissionRate(update)
 	case synctypes.DataType_DelegatorShares:
-		return m.verifyDelegatorShares(update)
+		return r.verifyDelegatorShares(update)
 	default:
 		return false, false
 	}
 }
 
-func (m *Monitor) verifyEthBlkNum(update *synctypes.PendingUpdate) (done, approve bool) {
+func (r *Relayer) verifyEthBlkNum(update *synctypes.PendingUpdate) (done, approve bool) {
 	log.Infof("Verify sync mainchain block: %d", update.EthBlock)
 	accceptedBlkRange := viper.GetUint64(common.FlagEthAcceptedBlkRange)
-	currentBlkNum := m.getCurrentBlockNumber().Uint64()
+	currentBlkNum := r.getCurrentBlockNumber().Uint64()
 
 	if update.EthBlock-currentBlkNum < accceptedBlkRange || currentBlkNum-update.EthBlock < accceptedBlkRange {
 		return true, true
@@ -90,19 +90,19 @@ func (m *Monitor) verifyEthBlkNum(update *synctypes.PendingUpdate) (done, approv
 	return true, false
 }
 
-func (m *Monitor) verifyStakingContractParam(update *synctypes.PendingUpdate) (done, approve bool) {
+func (r *Relayer) verifyStakingContractParam(update *synctypes.PendingUpdate) (done, approve bool) {
 	// TODO
 	return true, true
 }
 
-func (m *Monitor) verifyValidatorAddrs(update *synctypes.PendingUpdate) (done, approve bool) {
-	v, err := validatortypes.UnmarshalValidator(m.Transactor.CliCtx.Codec, update.Data)
+func (r *Relayer) verifyValidatorAddrs(update *synctypes.PendingUpdate) (done, approve bool) {
+	v, err := validatortypes.UnmarshalValidator(r.Transactor.CliCtx.Codec, update.Data)
 	if err != nil {
 		return true, false
 	}
 
 	logmsg := fmt.Sprintf("verify update id %d, sidechain addr for validator: %s", update.Id, v.String())
-	c, err := validatorcli.QueryValidator(m.Transactor.CliCtx, v.EthAddress)
+	c, err := validatorcli.QueryValidator(r.Transactor.CliCtx, v.EthAddress)
 	if err == nil {
 		if v.SgnAddress == c.SgnAddress {
 			log.Infof("%s. sgn addr already updated", logmsg)
@@ -110,7 +110,7 @@ func (m *Monitor) verifyValidatorAddrs(update *synctypes.PendingUpdate) (done, a
 		}
 	}
 
-	sgnAddr, err := m.EthClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, eth.Hex2Addr(v.EthAddress))
+	sgnAddr, err := r.EthClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, eth.Hex2Addr(v.EthAddress))
 	if err != nil {
 		log.Errorf("%s. query sgn address err: %s", logmsg, err)
 		return false, false
@@ -118,7 +118,7 @@ func (m *Monitor) verifyValidatorAddrs(update *synctypes.PendingUpdate) (done, a
 
 	// TODO check the format...
 	if v.SgnAddress != string(sgnAddr) {
-		if m.cmpBlkNum(update.EthBlock) == 1 {
+		if r.cmpBlkNum(update.EthBlock) == 1 {
 			log.Infof("%s. validator sgn address not match mainchain value: %s", logmsg, sgnAddr)
 			return true, false
 		}
@@ -130,14 +130,14 @@ func (m *Monitor) verifyValidatorAddrs(update *synctypes.PendingUpdate) (done, a
 	return true, true
 }
 
-func (m *Monitor) verifyValidatorStates(update *synctypes.PendingUpdate) (done, approve bool) {
-	v, err := validatortypes.UnmarshalValidator(m.Transactor.CliCtx.Codec, update.Data)
+func (r *Relayer) verifyValidatorStates(update *synctypes.PendingUpdate) (done, approve bool) {
+	v, err := validatortypes.UnmarshalValidator(r.Transactor.CliCtx.Codec, update.Data)
 	if err != nil {
 		return true, false
 	}
 
 	logmsg := fmt.Sprintf("verify update id %d, states for validator: %s", update.Id, v.String())
-	c, err := validatorcli.QueryValidator(m.Transactor.CliCtx, v.EthAddress)
+	c, err := validatorcli.QueryValidator(r.Transactor.CliCtx, v.EthAddress)
 	if err == nil {
 		if v.Status == c.Status && v.Tokens == c.Tokens && v.Shares == c.Shares {
 			log.Infof("%s. states already updated", logmsg)
@@ -145,14 +145,14 @@ func (m *Monitor) verifyValidatorStates(update *synctypes.PendingUpdate) (done, 
 		}
 	}
 
-	vFromEth, err := m.EthClient.Contracts.Staking.Validators(&bind.CallOpts{}, eth.Hex2Addr(v.EthAddress))
+	vFromEth, err := r.EthClient.Contracts.Staking.Validators(&bind.CallOpts{}, eth.Hex2Addr(v.EthAddress))
 	if err != nil {
 		log.Errorf("%s. query validator info err: %s", logmsg, err)
 		return false, false
 	}
 
 	if v.Status != validatortypes.ValidatorStatus(vFromEth.Status) || v.Tokens != vFromEth.Tokens.String() || v.Shares != vFromEth.Shares.String() {
-		if m.cmpBlkNum(update.EthBlock) == 1 {
+		if r.cmpBlkNum(update.EthBlock) == 1 {
 			log.Infof("%s. validator states not match mainchain value: %s", logmsg, vFromEth)
 			return true, false
 		}
@@ -164,14 +164,14 @@ func (m *Monitor) verifyValidatorStates(update *synctypes.PendingUpdate) (done, 
 	return true, true
 }
 
-func (m *Monitor) verifyValidatorCommissionRate(update *synctypes.PendingUpdate) (done, approve bool) {
-	v, err := validatortypes.UnmarshalValidator(m.Transactor.CliCtx.Codec, update.Data)
+func (r *Relayer) verifyValidatorCommissionRate(update *synctypes.PendingUpdate) (done, approve bool) {
+	v, err := validatortypes.UnmarshalValidator(r.Transactor.CliCtx.Codec, update.Data)
 	if err != nil {
 		return true, false
 	}
 
 	logmsg := fmt.Sprintf("verify update id %d, commission rate for validator: %s", update.Id, v.String())
-	c, err := validatorcli.QueryValidator(m.Transactor.CliCtx, v.EthAddress)
+	c, err := validatorcli.QueryValidator(r.Transactor.CliCtx, v.EthAddress)
 	if err == nil {
 		if v.CommissionRate == c.CommissionRate {
 			log.Infof("%s. commission rate already updated", logmsg)
@@ -179,14 +179,14 @@ func (m *Monitor) verifyValidatorCommissionRate(update *synctypes.PendingUpdate)
 		}
 	}
 
-	vFromEth, err := m.EthClient.Contracts.Staking.Validators(&bind.CallOpts{}, eth.Hex2Addr(v.EthAddress))
+	vFromEth, err := r.EthClient.Contracts.Staking.Validators(&bind.CallOpts{}, eth.Hex2Addr(v.EthAddress))
 	if err != nil {
 		log.Errorf("%s. query validator info err: %s", logmsg, err)
 		return false, false
 	}
 
 	if v.CommissionRate != vFromEth.CommissionRate.Uint64() {
-		if m.cmpBlkNum(update.EthBlock) == 1 {
+		if r.cmpBlkNum(update.EthBlock) == 1 {
 			log.Infof("%s. validator commission rate not match mainchain value: %s", logmsg, vFromEth.CommissionRate.Uint64())
 			return true, false
 		}
@@ -198,14 +198,14 @@ func (m *Monitor) verifyValidatorCommissionRate(update *synctypes.PendingUpdate)
 	return true, true
 }
 
-func (m *Monitor) verifyDelegatorShares(update *synctypes.PendingUpdate) (done, approve bool) {
-	d, err := validatortypes.UnmarshalDelegator(m.Transactor.CliCtx.Codec, update.Data)
+func (r *Relayer) verifyDelegatorShares(update *synctypes.PendingUpdate) (done, approve bool) {
+	d, err := validatortypes.UnmarshalDelegator(r.Transactor.CliCtx.Codec, update.Data)
 	if err != nil {
 		return true, false
 	}
 
 	logmsg := fmt.Sprintf("verify update id %d, shares for delegator: %s", update.Id, d)
-	c, err := validatorcli.QueryDelegator(m.Transactor.CliCtx, d.ValAddress, d.DelAddress)
+	c, err := validatorcli.QueryDelegator(r.Transactor.CliCtx, d.ValAddress, d.DelAddress)
 	if err == nil {
 		if d.Shares == c.Shares {
 			log.Infof("%s. shares already updated", logmsg)
@@ -213,14 +213,14 @@ func (m *Monitor) verifyDelegatorShares(update *synctypes.PendingUpdate) (done, 
 		}
 	}
 
-	dFromEth, err := m.EthClient.Contracts.Staking.GetDelegatorInfo(&bind.CallOpts{}, eth.Hex2Addr(d.ValAddress), eth.Hex2Addr(d.DelAddress))
+	dFromEth, err := r.EthClient.Contracts.Staking.GetDelegatorInfo(&bind.CallOpts{}, eth.Hex2Addr(d.ValAddress), eth.Hex2Addr(d.DelAddress))
 	if err != nil {
 		log.Errorf("%s. query delegator info err: %s", logmsg, err)
 		return false, false
 	}
 
 	if d.Shares != dFromEth.Shares.String() {
-		if m.cmpBlkNum(update.EthBlock) == 1 {
+		if r.cmpBlkNum(update.EthBlock) == 1 {
 			log.Infof("%s. delegator shares not match mainchain value: %s", logmsg, dFromEth.Shares.String())
 			return true, false
 		}
@@ -232,8 +232,8 @@ func (m *Monitor) verifyDelegatorShares(update *synctypes.PendingUpdate) (done, 
 	return true, true
 }
 
-func (m *Monitor) cmpBlkNum(blkNum uint64) int8 {
-	currentBlkNum := m.getCurrentBlockNumber().Uint64()
+func (r *Relayer) cmpBlkNum(blkNum uint64) int8 {
+	currentBlkNum := r.getCurrentBlockNumber().Uint64()
 	if currentBlkNum > blkNum {
 		return 1
 	} else if currentBlkNum < blkNum {

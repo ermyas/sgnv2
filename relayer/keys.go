@@ -1,4 +1,4 @@
-package monitor
+package relayer
 
 import (
 	"strconv"
@@ -8,8 +8,10 @@ import (
 )
 
 var (
-	PullerKeyPrefix  = []byte{0x01} // Key prefix for puller
-	PenaltyKeyPrefix = []byte{0x03} // Key prefix for penalty
+	RelayerDbPrefix = []byte("relay")
+
+	PullerKeyPrefix = []byte{0x01} // Key prefix for puller
+	SlashKeyPrefix  = []byte{0x11} // Key prefix for slash
 )
 
 // get puller key from mainchain txHash
@@ -19,7 +21,7 @@ func GetPullerKey(eLog ethtypes.Log) []byte {
 	return append(key, eLog.TxHash.Bytes()...)
 }
 
-// get penalty key from nonce
-func GetPenaltyKey(nonce uint64) []byte {
-	return append(PenaltyKeyPrefix, sdk.Uint64ToBigEndian(nonce)...)
+// get slash key from nonce
+func GetSlashyKey(nonce uint64) []byte {
+	return append(SlashKeyPrefix, sdk.Uint64ToBigEndian(nonce)...)
 }

@@ -1,4 +1,4 @@
-package monitor
+package relayer
 
 import (
 	"encoding/json"

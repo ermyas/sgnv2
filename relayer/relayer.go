@@ -1,4 +1,4 @@
-package monitor
+package relayer
 
 import (
 	"math/big"
@@ -18,11 +18,7 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-const (
-	prefixMonitor = "mon"
-)
-
-type Monitor struct {
+type Relayer struct {
 	*Operator
 	db              dbm.DB
 	ethMonitor      *monitor.Service
@@ -30,15 +26,15 @@ type Monitor struct {
 	valAddr         eth.Addr
 	sgnAcct         sdk.AccAddress
 	bonded          bool
-	bootstrapped    bool // SGN is bootstrapped with at least one bonded validator on the mainchain contract
+	bootstrapped    bool // SGN is bootstrapped with at least one bonded validator on the eth contract
 	startEthBlock   *big.Int
 	lock            sync.RWMutex
 }
 
-func NewMonitor(operator *Operator, db dbm.DB) {
-	monitorDb := dbm.NewPrefixDB(db, []byte(prefixMonitor))
+func NewRelayer(operator *Operator, db dbm.DB) {
+	relayerDb := dbm.NewPrefixDB(db, RelayerDbPrefix)
 
-	dal := newWatcherDAL(monitorDb)
+	dal := newWatcherDAL(relayerDb)
 	watchService := watcher.NewWatchService(operator.EthClient.Client, dal, viper.GetUint64(common.FlagEthPollInterval),
 		viper.GetUint64(common.FlagEthMaxBlockDelta))
 	if watchService == nil {
@@ -69,7 +65,7 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 		startEthBlock = ethMonitor.GetCurrentBlockNumber()
 	}
 
-	m := Monitor{
+	r := Relayer{
 		Operator:        operator,
 		db:              db,
 		ethMonitor:      ethMonitor,
@@ -80,21 +76,21 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 		startEthBlock:   startEthBlock,
 	}
 
-	m.sgnAcct, err = vtypes.SdkAccAddrFromSgnBech32(viper.GetString(common.FlagSgnValidatorAccount))
+	r.sgnAcct, err = vtypes.SdkAccAddrFromSgnBech32(viper.GetString(common.FlagSgnValidatorAccount))
 	if err != nil {
 		log.Fatalln("Sidechain acct error")
 	}
 
-	m.monitorEthValidatorNotice()
-	m.monitorEthValidatorStatusUpdate()
-	m.monitorEthDelegationUpdate()
+	r.monitorEthValidatorNotice()
+	r.monitorEthValidatorStatusUpdate()
+	r.monitorEthDelegationUpdate()
 
-	go m.monitorSgnchainCreateValidator()
+	go r.monitorSgnchainCreateValidator()
 
-	go m.processQueues()
+	go r.processQueues()
 }
 
-func (m *Monitor) processQueues() {
+func (r *Relayer) processQueues() {
 	pullerInterval := time.Duration(viper.GetUint64(common.FlagEthPollInterval)) * time.Second
 	syncBlkInterval := time.Duration(viper.GetUint64(common.FlagEthSyncBlkInterval)) * time.Second
 	slashInterval := time.Duration(viper.GetUint64(common.FlagSgnCheckIntervalSlashQueue)) * time.Second
@@ -109,23 +105,23 @@ func (m *Monitor) processQueues() {
 		slashTicker.Stop()
 	}()
 
-	blkNum := m.getCurrentBlockNumber().Uint64()
+	blkNum := r.getCurrentBlockNumber().Uint64()
 	for {
 		select {
 		case <-pullerTicker.C:
-			newblk := m.getCurrentBlockNumber().Uint64()
+			newblk := r.getCurrentBlockNumber().Uint64()
 			if blkNum == newblk {
 				continue
 			}
 			blkNum = newblk
-			m.processPullerQueue()
-			m.verifyPendingUpdates()
+			r.processPullerQueue()
+			r.verifyPendingUpdates()
 
 		case <-syncBlkTicker.C:
-			m.syncBlkNum()
+			r.syncBlkNum()
 
 		case <-slashTicker.C:
-			m.processSlashQueue()
+			r.processSlashQueue()
 		}
 	}
 }

@@ -1,4 +1,4 @@
-package monitor
+package relayer
 
 import (
 	"context"
@@ -46,5 +46,5 @@ func MonitorTendermintEvent(nodeURI, eventTag string, handleEvent func(event abc
 	}
 }
 
-func (m *Monitor) monitorSgnchainCreateValidator() {
+func (r *Relayer) monitorSgnchainCreateValidator() {
 }
