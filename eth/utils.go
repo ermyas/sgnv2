@@ -16,10 +16,6 @@ var (
 	ErrPeersNotMatch = errors.New("channel peers not match")
 )
 
-func IsBonded(stakingValidatorStatus uint8) bool {
-	return stakingValidatorStatus == Bonded
-}
-
 func ParseStatus(stakingValidatorStatus uint8) sdk.BondStatus {
 	switch stakingValidatorStatus {
 	case Bonded:

@@ -64,3 +64,10 @@ func (m *Monitor) processPullerQueue() {
 		m.SyncDelegator(candidatorAddr, delegatorAddr)
 	}
 }
+
+func (m *Monitor) syncBlkNum() {
+	if !m.isSyncer() {
+		return
+	}
+
+}

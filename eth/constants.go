@@ -1,29 +1,26 @@
 package eth
 
 const (
-	// ValidatorChangeType
-	AddValidator    = 0
-	RemoveValidator = 1
-
 	// CandidateStatus
-	Unbonded  = 0
-	Bonded    = 1
+	Unbonded  = 1
 	Unbonding = 2
+	Bonded    = 3
 
 	// ParamNames
-	ProposalDeposit     = 0
-	GovernVoteTimeout   = 1
-	SlashTimeout        = 2
-	MinValidatorNum     = 3
-	MaxValidatorNum     = 4
-	MinStakeInPool      = 5
-	AdvanceNoticePeriod = 6
-	MigrationTime       = 7
+	ProposalDeposit       = 0
+	GovernVoteTimeout     = 1
+	SlashTimeout          = 2
+	MaxBondedValidators   = 3
+	MinValidatorTokens    = 4
+	MinSelfDelegation     = 5
+	AdvanceNoticePeriod   = 6
+	ValidatorBondInterval = 7
+	MaxSlashFactor        = 8
 
 	Unvoted     = 0
 	VoteYes     = 1
-	VoteNo      = 2
-	VoteAbstain = 3
+	VoteAbstain = 2
+	VoteNo      = 3
 
 	ProposalStatusUninitiated = 0
 	ProposalStatusVoting      = 1

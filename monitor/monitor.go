@@ -29,30 +29,31 @@ type Monitor struct {
 	verifiedUpdates *bigcache.BigCache
 	sgnAcct         sdk.AccAddress
 	bonded          bool
-	bootstrapped    bool // SGN has bootstrapped with at least one bonded validator on the mainchain contract
+	bootstrapped    bool // SGN is bootstrapped with at least one bonded validator on the mainchain contract
 	startBlock      *big.Int
 	lock            sync.RWMutex
 }
 
 func NewMonitor(operator *Operator, db dbm.DB) {
 	monitorDb := dbm.NewPrefixDB(db, []byte(prefixMonitor))
+
 	dal := newWatcherDAL(monitorDb)
 	watchService := watcher.NewWatchService(operator.EthClient.Client, dal, viper.GetUint64(common.FlagEthPollInterval),
 		viper.GetUint64(common.FlagEthMaxBlockDelta))
 	if watchService == nil {
 		log.Fatalln("Cannot create watch service")
 	}
-
 	blkDelay := viper.GetUint64(common.FlagEthBlockDelay)
-	ethMonitor := monitor.NewService(watchService, blkDelay, true /* enabled */)
+	ethMonitor := monitor.NewService(watchService, blkDelay, true)
 	ethMonitor.Init()
 
-	stakingValidatorStatus, err := operator.EthClient.Contracts.Staking.GetValidatorStatus(&bind.CallOpts{}, operator.EthClient.Address)
+	validatorStatus, err :=
+		operator.EthClient.Contracts.Staking.GetValidatorStatus(&bind.CallOpts{}, operator.EthClient.Address)
 	if err != nil {
 		log.Fatalln("GetValidatorStatus err", err)
 	}
 
-	valnum, err := operator.EthClient.Contracts.Staking.GetValidatorNum(&bind.CallOpts{})
+	bondedValNum, err := operator.EthClient.Contracts.Staking.GetBondedValidatorNum(&bind.CallOpts{})
 	if err != nil {
 		log.Fatalln("GetValidatorNum err", err)
 	}
@@ -62,12 +63,9 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 		log.Fatalln("NewBigCache err", err)
 	}
 
-	configuredStartBlock := viper.GetInt64(common.FlagEthMonitorStartBlock)
-	var startBlock *big.Int
-	if configuredStartBlock == 0 {
+	startBlock := big.NewInt(viper.GetInt64(common.FlagEthMonitorStartBlock))
+	if startBlock.Sign() == 0 {
 		startBlock = ethMonitor.GetCurrentBlockNumber()
-	} else {
-		startBlock = big.NewInt(viper.GetInt64(common.FlagEthMonitorStartBlock))
 	}
 
 	m := Monitor{
@@ -75,8 +73,8 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 		db:              db,
 		ethMonitor:      ethMonitor,
 		verifiedUpdates: verifiedUpdates,
-		bonded:          eth.IsBonded(stakingValidatorStatus),
-		bootstrapped:    valnum.Uint64() > 0,
+		bonded:          validatorStatus == eth.Bonded,
+		bootstrapped:    bondedValNum.Uint64() > 0,
 		startBlock:      startBlock,
 	}
 	m.sgnAcct, err = vtypes.SdkAccAddrFromSgnBech32(viper.GetString(common.FlagSgnValidatorAccount))
@@ -84,20 +82,22 @@ func NewMonitor(operator *Operator, db dbm.DB) {
 		log.Fatalln("Sidechain acct error")
 	}
 
-	go m.processQueues()
+	m.monitorValidatorParamsUpdate()
+	m.monitorValidatorStatusUpdate()
+	m.monitorDelegationUpdate()
+	m.monitorSgnAddrUpdate()
 
-	go m.monitorValidatorParamsUpdate()
-	go m.monitorValidatorStatusUpdate()
-	go m.monitorDelegationUpdate()
-	go m.monitorSgnAddrUpdate()
+	go m.processQueues()
 }
 
 func (m *Monitor) processQueues() {
 	pullerInterval := time.Duration(viper.GetUint64(common.FlagEthPollInterval)) * time.Second
+	syncBlkInterval := time.Duration(viper.GetUint64(common.FlagEthSyncBlkInterval)) * time.Second
 	slashInterval := time.Duration(viper.GetUint64(common.FlagSgnCheckIntervalSlashQueue)) * time.Second
-	log.Infof("Queue process interval: puller %s, guard %s, slash %s", pullerInterval, slashInterval)
+	log.Infof("Queue process interval: puller %s, slash %s", pullerInterval, slashInterval)
 
 	pullerTicker := time.NewTicker(pullerInterval)
+	syncBlkTicker := time.NewTicker(syncBlkInterval)
 	slashTicker := time.NewTicker(slashInterval)
 	defer func() {
 		pullerTicker.Stop()
@@ -114,10 +114,13 @@ func (m *Monitor) processQueues() {
 			}
 			blkNum = newblk
 			m.processPullerQueue()
-			//m.verifyActiveChanges()
+			m.verifyPendingUpdates()
+
+		case <-syncBlkTicker.C:
+			m.syncBlkNum()
 
 		case <-slashTicker.C:
-			//m.processPenaltyQueue()
+			m.processSlashQueue()
 		}
 	}
 }
