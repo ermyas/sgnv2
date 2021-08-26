@@ -28,13 +28,18 @@ func (r *Relayer) monitorEthValidatorNotice() {
 				log.Errorln("parse event err", err)
 			}
 			if e.From != eth.ZeroAddr && e.From != r.EthClient.Contracts.Sgn.Address {
-				return
+				return false
 			}
 			log.Infof("Catch event ValidatorNotice %s, tx hash: %x, blknum: %d", e.Key, eLog.TxHash, eLog.BlockNumber)
 			event := eth.NewEvent(eth.EventValidatorNotice, eLog)
 			err = r.dbSet(GetPullerKey(eLog), event.MustMarshal())
 			if err != nil {
 				log.Errorln("db Set err", err)
+			}
+			if e.Key == "sgn-addr" && e.ValAddr == r.valAddr && !r.isBonded() {
+				if r.shouldBondValidator() {
+					r.bondValidator()
+				}
 			}
 			return false
 		},
@@ -108,7 +113,7 @@ func (r *Relayer) monitorEthDelegationUpdate() {
 				e, err2 := r.EthClient.Contracts.Staking.ParseDelegationUpdate(eLog)
 				if err2 != nil {
 					log.Errorln("parse event err", err2)
-					return
+					return false
 				}
 				if e.ValAddr == r.valAddr && r.shouldBondValidator() {
 					r.bondValidator()
