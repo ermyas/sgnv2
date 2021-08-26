@@ -61,7 +61,7 @@ func AddSig(sigs []Sig, msg []byte, sig []byte, expectedSigner string) ([]Sig, e
 
 	for i, s := range sigs {
 		if s.Signer == signerAddr {
-			if bytes.Compare(s.Sig, sig) == 0 {
+			if bytes.Equal(s.Sig, sig) {
 				// already signed with the same sig
 				return sigs, nil
 			}

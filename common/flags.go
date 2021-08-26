@@ -37,7 +37,6 @@ const (
 	FlagSgnKeyringBackend   = "sgn.keyring_backend"
 	FlagSgnGasAdjustment    = "sgn.gas_adjustment"
 
-	FlagSgnCheckIntervalGuardQueue = "sgn.check_interval.guard_queue"
 	FlagSgnCheckIntervalSlashQueue = "sgn.check_interval.slash_queue"
 
 	FlagLogLevel = "log.level"
