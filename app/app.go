@@ -8,6 +8,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/relayer"
+	"github.com/celer-network/sgn-v2/x/sync"
 	"github.com/celer-network/sgn-v2/x/validator"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -32,6 +33,8 @@ import (
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
+	synckeeper "github.com/celer-network/sgn-v2/x/sync/keeper"
+	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	valkeeper "github.com/celer-network/sgn-v2/x/validator/keeper"
 	valtypes "github.com/celer-network/sgn-v2/x/validator/types"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
@@ -76,6 +79,7 @@ var (
 		gov.NewAppModuleBasic(
 			paramsclient.ProposalHandler, upgradeclient.ProposalHandler, upgradeclient.CancelProposalHandler,
 		),
+		sync.AppModule{},
 		validator.AppModuleBasic{},
 	)
 
@@ -100,6 +104,7 @@ type SgnApp struct {
 	keyStaking   *sdk.KVStoreKey
 	keyParams    *sdk.KVStoreKey
 	keyUpgrade   *sdk.KVStoreKey
+	keySync      *sdk.KVStoreKey
 	keyValidator *sdk.KVStoreKey
 
 	// keepers
@@ -108,6 +113,7 @@ type SgnApp struct {
 	stakingKeeper   stakingkeeper.Keeper
 	paramsKeeper    paramskeeper.Keeper
 	upgradeKeeper   upgradekeeper.Keeper
+	syncKeeper      synckeeper.Keeper
 	validatorKeeper valkeeper.Keeper
 
 	// the module manager
@@ -161,6 +167,7 @@ func NewSgnApp(
 		keyStaking:   sdk.NewKVStoreKey(stakingtypes.StoreKey),
 		keyParams:    sdk.NewKVStoreKey(paramstypes.StoreKey),
 		keyUpgrade:   sdk.NewKVStoreKey(upgradetypes.StoreKey),
+		keySync:      sdk.NewKVStoreKey(synctypes.StoreKey),
 		keyValidator: sdk.NewKVStoreKey(valtypes.StoreKey),
 	}
 
@@ -169,6 +176,7 @@ func NewSgnApp(
 	authSubspace := app.paramsKeeper.Subspace(authtypes.ModuleName)
 	bankSupspace := app.paramsKeeper.Subspace(banktypes.ModuleName)
 	stakingSubspace := app.paramsKeeper.Subspace(stakingtypes.ModuleName)
+	syncSubspace := app.paramsKeeper.Subspace(synctypes.ModuleName)
 	validatorSubspace := app.paramsKeeper.Subspace(valtypes.ModuleName)
 
 	// The AccountKeeper handles address -> account lookups
@@ -198,6 +206,10 @@ func NewSgnApp(
 
 	app.upgradeKeeper = upgradekeeper.NewKeeper(skipUpgradeHeights, app.keyUpgrade, appCodec, homePath, app.BaseApp)
 
+	app.syncKeeper = synckeeper.NewKeeper(
+		appCodec, app.keySync, app.validatorKeeper, syncSubspace,
+	)
+
 	app.mm = module.NewManager(
 		genutil.NewAppModule(
 			app.accountKeeper, app.stakingKeeper, app.BaseApp.DeliverTx,
@@ -208,10 +220,11 @@ func NewSgnApp(
 		staking.NewAppModule(appCodec, app.stakingKeeper, app.accountKeeper, app.bankKeeper),
 		upgrade.NewAppModule(app.upgradeKeeper),
 		validator.NewAppModule(app.validatorKeeper),
+		sync.NewAppModule(app.syncKeeper),
 	)
 
 	app.mm.SetOrderBeginBlockers(upgradetypes.ModuleName)
-	app.mm.SetOrderEndBlockers(valtypes.ModuleName)
+	app.mm.SetOrderEndBlockers(valtypes.ModuleName, synctypes.ModuleName)
 
 	app.mm.SetOrderInitGenesis(
 		stakingtypes.ModuleName,
@@ -219,6 +232,7 @@ func NewSgnApp(
 		banktypes.ModuleName,
 		genutiltypes.ModuleName,
 		valtypes.ModuleName,
+		synctypes.ModuleName,
 	)
 
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter(), encodingConfig.Amino)
@@ -251,6 +265,7 @@ func NewSgnApp(
 		app.keyParams,
 		app.keyUpgrade,
 		app.keyValidator,
+		app.keySync,
 	)
 
 	err = app.LoadLatestVersion()
