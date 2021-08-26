@@ -10,7 +10,7 @@ import (
 
 func NewHandler(keeper keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-		logEntry := seal.NewMsgLog()
+		logEntry := seal.NewMsgLog(types.ModuleName)
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		var res *sdk.Result
 		var err error
@@ -39,7 +39,7 @@ func handleMsgProposeUpdates(
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender
 
-	err := keeper.ProposeUpdates(ctx, msg.Updates, msg.EthBlock, msg.Sender)
+	err := keeper.ProposeUpdates(ctx, msg.Updates, msg.EthBlock, msg.Sender, logEntry)
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +52,6 @@ func handleMsgVoteUpdates(
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender
 
-	keeper.VoteUpdates(ctx, msg.Votes, msg.Sender)
+	keeper.VoteUpdates(ctx, msg.Votes, msg.Sender, logEntry)
 	return &sdk.Result{}, nil
 }

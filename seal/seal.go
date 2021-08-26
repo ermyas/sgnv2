@@ -27,33 +27,17 @@ func CommitTransactorLog(entry *TransactorLog) {
 	}
 }
 
-func NewMsgLog() *MsgLog {
+func NewMsgLog(module string) *MsgLog {
 	now := time.Now().UnixNano()
-	return &MsgLog{
-		ChanInfo:        &ChannelInfo{},
-		Penalty:         &Penalty{},
-		Change:          &Change{},
-		Govern:          &Govern{},
+	msgLog := &MsgLog{
 		ExecutionTimeMs: (float64)(now),
 	}
+	return msgLog
 }
 
 func CommitMsgLog(entry *MsgLog) {
 	now := time.Now().UnixNano()
 	entry.ExecutionTimeMs = ((float64)(now) - entry.ExecutionTimeMs) / 1000000
-	if len(entry.ChanInfo.ChanId) == 0 {
-		entry.ChanInfo = nil
-	}
-	if entry.Penalty.Nonce == 0 && len(entry.Penalty.Validator) == 0 {
-		entry.Penalty = nil
-	}
-	if entry.Change.Id == 0 {
-		entry.Change = nil
-	}
-	if entry.Govern.ProposalId == 0 { // assuming starting_proposal_id = 1
-		entry.Govern = nil
-	}
-
 	if len(entry.Error) > 0 {
 		log.Errorln("MsgLog:", entry)
 	} else if len(entry.Warn) > 0 {

@@ -1,12 +1,15 @@
 package keeper
 
 import (
+	"github.com/celer-network/sgn-v2/seal"
 	"github.com/celer-network/sgn-v2/x/sync/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
-func (k Keeper) ProposeUpdates(ctx sdk.Context, updates []*types.ProposeUpdate, ethBlock uint64, sender string) error {
+func (k Keeper) ProposeUpdates(
+	ctx sdk.Context, updates []*types.ProposeUpdate, ethBlock uint64, sender string, logEntry *seal.MsgLog) error {
+
 	updateId := k.GetNextUpdateId(ctx)
 	proposeTs := uint64(ctx.BlockHeader().Time.Unix())
 	closingTs := proposeTs + k.VotingPeriod(ctx)
@@ -14,6 +17,7 @@ func (k Keeper) ProposeUpdates(ctx sdk.Context, updates []*types.ProposeUpdate, 
 	for _, u := range updates {
 		update := types.NewPendingUpdate(updateId, u.Type, u.Data, ethBlock, sender, proposeTs, closingTs)
 		k.SetPendingUpdate(ctx, update)
+		logEntry.Updates = append(logEntry.Updates, &seal.Update{Id: updateId, Type: update.Type.String()})
 		updateId++
 	}
 
@@ -21,7 +25,7 @@ func (k Keeper) ProposeUpdates(ctx sdk.Context, updates []*types.ProposeUpdate, 
 	return nil
 }
 
-func (k Keeper) VoteUpdates(ctx sdk.Context, votes []*types.VoteUpdate, sender string) {
+func (k Keeper) VoteUpdates(ctx sdk.Context, votes []*types.VoteUpdate, sender string, logEntry *seal.MsgLog) {
 	for _, v := range votes {
 		update, ok := k.GetPendingUpdate(ctx, v.Id)
 		if !ok {
@@ -29,6 +33,7 @@ func (k Keeper) VoteUpdates(ctx sdk.Context, votes []*types.VoteUpdate, sender s
 		}
 		update.Votes = append(update.Votes, &types.Vote{Voter: sender, Option: v.Option})
 		k.SetPendingUpdate(ctx, update)
+		logEntry.Updates = append(logEntry.Updates, &seal.Update{Id: update.Id, Type: update.Type.String()})
 	}
 }
 

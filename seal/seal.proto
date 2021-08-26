@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package seal; // sgn event aggregated log
+option go_package = "github.com/celer-network/sgn-v2/seal"; // sgn event aggregated log
 
 enum TxMsgStatus {
    NULL = 0;
@@ -29,19 +29,36 @@ message MsgLog {
     string type = 1;
     string eth_address = 2;
     string pub_key = 3;
-    repeated string transactor = 4;
-    string candidate_addr = 5;
-    string delegator_addr = 6;
-    ChannelInfo chan_info = 7;
-    Penalty penalty = 8;
-    string deposit = 9;
-    Change change = 10;
-    Govern govern = 11;
+    repeated string transactors = 4;
+    string val_addr = 5;
+    string del_addr = 6;
+    string signer = 7;
+    repeated Update updates = 8;
+    Govern govern = 9;
+    Slash slash = 10;
+    ChannelInfo chan_info = 11;
 
     string sender = 99;
     double execution_time_ms = 100;
     repeated string error = 101;
     repeated string warn = 102;
+}
+
+message Slash {
+    uint64 nonce = 1;
+    string val_addr = 2;
+    string reason = 3;
+}
+
+message Update {
+    uint64 id = 1;
+    string type = 2;
+}
+
+message Govern {
+    uint64 proposal_id = 1;
+    uint64 amount = 2;
+    uint32 option = 3;
 }
 
 message ChannelInfo {
@@ -54,23 +71,4 @@ message ChannelInfo {
     uint32 guard_index = 7;
     uint64 trigger_blknum = 8;
     uint64 guard_blknum = 9;
-}
-
-message Penalty {
-    uint64 nonce = 1;
-    string validator = 2;
-    string reason = 3;
-}
-
-
-message Change {
-    uint64 id = 1;
-    string type = 2;
-    uint64 block_num = 9;
-}
-
-message Govern {
-    uint64 proposal_id = 1;
-    uint64 amount = 2;
-    uint32 option = 3;
 }

@@ -1,4 +1,4 @@
-// Setup mainchain and sgn sidechain etc for e2e tests
+// Setup eth mainchain and sgn sgnchain etc for e2e tests
 package singlenode
 
 import (
@@ -26,7 +26,7 @@ var (
 	outRootDir string
 )
 
-// TestMain handles common setup (start mainchain, deploy, start sidechain etc)
+// TestMain handles common setup (start mainchain, deploy, start sgnchain etc)
 // and teardown. Test specific setup should be done in TestXxx
 func TestMain(m *testing.M) {
 	flag.Parse()

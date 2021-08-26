@@ -2,8 +2,6 @@ syntax = "proto3";
 
 option go_package = "github.com/celer-network/sgn-v2/x/validator/types";
 
-// buf protoc --gocosmos_out=plugins=interfacetype+grpc:. types.proto
-
 // --------------- states ----------------
 
 enum ValidatorStatus {

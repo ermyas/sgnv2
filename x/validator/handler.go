@@ -12,7 +12,7 @@ import (
 
 func NewHandler(keeper keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-		logEntry := seal.NewMsgLog()
+		logEntry := seal.NewMsgLog(types.ModuleName)
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		var res *sdk.Result
 		var err error
@@ -51,6 +51,7 @@ func handleMsgSetTransactors(
 	if !found {
 		return nil, fmt.Errorf("Validator does not exist")
 	}
+	logEntry.ValAddr = validator.EthAddress
 
 	dedup := make(map[string]bool)
 	oldTransactors := validator.Transactors
@@ -58,7 +59,7 @@ func handleMsgSetTransactors(
 	for _, transactor := range msg.Transactors {
 		if transactor != (validator.SgnAddress) {
 			if _, exist := dedup[transactor]; !exist {
-				logEntry.Transactor = append(logEntry.Transactor, transactor)
+				logEntry.Transactors = append(logEntry.Transactors, transactor)
 				validator.Transactors = append(validator.Transactors, transactor)
 				dedup[transactor] = true
 				acctAddr, err := types.SdkAccAddrFromSgnBech32(transactor)
@@ -90,12 +91,12 @@ func handleMsgEditDescription(
 
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender
-	logEntry.EthAddress = msg.EthAddress
 
 	validator, found := keeper.GetValidator(ctx, msg.EthAddress)
 	if !found {
 		return nil, fmt.Errorf("Validator does not exist")
 	}
+	logEntry.ValAddr = validator.EthAddress
 	// TODO: copy update validator description from sdk_staking
 
 	validator.Description = msg.Description
