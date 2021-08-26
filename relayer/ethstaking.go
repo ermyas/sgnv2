@@ -161,8 +161,8 @@ func (r *Relayer) shouldBondValidator() bool {
 		return false
 	}
 
-	currBlkNum := r.getCurrentBlockNumber()
-	if currBlkNum.Cmp(validator.BondBlock) < 0 {
+	currBlkNum := r.getCurrentBlockNumber().Uint64()
+	if currBlkNum < validator.BondBlock {
 		log.Debugf("Not validator bond block %d yet", validator.BondBlock)
 		return false
 	}
@@ -172,8 +172,8 @@ func (r *Relayer) shouldBondValidator() bool {
 		log.Errorln("Get next bond block err", err)
 		return false
 	}
-	if currBlkNum.Cmp(nextBondBlock) < 0 {
-		log.Debugf("Not next bond block %d yet", validator.BondBlock)
+	if currBlkNum < nextBondBlock.Uint64() {
+		log.Debugf("Not next bond block %s yet", nextBondBlock)
 		return false
 	}
 

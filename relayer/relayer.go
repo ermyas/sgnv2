@@ -34,8 +34,8 @@ type Relayer struct {
 func NewRelayer(operator *Operator, db dbm.DB) {
 	relayerDb := dbm.NewPrefixDB(db, RelayerDbPrefix)
 
-	dal := newWatcherDAL(relayerDb)
-	watchService := watcher.NewWatchService(operator.EthClient.Client, dal, viper.GetUint64(common.FlagEthPollInterval),
+	watchService := watcher.NewWatchService(
+		operator.EthClient.Client, newWatcherDAL(relayerDb), viper.GetUint64(common.FlagEthPollInterval),
 		viper.GetUint64(common.FlagEthMaxBlockDelta))
 	if watchService == nil {
 		log.Fatalln("Cannot create watch service")

@@ -10,6 +10,11 @@ import (
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 )
 
+type ValSyncFlag struct {
+	params bool
+	states bool
+}
+
 func (r *Relayer) processPullerQueue() {
 	if !r.isSyncer() {
 		return
@@ -28,7 +33,7 @@ func (r *Relayer) processPullerQueue() {
 	iterator.Close()
 	r.lock.RUnlock()
 
-	validators := make(map[eth.Addr]bool)
+	validators := make(map[eth.Addr]ValSyncFlag)
 	delegators := make(map[string]bool)
 	for i, key := range keys {
 		event := eth.NewEventFromBytes(vals[i])
@@ -42,16 +47,23 @@ func (r *Relayer) processPullerQueue() {
 		switch e := event.ParseEvent(r.EthClient).(type) {
 		case *eth.StakingValidatorNotice:
 			log.Infof("%s. validator %x notice key %d", logmsg, e.ValAddr, e.Key)
-			validators[e.ValAddr] = true
+			v := validators[e.ValAddr]
+			v.params = true
+			validators[e.ValAddr] = v
 
 		case *eth.StakingValidatorStatusUpdate:
 			log.Infof("%s. validator %x %s", logmsg, e.ValAddr, eth.ParseValStatus(e.Status))
-			validators[e.ValAddr] = true
+			v := validators[e.ValAddr]
+			v.states = true
+			validators[e.ValAddr] = v
 
 		case *eth.StakingDelegationUpdate:
 			log.Infof("%s. delegation update validator %x tokens %s delta %s, delegator %x shares %s",
 				logmsg, e.ValAddr, e.ValTokens, e.TokenDiff, e.DelAddr, e.DelShares)
 			delegators[getDelegatorKey(e.ValAddr, e.DelAddr)] = true
+			v := validators[e.ValAddr]
+			v.states = true
+			validators[e.ValAddr] = v
 		}
 	}
 
@@ -62,8 +74,8 @@ func (r *Relayer) processPullerQueue() {
 	}
 
 	if r.isBootstrapped() {
-		for validatorAddr := range validators {
-			updates := r.SyncValidatorMsgs(validatorAddr)
+		for vaddr := range validators {
+			updates := r.SyncValidatorMsgs(vaddr, validators[vaddr])
 			if len(updates) > 0 {
 				msgs.Updates = append(msgs.Updates, updates...)
 			}

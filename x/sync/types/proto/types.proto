@@ -10,10 +10,9 @@ enum DataType {
     Invalid = 0;
     EthBlkNum = 1;
     StakingContractParam = 2;
-    ValidatorAddrs = 3; // update validator signer and sgn addresses
+    ValidatorParams = 3; // signer, sgn addr, commission rate
     ValidatorStates = 4; // status, token, share
-    ValidatorCommissionRate = 5;
-    DelegatorShares = 6;
+    DelegatorShares = 5;
 }
 
 enum VoteOption {

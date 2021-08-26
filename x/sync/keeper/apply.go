@@ -15,12 +15,10 @@ func (k Keeper) ApplyUpdate(ctx sdk.Context, update *types.PendingUpdate) bool {
 		applied, err = k.applyEthBlkNum(ctx, update)
 	case types.DataType_StakingContractParam:
 		applied, err = k.applyStakingContractParam(ctx, update)
-	case types.DataType_ValidatorAddrs:
-		applied, err = k.applyValidatorAddrs(ctx, update)
+	case types.DataType_ValidatorParams:
+		applied, err = k.applyValidatorParams(ctx, update)
 	case types.DataType_ValidatorStates:
 		applied, err = k.applyValidatorStates(ctx, update)
-	case types.DataType_ValidatorCommissionRate:
-		applied, err = k.applyValidatorCommissionRate(ctx, update)
 	case types.DataType_DelegatorShares:
 		applied, err = k.applyDelegatorShares(ctx, update)
 	}
@@ -39,7 +37,7 @@ func (k Keeper) applyStakingContractParam(ctx sdk.Context, update *types.Pending
 	return true, nil
 }
 
-func (k Keeper) applyValidatorAddrs(ctx sdk.Context, update *types.PendingUpdate) (bool, error) {
+func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdate) (bool, error) {
 	v, err := vtypes.UnmarshalValidator(k.cdc, update.Data)
 	if err != nil {
 		return false, err
@@ -52,6 +50,7 @@ func (k Keeper) applyValidatorAddrs(ctx sdk.Context, update *types.PendingUpdate
 	} else {
 		val = vtypes.NewValidator(v.EthAddress, v.EthSigner, v.SgnAddress)
 	}
+	val.CommissionRate = v.CommissionRate
 	acct, err := vtypes.SdkAccAddrFromSgnBech32(v.SgnAddress)
 	if err != nil {
 		return false, err
@@ -76,10 +75,6 @@ func (k Keeper) applyValidatorStates(ctx sdk.Context, update *types.PendingUpdat
 	if err != nil {
 		return false, err
 	}
-	return true, nil
-}
-
-func (k Keeper) applyValidatorCommissionRate(ctx sdk.Context, update *types.PendingUpdate) (bool, error) {
 	return true, nil
 }
 
