@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	DefaultVotingPeriod    uint64  = 15 // 15 seconds
-	DefaultTallyThreshoold float32 = 0.667
+	DefaultVotingPeriod   uint64  = 15 // 15 seconds
+	DefaultTallyThreshold float32 = 0.667
 )
 
 var (
@@ -18,8 +18,8 @@ var (
 
 var _ sdk_params.ParamSet = (*Params)(nil)
 
-func NewParams(votingPeriod uint64, tallyThreshold float32) *Params {
-	return &Params{votingPeriod, tallyThreshold}
+func NewParams(votingPeriod uint64, tallyThreshold float32) Params {
+	return Params{votingPeriod, tallyThreshold}
 }
 
 func (p *Params) ParamSetPairs() sdk_params.ParamSetPairs {
@@ -29,8 +29,8 @@ func (p *Params) ParamSetPairs() sdk_params.ParamSetPairs {
 	}
 }
 
-func DefaultParams() *Params {
-	return NewParams(DefaultVotingPeriod, DefaultTallyThreshoold)
+func DefaultParams() Params {
+	return NewParams(DefaultVotingPeriod, DefaultTallyThreshold)
 }
 
 func (p *Params) Validate() error {

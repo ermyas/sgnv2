@@ -1,0 +1,13 @@
+syntax = "proto3";
+package sgn.sync.v1;
+
+option go_package = "github.com/celer-network/sgn-v2/x/sync/types";
+
+import "gogoproto/gogo.proto";
+
+import "sgn/sync/v1/sync.proto";
+
+message GenesisState {
+  Params params = 1 [(gogoproto.nullable) = false];
+  uint64 start_update_id = 2;
+}

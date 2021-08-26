@@ -103,10 +103,11 @@ func (o *Operator) SyncValidatorMsgs(valAddr eth.Addr, flag ValSyncFlag) []*sync
 			return nil
 		}
 		updateVal := validatortypes.Validator{
-			EthAddress:     valAddr.Hex(),
-			EthSigner:      ethVal.Signer.Hex(),
-			SgnAddress:     sdk.AccAddress(sgnAddr).String(),
-			CommissionRate: ethVal.CommissionRate,
+			EthAddress:      valAddr.Hex(),
+			EthSigner:       ethVal.Signer.Hex(),
+			SgnAddress:      sdk.AccAddress(sgnAddr).String(),
+			ConsensusPubkey: storeVal.ConsensusPubkey,
+			CommissionRate:  ethVal.CommissionRate,
 		}
 		var skip bool
 		if storeVal != nil {

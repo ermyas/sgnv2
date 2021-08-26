@@ -35,7 +35,7 @@ func (k Keeper) MaxValidatorDiff(ctx sdk.Context) (res uint64) {
 }
 
 // Get all parameteras as types.Params
-func (k Keeper) GetParams(ctx sdk.Context) *types.Params {
+func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	return types.NewParams(
 		k.SyncerDuration(ctx),
 		k.EpochLength(ctx),
@@ -44,6 +44,6 @@ func (k Keeper) GetParams(ctx sdk.Context) *types.Params {
 }
 
 // set the params
-func (k Keeper) SetParams(ctx sdk.Context, params *types.Params) {
-	k.paramstore.SetParamSet(ctx, params)
+func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
+	k.paramstore.SetParamSet(ctx, &params)
 }

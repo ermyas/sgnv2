@@ -1,0 +1,41 @@
+syntax = "proto3";
+package sgn.sync.v1;
+
+option go_package = "github.com/celer-network/sgn-v2/x/sync/types";
+
+enum DataType {
+  Invalid = 0;
+  EthBlkNum = 1;
+  StakingContractParam = 2;
+  ValidatorParams = 3;  // signer, sgn addr, commission rate
+  ValidatorStates = 4;  // status, token, share
+  DelegatorShares = 5;
+}
+
+enum VoteOption {
+  Empty = 0;
+  Yes = 1;
+  Abstain = 2;
+  No = 3;
+}
+
+message Vote {
+  string voter = 1;
+  VoteOption option = 2;
+}
+
+message PendingUpdate {
+  uint64 id = 1;
+  DataType type = 2;
+  bytes data = 3;
+  uint64 eth_block = 4;
+  string proposer = 5;
+  repeated Vote votes = 6;
+  uint64 propose_ts = 8;
+  uint64 closing_ts = 9;
+}
+
+message Params {
+  uint64 voting_period = 1;
+  float tally_threshold = 2;
+}

@@ -1,0 +1,56 @@
+syntax = "proto3";
+package sgn.validator.v1;
+
+option go_package = "github.com/celer-network/sgn-v2/x/validator/types";
+
+import "gogoproto/gogo.proto";
+import "google/protobuf/any.proto";
+
+import "cosmos_proto/cosmos.proto";
+
+enum ValidatorStatus {
+  Null = 0;
+  Unbonded = 1;
+  Unbonding = 2;
+  Bonded = 3;
+}
+
+message Validator {
+  string eth_address = 1;
+  string eth_signer = 2;
+  ValidatorStatus status = 3;
+  string sgn_address = 4;
+  // consensus_pubkey is the consensus public key of the validator, as a Protobuf Any.
+  google.protobuf.Any consensus_pubkey = 5
+      [(cosmos_proto.accepts_interface) = "cosmos.crypto.PubKey", (gogoproto.moretags) = "yaml:\"consensus_pubkey\""];
+  repeated string transactors = 6;
+  string tokens = 7;
+  string shares = 8;
+  uint64 commission_rate = 9;
+  Description description = 10;
+}
+
+message Description {
+  string moniker = 1;
+  string identity = 2;
+  string website = 3;
+  string security_contact = 4;
+  string details = 5;
+}
+
+message Delegator {
+  string val_address = 1;
+  string del_address = 2;
+  string shares = 3;
+}
+
+message Syncer {
+  uint64 val_index = 1;
+  string sgn_address = 2;
+}
+
+message Params {
+  uint64 syncer_duration = 1;
+  uint64 epoch_length = 2;
+  uint64 max_validator_diff = 3;
+}

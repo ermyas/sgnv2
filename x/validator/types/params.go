@@ -24,9 +24,9 @@ var _ sdk_params.ParamSet = (*Params)(nil)
 
 // NewParams creates a new Params instance
 func NewParams(
-	syncerDuration, epochLength, maxValidatorDiff uint64) *Params {
+	syncerDuration, epochLength, maxValidatorDiff uint64) Params {
 
-	return &Params{
+	return Params{
 		SyncerDuration: syncerDuration,
 		EpochLength:    epochLength,
 	}
@@ -42,7 +42,7 @@ func (p *Params) ParamSetPairs() sdk_params.ParamSetPairs {
 }
 
 // DefaultParams returns a default set of parameters.
-func DefaultParams() *Params {
+func DefaultParams() Params {
 	return NewParams(
 		DefaultSyncerDuration, DefaultEpochLength, DefaultMaxValidatorDiff)
 }

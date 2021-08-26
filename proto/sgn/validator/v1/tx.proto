@@ -1,0 +1,17 @@
+syntax = "proto3";
+package sgn.validator.v1;
+
+option go_package = "github.com/celer-network/sgn-v2/x/validator/types";
+
+import "sgn/validator/v1/validator.proto";
+
+message MsgSetTransactors {
+  repeated string transactors = 1;
+  string sender = 2;
+}
+
+message MsgEditDescription {
+  string eth_address = 1;
+  Description description = 2;
+  string sender = 3;
+}

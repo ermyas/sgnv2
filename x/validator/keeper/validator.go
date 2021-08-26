@@ -69,6 +69,21 @@ func (k Keeper) SetValidatorStates(
 	if !found {
 		if val.Status == types.ValidatorStatus_Bonded {
 			// TODO: create sdk validator
+			sdkDescription := sdk_staking.Description{
+				Moniker:         val.Description.Moniker,
+				Identity:        val.Description.Identity,
+				Website:         val.Description.Website,
+				SecurityContact: val.Description.SecurityContact,
+				Details:         val.Description.Details,
+			}
+			sdkVal = sdk_staking.Validator{
+				OperatorAddress: val.SgnAddress,
+				ConsensusPubkey: val.ConsensusPubkey,
+				Status:          sdk_staking.Bonded,
+				Tokens:          tkInt,
+				DelegatorShares: shInt.ToDec(),
+				Description:     sdkDescription,
+			}
 			return nil
 		} else if val.Status == types.ValidatorStatus_Unbonded {
 			log.Debugf("Validator %s %s not bonded", ethAddr, val.SgnAddress)
@@ -100,7 +115,7 @@ func (k Keeper) GetBondedSdkValidators(ctx sdk.Context) []sdk_staking.Validator 
 	return k.sdkval.GetBondedValidatorsByPower(ctx)
 }
 
-// Get a sdk validator by consencus address
+// Get a sdk validator by consensus address
 func (k Keeper) GetSdkValidatorByConsAddr(ctx sdk.Context, addr sdk.ConsAddress) (sdk_staking.Validator, bool) {
 	return k.sdkval.GetValidatorByConsAddr(ctx, addr)
 }

@@ -25,13 +25,13 @@ func (k Keeper) TallyThreshold(ctx sdk.Context) (res float32) {
 	return
 }
 
-func (k Keeper) GetParams(ctx sdk.Context) *types.Params {
+func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	return types.NewParams(
 		k.VotingPeriod(ctx),
 		k.TallyThreshold(ctx),
 	)
 }
 
-func (k Keeper) SetParams(ctx sdk.Context, params *types.Params) {
-	k.paramstore.SetParamSet(ctx, params)
+func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
+	k.paramstore.SetParamSet(ctx, &params)
 }
