@@ -47,14 +47,6 @@ func DeployStakingSGNContracts(sgnParams *SGNParams) (*types.Transaction, eth.Ad
 	sgnContractAddr, _, _, err := eth.DeploySGN(EtherBaseAuth, EthClient, stakingContractAddr)
 	ChkErr(err, "failed to deploy SGN contract")
 
-	// TODO: register SGN address on Staking contract
-	// staking, err := eth.NewStaking(stakingContractAddr, EthClient)
-	// ChkErr(err, "failed to new Staking instance")
-	// EtherBaseAuth.GasLimit = 8000000
-	// tx, err := staking.RegisterSidechain(EtherBaseAuth, sgnContractAddr)
-	// EtherBaseAuth.GasLimit = 0
-	ChkErr(err, "failed to register SGN address on Staking contract")
-
 	log.Infoln("Staking address:", stakingContractAddr.String())
 	log.Infoln("SGN address:", sgnContractAddr.String())
 
@@ -106,16 +98,15 @@ func DeployCommand() *cobra.Command {
 			_, erc20Addr, erc20 := DeployERC20Contract()
 			// NOTE: values below are for local tests
 			sgnParams := &SGNParams{
-				CelrAddr:               erc20Addr,
-				GovernProposalDeposit:  big.NewInt(1000000000000000000), // 1 CELR
-				GovernVoteTimeout:      big.NewInt(90),
-				SlashTimeout:           big.NewInt(15),
-				MaxBondedValidators:    big.NewInt(5),
-				MinValidatorTokens:     big.NewInt(1000000000000000000),
-				MinSelfDelegation:      big.NewInt(1e18),
-				AdvanceNoticePeriod:    big.NewInt(30),
-				ValidatorBondInterval:  big.NewInt(24 * 3600),
-				SidechainGoLiveTimeout: big.NewInt(0),
+				CelrAddr:              erc20Addr,
+				GovernProposalDeposit: big.NewInt(1000000000000000000), // 1 CELR
+				GovernVoteTimeout:     big.NewInt(90),
+				SlashTimeout:          big.NewInt(15),
+				MaxBondedValidators:   big.NewInt(5),
+				MinValidatorTokens:    big.NewInt(1000000000000000000),
+				MinSelfDelegation:     big.NewInt(1e18),
+				AdvanceNoticePeriod:   big.NewInt(30),
+				ValidatorBondInterval: big.NewInt(0),
 			}
 			tx, stakingContractAddr, sgnContractAddr := DeployStakingSGNContracts(sgnParams)
 			WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "DeployStakingContracts")

@@ -78,7 +78,7 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 
 	r.sgnAcct, err = vtypes.SdkAccAddrFromSgnBech32(viper.GetString(common.FlagSgnValidatorAccount))
 	if err != nil {
-		log.Fatalln("Sidechain acct error")
+		log.Fatalln("sgn acct error")
 	}
 
 	r.monitorEthValidatorNotice()

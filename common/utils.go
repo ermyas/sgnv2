@@ -43,7 +43,7 @@ func SetupUserPassword() error {
 	}
 
 	if viper.Get(FlagSgnPassphrase) == nil {
-		pass, err := input.GetString("Enter sidechain validator passphrase:", buf)
+		pass, err := input.GetString("Enter sgn validator passphrase:", buf)
 		if err != nil {
 			return err
 		}

@@ -9,7 +9,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
-	tc "github.com/celer-network/sgn-v2/testing/common"
+	tc "github.com/celer-network/sgn-v2/test/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/spf13/viper"
 )
@@ -17,16 +17,15 @@ import (
 func setupNewSGNEnv(sgnParams *tc.SGNParams, testName string) []tc.Killable {
 	if sgnParams == nil {
 		sgnParams = &tc.SGNParams{
-			CelrAddr:               tc.E2eProfile.CelrAddr,
-			GovernProposalDeposit:  big.NewInt(1),
-			GovernVoteTimeout:      big.NewInt(1),
-			SlashTimeout:           big.NewInt(50),
-			MaxBondedValidators:    big.NewInt(11),
-			MinValidatorTokens:     big.NewInt(1e18),
-			MinSelfDelegation:      big.NewInt(1e18),
-			AdvanceNoticePeriod:    big.NewInt(1),
-			ValidatorBondInterval:  big.NewInt(24 * 3600),
-			SidechainGoLiveTimeout: big.NewInt(0),
+			CelrAddr:              tc.E2eProfile.CelrAddr,
+			GovernProposalDeposit: big.NewInt(1),
+			GovernVoteTimeout:     big.NewInt(1),
+			SlashTimeout:          big.NewInt(50),
+			MaxBondedValidators:   big.NewInt(11),
+			MinValidatorTokens:    big.NewInt(1e18),
+			MinSelfDelegation:     big.NewInt(1e18),
+			AdvanceNoticePeriod:   big.NewInt(1),
+			ValidatorBondInterval: big.NewInt(0),
 		}
 	}
 	var tx *types.Transaction
@@ -35,8 +34,8 @@ func setupNewSGNEnv(sgnParams *tc.SGNParams, testName string) []tc.Killable {
 
 	updateSGNConfig()
 
-	sgnProc, err := startSidechain("", testName)
-	tc.ChkErr(err, "start sidechain")
+	sgnProc, err := startSgnchain("", testName)
+	tc.ChkErr(err, "start sgnchain")
 	tc.SetContracts(tc.E2eProfile.StakingContractAddr, tc.E2eProfile.SgnContractAddr)
 
 	killable := []tc.Killable{sgnProc}
@@ -94,8 +93,8 @@ func installSgn() error {
 	return cmd.Run()
 }
 
-// startSidechain starts sgn sidechain with the data in test/data
-func startSidechain(rootDir, testName string) (*os.Process, error) {
+// startSgnchain starts sgn sgnchain with the data in test/data
+func startSgnchain(rootDir, testName string) (*os.Process, error) {
 	cmd := exec.Command("make", "update-test-data")
 	// set cmd.Dir under repo root path
 	cmd.Dir, _ = filepath.Abs("../../..")

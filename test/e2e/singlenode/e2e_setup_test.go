@@ -14,7 +14,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
-	tc "github.com/celer-network/sgn-v2/testing/common"
+	tc "github.com/celer-network/sgn-v2/test/common"
 )
 
 var (
@@ -69,7 +69,7 @@ func TestMain(m *testing.M) {
 	err = installSgn()
 	tc.ChkErr(err, "installing sgn and sgncli")
 
-	tc.SetupSidechain()
+	tc.SetupSgnchain()
 	// run all e2e tests
 	ret := m.Run()
 

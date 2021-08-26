@@ -19,21 +19,20 @@ import (
 )
 
 type SGNParams struct {
-	CelrAddr               eth.Addr
-	GovernProposalDeposit  *big.Int
-	GovernVoteTimeout      *big.Int
-	SlashTimeout           *big.Int
-	MaxBondedValidators    *big.Int
-	MinValidatorTokens     *big.Int
-	MinSelfDelegation      *big.Int
-	AdvanceNoticePeriod    *big.Int
-	ValidatorBondInterval  *big.Int
-	MaxSlashFactor         *big.Int
-	SidechainGoLiveTimeout *big.Int
-	StartGateway           bool
+	CelrAddr              eth.Addr
+	GovernProposalDeposit *big.Int
+	GovernVoteTimeout     *big.Int
+	SlashTimeout          *big.Int
+	MaxBondedValidators   *big.Int
+	MinValidatorTokens    *big.Int
+	MinSelfDelegation     *big.Int
+	AdvanceNoticePeriod   *big.Int
+	ValidatorBondInterval *big.Int
+	MaxSlashFactor        *big.Int
+	StartGateway          bool
 }
 
-func SetupSidechain() {
+func SetupSgnchain() {
 	config := sdk.GetConfig()
 	config.SetBech32PrefixForAccount(common.Bech32PrefixAccAddr, common.Bech32PrefixAccPub)
 	config.SetBech32PrefixForValidator(common.Bech32PrefixValAddr, common.Bech32PrefixValPub)

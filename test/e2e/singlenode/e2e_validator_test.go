@@ -8,24 +8,23 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
-	tc "github.com/celer-network/sgn-v2/testing/common"
+	tc "github.com/celer-network/sgn-v2/test/common"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
 
 func setupValidator() []tc.Killable {
 	p := &tc.SGNParams{
-		CelrAddr:               tc.E2eProfile.CelrAddr,
-		GovernProposalDeposit:  big.NewInt(1),
-		GovernVoteTimeout:      big.NewInt(1),
-		SlashTimeout:           big.NewInt(10),
-		MaxBondedValidators:    big.NewInt(11),
-		MinValidatorTokens:     big.NewInt(1e18),
-		MinSelfDelegation:      big.NewInt(1e18),
-		AdvanceNoticePeriod:    big.NewInt(1),
-		ValidatorBondInterval:  big.NewInt(24 * 3600),
-		MaxSlashFactor:         big.NewInt(1e5),
-		SidechainGoLiveTimeout: big.NewInt(0),
+		CelrAddr:              tc.E2eProfile.CelrAddr,
+		GovernProposalDeposit: big.NewInt(1),
+		GovernVoteTimeout:     big.NewInt(1),
+		SlashTimeout:          big.NewInt(10),
+		MaxBondedValidators:   big.NewInt(11),
+		MinValidatorTokens:    big.NewInt(1e18),
+		MinSelfDelegation:     big.NewInt(1e18),
+		AdvanceNoticePeriod:   big.NewInt(1),
+		ValidatorBondInterval: big.NewInt(0),
+		MaxSlashFactor:        big.NewInt(1e5),
 	}
 	res := setupNewSGNEnv(p, "validator")
 	tc.SleepWithLog(10, "sgn being ready")

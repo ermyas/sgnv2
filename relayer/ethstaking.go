@@ -188,7 +188,7 @@ func (r *Relayer) shouldBondValidator() bool {
 		return false
 	}
 	if !sdk.AccAddress(sgnAddr).Equals(r.sgnAcct) {
-		log.Debugf("sidechain address not match, %s %s", sdk.AccAddress(sgnAddr), r.sgnAcct)
+		log.Debugf("sgn addr not match, %s %s", sdk.AccAddress(sgnAddr), r.sgnAcct)
 		return false
 	}
 

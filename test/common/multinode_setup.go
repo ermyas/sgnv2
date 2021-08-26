@@ -71,16 +71,15 @@ func SetupNewSGNEnv(sgnParams *SGNParams, manual bool) {
 	log.Infoln("Deploy Staking and SGN contracts")
 	if sgnParams == nil {
 		sgnParams = &SGNParams{
-			CelrAddr:               E2eProfile.CelrAddr,
-			GovernProposalDeposit:  big.NewInt(1),
-			GovernVoteTimeout:      big.NewInt(5),
-			SlashTimeout:           big.NewInt(50),
-			MaxBondedValidators:    big.NewInt(7),
-			MinValidatorTokens:     big.NewInt(1e18),
-			MinSelfDelegation:      big.NewInt(1e18),
-			AdvanceNoticePeriod:    big.NewInt(1),
-			ValidatorBondInterval:  big.NewInt(24 * 3600),
-			SidechainGoLiveTimeout: big.NewInt(0),
+			CelrAddr:              E2eProfile.CelrAddr,
+			GovernProposalDeposit: big.NewInt(1),
+			GovernVoteTimeout:     big.NewInt(5),
+			SlashTimeout:          big.NewInt(50),
+			MaxBondedValidators:   big.NewInt(7),
+			MinValidatorTokens:    big.NewInt(1e18),
+			MinSelfDelegation:     big.NewInt(1e18),
+			AdvanceNoticePeriod:   big.NewInt(1),
+			ValidatorBondInterval: big.NewInt(0),
 		}
 	}
 	var tx *types.Transaction

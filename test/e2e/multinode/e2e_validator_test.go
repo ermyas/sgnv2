@@ -5,22 +5,21 @@ import (
 	"testing"
 
 	"github.com/celer-network/goutils/log"
-	tc "github.com/celer-network/sgn-v2/testing/common"
+	tc "github.com/celer-network/sgn-v2/test/common"
 )
 
 func setupValidator(maxValidatorNum *big.Int) {
 	log.Infoln("set up new sgn env")
 	p := &tc.SGNParams{
-		CelrAddr:               tc.E2eProfile.CelrAddr,
-		GovernProposalDeposit:  big.NewInt(1),
-		GovernVoteTimeout:      big.NewInt(1),
-		SlashTimeout:           big.NewInt(0),
-		MaxBondedValidators:    maxValidatorNum,
-		MinValidatorTokens:     big.NewInt(1e18),
-		MinSelfDelegation:      big.NewInt(1e18),
-		AdvanceNoticePeriod:    big.NewInt(1),
-		ValidatorBondInterval:  big.NewInt(24 * 3600),
-		SidechainGoLiveTimeout: big.NewInt(0),
+		CelrAddr:              tc.E2eProfile.CelrAddr,
+		GovernProposalDeposit: big.NewInt(1),
+		GovernVoteTimeout:     big.NewInt(1),
+		SlashTimeout:          big.NewInt(0),
+		MaxBondedValidators:   maxValidatorNum,
+		MinValidatorTokens:    big.NewInt(1e18),
+		MinSelfDelegation:     big.NewInt(1e18),
+		AdvanceNoticePeriod:   big.NewInt(1),
+		ValidatorBondInterval: big.NewInt(0),
 	}
 	tc.SetupNewSGNEnv(p, false)
 	tc.SleepWithLog(10, "sgn being ready")
