@@ -128,57 +128,14 @@ func (r *Relayer) monitorEthDelegationUpdate() {
 }
 
 func (r *Relayer) shouldBondValidator() bool {
-	// TODO: use eth dry run?
-	validator, err := r.EthClient.Contracts.Staking.Validators(&bind.CallOpts{}, r.valAddr)
+	shouldBond, err := r.EthClient.Contracts.Viewer.ShouldBondValidator(&bind.CallOpts{}, r.valAddr)
 	if err != nil {
 		log.Errorln("get validator err", err)
 		return false
 	}
 
-	if validator.Status == 0 {
-		log.Debug("Validator not initialized")
-		return false
-	}
-
-	if validator.Status == eth.Bonded {
-		log.Debug("Validator already  bonded")
-		return false
-	}
-
-	hasMinRequiredTokens, err :=
-		r.EthClient.Contracts.Staking.HasMinRequiredTokens(&bind.CallOpts{}, r.valAddr, true)
-	if err != nil {
-		log.Errorln("Get min required tokens err", err)
-		return false
-	}
-	if !hasMinRequiredTokens {
-		log.Debug("Not have min required tokens")
-		return false
-	}
-
-	minValTokens, err := r.EthClient.Contracts.Staking.GetMinValidatorTokens(&bind.CallOpts{})
-	if err != nil {
-		log.Errorln("Get min validator tokens err", err)
-		return false
-	}
-	if validator.Tokens.Cmp(minValTokens) <= 0 {
-		log.Debugf("Token less than current min validator tokens: %s < %s", validator.Tokens, minValTokens)
-		return false
-	}
-
-	currBlkNum := r.getCurrentBlockNumber().Uint64()
-	if currBlkNum < validator.BondBlock {
-		log.Debugf("Not validator bond block %d yet", validator.BondBlock)
-		return false
-	}
-
-	nextBondBlock, err := r.EthClient.Contracts.Staking.NextBondBlock(&bind.CallOpts{})
-	if err != nil {
-		log.Errorln("Get next bond block err", err)
-		return false
-	}
-	if currBlkNum < nextBondBlock.Uint64() {
-		log.Debugf("Not next bond block %s yet", nextBondBlock)
+	if !shouldBond {
+		log.Debug("Validator not ready to be bonded")
 		return false
 	}
 

@@ -49,3 +49,75 @@ func (c *SgnContract) GetAddr() Addr {
 func (c *SgnContract) GetABI() string {
 	return SGNABI
 }
+
+type RewardContract struct {
+	*Reward
+	Address Addr
+}
+
+func NewRewardContract(address Addr, client *ethclient.Client) (*RewardContract, error) {
+	Reward, err := NewReward(address, client)
+	if err != nil {
+		return nil, err
+	}
+	return &RewardContract{
+		Reward:  Reward,
+		Address: address,
+	}, nil
+}
+
+func (c *RewardContract) GetAddr() Addr {
+	return c.Address
+}
+
+func (c *RewardContract) GetABI() string {
+	return RewardABI
+}
+
+type GovernContract struct {
+	*Govern
+	Address Addr
+}
+
+func NewGovernContract(address Addr, client *ethclient.Client) (*GovernContract, error) {
+	govern, err := NewGovern(address, client)
+	if err != nil {
+		return nil, err
+	}
+	return &GovernContract{
+		Govern:  govern,
+		Address: address,
+	}, nil
+}
+
+func (c *GovernContract) GetAddr() Addr {
+	return c.Address
+}
+
+func (c *GovernContract) GetABI() string {
+	return GovernABI
+}
+
+type ViewerContract struct {
+	*Viewer
+	Address Addr
+}
+
+func NewViewerContract(address Addr, client *ethclient.Client) (*ViewerContract, error) {
+	Viewer, err := NewViewer(address, client)
+	if err != nil {
+		return nil, err
+	}
+	return &ViewerContract{
+		Viewer:  Viewer,
+		Address: address,
+	}, nil
+}
+
+func (c *ViewerContract) GetAddr() Addr {
+	return c.Address
+}
+
+func (c *ViewerContract) GetABI() string {
+	return ViewerABI
+}

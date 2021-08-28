@@ -8,8 +8,8 @@ const (
 
 	// ParamNames
 	ProposalDeposit       = 0
-	GovernVoteTimeout     = 1
-	SlashTimeout          = 2
+	VotePeriod            = 1
+	UnbondingPeriod       = 2
 	MaxBondedValidators   = 3
 	MinValidatorTokens    = 4
 	MinSelfDelegation     = 5

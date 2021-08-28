@@ -26,6 +26,9 @@ type EthClient struct {
 type Contracts struct {
 	Staking *StakingContract
 	Sgn     *SgnContract
+	Reward  *RewardContract
+	Viewer  *ViewerContract
+	Govern  *GovernContract
 }
 
 type TransactorConfig struct {
@@ -41,8 +44,7 @@ func NewEthClient(
 	ksfile string,
 	passphrase string,
 	tconfig *TransactorConfig,
-	stakingContract string,
-	sgnContract string) (*EthClient, error) {
+	stakingContract, sgnContract, rewardContract, viewerContract, governContract string) (*EthClient, error) {
 	ethClient := &EthClient{}
 
 	rpcClient, err := ethrpc.Dial(ethurl)
@@ -51,7 +53,7 @@ func NewEthClient(
 	}
 
 	ethClient.Client = ethclient.NewClient(rpcClient)
-	err = ethClient.setContracts(stakingContract, sgnContract)
+	err = ethClient.setContracts(stakingContract, sgnContract, rewardContract, viewerContract, governContract)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +99,8 @@ func (ethClient *EthClient) setTransactor(ksfile string, passphrase string, tcon
 	return err
 }
 
-func (ethClient *EthClient) setContracts(stakingContract, sgnContract string) error {
+func (ethClient *EthClient) setContracts(
+	stakingContract, sgnContract, rewardContract, viewerContract, governContract string) error {
 	var err error
 	ethClient.Contracts.Staking, err = NewStakingContract(Hex2Addr(stakingContract), ethClient.Client)
 	if err != nil {
@@ -105,6 +108,21 @@ func (ethClient *EthClient) setContracts(stakingContract, sgnContract string) er
 	}
 
 	ethClient.Contracts.Sgn, err = NewSgnContract(Hex2Addr(sgnContract), ethClient.Client)
+	if err != nil {
+		return err
+	}
+
+	ethClient.Contracts.Reward, err = NewRewardContract(Hex2Addr(rewardContract), ethClient.Client)
+	if err != nil {
+		return err
+	}
+
+	ethClient.Contracts.Viewer, err = NewViewerContract(Hex2Addr(viewerContract), ethClient.Client)
+	if err != nil {
+		return err
+	}
+
+	ethClient.Contracts.Govern, err = NewGovernContract(Hex2Addr(governContract), ethClient.Client)
 	if err != nil {
 		return err
 	}

@@ -27,31 +27,52 @@ func DeployERC20Contract() (*types.Transaction, eth.Addr, *eth.Erc20) {
 	return tx, erc20Addr, erc20
 }
 
-func DeployStakingSGNContracts(sgnParams *SGNParams) (*types.Transaction, eth.Addr, eth.Addr) {
-	stakingContractAddr, _, _, err := eth.DeployStaking(
+func DeploySgnStakingContracts(contractParams *ContractParams) (
+	*types.Transaction, eth.Addr, eth.Addr, eth.Addr, eth.Addr, eth.Addr) {
+
+	stakingContractAddr, _, staking, err := eth.DeployStaking(
 		EtherBaseAuth,
 		EthClient,
-		sgnParams.CelrAddr,
-		sgnParams.GovernProposalDeposit,
-		sgnParams.GovernVoteTimeout,
-		sgnParams.SlashTimeout,
-		sgnParams.MaxBondedValidators,
-		sgnParams.MinValidatorTokens,
-		sgnParams.MinSelfDelegation,
-		sgnParams.AdvanceNoticePeriod,
-		sgnParams.ValidatorBondInterval,
-		sgnParams.MaxSlashFactor)
-
+		contractParams.CelrAddr,
+		contractParams.ProposalDeposit,
+		contractParams.VotePeriod,
+		contractParams.UnbondingPeriod,
+		contractParams.MaxBondedValidators,
+		contractParams.MinValidatorTokens,
+		contractParams.MinSelfDelegation,
+		contractParams.AdvanceNoticePeriod,
+		contractParams.ValidatorBondInterval,
+		contractParams.MaxSlashFactor)
 	ChkErr(err, "failed to deploy Staking contract")
 
 	sgnContractAddr, _, _, err := eth.DeploySGN(EtherBaseAuth, EthClient, stakingContractAddr)
-	ChkErr(err, "failed to deploy SGN contract")
+	ChkErr(err, "failed to deploy sgn contract")
+
+	rewardContractAddr, _, _, err := eth.DeployReward(
+		EtherBaseAuth, EthClient, stakingContractAddr, contractParams.CelrAddr)
+	ChkErr(err, "failed to deploy reward contract")
+
+	viewerContractAddr, _, _, err := eth.DeployViewer(EtherBaseAuth, EthClient, stakingContractAddr)
+	ChkErr(err, "failed to deploy viewer contract")
+
+	governContractAddr, _, _, err := eth.DeployGovern(
+		EtherBaseAuth, EthClient, stakingContractAddr, contractParams.CelrAddr, rewardContractAddr)
+	ChkErr(err, "failed to deploy govern contract")
+
+	EtherBaseAuth.GasLimit = 8000000
+	_, err = staking.SetGovContract(EtherBaseAuth, governContractAddr)
+	ChkErr(err, "failed to set gov contract")
+	tx, err := staking.SetRewardContract(EtherBaseAuth, rewardContractAddr)
+	ChkErr(err, "failed to set gov contract")
+	EtherBaseAuth.GasLimit = 0
 
 	log.Infoln("Staking address:", stakingContractAddr.String())
 	log.Infoln("SGN address:", sgnContractAddr.String())
+	log.Infoln("Reward address:", rewardContractAddr.String())
+	log.Infoln("Viewer address:", viewerContractAddr.String())
+	log.Infoln("Govern address:", governContractAddr.String())
 
-	// TODO
-	return nil, stakingContractAddr, sgnContractAddr
+	return tx, stakingContractAddr, sgnContractAddr, rewardContractAddr, viewerContractAddr, governContractAddr
 }
 
 func DeployCommand() *cobra.Command {
@@ -97,34 +118,37 @@ func DeployCommand() *cobra.Command {
 
 			_, erc20Addr, erc20 := DeployERC20Contract()
 			// NOTE: values below are for local tests
-			sgnParams := &SGNParams{
+			contractParams := &ContractParams{
 				CelrAddr:              erc20Addr,
-				GovernProposalDeposit: big.NewInt(1000000000000000000), // 1 CELR
-				GovernVoteTimeout:     big.NewInt(90),
-				SlashTimeout:          big.NewInt(15),
+				ProposalDeposit:       big.NewInt(1000000000000000000), // 1 CELR
+				VotePeriod:            big.NewInt(90),
+				UnbondingPeriod:       big.NewInt(15),
 				MaxBondedValidators:   big.NewInt(5),
 				MinValidatorTokens:    big.NewInt(1000000000000000000),
 				MinSelfDelegation:     big.NewInt(1e18),
 				AdvanceNoticePeriod:   big.NewInt(30),
 				ValidatorBondInterval: big.NewInt(0),
 			}
-			tx, stakingContractAddr, sgnContractAddr := DeployStakingSGNContracts(sgnParams)
+			tx, stakingContractAddr, sgnContractAddr, rewardContractAddr, viewerContractAddr, governContractAddr := DeploySgnStakingContracts(contractParams)
 			WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "DeployStakingContracts")
 
 			configFileViper.Set(common.FlagEthContractCelr, erc20Addr.Hex())
 			configFileViper.Set(common.FlagEthContractStaking, stakingContractAddr.Hex())
 			configFileViper.Set(common.FlagEthContractSgn, sgnContractAddr.Hex())
+			configFileViper.Set(common.FlagEthContractReward, rewardContractAddr.Hex())
+			configFileViper.Set(common.FlagEthContractViewer, viewerContractAddr.Hex())
+			configFileViper.Set(common.FlagEthContractGovern, governContractAddr.Hex())
 			err = configFileViper.WriteConfig()
 			ChkErr(err, "failed to write config")
 
 			if ethurl == LocalGeth {
 				amt := new(big.Int)
 				amt.SetString("1"+strings.Repeat("0", 20), 10)
-				tx, err := erc20.Approve(EtherBaseAuth, stakingContractAddr, amt)
+				tx, err := erc20.Approve(EtherBaseAuth, rewardContractAddr, amt)
 				ChkErr(err, "failed to approve erc20")
 				WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "approve erc20")
-				StakingContract, _ = eth.NewStaking(stakingContractAddr, EthClient)
-				_, err = StakingContract.ContributeToRewardPool(EtherBaseAuth, amt)
+				RewardContract, _ = eth.NewReward(rewardContractAddr, EthClient)
+				_, err = RewardContract.ContributeToRewardPool(EtherBaseAuth, amt)
 				ChkErr(err, "failed to call ContributeToMiningPool of Staking contract")
 				err = FundAddrsErc20(erc20Addr,
 					[]eth.Addr{

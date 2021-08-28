@@ -18,6 +18,9 @@ intend_withdraw_channel = 1
 celr = ""
 staking = ""
 sgn = ""
+reward = ""
+viewer = ""
+govern = ""
 
 [log]
 color = true

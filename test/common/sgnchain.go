@@ -18,11 +18,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type SGNParams struct {
+type ContractParams struct {
 	CelrAddr              eth.Addr
-	GovernProposalDeposit *big.Int
-	GovernVoteTimeout     *big.Int
-	SlashTimeout          *big.Int
+	ProposalDeposit       *big.Int
+	VotePeriod            *big.Int
+	UnbondingPeriod       *big.Int
 	MaxBondedValidators   *big.Int
 	MinValidatorTokens    *big.Int
 	MinSelfDelegation     *big.Int

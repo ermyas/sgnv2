@@ -14,13 +14,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-func setupNewSGNEnv(sgnParams *tc.SGNParams, testName string) []tc.Killable {
-	if sgnParams == nil {
-		sgnParams = &tc.SGNParams{
+func setupNewSGNEnv(contractParams *tc.ContractParams, testName string) []tc.Killable {
+	if contractParams == nil {
+		contractParams = &tc.ContractParams{
 			CelrAddr:              tc.E2eProfile.CelrAddr,
-			GovernProposalDeposit: big.NewInt(1),
-			GovernVoteTimeout:     big.NewInt(1),
-			SlashTimeout:          big.NewInt(50),
+			ProposalDeposit:       big.NewInt(1),
+			VotePeriod:            big.NewInt(1),
+			UnbondingPeriod:       big.NewInt(50),
 			MaxBondedValidators:   big.NewInt(11),
 			MinValidatorTokens:    big.NewInt(1e18),
 			MinSelfDelegation:     big.NewInt(1e18),
@@ -29,17 +29,20 @@ func setupNewSGNEnv(sgnParams *tc.SGNParams, testName string) []tc.Killable {
 		}
 	}
 	var tx *types.Transaction
-	tx, tc.E2eProfile.StakingContractAddr, tc.E2eProfile.SgnContractAddr = tc.DeployStakingSGNContracts(sgnParams)
-	tc.WaitMinedWithChk(context.Background(), tc.EthClient, tx, tc.BlockDelay, tc.PollingInterval, "DeployStakingSGNContracts")
+	tx, tc.E2eProfile.StakingContractAddr, tc.E2eProfile.SgnContractAddr,
+		tc.E2eProfile.RewardContractAddr, tc.E2eProfile.ViewerContractAddr,
+		tc.E2eProfile.GovernContractAddr = tc.DeploySgnStakingContracts(contractParams)
+	tc.WaitMinedWithChk(context.Background(), tc.EthClient, tx, tc.BlockDelay, tc.PollingInterval, "DeploySgnStakingContracts")
 
 	updateSGNConfig()
 
 	sgnProc, err := startSgnchain("", testName)
 	tc.ChkErr(err, "start sgnchain")
-	tc.SetContracts(tc.E2eProfile.StakingContractAddr, tc.E2eProfile.SgnContractAddr)
+	tc.SetContracts(tc.E2eProfile.StakingContractAddr, tc.E2eProfile.SgnContractAddr,
+		tc.E2eProfile.RewardContractAddr, tc.E2eProfile.ViewerContractAddr, tc.E2eProfile.GovernContractAddr)
 
 	killable := []tc.Killable{sgnProc}
-	if sgnParams.StartGateway {
+	if contractParams.StartGateway {
 		gatewayProc, err := StartGateway("", testName)
 		tc.ChkErr(err, "start gateway")
 		killable = append(killable, gatewayProc)

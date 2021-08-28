@@ -14,11 +14,11 @@ import (
 )
 
 func setupValidator() []tc.Killable {
-	p := &tc.SGNParams{
+	p := &tc.ContractParams{
 		CelrAddr:              tc.E2eProfile.CelrAddr,
-		GovernProposalDeposit: big.NewInt(1),
-		GovernVoteTimeout:     big.NewInt(1),
-		SlashTimeout:          big.NewInt(10),
+		ProposalDeposit:       big.NewInt(1),
+		VotePeriod:            big.NewInt(1),
+		UnbondingPeriod:       big.NewInt(10),
 		MaxBondedValidators:   big.NewInt(11),
 		MinValidatorTokens:    big.NewInt(1e18),
 		MinSelfDelegation:     big.NewInt(1e18),

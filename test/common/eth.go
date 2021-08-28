@@ -28,6 +28,9 @@ var (
 	EtherBaseAuth   *bind.TransactOpts
 	StakingContract *eth.Staking
 	SgnContract     *eth.SGN
+	RewardContract  *eth.Reward
+	ViewerContract  *eth.Viewer
+	GovernContract  *eth.Govern
 
 	Client0 *TestEthClient
 	Client1 *TestEthClient
@@ -71,7 +74,8 @@ func SetupTestEthClient(ksfile string) (*TestEthClient, error) {
 	return testClient, nil
 }
 
-func SetContracts(stakingContractAddr, sgnContractAddr eth.Addr) error {
+func SetContracts(stakingContractAddr, sgnContractAddr, rewardContractAddr,
+	viewerContractAddr, governContractAddr eth.Addr) error {
 	log.Infof("set contracts staking %x sgn %x", stakingContractAddr, sgnContractAddr)
 	var err error
 	StakingContract, err = eth.NewStaking(stakingContractAddr, EthClient)
@@ -79,6 +83,20 @@ func SetContracts(stakingContractAddr, sgnContractAddr eth.Addr) error {
 		return err
 	}
 	SgnContract, err = eth.NewSGN(sgnContractAddr, EthClient)
+	if err != nil {
+		return err
+	}
+	RewardContract, err = eth.NewReward(rewardContractAddr, EthClient)
+	if err != nil {
+		return err
+	}
+
+	ViewerContract, err = eth.NewViewer(viewerContractAddr, EthClient)
+	if err != nil {
+		return err
+	}
+
+	GovernContract, err = eth.NewGovern(governContractAddr, EthClient)
 	if err != nil {
 		return err
 	}

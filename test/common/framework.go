@@ -21,6 +21,9 @@ type TestProfile struct {
 	DisputeTimeout      uint64
 	StakingContractAddr eth.Addr
 	SgnContractAddr     eth.Addr
+	RewardContractAddr  eth.Addr
+	ViewerContractAddr  eth.Addr
+	GovernContractAddr  eth.Addr
 	CelrAddr            eth.Addr
 	CelrContract        *eth.Erc20
 }
