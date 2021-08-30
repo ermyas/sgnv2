@@ -117,6 +117,9 @@ func (o *Operator) SyncValidatorMsgs(valAddr eth.Addr, flag ValSyncFlag) []*sync
 				skip = true
 			}
 		}
+		if o.EthClient.Address == valAddr {
+			updateVal.ConsensusPubkey = o.PubKeyAny
+		}
 		if !skip {
 			update := &synctypes.ProposeUpdate{
 				Type: synctypes.DataType_ValidatorParams,

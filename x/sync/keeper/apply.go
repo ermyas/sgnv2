@@ -4,7 +4,10 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/x/sync/types"
 	vtypes "github.com/celer-network/sgn-v2/x/validator/types"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk_stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 func (k Keeper) ApplyUpdate(ctx sdk.Context, update *types.PendingUpdate) bool {
@@ -48,7 +51,44 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 		val.EthSigner = v.EthSigner
 		val.SgnAddress = v.SgnAddress
 	} else {
-		val = vtypes.NewValidator(v.EthAddress, v.EthSigner, v.SgnAddress)
+		if v.Status == vtypes.ValidatorStatus_Bonded {
+			if common.HexToAddress(update.Proposer) != common.HexToAddress(v.EthAddress) {
+				log.Infof("Bonded validator %s %s not initialized, msg sender: %s", v.SgnAddress, v.EthAddress, update.Proposer)
+				return true, nil
+			}
+			// TODO: Don't use sdkVal
+			val = vtypes.NewValidator(v.EthAddress, v.EthSigner, v.SgnAddress)
+			val.Description = v.Description
+			val.ConsensusPubkey = v.ConsensusPubkey
+			sdkValAddr, err := vtypes.SdkValAddrFromSgnBech32(val.SgnAddress)
+			if err != nil {
+				return false, err
+			}
+			sdkDescription := sdk_stakingtypes.Description{
+				Moniker:         val.Description.Moniker,
+				Identity:        val.Description.Identity,
+				Website:         val.Description.Website,
+				SecurityContact: val.Description.SecurityContact,
+				Details:         val.Description.Details,
+			}
+			sdkVal, err := sdk_stakingtypes.NewValidator(sdkValAddr, v.ConsensusPubkey.GetCachedValue().(cryptotypes.PubKey), sdkDescription)
+			if err != nil {
+				return false, err
+			}
+			k.valKeeper.SetSdkValidator(ctx, sdkVal)
+			ctx.EventManager().EmitEvent(
+				sdk.NewEvent(
+					sdk_stakingtypes.EventTypeCreateValidator,
+					sdk.NewAttribute(sdk_stakingtypes.AttributeKeyValidator, val.SgnAddress),
+				),
+			)
+		} else if v.Status == vtypes.ValidatorStatus_Unbonding {
+			log.Warnf("Unbonding validator %s %s not found, msg sender: %s", v.SgnAddress, v.EthAddress, update.Proposer)
+			return false, nil
+		} else {
+			log.Debugf("Validator %s %s not bonded", v.SgnAddress, v.EthAddress)
+			return true, nil
+		}
 	}
 	val.CommissionRate = v.CommissionRate
 	acct, err := vtypes.SdkAccAddrFromSgnBech32(v.SgnAddress)

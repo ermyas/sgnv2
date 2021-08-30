@@ -41,6 +41,10 @@ func (k Keeper) SetValidator(ctx sdk.Context, validator *types.Validator) {
 	store.Set(validatorKey, types.MustMarshalValidator(k.cdc, validator))
 }
 
+func (k Keeper) SetSdkValidator(ctx sdk.Context, sdkVal sdk_staking.Validator) {
+	k.sdkStakingKeeper.SetValidatorByConsAddr(ctx, sdkVal)
+}
+
 func (k Keeper) SetValidatorStates(
 	ctx sdk.Context, ethAddr string, status types.ValidatorStatus, tokens, shares string) error {
 
@@ -65,7 +69,7 @@ func (k Keeper) SetValidatorStates(
 	if err != nil {
 		return err
 	}
-	sdkVal, found := k.sdkval.GetValidator(ctx, sdkValAddr)
+	sdkVal, found := k.sdkStakingKeeper.GetValidator(ctx, sdkValAddr)
 	if !found {
 		if val.Status == types.ValidatorStatus_Bonded {
 			// TODO: create sdk validator
@@ -84,7 +88,6 @@ func (k Keeper) SetValidatorStates(
 				DelegatorShares: shInt.ToDec(),
 				Description:     sdkDescription,
 			}
-			return nil
 		} else if val.Status == types.ValidatorStatus_Unbonded {
 			log.Debugf("Validator %s %s not bonded", ethAddr, val.SgnAddress)
 			return nil
@@ -94,16 +97,16 @@ func (k Keeper) SetValidatorStates(
 		}
 	}
 
-	k.sdkval.DeleteValidatorByPowerIndex(ctx, sdkVal)
+	k.sdkStakingKeeper.DeleteValidatorByPowerIndex(ctx, sdkVal)
 	sdkVal.Status = sdk_staking.BondStatus(val.Status)
 	sdkVal.Tokens = tkInt
 	sdkVal.DelegatorShares = shInt.ToDec()
-	k.sdkval.SetValidator(ctx, sdkVal)
+	k.sdkStakingKeeper.SetValidator(ctx, sdkVal)
 
 	if val.Status == types.ValidatorStatus_Bonded {
-		k.sdkval.SetNewValidatorByPowerIndex(ctx, sdkVal)
+		k.sdkStakingKeeper.SetNewValidatorByPowerIndex(ctx, sdkVal)
 	} else if val.Status == types.ValidatorStatus_Unbonded {
-		k.sdkval.RemoveValidator(ctx, sdkValAddr)
+		k.sdkStakingKeeper.RemoveValidator(ctx, sdkValAddr)
 	} else if val.Status == types.ValidatorStatus_Unbonding {
 	}
 
@@ -112,15 +115,15 @@ func (k Keeper) SetValidatorStates(
 
 // Get sdk validators
 func (k Keeper) GetBondedSdkValidators(ctx sdk.Context) []sdk_staking.Validator {
-	return k.sdkval.GetBondedValidatorsByPower(ctx)
+	return k.sdkStakingKeeper.GetBondedValidatorsByPower(ctx)
 }
 
 // Get a sdk validator by consensus address
 func (k Keeper) GetSdkValidatorByConsAddr(ctx sdk.Context, addr sdk.ConsAddress) (sdk_staking.Validator, bool) {
-	return k.sdkval.GetValidatorByConsAddr(ctx, addr)
+	return k.sdkStakingKeeper.GetValidatorByConsAddr(ctx, addr)
 }
 
 // Get a sdk validator by validator account address
 func (k Keeper) GetSdkValidator(ctx sdk.Context, addr sdk.ValAddress) (sdk_staking.Validator, bool) {
-	return k.sdkval.GetValidator(ctx, addr)
+	return k.sdkStakingKeeper.GetValidator(ctx, addr)
 }

@@ -35,28 +35,28 @@ func (k Keeper) BlockValidatorUpdates(ctx sdk.Context) []abci.ValidatorUpdate {
 // at the previous block height or were removed from the validator set entirely
 // are returned to Tendermint.
 func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []abci.ValidatorUpdate, err error) {
-	params := k.sdkval.GetParams(ctx)
+	params := k.sdkStakingKeeper.GetParams(ctx)
 	maxValidators := params.MaxValidators
-	powerReduction := k.sdkval.PowerReduction(ctx)
+	powerReduction := k.sdkStakingKeeper.PowerReduction(ctx)
 	totalPower := sdk.ZeroInt()
 
 	// Retrieve the last validator set.
 	// The persistent set is updated later in this function.
 	// (see LastValidatorPowerKey).
-	last, err := getLastValidatorsByAddr(ctx, k.sdkval)
+	last, err := getLastValidatorsByAddr(ctx, k.sdkStakingKeeper)
 	if err != nil {
 		return nil, err
 	}
 
 	// Iterate over validators, highest power to lowest.
-	iterator := k.sdkval.ValidatorsPowerStoreIterator(ctx)
+	iterator := k.sdkStakingKeeper.ValidatorsPowerStoreIterator(ctx)
 	defer iterator.Close()
 
 	for count := 0; iterator.Valid() && count < int(maxValidators); iterator.Next() {
 		// everything that is iterated in this loop is becoming or already a
 		// part of the bonded validator set
 		valAddr := sdk.ValAddress(iterator.Value())
-		sdkVal := mustGetValidator(ctx, k.sdkval, valAddr)
+		sdkVal := mustGetValidator(ctx, k.sdkStakingKeeper, valAddr)
 
 		if sdkVal.Jailed {
 			panic("should never retrieve a jailed validator from the power store")
@@ -81,7 +81,7 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		if !found || !bytes.Equal(oldPowerBytes, newPowerBytes) {
 			updates = append(updates, sdkVal.ABCIValidatorUpdate(powerReduction))
 
-			k.sdkval.SetLastValidatorPower(ctx, valAddr, newPower)
+			k.sdkStakingKeeper.SetLastValidatorPower(ctx, valAddr, newPower)
 		}
 
 		delete(last, valAddrStr)
@@ -95,14 +95,14 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []ab
 		return nil, err
 	}
 	for _, valAddrBytes := range noLongerBonded {
-		sdkVal := mustGetValidator(ctx, k.sdkval, sdk.ValAddress(valAddrBytes))
-		k.sdkval.DeleteLastValidatorPower(ctx, sdkVal.GetOperator())
+		sdkVal := mustGetValidator(ctx, k.sdkStakingKeeper, sdk.ValAddress(valAddrBytes))
+		k.sdkStakingKeeper.DeleteLastValidatorPower(ctx, sdkVal.GetOperator())
 		updates = append(updates, sdkVal.ABCIValidatorUpdateZero())
 	}
 
 	// set total power on lookup index if there are any updates
 	if len(updates) > 0 {
-		k.sdkval.SetLastTotalPower(ctx, totalPower)
+		k.sdkStakingKeeper.SetLastTotalPower(ctx, totalPower)
 	}
 
 	return updates, nil
