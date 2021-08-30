@@ -8,6 +8,7 @@ import (
 	"github.com/celer-network/sgn-v2/app"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -35,6 +36,7 @@ func GetSgncliExecutor() cli.Executor {
 		queryCmd(),
 		txCmd(),
 		flags.LineBreak,
+		keys.Commands(app.DefaultCLIHome),
 		flags.LineBreak,
 		flags.LineBreak,
 	)
