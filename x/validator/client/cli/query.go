@@ -8,10 +8,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	flagCheckMainchain = "check-mainchain"
-)
-
 func GetQueryCmd() *cobra.Command {
 	validatorQueryCmd := &cobra.Command{
 		Use:                        types.ModuleName,
@@ -39,7 +35,7 @@ func GetCmdSyncer() *cobra.Command {
 		Short: "query syncer info",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, _ := client.GetClientTxContext(cmd)
 			cliCtx := common.NewQueryCLIContext(&clientCtx.Codec)
 			syncer, err := QuerySyncer(cliCtx)
 			if err != nil {
@@ -59,7 +55,7 @@ func GetCmdDelegator() *cobra.Command {
 		Short: "query delegator info by validator and delegator ETH addresses",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, _ := client.GetClientTxContext(cmd)
 			cliCtx := common.NewQueryCLIContext(&clientCtx.Codec)
 			delegator, err := QueryDelegator(cliCtx, args[0], args[1])
 			if err != nil {
@@ -79,7 +75,7 @@ func GetCmdValidator() *cobra.Command {
 		Short: "query validator info by validator ETH address",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, _ := client.GetClientTxContext(cmd)
 			cliCtx := common.NewQueryCLIContext(&clientCtx.Codec)
 			validator, err := QueryValidator(cliCtx, args[0])
 			if err != nil {

@@ -42,7 +42,7 @@ type Transactor struct {
 	msgQueue   deque.Deque
 }
 
-func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc codec.Codec) (*Transactor, error) {
+func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc codec.Codec, legacyAmino *codec.LegacyAmino) (*Transactor, error) {
 	kb, err := keyring.New(appName,
 		viper.GetString(common.FlagSgnKeyringBackend), cliHome, strings.NewReader(passphrase+"\n"))
 	if err != nil {
@@ -86,7 +86,8 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc co
 		WithKeyring(kb).
 		WithChainID(chainID).
 		WithBroadcastMode(flags.BroadcastSync).
-		WithTxConfig(txConfig)
+		WithTxConfig(txConfig).
+		WithLegacyAmino(legacyAmino)
 
 	f := clienttx.Factory{}.
 		WithKeybase(cliCtx.Keyring).
@@ -112,7 +113,7 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc co
 	return transactor, nil
 }
 
-func NewCliTransactor(cdc codec.Codec, cliHome string) (*Transactor, error) {
+func NewCliTransactor(cdc codec.Codec, cliHome string, legacyAmino *codec.LegacyAmino) (*Transactor, error) {
 	return NewTransactor(
 		cliHome,
 		viper.GetString(common.FlagSgnChainId),
@@ -120,6 +121,7 @@ func NewCliTransactor(cdc codec.Codec, cliHome string) (*Transactor, error) {
 		viper.GetString(common.FlagSgnValidatorAccount),
 		viper.GetString(common.FlagSgnPassphrase),
 		cdc,
+		legacyAmino,
 	)
 }
 

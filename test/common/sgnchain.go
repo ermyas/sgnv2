@@ -42,14 +42,14 @@ func SetupSgnchain() {
 }
 
 func NewTestTransactor(t *testing.T, sgnCLIHome, sgnChainID, sgnNodeURI, sgnValAcct, sgnPassphrase string) *transactor.Transactor {
-	cdc := app.AppCodec
 	tr, err := transactor.NewTransactor(
 		sgnCLIHome,
 		sgnChainID,
 		sgnNodeURI,
 		sgnValAcct,
 		sgnPassphrase,
-		cdc,
+		app.AppCodec,
+		app.LegacyAmino,
 	)
 	require.NoError(t, err, "Failed to create new transactor.")
 	tr.Run()

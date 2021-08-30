@@ -10,13 +10,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	flagMoniker = "moniker"
-	flagWebsite = "website"
-	flagContact = "contact"
-	flagDetails = "details"
-)
-
 func GetTxCmd() *cobra.Command {
 	validatorTxCmd := &cobra.Command{
 		Use:                        types.ModuleName,
@@ -50,7 +43,7 @@ func GetCmdSetTransactors() *cobra.Command {
 				}*/
 			transactors := viper.GetStringSlice(common.FlagSgnTransactors)
 
-			txr, err := transactor.NewCliTransactor(clientCtx.Codec, viper.GetString(flags.FlagHome))
+			txr, err := transactor.NewCliTransactor(clientCtx.Codec, viper.GetString(flags.FlagHome), clientCtx.LegacyAmino)
 			if err != nil {
 				return err
 			}

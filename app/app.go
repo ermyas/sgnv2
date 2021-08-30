@@ -342,7 +342,7 @@ func (app *SgnApp) ModuleAccountAddrs() map[string]bool {
 }
 
 func (app *SgnApp) startRelayer(db dbm.DB, tmCfg *tmcfg.Config) {
-	operator, err := relayer.NewOperator(app.appCodec, viper.GetString(common.FlagCLIHome), tmCfg)
+	operator, err := relayer.NewOperator(app.appCodec, viper.GetString(common.FlagCLIHome), tmCfg, app.legacyAmino)
 	if err != nil {
 		tmos.Exit(err.Error())
 	}

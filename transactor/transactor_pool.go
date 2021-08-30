@@ -12,6 +12,7 @@ type TransactorPool struct {
 	cliHome     string
 	chainID     string
 	cdc         codec.Codec
+	legacyAmino *codec.LegacyAmino
 }
 
 func NewTransactorPool(cliHome, chainID string, cdc codec.Codec) *TransactorPool {
@@ -33,7 +34,7 @@ func (tp *TransactorPool) AddTransactor(transactor *Transactor) {
 func (tp *TransactorPool) AddTransactors(nodeURI, passphrase string, ts []string) error {
 	var transactors []*Transactor
 	for _, t := range ts {
-		transactor, err := NewTransactor(tp.cliHome, tp.chainID, nodeURI, t, passphrase, tp.cdc)
+		transactor, err := NewTransactor(tp.cliHome, tp.chainID, nodeURI, t, passphrase, tp.cdc, tp.legacyAmino)
 		if err != nil {
 			return err
 		}

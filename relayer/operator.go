@@ -27,7 +27,7 @@ type Operator struct {
 	PubKeyAny *codectypes.Any
 }
 
-func NewOperator(cdc codec.Codec, cliHome string, tmCfg *tmcfg.Config) (operator *Operator, err error) {
+func NewOperator(cdc codec.Codec, cliHome string, tmCfg *tmcfg.Config, legacyAmino *codec.LegacyAmino) (operator *Operator, err error) {
 	ethClient, err := common.NewEthClientFromConfig()
 	if err != nil {
 		return
@@ -40,6 +40,7 @@ func NewOperator(cdc codec.Codec, cliHome string, tmCfg *tmcfg.Config) (operator
 		viper.GetString(common.FlagSgnValidatorAccount),
 		viper.GetString(common.FlagSgnPassphrase),
 		cdc,
+		legacyAmino,
 	)
 	if err != nil {
 		return
