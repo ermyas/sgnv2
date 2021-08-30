@@ -23,6 +23,7 @@ type TestEthClient struct {
 
 var (
 	etherBaseKs = EnvDir + "/keystore/etherbase.json"
+	ChainID     = 883
 
 	EthClient       *ethclient.Client
 	EtherBaseAuth   *bind.TransactOpts
@@ -49,7 +50,7 @@ func SetupEthClients() {
 	}
 	EthClient = ethclient.NewClient(rpcClient)
 
-	_, EtherBaseAuth, err = GetAuth(etherBaseKs)
+	_, EtherBaseAuth, _ = GetAuth(etherBaseKs)
 	Client0, err = SetupTestEthClient(ClientEthKs[0])
 	if err != nil {
 		log.Fatal(err)
@@ -69,8 +70,8 @@ func SetupTestEthClient(ksfile string) (*TestEthClient, error) {
 		Address: addr,
 		Auth:    auth,
 	}
-	ksBytes, err := ioutil.ReadFile(ksfile)
-	testClient.Signer, err = ethutils.NewSignerFromKeystore(string(ksBytes), "", nil)
+	ksBytes, _ := ioutil.ReadFile(ksfile)
+	testClient.Signer, _ = ethutils.NewSignerFromKeystore(string(ksBytes), "", nil)
 	return testClient, nil
 }
 
@@ -123,7 +124,6 @@ func FundAddrsETH(amt string, recipients []eth.Addr) error {
 	value := big.NewInt(0)
 	value.SetString(amt, 10)
 	auth.Value = value
-	// chainID := big.NewInt(883) // Private Mainchain Testnet
 	var gasLimit uint64 = 21000
 	var lastTx *types.Transaction
 	for _, addr := range recipients {
@@ -136,7 +136,7 @@ func FundAddrsETH(amt string, recipients []eth.Addr) error {
 			return err
 		}
 		tx := types.NewTransaction(nonce, addr, auth.Value, gasLimit, gasPrice, nil)
-		// TODO: tx, err = auth.Signer(types.NewEIP155Signer(chainID), senderAddr, tx)
+		tx, err = auth.Signer(senderAddr, tx)
 		if err != nil {
 			return err
 		}
@@ -232,7 +232,7 @@ func prepareEtherBaseClient() (
 		return nil, nil, nil, eth.Addr{}, err
 	}
 	etherBaseAddr := eth.Hex2Addr(etherBaseAddrStr)
-	auth, err := bind.NewTransactor(strings.NewReader(string(etherBaseKsBytes)), "")
+	auth, err := bind.NewTransactorWithChainID(strings.NewReader(string(etherBaseKsBytes)), "", big.NewInt(int64(ChainID))) // Private Mainchain Testnet
 	if err != nil {
 		return nil, nil, nil, eth.Addr{}, err
 	}

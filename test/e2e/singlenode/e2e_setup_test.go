@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -102,7 +103,7 @@ func startMainchain() (*os.Process, error) {
 	}
 
 	// actually run geth, blocking. set syncmode full to avoid bloom mem cache by fast sync
-	cmd := exec.Command("geth", "--networkid", "883", "--cache", "256", "--nousb", "--syncmode", "full", "--nodiscover", "--maxpeers", "0",
+	cmd := exec.Command("geth", "--networkid", strconv.Itoa(tc.ChainID), "--cache", "256", "--nousb", "--syncmode", "full", "--nodiscover", "--maxpeers", "0",
 		"--netrestrict", "127.0.0.1/8", "--datadir", chainDataDir, "--keystore", "keystore", "--miner.gastarget", "8000000",
 		"--ws", "--ws.addr", "localhost", "--ws.port", "8546", "--ws.api", "admin,debug,eth,miner,net,personal,shh,txpool,web3",
 		"--mine", "--allow-insecure-unlock", "--unlock", "0xb5BB8b7f6f1883e0c01ffb8697024532e6F3238C", "--password", "empty_password.txt",

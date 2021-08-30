@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"io/ioutil"
+	"math/big"
 	"strings"
 	"time"
 
@@ -26,7 +27,7 @@ func GetAuth(ksfile string) (addr eth.Addr, auth *bind.TransactOpts, err error) 
 		return
 	}
 	addr = key.Address
-	auth, err = bind.NewTransactor(strings.NewReader(string(keystoreBytes)), "")
+	auth, err = bind.NewTransactorWithChainID(strings.NewReader(string(keystoreBytes)), "", big.NewInt(int64(ChainID)))
 	if err != nil {
 		return
 	}
