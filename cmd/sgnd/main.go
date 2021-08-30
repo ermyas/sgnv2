@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
+
 	"github.com/celer-network/sgn-v2/cmd"
 	"github.com/celer-network/sgn-v2/common"
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/cobra"
 )
@@ -17,7 +21,11 @@ func main() {
 
 	// prepare and add flags
 	executor := cmd.GetSgndExecutor()
-	err := executor.Execute()
+	srvCtx := server.NewDefaultContext()
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, client.ClientContextKey, &client.Context{})
+	ctx = context.WithValue(ctx, server.ServerContextKey, srvCtx)
+	err := executor.ExecuteContext(ctx)
 	if err != nil {
 		panic(err)
 	}

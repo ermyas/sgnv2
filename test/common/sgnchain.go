@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/app"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/transactor"
@@ -41,9 +42,19 @@ func SetupSgnchain() {
 }
 
 func NewTestTransactor(t *testing.T, sgnCLIHome, sgnChainID, sgnNodeURI, sgnValAcct, sgnPassphrase string) *transactor.Transactor {
+	cdc := app.AppCodec
+	tr, err := transactor.NewTransactor(
+		sgnCLIHome,
+		sgnChainID,
+		sgnNodeURI,
+		sgnValAcct,
+		sgnPassphrase,
+		cdc,
+	)
+	require.NoError(t, err, "Failed to create new transactor.")
+	tr.Run()
 
-	// TODO
-	return nil
+	return tr
 }
 
 func CheckValidator(t *testing.T, transactor *transactor.Transactor, ethAddr eth.Addr, valacct string, expAmt *big.Int) {

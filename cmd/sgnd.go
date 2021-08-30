@@ -11,7 +11,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/config"
 	"github.com/cosmos/cosmos-sdk/server"
-	serverconfig "github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	simappcmd "github.com/cosmos/cosmos-sdk/simapp/simd/cmd"
 	"github.com/cosmos/cosmos-sdk/store"
@@ -58,9 +57,7 @@ func GetSgndExecutor() cli.Executor {
 				return err
 			}
 
-			customAppTemplate, customAppConfig := initAppConfig()
-
-			return server.InterceptConfigsPreRunHandler(cmd, customAppTemplate, customAppConfig)
+			return server.InterceptConfigsPreRunHandler(cmd, "", nil)
 		},
 	}
 	// CLI commands to initialize the chain
@@ -72,8 +69,7 @@ func GetSgndExecutor() cli.Executor {
 		simappcmd.AddGenesisAccountCmd(app.DefaultNodeHome),
 	)
 
-	serverCtx := server.GetServerContextFromCmd(rootCmd)
-	a := appCreator{serverCtx}
+	a := appCreator{rootCmd}
 
 	server.AddCommands(rootCmd, app.DefaultNodeHome, a.newApp, a.exportAppStateAndTMValidators, addModuleInitFlags)
 	rootCmd.PersistentFlags().String(common.FlagCLIHome, app.DefaultCLIHome, "Directory for cli config and data")
@@ -85,7 +81,7 @@ func GetSgndExecutor() cli.Executor {
 }
 
 type appCreator struct {
-	*server.Context
+	rootCmd *cobra.Command
 }
 
 func (a appCreator) newApp(logger tlog.Logger, db dbm.DB, traceStore io.Writer, appOpts servertypes.AppOptions) servertypes.Application {
@@ -102,12 +98,13 @@ func (a appCreator) newApp(logger tlog.Logger, db dbm.DB, traceStore io.Writer, 
 		panic(err)
 	}
 
+	serverCtx := server.GetServerContextFromCmd(a.rootCmd)
 	return app.NewSgnApp(
 		logger,
 		db,
 		-1, /* height */
 		skipUpgradeHeights,
-		a.Context.Config,
+		serverCtx.Config,
 		baseapp.SetHaltHeight(cast.ToUint64(appOpts.Get(server.FlagHaltHeight))),
 		baseapp.SetHaltTime(cast.ToUint64(appOpts.Get(server.FlagHaltTime))),
 		baseapp.SetInterBlockCache(cache),
@@ -125,39 +122,4 @@ func (a appCreator) exportAppStateAndTMValidators(
 
 func addModuleInitFlags(startCmd *cobra.Command) {
 	crisis.AddModuleInitFlags(startCmd)
-}
-
-func initAppConfig() (string, interface{}) {
-	type WASMConfig struct {
-		// This is the maximum sdk gas (wasm and storage) that we allow for any x/wasm "smart" queries
-		QueryGasLimit uint64 `mapstructure:"query_gas_limit"`
-		// Address defines the gRPC-web server to listen on
-		LruSize uint64 `mapstructure:"lru_size"`
-	}
-
-	type CustomAppConfig struct {
-		serverconfig.Config
-		WASM WASMConfig `mapstructure:"wasm"`
-	}
-
-	srvCfg := serverconfig.DefaultConfig()
-	srvCfg.MinGasPrices = "0stake"
-
-	customAppConfig := CustomAppConfig{
-		Config: *srvCfg,
-		WASM: WASMConfig{
-			LruSize:       1,
-			QueryGasLimit: 300000,
-		},
-	}
-
-	customAppTemplate := serverconfig.DefaultConfigTemplate + `
-[wasm]
-# This is the maximum sdk gas (wasm and storage) that we allow for any x/wasm "smart" queries
-query_gas_limit = 300000
-# This is the number of wasm vm instances we keep cached in memory for speed-up
-# Warning: this is currently unstable and may lead to crashes, best to keep for 0 unless testing locally
-lru_size = 0`
-
-	return customAppTemplate, customAppConfig
 }

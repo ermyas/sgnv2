@@ -42,7 +42,7 @@ db_backend = "cleveldb"
 db_dir = "data"
 
 # Output level for logging, including package level options
-log_level = "main:info,state:info,*:error"
+log_level = "info"
 
 # Output format: 'plain' (colored text) or 'json'
 log_format = "plain"
@@ -332,3 +332,6 @@ max_open_connections = 3
 
 # Instrumentation namespace
 namespace = "tendermint"
+
+[telemetry]
+global-labels = []

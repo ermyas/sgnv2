@@ -40,10 +40,9 @@ type Transactor struct {
 	Key        keyring.Info
 	passphrase string
 	msgQueue   deque.Deque
-	gpe        *GasPriceEstimator
 }
 
-func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc codec.Codec, gpe *GasPriceEstimator) (*Transactor, error) {
+func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc codec.Codec) (*Transactor, error) {
 	kb, err := keyring.New(appName,
 		viper.GetString(common.FlagSgnKeyringBackend), cliHome, strings.NewReader(passphrase))
 	if err != nil {
@@ -108,7 +107,6 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc co
 		CliCtx:     cliCtx,
 		Key:        key,
 		passphrase: passphrase,
-		gpe:        gpe,
 	}
 
 	return transactor, nil
@@ -122,7 +120,6 @@ func NewCliTransactor(cdc codec.Codec, cliHome string) (*Transactor, error) {
 		viper.GetString(common.FlagSgnValidatorAccount),
 		viper.GetString(common.FlagSgnPassphrase),
 		cdc,
-		nil,
 	)
 }
 
@@ -241,10 +238,6 @@ func (t *Transactor) sendTxMsgs(msgs []sdk.Msg, gas uint64) (*sdk.TxResponse, er
 
 func (t *Transactor) buildAndSignTx(msgs []sdk.Msg, gas uint64) ([]byte, error) {
 	txf := t.TxFactory
-
-	if t.gpe != nil {
-		txf = txf.WithGasPrices(t.gpe.GetGasPrice())
-	}
 
 	txf, err := prepareFactory(t.CliCtx, txf)
 	if err != nil {

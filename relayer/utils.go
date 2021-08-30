@@ -28,14 +28,14 @@ func (r *Relayer) isSyncer() bool {
 }
 
 func (r *Relayer) getCurrentBlockNumber() *big.Int {
-	return r.getCurrentBlockNumber()
+	return r.ethMonitor.GetCurrentBlockNumber()
 }
 
-func (r *Relayer) dbGet(key []byte) ([]byte, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-	return r.db.Get(key)
-}
+// func (r *Relayer) dbGet(key []byte) ([]byte, error) {
+// 	r.lock.RLock()
+// 	defer r.lock.RUnlock()
+// 	return r.db.Get(key)
+// }
 
 func (r *Relayer) dbSet(key, val []byte) error {
 	r.lock.Lock()

@@ -40,7 +40,6 @@ func NewOperator(cdc codec.Codec, cliHome string, tmCfg *tmcfg.Config) (operator
 		viper.GetString(common.FlagSgnValidatorAccount),
 		viper.GetString(common.FlagSgnPassphrase),
 		cdc,
-		transactor.NewGasPriceEstimator(viper.GetString(common.FlagSgnNodeURI)),
 	)
 	if err != nil {
 		return
@@ -103,14 +102,14 @@ func (o *Operator) SyncValidatorMsgs(valAddr eth.Addr, flag ValSyncFlag) []*sync
 			return nil
 		}
 		updateVal := validatortypes.Validator{
-			EthAddress:      valAddr.Hex(),
-			EthSigner:       ethVal.Signer.Hex(),
-			SgnAddress:      sdk.AccAddress(sgnAddr).String(),
-			ConsensusPubkey: storeVal.ConsensusPubkey,
-			CommissionRate:  ethVal.CommissionRate,
+			EthAddress:     valAddr.Hex(),
+			EthSigner:      ethVal.Signer.Hex(),
+			SgnAddress:     sdk.AccAddress(sgnAddr).String(),
+			CommissionRate: ethVal.CommissionRate,
 		}
 		var skip bool
 		if storeVal != nil {
+			updateVal.ConsensusPubkey = storeVal.ConsensusPubkey
 			if updateVal.EthSigner == storeVal.EthSigner && updateVal.SgnAddress == storeVal.SgnAddress &&
 				updateVal.CommissionRate == storeVal.CommissionRate {
 				log.Debugf("validator %x params already updated", valAddr)
