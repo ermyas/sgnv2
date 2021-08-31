@@ -158,12 +158,15 @@ func InitializeValidator(auth *bind.TransactOpts, sgnAddr sdk.AccAddress, minSel
 	defer cancel()
 
 	log.Infof("%x calls staking contract to initialize validator minSelfDelegation: %s, commissionRate: %d",
-		auth.From, minSelfDelegation, commissionRate, commissionRate)
+		auth.From, minSelfDelegation, commissionRate)
 
+	auth.GasLimit = 8000000
 	tx, err := Contracts.Staking.InitializeValidator(auth, auth.From, minSelfDelegation, commissionRate)
+	auth.GasLimit = 0
 	if err != nil {
 		return err
 	}
+	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "InitializeValidator")
 
 	log.Infof("%x calls sgn contract to update sgnAddr %s", auth.From, sgnAddr)
 	tx, err = Contracts.Sgn.UpdateSgnAddr(auth, sgnAddr.Bytes())

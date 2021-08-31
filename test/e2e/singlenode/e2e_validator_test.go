@@ -9,6 +9,7 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
+	"github.com/celer-network/sgn-v2/x/validator/types"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
@@ -53,7 +54,7 @@ func validatorTest(t *testing.T) {
 		viper.GetStringSlice(common.FlagSgnTransactors)[0],
 		viper.GetString(common.FlagSgnPassphrase),
 	)
-	//vAmt := big.NewInt(1000000000000000000) // 1 CELR
+	vAmt := big.NewInt(1000000000000000000) // 1 CELR
 	dAmts := []*big.Int{
 		big.NewInt(2000000000000000000), // 2 CELR
 		big.NewInt(2000000000000000000), // 2 CELR
@@ -63,9 +64,14 @@ func validatorTest(t *testing.T) {
 	miningPool := new(big.Int)
 	miningPool.SetString("1"+strings.Repeat("0", 20), 10)
 
-	vEthAddr, _, err := tc.GetAuth(tc.ValEthKs[0])
+	vEthAddr, vAuth, err := tc.GetAuth(tc.ValEthKs[0])
 	log.Infof("validator eth address %x", vEthAddr)
 	require.NoError(t, err, "failed to get validator auth")
+
+	sgnAddr, _ := types.SdkAccAddrFromSgnBech32(tc.ValAccounts[0])
+	err = tc.InitializeValidator(
+		vAuth, sgnAddr, vAmt, big.NewInt(200).Uint64() /* commission rate 2% */)
+	require.NoError(t, err, "failed to initialize validator")
 
 	log.Info("add delegators ...")
 	for i := 0; i < len(tc.DelEthKs); i++ {
