@@ -203,7 +203,9 @@ func Delegate(auth *bind.TransactOpts, valAddr eth.Addr, amt *big.Int) error {
 	}
 	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "Approve")
 
+	auth.GasLimit = 8000000
 	tx, err = Contracts.Staking.Delegate(auth, valAddr, amt)
+	auth.GasLimit = 0
 	if err != nil {
 		log.Error(err)
 		return err
