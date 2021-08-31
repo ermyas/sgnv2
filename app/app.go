@@ -193,6 +193,8 @@ func NewSgnApp(
 	syncSubspace := app.paramsKeeper.Subspace(synctypes.ModuleName)
 	validatorSubspace := app.paramsKeeper.Subspace(valtypes.ModuleName)
 
+	bApp.SetParamStore(app.paramsKeeper.Subspace(baseapp.Paramspace).WithKeyTable(paramskeeper.ConsensusParamsKeyTable()))
+
 	// The AccountKeeper handles address -> account lookups
 	app.accountKeeper = authkeeper.NewAccountKeeper(
 		AppCodec, app.keyAccount, authSubspace, authtypes.ProtoBaseAccount, maccPerms,
