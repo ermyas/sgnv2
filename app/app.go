@@ -296,11 +296,6 @@ func (app *SgnApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.Re
 // InitChainer application update at chain initialization
 func (app *SgnApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 	var genesisState GenesisState
-	log.Infoln("len AppStateBytes", len(req.AppStateBytes))
-	log.Infoln("ChainId", req.ChainId)
-	log.Infoln("ConsensusParams", req.ConsensusParams)
-	log.Infoln("InitialHeight", req.InitialHeight)
-	log.Infoln("Validators", req.Validators)
 	if err := json.Unmarshal(req.AppStateBytes, &genesisState); err != nil {
 		panic(err)
 	}
