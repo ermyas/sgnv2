@@ -81,7 +81,7 @@ func validatorTest(t *testing.T) {
 	// tc.CheckValidatorNum(t, transactor, 2)
 
 	// log.Infoln("---------- It should correctly add validator 2 with enough delegation ----------")
-	// err = tc.DelegateStake(auth, ethAddr, big.NewInt(0).Sub(amts[2], initialDelegation))
+	// err = tc.Delegate(auth, ethAddr, big.NewInt(0).Sub(amts[2], initialDelegation))
 	// require.NoError(t, err, "failed to delegate stake")
 	// tc.CheckValidatorNum(t, transactor, 3)
 	// tc.CheckValidator(t, transactor, tc.ValAccounts[2], amts[2], sdk.Bonded)
@@ -98,7 +98,7 @@ func validatorTest(t *testing.T) {
 	// tc.CheckValidator(t, transactor, ethAddr, tc.ValAccounts[2], big.NewInt(0))
 
 	// log.Infoln("---------- It should successfully add back validator 2 with enough delegation ----------")
-	// err = tc.DelegateStake(auth, ethAddr, amts[2])
+	// err = tc.Delegate(auth, ethAddr, amts[2])
 	// require.NoError(t, err, "failed to delegate stake")
 	// tc.CheckValidatorNum(t, transactor, 3)
 	// tc.CheckValidator(t, transactor, tc.ValAccounts[2], amts[2], sdk.Bonded)

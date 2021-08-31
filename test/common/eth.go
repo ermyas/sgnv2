@@ -9,6 +9,7 @@ import (
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -152,24 +153,45 @@ func FundAddrsErc20(erc20Addr eth.Addr, addrs []eth.Addr, amount string) error {
 	return err
 }
 
-func DelegateStake(fromAuth *bind.TransactOpts, toEthAddress eth.Addr, amt *big.Int) error {
-	conn := EthClient
+func InitializeValidator(auth *bind.TransactOpts, sgnAddr sdk.AccAddress, minSelfDelegation *big.Int, commissionRate uint64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 
-	log.Infof("%x calls staking contract to delegate to the validator %x...", fromAuth.From, toEthAddress)
-	_, err := CelrContract.Approve(fromAuth, Contracts.Staking.Address, amt)
+	log.Infof("%x calls staking contract to initialize validator minSelfDelegation: %s, commissionRate: %d",
+		auth.From, minSelfDelegation, commissionRate, commissionRate)
+
+	tx, err := Contracts.Staking.InitializeValidator(auth, auth.From, minSelfDelegation, commissionRate)
 	if err != nil {
 		return err
 	}
 
-	fromAuth.GasLimit = 8000000
-	tx, err := Contracts.Staking.Delegate(fromAuth, toEthAddress, amt)
-	fromAuth.GasLimit = 0
+	log.Infof("%x calls sgn contract to update sgnAddr %s", auth.From, sgnAddr)
+	tx, err = Contracts.Sgn.UpdateSgnAddr(auth, sgnAddr.Bytes())
 	if err != nil {
 		return err
 	}
-	WaitMinedWithChk(ctx, conn, tx, BlockDelay, PollingInterval, "Delegate to validator")
+	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "UpdateSgnAddr")
+	return nil
+}
+
+func Delegate(auth *bind.TransactOpts, valAddr eth.Addr, amt *big.Int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
+
+	log.Infof("%x calls staking contract to delegate to the validator %x...", auth.From, valAddr)
+	tx, err := CelrContract.Approve(auth, Contracts.Staking.Address, amt)
+	if err != nil {
+		return err
+	}
+	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "Approve Celr")
+
+	auth.GasLimit = 8000000
+	tx, err = Contracts.Staking.Delegate(auth, valAddr, amt)
+	auth.GasLimit = 0
+	if err != nil {
+		return err
+	}
+	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "Delegate to validator")
 	return nil
 }
 

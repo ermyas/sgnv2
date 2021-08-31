@@ -71,7 +71,7 @@ func validatorTest(t *testing.T) {
 	for i := 0; i < len(tc.DelEthKs); i++ {
 		_, dAuth, err2 := tc.GetAuth(tc.DelEthKs[i])
 		require.NoError(t, err2, "failed to get delegator auth")
-		go tc.DelegateStake(dAuth, vEthAddr, dAmts[i])
+		go tc.Delegate(dAuth, vEthAddr, dAmts[i])
 	}
 	for i := 0; i < len(tc.DelEthKs); i++ {
 		tc.CheckDelegator(t, transactor, vEthAddr, eth.Hex2Addr(tc.DelEthAddrs[i]), dAmts[i])
