@@ -39,7 +39,7 @@ func GetTxSender(ec *ethclient.Client, txHashStr string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get tx: %w", err)
 	}
-	msg, err := tx.AsMessage(ethtypes.NewEIP155Signer(tx.ChainId()), nil) //TODO: base fee
+	msg, err := tx.AsMessage(ethtypes.NewLondonSigner(tx.ChainId()), nil) //TODO: base fee
 	if err != nil {
 		return "", fmt.Errorf("failed to get msg: %w", err)
 	}

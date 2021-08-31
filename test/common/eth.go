@@ -94,7 +94,16 @@ func FundAddrsETH(amt string, recipients []eth.Addr) error {
 		if err != nil {
 			return err
 		}
-		tx := types.NewTransaction(nonce, addr, auth.Value, gasLimit, gasPrice, nil)
+		txData := &types.DynamicFeeTx{
+			Nonce:     nonce,
+			GasTipCap: big.NewInt(0),
+			GasFeeCap: gasPrice,
+			Gas:       gasLimit,
+			To:        &addr,
+			Value:     auth.Value,
+			Data:      nil,
+		}
+		tx := types.NewTx(txData)
 		tx, err = auth.Signer(senderAddr, tx)
 		if err != nil {
 			return err
