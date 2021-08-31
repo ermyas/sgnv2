@@ -70,8 +70,14 @@ func SetupTestEthClient(ksfile string) (*TestEthClient, error) {
 		Address: addr,
 		Auth:    auth,
 	}
-	ksBytes, _ := ioutil.ReadFile(ksfile)
-	testClient.Signer, _ = ethutils.NewSignerFromKeystore(string(ksBytes), "", nil)
+	ksBytes, err := ioutil.ReadFile(ksfile)
+	if err != nil {
+		return nil, err
+	}
+	testClient.Signer, err = ethutils.NewSignerFromKeystore(string(ksBytes), "", big.NewInt(int64(ChainID)))
+	if err != nil {
+		return nil, err
+	}
 	return testClient, nil
 }
 

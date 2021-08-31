@@ -43,12 +43,12 @@ func validatorTest(t *testing.T) {
 		viper.GetStringSlice(common.FlagSgnTransactors)[0],
 		viper.GetString(common.FlagSgnPassphrase),
 	)
-	vAmt := big.NewInt(2e18) // 1 CELR
+	vAmt := big.NewInt(2e18)
 	dAmts := []*big.Int{
-		big.NewInt(2e18), // 2 CELR
-		big.NewInt(2e18), // 2 CELR
-		big.NewInt(4e18), // 4 CELR
-		big.NewInt(1e18), // 1 CELR
+		big.NewInt(2e18),
+		big.NewInt(2e18),
+		big.NewInt(4e18),
+		big.NewInt(1e18),
 	}
 	totalAmts := tc.NewBigInt(11, 18) // vAmt + dAmts
 
