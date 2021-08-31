@@ -111,14 +111,9 @@ type SgnApp struct {
 	txConfig          client.TxConfig
 
 	// keys to access the substores
-	tkeyParams   *sdk.TransientStoreKey
-	keyAccount   *sdk.KVStoreKey
-	keyBank      *sdk.KVStoreKey
-	keyStaking   *sdk.KVStoreKey
-	keyParams    *sdk.KVStoreKey
-	keyUpgrade   *sdk.KVStoreKey
-	keySync      *sdk.KVStoreKey
-	keyValidator *sdk.KVStoreKey
+	keys    map[string]*sdk.KVStoreKey
+	tKeys   map[string]*sdk.TransientStoreKey
+	memKeys map[string]*sdk.MemoryStoreKey
 
 	// keepers
 	accountKeeper   authkeeper.AccountKeeper
@@ -168,24 +163,25 @@ func NewSgnApp(
 	bApp := baseapp.NewBaseApp(appName, logger, db, TxConfig.TxDecoder(), baseAppOptions...)
 	bApp.SetInterfaceRegistry(InterfaceRegistry)
 
+	keys := sdk.NewKVStoreKeys(
+		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
+		paramstypes.StoreKey, upgradetypes.StoreKey, synctypes.StoreKey, valtypes.StoreKey,
+	)
+	tKeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
+	memKeys := sdk.NewMemoryStoreKeys()
+
 	app := &SgnApp{
 		BaseApp:           bApp,
 		legacyAmino:       LegacyAmino,
 		appCodec:          AppCodec,
 		interfaceRegistry: InterfaceRegistry,
 		txConfig:          TxConfig,
-
-		tkeyParams:   sdk.NewTransientStoreKey(paramstypes.TStoreKey),
-		keyAccount:   sdk.NewKVStoreKey(authtypes.StoreKey),
-		keyBank:      sdk.NewKVStoreKey(banktypes.StoreKey),
-		keyStaking:   sdk.NewKVStoreKey(stakingtypes.StoreKey),
-		keyParams:    sdk.NewKVStoreKey(paramstypes.StoreKey),
-		keyUpgrade:   sdk.NewKVStoreKey(upgradetypes.StoreKey),
-		keySync:      sdk.NewKVStoreKey(synctypes.StoreKey),
-		keyValidator: sdk.NewKVStoreKey(valtypes.StoreKey),
+		keys:              keys,
+		tKeys:             tKeys,
+		memKeys:           memKeys,
 	}
 
-	app.paramsKeeper = paramskeeper.NewKeeper(AppCodec, LegacyAmino, app.keyParams, app.tkeyParams)
+	app.paramsKeeper = paramskeeper.NewKeeper(AppCodec, LegacyAmino, keys[paramstypes.StoreKey], tKeys[paramstypes.TStoreKey])
 	// Set specific subspaces
 	authSubspace := app.paramsKeeper.Subspace(authtypes.ModuleName)
 	bankSupspace := app.paramsKeeper.Subspace(banktypes.ModuleName)
@@ -193,21 +189,22 @@ func NewSgnApp(
 	syncSubspace := app.paramsKeeper.Subspace(synctypes.ModuleName)
 	validatorSubspace := app.paramsKeeper.Subspace(valtypes.ModuleName)
 
+	// Set the BaseApp's parameter store
 	bApp.SetParamStore(app.paramsKeeper.Subspace(baseapp.Paramspace).WithKeyTable(paramskeeper.ConsensusParamsKeyTable()))
 
 	// The AccountKeeper handles address -> account lookups
 	app.accountKeeper = authkeeper.NewAccountKeeper(
-		AppCodec, app.keyAccount, authSubspace, authtypes.ProtoBaseAccount, maccPerms,
+		AppCodec, keys[authtypes.StoreKey], authSubspace, authtypes.ProtoBaseAccount, maccPerms,
 	)
 
 	// The BankKeeper allows you perform sdk.Coins interactions
 	app.bankKeeper = bankkeeper.NewBaseKeeper(
-		AppCodec, app.keyBank, app.accountKeeper, bankSupspace, app.ModuleAccountAddrs(),
+		AppCodec, keys[banktypes.StoreKey], app.accountKeeper, bankSupspace, app.ModuleAccountAddrs(),
 	)
 
 	// The staking keeper
 	stakingKeeper := stakingkeeper.NewKeeper(
-		AppCodec, app.keyStaking, app.accountKeeper, app.bankKeeper, stakingSubspace,
+		AppCodec, keys[stakingtypes.StoreKey], app.accountKeeper, app.bankKeeper, stakingSubspace,
 	)
 
 	// register the staking hooks
@@ -217,13 +214,13 @@ func NewSgnApp(
 	)
 
 	app.validatorKeeper = valkeeper.NewKeeper(
-		AppCodec, app.keyValidator, app.accountKeeper, app.stakingKeeper, validatorSubspace,
+		AppCodec, keys[valtypes.StoreKey], app.accountKeeper, app.stakingKeeper, validatorSubspace,
 	)
 
-	app.upgradeKeeper = upgradekeeper.NewKeeper(skipUpgradeHeights, app.keyUpgrade, AppCodec, DefaultNodeHome, app.BaseApp)
+	app.upgradeKeeper = upgradekeeper.NewKeeper(skipUpgradeHeights, keys[upgradetypes.StoreKey], AppCodec, DefaultNodeHome, app.BaseApp)
 
 	app.syncKeeper = synckeeper.NewKeeper(
-		AppCodec, app.keySync, app.validatorKeeper, syncSubspace,
+		AppCodec, keys[synctypes.StoreKey], app.validatorKeeper, syncSubspace,
 	)
 
 	app.mm = module.NewManager(
@@ -253,6 +250,11 @@ func NewSgnApp(
 
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter(), LegacyAmino)
 
+	// initialize stores
+	app.MountKVStores(keys)
+	app.MountTransientStores(tKeys)
+	app.MountMemoryStores(memKeys)
+
 	// The initChainer handles translating the genesis.json file into initial state for the network
 	app.SetInitChainer(app.InitChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
@@ -273,16 +275,6 @@ func NewSgnApp(
 
 	app.SetAnteHandler(anteHandler)
 	app.SetEndBlocker(app.EndBlocker)
-
-	app.MountStores(
-		app.tkeyParams,
-		app.keyAccount,
-		app.keyStaking,
-		app.keyParams,
-		app.keyUpgrade,
-		app.keyValidator,
-		app.keySync,
-	)
 
 	if height == -1 {
 		err = app.LoadLatestVersion()
