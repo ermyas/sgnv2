@@ -5,7 +5,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/version"
+
 	"github.com/celer-network/goutils/log"
+	appparams "github.com/celer-network/sgn-v2/app/params"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/relayer"
 	"github.com/celer-network/sgn-v2/x/sync"
@@ -14,7 +17,6 @@ import (
 	"github.com/celer-network/sgn-v2/x/validator"
 	valkeeper "github.com/celer-network/sgn-v2/x/validator/keeper"
 	valtypes "github.com/celer-network/sgn-v2/x/validator/types"
-
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
@@ -23,8 +25,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/cosmos/cosmos-sdk/server/config"
-	servertypes "github.com/cosmos/cosmos-sdk/server/types"
-	"github.com/cosmos/cosmos-sdk/std"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -56,7 +56,6 @@ import (
 	tmcfg "github.com/tendermint/tendermint/config"
 	tlog "github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	dbm "github.com/tendermint/tm-db"
 
 	// unnamed import of statik for swagger UI support
@@ -96,11 +95,6 @@ var (
 		stakingtypes.BondedPoolName:    {authtypes.Burner, authtypes.Staking},
 		stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
 	}
-
-	LegacyAmino       = codec.NewLegacyAmino()
-	InterfaceRegistry = types.NewInterfaceRegistry()
-	AppCodec          = codec.NewProtoCodec(InterfaceRegistry)
-	TxConfig          = tx.NewTxConfig(AppCodec, tx.DefaultSignModes)
 )
 
 type SgnApp struct {
@@ -108,7 +102,6 @@ type SgnApp struct {
 	legacyAmino       *codec.LegacyAmino
 	appCodec          codec.Codec
 	interfaceRegistry types.InterfaceRegistry
-	txConfig          client.TxConfig
 
 	// keys to access the substores
 	keys    map[string]*sdk.KVStoreKey
@@ -132,9 +125,10 @@ type SgnApp struct {
 func NewSgnApp(
 	logger tlog.Logger,
 	db dbm.DB,
-	height int64,
+	loadLatest bool,
 	skipUpgradeHeights map[int64]bool,
 	tmCfg *tmcfg.Config,
+	encodingConfig appparams.EncodingConfig,
 	baseAppOptions ...func(*baseapp.BaseApp),
 ) *SgnApp {
 	viper.SetDefault(common.FlagEthPollInterval, 15)
@@ -155,13 +149,13 @@ func NewSgnApp(
 		log.EnableColor()
 	}
 
-	std.RegisterLegacyAminoCodec(LegacyAmino)
-	std.RegisterInterfaces(InterfaceRegistry)
-	ModuleBasics.RegisterLegacyAminoCodec(LegacyAmino)
-	ModuleBasics.RegisterInterfaces(InterfaceRegistry)
+	appCodec := encodingConfig.Codec
+	legacyAmino := encodingConfig.Amino
+	interfaceRegistry := encodingConfig.InterfaceRegistry
 
-	bApp := baseapp.NewBaseApp(appName, logger, db, TxConfig.TxDecoder(), baseAppOptions...)
-	bApp.SetInterfaceRegistry(InterfaceRegistry)
+	bApp := baseapp.NewBaseApp(appName, logger, db, encodingConfig.TxConfig.TxDecoder(), baseAppOptions...)
+	bApp.SetVersion(version.Version)
+	bApp.SetInterfaceRegistry(encodingConfig.InterfaceRegistry)
 
 	keys := sdk.NewKVStoreKeys(
 		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
@@ -172,16 +166,15 @@ func NewSgnApp(
 
 	app := &SgnApp{
 		BaseApp:           bApp,
-		legacyAmino:       LegacyAmino,
-		appCodec:          AppCodec,
-		interfaceRegistry: InterfaceRegistry,
-		txConfig:          TxConfig,
+		legacyAmino:       legacyAmino,
+		appCodec:          appCodec,
+		interfaceRegistry: interfaceRegistry,
 		keys:              keys,
 		tKeys:             tKeys,
 		memKeys:           memKeys,
 	}
 
-	app.paramsKeeper = paramskeeper.NewKeeper(AppCodec, LegacyAmino, keys[paramstypes.StoreKey], tKeys[paramstypes.TStoreKey])
+	app.paramsKeeper = paramskeeper.NewKeeper(appCodec, legacyAmino, keys[paramstypes.StoreKey], tKeys[paramstypes.TStoreKey])
 	// Set specific subspaces
 	authSubspace := app.paramsKeeper.Subspace(authtypes.ModuleName)
 	bankSupspace := app.paramsKeeper.Subspace(banktypes.ModuleName)
@@ -194,17 +187,17 @@ func NewSgnApp(
 
 	// The AccountKeeper handles address -> account lookups
 	app.accountKeeper = authkeeper.NewAccountKeeper(
-		AppCodec, keys[authtypes.StoreKey], authSubspace, authtypes.ProtoBaseAccount, maccPerms,
+		appCodec, keys[authtypes.StoreKey], authSubspace, authtypes.ProtoBaseAccount, maccPerms,
 	)
 
 	// The BankKeeper allows you perform sdk.Coins interactions
 	app.bankKeeper = bankkeeper.NewBaseKeeper(
-		AppCodec, keys[banktypes.StoreKey], app.accountKeeper, bankSupspace, app.ModuleAccountAddrs(),
+		appCodec, keys[banktypes.StoreKey], app.accountKeeper, bankSupspace, app.ModuleAccountAddrs(),
 	)
 
 	// The staking keeper
 	stakingKeeper := stakingkeeper.NewKeeper(
-		AppCodec, keys[stakingtypes.StoreKey], app.accountKeeper, app.bankKeeper, stakingSubspace,
+		appCodec, keys[stakingtypes.StoreKey], app.accountKeeper, app.bankKeeper, stakingSubspace,
 	)
 
 	// register the staking hooks
@@ -214,23 +207,23 @@ func NewSgnApp(
 	)
 
 	app.validatorKeeper = valkeeper.NewKeeper(
-		AppCodec, keys[valtypes.StoreKey], app.accountKeeper, app.stakingKeeper, validatorSubspace,
+		appCodec, keys[valtypes.StoreKey], app.accountKeeper, app.stakingKeeper, validatorSubspace,
 	)
 
-	app.upgradeKeeper = upgradekeeper.NewKeeper(skipUpgradeHeights, keys[upgradetypes.StoreKey], AppCodec, DefaultNodeHome, app.BaseApp)
+	app.upgradeKeeper = upgradekeeper.NewKeeper(skipUpgradeHeights, keys[upgradetypes.StoreKey], appCodec, DefaultNodeHome, app.BaseApp)
 
 	app.syncKeeper = synckeeper.NewKeeper(
-		AppCodec, keys[synctypes.StoreKey], app.validatorKeeper, syncSubspace,
+		appCodec, keys[synctypes.StoreKey], app.validatorKeeper, syncSubspace,
 	)
 
 	app.mm = module.NewManager(
 		genutil.NewAppModule(
 			app.accountKeeper, app.stakingKeeper, app.BaseApp.DeliverTx,
-			TxConfig,
+			encodingConfig.TxConfig,
 		),
-		auth.NewAppModule(AppCodec, app.accountKeeper, authsims.RandomGenesisAccounts),
-		bank.NewAppModule(AppCodec, app.bankKeeper, app.accountKeeper),
-		staking.NewAppModule(AppCodec, app.stakingKeeper, app.accountKeeper, app.bankKeeper),
+		auth.NewAppModule(appCodec, app.accountKeeper, authsims.RandomGenesisAccounts),
+		bank.NewAppModule(appCodec, app.bankKeeper, app.accountKeeper),
+		staking.NewAppModule(appCodec, app.stakingKeeper, app.accountKeeper, app.bankKeeper),
 		upgrade.NewAppModule(app.upgradeKeeper),
 		validator.NewAppModule(app.validatorKeeper),
 		sync.NewAppModule(app.syncKeeper),
@@ -248,7 +241,7 @@ func NewSgnApp(
 		synctypes.ModuleName,
 	)
 
-	app.mm.RegisterRoutes(app.Router(), app.QueryRouter(), LegacyAmino)
+	app.mm.RegisterRoutes(app.Router(), app.QueryRouter(), legacyAmino)
 
 	// initialize stores
 	app.MountKVStores(keys)
@@ -264,7 +257,7 @@ func NewSgnApp(
 		ante.HandlerOptions{
 			AccountKeeper:   app.accountKeeper,
 			BankKeeper:      app.bankKeeper,
-			SignModeHandler: TxConfig.SignModeHandler(),
+			SignModeHandler: encodingConfig.TxConfig.SignModeHandler(),
 			SigGasConsumer:  ante.DefaultSigVerificationGasConsumer,
 		},
 	)
@@ -276,13 +269,10 @@ func NewSgnApp(
 	app.SetAnteHandler(anteHandler)
 	app.SetEndBlocker(app.EndBlocker)
 
-	if height == -1 {
-		err = app.LoadLatestVersion()
-	} else {
-		err = app.LoadHeight(height)
-	}
-	if err != nil {
-		tmos.Exit("Failed to load height:" + err.Error())
+	if loadLatest {
+		if err := app.LoadLatestVersion(); err != nil {
+			tmos.Exit(err.Error())
+		}
 	}
 
 	go app.startRelayer(db, tmCfg)
@@ -292,13 +282,6 @@ func NewSgnApp(
 
 // Name returns the name of the App
 func (app *SgnApp) Name() string { return app.BaseApp.Name() }
-
-type GenesisState map[string]json.RawMessage
-
-// NewDefaultGenesisState generates the default state for the application.
-func NewDefaultGenesisState(cdc codec.JSONCodec) GenesisState {
-	return ModuleBasics.DefaultGenesis(cdc)
-}
 
 // BeginBlocker application updates every begin block
 func (app *SgnApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
@@ -313,6 +296,11 @@ func (app *SgnApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.Re
 // InitChainer application update at chain initialization
 func (app *SgnApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 	var genesisState GenesisState
+	log.Infoln("len AppStateBytes", len(req.AppStateBytes))
+	log.Infoln("ChainId", req.ChainId)
+	log.Infoln("ConsensusParams", req.ConsensusParams)
+	log.Infoln("InitialHeight", req.InitialHeight)
+	log.Infoln("Validators", req.Validators)
 	if err := json.Unmarshal(req.AppStateBytes, &genesisState); err != nil {
 		panic(err)
 	}
@@ -375,34 +363,4 @@ func (app *SgnApp) RegisterTendermintService(clientCtx client.Context) {
 // RegisterTxService implements the Application.RegisterTxService method.
 func (app *SgnApp) RegisterTxService(clientCtx client.Context) {
 	tx.RegisterTxService(app.BaseApp.GRPCQueryRouter(), clientCtx, app.BaseApp.Simulate, app.interfaceRegistry)
-}
-
-// ExportAppStateAndValidators exports the state of the application for a genesis
-// file.
-func (app *SgnApp) ExportAppStateAndValidators(
-	forZeroHeight bool, jailAllowedAddrs []string,
-) (servertypes.ExportedApp, error) {
-	// as if they could withdraw from the start of the next block
-	ctx := app.NewContext(true, tmproto.Header{Height: app.LastBlockHeight()})
-
-	// We export at last height + 1, because that's the height at which
-	// Tendermint will start InitChain.
-	height := app.LastBlockHeight() + 1
-	if forZeroHeight {
-		height = 0
-	}
-
-	genState := app.mm.ExportGenesis(ctx, app.appCodec)
-	appState, err := json.MarshalIndent(genState, "", "  ")
-	if err != nil {
-		return servertypes.ExportedApp{}, err
-	}
-
-	validators, err := staking.WriteValidators(ctx, app.stakingKeeper)
-	return servertypes.ExportedApp{
-		AppState:        appState,
-		Validators:      validators,
-		Height:          height,
-		ConsensusParams: app.BaseApp.GetConsensusParams(ctx),
-	}, err
 }

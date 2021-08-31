@@ -20,7 +20,7 @@ func (k Keeper) VotingPeriod(ctx sdk.Context) (res uint64) {
 	return
 }
 
-func (k Keeper) TallyThreshold(ctx sdk.Context) (res float32) {
+func (k Keeper) TallyThreshold(ctx sdk.Context) (res sdk.Dec) {
 	k.paramstore.Get(ctx, types.KeyTallyThreshold, &res)
 	return
 }

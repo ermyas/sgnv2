@@ -3,6 +3,8 @@ package sgn.sync.v1;
 
 option go_package = "github.com/celer-network/sgn-v2/x/sync/types";
 
+import "gogoproto/gogo.proto";
+
 enum DataType {
   Invalid = 0;
   EthBlkNum = 1;
@@ -37,5 +39,9 @@ message PendingUpdate {
 
 message Params {
   uint64 voting_period = 1;
-  float tally_threshold = 2;
+  bytes tally_threshold = 2 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
+    (gogoproto.nullable) = false,
+    (gogoproto.jsontag) = "threshold,omitempty"
+  ];
 }

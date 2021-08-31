@@ -43,8 +43,9 @@ type Transactor struct {
 }
 
 func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc codec.Codec, legacyAmino *codec.LegacyAmino) (*Transactor, error) {
+	reader := strings.NewReader(passphrase + "\n")
 	kb, err := keyring.New(appName,
-		viper.GetString(common.FlagSgnKeyringBackend), cliHome, strings.NewReader(passphrase+"\n"))
+		viper.GetString(common.FlagSgnKeyringBackend), cliHome, reader)
 	if err != nil {
 		return nil, err
 	}

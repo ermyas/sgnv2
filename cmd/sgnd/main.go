@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	"github.com/celer-network/sgn-v2/app"
 	"github.com/celer-network/sgn-v2/cmd"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -20,7 +21,8 @@ func main() {
 	config.Seal()
 
 	// prepare and add flags
-	executor := cmd.GetSgndExecutor()
+	encodingConfig := app.MakeEncodingConfig()
+	executor := cmd.GetSgndExecutor(encodingConfig)
 	srvCtx := server.NewDefaultContext()
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, client.ClientContextKey, &client.Context{})

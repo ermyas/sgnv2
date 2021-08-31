@@ -18,7 +18,7 @@ func (r *Relayer) isSyncer() bool {
 		return false
 	}
 
-	validator, err := valcli.QueryValidator(r.Transactor.CliCtx, r.Transactor.Key.GetAddress().String())
+	validator, err := valcli.QueryValidator(r.Transactor.CliCtx, r.valAddr.Hex())
 	if err != nil {
 		log.Errorln("Get validator err", err)
 		return false

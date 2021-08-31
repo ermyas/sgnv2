@@ -5,9 +5,12 @@ import (
 	"strings"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
+	vtypes "github.com/celer-network/sgn-v2/x/validator/types"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	"github.com/spf13/viper"
 )
 
 type ValSyncFlag struct {
@@ -100,4 +103,29 @@ func (r *Relayer) syncBlkNum() {
 		return
 	}
 
+}
+
+func (r *Relayer) setTransactors() {
+	transactors, err := common.ParseTransactorAddrs(viper.GetStringSlice(common.FlagSgnTransactors))
+	if err != nil {
+		log.Errorln("parse transactors err", err)
+		return
+	}
+	if len(transactors) == 0 {
+		return
+	}
+	transactorStrs := make([]string, len(transactors))
+	for i, transactor := range transactors {
+		transactorStrs[i] = transactor.String()
+	}
+	setTransactorsMsg := vtypes.NewMsgSetTransactors(
+		transactorStrs,
+		r.Transactor.Key.GetAddress().String(),
+	)
+	logmsg := ""
+	for _, transactor := range transactors {
+		logmsg += transactor.String() + " "
+	}
+	log.Infoln("set transactors", logmsg)
+	r.Transactor.AddTxMsg(&setTransactorsMsg)
 }

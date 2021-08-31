@@ -10,9 +10,11 @@ require (
 	github.com/ethereum/go-ethereum v1.10.8
 	github.com/gammazero/deque v0.1.0
 	github.com/gogo/protobuf v1.3.3
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.5.0 // indirect
 	github.com/iancoleman/strcase v0.1.0
 	github.com/regen-network/cosmos-proto v0.3.1
 	github.com/spf13/cast v1.3.1

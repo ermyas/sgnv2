@@ -6,13 +6,14 @@ import (
 	"path/filepath"
 
 	"github.com/celer-network/sgn-v2/app"
+	"github.com/celer-network/sgn-v2/app/params"
+	sgndimpl "github.com/celer-network/sgn-v2/cmd/sgnd/impl"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/config"
 	"github.com/cosmos/cosmos-sdk/server"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
-	simappcmd "github.com/cosmos/cosmos-sdk/simapp/simd/cmd"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -27,20 +28,20 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
-func GetSgndExecutor() cli.Executor {
+func GetSgndExecutor(encodingConfig params.EncodingConfig) cli.Executor {
 	rootCmd := &cobra.Command{
 		Use:   "sgnd",
-		Short: "SGN App Daemon (server)",
+		Short: "SGN App",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			// set the default command outputs
+			// Set the default command outputs
 			cmd.SetOut(cmd.OutOrStdout())
 			cmd.SetErr(cmd.ErrOrStderr())
 
 			initClientCtx := client.Context{}.
-				WithCodec(app.AppCodec).
-				WithInterfaceRegistry(app.InterfaceRegistry).
-				WithTxConfig(app.TxConfig).
-				WithLegacyAmino(app.LegacyAmino).
+				WithCodec(encodingConfig.Codec).
+				WithInterfaceRegistry(encodingConfig.InterfaceRegistry).
+				WithTxConfig(encodingConfig.TxConfig).
+				WithLegacyAmino(encodingConfig.Amino).
 				WithInput(os.Stdin).
 				WithAccountRetriever(types.AccountRetriever{}).
 				WithHomeDir(app.DefaultNodeHome).
@@ -77,12 +78,12 @@ func GetSgndExecutor() cli.Executor {
 	rootCmd.AddCommand(
 		genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome),
 		genutilcli.CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome),
-		genutilcli.GenTxCmd(app.ModuleBasics, app.TxConfig, banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome),
+		genutilcli.GenTxCmd(app.ModuleBasics, encodingConfig.TxConfig, banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome),
 		genutilcli.ValidateGenesisCmd(app.ModuleBasics),
-		simappcmd.AddGenesisAccountCmd(app.DefaultNodeHome),
+		sgndimpl.AddGenesisAccountCmd(app.DefaultNodeHome),
 	)
 
-	a := appCreator{rootCmd}
+	a := appCreator{rootCmd, encodingConfig}
 
 	server.AddCommands(rootCmd, app.DefaultNodeHome, a.newApp, a.exportAppStateAndTMValidators, addModuleInitFlags)
 	rootCmd.PersistentFlags().String(common.FlagCLIHome, app.DefaultCLIHome, "Directory for cli config and data")
@@ -95,6 +96,7 @@ func GetSgndExecutor() cli.Executor {
 
 type appCreator struct {
 	rootCmd *cobra.Command
+	encCfg  params.EncodingConfig
 }
 
 func (a appCreator) newApp(logger tlog.Logger, db dbm.DB, traceStore io.Writer, appOpts servertypes.AppOptions) servertypes.Application {
@@ -115,9 +117,10 @@ func (a appCreator) newApp(logger tlog.Logger, db dbm.DB, traceStore io.Writer, 
 	return app.NewSgnApp(
 		logger,
 		db,
-		-1, /* height */
+		true, /* loadLatest */
 		skipUpgradeHeights,
 		serverCtx.Config,
+		a.encCfg,
 		baseapp.SetHaltHeight(cast.ToUint64(appOpts.Get(server.FlagHaltHeight))),
 		baseapp.SetHaltTime(cast.ToUint64(appOpts.Get(server.FlagHaltTime))),
 		baseapp.SetInterBlockCache(cache),
@@ -129,7 +132,15 @@ func (a appCreator) newApp(logger tlog.Logger, db dbm.DB, traceStore io.Writer, 
 func (a appCreator) exportAppStateAndTMValidators(
 	logger tlog.Logger, db dbm.DB, traceStore io.Writer, height int64, forZeroHeight bool, jailWhiteList []string,
 	appOpts servertypes.AppOptions) (servertypes.ExportedApp, error) {
-	sgnApp := app.NewSgnApp(logger, db, height, map[int64]bool{}, nil)
+	var sgnApp *app.SgnApp
+	if height != -1 {
+		sgnApp = app.NewSgnApp(logger, db, false, map[int64]bool{}, nil, a.encCfg)
+		if err := sgnApp.LoadHeight(height); err != nil {
+			return servertypes.ExportedApp{}, err
+		}
+	} else {
+		sgnApp = app.NewSgnApp(logger, db, true, map[int64]bool{}, nil, a.encCfg)
+	}
 	return sgnApp.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
 }
 

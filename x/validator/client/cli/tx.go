@@ -36,6 +36,7 @@ func GetCmdSetTransactors() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
 			/*
 				transactors, err := common.ParseTransactorAddrs(viper.GetStringSlice(common.FlagSgnTransactors))
 				if err != nil {
