@@ -179,16 +179,17 @@ func Delegate(auth *bind.TransactOpts, valAddr eth.Addr, amt *big.Int) error {
 	defer cancel()
 
 	log.Infof("%x calls staking contract to delegate to the validator %x...", auth.From, valAddr)
-	tx, err := CelrContract.Approve(auth, Contracts.Staking.Address, amt)
+	_, err := CelrContract.Approve(auth, Contracts.Staking.Address, amt)
 	if err != nil {
+		log.Error(err)
 		return err
 	}
-	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "Approve Celr")
 
 	auth.GasLimit = 8000000
-	tx, err = Contracts.Staking.Delegate(auth, valAddr, amt)
+	tx, err := Contracts.Staking.Delegate(auth, valAddr, amt)
 	auth.GasLimit = 0
 	if err != nil {
+		log.Error(err)
 		return err
 	}
 	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "Delegate to validator")
