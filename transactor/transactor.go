@@ -78,6 +78,11 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc co
 	}
 
 	txConfig := tx.NewTxConfig((cdc).(*codec.ProtoCodec), tx.DefaultSignModes)
+	cli, err := client.NewClientFromNode(nodeURI)
+	if err != nil {
+		log.Errorln("client.NewClientFromNode error:", err)
+		return nil, err
+	}
 	cliCtx := client.Context{}.
 		WithCodec(cdc).
 		WithFromAddress(key.GetAddress()).
@@ -87,7 +92,8 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc co
 		WithChainID(chainID).
 		WithBroadcastMode(flags.BroadcastSync).
 		WithTxConfig(txConfig).
-		WithLegacyAmino(legacyAmino)
+		WithLegacyAmino(legacyAmino).
+		WithClient(cli)
 
 	f := clienttx.Factory{}.
 		WithKeybase(cliCtx.Keyring).
