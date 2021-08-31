@@ -12,7 +12,6 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/spf13/viper"
 )
 
@@ -59,11 +58,11 @@ func SetupMainchain() {
 
 	log.Infoln("set up mainchain")
 	SetupEthClients()
-	SetupE2eProfile()
+	DeployCelrContract()
 
 	// fund CELR to each eth account
 	log.Infoln("fund each test addr 10 million CELR")
-	err = FundAddrsErc20(E2eProfile.CelrAddr, addrs, "1"+strings.Repeat("0", 25))
+	err = FundAddrsErc20(CelrAddr, addrs, "1"+strings.Repeat("0", 25))
 	ChkErr(err, "fund each test addr 10 million CELR")
 }
 
@@ -71,7 +70,7 @@ func SetupNewSGNEnv(contractParams *ContractParams, manual bool) {
 	log.Infoln("Deploy Staking and SGN contracts")
 	if contractParams == nil {
 		contractParams = &ContractParams{
-			CelrAddr:              E2eProfile.CelrAddr,
+			CelrAddr:              CelrAddr,
 			ProposalDeposit:       big.NewInt(1),
 			VotePeriod:            big.NewInt(5),
 			UnbondingPeriod:       big.NewInt(50),
@@ -82,10 +81,7 @@ func SetupNewSGNEnv(contractParams *ContractParams, manual bool) {
 			ValidatorBondInterval: big.NewInt(0),
 		}
 	}
-	var tx *types.Transaction
-	tx, E2eProfile.StakingContractAddr, E2eProfile.SgnContractAddr,
-		E2eProfile.RewardContractAddr, E2eProfile.ViewerContractAddr,
-		E2eProfile.GovernContractAddr = DeploySgnStakingContracts(contractParams)
+	tx := DeploySgnStakingContracts(contractParams)
 	WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "DeploySgnStakingContracts")
 
 	log.Infoln("make localnet-down-nodes")
@@ -112,12 +108,12 @@ func SetupNewSGNEnv(contractParams *ContractParams, manual bool) {
 		configFileViper.SetConfigFile(configPath)
 		err = configFileViper.ReadInConfig()
 		ChkErr(err, "Failed to read config")
-		configFileViper.Set(common.FlagEthContractCelr, E2eProfile.CelrAddr.Hex())
-		configFileViper.Set(common.FlagEthContractStaking, E2eProfile.StakingContractAddr.Hex())
-		configFileViper.Set(common.FlagEthContractSgn, E2eProfile.SgnContractAddr.Hex())
-		configFileViper.Set(common.FlagEthContractReward, E2eProfile.RewardContractAddr.Hex())
-		configFileViper.Set(common.FlagEthContractViewer, E2eProfile.ViewerContractAddr.Hex())
-		configFileViper.Set(common.FlagEthContractGovern, E2eProfile.GovernContractAddr.Hex())
+		configFileViper.Set(common.FlagEthContractCelr, CelrAddr.Hex())
+		configFileViper.Set(common.FlagEthContractStaking, Contracts.Staking.Address.Hex())
+		configFileViper.Set(common.FlagEthContractSgn, Contracts.Sgn.Address.Hex())
+		configFileViper.Set(common.FlagEthContractReward, Contracts.Reward.Address.Hex())
+		configFileViper.Set(common.FlagEthContractViewer, Contracts.Viewer.Address.Hex())
+		configFileViper.Set(common.FlagEthContractGovern, Contracts.Govern.Address.Hex())
 		err = configFileViper.WriteConfig()
 		ChkErr(err, "Failed to write config")
 
@@ -138,15 +134,13 @@ func SetupNewSGNEnv(contractParams *ContractParams, manual bool) {
 	viper.SetConfigFile(node0ConfigPath)
 	err = viper.ReadInConfig()
 	ChkErr(err, "Failed to read config")
-	viper.Set(common.FlagEthContractCelr, E2eProfile.CelrAddr.Hex())
-	viper.Set(common.FlagEthContractStaking, E2eProfile.StakingContractAddr.Hex())
-	viper.Set(common.FlagEthContractSgn, E2eProfile.SgnContractAddr.Hex())
-	viper.Set(common.FlagEthContractReward, E2eProfile.RewardContractAddr.Hex())
-	viper.Set(common.FlagEthContractViewer, E2eProfile.ViewerContractAddr.Hex())
-	viper.Set(common.FlagEthContractGovern, E2eProfile.GovernContractAddr.Hex())
+	viper.Set(common.FlagEthContractCelr, CelrAddr.Hex())
+	viper.Set(common.FlagEthContractStaking, Contracts.Staking.Address.Hex())
+	viper.Set(common.FlagEthContractSgn, Contracts.Sgn.Address.Hex())
+	viper.Set(common.FlagEthContractReward, Contracts.Reward.Address.Hex())
+	viper.Set(common.FlagEthContractViewer, Contracts.Viewer.Address.Hex())
+	viper.Set(common.FlagEthContractGovern, Contracts.Govern.Address.Hex())
 
-	err = SetContracts(E2eProfile.StakingContractAddr, E2eProfile.SgnContractAddr, E2eProfile.RewardContractAddr,
-		E2eProfile.ViewerContractAddr, E2eProfile.GovernContractAddr)
 	ChkErr(err, "Failed to SetContracts")
 
 	log.Infoln("make localnet-up-nodes")

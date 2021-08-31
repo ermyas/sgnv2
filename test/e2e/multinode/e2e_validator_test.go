@@ -11,7 +11,7 @@ import (
 func setupValidator(maxValidatorNum *big.Int) {
 	log.Infoln("set up new sgn env")
 	p := &tc.ContractParams{
-		CelrAddr:              tc.E2eProfile.CelrAddr,
+		CelrAddr:              tc.CelrAddr,
 		ProposalDeposit:       big.NewInt(1),
 		VotePeriod:            big.NewInt(1),
 		UnbondingPeriod:       big.NewInt(0),

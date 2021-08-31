@@ -45,7 +45,9 @@ func NewEthClient(
 	passphrase string,
 	tconfig *TransactorConfig,
 	stakingContract, sgnContract, rewardContract, viewerContract, governContract string) (*EthClient, error) {
-	ethClient := &EthClient{}
+	ethClient := &EthClient{
+		Contracts: &Contracts{},
+	}
 
 	rpcClient, err := ethrpc.Dial(ethurl)
 	if err != nil {

@@ -1,42 +1,39 @@
-# SGN-specific configs
 
 [eth]
-block_delay = 0
-chain_id = 883
-gateway = "http://127.0.0.1:8545"
-signer_keystore = "/Users/moz/workspace/sgn/test/keys/vethks0.json"
-signer_passphrase = ""
-validator_address = ""
-poll_interval = 1
+  block_delay = 0
+  chain_id = 883
+  gateway = "http://127.0.0.1:8545"
+  poll_interval = 1
+  signer_keystore = "/Users/xli/Celer/code/sgn-v2/test/keys/vethks0.json"
+  signer_passphrase = ""
+  validator_address = "00078b31fa8b29a76bce074b5ea0d515a6aeaee7"
 
-[eth.check_interval]
-confirm_param_proposal = 2
-intend_settle = 1
-intend_withdraw_channel = 1
+  [eth.check_interval]
+    confirm_param_proposal = 2
 
-[eth.contract_address]
-celr = ""
-staking = ""
-sgn = ""
-reward = ""
-viewer = ""
-govern = ""
+  [eth.contract_address]
+    celr = "0x7C7676947Aaf674fba4be0877e340a8E014b07ff"
+    govern = "0x53f90bE4505e367794903Ab3952e980B74158360"
+    reward = "0x2d529B2950594d2e09Bf9F2de0Cb53BE8C142089"
+    sgn = "0x4e4A0101CD72258183586a51F8254E871B9C544a"
+    staking = "0x283aB9Db53f25D84Fa30915816Ec53F8affaa86e"
+    viewer = "0xFc0598521fF2175FB8becA038e659b3F496Ed9D1"
 
 [log]
-color = true
-level = "debug"
+  color = true
+  level = "debug"
 
 [sgn]
-base_gas_price = 0
-chain_id = "sgn-localnet-1000"
-execute_slash = true
-gas_adjustment = 1.5
-keyring_backend = "file"
-node_uri = "tcp://localhost:26657"
-passphrase = "12341234"
-timeout_commit = 2
-transactors = ["sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe"]
-validator_account = "sgn1qehw7sn3u3nhnjeqk8kjccj263rq5fv002l5fk"
+  base_gas_price = 0
+  chain_id = "sgn-localnet-1000"
+  execute_slash = true
+  gas_adjustment = 1.5
+  keyring_backend = "file"
+  node_uri = "tcp://localhost:26657"
+  passphrase = "12341234"
+  timeout_commit = 2
+  transactors = ["sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe"]
+  validator_account = "sgn1qehw7sn3u3nhnjeqk8kjccj263rq5fv002l5fk"
 
-[sgn.check_interval]
-slash_queue = 2
+  [sgn.check_interval]
+    slash_queue = 2

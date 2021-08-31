@@ -15,7 +15,7 @@ import (
 
 func setupValidator() []tc.Killable {
 	p := &tc.ContractParams{
-		CelrAddr:              tc.E2eProfile.CelrAddr,
+		CelrAddr:              tc.CelrAddr,
 		ProposalDeposit:       big.NewInt(1),
 		VotePeriod:            big.NewInt(1),
 		UnbondingPeriod:       big.NewInt(10),
@@ -26,7 +26,7 @@ func setupValidator() []tc.Killable {
 		ValidatorBondInterval: big.NewInt(0),
 		MaxSlashFactor:        big.NewInt(1e5),
 	}
-	res := setupNewSGNEnv(p, "validator")
+	res := setupNewSgnEnv(p, "validator")
 	tc.SleepWithLog(10, "sgn being ready")
 
 	return res

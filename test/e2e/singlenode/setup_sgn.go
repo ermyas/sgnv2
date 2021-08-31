@@ -2,6 +2,7 @@ package singlenode
 
 import (
 	"context"
+	"io/ioutil"
 	"math/big"
 	"os"
 	"os/exec"
@@ -9,15 +10,15 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/spf13/viper"
 )
 
-func setupNewSGNEnv(contractParams *tc.ContractParams, testName string) []tc.Killable {
+func setupNewSgnEnv(contractParams *tc.ContractParams, testName string) []tc.Killable {
 	if contractParams == nil {
 		contractParams = &tc.ContractParams{
-			CelrAddr:              tc.E2eProfile.CelrAddr,
+			CelrAddr:              tc.CelrAddr,
 			ProposalDeposit:       big.NewInt(1),
 			VotePeriod:            big.NewInt(1),
 			UnbondingPeriod:       big.NewInt(50),
@@ -28,18 +29,13 @@ func setupNewSGNEnv(contractParams *tc.ContractParams, testName string) []tc.Kil
 			ValidatorBondInterval: big.NewInt(0),
 		}
 	}
-	var tx *types.Transaction
-	tx, tc.E2eProfile.StakingContractAddr, tc.E2eProfile.SgnContractAddr,
-		tc.E2eProfile.RewardContractAddr, tc.E2eProfile.ViewerContractAddr,
-		tc.E2eProfile.GovernContractAddr = tc.DeploySgnStakingContracts(contractParams)
+	tx := tc.DeploySgnStakingContracts(contractParams)
 	tc.WaitMinedWithChk(context.Background(), tc.EthClient, tx, tc.BlockDelay, tc.PollingInterval, "DeploySgnStakingContracts")
 
-	updateSGNConfig()
+	updateSgnConfig()
 
 	sgnProc, err := startSgnchain("", testName)
 	tc.ChkErr(err, "start sgnchain")
-	tc.SetContracts(tc.E2eProfile.StakingContractAddr, tc.E2eProfile.SgnContractAddr,
-		tc.E2eProfile.RewardContractAddr, tc.E2eProfile.ViewerContractAddr, tc.E2eProfile.GovernContractAddr)
 
 	killable := []tc.Killable{sgnProc}
 	if contractParams.StartGateway {
@@ -51,7 +47,7 @@ func setupNewSGNEnv(contractParams *tc.ContractParams, testName string) []tc.Kil
 	return killable
 }
 
-func updateSGNConfig() {
+func updateSgnConfig() {
 	log.Infoln("Updating sgn.toml")
 
 	configFilePath := "../../data/.sgncli/config/sgn.toml"
@@ -64,10 +60,20 @@ func updateSGNConfig() {
 	tc.ChkErr(err, "get keystore path")
 
 	configFileViper.Set(common.FlagEthGateway, tc.LocalGeth)
-	configFileViper.Set(common.FlagEthContractCelr, tc.E2eProfile.CelrAddr.Hex())
-	configFileViper.Set(common.FlagEthContractStaking, tc.E2eProfile.StakingContractAddr.Hex())
-	configFileViper.Set(common.FlagEthContractSgn, tc.E2eProfile.SgnContractAddr.Hex())
+	configFileViper.Set(common.FlagEthContractCelr, tc.CelrAddr.Hex())
+	configFileViper.Set(common.FlagEthContractStaking, tc.Contracts.Staking.Address.Hex())
+	configFileViper.Set(common.FlagEthContractSgn, tc.Contracts.Sgn.Address.Hex())
+	configFileViper.Set(common.FlagEthContractReward, tc.Contracts.Reward.Address.Hex())
+	configFileViper.Set(common.FlagEthContractViewer, tc.Contracts.Viewer.Address.Hex())
+	configFileViper.Set(common.FlagEthContractGovern, tc.Contracts.Govern.Address.Hex())
 	configFileViper.Set(common.FlagEthSignerKeystore, keystore)
+	// TODO: different config for validator and signer
+	ksbytes, err := ioutil.ReadFile(keystore)
+	tc.ChkErr(err, "failed to read keystore config")
+	ksAddrStr, err := eth.GetAddressFromKeystore(ksbytes)
+	tc.ChkErr(err, "failed get addr from keystore")
+
+	configFileViper.Set(common.FlagEthValidatorAddress, ksAddrStr)
 	err = configFileViper.WriteConfig()
 	tc.ChkErr(err, "failed to write config")
 	// Update global viper

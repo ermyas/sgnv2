@@ -21,3 +21,6 @@ protoc/
 
 .vscode/
 .DS_Store
+
+#sgn files
+test/data/.sgncli/config/sgn.toml

@@ -59,11 +59,11 @@ func TestMain(m *testing.M) {
 	err = tc.FundAddrsETH("1"+strings.Repeat("0", 20), addrs)
 	tc.ChkErr(err, "fund eth")
 	tc.SetupEthClients()
-	tc.SetupE2eProfile()
+	tc.DeployCelrContract()
 
 	// fund CELR to each eth account
 	log.Infoln("fund each addr 10 million CELR")
-	err = tc.FundAddrsErc20(tc.E2eProfile.CelrAddr, addrs, "1"+strings.Repeat("0", 25))
+	err = tc.FundAddrsErc20(tc.CelrAddr, addrs, "1"+strings.Repeat("0", 25))
 	tc.ChkErr(err, "fund each addr ERC20")
 
 	// make install sgn and sgncli

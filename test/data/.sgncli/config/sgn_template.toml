@@ -4,15 +4,13 @@
 block_delay = 0
 chain_id = 883
 gateway = "http://127.0.0.1:8545"
-signer_keystore = "/Users/moz/workspace/sgn/test/keys/vethks0.json"
+signer_keystore = ""
 signer_passphrase = ""
 validator_address = ""
 poll_interval = 1
 
 [eth.check_interval]
 confirm_param_proposal = 2
-intend_settle = 1
-intend_withdraw_channel = 1
 
 [eth.contract_address]
 celr = ""

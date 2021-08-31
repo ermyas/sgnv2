@@ -25,16 +25,15 @@ var (
 	etherBaseKs = EnvDir + "/keystore/etherbase.json"
 	ChainID     = 883
 
-	EthClient       *ethclient.Client
-	EtherBaseAuth   *bind.TransactOpts
-	StakingContract *eth.Staking
-	SgnContract     *eth.SGN
-	RewardContract  *eth.Reward
-	ViewerContract  *eth.Viewer
-	GovernContract  *eth.Govern
+	EthClient     *ethclient.Client
+	EtherBaseAuth *bind.TransactOpts
 
 	Client0 *TestEthClient
 	Client1 *TestEthClient
+
+	Contracts    *eth.Contracts
+	CelrAddr     eth.Addr
+	CelrContract *eth.Erc20
 )
 
 func SetEthBaseKs(prefix string) {
@@ -73,47 +72,6 @@ func SetupTestEthClient(ksfile string) (*TestEthClient, error) {
 	ksBytes, _ := ioutil.ReadFile(ksfile)
 	testClient.Signer, _ = ethutils.NewSignerFromKeystore(string(ksBytes), "", nil)
 	return testClient, nil
-}
-
-func SetContracts(stakingContractAddr, sgnContractAddr, rewardContractAddr,
-	viewerContractAddr, governContractAddr eth.Addr) error {
-	log.Infof("set contracts staking %x sgn %x", stakingContractAddr, sgnContractAddr)
-	var err error
-	StakingContract, err = eth.NewStaking(stakingContractAddr, EthClient)
-	if err != nil {
-		return err
-	}
-	SgnContract, err = eth.NewSGN(sgnContractAddr, EthClient)
-	if err != nil {
-		return err
-	}
-	RewardContract, err = eth.NewReward(rewardContractAddr, EthClient)
-	if err != nil {
-		return err
-	}
-
-	ViewerContract, err = eth.NewViewer(viewerContractAddr, EthClient)
-	if err != nil {
-		return err
-	}
-
-	GovernContract, err = eth.NewGovern(governContractAddr, EthClient)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func SetupE2eProfile() {
-	// Deploy sample ERC20 contract (CELR)
-	tx, erc20Addr, erc20 := DeployERC20Contract()
-	WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "DeployERC20")
-
-	E2eProfile = &TestProfile{
-		// deployed addresses
-		CelrAddr:     erc20Addr,
-		CelrContract: erc20,
-	}
 }
 
 func FundAddrsETH(amt string, recipients []eth.Addr) error {
@@ -196,18 +154,17 @@ func FundAddrsErc20(erc20Addr eth.Addr, addrs []eth.Addr, amount string) error {
 
 func DelegateStake(fromAuth *bind.TransactOpts, toEthAddress eth.Addr, amt *big.Int) error {
 	conn := EthClient
-	stakingContract := StakingContract
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 
-	log.Info("Call delegate on staking contract to delegate stake to the validator eth address...")
-	_, err := E2eProfile.CelrContract.Approve(fromAuth, E2eProfile.StakingContractAddr, amt)
+	log.Infof("%x calls staking contract to delegate to the validator %x...", fromAuth.From, toEthAddress)
+	_, err := CelrContract.Approve(fromAuth, Contracts.Staking.Address, amt)
 	if err != nil {
 		return err
 	}
 
 	fromAuth.GasLimit = 8000000
-	tx, err := stakingContract.Delegate(fromAuth, toEthAddress, amt)
+	tx, err := Contracts.Staking.Delegate(fromAuth, toEthAddress, amt)
 	fromAuth.GasLimit = 0
 	if err != nil {
 		return err
