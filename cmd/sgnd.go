@@ -57,7 +57,20 @@ func GetSgndExecutor() cli.Executor {
 				return err
 			}
 
-			return server.InterceptConfigsPreRunHandler(cmd, "", nil)
+			err = server.InterceptConfigsPreRunHandler(cmd, "", nil)
+			if err != nil {
+				return err
+			}
+
+			// TODO: Use customAppConfig
+			sgnConfigPath := viper.GetString(common.FlagConfig)
+			_, err = os.Stat(sgnConfigPath)
+			if err != nil {
+				return err
+			}
+			viper.SetConfigFile(sgnConfigPath)
+			err = viper.ReadInConfig()
+			return err
 		},
 	}
 	// CLI commands to initialize the chain
