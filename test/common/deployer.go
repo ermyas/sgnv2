@@ -18,8 +18,7 @@ import (
 )
 
 func DeployERC20Contract() (*types.Transaction, eth.Addr, *eth.Erc20) {
-	initAmt := new(big.Int)
-	initAmt.SetString("1"+strings.Repeat("0", 28), 10)
+	initAmt := NewBigInt(1, 28)
 	erc20Addr, tx, erc20, err := eth.DeployErc20(EtherBaseAuth, EthClient, "Celer", "CELR", initAmt, 18)
 	ChkErr(err, "failed to deploy ERC20")
 
@@ -122,32 +121,33 @@ func DeployCommand() *cobra.Command {
 
 			if ethurl == LocalGeth {
 				SetEthBaseKs("./docker-volumes/geth-env")
-				err = FundAddrsETH("1"+strings.Repeat("0", 20),
+				err = FundAddrsETH(
 					[]eth.Addr{
 						eth.Hex2Addr(ValEthAddrs[0]),
 						eth.Hex2Addr(ClientEthAddrs[0]),
 						eth.Hex2Addr(ClientEthAddrs[1]),
-					})
+					}, NewBigInt(1, 20))
 				ChkErr(err, "fund ETH to validator and clients")
 			}
 
-			_, erc20Addr, erc20 := DeployERC20Contract()
+			_, celrAddr, erc20 := DeployERC20Contract()
 			// NOTE: values below are for local tests
 			contractParams := &ContractParams{
-				CelrAddr:              erc20Addr,
-				ProposalDeposit:       big.NewInt(1000000000000000000), // 1 CELR
+				CelrAddr:              celrAddr,
+				ProposalDeposit:       big.NewInt(1e18), // 1 CELR
 				VotePeriod:            big.NewInt(90),
 				UnbondingPeriod:       big.NewInt(15),
 				MaxBondedValidators:   big.NewInt(5),
-				MinValidatorTokens:    big.NewInt(1000000000000000000),
+				MinValidatorTokens:    big.NewInt(1e18),
 				MinSelfDelegation:     big.NewInt(1e18),
 				AdvanceNoticePeriod:   big.NewInt(30),
 				ValidatorBondInterval: big.NewInt(0),
+				MaxSlashFactor:        big.NewInt(1e5),
 			}
 			tx := DeploySgnStakingContracts(contractParams)
 			WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "DeployStakingContracts")
 
-			configFileViper.Set(common.FlagEthContractCelr, erc20Addr.Hex())
+			configFileViper.Set(common.FlagEthContractCelr, celrAddr.Hex())
 			configFileViper.Set(common.FlagEthContractStaking, Contracts.Staking.Address.Hex())
 			configFileViper.Set(common.FlagEthContractSgn, Contracts.Sgn.Address.Hex())
 			configFileViper.Set(common.FlagEthContractReward, Contracts.Reward.Address.Hex())
@@ -157,19 +157,18 @@ func DeployCommand() *cobra.Command {
 			ChkErr(err, "failed to write config")
 
 			if ethurl == LocalGeth {
-				amt := new(big.Int)
-				amt.SetString("1"+strings.Repeat("0", 20), 10)
+				amt := NewBigInt(1, 20)
 				tx, err := erc20.Approve(EtherBaseAuth, Contracts.Reward.Address, amt)
 				ChkErr(err, "failed to approve erc20")
 				WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "approve erc20")
 				_, err = Contracts.Reward.ContributeToRewardPool(EtherBaseAuth, amt)
 				ChkErr(err, "failed to call ContributeToMiningPool of Staking contract")
-				err = FundAddrsErc20(erc20Addr,
+				err = FundAddrsErc20(celrAddr,
 					[]eth.Addr{
 						eth.Hex2Addr(ClientEthAddrs[0]),
 						eth.Hex2Addr(ClientEthAddrs[1]),
 					},
-					"1"+strings.Repeat("0", 20),
+					NewBigInt(1, 20),
 				)
 				ChkErr(err, "fund test CELR to clients")
 

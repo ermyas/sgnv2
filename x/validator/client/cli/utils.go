@@ -90,18 +90,7 @@ func QuerySdkValidator(cliCtx client.Context, sgnAddr string) (sdkval *sdk_staki
 
 // Query validators of given status in sdk staking module
 func QuerySdkValidators(cliCtx client.Context, status string) (sdkvals sdk_staking.Validators, err error) {
-	var sdkstatus string
-	if status == "bonded" {
-		sdkstatus = sdk_staking.BondStatusBonded
-	} else if status == "unbonding" {
-		sdkstatus = sdk_staking.BondStatusUnbonding
-	} else if status == "unbonded" {
-		sdkstatus = sdk_staking.BondStatusUnbonded
-	} else {
-		err = fmt.Errorf("invalid status, need to be bonded || unbonded || unbonding ")
-		return
-	}
-	params := sdk_staking.NewQueryValidatorsParams(1, 100, sdkstatus)
+	params := sdk_staking.NewQueryValidatorsParams(1, 100, status)
 	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
 	if err != nil {
 		return nil, err

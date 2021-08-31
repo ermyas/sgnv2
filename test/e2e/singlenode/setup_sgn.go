@@ -19,14 +19,15 @@ func setupNewSgnEnv(contractParams *tc.ContractParams, testName string) []tc.Kil
 	if contractParams == nil {
 		contractParams = &tc.ContractParams{
 			CelrAddr:              tc.CelrAddr,
-			ProposalDeposit:       big.NewInt(1),
-			VotePeriod:            big.NewInt(1),
-			UnbondingPeriod:       big.NewInt(50),
+			ProposalDeposit:       big.NewInt(1e18),
+			VotePeriod:            big.NewInt(10),
+			UnbondingPeriod:       big.NewInt(10),
 			MaxBondedValidators:   big.NewInt(11),
-			MinValidatorTokens:    big.NewInt(1e18),
+			MinValidatorTokens:    big.NewInt(2e18),
 			MinSelfDelegation:     big.NewInt(1e18),
-			AdvanceNoticePeriod:   big.NewInt(1),
+			AdvanceNoticePeriod:   big.NewInt(10),
 			ValidatorBondInterval: big.NewInt(0),
+			MaxSlashFactor:        big.NewInt(1e5),
 		}
 	}
 	tx := tc.DeploySgnStakingContracts(contractParams)

@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -56,14 +55,14 @@ func TestMain(m *testing.M) {
 		eth.Hex2Addr(tc.ClientEthAddrs[0]),
 		eth.Hex2Addr(tc.ClientEthAddrs[1]),
 	}
-	err = tc.FundAddrsETH("1"+strings.Repeat("0", 20), addrs)
+	err = tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20))
 	tc.ChkErr(err, "fund eth")
 	tc.SetupEthClients()
 	tc.DeployCelrContract()
 
 	// fund CELR to each eth account
 	log.Infoln("fund each addr 10 million CELR")
-	err = tc.FundAddrsErc20(tc.CelrAddr, addrs, "1"+strings.Repeat("0", 25))
+	err = tc.FundAddrsErc20(tc.CelrAddr, addrs, tc.NewBigInt(1, 25))
 	tc.ChkErr(err, "fund each addr ERC20")
 
 	// make install sgn and sgncli

@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"io/ioutil"
 	"math/big"
+	"strconv"
 	"strings"
 	"time"
 
@@ -81,4 +82,13 @@ func SleepWithLog(second time.Duration, waitFor string) {
 
 func SleepBlocksWithLog(count time.Duration, waitFor string) {
 	SleepWithLog(count*SgnBlockInterval, waitFor)
+}
+
+func NewBigInt(nonZeroDigits, trailingZeros int) *big.Int {
+	value := new(big.Int)
+	value.SetString(strconv.Itoa(nonZeroDigits)+strings.Repeat("0", trailingZeros), 10)
+	if value == nil {
+		log.Fatalf("invalid NewBigInt input %d %d", nonZeroDigits, trailingZeros)
+	}
+	return value
 }

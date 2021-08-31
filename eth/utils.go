@@ -56,3 +56,7 @@ func GetAddressFromKeystore(ksBytes []byte) (string, error) {
 	}
 	return ks.Address, nil
 }
+
+func CommissionRate(rate float64) uint64 {
+	return uint64(rate * CommissionRateBase)
+}

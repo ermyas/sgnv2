@@ -1,8 +1,8 @@
 package common
 
 import (
-	"fmt"
 	"math/big"
+	"strconv"
 	"testing"
 	"time"
 
@@ -57,58 +57,87 @@ func NewTestTransactor(t *testing.T, sgnCLIHome, sgnChainID, sgnNodeURI, sgnValA
 	return tr
 }
 
-func CheckValidator(t *testing.T, transactor *transactor.Transactor, ethAddr eth.Addr, valacct string, expAmt *big.Int) {
-	var candidate *types.Validator
+func CheckValidator(t *testing.T, transactor *transactor.Transactor, expVal *types.Validator) {
+	var validator *types.Validator
 	var err error
-	expectedRes := fmt.Sprintf(`ValAccount: %s, EthAddress: %x, StakingPool: %s`, valacct, ethAddr, expAmt) // defined in Candidate.String()
 	for retry := 0; retry < RetryLimit; retry++ {
-		candidate, err = cli.QueryValidator(transactor.CliCtx, ethAddr.Hex())
+		validator, err = cli.QueryValidator(transactor.CliCtx, expVal.EthAddress)
 		if err != nil {
 			log.Debugln("retry due to err:", err)
 		}
-		if err == nil && expectedRes == candidate.String() {
+		if err == nil && sameValidators(validator, expVal) {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
-	require.NoError(t, err, "failed to queryCandidate", err)
-	log.Infoln("Query sgn about the validator candidate:", &candidate)
-	assert.Equal(t, expectedRes, candidate.String(), "The expected result should be: "+expectedRes)
+	require.NoError(t, err, "failed to QueryValidator", err)
+	log.Infof("Query sgn and get validator: %s", validator)
+	assert.True(t, sameValidators(validator, expVal), "The expected validator should be: "+expVal.String())
 }
 
-func CheckDelegator(t *testing.T, transactor *transactor.Transactor, validatorAddr, delegatorAddr eth.Addr, expAmt *big.Int) {
+func CheckDelegator(t *testing.T, transactor *transactor.Transactor, expDel *types.Delegator) {
 	var delegator *types.Delegator
 	var err error
-	expectedRes := fmt.Sprintf(`CandidateAddr: %s, DelegatorAddr: %s, DelegatedStake: %s`,
-		eth.Addr2Hex(validatorAddr), eth.Addr2Hex(delegatorAddr), expAmt) // defined in Delegator.String()
 	for retry := 0; retry < RetryLimit; retry++ {
-		delegator, err = cli.QueryDelegator(transactor.CliCtx, validatorAddr.Hex(), delegatorAddr.Hex())
-		if err == nil && expectedRes == delegator.String() {
+		delegator, err = cli.QueryDelegator(transactor.CliCtx, expDel.ValAddress, expDel.DelAddress)
+		if err == nil && sameDelegators(delegator, expDel) {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
 	require.NoError(t, err, "failed to queryDelegator")
-	log.Infoln("Query sgn about the validator's delegator:", &delegator)
-	assert.Equal(t, expectedRes, delegator.String(), "The expected result should be: "+expectedRes)
+	log.Infof("Query sgn and get delegator: %s", delegator)
+	assert.True(t, sameDelegators(delegator, expDel), "The expected delegator should be: "+expDel.String())
 }
 
-func CheckSdkValidator(t *testing.T, transactor *transactor.Transactor, valacct string, expAmt *big.Int, expStatus sdk_staking.BondStatus) {
-	var validator *sdk_staking.Validator
+func CheckSdkValidator(t *testing.T, transactor *transactor.Transactor, expVal *sdk_staking.Validator) {
+	var sdkval *sdk_staking.Validator
 	var err error
 	for retry := 0; retry < RetryLimit; retry++ {
-		validator, err = cli.QuerySdkValidator(transactor.CliCtx, valacct)
-		if err == nil &&
-			validator.Status == expStatus {
-			expToken := sdk.NewIntFromBigInt(expAmt).QuoRaw(common.TokenDec).String()
-			if expToken == validator.Tokens.String() {
-				break
-			}
+		sdkval, err = cli.QuerySdkValidator(transactor.CliCtx, expVal.OperatorAddress)
+		if err == nil && sameSdkValidators(sdkval, expVal) {
+			break
 		}
 		time.Sleep(RetryPeriod)
 	}
-	require.NoError(t, err, "failed to queryValidator")
-	expToken := sdk.NewIntFromBigInt(expAmt).QuoRaw(common.TokenDec).String()
-	assert.Equal(t, expToken, validator.Tokens.String(), "validator token should be "+expToken)
-	//assert.Equal(t, expStatus, validator.Status, "validator should be "+sdkStatusName(validator.Status))
+	require.NoError(t, err, "failed to QuerySdkValidator")
+	log.Infof("Query sgn and get sdk validator: %s", sdkval)
+	assert.True(t, sameSdkValidators(sdkval, expVal), "The expected sdk validator should be: "+expVal.String())
+}
+
+func CheckBondedSdkValidatorNum(t *testing.T, transactor *transactor.Transactor, expNum int) {
+	var sdkvals sdk_staking.Validators
+	var err error
+	for retry := 0; retry < RetryLimit; retry++ {
+		sdkvals, err = cli.QuerySdkValidators(transactor.CliCtx, sdk_staking.BondStatusBonded)
+		if err == nil && len(sdkvals) == expNum {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	require.NoError(t, err, "failed to QuerySdkValidators")
+	assert.Equal(t, expNum, len(sdkvals), "The length of validators should be: "+strconv.Itoa(expNum))
+}
+
+// TODO: check pubkey, transactors, and description
+func sameValidators(v *types.Validator, exp *types.Validator) bool {
+	return v.GetEthAddress() == exp.GetEthAddress() &&
+		v.GetEthSigner() == exp.GetEthSigner() &&
+		v.GetStatus() == exp.GetStatus() &&
+		v.GetSgnAddress() == exp.GetSgnAddress() &&
+		v.GetTokens() == exp.GetTokens() &&
+		v.GetShares() == exp.GetShares() &&
+		v.GetCommissionRate() == exp.GetCommissionRate()
+}
+
+func sameDelegators(d *types.Delegator, exp *types.Delegator) bool {
+	return d.GetValAddress() == exp.GetValAddress() &&
+		d.GetValAddress() == exp.GetDelAddress() &&
+		d.GetShares() == exp.GetShares()
+}
+
+func sameSdkValidators(v *sdk_staking.Validator, exp *sdk_staking.Validator) bool {
+	return v.GetOperator().Equals(exp.GetOperator()) &&
+		v.GetStatus() == exp.GetStatus() &&
+		v.GetTokens().Equal(exp.GetTokens())
 }

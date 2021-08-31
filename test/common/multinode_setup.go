@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -53,7 +52,7 @@ func SetupMainchain() {
 		eth.Hex2Addr(ClientEthAddrs[1]),
 	}
 	log.Infoln("fund each test addr 100 ETH")
-	err := FundAddrsETH("1"+strings.Repeat("0", 20), addrs)
+	err := FundAddrsETH(addrs, NewBigInt(1, 20))
 	ChkErr(err, "fund each test addr 100 ETH")
 
 	log.Infoln("set up mainchain")
@@ -62,7 +61,7 @@ func SetupMainchain() {
 
 	// fund CELR to each eth account
 	log.Infoln("fund each test addr 10 million CELR")
-	err = FundAddrsErc20(CelrAddr, addrs, "1"+strings.Repeat("0", 25))
+	err = FundAddrsErc20(CelrAddr, addrs, NewBigInt(1, 25))
 	ChkErr(err, "fund each test addr 10 million CELR")
 }
 

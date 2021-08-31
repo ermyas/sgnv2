@@ -75,14 +75,12 @@ func SetupTestEthClient(ksfile string) (*TestEthClient, error) {
 	return testClient, nil
 }
 
-func FundAddrsETH(amt string, recipients []eth.Addr) error {
+func FundAddrsETH(recipients []eth.Addr, amount *big.Int) error {
 	conn, auth, ctx, senderAddr, connErr := prepareEtherBaseClient()
 	if connErr != nil {
 		return connErr
 	}
-	value := big.NewInt(0)
-	value.SetString(amt, 10)
-	auth.Value = value
+	auth.Value = amount
 	var gasLimit uint64 = 21000
 	var lastTx *types.Transaction
 	for _, addr := range recipients {
@@ -111,7 +109,7 @@ func FundAddrsETH(amt string, recipients []eth.Addr) error {
 		if addr == eth.ZeroAddr {
 			log.Info("Advancing block")
 		} else {
-			log.Infof("Sending ETH %s to %x from %x", amt, addr, senderAddr)
+			log.Infof("Sending ETH %s to %x from %x", amount, addr, senderAddr)
 		}
 
 		err = conn.SendTransaction(ctx, tx)
@@ -142,16 +140,14 @@ func FundAddrsETH(amt string, recipients []eth.Addr) error {
 	return nil
 }
 
-func FundAddrsErc20(erc20Addr eth.Addr, addrs []eth.Addr, amount string) error {
+func FundAddrsErc20(erc20Addr eth.Addr, recipients []eth.Addr, amount *big.Int) error {
 	erc20Contract, err := eth.NewErc20(erc20Addr, EthClient)
 	if err != nil {
 		return err
 	}
-	tokenAmt := new(big.Int)
-	tokenAmt.SetString(amount, 10)
 	var lastTx *types.Transaction
-	for _, addr := range addrs {
-		tx, transferErr := erc20Contract.Transfer(EtherBaseAuth, addr, tokenAmt)
+	for _, addr := range recipients {
+		tx, transferErr := erc20Contract.Transfer(EtherBaseAuth, addr, amount)
 		if transferErr != nil {
 			return transferErr
 		}

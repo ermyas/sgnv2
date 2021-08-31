@@ -1,23 +1,23 @@
 package eth
 
 const (
-	// CandidateStatus
+	// ValidatorStatus
 	Unbonded  = 1
 	Unbonding = 2
 	Bonded    = 3
 
 	// ParamNames
-	ProposalDeposit       = 0
-	VotePeriod            = 1
-	UnbondingPeriod       = 2
-	MaxBondedValidators   = 3
-	MinValidatorTokens    = 4
-	MinSelfDelegation     = 5
-	AdvanceNoticePeriod   = 6
-	ValidatorBondInterval = 7
-	MaxSlashFactor        = 8
+	ParamProposalDeposit       = 0
+	ParamVotingPeriod          = 1
+	ParamUnbondingPeriod       = 2
+	ParamMaxBondedValidators   = 3
+	ParamMinValidatorTokens    = 4
+	ParamMinSelfDelegation     = 5
+	ParamAdvanceNoticePeriod   = 6
+	ParamValidatorBondInterval = 7
+	ParamMaxSlashFactor        = 8
 
-	Unvoted     = 0
+	VoteNull    = 0
 	VoteYes     = 1
 	VoteAbstain = 2
 	VoteNo      = 3
@@ -28,4 +28,6 @@ const (
 
 	TxFailure = 0
 	TxSuccess = 1
+
+	CommissionRateBase = 10000
 )

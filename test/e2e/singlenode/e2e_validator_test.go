@@ -2,7 +2,6 @@ package singlenode
 
 import (
 	"math/big"
-	"strings"
 	"testing"
 
 	"github.com/celer-network/goutils/log"
@@ -10,24 +9,14 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
 	"github.com/celer-network/sgn-v2/x/validator/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
 
 func setupValidator() []tc.Killable {
-	p := &tc.ContractParams{
-		CelrAddr:              tc.CelrAddr,
-		ProposalDeposit:       big.NewInt(1),
-		VotePeriod:            big.NewInt(1),
-		UnbondingPeriod:       big.NewInt(10),
-		MaxBondedValidators:   big.NewInt(11),
-		MinValidatorTokens:    big.NewInt(1e18),
-		MinSelfDelegation:     big.NewInt(1e18),
-		AdvanceNoticePeriod:   big.NewInt(1),
-		ValidatorBondInterval: big.NewInt(0),
-		MaxSlashFactor:        big.NewInt(1e5),
-	}
-	res := setupNewSgnEnv(p, "validator")
+	res := setupNewSgnEnv(nil, "validator")
 	tc.SleepWithLog(10, "sgn being ready")
 
 	return res
@@ -54,24 +43,46 @@ func validatorTest(t *testing.T) {
 		viper.GetStringSlice(common.FlagSgnTransactors)[0],
 		viper.GetString(common.FlagSgnPassphrase),
 	)
-	vAmt := big.NewInt(1000000000000000000) // 1 CELR
+	vAmt := big.NewInt(2e18) // 1 CELR
 	dAmts := []*big.Int{
-		big.NewInt(2000000000000000000), // 2 CELR
-		big.NewInt(2000000000000000000), // 2 CELR
-		big.NewInt(4000000000000000000), // 4 CELR
-		big.NewInt(1000000000000000000), // 1 CELR
+		big.NewInt(2e18), // 2 CELR
+		big.NewInt(2e18), // 2 CELR
+		big.NewInt(4e18), // 4 CELR
+		big.NewInt(1e18), // 1 CELR
 	}
-	miningPool := new(big.Int)
-	miningPool.SetString("1"+strings.Repeat("0", 20), 10)
+	totalAmts := tc.NewBigInt(11, 18) // vAmt + dAmts
 
 	vEthAddr, vAuth, err := tc.GetAuth(tc.ValEthKs[0])
 	log.Infof("validator eth address %x", vEthAddr)
 	require.NoError(t, err, "failed to get validator auth")
 
-	sgnAddr, _ := types.SdkAccAddrFromSgnBech32(tc.ValAccounts[0])
-	err = tc.InitializeValidator(
-		vAuth, sgnAddr, vAmt, big.NewInt(200).Uint64() /* commission rate 2% */)
+	sgnAddr, err := types.SdkAccAddrFromSgnBech32(tc.ValAccounts[0])
+	require.NoError(t, err, "failed to get sgnAddr")
+	err = tc.InitializeValidator(vAuth, sgnAddr, vAmt, eth.CommissionRate(0.02))
 	require.NoError(t, err, "failed to initialize validator")
+	expVal := &types.Validator{
+		EthAddress:     eth.Addr2Hex(vEthAddr),
+		EthSigner:      eth.Addr2Hex(vEthAddr),
+		Status:         eth.Bonded,
+		SgnAddress:     sgnAddr.String(),
+		Tokens:         vAmt.String(),
+		Shares:         vAmt.String(),
+		CommissionRate: 200,
+	}
+	tc.CheckValidator(t, transactor, expVal)
+	expDel := &types.Delegator{
+		ValAddress: eth.Addr2Hex(vEthAddr),
+		DelAddress: eth.Addr2Hex(vEthAddr),
+		Shares:     vAmt.String(),
+	}
+	tc.CheckDelegator(t, transactor, expDel)
+	expSdkVal := &sdk_staking.Validator{
+		OperatorAddress: sgnAddr.String(),
+		Status:          sdk_staking.Bonded,
+		Tokens:          sdk.NewIntFromBigInt(vAmt),
+	}
+	tc.CheckSdkValidator(t, transactor, expSdkVal)
+	tc.CheckBondedSdkValidatorNum(t, transactor, 1)
 
 	log.Info("add delegators ...")
 	for i := 0; i < len(tc.DelEthKs); i++ {
@@ -80,6 +91,17 @@ func validatorTest(t *testing.T) {
 		go tc.Delegate(dAuth, vEthAddr, dAmts[i])
 	}
 	for i := 0; i < len(tc.DelEthKs); i++ {
-		tc.CheckDelegator(t, transactor, vEthAddr, eth.Hex2Addr(tc.DelEthAddrs[i]), dAmts[i])
+		expDel := &types.Delegator{
+			ValAddress: eth.Addr2Hex(vEthAddr),
+			DelAddress: tc.DelEthAddrs[i],
+			Shares:     dAmts[i].String(),
+		}
+		tc.CheckDelegator(t, transactor, expDel)
 	}
+
+	expVal.Tokens = totalAmts.String()
+	expVal.Shares = totalAmts.String()
+	tc.CheckValidator(t, transactor, expVal)
+	expSdkVal.Tokens = sdk.NewIntFromBigInt(totalAmts)
+	tc.CheckSdkValidator(t, transactor, expSdkVal)
 }
