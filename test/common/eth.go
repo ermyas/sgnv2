@@ -160,9 +160,14 @@ func InitializeValidator(auth *bind.TransactOpts, sgnAddr sdk.AccAddress, minSel
 	log.Infof("%x calls staking contract to initialize validator minSelfDelegation: %s, commissionRate: %d",
 		auth.From, minSelfDelegation, commissionRate)
 
-	auth.GasLimit = 8000000
-	tx, err := Contracts.Staking.InitializeValidator(auth, auth.From, minSelfDelegation, commissionRate)
-	auth.GasLimit = 0
+	tx, err := CelrContract.Approve(auth, Contracts.Staking.Address, minSelfDelegation)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "Approve")
+
+	tx, err = Contracts.Staking.InitializeValidator(auth, auth.From, minSelfDelegation, commissionRate)
 	if err != nil {
 		return err
 	}
@@ -182,15 +187,14 @@ func Delegate(auth *bind.TransactOpts, valAddr eth.Addr, amt *big.Int) error {
 	defer cancel()
 
 	log.Infof("%x calls staking contract to delegate to the validator %x...", auth.From, valAddr)
-	_, err := CelrContract.Approve(auth, Contracts.Staking.Address, amt)
+	tx, err := CelrContract.Approve(auth, Contracts.Staking.Address, amt)
 	if err != nil {
 		log.Error(err)
 		return err
 	}
+	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "Approve")
 
-	auth.GasLimit = 8000000
-	tx, err := Contracts.Staking.Delegate(auth, valAddr, amt)
-	auth.GasLimit = 0
+	tx, err = Contracts.Staking.Delegate(auth, valAddr, amt)
 	if err != nil {
 		log.Error(err)
 		return err
