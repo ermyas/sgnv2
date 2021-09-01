@@ -19,6 +19,7 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
+	"github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/gammazero/deque"
 	"github.com/spf13/viper"
 )
@@ -94,7 +95,8 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc co
 		WithBroadcastMode(flags.BroadcastSync).
 		WithTxConfig(txConfig).
 		WithLegacyAmino(legacyAmino).
-		WithClient(cli)
+		WithClient(cli).
+		WithAccountRetriever(types.AccountRetriever{})
 
 	f := clienttx.Factory{}.
 		WithKeybase(cliCtx.Keyring).
@@ -248,15 +250,15 @@ func (t *Transactor) sendTxMsgs(msgs []sdk.Msg, gas uint64) (*sdk.TxResponse, er
 func (t *Transactor) buildAndSignTx(msgs []sdk.Msg, gas uint64) ([]byte, error) {
 	txf := t.TxFactory
 
-	txf, err := prepareFactory(t.CliCtx, txf)
-	if err != nil {
-		return nil, err
-	}
+	// txf, err := prepareFactory(t.CliCtx, txf)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	if gas != 0 {
 		txf = txf.WithGas(gas)
 	} else if txf.SimulateAndExecute() || t.CliCtx.Simulate {
-		_, adjusted, err := clienttx.CalculateGas(t.CliCtx, t.TxFactory, msgs...)
+		_, adjusted, err := clienttx.CalculateGas(t.CliCtx, txf, msgs...)
 		if err != nil {
 			return nil, err
 		}
