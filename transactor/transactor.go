@@ -101,16 +101,17 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc co
 	f := clienttx.Factory{}.
 		WithKeybase(cliCtx.Keyring).
 		WithTxConfig(cliCtx.TxConfig).
-		WithAccountNumber(viper.GetUint64(flags.FlagAccountNumber)).
-		WithSequence(viper.GetUint64(flags.FlagSequence)).
+		WithAccountNumber(3).
+		WithSequence(0).
 		WithGas(common.DefaultSgnGasLimit).
 		WithGasAdjustment(gasAdjustment).
 		WithChainID(chainID).
 		WithMemo(viper.GetString(flags.FlagNote)).
 		WithFees(viper.GetString(flags.FlagFees)).
 		WithGasPrices(viper.GetString(flags.FlagGasPrices)).
-		WithSignMode(signing.SignMode_SIGN_MODE_TEXTUAL).
-		WithSimulateAndExecute(true)
+		WithSignMode(signing.SignMode_SIGN_MODE_DIRECT).
+		WithSimulateAndExecute(true).
+		WithAccountRetriever(cliCtx.AccountRetriever)
 
 	transactor := &Transactor{
 		TxFactory:  f,
