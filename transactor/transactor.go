@@ -101,7 +101,7 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc co
 	f := clienttx.Factory{}.
 		WithKeybase(cliCtx.Keyring).
 		WithTxConfig(cliCtx.TxConfig).
-		WithAccountNumber(3).
+		WithAccountNumber(3). //TODO:should not hardcode
 		WithSequence(0).
 		WithGas(common.DefaultSgnGasLimit).
 		WithGasAdjustment(gasAdjustment).

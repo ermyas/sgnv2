@@ -12,13 +12,14 @@ import (
 	validatorcli "github.com/celer-network/sgn-v2/x/validator/client/cli"
 	validatortypes "github.com/celer-network/sgn-v2/x/validator/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/spf13/viper"
 )
 
 func (r *Relayer) verifyPendingUpdates() {
-	v, _ := validatorcli.QueryValidator(r.Transactor.CliCtx, r.Transactor.Key.GetAddress().String())
-	if v.GetStatus() != validatortypes.ValidatorStatus_Bonded {
+	v, _ := validatorcli.QuerySdkValidator(r.Transactor.CliCtx, r.Transactor.Key.GetAddress().String())
+	if v.Status != stakingtypes.Bonded {
 		log.Traceln("skip verifying pending updates as I am not a bonded validator")
 		return
 	}
@@ -28,10 +29,9 @@ func (r *Relayer) verifyPendingUpdates() {
 		return
 	}
 
-	msgs := synctypes.MsgProposeUpdates{
-		Updates:  make([]*synctypes.ProposeUpdate, 0),
-		EthBlock: r.getCurrentBlockNumber().Uint64(),
-		Sender:   r.Transactor.Key.GetAddress().String(),
+	msgs := synctypes.MsgVoteUpdates{
+		Votes:  make([]*synctypes.VoteUpdate, 0),
+		Sender: r.Transactor.Key.GetAddress().String(),
 	}
 	for _, update := range pendingUpdates {
 		_, err = r.verifiedUpdates.Get(strconv.Itoa(int(update.Id)))
@@ -47,15 +47,15 @@ func (r *Relayer) verifyPendingUpdates() {
 				continue
 			}
 			if approve {
-				msgs.Updates = append(msgs.Updates, &synctypes.ProposeUpdate{
-					Type: update.Type,
-					Data: update.Data,
+				msgs.Votes = append(msgs.Votes, &synctypes.VoteUpdate{
+					Id:     update.Id,
+					Option: synctypes.VoteOption_Yes,
 				})
 			}
 		}
 	}
 
-	if len(msgs.Updates) > 0 {
+	if len(msgs.Votes) > 0 {
 		r.Transactor.AddTxMsg(&msgs)
 	}
 }
