@@ -42,14 +42,15 @@ func handleMsgSetTransactors(
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender
 
-	sdkVal, found := keeper.GetSdkValidator(ctx, sdk.ValAddress(msg.Sender))
+	valAddr, _ := types.SdkValAddrFromSgnBech32(msg.Sender)
+	sdkVal, found := keeper.GetSdkValidator(ctx, valAddr)
 	if !found {
-		return nil, fmt.Errorf("Sender is not a validator")
+		return nil, fmt.Errorf("sender is not a validator")
 	}
 
 	validator, found := keeper.GetValidator(ctx, sdkVal.Description.Identity)
 	if !found {
-		return nil, fmt.Errorf("Validator does not exist")
+		return nil, fmt.Errorf("validator does not exist")
 	}
 	logEntry.ValAddr = validator.EthAddress
 
@@ -64,7 +65,7 @@ func handleMsgSetTransactors(
 				dedup[transactor] = true
 				acctAddr, err := types.SdkAccAddrFromSgnBech32(transactor)
 				if err != nil {
-					return nil, fmt.Errorf("Invalid bech32 addr %s, %s", transactor, err)
+					return nil, fmt.Errorf("invalid bech32 addr %s, %s", transactor, err)
 				}
 				keeper.InitAccount(ctx, acctAddr)
 			}
@@ -75,7 +76,7 @@ func handleMsgSetTransactors(
 		if _, exist := dedup[transactor]; !exist {
 			acctAddr, err := types.SdkAccAddrFromSgnBech32(transactor)
 			if err != nil {
-				return nil, fmt.Errorf("Invalid bech32 addr %s, %s", transactor, err)
+				return nil, fmt.Errorf("invalid bech32 addr %s, %s", transactor, err)
 			}
 			keeper.RemoveAccount(ctx, acctAddr)
 		}
@@ -94,7 +95,7 @@ func handleMsgEditDescription(
 
 	validator, found := keeper.GetValidator(ctx, msg.EthAddress)
 	if !found {
-		return nil, fmt.Errorf("Validator does not exist")
+		return nil, fmt.Errorf("validator does not exist")
 	}
 	logEntry.ValAddr = validator.EthAddress
 	// TODO: copy update validator description from sdk_staking

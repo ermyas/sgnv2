@@ -107,6 +107,10 @@ func (o *Operator) SyncValidatorMsgs(valAddr eth.Addr, flag ValSyncFlag) []*sync
 			EthSigner:      eth.Addr2Hex(ethVal.Signer),
 			SgnAddress:     sdk.AccAddress(sgnAddr).String(),
 			CommissionRate: ethVal.CommissionRate,
+			Status:         validatortypes.ValidatorStatus(ethVal.Status),
+			Description: &validatortypes.Description{
+				Identity: eth.Addr2Hex(valAddr),
+			},
 		}
 		var skip bool
 		if storeVal != nil {

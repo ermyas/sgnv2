@@ -7,7 +7,6 @@ import (
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk_stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 func (k Keeper) ApplyUpdate(ctx sdk.Context, update *types.PendingUpdate) bool {
@@ -52,7 +51,7 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 		val.SgnAddress = v.SgnAddress
 	} else {
 		if v.Status == vtypes.ValidatorStatus_Bonded {
-			if common.HexToAddress(update.Proposer) != common.HexToAddress(v.EthAddress) {
+			if update.Proposer != v.SgnAddress {
 				log.Infof("Bonded validator %s %s not initialized, msg sender: %s", v.SgnAddress, v.EthAddress, update.Proposer)
 				return true, nil
 			}
