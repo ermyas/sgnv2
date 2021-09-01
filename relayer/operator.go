@@ -74,7 +74,7 @@ func (o *Operator) SyncValidator(valAddr eth.Addr, currentBlkNum *big.Int) bool 
 		msgs := synctypes.MsgProposeUpdates{
 			Updates:  make([]*synctypes.ProposeUpdate, 0),
 			EthBlock: currentBlkNum.Uint64(),
-			Sender:   string(o.Transactor.Key.GetAddress()),
+			Sender:   o.Transactor.Key.GetAddress().String(),
 		}
 		msgs.Updates = append(msgs.Updates, updates...)
 		if len(msgs.Updates) > 0 {

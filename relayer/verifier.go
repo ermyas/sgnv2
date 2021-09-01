@@ -31,7 +31,7 @@ func (r *Relayer) verifyPendingUpdates() {
 	msgs := synctypes.MsgProposeUpdates{
 		Updates:  make([]*synctypes.ProposeUpdate, 0),
 		EthBlock: r.getCurrentBlockNumber().Uint64(),
-		Sender:   string(r.Transactor.Key.GetAddress()),
+		Sender:   r.Transactor.Key.GetAddress().String(),
 	}
 	for _, update := range pendingUpdates {
 		_, err = r.verifiedUpdates.Get(strconv.Itoa(int(update.Id)))

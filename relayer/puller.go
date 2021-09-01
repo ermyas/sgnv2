@@ -73,7 +73,7 @@ func (r *Relayer) processPullerQueue() {
 	msgs := synctypes.MsgProposeUpdates{
 		Updates:  make([]*synctypes.ProposeUpdate, 0),
 		EthBlock: r.getCurrentBlockNumber().Uint64(),
-		Sender:   string(r.Transactor.Key.GetAddress()),
+		Sender:   r.Transactor.Key.GetAddress().String(),
 	}
 
 	if r.isBootstrapped() {
