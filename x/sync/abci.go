@@ -6,6 +6,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/x/sync/keeper"
 	"github.com/celer-network/sgn-v2/x/sync/types"
+	valtypes "github.com/celer-network/sgn-v2/x/validator/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
@@ -27,11 +28,16 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 
 	updates := keeper.GetAllPendingUpdates(ctx)
 	for _, update := range updates {
+		log.Infoln("EndBlocker update: ", update.Id, " ", update)
 		yesVotes := sdk.ZeroInt()
 		for _, vote := range update.Votes {
 			v, ok := sdkValMaps[vote.Voter]
 			if !ok {
-				continue
+				vaddr, _ := valtypes.SdkValAddrFromSgnBech32(vote.Voter)
+				v, ok = sdkValMaps[vaddr.String()]
+				if !ok {
+					continue
+				}
 			}
 			if vote.Option == types.VoteOption_Yes {
 				yesVotes = yesVotes.Add(v.Tokens)

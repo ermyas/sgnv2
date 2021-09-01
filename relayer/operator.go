@@ -131,7 +131,7 @@ func (o *Operator) SyncValidatorMsgs(valAddr eth.Addr, flag ValSyncFlag) []*sync
 
 	if flag.states {
 		updateVal := validatortypes.Validator{
-			EthAddress: valAddr.Hex(),
+			EthAddress: eth.Addr2Hex(valAddr),
 			Status:     validatortypes.ValidatorStatus(ethVal.Status),
 			Tokens:     ethVal.Tokens.String(),
 			Shares:     ethVal.Shares.String(),

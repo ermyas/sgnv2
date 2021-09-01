@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"sort"
+
 	"github.com/celer-network/sgn-v2/seal"
 	"github.com/celer-network/sgn-v2/x/sync/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -58,6 +60,10 @@ func (k Keeper) GetAllPendingUpdates(ctx sdk.Context) (udpates []*types.PendingU
 		update := types.MustUnmarshalPendingUpdate(k.cdc, iterator.Value())
 		udpates = append(udpates, &update)
 	}
+
+	sort.SliceStable(udpates, func(i, j int) bool {
+		return udpates[i].Id < udpates[j].Id
+	})
 
 	return udpates
 }
