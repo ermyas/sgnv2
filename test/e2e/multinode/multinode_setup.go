@@ -1,4 +1,4 @@
-package common
+package multinode
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
+	tc "github.com/celer-network/sgn-v2/test/common"
 	"github.com/spf13/viper"
 )
 
@@ -36,52 +37,53 @@ func SetupMainchain() {
 	if err := cmd.Run(); err != nil {
 		log.Fatal(err)
 	}
-	SleepWithLog(5, "geth start")
+	tc.SleepWithLog(5, "geth start")
 
 	// set up mainchain: deploy contracts, fund addrs, etc
 	addrs := []eth.Addr{
-		eth.Hex2Addr(ValEthAddrs[0]),
-		eth.Hex2Addr(ValEthAddrs[1]),
-		eth.Hex2Addr(ValEthAddrs[2]),
-		eth.Hex2Addr(ValEthAddrs[3]),
-		eth.Hex2Addr(DelEthAddrs[0]),
-		eth.Hex2Addr(DelEthAddrs[1]),
-		eth.Hex2Addr(DelEthAddrs[2]),
-		eth.Hex2Addr(DelEthAddrs[3]),
-		eth.Hex2Addr(ClientEthAddrs[0]),
-		eth.Hex2Addr(ClientEthAddrs[1]),
+		eth.Hex2Addr(tc.ValEthAddrs[0]),
+		eth.Hex2Addr(tc.ValEthAddrs[1]),
+		eth.Hex2Addr(tc.ValEthAddrs[2]),
+		eth.Hex2Addr(tc.ValEthAddrs[3]),
+		eth.Hex2Addr(tc.DelEthAddrs[0]),
+		eth.Hex2Addr(tc.DelEthAddrs[1]),
+		eth.Hex2Addr(tc.DelEthAddrs[2]),
+		eth.Hex2Addr(tc.DelEthAddrs[3]),
+		eth.Hex2Addr(tc.ClientEthAddrs[0]),
+		eth.Hex2Addr(tc.ClientEthAddrs[1]),
 	}
 	log.Infoln("fund each test addr 100 ETH")
-	err := FundAddrsETH(addrs, NewBigInt(1, 20))
-	ChkErr(err, "fund each test addr 100 ETH")
+	err := tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20))
+	tc.ChkErr(err, "fund each test addr 100 ETH")
 
 	log.Infoln("set up mainchain")
-	SetupEthClients()
-	DeployCelrContract()
+	tc.SetupEthClients()
+	tc.DeployCelrContract()
 
 	// fund CELR to each eth account
 	log.Infoln("fund each test addr 10 million CELR")
-	err = FundAddrsErc20(CelrAddr, addrs, NewBigInt(1, 25))
-	ChkErr(err, "fund each test addr 10 million CELR")
+	err = tc.FundAddrsErc20(tc.CelrAddr, addrs, tc.NewBigInt(1, 25))
+	tc.ChkErr(err, "fund each test addr 10 million CELR")
 }
 
-func SetupNewSGNEnv(contractParams *ContractParams, manual bool) {
+func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool) {
 	log.Infoln("Deploy Staking and SGN contracts")
 	if contractParams == nil {
-		contractParams = &ContractParams{
-			CelrAddr:              CelrAddr,
-			ProposalDeposit:       big.NewInt(1),
-			VotePeriod:            big.NewInt(5),
+		contractParams = &tc.ContractParams{
+			CelrAddr:              tc.CelrAddr,
+			ProposalDeposit:       big.NewInt(1e18),
+			VotePeriod:            big.NewInt(10),
 			UnbondingPeriod:       big.NewInt(50),
 			MaxBondedValidators:   big.NewInt(7),
-			MinValidatorTokens:    big.NewInt(1e18),
+			MinValidatorTokens:    big.NewInt(2e18),
 			MinSelfDelegation:     big.NewInt(1e18),
 			AdvanceNoticePeriod:   big.NewInt(1),
 			ValidatorBondInterval: big.NewInt(0),
+			MaxSlashFactor:        big.NewInt(1e5),
 		}
 	}
-	tx := DeploySgnStakingContracts(contractParams)
-	WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "DeploySgnStakingContracts")
+	tx := tc.DeploySgnStakingContracts(contractParams)
+	tc.WaitMinedWithChk(context.Background(), tc.EthClient, tx, tc.BlockDelay, tc.PollingInterval, "DeploySgnStakingContracts")
 
 	log.Infoln("make localnet-down-nodes")
 	cmd := exec.Command("make", "localnet-down-nodes")
@@ -90,7 +92,7 @@ func SetupNewSGNEnv(contractParams *ContractParams, manual bool) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
-	ChkErr(err, "Failed to make localnet-down-nodes")
+	tc.ChkErr(err, "Failed to make localnet-down-nodes")
 
 	log.Infoln("make prepare-sgn-data")
 	cmd = exec.Command("make", "prepare-sgn-data")
@@ -98,33 +100,33 @@ func SetupNewSGNEnv(contractParams *ContractParams, manual bool) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
-	ChkErr(err, "Failed to make prepare-sgn-data")
+	tc.ChkErr(err, "Failed to make prepare-sgn-data")
 
 	log.Infoln("Updating config files of SGN nodes")
-	for i := 0; i < len(ValEthKs); i++ {
+	for i := 0; i < len(tc.ValEthKs); i++ {
 		configPath := fmt.Sprintf("../../../docker-volumes/node%d/sgncli/config/sgn.toml", i)
 		configFileViper := viper.New()
 		configFileViper.SetConfigFile(configPath)
 		err = configFileViper.ReadInConfig()
-		ChkErr(err, "Failed to read config")
-		configFileViper.Set(common.FlagEthContractCelr, CelrAddr.Hex())
-		configFileViper.Set(common.FlagEthContractStaking, Contracts.Staking.Address.Hex())
-		configFileViper.Set(common.FlagEthContractSgn, Contracts.Sgn.Address.Hex())
-		configFileViper.Set(common.FlagEthContractReward, Contracts.Reward.Address.Hex())
-		configFileViper.Set(common.FlagEthContractViewer, Contracts.Viewer.Address.Hex())
-		configFileViper.Set(common.FlagEthContractGovern, Contracts.Govern.Address.Hex())
+		tc.ChkErr(err, "Failed to read config")
+		configFileViper.Set(common.FlagEthContractCelr, tc.CelrAddr.Hex())
+		configFileViper.Set(common.FlagEthContractStaking, tc.Contracts.Staking.Address.Hex())
+		configFileViper.Set(common.FlagEthContractSgn, tc.Contracts.Sgn.Address.Hex())
+		configFileViper.Set(common.FlagEthContractReward, tc.Contracts.Reward.Address.Hex())
+		configFileViper.Set(common.FlagEthContractViewer, tc.Contracts.Viewer.Address.Hex())
+		configFileViper.Set(common.FlagEthContractGovern, tc.Contracts.Govern.Address.Hex())
 		err = configFileViper.WriteConfig()
-		ChkErr(err, "Failed to write config")
+		tc.ChkErr(err, "Failed to write config")
 
 		if manual {
 			genesisPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/genesis.json", i)
 			genesisViper := viper.New()
 			genesisViper.SetConfigFile(genesisPath)
 			err = genesisViper.ReadInConfig()
-			ChkErr(err, "Failed to read genesis")
+			tc.ChkErr(err, "Failed to read genesis")
 			genesisViper.Set("app_state.govern.voting_params.voting_period", "120000000000")
 			err = genesisViper.WriteConfig()
-			ChkErr(err, "Failed to write genesis")
+			tc.ChkErr(err, "Failed to write genesis")
 		}
 	}
 
@@ -132,15 +134,15 @@ func SetupNewSGNEnv(contractParams *ContractParams, manual bool) {
 	node0ConfigPath := "../../../docker-volumes/node0/sgncli/config/sgn.toml"
 	viper.SetConfigFile(node0ConfigPath)
 	err = viper.ReadInConfig()
-	ChkErr(err, "Failed to read config")
-	viper.Set(common.FlagEthContractCelr, CelrAddr.Hex())
-	viper.Set(common.FlagEthContractStaking, Contracts.Staking.Address.Hex())
-	viper.Set(common.FlagEthContractSgn, Contracts.Sgn.Address.Hex())
-	viper.Set(common.FlagEthContractReward, Contracts.Reward.Address.Hex())
-	viper.Set(common.FlagEthContractViewer, Contracts.Viewer.Address.Hex())
-	viper.Set(common.FlagEthContractGovern, Contracts.Govern.Address.Hex())
+	tc.ChkErr(err, "Failed to read config")
+	viper.Set(common.FlagEthContractCelr, tc.CelrAddr.Hex())
+	viper.Set(common.FlagEthContractStaking, tc.Contracts.Staking.Address.Hex())
+	viper.Set(common.FlagEthContractSgn, tc.Contracts.Sgn.Address.Hex())
+	viper.Set(common.FlagEthContractReward, tc.Contracts.Reward.Address.Hex())
+	viper.Set(common.FlagEthContractViewer, tc.Contracts.Viewer.Address.Hex())
+	viper.Set(common.FlagEthContractGovern, tc.Contracts.Govern.Address.Hex())
 
-	ChkErr(err, "Failed to SetContracts")
+	tc.ChkErr(err, "Failed to SetContracts")
 
 	log.Infoln("make localnet-up-nodes")
 	cmd = exec.Command("make", "localnet-up-nodes")
@@ -148,5 +150,5 @@ func SetupNewSGNEnv(contractParams *ContractParams, manual bool) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
-	ChkErr(err, "Failed to make localnet-up-nodes")
+	tc.ChkErr(err, "Failed to make localnet-up-nodes")
 }

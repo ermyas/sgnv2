@@ -15,25 +15,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupValidator() []tc.Killable {
-	res := setupNewSgnEnv(nil, "validator")
+func setupStaking() []tc.Killable {
+	res := setupNewSgnEnv(nil, "staking")
 	tc.SleepWithLog(10, "sgn being ready")
 
 	return res
 }
 
-func TestE2EValidator(t *testing.T) {
-	toKill := setupValidator()
+func TestStaking(t *testing.T) {
+	toKill := setupStaking()
 	defer tc.TearDown(toKill)
 
-	t.Run("e2e-validator", func(t *testing.T) {
-		t.Run("validatorTest", validatorTest)
+	t.Run("e2e-staking", func(t *testing.T) {
+		t.Run("stakingTest", stakingTest)
 	})
 }
 
-func validatorTest(t *testing.T) {
+func stakingTest(t *testing.T) {
 	log.Info("===================================================================")
-	log.Info("======================== Test validator ===========================")
+	log.Info("======================== Test staking ===========================")
 
 	transactor := tc.NewTestTransactor(
 		t,

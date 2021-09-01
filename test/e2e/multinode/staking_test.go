@@ -8,33 +8,34 @@ import (
 	tc "github.com/celer-network/sgn-v2/test/common"
 )
 
-func setupValidator(maxValidatorNum *big.Int) {
+func setupStaking() {
 	log.Infoln("set up new sgn env")
 	p := &tc.ContractParams{
 		CelrAddr:              tc.CelrAddr,
-		ProposalDeposit:       big.NewInt(1),
-		VotePeriod:            big.NewInt(1),
-		UnbondingPeriod:       big.NewInt(0),
-		MaxBondedValidators:   maxValidatorNum,
-		MinValidatorTokens:    big.NewInt(1e18),
+		ProposalDeposit:       big.NewInt(1e18),
+		VotePeriod:            big.NewInt(5),
+		UnbondingPeriod:       big.NewInt(5),
+		MaxBondedValidators:   big.NewInt(3),
+		MinValidatorTokens:    big.NewInt(2e18),
 		MinSelfDelegation:     big.NewInt(1e18),
 		AdvanceNoticePeriod:   big.NewInt(1),
 		ValidatorBondInterval: big.NewInt(0),
+		MaxSlashFactor:        big.NewInt(1e5),
 	}
-	tc.SetupNewSGNEnv(p, false)
+	SetupNewSgnEnv(p, false)
 	tc.SleepWithLog(10, "sgn being ready")
 }
 
-func TestE2EValidator(t *testing.T) {
-	t.Run("e2e-validator", func(t *testing.T) {
-		t.Run("validatorTest", validatorTest)
+func TestStaking(t *testing.T) {
+	t.Run("e2e-staking", func(t *testing.T) {
+		t.Run("stakingTest", stakingTest)
 	})
 }
 
-func validatorTest(t *testing.T) {
+func stakingTest(t *testing.T) {
 	log.Info("===================================================================")
-	log.Info("======================== Test validator ===========================")
-	setupValidator(big.NewInt(3))
+	log.Info("======================== Test staking ===========================")
+	setupStaking()
 
 	// transactor := tc.NewTestTransactor(
 	// 	t,
