@@ -42,7 +42,7 @@ func (k Keeper) SetDelegatorShares(ctx sdk.Context, valAddr, delAddr, shares str
 	if !ok {
 		return fmt.Errorf("Invalid shares %s", shares)
 	}
-	delegator := types.NewDelegator(valAddr, delAddr)
+	delegator := types.NewDelegator(valAddr, delAddr, shares)
 	k.SetDelegator(ctx, delegator)
 	if shInt.IsZero() {
 		k.RemoveDelegator(ctx, delegator)

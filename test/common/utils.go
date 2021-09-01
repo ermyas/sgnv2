@@ -71,13 +71,13 @@ func LogBlkNum(conn *ethclient.Client) {
 	log.Infoln("Latest block number on mainchain:", header.Number)
 }
 
-func sleep(second time.Duration) {
+func Sleep(second time.Duration) {
 	time.Sleep(second * time.Second)
 }
 
 func SleepWithLog(second time.Duration, waitFor string) {
 	log.Infof("Sleep %d seconds for %s", second, waitFor)
-	sleep(second)
+	Sleep(second)
 }
 
 func SleepBlocksWithLog(count time.Duration, waitFor string) {

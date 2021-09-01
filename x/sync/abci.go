@@ -28,7 +28,6 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 
 	updates := keeper.GetAllPendingUpdates(ctx)
 	for _, update := range updates {
-		log.Infoln("EndBlocker update: ", update.Id, " ", update)
 		yesVotes := sdk.ZeroInt()
 		for _, vote := range update.Votes {
 			v, ok := sdkValMaps[vote.Voter]

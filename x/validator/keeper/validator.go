@@ -80,8 +80,12 @@ func (k Keeper) SetValidatorStates(
 				SecurityContact: val.Description.SecurityContact,
 				Details:         val.Description.Details,
 			}
+			sdkValAddr, err2 := types.SdkValAddrFromSgnBech32(val.SgnAddress)
+			if err2 != nil {
+				return fmt.Errorf("Invalid sgnAddr %s, err %w", val.SgnAddress, err2)
+			}
 			sdkVal = sdk_staking.Validator{
-				OperatorAddress: val.SgnAddress,
+				OperatorAddress: sdkValAddr.String(),
 				ConsensusPubkey: val.ConsensusPubkey,
 				Status:          sdk_staking.Bonded,
 				Tokens:          tkInt,

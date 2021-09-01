@@ -60,6 +60,7 @@ func stakingTest(t *testing.T) {
 	require.NoError(t, err, "failed to get sgnAddr")
 	err = tc.InitializeValidator(vAuth, sgnAddr, vAmt, eth.CommissionRate(0.02))
 	require.NoError(t, err, "failed to initialize validator")
+	tc.Sleep(5)
 	expVal := &types.Validator{
 		EthAddress:     eth.Addr2Hex(vEthAddr),
 		EthSigner:      eth.Addr2Hex(vEthAddr),
@@ -77,7 +78,7 @@ func stakingTest(t *testing.T) {
 	}
 	tc.CheckDelegator(t, transactor, expDel)
 	expSdkVal := &sdk_staking.Validator{
-		OperatorAddress: sgnAddr.String(),
+		OperatorAddress: sdk.ValAddress(sgnAddr).String(),
 		Status:          sdk_staking.Bonded,
 		Tokens:          sdk.NewIntFromBigInt(vAmt),
 	}
@@ -90,6 +91,7 @@ func stakingTest(t *testing.T) {
 		require.NoError(t, err2, "failed to get delegator auth")
 		go tc.Delegate(dAuth, vEthAddr, dAmts[i])
 	}
+	tc.Sleep(5)
 	for i := 0; i < len(tc.DelEthKs); i++ {
 		expDel := &types.Delegator{
 			ValAddress: eth.Addr2Hex(vEthAddr),

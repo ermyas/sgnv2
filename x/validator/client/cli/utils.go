@@ -14,7 +14,7 @@ func QueryValidator(cliCtx client.Context, ethAddress string) (validator *types.
 	params := types.NewQueryValidatorParams(ethAddress)
 	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
 	if err != nil {
-		return nil, err
+		return
 	}
 	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryValidator)
 	res, err := common.RobustQueryWithData(cliCtx, route, data)
@@ -103,7 +103,7 @@ func QuerySdkValidators(cliCtx client.Context, status string) (sdkvals sdk_staki
 	if err != nil {
 		return
 	}
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, sdkvals)
+	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &sdkvals)
 	return
 }
 

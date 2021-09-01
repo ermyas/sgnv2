@@ -44,7 +44,7 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 	if err != nil {
 		return false, err
 	}
-	log.Infof("Apply validator %s signer %s sgnaddr %s", v.EthAddress, v.EthSigner, v.SgnAddress)
+	log.Infof("Apply validator params %s signer %s sgnaddr %s", v.EthAddress, v.EthSigner, v.SgnAddress)
 	val, found := k.valKeeper.GetValidator(ctx, v.EthAddress)
 	if found {
 		val.EthSigner = v.EthSigner
@@ -109,7 +109,7 @@ func (k Keeper) applyValidatorStates(ctx sdk.Context, update *types.PendingUpdat
 	if err != nil {
 		return false, err
 	}
-	log.Infof("Apply validator %s status %s tokens %s shares %s", v.EthAddress, v.Status, v.Tokens, v.Shares)
+	log.Infof("Apply validator states %s status %s tokens %s shares %s", v.EthAddress, v.Status, v.Tokens, v.Shares)
 	err = k.valKeeper.SetValidatorStates(ctx, v.EthAddress, v.Status, v.Tokens, v.Shares)
 	if err != nil {
 		return false, err

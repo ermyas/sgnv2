@@ -23,7 +23,11 @@ func setSyncer(ctx sdk.Context, keeper keeper.Keeper) {
 	vIdx := uint64(ctx.BlockHeight()) / syncerDuration % uint64(len(validators))
 
 	if syncer.ValIndex != vIdx || syncer.SgnAddress == "" {
-		syncer = types.NewSyncer(vIdx, validators[vIdx].OperatorAddress)
+		addr, err := sdk.ValAddressFromBech32(validators[vIdx].OperatorAddress)
+		if err != nil {
+			panic(err)
+		}
+		syncer = types.NewSyncer(vIdx, sdk.AccAddress(addr).String())
 		keeper.SetSyncer(ctx, syncer)
 		log.Infof("set syncer to %s", syncer.SgnAddress)
 	}

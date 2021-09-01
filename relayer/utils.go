@@ -17,7 +17,6 @@ func (r *Relayer) isSyncer() bool {
 		log.Errorln("Get syncer err", err)
 		return false
 	}
-
 	return syncer.SgnAddress == r.Transactor.Key.GetAddress().String()
 }
 

@@ -73,8 +73,8 @@ func CheckValidator(t *testing.T, transactor *transactor.Transactor, expVal *typ
 		time.Sleep(RetryPeriod)
 	}
 	require.NoError(t, err, "failed to QueryValidator", err)
-	log.Infof("Query sgn and get validator: %s", validator)
-	assert.True(t, sameValidators(validator, expVal), "The expected validator should be: "+expVal.String())
+	log.Infof("Query sgn and get validator: %s", *validator)
+	assert.True(t, sameValidators(validator, expVal), "The expected validator should be: "+(*expVal).String())
 }
 
 func CheckDelegator(t *testing.T, transactor *transactor.Transactor, expDel *types.Delegator) {
@@ -88,23 +88,24 @@ func CheckDelegator(t *testing.T, transactor *transactor.Transactor, expDel *typ
 		time.Sleep(RetryPeriod)
 	}
 	require.NoError(t, err, "failed to queryDelegator")
-	log.Infof("Query sgn and get delegator: %s", delegator)
-	assert.True(t, sameDelegators(delegator, expDel), "The expected delegator should be: "+expDel.String())
+	log.Infof("Query sgn and get delegator: %s", *delegator)
+	assert.True(t, sameDelegators(delegator, expDel), "The expected delegator should be: "+(*expDel).String())
 }
 
 func CheckSdkValidator(t *testing.T, transactor *transactor.Transactor, expVal *sdk_staking.Validator) {
 	var sdkval *sdk_staking.Validator
-	var err error
+	sgnAddr, err := sdk.ValAddressFromBech32(expVal.OperatorAddress)
+	require.NoError(t, err, "invalid operator address")
 	for retry := 0; retry < RetryLimit; retry++ {
-		sdkval, err = cli.QuerySdkValidator(transactor.CliCtx, expVal.OperatorAddress)
+		sdkval, err = cli.QuerySdkValidator(transactor.CliCtx, sdk.AccAddress(sgnAddr).String())
 		if err == nil && sameSdkValidators(sdkval, expVal) {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
 	require.NoError(t, err, "failed to QuerySdkValidator")
-	log.Infof("Query sgn and get sdk validator: %s", sdkval)
-	assert.True(t, sameSdkValidators(sdkval, expVal), "The expected sdk validator should be: "+expVal.String())
+	log.Infof("Query sgn and get sdk validator: %s", *sdkval)
+	assert.True(t, sameSdkValidators(sdkval, expVal), "The expected sdk validator should be: "+(*expVal).String())
 }
 
 func CheckBondedSdkValidatorNum(t *testing.T, transactor *transactor.Transactor, expNum int) {
@@ -134,7 +135,7 @@ func sameValidators(v *types.Validator, exp *types.Validator) bool {
 
 func sameDelegators(d *types.Delegator, exp *types.Delegator) bool {
 	return d.GetValAddress() == exp.GetValAddress() &&
-		d.GetValAddress() == exp.GetDelAddress() &&
+		d.GetDelAddress() == exp.GetDelAddress() &&
 		d.GetShares() == exp.GetShares()
 }
 
