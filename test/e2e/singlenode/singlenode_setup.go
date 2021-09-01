@@ -141,7 +141,7 @@ func StartGateway(rootDir, testName string) (*os.Process, error) {
 }
 
 // start process to handle eth rpc, and fund etherbase and server account
-func startMainchain() (*os.Process, error) {
+func startMainchain(outRootDir string) (*os.Process, error) {
 	log.Infoln("outRootDir", outRootDir, "envDir", tc.EnvDir)
 	chainDataDir := outRootDir + "mainchaindata"
 	logFname := outRootDir + "mainchain.log"

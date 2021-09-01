@@ -130,7 +130,7 @@ func (r *Relayer) monitorEthDelegationUpdate() {
 func (r *Relayer) shouldBondValidator() bool {
 	shouldBond, err := r.EthClient.Contracts.Viewer.ShouldBondValidator(&bind.CallOpts{}, r.valAddr)
 	if err != nil {
-		log.Errorln("get validator err", err)
+		log.Errorln("Check if should bond validator err:", err)
 		return false
 	}
 

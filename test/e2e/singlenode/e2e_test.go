@@ -37,7 +37,7 @@ func TestMain(m *testing.M) {
 	// set testing pkg level path
 	// start geth, not waiting for it to be fully ready. also watch geth proc
 	// if geth exits with non-zero, os.Exit(1)
-	ethProc, err := startMainchain()
+	ethProc, err := startMainchain(outRootDir)
 	tc.ChkErr(err, "starting mainchain")
 	tc.SleepWithLog(2, "starting mainchain")
 

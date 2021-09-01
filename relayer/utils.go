@@ -18,24 +18,18 @@ func (r *Relayer) isSyncer() bool {
 		return false
 	}
 
-	validator, err := valcli.QueryValidator(r.Transactor.CliCtx, r.valAddr.Hex())
-	if err != nil {
-		log.Errorln("Get validator err", err)
-		return false
-	}
-
-	return syncer.SgnAddress == validator.SgnAddress
+	return syncer.SgnAddress == r.Transactor.Key.GetAddress().String()
 }
 
 func (r *Relayer) getCurrentBlockNumber() *big.Int {
 	return r.ethMonitor.GetCurrentBlockNumber()
 }
 
-// func (r *Relayer) dbGet(key []byte) ([]byte, error) {
-// 	r.lock.RLock()
-// 	defer r.lock.RUnlock()
-// 	return r.db.Get(key)
-// }
+func (r *Relayer) dbGet(key []byte) ([]byte, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+	return r.db.Get(key)
+}
 
 func (r *Relayer) dbSet(key, val []byte) error {
 	r.lock.Lock()
