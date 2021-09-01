@@ -37,7 +37,7 @@ var (
 
 	// validators
 	ValAccounts = [...]string{
-		"sgn1qehw7sn3u3nhnjeqk8kjccj263rq5fv002l5fk",
+		"sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe",
 		"sgn1egtta7su5jxjahtw56pe07qerz4lwvrlttac6y",
 		"sgn19q9usqmjcmx8vynynfl5tj5n2k22gc5f6wjvd7",
 		"sgn1rjr9uaewus3qh4vs4sqdkdvepwyxq8ql84udfh",

@@ -21,6 +21,7 @@ func QueryValidator(cliCtx client.Context, ethAddress string) (validator *types.
 	if err != nil {
 		return
 	}
+	validator = new(types.Validator)
 	err = cliCtx.LegacyAmino.UnmarshalJSON(res, validator)
 	return
 }
@@ -49,6 +50,7 @@ func QueryDelegator(cliCtx client.Context, valAddr, delAddr string) (delegator *
 	if err != nil {
 		return
 	}
+	delegator = new(types.Delegator)
 	err = cliCtx.LegacyAmino.UnmarshalJSON(res, delegator)
 	return
 }
@@ -84,6 +86,7 @@ func QuerySdkValidator(cliCtx client.Context, sgnAddr string) (sdkval *sdk_staki
 	if err != nil {
 		return
 	}
+	sdkval = new(sdk_staking.Validator)
 	err = cliCtx.LegacyAmino.UnmarshalJSON(res, sdkval)
 	return
 }

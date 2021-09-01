@@ -19,7 +19,6 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
-	"github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/gammazero/deque"
 	"github.com/spf13/viper"
 )
@@ -95,14 +94,13 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc co
 		WithBroadcastMode(flags.BroadcastSync).
 		WithTxConfig(txConfig).
 		WithLegacyAmino(legacyAmino).
-		WithClient(cli).
-		WithAccountRetriever(types.AccountRetriever{})
+		WithClient(cli)
 
 	f := clienttx.Factory{}.
 		WithKeybase(cliCtx.Keyring).
 		WithTxConfig(cliCtx.TxConfig).
-		WithAccountNumber(3). //TODO:should not hardcode
-		WithSequence(0).
+		WithAccountNumber(viper.GetUint64(flags.FlagAccountNumber)).
+		WithSequence(viper.GetUint64(flags.FlagSequence)).
 		WithGas(common.DefaultSgnGasLimit).
 		WithGasAdjustment(gasAdjustment).
 		WithChainID(chainID).
@@ -110,8 +108,7 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc co
 		WithFees(viper.GetString(flags.FlagFees)).
 		WithGasPrices(viper.GetString(flags.FlagGasPrices)).
 		WithSignMode(signing.SignMode_SIGN_MODE_DIRECT).
-		WithSimulateAndExecute(true).
-		WithAccountRetriever(cliCtx.AccountRetriever)
+		WithSimulateAndExecute(true)
 
 	transactor := &Transactor{
 		TxFactory:  f,
@@ -251,10 +248,10 @@ func (t *Transactor) sendTxMsgs(msgs []sdk.Msg, gas uint64) (*sdk.TxResponse, er
 func (t *Transactor) buildAndSignTx(msgs []sdk.Msg, gas uint64) ([]byte, error) {
 	txf := t.TxFactory
 
-	// txf, err := prepareFactory(t.CliCtx, txf)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	txf, err := prepareFactory(t.CliCtx, txf)
+	if err != nil {
+		return nil, err
+	}
 
 	if gas != 0 {
 		txf = txf.WithGas(gas)
@@ -320,24 +317,17 @@ func (t *Transactor) CliSendTxMsgsWaitMined(msgs []sdk.Msg) {
 // the updated fields will be returned.
 func prepareFactory(clientCtx client.Context, txf clienttx.Factory) (clienttx.Factory, error) {
 	from := clientCtx.GetFromAddress()
-
-	if err := txf.AccountRetriever().EnsureExists(clientCtx, from); err != nil {
-		return txf, err
-	}
-
 	initNum, initSeq := txf.AccountNumber(), txf.Sequence()
 	if initNum == 0 || initSeq == 0 {
-		num, seq, err := txf.AccountRetriever().GetAccountNumberSequence(clientCtx, from)
+		account, err := QueryAccount(clientCtx, from.String())
 		if err != nil {
 			return txf, err
 		}
-
 		if initNum == 0 {
-			txf = txf.WithAccountNumber(num)
+			txf = txf.WithAccountNumber(account.AccountNumber)
 		}
-
 		if initSeq == 0 {
-			txf = txf.WithSequence(seq)
+			txf = txf.WithSequence(account.Sequence)
 		}
 	}
 

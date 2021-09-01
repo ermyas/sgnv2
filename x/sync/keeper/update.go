@@ -40,7 +40,7 @@ func (k Keeper) VoteUpdates(ctx sdk.Context, votes []*types.VoteUpdate, sender s
 func (k Keeper) GetPendingUpdate(ctx sdk.Context, updateId uint64) (update *types.PendingUpdate, found bool) {
 	store := ctx.KVStore(k.storeKey)
 
-	value := store.Get(types.GetPendingUpdateKey(update.Id))
+	value := store.Get(types.GetPendingUpdateKey(updateId))
 	if value == nil {
 		return update, false
 	}

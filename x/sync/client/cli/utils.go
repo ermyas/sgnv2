@@ -14,6 +14,6 @@ func QueryPendingUpdates(cliCtx client.Context) (pendingUpdates []*types.Pending
 	if err != nil {
 		return
 	}
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, pendingUpdates)
+	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &pendingUpdates)
 	return
 }
