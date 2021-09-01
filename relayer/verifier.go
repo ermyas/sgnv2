@@ -43,7 +43,7 @@ func (r *Relayer) verifyPendingUpdates() {
 		if done {
 			err = r.verifiedUpdates.Set(strconv.Itoa(int(update.Id)), []byte{})
 			if err != nil {
-				log.Errorln("verifiedChanges Set err", err)
+				log.Errorln("verifiedUpdates Set err", err)
 				continue
 			}
 			if approve {
@@ -128,7 +128,7 @@ func (r *Relayer) verifyValidatorParams(update *synctypes.PendingUpdate) (done, 
 		values := fmt.Sprintf("signer %x sgnaddr %s commission %d",
 			ethVal.Signer, sdk.AccAddress(sgnAddr).String(), ethVal.CommissionRate)
 		if r.cmpBlkNum(update.EthBlock) == 1 {
-			log.Infof("%s. validator params not match eth values: %s", logmsg, values)
+			log.Errorf("%s. validator params not match eth values: %s", logmsg, values)
 			return true, false
 		}
 		log.Infof("%s. eth block not passed, values: %s", logmsg, values)

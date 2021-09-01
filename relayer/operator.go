@@ -103,8 +103,8 @@ func (o *Operator) SyncValidatorMsgs(valAddr eth.Addr, flag ValSyncFlag) []*sync
 			return nil
 		}
 		updateVal := validatortypes.Validator{
-			EthAddress:     valAddr.Hex(),
-			EthSigner:      ethVal.Signer.Hex(),
+			EthAddress:     eth.Addr2Hex(valAddr),
+			EthSigner:      eth.Addr2Hex(ethVal.Signer),
 			SgnAddress:     sdk.AccAddress(sgnAddr).String(),
 			CommissionRate: ethVal.CommissionRate,
 		}

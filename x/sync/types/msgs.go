@@ -62,7 +62,7 @@ func NewMsgVoteUpdates(votes []*VoteUpdate, sender string) MsgVoteUpdates {
 func (msg *MsgVoteUpdates) Route() string { return RouterKey }
 
 // Type should return the action
-func (msg *MsgVoteUpdates) Type() string { return TypeMsgProposeUpdates }
+func (msg *MsgVoteUpdates) Type() string { return TypeMsgVoteUpdates }
 
 // ValidateBasic runs stateless checks on the message
 func (msg *MsgVoteUpdates) ValidateBasic() error {
