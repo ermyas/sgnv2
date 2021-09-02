@@ -24,9 +24,7 @@ var (
 )
 
 // AppModuleBasic defines the basic application module used by the validator module.
-type AppModuleBasic struct {
-	cdc codec.Codec
-}
+type AppModuleBasic struct{}
 
 var _ module.AppModuleBasic = AppModuleBasic{}
 

@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"math/big"
+	"sort"
 	"strconv"
 	"testing"
 	"time"
@@ -79,6 +80,23 @@ func CheckValidator(t *testing.T, transactor *transactor.Transactor, expVal *typ
 	assert.True(t, sameValidators(validator, expVal), "The expected validator should be: "+expVal.String())
 }
 
+func CheckValidators(t *testing.T, transactor *transactor.Transactor, expVals []*types.Validator) {
+	var validators []*types.Validator
+	var err error
+	for retry := 0; retry < RetryLimit; retry++ {
+		validators, err = cli.QueryValidators(transactor.CliCtx)
+		if err != nil {
+			log.Debugln("retry due to err:", err)
+		}
+		if err == nil && len(validators) == len(expVals) {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	require.NoError(t, err, "failed to QueryValidators", err)
+	assert.True(t, sameEachValidators(validators, expVals), "Validators are not the same.")
+}
+
 func CheckDelegator(t *testing.T, transactor *transactor.Transactor, expDel *types.Delegator) {
 	var delegator *types.Delegator
 	var err error
@@ -122,6 +140,26 @@ func CheckBondedSdkValidatorNum(t *testing.T, transactor *transactor.Transactor,
 	}
 	require.NoError(t, err, "failed to QuerySdkValidators")
 	assert.Equal(t, expNum, len(sdkvals), "The length of validators should be: "+strconv.Itoa(expNum))
+}
+
+func sameEachValidators(vs []*types.Validator, exps []*types.Validator) bool {
+	same := len(vs) == len(exps)
+	if same {
+		sort.SliceStable(vs, func(i, j int) bool {
+			return vs[i].EthAddress < vs[j].EthAddress
+		})
+		sort.SliceStable(exps, func(i, j int) bool {
+			return exps[i].EthAddress < exps[j].EthAddress
+		})
+
+		for i := 0; i < len(vs); i++ {
+			same = same && sameValidators(vs[i], exps[i])
+			if !same {
+				break
+			}
+		}
+	}
+	return same
 }
 
 // TODO: check pubkey, transactors, and description
