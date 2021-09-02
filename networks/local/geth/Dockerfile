@@ -1,8 +1,9 @@
 FROM alpine:latest
 
-RUN echo '@edge http://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories && \
-    apk add --no-cache musl geth && \
-    mkdir -p /geth/bin
+RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
+    echo "http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories && \
+    apk add --no-cache geth
+RUN mkdir -p /geth/bin
 
 VOLUME /geth/env /geth/bin
 RUN ln -s /usr/bin/geth /geth/bin/geth
