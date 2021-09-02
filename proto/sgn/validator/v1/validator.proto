@@ -16,17 +16,19 @@ enum ValidatorStatus {
 }
 
 message Validator {
-  string eth_address = 1;
-  string eth_signer = 2;
+  option (gogoproto.goproto_stringer) = false;
+
+  string eth_address = 1 [(gogoproto.moretags) = "yaml:\"eth_address\""];
+  string eth_signer = 2 [(gogoproto.moretags) = "yaml:\"signer_address\""];
   ValidatorStatus status = 3;
-  string sgn_address = 4;
+  string sgn_address = 4 [(gogoproto.moretags) = "yaml:\"sgn_address\""];
   // consensus_pubkey is the consensus public key of the validator, as a Protobuf Any.
   google.protobuf.Any consensus_pubkey = 5
       [(cosmos_proto.accepts_interface) = "cosmos.crypto.PubKey", (gogoproto.moretags) = "yaml:\"consensus_pubkey\""];
   repeated string transactors = 6;
-  string tokens = 7;
-  string shares = 8;
-  uint64 commission_rate = 9;
+  string tokens = 7 [(gogoproto.moretags) = "yaml:\"tokens\""];
+  string shares = 8 [(gogoproto.moretags) = "yaml:\"shares\""];
+  uint64 commission_rate = 9 [(gogoproto.moretags) = "yaml:\"commission_rate\""];
   Description description = 10;
 }
 
@@ -39,9 +41,9 @@ message Description {
 }
 
 message Delegator {
-  string val_address = 1;
-  string del_address = 2;
-  string shares = 3;
+  string val_address = 1 [(gogoproto.moretags) = "yaml:\"val_address\""];
+  string del_address = 2 [(gogoproto.moretags) = "yaml:\"del_address\""];
+  string shares = 3 [(gogoproto.moretags) = "yaml:\"shares\""];
 }
 
 message Syncer {

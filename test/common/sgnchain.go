@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"math/big"
 	"strconv"
 	"testing"
@@ -15,6 +16,7 @@ import (
 	"github.com/celer-network/sgn-v2/x/validator/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -73,8 +75,8 @@ func CheckValidator(t *testing.T, transactor *transactor.Transactor, expVal *typ
 		time.Sleep(RetryPeriod)
 	}
 	require.NoError(t, err, "failed to QueryValidator", err)
-	log.Infof("Query sgn and get validator: %s", *validator)
-	assert.True(t, sameValidators(validator, expVal), "The expected validator should be: "+(*expVal).String())
+	log.Infof("Query sgn and get validator: %s", validator.String())
+	assert.True(t, sameValidators(validator, expVal), "The expected validator should be: "+expVal.String())
 }
 
 func CheckDelegator(t *testing.T, transactor *transactor.Transactor, expDel *types.Delegator) {
@@ -88,8 +90,8 @@ func CheckDelegator(t *testing.T, transactor *transactor.Transactor, expDel *typ
 		time.Sleep(RetryPeriod)
 	}
 	require.NoError(t, err, "failed to queryDelegator")
-	log.Infof("Query sgn and get delegator: %s", *delegator)
-	assert.True(t, sameDelegators(delegator, expDel), "The expected delegator should be: "+(*expDel).String())
+	log.Infof("Query sgn and get delegator: %s", delegator.String())
+	assert.True(t, sameDelegators(delegator, expDel), "The expected delegator should be: "+expDel.String())
 }
 
 func CheckSdkValidator(t *testing.T, transactor *transactor.Transactor, expVal *sdk_staking.Validator) {
@@ -104,8 +106,8 @@ func CheckSdkValidator(t *testing.T, transactor *transactor.Transactor, expVal *
 		time.Sleep(RetryPeriod)
 	}
 	require.NoError(t, err, "failed to QuerySdkValidator")
-	log.Infof("Query sgn and get sdk validator: %s", *sdkval)
-	assert.True(t, sameSdkValidators(sdkval, expVal), "The expected sdk validator should be: "+(*expVal).String())
+	log.Infof("Query sgn and get sdk validator: %s", printSdkVal(sdkval))
+	assert.True(t, sameSdkValidators(sdkval, expVal), "The expected sdk validator should be: "+printSdkVal(expVal))
 }
 
 func CheckBondedSdkValidatorNum(t *testing.T, transactor *transactor.Transactor, expNum int) {
@@ -143,4 +145,14 @@ func sameSdkValidators(v *sdk_staking.Validator, exp *sdk_staking.Validator) boo
 	return v.GetOperator().Equals(exp.GetOperator()) &&
 		v.GetStatus() == exp.GetStatus() &&
 		v.GetTokens().Equal(exp.GetTokens())
+}
+
+func printSdkVal(v *sdk_staking.Validator) string {
+	pubkey := v.ConsensusPubkey
+	v.ConsensusPubkey = nil
+	out := proto.CompactTextString(v)
+	if pubkey != nil {
+		out += fmt.Sprintf("consensus_pubkey: %x", pubkey.Value)
+	}
+	return out
 }
