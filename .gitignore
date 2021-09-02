@@ -24,3 +24,4 @@ protoc/
 
 #sgn files
 test/data/.sgncli/config/sgn.toml
+docker-volumes
