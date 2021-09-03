@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/celer-network/sgn-v2/app"
 	"github.com/celer-network/sgn-v2/app/params"
@@ -12,6 +15,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/config"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	"github.com/cosmos/cosmos-sdk/store"
@@ -20,9 +24,11 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
+	"github.com/rs/zerolog"
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	tmcfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/libs/cli"
 	tlog "github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
@@ -57,11 +63,24 @@ func GetSgndExecutor(encodingConfig params.EncodingConfig) cli.Executor {
 			if err := client.SetCmdClientContextHandler(initClientCtx, cmd); err != nil {
 				return err
 			}
-
 			err = server.InterceptConfigsPreRunHandler(cmd, "", nil)
-			if err != nil {
-				return err
+
+			// reset logger TimeFormat
+			serverCtx := server.GetServerContextFromCmd(cmd)
+			var logWriter io.Writer
+			if strings.ToLower(serverCtx.Viper.GetString(flags.FlagLogFormat)) == tmcfg.LogFormatPlain {
+				logWriter = zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02 15:04:05 UTC"}
+			} else {
+				logWriter = os.Stderr
 			}
+			logLvlStr := serverCtx.Viper.GetString(flags.FlagLogLevel)
+			logLvl, err := zerolog.ParseLevel(logLvlStr)
+			if err != nil {
+				return fmt.Errorf("failed to parse log level (%s): %w", logLvlStr, err)
+			}
+			zerolog.TimestampFunc = func() time.Time { return time.Now().UTC().Round(time.Second) }
+			serverCtx.Logger = ZeroLogWrapper{zerolog.New(logWriter).Level(logLvl).With().Timestamp().Logger()}
+			server.SetCmdServerContext(cmd, serverCtx)
 
 			// TODO: Use customAppConfig
 			sgnConfigPath := viper.GetString(common.FlagConfig)
