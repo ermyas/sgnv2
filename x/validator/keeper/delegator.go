@@ -19,14 +19,14 @@ func (k Keeper) GetDelegator(ctx sdk.Context, valAddr, delAddr string) (delegato
 	return delegator, true
 }
 
-func (k Keeper) GetAllDelegators(ctx sdk.Context, valAddr string) (delegators []*types.Delegator) {
+func (k Keeper) GetAllDelegators(ctx sdk.Context, valAddr string) (delegators []types.Delegator) {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, types.GetDelegatorsKey(valAddr))
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
 		delegator := types.MustUnmarshalDelegator(k.cdc, iterator.Value())
-		delegators = append(delegators, &delegator)
+		delegators = append(delegators, delegator)
 	}
 	return delegators
 }

@@ -124,8 +124,8 @@ func CheckSdkValidator(t *testing.T, transactor *transactor.Transactor, expVal *
 		time.Sleep(RetryPeriod)
 	}
 	require.NoError(t, err, "failed to QuerySdkValidator")
-	log.Infof("Query sgn and get sdk validator: %s", printSdkVal(sdkval))
-	assert.True(t, sameSdkValidators(sdkval, expVal), "The expected sdk validator should be: "+printSdkVal(expVal))
+	log.Infof("Query sgn and get sdk validator: %s", printSdkVal(*sdkval))
+	assert.True(t, sameSdkValidators(sdkval, expVal), "The expected sdk validator should be: "+printSdkVal(*expVal))
 }
 
 func CheckBondedSdkValidatorNum(t *testing.T, transactor *transactor.Transactor, expNum int) {
@@ -185,10 +185,10 @@ func sameSdkValidators(v *sdk_staking.Validator, exp *sdk_staking.Validator) boo
 		v.GetTokens().Equal(exp.GetTokens())
 }
 
-func printSdkVal(v *sdk_staking.Validator) string {
+func printSdkVal(v sdk_staking.Validator) string {
 	pubkey := v.ConsensusPubkey
 	v.ConsensusPubkey = nil
-	out := proto.CompactTextString(v)
+	out := proto.CompactTextString(&v)
 	if pubkey != nil {
 		out += fmt.Sprintf("consensus_pubkey: %x", pubkey.Value)
 	}

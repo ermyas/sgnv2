@@ -44,17 +44,17 @@ func (v Validator) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 	return unpacker.UnpackAny(v.ConsensusPubkey, &pk)
 }
 
-func (v *Validator) String() string {
+func (v Validator) String() string {
 	pubkey := v.GetConsensusPubkey()
 	v.ConsensusPubkey = nil
-	out := proto.CompactTextString(v)
+	out := proto.CompactTextString(&v)
 	if pubkey != nil {
 		out += fmt.Sprintf("consensus_pubkey: %x", pubkey.Value)
 	}
 	return out
 }
 
-func (v *Validator) YamlStr() string {
+func (v Validator) YamlStr() string {
 	out, _ := yaml.Marshal(v)
 	return string(out)
 }

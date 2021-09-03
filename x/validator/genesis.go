@@ -14,11 +14,11 @@ func InitGenesis(ctx sdk.Context, keeper keeper.Keeper, data *types.GenesisState
 	}
 
 	for _, validator := range data.Validators {
-		keeper.SetValidator(ctx, validator)
+		keeper.SetValidator(ctx, &validator)
 	}
 
 	for _, delegator := range data.Delegators {
-		keeper.SetDelegator(ctx, delegator)
+		keeper.SetDelegator(ctx, &delegator)
 	}
 
 	return []abci.ValidatorUpdate{}
@@ -28,7 +28,7 @@ func ExportGenesis(ctx sdk.Context, keeper keeper.Keeper) *types.GenesisState {
 	params := keeper.GetParams(ctx)
 	syncer := keeper.GetSyncer(ctx)
 	validators := keeper.GetAllValidators(ctx)
-	delegators := []*types.Delegator{}
+	delegators := []types.Delegator{}
 
 	for _, validator := range validators {
 		delegators = append(delegators, keeper.GetAllDelegators(ctx, validator.EthAddress)...)

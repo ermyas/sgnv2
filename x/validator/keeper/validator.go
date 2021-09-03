@@ -22,14 +22,14 @@ func (k Keeper) GetValidator(ctx sdk.Context, ethAddr string) (validator *types.
 	return validator, true
 }
 
-func (k Keeper) GetAllValidators(ctx sdk.Context) (validators []*types.Validator) {
+func (k Keeper) GetAllValidators(ctx sdk.Context) (validators []types.Validator) {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, types.ValidatorKey)
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
 		validator := types.MustUnmarshalValidator(k.cdc, iterator.Value())
-		validators = append(validators, &validator)
+		validators = append(validators, validator)
 	}
 
 	return validators
