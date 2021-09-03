@@ -22,14 +22,14 @@ func (k Keeper) GetValidator(ctx sdk.Context, ethAddr string) (validator *types.
 	return validator, true
 }
 
-func (k Keeper) GetAllValidators(ctx sdk.Context) (validators []types.Validator) {
+func (k Keeper) GetAllValidators(ctx sdk.Context) (validators types.Validators) {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, types.ValidatorKey)
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
 		validator := types.MustUnmarshalValidator(k.cdc, iterator.Value())
-		validators = append(validators, validator)
+		validators = append(validators, &validator)
 	}
 
 	return validators
@@ -54,11 +54,11 @@ func (k Keeper) SetValidatorStates(
 	}
 	tkInt, ok := sdk.NewIntFromString(tokens)
 	if !ok {
-		return fmt.Errorf("Invalid tokens %s", tokens)
+		return fmt.Errorf("invalid tokens %s", tokens)
 	}
 	shInt, ok := sdk.NewIntFromString(shares)
 	if !ok {
-		return fmt.Errorf("Invalid shares %s", shares)
+		return fmt.Errorf("invalid shares %s", shares)
 	}
 	val.Status = status
 	val.Tokens = tokens
@@ -82,7 +82,7 @@ func (k Keeper) SetValidatorStates(
 			}
 			sdkValAddr, err2 := types.SdkValAddrFromSgnBech32(val.SgnAddress)
 			if err2 != nil {
-				return fmt.Errorf("Invalid sgnAddr %s, err %w", val.SgnAddress, err2)
+				return fmt.Errorf("invalid sgnAddr %s, err %w", val.SgnAddress, err2)
 			}
 			sdkVal = sdk_staking.Validator{
 				OperatorAddress: sdkValAddr.String(),
@@ -111,7 +111,6 @@ func (k Keeper) SetValidatorStates(
 		k.sdkStakingKeeper.SetNewValidatorByPowerIndex(ctx, sdkVal)
 	} else if val.Status == types.ValidatorStatus_Unbonded {
 		k.sdkStakingKeeper.RemoveValidator(ctx, sdkValAddr)
-	} else if val.Status == types.ValidatorStatus_Unbonding {
 	}
 
 	return nil

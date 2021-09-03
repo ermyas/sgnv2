@@ -34,10 +34,14 @@ func ExportGenesis(ctx sdk.Context, keeper keeper.Keeper) *types.GenesisState {
 		delegators = append(delegators, keeper.GetAllDelegators(ctx, validator.EthAddress)...)
 	}
 
+	vals := make([]types.Validator, 0)
+	for i := range validators {
+		vals = append(vals, *validators[i])
+	}
 	return &types.GenesisState{
 		Params:     params,
 		Syncer:     syncer,
-		Validators: validators,
+		Validators: vals,
 		Delegators: delegators,
 	}
 }

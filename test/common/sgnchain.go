@@ -80,8 +80,8 @@ func CheckValidator(t *testing.T, transactor *transactor.Transactor, expVal *typ
 	assert.True(t, sameValidators(validator, expVal), "The expected validator should be: "+expVal.String())
 }
 
-func CheckValidators(t *testing.T, transactor *transactor.Transactor, expVals []*types.Validator) {
-	var validators []*types.Validator
+func CheckValidators(t *testing.T, transactor *transactor.Transactor, expVals types.Validators) {
+	var validators types.Validators
 	var err error
 	for retry := 0; retry < RetryLimit; retry++ {
 		validators, err = cli.QueryValidators(transactor.CliCtx)

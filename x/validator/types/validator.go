@@ -39,7 +39,7 @@ func UnmarshalValidator(cdc codec.BinaryCodec, value []byte) (v Validator, err e
 }
 
 // UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
-func (v Validator) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
+func (v *Validator) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 	var pk cryptotypes.PubKey
 	return unpacker.UnpackAny(v.ConsensusPubkey, &pk)
 }
@@ -57,4 +57,17 @@ func (v Validator) String() string {
 func (v Validator) YamlStr() string {
 	out, _ := yaml.Marshal(v)
 	return string(out)
+}
+
+// Validators is a collection of Validator
+type Validators []*Validator
+
+// UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
+func (v Validators) UnpackInterfaces(c codectypes.AnyUnpacker) error {
+	for i := range v {
+		if err := v[i].UnpackInterfaces(c); err != nil {
+			return err
+		}
+	}
+	return nil
 }

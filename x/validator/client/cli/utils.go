@@ -26,7 +26,7 @@ func QueryValidator(cliCtx client.Context, ethAddress string) (validator *types.
 	return
 }
 
-func QueryValidators(cliCtx client.Context) (validators []*types.Validator, err error) {
+func QueryValidators(cliCtx client.Context) (validators types.Validators, err error) {
 	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryValidators)
 	res, err := common.RobustQuery(cliCtx, route)
 	if err != nil {
