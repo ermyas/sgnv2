@@ -65,14 +65,24 @@ func GetSgndExecutor(encodingConfig params.EncodingConfig) cli.Executor {
 			}
 			err = server.InterceptConfigsPreRunHandler(cmd, "", nil)
 
+			// TODO: Use customAppConfig
+			sgnConfigPath := viper.GetString(common.FlagConfig)
+			_, err = os.Stat(sgnConfigPath)
+			if err != nil {
+				return err
+			}
+			viper.SetConfigFile(sgnConfigPath)
+			err = viper.ReadInConfig()
+
 			// reset logger TimeFormat
 			serverCtx := server.GetServerContextFromCmd(cmd)
 			var logWriter io.Writer
 			if strings.ToLower(serverCtx.Viper.GetString(flags.FlagLogFormat)) == tmcfg.LogFormatPlain {
 				logWriter = zerolog.ConsoleWriter{
-					Out:        os.Stderr,
-					TimeFormat: "2006-01-02 15:04:05 UTC",
-					NoColor:    !viper.GetBool(common.FlagLogColor),
+					Out:         os.Stderr,
+					TimeFormat:  "2006-01-02 15:04:05 UTC",
+					NoColor:     !viper.GetBool(common.FlagLogColor),
+					FormatLevel: logFormatLevel(viper.GetBool(common.FlagLogColor)),
 				}
 			} else {
 				logWriter = os.Stderr
@@ -86,14 +96,6 @@ func GetSgndExecutor(encodingConfig params.EncodingConfig) cli.Executor {
 			serverCtx.Logger = ZeroLogWrapper{zerolog.New(logWriter).Level(logLvl).With().Timestamp().Logger()}
 			server.SetCmdServerContext(cmd, serverCtx)
 
-			// TODO: Use customAppConfig
-			sgnConfigPath := viper.GetString(common.FlagConfig)
-			_, err = os.Stat(sgnConfigPath)
-			if err != nil {
-				return err
-			}
-			viper.SetConfigFile(sgnConfigPath)
-			err = viper.ReadInConfig()
 			return err
 		},
 	}

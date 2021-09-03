@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/rs/zerolog"
 	tmlog "github.com/tendermint/tendermint/libs/log"
 )
@@ -52,4 +55,58 @@ func getLogFields(keyVals ...interface{}) map[string]interface{} {
 	}
 
 	return fields
+}
+
+const (
+	black = iota + 30
+	red
+	green
+	yellow
+	blue
+	magenta
+	cyan
+	white
+
+	bold     = 1
+	darkgray = 90
+)
+
+func logFormatLevel(color bool) zerolog.Formatter {
+	return func(i interface{}) string {
+		var l string
+		if ll, ok := i.(string); ok {
+			switch ll {
+			case "trace":
+				l = colorize("|TRACE|", blue, color)
+			case "debug":
+				l = colorize("|DEBUG|", cyan, color)
+			case "info":
+				l = colorize("|INFO |", green, color)
+			case "warn":
+				l = colorize("|WARN |", yellow, color)
+			case "error":
+				l = colorize("|ERROR|", red, color)
+			case "fatal":
+				l = colorize("|FATAL|", red, color)
+			case "panic":
+				l = colorize("|PANIC|", red, color)
+			default:
+				l = colorize("???", bold, color)
+			}
+		} else {
+			if i == nil {
+				l = colorize("???", bold, color)
+			} else {
+				l = strings.ToUpper(fmt.Sprintf("%s", i))[0:3]
+			}
+		}
+		return l
+	}
+}
+
+func colorize(s interface{}, c int, enable bool) string {
+	if enable {
+		return fmt.Sprintf("\x1b[%dm%v\x1b[0m", c, s)
+	}
+	return fmt.Sprintf("%s", s)
 }
