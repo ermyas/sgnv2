@@ -69,7 +69,11 @@ func GetSgndExecutor(encodingConfig params.EncodingConfig) cli.Executor {
 			serverCtx := server.GetServerContextFromCmd(cmd)
 			var logWriter io.Writer
 			if strings.ToLower(serverCtx.Viper.GetString(flags.FlagLogFormat)) == tmcfg.LogFormatPlain {
-				logWriter = zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02 15:04:05 UTC"}
+				logWriter = zerolog.ConsoleWriter{
+					Out:        os.Stderr,
+					TimeFormat: "2006-01-02 15:04:05 UTC",
+					NoColor:    !viper.GetBool(common.FlagLogColor),
+				}
 			} else {
 				logWriter = os.Stderr
 			}

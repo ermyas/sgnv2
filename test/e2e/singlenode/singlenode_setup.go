@@ -74,7 +74,6 @@ func updateSgnConfig() {
 	tc.ChkErr(err, "failed to read keystore config")
 	ksAddrStr, err := eth.GetAddressFromKeystore(ksbytes)
 	tc.ChkErr(err, "failed get addr from keystore")
-
 	configFileViper.Set(common.FlagEthValidatorAddress, ksAddrStr)
 	err = configFileViper.WriteConfig()
 	tc.ChkErr(err, "failed to write config")

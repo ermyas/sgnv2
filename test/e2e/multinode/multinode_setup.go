@@ -115,6 +115,8 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool) {
 		configFileViper.Set(common.FlagEthContractReward, tc.Contracts.Reward.Address.Hex())
 		configFileViper.Set(common.FlagEthContractViewer, tc.Contracts.Viewer.Address.Hex())
 		configFileViper.Set(common.FlagEthContractGovern, tc.Contracts.Govern.Address.Hex())
+		// TODO: different config for validator and signer
+		configFileViper.Set(common.FlagEthValidatorAddress, tc.ValEthAddrs[i])
 		err = configFileViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")
 
