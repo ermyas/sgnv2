@@ -8,11 +8,10 @@ signer_keystore = "./keys/vethks3.json"
 signer_passphrase = ""
 validator_address = ""
 poll_interval = 1
+sync_blk_interval = 1
 
 [eth.check_interval]
 confirm_param_proposal = 2
-intend_settle = 1
-intend_withdraw_channel = 1
 
 [eth.contract_address]
 celr = ""
@@ -39,5 +38,4 @@ transactors = []
 validator_account = "sgn1rjr9uaewus3qh4vs4sqdkdvepwyxq8ql84udfh"
 
 [sgn.check_interval]
-guard_queue = 2
 slash_queue = 2

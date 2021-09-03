@@ -21,4 +21,4 @@ go test -failfast -v -timeout 30m github.com/celer-network/sgn-v2/test/e2e/multi
 ```
 Logs are located at
 - geth log path: docker-volumes/geth-env/geth.log
-- sgn nodeN log path: docker-volumes/nodeN/sgn/sgnd.log
+- sgn nodeN log path: docker-volumes/nodeN/sgnd/sgnd.log
