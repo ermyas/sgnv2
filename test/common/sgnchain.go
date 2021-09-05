@@ -88,13 +88,14 @@ func CheckValidators(t *testing.T, transactor *transactor.Transactor, expVals ty
 		if err != nil {
 			log.Debugln("retry due to err:", err)
 		}
-		if err == nil && len(validators) == len(expVals) {
+		if err == nil && sameEachValidators(validators, expVals) {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
 	require.NoError(t, err, "failed to QueryValidators", err)
-	assert.True(t, sameEachValidators(validators, expVals), "Validators are not the same.")
+	log.Infof("Query sgn and get validators: %s", validators.String())
+	assert.True(t, sameEachValidators(validators, expVals), "The expected validators should be: "+expVals.String())
 }
 
 func CheckDelegator(t *testing.T, transactor *transactor.Transactor, expDel *types.Delegator) {

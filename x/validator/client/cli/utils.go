@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 
@@ -67,6 +68,21 @@ func QueryDelegators(cliCtx client.Context, ethAddress string) (delegators []*ty
 		return
 	}
 	err = cliCtx.LegacyAmino.UnmarshalJSON(res, delegators)
+	return
+}
+
+func QuerySgnAccount(cliCtx client.Context, sgnAddr string) (exist bool, err error) {
+	params := types.NewQuerySgnAccountParams(sgnAddr)
+	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
+	if err != nil {
+		return false, err
+	}
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QuerySgnAccount)
+	res, err := common.RobustQueryWithData(cliCtx, route, data)
+	if err != nil {
+		return
+	}
+	exist = bytes.Compare(res, []byte{1}) == 0
 	return
 }
 

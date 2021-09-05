@@ -49,7 +49,8 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 			keeper.ApplyUpdate(ctx, update)
 			keeper.RemovePendingUpdate(ctx, update.Id)
 		} else if ctx.BlockTime().Unix() > int64(update.ClosingTs) {
-			log.Debugf("Pending update expired, id: %d, type: %s", update.Id, update.Type)
+			log.Debugf("Pending update expired, id: %d, type: %s, votes: %s, threshold %s",
+				update.Id, update.Type, yesVotes, threshold)
 			keeper.RemovePendingUpdate(ctx, update.Id)
 		}
 	}

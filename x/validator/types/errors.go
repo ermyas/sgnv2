@@ -6,7 +6,8 @@ import (
 
 var (
 	ErrEmptyValidatorAddr = sdk_errors.Register(ModuleName, 2, "empty validator address")
-	ErrNoValidatorFound   = sdk_errors.Register(ModuleName, 3, "validator not found")
-	ErrNoDelegatorFound   = sdk_errors.Register(ModuleName, 4, "delegator not found")
-	ErrInvalidAddress     = sdk_errors.Register(ModuleName, 5, "invalid address")
+	ErrValidatorNotFound  = sdk_errors.Register(ModuleName, 3, "validator not found")
+	ErrDelegatorNotFound  = sdk_errors.Register(ModuleName, 4, "delegator not found")
+	ErrSgnAccounNotFound  = sdk_errors.Register(ModuleName, 5, "sgn account not found")
+	ErrInvalidAddress     = sdk_errors.Register(ModuleName, 6, "invalid address")
 )

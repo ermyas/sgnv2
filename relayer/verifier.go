@@ -66,6 +66,8 @@ func (r *Relayer) verifyUpdate(update *synctypes.PendingUpdate) (done, approve b
 		return r.verifyEthBlkNum(update)
 	case synctypes.DataType_StakingContractParam:
 		return r.verifyStakingContractParam(update)
+	case synctypes.DataType_ValidatorSgnAddr:
+		return r.verifyValidatorSgnAddr(update)
 	case synctypes.DataType_ValidatorParams:
 		return r.verifyValidatorParams(update)
 	case synctypes.DataType_ValidatorStates:
@@ -93,19 +95,49 @@ func (r *Relayer) verifyStakingContractParam(update *synctypes.PendingUpdate) (d
 	return true, true
 }
 
+func (r *Relayer) verifyValidatorSgnAddr(update *synctypes.PendingUpdate) (done, approve bool) {
+	updateVal, err := validatortypes.UnmarshalValidator(r.Transactor.CliCtx.Codec, update.Data)
+	if err != nil {
+		return true, false
+	}
+	logmsg := fmt.Sprintf("verify update id %d, sgnaddr for validator: %s", update.Id, updateVal.String())
+
+	sgnAddr, err := r.EthClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, eth.Hex2Addr(updateVal.EthAddress))
+	if err != nil {
+		log.Errorf("%s. query contract sgn address err: %s", logmsg, err)
+		return false, false
+	}
+
+	exist, _ := validatorcli.QuerySgnAccount(r.Transactor.CliCtx, sdk.AccAddress(sgnAddr).String())
+	if exist {
+		log.Infof("%s. sgn account already updated", logmsg)
+		return true, false
+	}
+
+	if updateVal.SgnAddress != sdk.AccAddress(sgnAddr).String() {
+		values := fmt.Sprintf("sgnaddr %s", sdk.AccAddress(sgnAddr).String())
+		if r.cmpBlkNum(update.EthBlock) == 1 {
+			log.Errorf("%s. validator params not match eth values: %s", logmsg, values)
+			return true, false
+		}
+		log.Infof("%s. eth block not passed, values: %s", logmsg, values)
+		return false, false
+	}
+
+	return true, true
+}
+
 func (r *Relayer) verifyValidatorParams(update *synctypes.PendingUpdate) (done, approve bool) {
 	updateVal, err := validatortypes.UnmarshalValidator(r.Transactor.CliCtx.Codec, update.Data)
 	if err != nil {
 		return true, false
 	}
-	logmsg := fmt.Sprintf("verify update id %d, params for validator: %s, signer %s, sgnaddr %s, commission %d",
-		update.Id, updateVal.EthAddress, updateVal.EthSigner, updateVal.SgnAddress, updateVal.CommissionRate)
+	logmsg := fmt.Sprintf("verify update id %d, params for validator: %s", update.Id, updateVal.String())
 
 	storeVal, err := validatorcli.QueryValidator(r.Transactor.CliCtx, updateVal.EthAddress)
 	if err == nil {
-		if updateVal.EthSigner == storeVal.EthSigner && updateVal.SgnAddress == storeVal.SgnAddress &&
-			updateVal.CommissionRate == storeVal.CommissionRate {
-			log.Infof("%s. validator params already updated", logmsg)
+		if sameValidatorParams(&updateVal, storeVal) {
+			log.Infof("%s. validator already updated", logmsg)
 			return true, false
 		}
 	}
@@ -144,17 +176,17 @@ func (r *Relayer) verifyValidatorStates(update *synctypes.PendingUpdate) (done, 
 	if err != nil {
 		return true, false
 	}
-	logmsg := fmt.Sprintf("verify update id %d, states for validator: %s, status %s, tokens %s, shares %s",
-		update.Id, updateVal.EthAddress, updateVal.Status, updateVal.Tokens, updateVal.Shares)
+	logmsg := fmt.Sprintf("verify update id %d, states for validator: %s", update.Id, updateVal.String())
 
 	storeVal, err := validatorcli.QueryValidator(r.Transactor.CliCtx, updateVal.EthAddress)
-	if err == nil {
-		if updateVal.Status == storeVal.Status && updateVal.Tokens == storeVal.Tokens && updateVal.Shares == storeVal.Shares {
-			log.Infof("%s. states already updated", logmsg)
-			return true, false
-		}
+	if err != nil {
+		log.Infof("%s. validator not found", logmsg)
+		return true, false
 	}
-
+	if sameValidatorStates(&updateVal, storeVal) {
+		log.Infof("%s. states already updated", logmsg)
+		return true, false
+	}
 	ethVal, err := r.EthClient.Contracts.Staking.Validators(&bind.CallOpts{}, eth.Hex2Addr(updateVal.EthAddress))
 	if err != nil {
 		log.Errorf("%s. query validator info err: %s", logmsg, err)
@@ -162,8 +194,10 @@ func (r *Relayer) verifyValidatorStates(update *synctypes.PendingUpdate) (done, 
 	}
 
 	if updateVal.Status != validatortypes.ValidatorStatus(ethVal.Status) ||
-		updateVal.Tokens != ethVal.Tokens.String() || updateVal.Shares != ethVal.Shares.String() {
-		values := fmt.Sprintf("status %s tokens %s shares %s", eth.ParseValStatus(ethVal.Status), ethVal.Tokens, ethVal.Shares)
+		updateVal.Tokens != ethVal.Tokens.String() ||
+		updateVal.Shares != ethVal.Shares.String() {
+		values := fmt.Sprintf("status %s tokens %s shares %s",
+			eth.ParseValStatus(ethVal.Status), ethVal.Tokens, ethVal.Shares)
 		if r.cmpBlkNum(update.EthBlock) == 1 {
 			log.Infof("%s. validator states not match eth values: %s", logmsg, values)
 			return true, false
@@ -181,7 +215,7 @@ func (r *Relayer) verifyDelegatorShares(update *synctypes.PendingUpdate) (done, 
 	if err != nil {
 		return true, false
 	}
-	logmsg := fmt.Sprintf("verify update id %d, shares for delegator: %s", update.Id, updateDel)
+	logmsg := fmt.Sprintf("verify update id %d, shares for delegator: %s", update.Id, updateDel.String())
 
 	storeDel, err := validatorcli.QueryDelegator(r.Transactor.CliCtx, updateDel.ValAddress, updateDel.DelAddress)
 	if err == nil {
@@ -219,4 +253,24 @@ func (r *Relayer) cmpBlkNum(blkNum uint64) int8 {
 		return -1
 	}
 	return 0
+}
+
+func sameValidatorParams(updateVal, storeVal *validatortypes.Validator) bool {
+	if updateVal.EthAddress == storeVal.EthAddress &&
+		updateVal.EthSigner == storeVal.EthSigner &&
+		updateVal.SgnAddress == storeVal.SgnAddress &&
+		updateVal.CommissionRate == storeVal.CommissionRate {
+		return true
+	}
+	return false
+}
+
+func sameValidatorStates(updateVal, storeVal *validatortypes.Validator) bool {
+	if updateVal.EthAddress == storeVal.EthAddress &&
+		updateVal.Status == storeVal.Status &&
+		updateVal.Tokens == storeVal.Tokens &&
+		updateVal.Shares == storeVal.Shares {
+		return true
+	}
+	return false
 }

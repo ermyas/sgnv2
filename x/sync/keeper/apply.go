@@ -1,12 +1,12 @@
 package keeper
 
 import (
+	"fmt"
+
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/x/sync/types"
 	vtypes "github.com/celer-network/sgn-v2/x/validator/types"
-	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk_stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 func (k Keeper) ApplyUpdate(ctx sdk.Context, update *types.PendingUpdate) bool {
@@ -17,6 +17,8 @@ func (k Keeper) ApplyUpdate(ctx sdk.Context, update *types.PendingUpdate) bool {
 		applied, err = k.applyEthBlkNum(ctx, update)
 	case types.DataType_StakingContractParam:
 		applied, err = k.applyStakingContractParam(ctx, update)
+	case types.DataType_ValidatorSgnAddr:
+		applied, err = k.applyValidatorSgnAddr(ctx, update)
 	case types.DataType_ValidatorParams:
 		applied, err = k.applyValidatorParams(ctx, update)
 	case types.DataType_ValidatorStates:
@@ -39,57 +41,13 @@ func (k Keeper) applyStakingContractParam(ctx sdk.Context, update *types.Pending
 	return true, nil
 }
 
-func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdate) (bool, error) {
+func (k Keeper) applyValidatorSgnAddr(ctx sdk.Context, update *types.PendingUpdate) (bool, error) {
 	v, err := vtypes.UnmarshalValidator(k.cdc, update.Data)
 	if err != nil {
 		return false, err
 	}
-	log.Infof("Apply validator params %s signer %s sgnaddr %s", v.EthAddress, v.EthSigner, v.SgnAddress)
-	val, found := k.valKeeper.GetValidator(ctx, v.EthAddress)
-	if found {
-		val.EthSigner = v.EthSigner
-		val.SgnAddress = v.SgnAddress
-	} else {
-		if v.Status == vtypes.ValidatorStatus_Bonded {
-			if update.Proposer != v.SgnAddress {
-				log.Infof("Bonded validator %s %s not initialized, msg sender: %s", v.SgnAddress, v.EthAddress, update.Proposer)
-				return true, nil
-			}
-			// TODO: Don't use sdkVal
-			val = vtypes.NewValidator(v.EthAddress, v.EthSigner, v.SgnAddress)
-			val.Description = v.Description
-			val.ConsensusPubkey = v.ConsensusPubkey
-			sdkValAddr, err := vtypes.SdkValAddrFromSgnBech32(val.SgnAddress)
-			if err != nil {
-				return false, err
-			}
-			sdkDescription := sdk_stakingtypes.Description{
-				Moniker:         val.Description.Moniker,
-				Identity:        val.Description.Identity,
-				Website:         val.Description.Website,
-				SecurityContact: val.Description.SecurityContact,
-				Details:         val.Description.Details,
-			}
-			sdkVal, err := sdk_stakingtypes.NewValidator(sdkValAddr, v.ConsensusPubkey.GetCachedValue().(cryptotypes.PubKey), sdkDescription)
-			if err != nil {
-				return false, err
-			}
-			k.valKeeper.SetSdkValidator(ctx, sdkVal)
-			ctx.EventManager().EmitEvent(
-				sdk.NewEvent(
-					sdk_stakingtypes.EventTypeCreateValidator,
-					sdk.NewAttribute(sdk_stakingtypes.AttributeKeyValidator, val.SgnAddress),
-				),
-			)
-		} else if v.Status == vtypes.ValidatorStatus_Unbonding {
-			log.Warnf("Unbonding validator %s %s not found, msg sender: %s", v.SgnAddress, v.EthAddress, update.Proposer)
-			return false, nil
-		} else {
-			log.Debugf("Validator %s %s not bonded", v.SgnAddress, v.EthAddress)
-			return true, nil
-		}
-	}
-	val.CommissionRate = v.CommissionRate
+	log.Infof("Apply validator sgn addr %s", v.String())
+	// TODO: remove previous sgnaddr account
 	acct, err := vtypes.SdkAccAddrFromSgnBech32(v.SgnAddress)
 	if err != nil {
 		return false, err
@@ -98,8 +56,32 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 	if err != nil {
 		return false, err
 	}
-	k.valKeeper.SetValidator(ctx, &v)
+	return true, nil
+}
 
+func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdate) (bool, error) {
+	v, err := vtypes.UnmarshalValidator(k.cdc, update.Data)
+	if err != nil {
+		return false, err
+	}
+	if update.Proposer != v.SgnAddress {
+		return false, fmt.Errorf("Validator %s not msg sender: %s", v.EthAddress, update.Proposer)
+	}
+	if v.ConsensusPubkey == nil {
+		return false, fmt.Errorf("empty consensus pub key")
+	}
+	log.Infof("Apply validator params %s", v.String())
+	val, found := k.valKeeper.GetValidator(ctx, v.EthAddress)
+	if !found {
+		val = vtypes.NewValidator(v.EthAddress, v.EthSigner, v.SgnAddress)
+		val.Description = v.Description
+	} else {
+		val.EthSigner = v.EthSigner
+		val.SgnAddress = v.SgnAddress
+	}
+	val.ConsensusPubkey = v.ConsensusPubkey
+	val.CommissionRate = v.CommissionRate
+	k.valKeeper.SetValidator(ctx, val)
 	//TODO: gas coins
 	return true, nil
 }
@@ -109,8 +91,24 @@ func (k Keeper) applyValidatorStates(ctx sdk.Context, update *types.PendingUpdat
 	if err != nil {
 		return false, err
 	}
-	log.Infof("Apply validator states %s status %s tokens %s shares %s", v.EthAddress, v.Status, v.Tokens, v.Shares)
-	err = k.valKeeper.SetValidatorStates(ctx, v.EthAddress, v.Status, v.Tokens, v.Shares)
+	log.Infof("Apply validator states %s", v.String())
+	_, ok := sdk.NewIntFromString(v.Tokens)
+	if !ok {
+		return false, fmt.Errorf("invalid tokens %s", v.Tokens)
+	}
+	_, ok = sdk.NewIntFromString(v.Shares)
+	if !ok {
+		return false, fmt.Errorf("invalid shares %s", v.Shares)
+	}
+	val, found := k.valKeeper.GetValidator(ctx, v.EthAddress)
+	if !found {
+		return false, fmt.Errorf("validator %s not found", val.EthAddress)
+	}
+	val.Status = v.Status
+	val.Tokens = v.Tokens
+	val.Shares = v.Shares
+
+	err = k.valKeeper.SetValidatorStates(ctx, val)
 	if err != nil {
 		return false, err
 	}

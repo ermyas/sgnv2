@@ -71,3 +71,10 @@ func (v Validators) UnpackInterfaces(c codectypes.AnyUnpacker) error {
 	}
 	return nil
 }
+
+func (v Validators) String() (out string) {
+	for _, val := range v {
+		out += val.String() + " | "
+	}
+	return out
+}

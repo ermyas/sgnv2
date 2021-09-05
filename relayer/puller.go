@@ -13,11 +13,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-type ValSyncFlag struct {
-	params bool
-	states bool
-}
-
 func (r *Relayer) processPullerQueue() {
 	if !r.isSyncer() {
 		return
@@ -36,7 +31,7 @@ func (r *Relayer) processPullerQueue() {
 	iterator.Close()
 	r.lock.RUnlock()
 
-	validators := make(map[eth.Addr]ValSyncFlag)
+	validators := make(map[eth.Addr]ValSyncOptions)
 	delegators := make(map[string]bool)
 	for i, key := range keys {
 		event := eth.NewEventFromBytes(vals[i])
@@ -49,15 +44,19 @@ func (r *Relayer) processPullerQueue() {
 
 		switch e := event.ParseEvent(r.EthClient).(type) {
 		case *eth.StakingValidatorNotice:
-			log.Infof("%s. validator %x notice key %d", logmsg, e.ValAddr, e.Key)
+			log.Infof("%s. validator %x notice key %s", logmsg, e.ValAddr, e.Key)
+			if e.Key != "sgn-addr" {
+				log.Errorf("puller only sync sgn-addr")
+				continue
+			}
 			v := validators[e.ValAddr]
-			v.params = true
+			v.sgnaddr = true
 			validators[e.ValAddr] = v
 
 		case *eth.StakingValidatorStatusUpdate:
 			log.Infof("%s. validator %x %s", logmsg, e.ValAddr, eth.ParseValStatus(e.Status))
 			v := validators[e.ValAddr]
-			v.states = true
+			v.states = r.isBootstrapped()
 			validators[e.ValAddr] = v
 
 		case *eth.StakingDelegationUpdate:
@@ -65,7 +64,7 @@ func (r *Relayer) processPullerQueue() {
 				logmsg, e.ValAddr, e.ValTokens, e.TokenDiff, e.DelAddr, e.DelShares)
 			delegators[getDelegatorKey(e.ValAddr, e.DelAddr)] = true
 			v := validators[e.ValAddr]
-			v.states = true
+			v.states = r.isBootstrapped()
 			validators[e.ValAddr] = v
 		}
 	}
@@ -76,14 +75,11 @@ func (r *Relayer) processPullerQueue() {
 		Sender:   r.Transactor.Key.GetAddress().String(),
 	}
 
-	if r.isBootstrapped() {
-		for vaddr := range validators {
-			updates := r.SyncValidatorMsgs(vaddr, validators[vaddr])
-			if len(updates) > 0 {
-				msgs.Updates = append(msgs.Updates, updates...)
-			}
-		}
+	for vaddr := range validators {
+		updates, _ := r.SyncValidatorMsgs(vaddr, validators[vaddr])
+		msgs.Updates = append(msgs.Updates, updates...)
 	}
+
 	for delegatorKey := range delegators {
 		validatorAddr := eth.Hex2Addr(strings.Split(delegatorKey, ":")[0])
 		delegatorAddr := eth.Hex2Addr(strings.Split(delegatorKey, ":")[1])

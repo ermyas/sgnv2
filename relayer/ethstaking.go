@@ -8,6 +8,7 @@ import (
 	"github.com/celer-network/goutils/eth/monitor"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
+	validatorcli "github.com/celer-network/sgn-v2/x/validator/client/cli"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -26,19 +27,30 @@ func (r *Relayer) monitorEthValidatorNotice() {
 			e, err := r.EthClient.Contracts.Staking.ParseValidatorNotice(eLog)
 			if err != nil {
 				log.Errorln("parse event err", err)
-			}
-			if e.From != eth.ZeroAddr && e.From != r.EthClient.Contracts.Sgn.Address {
 				return false
 			}
-			log.Infof("Catch event ValidatorNotice %s, tx hash: %x, blknum: %d", e.Key, eLog.TxHash, eLog.BlockNumber)
-			event := eth.NewEvent(eth.EventValidatorNotice, eLog)
-			err = r.dbSet(GetPullerKey(eLog), event.MustMarshal())
-			if err != nil {
-				log.Errorln("db Set err", err)
+			if !(e.From == eth.ZeroAddr || e.From == r.EthClient.Contracts.Sgn.Address) {
+				return false
 			}
-			if e.Key == "sgn-addr" && e.ValAddr == r.valAddr && !r.isBonded() {
-				if r.shouldBondValidator() {
-					r.bondValidator()
+			log.Infof("Catch event ValidatorNotice %s, val addr: %x tx hash: %x, blknum: %d",
+				e.Key, e.ValAddr, eLog.TxHash, eLog.BlockNumber)
+			if e.Key == "sgn-addr" || e.Key == "signer" || e.Key == "commission" {
+				if e.Key == "sgn-addr" {
+					// TODO: handle non-first-time sgn-addr update
+					event := eth.NewEvent(eth.EventValidatorNotice, eLog)
+					err = r.dbSet(GetPullerKey(eLog), event.MustMarshal())
+					if err != nil {
+						log.Errorln("db Set err", err)
+					}
+					if e.ValAddr == r.valAddr {
+						if !r.isBonded() && r.shouldBondValidator() {
+							go r.bondValidator()
+						}
+					}
+				}
+				if e.ValAddr == r.valAddr {
+					log.Debug("Self sync valdiator params")
+					go r.selfSyncValidator(ValSyncOptions{params: true})
 				}
 			}
 			return false
@@ -59,23 +71,26 @@ func (r *Relayer) monitorEthValidatorStatusUpdate() {
 			CheckInterval: getEventCheckInterval(eth.EventValidatorStatusUpdate),
 		},
 		func(cb monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-			logmsg := fmt.Sprintf("Catch event ValidatorStatusUpdate, tx hash: %x, blknum: %d", eLog.TxHash, eLog.BlockNumber)
 			e, err := r.EthClient.Contracts.Staking.ParseValidatorStatusUpdate(eLog)
 			if err != nil {
-				log.Errorf("%s. parse event err: %s", logmsg, err)
+				log.Errorf("parse event err: %s", err)
+				return false
 			}
+			logmsg := fmt.Sprintf("Catch event ValidatorStatusUpdate, val addr: %x, status: %s, tx hash: %x, blknum: %d",
+				e.ValAddr, eth.ParseValStatus(e.Status), eLog.TxHash, eLog.BlockNumber)
+
 			if e.Status == eth.Bonded {
 				r.setBootstrapped()
 				if e.ValAddr == r.valAddr {
-					log.Infof("%s. Init my own validator.", logmsg)
+					log.Infof("%s. Self sync bonded validator.", logmsg)
 					r.setBonded()
-					go r.selfSyncValidator()
+					go r.selfSyncValidator(ValSyncOptions{states: true})
 				} else {
-					log.Infof("%s. Validator %x bonded.", logmsg, e.ValAddr)
+					log.Infof("%s. Skip", logmsg)
 				}
 			} else {
 				// only put unbonding or unbonded event to puller queue
-				log.Infof("%s. Validator %x %s.", logmsg, e.ValAddr, eth.ParseValStatus(e.Status))
+				log.Infof("%s. Put in queue", logmsg)
 				if e.ValAddr == r.valAddr {
 					r.clearBonded()
 				}
@@ -145,7 +160,7 @@ func (r *Relayer) shouldBondValidator() bool {
 		return false
 	}
 	if !sdk.AccAddress(sgnAddr).Equals(r.sgnAcct) {
-		log.Debugf("sgn addr not match, %s %s", sdk.AccAddress(sgnAddr), r.sgnAcct)
+		log.Debugf("sgn addr not match, %s, %s", sdk.AccAddress(sgnAddr), r.sgnAcct)
 		return false
 	}
 
@@ -177,14 +192,55 @@ func (r *Relayer) bondValidator() {
 	log.Infof("Bond validator %x on mainchain", r.valAddr)
 }
 
-func (r *Relayer) selfSyncValidator() {
+func (r *Relayer) selfSyncValidator(options ValSyncOptions) {
 	var i int
+	acctFound := r.waitForSgnAccountFound()
+	if !acctFound {
+		log.Errorf("Sgn account %s not found", r.sgnAcct.String())
+		return
+	}
+	if options.states {
+		valFound := r.waitForValidatorFound()
+		if !valFound {
+			log.Errorf("Validator %x not found", r.valAddr)
+			return
+		}
+	}
 	for i = 1; i < 5; i++ {
-		updated := r.SyncValidator(r.EthClient.Address, r.getCurrentBlockNumber())
+		updated := r.SyncValidator(r.EthClient.Address, r.getCurrentBlockNumber(), options)
 		if updated {
+			log.Debugln("Self validator synced", options)
 			return
 		}
 		time.Sleep(60 * time.Second)
 	}
-	log.Warn("self validator not synced yet")
+	log.Warn("Self validator not synced")
+}
+
+func (r *Relayer) waitForSgnAccountFound() bool {
+	var acctFound bool
+	for i := 1; i < 10; i++ {
+		exist, _ := validatorcli.QuerySgnAccount(r.Transactor.CliCtx, r.sgnAcct.String())
+		if exist {
+			log.Debugf("Sgn account %s found", r.sgnAcct.String())
+			acctFound = true
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return acctFound
+}
+
+func (r *Relayer) waitForValidatorFound() bool {
+	var valFound bool
+	for i := 1; i < 10; i++ {
+		storeVal, _ := validatorcli.QueryValidator(r.Transactor.CliCtx, r.valAddr.Hex())
+		if storeVal != nil {
+			log.Debugf("Validator %x found", r.valAddr)
+			valFound = true
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return valFound
 }

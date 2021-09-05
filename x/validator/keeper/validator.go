@@ -35,35 +35,26 @@ func (k Keeper) GetAllValidators(ctx sdk.Context) (validators types.Validators) 
 	return validators
 }
 
-func (k Keeper) SetValidator(ctx sdk.Context, validator *types.Validator) {
+func (k Keeper) SetValidator(ctx sdk.Context, val *types.Validator) {
 	store := ctx.KVStore(k.storeKey)
-	validatorKey := types.GetValidatorKey(validator.EthAddress)
-	store.Set(validatorKey, types.MustMarshalValidator(k.cdc, validator))
+	validatorKey := types.GetValidatorKey(val.EthAddress)
+	store.Set(validatorKey, types.MustMarshalValidator(k.cdc, val))
 }
 
-func (k Keeper) SetSdkValidator(ctx sdk.Context, sdkVal sdk_staking.Validator) {
-	k.sdkStakingKeeper.SetValidatorByConsAddr(ctx, sdkVal)
-}
-
-func (k Keeper) SetValidatorStates(
-	ctx sdk.Context, ethAddr string, status types.ValidatorStatus, tokens, shares string) error {
-
-	val, found := k.GetValidator(ctx, ethAddr)
-	if !found {
-		return fmt.Errorf("validator %s not found", ethAddr)
-	}
-	tkInt, ok := sdk.NewIntFromString(tokens)
-	if !ok {
-		return fmt.Errorf("invalid tokens %s", tokens)
-	}
-	shInt, ok := sdk.NewIntFromString(shares)
-	if !ok {
-		return fmt.Errorf("invalid shares %s", shares)
-	}
-	val.Status = status
-	val.Tokens = tokens
-	val.Shares = shares
+func (k Keeper) SetValidatorStates(ctx sdk.Context, val *types.Validator) error {
 	k.SetValidator(ctx, val)
+	return k.UpdateSdkValidator(ctx, val)
+}
+
+func (k Keeper) UpdateSdkValidator(ctx sdk.Context, val *types.Validator) error {
+	tkInt, ok := sdk.NewIntFromString(val.Tokens)
+	if !ok {
+		return fmt.Errorf("invalid tokens %s", val.Tokens)
+	}
+	shInt, ok := sdk.NewIntFromString(val.Shares)
+	if !ok {
+		return fmt.Errorf("invalid shares %s", val.Shares)
+	}
 
 	sdkValAddr, err := types.SdkValAddrFromSgnBech32(val.SgnAddress)
 	if err != nil {
@@ -72,7 +63,9 @@ func (k Keeper) SetValidatorStates(
 	sdkVal, found := k.sdkStakingKeeper.GetValidator(ctx, sdkValAddr)
 	if !found {
 		if val.Status == types.ValidatorStatus_Bonded {
-			// TODO: create sdk validator
+			if val.ConsensusPubkey == nil {
+				return fmt.Errorf("validator %s consensu pubkey not set", val.EthAddress)
+			}
 			sdkDescription := sdk_staking.Description{
 				Moniker:         val.Description.Moniker,
 				Identity:        val.Description.Identity,
@@ -92,27 +85,41 @@ func (k Keeper) SetValidatorStates(
 				DelegatorShares: shInt.ToDec(),
 				Description:     sdkDescription,
 			}
-		} else if val.Status == types.ValidatorStatus_Unbonded {
-			log.Debugf("Validator %s %s not bonded", ethAddr, val.SgnAddress)
+			err = k.sdkStakingKeeper.SetValidatorByConsAddr(ctx, sdkVal)
+			if err != nil {
+				return fmt.Errorf("SetValidatorByConsAddr %s %s, err %w", val.SgnAddress, sdkVal.OperatorAddress, err)
+			}
+			ctx.EventManager().EmitEvent(
+				sdk.NewEvent(
+					sdk_staking.EventTypeCreateValidator,
+					sdk.NewAttribute(sdk_staking.AttributeKeyValidator, val.SgnAddress),
+				),
+			)
+		} else if val.Status == types.ValidatorStatus_Unbonding {
+			log.Warnf("Unbonding sdk validator %s %s not found", val.EthAddress, val.SgnAddress)
 			return nil
 		} else {
-			log.Debugf("Validator %s %s %s not found", ethAddr, val.SgnAddress, val.Status)
+			log.Debugf("Validator %s %s %s not bonded, status:", val.EthAddress, val.SgnAddress, val.Status.String())
 			return nil
 		}
 	}
 
 	k.sdkStakingKeeper.DeleteValidatorByPowerIndex(ctx, sdkVal)
 	sdkVal.Status = sdk_staking.BondStatus(val.Status)
-	sdkVal.Tokens = tkInt
+	if sdkVal.Status == sdk_staking.Unbonded {
+		sdkVal.Tokens = sdk.ZeroInt()
+	} else {
+		sdkVal.Tokens = tkInt
+	}
 	sdkVal.DelegatorShares = shInt.ToDec()
 	k.sdkStakingKeeper.SetValidator(ctx, sdkVal)
 
 	if val.Status == types.ValidatorStatus_Bonded {
 		k.sdkStakingKeeper.SetNewValidatorByPowerIndex(ctx, sdkVal)
 	} else if val.Status == types.ValidatorStatus_Unbonded {
+		log.Infof("remove sdk validator %s %s", val.EthAddress, val.SgnAddress)
 		k.sdkStakingKeeper.RemoveValidator(ctx, sdkValAddr)
 	}
-
 	return nil
 }
 

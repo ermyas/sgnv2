@@ -7,6 +7,7 @@ const (
 	QueryValidators = "validators"
 	QueryDelegator  = "delegator"
 	QueryDelegators = "delegators"
+	QuerySgnAccount = "account"
 	QuerySyncer     = "syncer"
 	QueryParams     = "params"
 )
@@ -31,4 +32,12 @@ func NewQueryDelegatorParams(valAddress, delAddress string) QueryDelegatorParams
 		ValAddress: eth.FormatAddrHex(valAddress),
 		DelAddress: eth.FormatAddrHex(delAddress),
 	}
+}
+
+type QuerySgnAccountParams struct {
+	SgnAddress string
+}
+
+func NewQuerySgnAccountParams(sgnAddress string) QuerySgnAccountParams {
+	return QuerySgnAccountParams{SgnAddress: sgnAddress}
 }

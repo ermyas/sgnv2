@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/x/validator/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -20,6 +21,8 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 			return queryDelegator(ctx, req, k, legacyQuerierCdc)
 		case types.QueryDelegators:
 			return queryDelegators(ctx, req, k, legacyQuerierCdc)
+		case types.QuerySgnAccount:
+			return querySgnAccountExist(ctx, req, k, legacyQuerierCdc)
 		case types.QuerySyncer:
 			return querySyncer(ctx, k, legacyQuerierCdc)
 		case types.QueryParams:
@@ -40,11 +43,12 @@ func queryValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuer
 
 	validator, found := k.GetValidator(ctx, params.EthAddress)
 	if !found {
-		return nil, types.ErrNoValidatorFound
+		return nil, types.ErrValidatorNotFound
 	}
 
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, validator)
 	if err != nil {
+		log.Error(err)
 		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
 	}
 
@@ -70,7 +74,7 @@ func queryDelegator(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuer
 
 	delegator, found := k.GetDelegator(ctx, params.ValAddress, params.DelAddress)
 	if !found {
-		return nil, types.ErrNoDelegatorFound
+		return nil, types.ErrDelegatorNotFound
 	}
 
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, delegator)
@@ -96,6 +100,26 @@ func queryDelegators(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQue
 		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
 	}
 	return res, nil
+}
+
+func querySgnAccountExist(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var params types.QuerySgnAccountParams
+
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONUnmarshal, err.Error())
+	}
+
+	acctAddr, err := types.SdkAccAddrFromSgnBech32(params.SgnAddress)
+	if err != nil {
+		return nil, sdk_errors.Wrapf(types.ErrInvalidAddress, "%s", params.SgnAddress)
+	}
+	account := k.sdkAccountKeeper.GetAccount(ctx, acctAddr)
+	if account == nil {
+		return nil, sdk_errors.Wrapf(types.ErrSgnAccounNotFound, "%s", params.SgnAddress)
+	}
+
+	return []byte{1}, nil
 }
 
 func querySyncer(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {

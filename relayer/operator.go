@@ -1,6 +1,7 @@
 package relayer
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/celer-network/goutils/log"
@@ -68,95 +69,143 @@ func NewOperator(cdc codec.Codec, cliHome string, tmCfg *tmcfg.Config, legacyAmi
 	}, nil
 }
 
-func (o *Operator) SyncValidator(valAddr eth.Addr, currentBlkNum *big.Int) bool {
-	updates := o.SyncValidatorMsgs(valAddr, ValSyncFlag{true, true})
+func (o *Operator) SyncValidator(valAddr eth.Addr, currentBlkNum *big.Int, options ValSyncOptions) bool {
+	updates, updated := o.SyncValidatorMsgs(valAddr, options)
 	if len(updates) > 0 {
 		msgs := synctypes.MsgProposeUpdates{
-			Updates:  make([]*synctypes.ProposeUpdate, 0),
+			Updates:  updates,
 			EthBlock: currentBlkNum.Uint64(),
 			Sender:   o.Transactor.Key.GetAddress().String(),
 		}
-		msgs.Updates = append(msgs.Updates, updates...)
-		if len(msgs.Updates) > 0 {
-			o.Transactor.AddTxMsg(&msgs)
-		}
-		return true
-	} else {
-		return false
+		o.Transactor.AddTxMsg(&msgs)
 	}
+	return updated
 }
 
-func (o *Operator) SyncValidatorMsgs(valAddr eth.Addr, flag ValSyncFlag) []*synctypes.ProposeUpdate {
+func (o *Operator) SyncValidatorMsgs(valAddr eth.Addr, options ValSyncOptions) ([]*synctypes.ProposeUpdate, bool) {
+	var updates []*synctypes.ProposeUpdate
+	var update *synctypes.ProposeUpdate
+	var updated ValSyncOptions
+	if options.sgnaddr {
+		update, updated.sgnaddr = o.SyncValidatorSgnAddrMsg(valAddr)
+		if update != nil {
+			updates = append(updates, update)
+		}
+	}
+	if options.params {
+		update, updated.params = o.SyncValidatorParamsMsg(valAddr)
+		if update != nil {
+			updates = append(updates, update)
+		}
+	}
+	if options.states {
+		update, updated.states = o.SyncValidatorStatesMsg(valAddr)
+		if update != nil {
+			updates = append(updates, update)
+		}
+	}
+	return updates, updated == options
+}
+
+func (o *Operator) SyncValidatorSgnAddrMsg(valAddr eth.Addr) (*synctypes.ProposeUpdate, bool /*updated*/) {
+	log.Debugf("Generate sync validator sgnaddr msg, val %x", valAddr)
+
+	sgnAddr, err := o.EthClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, valAddr)
+	if err != nil {
+		log.Errorf("Failed to query contract sgn address err: %s", err)
+		return nil, false
+	}
+	exist, _ := validatorcli.QuerySgnAccount(o.Transactor.CliCtx, sdk.AccAddress(sgnAddr).String())
+	if exist {
+		return nil, true
+	}
+	updateVal := &validatortypes.Validator{
+		EthAddress: eth.Addr2Hex(valAddr),
+		SgnAddress: sdk.AccAddress(sgnAddr).String(),
+	}
+	update := &synctypes.ProposeUpdate{
+		Type: synctypes.DataType_ValidatorSgnAddr,
+		Data: o.Transactor.CliCtx.Codec.MustMarshal(updateVal),
+	}
+	return update, false
+}
+
+func (o *Operator) SyncValidatorParamsMsg(valAddr eth.Addr) (*synctypes.ProposeUpdate, bool /*updated*/) {
+	log.Debugf("Generate sync validator params msg, val %x", valAddr)
+	// TODO: separate signer and val addr
+	if o.EthClient.Address != valAddr {
+		log.Errorln("Params sync can only be trigger by self validator")
+		return nil, false
+	}
 	ethVal, err := o.EthClient.Contracts.Staking.Validators(&bind.CallOpts{}, valAddr)
 	if err != nil {
-		log.Errorln("Failed to query validator info:", err)
-		return nil
+		log.Errorln("Failed to query contract validator info:", err)
+		return nil, false
+	}
+	sgnAddrBytes, err := o.EthClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, valAddr)
+	if err != nil {
+		log.Errorf("Failed to query contract sgn address err: %s", err)
+		return nil, false
+	}
+	exist, err := validatorcli.QuerySgnAccount(o.Transactor.CliCtx, sdk.AccAddress(sgnAddrBytes).String())
+	if !exist {
+		log.Errorf("Failed to query store sgn account err: %s", err)
+		return nil, false
+	}
+
+	updateVal := &validatortypes.Validator{
+		EthAddress:      eth.Addr2Hex(valAddr),
+		EthSigner:       eth.Addr2Hex(ethVal.Signer),
+		SgnAddress:      sdk.AccAddress(sgnAddrBytes).String(),
+		ConsensusPubkey: o.PubKeyAny,
+		CommissionRate:  ethVal.CommissionRate,
+		Description: &validatortypes.Description{
+			Identity: eth.Addr2Hex(valAddr),
+		},
 	}
 	storeVal, _ := validatorcli.QueryValidator(o.Transactor.CliCtx, valAddr.Hex())
-
-	updates := make([]*synctypes.ProposeUpdate, 0)
-
-	if flag.params {
-		sgnAddr, err := o.EthClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, valAddr)
-		if err != nil {
-			log.Errorf("Failed to query sgn address err: %s", err)
-			return nil
-		}
-		updateVal := validatortypes.Validator{
-			EthAddress:     eth.Addr2Hex(valAddr),
-			EthSigner:      eth.Addr2Hex(ethVal.Signer),
-			SgnAddress:     sdk.AccAddress(sgnAddr).String(),
-			CommissionRate: ethVal.CommissionRate,
-			Status:         validatortypes.ValidatorStatus(ethVal.Status),
-			Description: &validatortypes.Description{
-				Identity: eth.Addr2Hex(valAddr),
-			},
-		}
-		var skip bool
-		if storeVal != nil {
-			updateVal.ConsensusPubkey = storeVal.ConsensusPubkey
-			if updateVal.EthSigner == storeVal.EthSigner && updateVal.SgnAddress == storeVal.SgnAddress &&
-				updateVal.CommissionRate == storeVal.CommissionRate {
-				log.Debugf("validator %x params already updated", valAddr)
-				skip = true
-			}
-		}
-		if o.EthClient.Address == valAddr {
-			updateVal.ConsensusPubkey = o.PubKeyAny
-		}
-		if !skip {
-			update := &synctypes.ProposeUpdate{
-				Type: synctypes.DataType_ValidatorParams,
-				Data: o.Transactor.CliCtx.Codec.MustMarshal(&updateVal),
-			}
-			updates = append(updates, update)
+	if storeVal != nil {
+		if sameValidatorParams(updateVal, storeVal) {
+			log.Debugf("validator params already updated: %s", updateVal)
+			return nil, true
 		}
 	}
+	update := &synctypes.ProposeUpdate{
+		Type: synctypes.DataType_ValidatorParams,
+		Data: o.Transactor.CliCtx.Codec.MustMarshal(updateVal),
+	}
+	return update, false
+}
 
-	if flag.states {
-		updateVal := validatortypes.Validator{
-			EthAddress: eth.Addr2Hex(valAddr),
-			Status:     validatortypes.ValidatorStatus(ethVal.Status),
-			Tokens:     ethVal.Tokens.String(),
-			Shares:     ethVal.Shares.String(),
-		}
-		var skip bool
-		if storeVal != nil {
-			if updateVal.Status == storeVal.Status && updateVal.Tokens == storeVal.Tokens && updateVal.Shares == storeVal.Shares {
-				log.Debugf("validator %x states already updated", valAddr)
-				skip = true
-			}
-		}
-		if !skip {
-			update := &synctypes.ProposeUpdate{
-				Type: synctypes.DataType_ValidatorStates,
-				Data: o.Transactor.CliCtx.Codec.MustMarshal(&updateVal),
-			}
-			updates = append(updates, update)
-		}
+func (o *Operator) SyncValidatorStatesMsg(valAddr eth.Addr) (*synctypes.ProposeUpdate, bool /*updated*/) {
+	log.Debugf("Generate sync validator states msg, val %x", valAddr)
+	ethVal, err := o.EthClient.Contracts.Staking.Validators(&bind.CallOpts{}, valAddr)
+	if err != nil {
+		log.Errorln("Failed to query contract validator info:", err)
+		return nil, false
+	}
+	storeVal, err := validatorcli.QueryValidator(o.Transactor.CliCtx, valAddr.Hex())
+	if storeVal == nil {
+		log.Debugln("Failed to query store validator info:", err)
+		return nil, false
 	}
 
-	return updates
+	updateVal := &validatortypes.Validator{
+		EthAddress: eth.Addr2Hex(valAddr),
+		Status:     validatortypes.ValidatorStatus(ethVal.Status),
+		Tokens:     ethVal.Tokens.String(),
+		Shares:     ethVal.Shares.String(),
+	}
+	if sameValidatorStates(updateVal, storeVal) {
+		log.Debugf("validator states already updated: %s", updateVal)
+		return nil, true
+	}
+
+	update := &synctypes.ProposeUpdate{
+		Type: synctypes.DataType_ValidatorStates,
+		Data: o.Transactor.CliCtx.Codec.MustMarshal(updateVal),
+	}
+	return update, false
 }
 
 func (o *Operator) SyncDelegatorMsg(valAddr, delAddr eth.Addr) *synctypes.ProposeUpdate {
@@ -186,4 +235,14 @@ func (o *Operator) SyncDelegatorMsg(valAddr, delAddr eth.Addr) *synctypes.Propos
 		Data: o.Transactor.CliCtx.Codec.MustMarshal(&updateDel),
 	}
 
+}
+
+type ValSyncOptions struct {
+	sgnaddr bool
+	params  bool
+	states  bool
+}
+
+func (o ValSyncOptions) String() string {
+	return fmt.Sprintf("ValSyncOptions={sgnaddr:%t, params:%t, states:%t}", o.sgnaddr, o.params, o.states)
 }
