@@ -52,33 +52,27 @@ func stakingTest(t *testing.T) {
 	}
 	totalAmts := tc.NewBigInt(11, 18) // vAmt + dAmts
 
-	vEthAddr, vAuth, err := tc.GetAuth(tc.ValEthKs[0])
-	log.Infof("validator eth address %x", vEthAddr)
-	require.NoError(t, err, "failed to get validator auth")
-
-	sgnAddr, err := types.SdkAccAddrFromSgnBech32(tc.ValAccounts[0])
-	require.NoError(t, err, "failed to get sgnAddr")
-	err = tc.InitializeValidator(vAuth, sgnAddr, vAmt, eth.CommissionRate(0.02))
+	err := tc.InitializeValidator(tc.ValAuths[0], tc.ValSgnAddrs[0], vAmt, eth.CommissionRate(0.02))
 	require.NoError(t, err, "failed to initialize validator")
 	tc.Sleep(5)
 	expVal := &types.Validator{
-		EthAddress:     eth.Addr2Hex(vEthAddr),
-		EthSigner:      eth.Addr2Hex(vEthAddr),
+		EthAddress:     eth.Addr2Hex(tc.ValEthAddrs[0]),
+		EthSigner:      eth.Addr2Hex(tc.ValEthAddrs[0]),
 		Status:         eth.Bonded,
-		SgnAddress:     sgnAddr.String(),
+		SgnAddress:     tc.ValSgnAddrs[0].String(),
 		Tokens:         vAmt.String(),
 		Shares:         vAmt.String(),
-		CommissionRate: 200,
+		CommissionRate: eth.CommissionRate(0.02),
 	}
 	tc.CheckValidator(t, transactor, expVal)
 	expDel := &types.Delegator{
-		ValAddress: eth.Addr2Hex(vEthAddr),
-		DelAddress: eth.Addr2Hex(vEthAddr),
+		ValAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
+		DelAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
 		Shares:     vAmt.String(),
 	}
 	tc.CheckDelegator(t, transactor, expDel)
 	expSdkVal := &sdk_staking.Validator{
-		OperatorAddress: sdk.ValAddress(sgnAddr).String(),
+		OperatorAddress: sdk.ValAddress(tc.ValSgnAddrs[0]).String(),
 		Status:          sdk_staking.Bonded,
 		Tokens:          sdk.NewIntFromBigInt(vAmt),
 	}
@@ -87,15 +81,13 @@ func stakingTest(t *testing.T) {
 
 	log.Info("add delegators ...")
 	for i := 0; i < len(tc.DelEthKs); i++ {
-		_, dAuth, err2 := tc.GetAuth(tc.DelEthKs[i])
-		require.NoError(t, err2, "failed to get delegator auth")
-		go tc.Delegate(dAuth, vEthAddr, dAmts[i])
+		go tc.Delegate(tc.DelAuths[i], tc.ValEthAddrs[0], dAmts[i])
 	}
 	tc.Sleep(5)
 	for i := 0; i < len(tc.DelEthKs); i++ {
 		expDel := &types.Delegator{
-			ValAddress: eth.Addr2Hex(vEthAddr),
-			DelAddress: tc.DelEthAddrs[i],
+			ValAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
+			DelAddress: eth.Addr2Hex(tc.DelEthAddrs[i]),
 			Shares:     dAmts[i].String(),
 		}
 		tc.CheckDelegator(t, transactor, expDel)

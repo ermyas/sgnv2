@@ -1,6 +1,10 @@
 package common
 
-import "time"
+import (
+	"time"
+
+	"github.com/celer-network/sgn-v2/eth"
+)
 
 const (
 	// outPathPrefix is the path prefix for all output from e2e (incl. chain data, binaries etc)
@@ -36,7 +40,7 @@ var (
 	}
 
 	// validators
-	ValAccounts = [...]string{
+	ValSgnAddrStrs = [...]string{
 		"sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe",
 		"sgn1egtta7su5jxjahtw56pe07qerz4lwvrlttac6y",
 		"sgn19q9usqmjcmx8vynynfl5tj5n2k22gc5f6wjvd7",
@@ -48,11 +52,11 @@ var (
 		"../../keys/vethks2.json",
 		"../../keys/vethks3.json",
 	}
-	ValEthAddrs = [...]string{
-		"00078b31fa8b29a76bce074b5ea0d515a6aeaee7",
-		"0015f5863ddc59ab6610d7b6d73b2eacd43e6b7e",
-		"00290a43e5b2b151d530845b2d5a818240bc7c70",
-		"003ea363bccfd7d14285a34a6b1deb862df0bc84",
+	ValEthAddrs = [...]eth.Addr{
+		eth.Hex2Addr("00078b31fa8b29a76bce074b5ea0d515a6aeaee7"),
+		eth.Hex2Addr("0015f5863ddc59ab6610d7b6d73b2eacd43e6b7e"),
+		eth.Hex2Addr("00290a43e5b2b151d530845b2d5a818240bc7c70"),
+		eth.Hex2Addr("003ea363bccfd7d14285a34a6b1deb862df0bc84"),
 	}
 
 	// delegators
@@ -62,11 +66,11 @@ var (
 		"../../keys/dethks2.json",
 		"../../keys/dethks3.json",
 	}
-	DelEthAddrs = [...]string{
-		"d0f2596d700c9bd4d605c938e586ec67b01c7364",
-		"d199de50946314ca94b8e967a18d9c1ce5cc9251",
-		"d290938754df5eecf95f05ebd801c50a43c3231f",
-		"d3f716da96b893d4bcefa489f65e4b3e9a3dd3e6",
+	DelEthAddrs = [...]eth.Addr{
+		eth.Hex2Addr("d0f2596d700c9bd4d605c938e586ec67b01c7364"),
+		eth.Hex2Addr("d199de50946314ca94b8e967a18d9c1ce5cc9251"),
+		eth.Hex2Addr("d290938754df5eecf95f05ebd801c50a43c3231f"),
+		eth.Hex2Addr("d3f716da96b893d4bcefa489f65e4b3e9a3dd3e6"),
 	}
 
 	// state channel clients
@@ -74,9 +78,9 @@ var (
 		"../../keys/cethks0.json",
 		"../../keys/cethks1.json",
 	}
-	ClientEthAddrs = [...]string{
-		"c06fdd796e140aee53de5111607e8ded93ebdca3",
-		"c1699e89639adda8f39faefc0fc294ee5c3b462d",
+	ClientEthAddrs = [...]eth.Addr{
+		eth.Hex2Addr("c06fdd796e140aee53de5111607e8ded93ebdca3"),
+		eth.Hex2Addr("c1699e89639adda8f39faefc0fc294ee5c3b462d"),
 	}
 
 	// used by local manual tests

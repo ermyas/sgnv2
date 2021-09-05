@@ -16,27 +16,6 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-type TestEthClient struct {
-	Address eth.Addr
-	Auth    *bind.TransactOpts
-	Signer  ethutils.Signer
-}
-
-var (
-	etherBaseKs = EnvDir + "/keystore/etherbase.json"
-	ChainID     = 883
-
-	EthClient     *ethclient.Client
-	EtherBaseAuth *bind.TransactOpts
-
-	Client0 *TestEthClient
-	Client1 *TestEthClient
-
-	Contracts    *eth.Contracts
-	CelrAddr     eth.Addr
-	CelrContract *eth.Erc20
-)
-
 func SetEthBaseKs(prefix string) {
 	etherBaseKs = prefix + "/keystore/etherbase.json"
 }
@@ -50,7 +29,28 @@ func SetupEthClients() {
 	}
 	EthClient = ethclient.NewClient(rpcClient)
 
-	_, EtherBaseAuth, _ = GetAuth(etherBaseKs)
+	_, EtherBaseAuth, err = GetAuth(etherBaseKs)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var auth *bind.TransactOpts
+	for i := 0; i < len(ValEthKs); i++ {
+		_, auth, err = GetAuth(ValEthKs[i])
+		if err != nil {
+			log.Fatal(err)
+		}
+		ValAuths = append(ValAuths, auth)
+	}
+
+	for i := 0; i < len(DelEthKs); i++ {
+		_, auth, err = GetAuth(DelEthKs[i])
+		if err != nil {
+			log.Fatal(err)
+		}
+		DelAuths = append(DelAuths, auth)
+	}
+
 	Client0, err = SetupTestEthClient(ClientEthKs[0])
 	if err != nil {
 		log.Fatal(err)
@@ -212,7 +212,33 @@ func Delegate(auth *bind.TransactOpts, valAddr eth.Addr, amt *big.Int) error {
 		log.Error(err)
 		return err
 	}
-	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "Delegate to validator")
+	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "Delegate")
+	return nil
+}
+
+func Undelegate(auth *bind.TransactOpts, valAddr eth.Addr, amt *big.Int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
+
+	tx, err := Contracts.Staking.Undelegate(auth, valAddr, amt)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "Undelegate")
+	return nil
+}
+
+func ConfirmUnbondedValidator(auth *bind.TransactOpts, valAddr eth.Addr) error {
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
+
+	tx, err := Contracts.Staking.ConfirmUnbondedValidator(auth, valAddr)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "ConfirmUnbondedValidator")
 	return nil
 }
 

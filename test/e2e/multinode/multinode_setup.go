@@ -41,16 +41,16 @@ func SetupMainchain() {
 
 	// set up mainchain: deploy contracts, fund addrs, etc
 	addrs := []eth.Addr{
-		eth.Hex2Addr(tc.ValEthAddrs[0]),
-		eth.Hex2Addr(tc.ValEthAddrs[1]),
-		eth.Hex2Addr(tc.ValEthAddrs[2]),
-		eth.Hex2Addr(tc.ValEthAddrs[3]),
-		eth.Hex2Addr(tc.DelEthAddrs[0]),
-		eth.Hex2Addr(tc.DelEthAddrs[1]),
-		eth.Hex2Addr(tc.DelEthAddrs[2]),
-		eth.Hex2Addr(tc.DelEthAddrs[3]),
-		eth.Hex2Addr(tc.ClientEthAddrs[0]),
-		eth.Hex2Addr(tc.ClientEthAddrs[1]),
+		tc.ValEthAddrs[0],
+		tc.ValEthAddrs[1],
+		tc.ValEthAddrs[2],
+		tc.ValEthAddrs[3],
+		tc.DelEthAddrs[0],
+		tc.DelEthAddrs[1],
+		tc.DelEthAddrs[2],
+		tc.DelEthAddrs[3],
+		tc.ClientEthAddrs[0],
+		tc.ClientEthAddrs[1],
 	}
 	log.Infoln("fund each test addr 100 ETH")
 	err := tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20))
@@ -116,7 +116,7 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool) {
 		configFileViper.Set(common.FlagEthContractViewer, tc.Contracts.Viewer.Address.Hex())
 		configFileViper.Set(common.FlagEthContractGovern, tc.Contracts.Govern.Address.Hex())
 		// TODO: different config for validator and signer
-		configFileViper.Set(common.FlagEthValidatorAddress, tc.ValEthAddrs[i])
+		configFileViper.Set(common.FlagEthValidatorAddress, tc.ValEthAddrs[i].Hex())
 		err = configFileViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")
 

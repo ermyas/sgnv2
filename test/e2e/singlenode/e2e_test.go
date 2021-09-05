@@ -44,13 +44,13 @@ func TestMain(m *testing.M) {
 	// set up mainchain: deploy contracts and fund ethpool etc
 	// first fund each account 100 ETH
 	addrs := []eth.Addr{
-		eth.Hex2Addr(tc.ValEthAddrs[0]),
-		eth.Hex2Addr(tc.DelEthAddrs[0]),
-		eth.Hex2Addr(tc.DelEthAddrs[1]),
-		eth.Hex2Addr(tc.DelEthAddrs[2]),
-		eth.Hex2Addr(tc.DelEthAddrs[3]),
-		eth.Hex2Addr(tc.ClientEthAddrs[0]),
-		eth.Hex2Addr(tc.ClientEthAddrs[1]),
+		tc.ValEthAddrs[0],
+		tc.DelEthAddrs[0],
+		tc.DelEthAddrs[1],
+		tc.DelEthAddrs[2],
+		tc.DelEthAddrs[3],
+		tc.ClientEthAddrs[0],
+		tc.ClientEthAddrs[1],
 	}
 	err = tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20))
 	tc.ChkErr(err, "fund eth")

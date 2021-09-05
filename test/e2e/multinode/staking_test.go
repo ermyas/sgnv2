@@ -59,36 +59,31 @@ func stakingTest(t *testing.T) {
 	}
 
 	expVals := make([]*types.Validator, 0)
-	log.Infoln("---------- It should add validators 0 and 1 successfully ----------")
+	log.Infoln("---------- It should add bonded validators 0 and 1 successfully ----------")
 	for i := 0; i < 2; i++ {
-		log.Infoln("Adding validator", i)
-		ethAddr, auth, err := tc.GetAuth(tc.ValEthKs[i])
-		log.Infof("validator eth address %x", ethAddr)
-		require.NoError(t, err, "failed to get auth")
-		sgnAddr, err := types.SdkAccAddrFromSgnBech32(tc.ValAccounts[i])
-		require.NoError(t, err, "failed to get sgnAddr")
-		err = tc.InitializeValidator(auth, sgnAddr, amts[i], eth.CommissionRate(0.02))
+		log.Infoln("Adding validator", i, tc.ValEthAddrs[i].Hex())
+		err := tc.InitializeValidator(tc.ValAuths[i], tc.ValSgnAddrs[i], amts[i], eth.CommissionRate(0.02))
 		require.NoError(t, err, "failed to initialize validator")
 		tc.Sleep(5)
 		expVal := &types.Validator{
-			EthAddress:     eth.Addr2Hex(ethAddr),
-			EthSigner:      eth.Addr2Hex(ethAddr),
+			EthAddress:     eth.Addr2Hex(tc.ValEthAddrs[i]),
+			EthSigner:      eth.Addr2Hex(tc.ValEthAddrs[i]),
 			Status:         eth.Bonded,
-			SgnAddress:     sgnAddr.String(),
+			SgnAddress:     tc.ValSgnAddrs[i].String(),
 			Tokens:         amts[i].String(),
 			Shares:         amts[i].String(),
-			CommissionRate: 200,
+			CommissionRate: eth.CommissionRate(0.02),
 		}
 		expVals = append(expVals, expVal)
 		tc.CheckValidators(t, transactor, expVals)
 		expDel := &types.Delegator{
-			ValAddress: eth.Addr2Hex(ethAddr),
-			DelAddress: eth.Addr2Hex(ethAddr),
+			ValAddress: eth.Addr2Hex(tc.ValEthAddrs[i]),
+			DelAddress: eth.Addr2Hex(tc.ValEthAddrs[i]),
 			Shares:     amts[i].String(),
 		}
 		tc.CheckDelegator(t, transactor, expDel)
 		expSdkVal := &sdk_staking.Validator{
-			OperatorAddress: sdk.ValAddress(sgnAddr).String(),
+			OperatorAddress: sdk.ValAddress(tc.ValSgnAddrs[i]).String(),
 			Status:          sdk_staking.Bonded,
 			Tokens:          sdk.NewIntFromBigInt(amts[i]),
 		}
@@ -96,63 +91,82 @@ func stakingTest(t *testing.T) {
 		tc.CheckBondedSdkValidatorNum(t, transactor, i+1)
 	}
 
-	log.Infoln("---------- It should fail to add validator 2 without enough self delegation ----------")
-	ethAddr, auth, err := tc.GetAuth(tc.ValEthKs[2])
-	require.NoError(t, err, "failed to get auth")
-	sgnAddr, err := types.SdkAccAddrFromSgnBech32(tc.ValAccounts[2])
-	require.NoError(t, err, "failed to get sgnAddr")
+	log.Infoln("---------- It should add unbonded validator 2 without enough delegation ----------")
 	initialDelegation := big.NewInt(1e18)
-	err = tc.InitializeValidator(auth, sgnAddr, initialDelegation, eth.CommissionRate(0.02))
+	err := tc.InitializeValidator(tc.ValAuths[2], tc.ValSgnAddrs[2], initialDelegation, eth.CommissionRate(0.02))
 	require.NoError(t, err, "failed to initialize validator")
-	tc.Sleep(10)                               // wait for processing
-	tc.CheckValidators(t, transactor, expVals) // still the previous two
-	tc.CheckBondedSdkValidatorNum(t, transactor, 2)
-
-	log.Infoln("---------- It should correctly add validator 2 with enough delegation ----------")
-	err = tc.Delegate(auth, ethAddr, big.NewInt(0).Sub(amts[2], initialDelegation))
-	require.NoError(t, err, "failed to delegate stake")
 	tc.Sleep(5)
 	expVal := &types.Validator{
-		EthAddress:     eth.Addr2Hex(ethAddr),
-		EthSigner:      eth.Addr2Hex(ethAddr),
-		Status:         eth.Bonded,
-		SgnAddress:     sgnAddr.String(),
-		Tokens:         amts[2].String(),
-		Shares:         amts[2].String(),
-		CommissionRate: 200,
+		EthAddress:     eth.Addr2Hex(tc.ValEthAddrs[2]),
+		EthSigner:      eth.Addr2Hex(tc.ValEthAddrs[2]),
+		Status:         eth.Unbonded,
+		SgnAddress:     tc.ValSgnAddrs[2].String(),
+		Tokens:         initialDelegation.String(),
+		Shares:         initialDelegation.String(),
+		CommissionRate: eth.CommissionRate(0.02),
 	}
 	expVals = append(expVals, expVal)
 	tc.CheckValidators(t, transactor, expVals)
+	tc.CheckBondedSdkValidatorNum(t, transactor, 2)
+
+	log.Infoln("---------- It should add bonded validator 2 with enough delegation ----------")
+	newAmt := big.NewInt(0).Sub(amts[2], initialDelegation)
+	err = tc.Delegate(tc.ValAuths[2], tc.ValEthAddrs[2], newAmt)
+	require.NoError(t, err, "failed to delegate")
+	tc.Sleep(5)
+	expVals[2].Status = eth.Bonded
+	expVals[2].Tokens = amts[2].String()
+	expVals[2].Shares = amts[2].String()
+	tc.CheckValidators(t, transactor, expVals)
 	expSdkVal := &sdk_staking.Validator{
-		OperatorAddress: sdk.ValAddress(sgnAddr).String(),
+		OperatorAddress: sdk.ValAddress(tc.ValSgnAddrs[2]).String(),
 		Status:          sdk_staking.Bonded,
 		Tokens:          sdk.NewIntFromBigInt(amts[2]),
 	}
 	tc.CheckSdkValidator(t, transactor, expSdkVal)
 	tc.CheckBondedSdkValidatorNum(t, transactor, 3)
 
-	log.Infoln("---------- It should correctly replace validator 2 with validator 3 ----------")
-	ethAddr, auth, err = tc.GetAuth(tc.ValEthKs[3])
-	require.NoError(t, err, "failed to get auth")
-	sgnAddr, err = types.SdkAccAddrFromSgnBech32(tc.ValAccounts[3])
-	require.NoError(t, err, "failed to get sgnAddr")
-	err = tc.InitializeValidator(auth, sgnAddr, amts[3], eth.CommissionRate(0.02))
+	log.Infoln("---------- It should unbond validator 2 caused by undelegation ----------")
+	err = tc.Undelegate(tc.ValAuths[2], tc.ValEthAddrs[2], newAmt)
+	require.NoError(t, err, "failed to undelegate")
+	tc.Sleep(5)
+	expVals[2].Status = eth.Unbonding
+	expVals[2].Tokens = initialDelegation.String()
+	expVals[2].Shares = initialDelegation.String()
+	tc.CheckValidators(t, transactor, expVals)
+	tc.CheckBondedSdkValidatorNum(t, transactor, 2)
+
+	tc.ConfirmUnbondedValidator(tc.ValAuths[2], tc.ValEthAddrs[2])
+	expVals[2].Status = eth.Unbonded
+	tc.CheckValidators(t, transactor, expVals)
+
+	log.Infoln("---------- It should add back bonded validator 2 with enough delegation ----------")
+	err = tc.Delegate(tc.ValAuths[2], tc.ValEthAddrs[2], newAmt)
+	tc.Sleep(5)
+	expVals[2].Status = eth.Bonded
+	expVals[2].Tokens = amts[2].String()
+	expVals[2].Shares = amts[2].String()
+	tc.CheckValidators(t, transactor, expVals)
+	tc.CheckBondedSdkValidatorNum(t, transactor, 3)
+
+	log.Infoln("---------- It should correctly replace bonded validator 2 with validator 3 ----------")
+	err = tc.InitializeValidator(tc.ValAuths[3], tc.ValSgnAddrs[3], amts[3], eth.CommissionRate(0.02))
 	tc.Sleep(5)
 	require.NoError(t, err, "failed to initialize validator")
 	expVals[2].Status = eth.Unbonding
 	expVal = &types.Validator{
-		EthAddress:     eth.Addr2Hex(ethAddr),
-		EthSigner:      eth.Addr2Hex(ethAddr),
+		EthAddress:     eth.Addr2Hex(tc.ValEthAddrs[3]),
+		EthSigner:      eth.Addr2Hex(tc.ValEthAddrs[3]),
 		Status:         eth.Bonded,
-		SgnAddress:     sgnAddr.String(),
+		SgnAddress:     tc.ValSgnAddrs[3].String(),
 		Tokens:         amts[3].String(),
 		Shares:         amts[3].String(),
-		CommissionRate: 200,
+		CommissionRate: eth.CommissionRate(0.02),
 	}
 	expVals = append(expVals, expVal)
 	tc.CheckValidators(t, transactor, expVals)
 	expSdkVal = &sdk_staking.Validator{
-		OperatorAddress: sdk.ValAddress(sgnAddr).String(),
+		OperatorAddress: sdk.ValAddress(tc.ValSgnAddrs[3]).String(),
 		Status:          sdk_staking.Bonded,
 		Tokens:          sdk.NewIntFromBigInt(amts[3]),
 	}

@@ -123,9 +123,9 @@ func DeployCommand() *cobra.Command {
 				SetEthBaseKs("./docker-volumes/geth-env")
 				err = FundAddrsETH(
 					[]eth.Addr{
-						eth.Hex2Addr(ValEthAddrs[0]),
-						eth.Hex2Addr(ClientEthAddrs[0]),
-						eth.Hex2Addr(ClientEthAddrs[1]),
+						ValEthAddrs[0],
+						ClientEthAddrs[0],
+						ClientEthAddrs[1],
 					}, NewBigInt(1, 20))
 				ChkErr(err, "fund ETH to validator and clients")
 			}
@@ -165,8 +165,8 @@ func DeployCommand() *cobra.Command {
 				ChkErr(err, "failed to call ContributeToMiningPool of Staking contract")
 				err = FundAddrsErc20(celrAddr,
 					[]eth.Addr{
-						eth.Hex2Addr(ClientEthAddrs[0]),
-						eth.Hex2Addr(ClientEthAddrs[1]),
+						ClientEthAddrs[0],
+						ClientEthAddrs[1],
 					},
 					NewBigInt(1, 20),
 				)

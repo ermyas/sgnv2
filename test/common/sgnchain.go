@@ -2,7 +2,6 @@ package common
 
 import (
 	"fmt"
-	"math/big"
 	"sort"
 	"strconv"
 	"testing"
@@ -11,7 +10,6 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/app"
 	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/validator/client/cli"
 	"github.com/celer-network/sgn-v2/x/validator/types"
@@ -22,26 +20,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type ContractParams struct {
-	CelrAddr              eth.Addr
-	ProposalDeposit       *big.Int
-	VotePeriod            *big.Int
-	UnbondingPeriod       *big.Int
-	MaxBondedValidators   *big.Int
-	MinValidatorTokens    *big.Int
-	MinSelfDelegation     *big.Int
-	AdvanceNoticePeriod   *big.Int
-	ValidatorBondInterval *big.Int
-	MaxSlashFactor        *big.Int
-	StartGateway          bool
-}
-
 func SetupSgnchain() {
 	config := sdk.GetConfig()
 	config.SetBech32PrefixForAccount(common.Bech32PrefixAccAddr, common.Bech32PrefixAccPub)
 	config.SetBech32PrefixForValidator(common.Bech32PrefixValAddr, common.Bech32PrefixValPub)
 	config.SetBech32PrefixForConsensusNode(common.Bech32PrefixConsAddr, common.Bech32PrefixConsPub)
 	config.Seal()
+	for i := 0; i < len(ValSgnAddrStrs); i++ {
+		sgnAddr, err := types.SdkAccAddrFromSgnBech32(ValSgnAddrStrs[i])
+		if err != nil {
+			log.Fatal(err)
+		}
+		ValSgnAddrs = append(ValSgnAddrs, sgnAddr)
+	}
 }
 
 func NewTestTransactor(t *testing.T, sgnCLIHome, sgnChainID, sgnNodeURI, sgnValAcct, sgnPassphrase string) *transactor.Transactor {
