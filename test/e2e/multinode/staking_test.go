@@ -126,6 +126,7 @@ func stakingTest(t *testing.T) {
 	}
 	tc.CheckSdkValidator(t, transactor, expSdkVal)
 	tc.CheckBondedSdkValidatorNum(t, transactor, 3)
+	tc.Sleep(5)
 	tc.PrintTendermintValidators(t, transactor)
 
 	log.Infoln("---------- It should unbond validator 2 caused by undelegation ----------")
@@ -174,5 +175,6 @@ func stakingTest(t *testing.T) {
 	}
 	tc.CheckSdkValidator(t, transactor, expSdkVal)
 	tc.CheckBondedSdkValidatorNum(t, transactor, 3)
+	tc.Sleep(5)
 	tc.PrintTendermintValidators(t, transactor)
 }

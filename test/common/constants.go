@@ -47,10 +47,10 @@ var (
 		"sgn1rjr9uaewus3qh4vs4sqdkdvepwyxq8ql84udfh",
 	}
 	ValConensusAddrs = [...]string{
-		"sgnvalcons15h2geedmud70gvpajdwpcaxfs4qcrw4zg3cg75",
-		"sgnvalcons1egtta7su5jxjahtw56pe07qerz4lwvrlxs80yf",
-		"sgnvalcons19q9usqmjcmx8vynynfl5tj5n2k22gc5fh4gmnn",
-		"sgnvalcons1rjr9uaewus3qh4vs4sqdkdvepwyxq8ql2wx6h6",
+		"sgnvalcons150sptaghyax9g3zwcg9hx8rshug9grdtzdfran",
+		"sgnvalcons1lp7hgu47jlyuwg5ed6ep5zhmk2s4r32q8emln0",
+		"sgnvalcons1cvrh4k08y73shw8ug5a3uex6huq6j9tm2sf2vs",
+		"sgnvalcons1hpw9w3rfuq4mteu6kjme9tye05ea0x7x7hpy8l",
 	}
 	ValEthKs = [...]string{
 		"../../keys/vethks0.json",

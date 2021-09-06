@@ -62,7 +62,7 @@ func NewOperator(cdc codec.Codec, cliHome string, tmCfg *tmcfg.Config, legacyAmi
 		return nil, err
 	}
 
-	consAddr := sdk.GetConsAddress(txr.Key.GetPubKey())
+	consAddr := sdk.GetConsAddress(sdkPubKey)
 	log.Infof("Validator %s consensus address %s", txr.Key.GetAddress(), consAddr)
 
 	return &Operator{
