@@ -108,6 +108,7 @@ func stakingTest(t *testing.T) {
 	expVals = append(expVals, expVal)
 	tc.CheckValidators(t, transactor, expVals)
 	tc.CheckBondedSdkValidatorNum(t, transactor, 2)
+	tc.PrintTendermintValidators(t, transactor)
 
 	log.Infoln("---------- It should add bonded validator 2 with enough delegation ----------")
 	newAmt := big.NewInt(0).Sub(amts[2], initialDelegation)
@@ -125,6 +126,7 @@ func stakingTest(t *testing.T) {
 	}
 	tc.CheckSdkValidator(t, transactor, expSdkVal)
 	tc.CheckBondedSdkValidatorNum(t, transactor, 3)
+	tc.PrintTendermintValidators(t, transactor)
 
 	log.Infoln("---------- It should unbond validator 2 caused by undelegation ----------")
 	err = tc.Undelegate(tc.ValAuths[2], tc.ValEthAddrs[2], newAmt)
@@ -172,4 +174,5 @@ func stakingTest(t *testing.T) {
 	}
 	tc.CheckSdkValidator(t, transactor, expSdkVal)
 	tc.CheckBondedSdkValidatorNum(t, transactor, 3)
+	tc.PrintTendermintValidators(t, transactor)
 }

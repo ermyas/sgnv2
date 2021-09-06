@@ -20,5 +20,8 @@ Run the following command from the sgn-v2 repo root folder
 go test -failfast -v -timeout 30m github.com/celer-network/sgn-v2/test/e2e/multinode
 ```
 Logs are located at
-- geth log path: docker-volumes/geth-env/geth.log
-- sgn nodeN log path: docker-volumes/nodeN/sgnd/sgnd.log
+
+```sh
+geth: docker-volumes/geth-env/geth.log
+node(0-3): docker-volumes/nodeN/sgnd/app.log & docker-volumes/nodeN/sgnd/tendermint.log
+```

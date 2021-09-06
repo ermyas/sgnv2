@@ -62,6 +62,9 @@ func NewOperator(cdc codec.Codec, cliHome string, tmCfg *tmcfg.Config, legacyAmi
 		return nil, err
 	}
 
+	consAddr := sdk.GetConsAddress(txr.Key.GetPubKey())
+	log.Infof("Validator %s consensus address %s", txr.Key.GetAddress(), consAddr)
+
 	return &Operator{
 		EthClient:  ethClient,
 		Transactor: txr,
@@ -108,15 +111,16 @@ func (o *Operator) SyncValidatorMsgs(valAddr eth.Addr, options ValSyncOptions) (
 }
 
 func (o *Operator) SyncValidatorSgnAddrMsg(valAddr eth.Addr) (*synctypes.ProposeUpdate, bool /*updated*/) {
-	log.Debugf("Generate sync validator sgnaddr msg, val %x", valAddr)
+	logmsg := fmt.Sprintf("Generate sync validator sgnaddr msg, val %x", valAddr)
 
 	sgnAddr, err := o.EthClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, valAddr)
 	if err != nil {
-		log.Errorf("Failed to query contract sgn address err: %s", err)
+		log.Errorf("%s. Failed to query contract sgn address err: %s", logmsg, err)
 		return nil, false
 	}
 	exist, _ := validatorcli.QuerySgnAccount(o.Transactor.CliCtx, sdk.AccAddress(sgnAddr).String())
 	if exist {
+		log.Debugf("%s. already updated", logmsg)
 		return nil, true
 	}
 	updateVal := &validatortypes.Validator{
@@ -127,29 +131,30 @@ func (o *Operator) SyncValidatorSgnAddrMsg(valAddr eth.Addr) (*synctypes.Propose
 		Type: synctypes.DataType_ValidatorSgnAddr,
 		Data: o.Transactor.CliCtx.Codec.MustMarshal(updateVal),
 	}
+	log.Debugf("%s. sgnaddr %s", logmsg, sdk.AccAddress(sgnAddr))
 	return update, false
 }
 
 func (o *Operator) SyncValidatorParamsMsg(valAddr eth.Addr) (*synctypes.ProposeUpdate, bool /*updated*/) {
-	log.Debugf("Generate sync validator params msg, val %x", valAddr)
+	logmsg := fmt.Sprintf("Generate sync validator params msg, val %x", valAddr)
 	// TODO: separate signer and val addr
 	if o.EthClient.Address != valAddr {
-		log.Errorln("Params sync can only be trigger by self validator")
+		log.Errorf("%s. Params sync can only be trigger by self validator", logmsg)
 		return nil, false
 	}
 	ethVal, err := o.EthClient.Contracts.Staking.Validators(&bind.CallOpts{}, valAddr)
 	if err != nil {
-		log.Errorln("Failed to query contract validator info:", err)
+		log.Errorf("%s. Failed to query contract validator info:", logmsg, err)
 		return nil, false
 	}
 	sgnAddrBytes, err := o.EthClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, valAddr)
 	if err != nil {
-		log.Errorf("Failed to query contract sgn address err: %s", err)
+		log.Errorf("%s. Failed to query contract sgn address err: %s", logmsg, err)
 		return nil, false
 	}
 	exist, err := validatorcli.QuerySgnAccount(o.Transactor.CliCtx, sdk.AccAddress(sgnAddrBytes).String())
 	if !exist {
-		log.Errorf("Failed to query store sgn account err: %s", err)
+		log.Errorf("%s. Failed to query store sgn account err: %s", logmsg, err)
 		return nil, false
 	}
 
@@ -166,7 +171,7 @@ func (o *Operator) SyncValidatorParamsMsg(valAddr eth.Addr) (*synctypes.ProposeU
 	storeVal, _ := validatorcli.QueryValidator(o.Transactor.CliCtx, valAddr.Hex())
 	if storeVal != nil {
 		if sameValidatorParams(updateVal, storeVal) {
-			log.Debugf("validator params already updated: %s", updateVal)
+			log.Debugf("%s, validator params already updated: %s", logmsg, updateVal)
 			return nil, true
 		}
 	}
@@ -174,19 +179,20 @@ func (o *Operator) SyncValidatorParamsMsg(valAddr eth.Addr) (*synctypes.ProposeU
 		Type: synctypes.DataType_ValidatorParams,
 		Data: o.Transactor.CliCtx.Codec.MustMarshal(updateVal),
 	}
+	log.Debugf("%s, updateVal: %s", logmsg, updateVal)
 	return update, false
 }
 
 func (o *Operator) SyncValidatorStatesMsg(valAddr eth.Addr) (*synctypes.ProposeUpdate, bool /*updated*/) {
-	log.Debugf("Generate sync validator states msg, val %x", valAddr)
+	logmsg := fmt.Sprintf("Generate sync validator states msg, val %x", valAddr)
 	ethVal, err := o.EthClient.Contracts.Staking.Validators(&bind.CallOpts{}, valAddr)
 	if err != nil {
-		log.Errorln("Failed to query contract validator info:", err)
+		log.Errorf("%s. Failed to query contract validator info: %s", logmsg, err)
 		return nil, false
 	}
 	storeVal, err := validatorcli.QueryValidator(o.Transactor.CliCtx, valAddr.Hex())
 	if storeVal == nil {
-		log.Debugln("Failed to query store validator info:", err)
+		log.Debugf("%s. Failed to query store validator info: %s", logmsg, err)
 		return nil, false
 	}
 
@@ -197,7 +203,7 @@ func (o *Operator) SyncValidatorStatesMsg(valAddr eth.Addr) (*synctypes.ProposeU
 		Shares:     ethVal.Shares.String(),
 	}
 	if sameValidatorStates(updateVal, storeVal) {
-		log.Debugf("validator states already updated: %s", updateVal)
+		log.Debugf("%s. Validator states already updated: %s", logmsg, updateVal)
 		return nil, true
 	}
 
@@ -205,6 +211,7 @@ func (o *Operator) SyncValidatorStatesMsg(valAddr eth.Addr) (*synctypes.ProposeU
 		Type: synctypes.DataType_ValidatorStates,
 		Data: o.Transactor.CliCtx.Codec.MustMarshal(updateVal),
 	}
+	log.Debugf("%s, updateVal: %s", logmsg, updateVal)
 	return update, false
 }
 

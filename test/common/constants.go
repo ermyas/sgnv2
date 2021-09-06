@@ -46,6 +46,12 @@ var (
 		"sgn19q9usqmjcmx8vynynfl5tj5n2k22gc5f6wjvd7",
 		"sgn1rjr9uaewus3qh4vs4sqdkdvepwyxq8ql84udfh",
 	}
+	ValConensusAddrs = [...]string{
+		"sgnvalcons15h2geedmud70gvpajdwpcaxfs4qcrw4zg3cg75",
+		"sgnvalcons1egtta7su5jxjahtw56pe07qerz4lwvrlxs80yf",
+		"sgnvalcons19q9usqmjcmx8vynynfl5tj5n2k22gc5fh4gmnn",
+		"sgnvalcons1rjr9uaewus3qh4vs4sqdkdvepwyxq8ql2wx6h6",
+	}
 	ValEthKs = [...]string{
 		"../../keys/vethks0.json",
 		"../../keys/vethks1.json",

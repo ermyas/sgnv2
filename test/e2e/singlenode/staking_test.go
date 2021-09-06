@@ -78,6 +78,7 @@ func stakingTest(t *testing.T) {
 	}
 	tc.CheckSdkValidator(t, transactor, expSdkVal)
 	tc.CheckBondedSdkValidatorNum(t, transactor, 1)
+	tc.PrintTendermintValidators(t, transactor)
 
 	log.Info("add delegators ...")
 	for i := 0; i < len(tc.DelEthKs); i++ {

@@ -50,7 +50,10 @@ func (r *Relayer) monitorEthValidatorNotice() {
 				}
 				if e.ValAddr == r.valAddr {
 					log.Debug("Self sync valdiator params")
-					go r.selfSyncValidator(ValSyncOptions{params: true})
+					go r.selfSyncValidatorParams()
+					if e.Key == "sgn-addr" {
+						go r.selfSyncValidatorStates()
+					}
 				}
 			}
 			return false
@@ -84,7 +87,7 @@ func (r *Relayer) monitorEthValidatorStatusUpdate() {
 				if e.ValAddr == r.valAddr {
 					log.Infof("%s. Self sync bonded validator.", logmsg)
 					r.setBonded()
-					go r.selfSyncValidator(ValSyncOptions{states: true})
+					go r.selfSyncValidatorStates()
 				} else {
 					log.Infof("%s. Skip", logmsg)
 				}
@@ -190,6 +193,14 @@ func (r *Relayer) bondValidator() {
 		return
 	}
 	log.Infof("Bond validator %x on mainchain", r.valAddr)
+}
+
+func (r *Relayer) selfSyncValidatorStates() {
+	r.selfSyncValidator(ValSyncOptions{states: true})
+}
+
+func (r *Relayer) selfSyncValidatorParams() {
+	r.selfSyncValidator(ValSyncOptions{params: true})
 }
 
 func (r *Relayer) selfSyncValidator(options ValSyncOptions) {

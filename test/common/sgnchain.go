@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/validator/client/cli"
 	"github.com/celer-network/sgn-v2/x/validator/types"
+	"github.com/cosmos/cosmos-sdk/client/rpc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/gogo/protobuf/proto"
@@ -132,6 +134,14 @@ func CheckBondedSdkValidatorNum(t *testing.T, transactor *transactor.Transactor,
 	}
 	require.NoError(t, err, "failed to QuerySdkValidators")
 	assert.Equal(t, expNum, len(sdkvals), "The length of validators should be: "+strconv.Itoa(expNum))
+}
+
+func PrintTendermintValidators(t *testing.T, transactor *transactor.Transactor) {
+	page := 1
+	limit := 30
+	res, err := rpc.GetValidators(context.Background(), transactor.CliCtx, nil, &page, &limit)
+	require.NoError(t, err, "failed to get tendermint validators")
+	log.Infof("tendermint validators:\n%s", res)
 }
 
 func sameEachValidators(vs []*types.Validator, exps []*types.Validator) bool {
