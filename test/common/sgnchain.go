@@ -188,11 +188,17 @@ func sameSdkValidators(v *sdk_staking.Validator, exp *sdk_staking.Validator) boo
 }
 
 func printSdkVal(v sdk_staking.Validator) string {
-	pubkey := v.ConsensusPubkey
+	var pubkey string
+	if v.ConsensusPubkey != nil {
+		consAddr, err := v.GetConsAddr()
+		if err != nil {
+			pubkey = fmt.Sprintf("consensus_address:%s", err)
+		} else {
+			pubkey = fmt.Sprintf("consensus_address:\"%s\"", consAddr.String())
+		}
+	}
 	v.ConsensusPubkey = nil
 	out := proto.CompactTextString(&v)
-	if pubkey != nil {
-		out += fmt.Sprintf("consensus_pubkey: %x", pubkey.Value)
-	}
+	out += pubkey
 	return out
 }

@@ -10,4 +10,5 @@ var (
 	ErrDelegatorNotFound  = sdk_errors.Register(ModuleName, 4, "delegator not found")
 	ErrSgnAccounNotFound  = sdk_errors.Register(ModuleName, 5, "sgn account not found")
 	ErrInvalidAddress     = sdk_errors.Register(ModuleName, 6, "invalid address")
+	ErrInvalidType        = sdk_errors.Register(ModuleName, 7, "invalid type")
 )
