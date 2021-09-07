@@ -194,8 +194,8 @@ func (r *Relayer) verifyValidatorStates(update *synctypes.PendingUpdate) (done, 
 	}
 
 	if updateVal.Status != validatortypes.ValidatorStatus(ethVal.Status) ||
-		updateVal.Tokens != ethVal.Tokens.String() ||
-		updateVal.Shares != ethVal.Shares.String() {
+		updateVal.Tokens.BigInt().Cmp(ethVal.Tokens) != 0 ||
+		updateVal.Shares.BigInt().Cmp(ethVal.Shares) != 0 {
 		values := fmt.Sprintf("status %s tokens %s shares %s",
 			eth.ParseValStatus(ethVal.Status), ethVal.Tokens, ethVal.Shares)
 		if r.cmpBlkNum(update.EthBlock) == 1 {

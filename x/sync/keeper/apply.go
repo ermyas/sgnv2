@@ -92,14 +92,6 @@ func (k Keeper) applyValidatorStates(ctx sdk.Context, update *types.PendingUpdat
 		return false, err
 	}
 	log.Infof("Apply validator states %s", v.String())
-	_, ok := sdk.NewIntFromString(v.Tokens)
-	if !ok {
-		return false, fmt.Errorf("invalid tokens %s", v.Tokens)
-	}
-	_, ok = sdk.NewIntFromString(v.Shares)
-	if !ok {
-		return false, fmt.Errorf("invalid shares %s", v.Shares)
-	}
 	val, found := k.valKeeper.GetValidator(ctx, v.EthAddress)
 	if !found {
 		return false, fmt.Errorf("validator %s not found", val.EthAddress)

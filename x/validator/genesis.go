@@ -36,7 +36,7 @@ func ExportGenesis(ctx sdk.Context, keeper keeper.Keeper) *types.GenesisState {
 
 	vals := make([]types.Validator, 0)
 	for i := range validators {
-		vals = append(vals, *validators[i])
+		vals = append(vals, validators[i])
 	}
 	return &types.GenesisState{
 		Params:     params,

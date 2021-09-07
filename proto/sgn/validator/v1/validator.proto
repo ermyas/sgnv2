@@ -16,27 +16,54 @@ enum ValidatorStatus {
 }
 
 message Validator {
+  option (gogoproto.equal)            = false;
   option (gogoproto.goproto_stringer) = false;
 
+  // eth address of the validator account
   string eth_address = 1 [(gogoproto.moretags) = "yaml:\"eth_address\""];
+  // eth address of the validator signer
   string eth_signer = 2 [(gogoproto.moretags) = "yaml:\"signer_address\""];
-  ValidatorStatus status = 3;
-  string sgn_address = 4 [(gogoproto.moretags) = "yaml:\"sgn_address\""];
+  // bech32-encoded sgn address (sdk.AccAddress) of the validator.
+  string sgn_address = 3 [(gogoproto.moretags) = "yaml:\"sgn_address\""];
+  // bech32-encoded operator address (sdk.ValAddress) of the validator.
+  string operator_address = 4 [(gogoproto.moretags) = "yaml:\"operator_address\""];
   // consensus_pubkey is the consensus public key of the validator, as a Protobuf Any.
   google.protobuf.Any consensus_pubkey = 5
-      [(cosmos_proto.accepts_interface) = "cosmos.crypto.PubKey", (gogoproto.moretags) = "yaml:\"consensus_pubkey\""];
-  repeated string transactors = 6;
-  string tokens = 7 [(gogoproto.moretags) = "yaml:\"tokens\""];
-  string shares = 8 [(gogoproto.moretags) = "yaml:\"shares\""];
+    [(cosmos_proto.accepts_interface) = "cosmos.crypto.PubKey", (gogoproto.moretags) = "yaml:\"consensus_pubkey\""];
+  // validator status (bonded/unbonding/unbonded).
+  ValidatorStatus status = 6;
+  // validator total tokens
+  string tokens = 7 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.moretags) = "yaml:\"tokens\"",
+    (gogoproto.nullable)   = false
+  ];
+  // validator total shares
+  string shares = 8 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.moretags) = "yaml:\"shares\"",
+    (gogoproto.nullable)   = false
+  ];
+  // validator commission rate
   uint64 commission_rate = 9 [(gogoproto.moretags) = "yaml:\"commission_rate\""];
+  // validator descriptions
   Description description = 10;
+  // validator transactor account (sdk.AccAddress) addresses (TODO: move to separate message)
+  repeated string transactors = 11;
 }
 
 message Description {
+  option (gogoproto.equal) = true;
+
+  // moniker defines a human-readable name for the validator.
   string moniker = 1;
+  // identity defines an optional identity signature (ex. UPort or Keybase).
   string identity = 2;
+  // website defines an optional website link.
   string website = 3;
-  string security_contact = 4;
+  // security_contact defines an optional email for security contact.
+  string security_contact = 4 [(gogoproto.moretags) = "yaml:\"security_contact\""];
+  // details define other optional details.
   string details = 5;
 }
 

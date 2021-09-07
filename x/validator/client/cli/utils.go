@@ -35,7 +35,7 @@ func QueryValidators(cliCtx client.Context) (validators types.Validators, err er
 	}
 	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &validators)
 	sort.SliceStable(validators, func(i, j int) bool {
-		return validators[i].Tokens > validators[j].Tokens
+		return validators[i].Tokens.GT(validators[j].Tokens)
 	})
 	return
 }

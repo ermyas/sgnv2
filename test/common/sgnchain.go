@@ -144,7 +144,7 @@ func PrintTendermintValidators(t *testing.T, transactor *transactor.Transactor) 
 	log.Infof("tendermint validators:\n%s", res)
 }
 
-func sameEachValidators(vs []*types.Validator, exps []*types.Validator) bool {
+func sameEachValidators(vs []types.Validator, exps []types.Validator) bool {
 	same := len(vs) == len(exps)
 	if same {
 		sort.SliceStable(vs, func(i, j int) bool {
@@ -155,7 +155,7 @@ func sameEachValidators(vs []*types.Validator, exps []*types.Validator) bool {
 		})
 
 		for i := 0; i < len(vs); i++ {
-			same = same && sameValidators(vs[i], exps[i])
+			same = same && sameValidators(&vs[i], &exps[i])
 			if !same {
 				break
 			}
@@ -170,8 +170,8 @@ func sameValidators(v *types.Validator, exp *types.Validator) bool {
 		v.GetEthSigner() == exp.GetEthSigner() &&
 		v.GetStatus() == exp.GetStatus() &&
 		v.GetSgnAddress() == exp.GetSgnAddress() &&
-		v.GetTokens() == exp.GetTokens() &&
-		v.GetShares() == exp.GetShares() &&
+		v.Tokens.Equal(exp.Tokens) &&
+		v.Shares.Equal(exp.Shares) &&
 		v.GetCommissionRate() == exp.GetCommissionRate()
 }
 

@@ -1,7 +1,9 @@
 package types
 
 import (
+	"bytes"
 	fmt "fmt"
+	"sort"
 
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -11,6 +13,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk_errors "github.com/cosmos/cosmos-sdk/types/errors"
 	proto "github.com/gogo/protobuf/proto"
+	abci "github.com/tendermint/tendermint/abci/types"
 	tmprotocrypto "github.com/tendermint/tendermint/proto/tendermint/crypto"
 	"gopkg.in/yaml.v2"
 )
@@ -68,6 +71,11 @@ func (v Validator) String() string {
 	return out
 }
 
+func (v Validator) YamlStr() string {
+	out, _ := yaml.Marshal(v)
+	return string(out)
+}
+
 func (v Validator) ConsPubKey() (cryptotypes.PubKey, error) {
 	pk, ok := v.ConsensusPubkey.GetCachedValue().(cryptotypes.PubKey)
 	if !ok {
@@ -100,13 +108,98 @@ func (v Validator) GetConsAddr() (sdk.ConsAddress, error) {
 	return sdk.ConsAddress(pk.Address()), nil
 }
 
-func (v Validator) YamlStr() string {
-	out, _ := yaml.Marshal(v)
-	return string(out)
+// IsBonded checks if the validator status equals Bonded
+func (v Validator) IsBonded() bool {
+	return v.GetStatus() == ValidatorStatus_Bonded
 }
 
+// IsUnbonded checks if the validator status equals Unbonded
+func (v Validator) IsUnbonded() bool {
+	return v.GetStatus() == ValidatorStatus_Unbonded
+}
+
+// IsUnbonding checks if the validator status equals Unbonding
+func (v Validator) IsUnbonding() bool {
+	return v.GetStatus() == ValidatorStatus_Unbonding
+}
+
+// ConsensusPower gets the consensus-engine power. Aa reduction of 10^6 from
+// validator tokens is applied
+func (v Validator) ConsensusPower(r sdk.Int) int64 {
+	if v.IsBonded() {
+		return v.PotentialConsensusPower(r)
+	}
+	return 0
+}
+
+// PotentialConsensusPower returns the potential consensus-engine power.
+func (v Validator) PotentialConsensusPower(r sdk.Int) int64 {
+	return sdk.TokensToConsensusPower(v.Tokens, r)
+}
+
+// ABCIValidatorUpdate returns an abci.ValidatorUpdate from a staking validator type
+// with the full validator power
+func (v Validator) ABCIValidatorUpdate(r sdk.Int) abci.ValidatorUpdate {
+	tmProtoPk, err := v.TmConsPublicKey()
+	if err != nil {
+		panic(err)
+	}
+
+	return abci.ValidatorUpdate{
+		PubKey: tmProtoPk,
+		Power:  v.ConsensusPower(r),
+	}
+}
+
+// ABCIValidatorUpdateZero returns an abci.ValidatorUpdate from a staking validator type
+// with zero power used for validator updates.
+func (v Validator) ABCIValidatorUpdateZero() abci.ValidatorUpdate {
+	tmProtoPk, err := v.TmConsPublicKey()
+	if err != nil {
+		panic(err)
+	}
+
+	return abci.ValidatorUpdate{
+		PubKey: tmProtoPk,
+		Power:  0,
+	}
+}
+
+func (v Validator) GetOperator() sdk.ValAddress {
+	if v.OperatorAddress == "" {
+		return nil
+	}
+	addr, err := sdk.ValAddressFromBech32(v.OperatorAddress)
+	if err != nil {
+		panic(err)
+	}
+	return addr
+}
+
+func (v Validator) GetMoniker() string { return v.GetDescription().GetMoniker() }
+
 // Validators is a collection of Validator
-type Validators []*Validator
+type Validators []Validator
+
+// Sort Validators sorts validator array in ascending operator address order
+func (v Validators) Sort() {
+	sort.Sort(v)
+}
+
+// Implements sort interface
+func (v Validators) Len() int {
+	return len(v)
+}
+
+// Implements sort interface
+func (v Validators) Less(i, j int) bool {
+	return v[i].GetEthAddress() < v[j].GetEthAddress()
+}
+
+// Implements sort interface
+func (v Validators) Swap(i, j int) {
+	v[i], v[j] = v[j], v[i]
+}
 
 // UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
 func (v Validators) UnpackInterfaces(c codectypes.AnyUnpacker) error {
@@ -123,4 +216,29 @@ func (v Validators) String() (out string) {
 		out += val.String() + " | "
 	}
 	return out
+}
+
+// ValidatorsByVotingPower implements sort.Interface for []Validator based on
+// the VotingPower and Address fields.
+// The validators are sorted first by their voting power (descending). Secondary index - Address (ascending).
+// Copied from tendermint/types/validator_set.go
+type ValidatorsByVotingPower []Validator
+
+func (valz ValidatorsByVotingPower) Len() int { return len(valz) }
+
+func (valz ValidatorsByVotingPower) Less(i, j int, r sdk.Int) bool {
+	if valz[i].ConsensusPower(r) == valz[j].ConsensusPower(r) {
+		addrI, errI := valz[i].GetConsAddr()
+		addrJ, errJ := valz[j].GetConsAddr()
+		// If either returns error, then return false
+		if errI != nil || errJ != nil {
+			return false
+		}
+		return bytes.Compare(addrI, addrJ) == -1
+	}
+	return valz[i].ConsensusPower(r) > valz[j].ConsensusPower(r)
+}
+
+func (valz ValidatorsByVotingPower) Swap(i, j int) {
+	valz[i], valz[j] = valz[j], valz[i]
 }

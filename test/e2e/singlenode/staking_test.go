@@ -60,8 +60,8 @@ func stakingTest(t *testing.T) {
 		EthSigner:      eth.Addr2Hex(tc.ValEthAddrs[0]),
 		Status:         eth.Bonded,
 		SgnAddress:     tc.ValSgnAddrs[0].String(),
-		Tokens:         vAmt.String(),
-		Shares:         vAmt.String(),
+		Tokens:         sdk.NewIntFromBigInt(vAmt),
+		Shares:         sdk.NewIntFromBigInt(vAmt),
 		CommissionRate: eth.CommissionRate(0.02),
 	}
 	tc.CheckValidator(t, transactor, expVal)
@@ -94,8 +94,8 @@ func stakingTest(t *testing.T) {
 		tc.CheckDelegator(t, transactor, expDel)
 	}
 
-	expVal.Tokens = totalAmts.String()
-	expVal.Shares = totalAmts.String()
+	expVal.Tokens = sdk.NewIntFromBigInt(totalAmts)
+	expVal.Shares = sdk.NewIntFromBigInt(totalAmts)
 	tc.CheckValidator(t, transactor, expVal)
 	expSdkVal.Tokens = sdk.NewIntFromBigInt(totalAmts)
 	tc.CheckSdkValidator(t, transactor, expSdkVal)

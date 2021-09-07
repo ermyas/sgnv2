@@ -29,7 +29,7 @@ func (k Keeper) GetAllValidators(ctx sdk.Context) (validators types.Validators) 
 
 	for ; iterator.Valid(); iterator.Next() {
 		validator := types.MustUnmarshalValidator(k.cdc, iterator.Value())
-		validators = append(validators, &validator)
+		validators = append(validators, validator)
 	}
 
 	return validators
@@ -47,15 +47,6 @@ func (k Keeper) SetValidatorStates(ctx sdk.Context, val *types.Validator) error 
 }
 
 func (k Keeper) UpdateSdkValidator(ctx sdk.Context, val *types.Validator) error {
-	tkInt, ok := sdk.NewIntFromString(val.Tokens)
-	if !ok {
-		return fmt.Errorf("invalid tokens %s", val.Tokens)
-	}
-	shInt, ok := sdk.NewIntFromString(val.Shares)
-	if !ok {
-		return fmt.Errorf("invalid shares %s", val.Shares)
-	}
-
 	sdkValAddr, err := types.SdkValAddrFromSgnBech32(val.SgnAddress)
 	if err != nil {
 		return err
@@ -81,8 +72,8 @@ func (k Keeper) UpdateSdkValidator(ctx sdk.Context, val *types.Validator) error 
 				OperatorAddress: sdkValAddr.String(),
 				ConsensusPubkey: val.ConsensusPubkey,
 				Status:          sdk_staking.Bonded,
-				Tokens:          tkInt,
-				DelegatorShares: shInt.ToDec(),
+				Tokens:          val.Tokens,
+				DelegatorShares: val.Shares.ToDec(),
 				Description:     sdkDescription,
 			}
 			err = k.sdkStakingKeeper.SetValidatorByConsAddr(ctx, sdkVal)
@@ -109,9 +100,9 @@ func (k Keeper) UpdateSdkValidator(ctx sdk.Context, val *types.Validator) error 
 	if sdkVal.Status == sdk_staking.Unbonded {
 		sdkVal.Tokens = sdk.ZeroInt()
 	} else {
-		sdkVal.Tokens = tkInt
+		sdkVal.Tokens = val.Tokens
 	}
-	sdkVal.DelegatorShares = shInt.ToDec()
+	sdkVal.DelegatorShares = val.Shares.ToDec()
 	k.sdkStakingKeeper.SetValidator(ctx, sdkVal)
 
 	if val.Status == types.ValidatorStatus_Bonded {

@@ -199,8 +199,8 @@ func (o *Operator) SyncValidatorStatesMsg(valAddr eth.Addr) (*synctypes.ProposeU
 	updateVal := &validatortypes.Validator{
 		EthAddress: eth.Addr2Hex(valAddr),
 		Status:     validatortypes.ValidatorStatus(ethVal.Status),
-		Tokens:     ethVal.Tokens.String(),
-		Shares:     ethVal.Shares.String(),
+		Tokens:     sdk.NewIntFromBigInt(ethVal.Tokens),
+		Shares:     sdk.NewIntFromBigInt(ethVal.Shares),
 	}
 	if sameValidatorStates(updateVal, storeVal) {
 		log.Debugf("%s. Validator states already updated: %s", logmsg, updateVal)
