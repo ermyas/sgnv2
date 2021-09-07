@@ -9,6 +9,7 @@ import (
 	sdk_auth "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	sdk_params "github.com/cosmos/cosmos-sdk/x/params/types"
 	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	sdk_staking_types "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 // Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
@@ -57,4 +58,8 @@ func (k Keeper) RemoveAccount(ctx sdk.Context, accAddress sdk.AccAddress) {
 		log.Infof("Remove sdk account %s", accAddress)
 		k.sdkAccountKeeper.RemoveAccount(ctx, account)
 	}
+}
+
+func (k Keeper) IterateBondedValidatorsByPower(ctx sdk.Context, fn func(index int64, validator sdk_staking_types.ValidatorI) (stop bool)) {
+	k.sdkStakingKeeper.IterateBondedValidatorsByPower(ctx, fn)
 }

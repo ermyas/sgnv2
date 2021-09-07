@@ -40,7 +40,7 @@ func (k Keeper) SetDelegator(ctx sdk.Context, delegator *types.Delegator) {
 func (k Keeper) SetDelegatorShares(ctx sdk.Context, valAddr, delAddr, shares string) error {
 	shInt, ok := sdk.NewIntFromString(shares)
 	if !ok {
-		return fmt.Errorf("Invalid shares %s", shares)
+		return fmt.Errorf("invalid shares %s", shares)
 	}
 	delegator := types.NewDelegator(valAddr, delAddr, shares)
 	k.SetDelegator(ctx, delegator)

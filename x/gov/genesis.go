@@ -1,0 +1,59 @@
+package gov
+
+import (
+	"github.com/celer-network/sgn-v2/x/gov/keeper"
+	"github.com/celer-network/sgn-v2/x/gov/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+)
+
+// InitGenesis - store genesis parameters
+func InitGenesis(ctx sdk.Context, k keeper.Keeper, data types.GenesisState) {
+
+	k.SetProposalID(ctx, data.StartingProposalId)
+	k.SetDepositParams(ctx, data.DepositParams)
+	k.SetVotingParams(ctx, data.VotingParams)
+	k.SetTallyParams(ctx, data.TallyParams)
+
+	for _, vote := range data.Votes {
+		k.SetVote(ctx, vote)
+	}
+
+	for _, proposal := range data.Proposals {
+		switch proposal.Status {
+		case types.StatusDepositPeriod:
+			k.InsertInactiveProposalQueue(ctx, proposal.ProposalId, proposal.DepositEndTime)
+		case types.StatusVotingPeriod:
+			k.InsertActiveProposalQueue(ctx, proposal.ProposalId, proposal.VotingEndTime)
+		}
+		k.SetProposal(ctx, proposal)
+	}
+}
+
+// ExportGenesis - output genesis parameters
+func ExportGenesis(ctx sdk.Context, k keeper.Keeper) *types.GenesisState {
+	startingProposalID, _ := k.GetProposalID(ctx)
+	depositParams := k.GetDepositParams(ctx)
+	votingParams := k.GetVotingParams(ctx)
+	tallyParams := k.GetTallyParams(ctx)
+	proposals := k.GetProposals(ctx)
+
+	var proposalsDeposits types.Deposits
+	var proposalsVotes types.Votes
+	for _, proposal := range proposals {
+		deposits := k.GetDeposits(ctx, proposal.ProposalId)
+		proposalsDeposits = append(proposalsDeposits, deposits...)
+
+		votes := k.GetVotes(ctx, proposal.ProposalId)
+		proposalsVotes = append(proposalsVotes, votes...)
+	}
+
+	return &types.GenesisState{
+		StartingProposalId: startingProposalID,
+		Deposits:           proposalsDeposits,
+		Votes:              proposalsVotes,
+		Proposals:          proposals,
+		DepositParams:      depositParams,
+		VotingParams:       votingParams,
+		TallyParams:        tallyParams,
+	}
+}
