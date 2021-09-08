@@ -275,7 +275,7 @@ func (t *Transactor) buildAndSignTx(msgs []sdk.Msg, gas uint64) ([]byte, error) 
 		txf = txf.WithGas(adjusted)
 	}
 
-	tx, err := clienttx.BuildUnsignedTx(txf, msgs...)
+	tx, err := txf.BuildUnsignedTx(msgs...)
 	if err != nil {
 		return nil, err
 	}
