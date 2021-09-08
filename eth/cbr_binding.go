@@ -1375,4 +1375,3 @@ func (_Bridge *BridgeFilterer) ParseWithdrawDone(log types.Log) (*BridgeWithdraw
 	event.Raw = log
 	return event, nil
 }
-
