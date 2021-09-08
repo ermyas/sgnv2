@@ -50,11 +50,6 @@ const (
 
 func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 	for _, c := range cmds {
-		// c.Flags().Bool(flags.FlagIndentResponse, false, "Add indent to JSON response")
-		// c.Flags().Bool(flags.FlagTrustNode, true, "Trust connected full node (don't verify proofs for responses)")
-
-		// viper.BindPFlag(flags.FlagTrustNode, c.Flags().Lookup(flags.FlagTrustNode))
-
 		c.SetErr(c.ErrOrStderr())
 	}
 	return cmds
@@ -62,11 +57,7 @@ func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 
 func GetCommands(cmds ...*cobra.Command) []*cobra.Command {
 	for _, c := range cmds {
-		// c.Flags().Bool(flags.FlagIndentResponse, false, "Add indent to JSON response")
-		// c.Flags().Bool(flags.FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
 		c.Flags().Int64(flags.FlagHeight, 0, "Use a specific height to query state at (this can error if the node is pruning state)")
-
-		//viper.BindPFlag(flags.FlagTrustNode, c.Flags().Lookup(flags.FlagTrustNode))
 
 		c.SetErr(c.ErrOrStderr())
 	}
