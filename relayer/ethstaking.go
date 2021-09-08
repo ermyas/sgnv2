@@ -49,7 +49,7 @@ func (r *Relayer) monitorEthValidatorNotice() {
 					}
 				}
 				if e.ValAddr == r.valAddr {
-					log.Debug("Self sync valdiator params")
+					log.Debug("Self sync validator params")
 					go r.selfSyncValidatorParams()
 					if e.Key == "sgn-addr" {
 						go r.selfSyncValidatorStates()

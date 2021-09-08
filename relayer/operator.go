@@ -151,7 +151,7 @@ func (o *Operator) SyncValidatorParamsMsg(valAddr eth.Addr) (*synctypes.ProposeU
 	}
 	ethVal, err := o.EthClient.Contracts.Staking.Validators(&bind.CallOpts{}, valAddr)
 	if err != nil {
-		log.Errorf("%s. Failed to query contract validator info:", logmsg, err)
+		log.Errorf("%s. Failed to query contract validator info: %s", logmsg, err)
 		return nil, false
 	}
 	sgnAddrBytes, err := o.EthClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, valAddr)
