@@ -25,7 +25,7 @@ govern = ""
 color = false
 level = "debug"
 
-[sgn]
+[sgnd]
 base_gas_price = 0
 chain_id = "sgn-localnet-1000"
 execute_slash = true
@@ -37,5 +37,5 @@ timeout_commit = 2
 transactors = ["sgn1wkmgk2acpjxfwcmgaaa32ruqnutnf0lr030apy"]
 validator_account = "sgn1egtta7su5jxjahtw56pe07qerz4lwvrlttac6y"
 
-[sgn.check_interval]
+[sgnd.check_interval]
 slash_queue = 2

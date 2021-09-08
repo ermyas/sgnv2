@@ -37,7 +37,7 @@ func stakingTest(t *testing.T) {
 
 	transactor := tc.NewTestTransactor(
 		t,
-		CLIHome,
+		NodeHome,
 		viper.GetString(common.FlagSgnChainId),
 		viper.GetString(common.FlagSgnNodeURI),
 		viper.GetStringSlice(common.FlagSgnTransactors)[0],

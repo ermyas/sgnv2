@@ -34,7 +34,7 @@ func NewKeeper(
 		storeKey:         storeKey,
 		sdkAccountKeeper: sdkAccountKeeper,
 		sdkStakingKeeper: sdkStakingKeeper,
-		paramstore:       paramstore.WithKeyTable(ParamKeyTable()),
+		paramstore:       paramstore,
 	}
 }
 

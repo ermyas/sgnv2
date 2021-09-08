@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	CLIHome = os.ExpandEnv("$HOME/.sgncli")
+	NodeHome = os.ExpandEnv("$HOME/.sgnd")
 
 	// root dir with ending / for all files, OutRootDirPrefix + epoch seconds
 	// due to testframework etc in a different testing package, we have to define
@@ -62,9 +62,9 @@ func TestMain(m *testing.M) {
 	err = tc.FundAddrsErc20(tc.CelrAddr, addrs, tc.NewBigInt(1, 25))
 	tc.ChkErr(err, "fund each addr ERC20")
 
-	// make install sgn and sgncli
-	err = installSgn()
-	tc.ChkErr(err, "installing sgn and sgncli")
+	// make install sgnd
+	err = installSgnd()
+	tc.ChkErr(err, "installing sgnd")
 
 	tc.SetupSgnchain()
 	// run all e2e tests

@@ -37,17 +37,18 @@ func SetupSgnchain() {
 	}
 }
 
-func NewTestTransactor(t *testing.T, sgnCLIHome, sgnChainID, sgnNodeURI, sgnValAcct, sgnPassphrase string) *transactor.Transactor {
+func NewTestTransactor(t *testing.T, sgnHomeDir, sgnChainID, sgnNodeURI, sgnValAcct, sgnPassphrase string) *transactor.Transactor {
 	encodingConfig := app.MakeEncodingConfig()
 
 	tr, err := transactor.NewTransactor(
-		sgnCLIHome,
+		sgnHomeDir,
 		sgnChainID,
 		sgnNodeURI,
 		sgnValAcct,
 		sgnPassphrase,
-		encodingConfig.Codec,
 		encodingConfig.Amino,
+		encodingConfig.Codec,
+		encodingConfig.InterfaceRegistry,
 	)
 	require.NoError(t, err, "Failed to create new transactor.")
 	tr.Run()

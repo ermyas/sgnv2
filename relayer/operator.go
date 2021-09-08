@@ -28,20 +28,27 @@ type Operator struct {
 	PubKeyAny *codectypes.Any
 }
 
-func NewOperator(cdc codec.Codec, cliHome string, tmCfg *tmcfg.Config, legacyAmino *codec.LegacyAmino) (operator *Operator, err error) {
+func NewOperator(
+	homeDir string,
+	tmCfg *tmcfg.Config,
+	legacyAmino *codec.LegacyAmino,
+	cdc codec.Codec,
+	interfaceRegistry codectypes.InterfaceRegistry,
+) (operator *Operator, err error) {
 	ethClient, err := common.NewEthClientFromConfig()
 	if err != nil {
 		return
 	}
 
 	txr, err := transactor.NewTransactor(
-		cliHome,
+		homeDir,
 		viper.GetString(common.FlagSgnChainId),
 		viper.GetString(common.FlagSgnNodeURI),
 		viper.GetString(common.FlagSgnValidatorAccount),
 		viper.GetString(common.FlagSgnPassphrase),
-		cdc,
 		legacyAmino,
+		cdc,
+		interfaceRegistry,
 	)
 	if err != nil {
 		return

@@ -22,4 +22,9 @@ const (
 	Bech32PrefixConsAddr = Bech32MainPrefix + sdk.PrefixValidator + sdk.PrefixConsensus
 	// Bech32PrefixConsPub defines the Bech32 prefix of a consensus node public key
 	Bech32PrefixConsPub = Bech32MainPrefix + sdk.PrefixValidator + sdk.PrefixConsensus + sdk.PrefixPublic
+
+	// MaxAddrLen is the maximum allowed length (in bytes) for an address.
+	//
+	// NOTE: In the SDK, the default value is 255.
+	MaxAddrLen = 20
 )

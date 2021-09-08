@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/celer-network/sgn-v2/cmd"
+	sgndimpl "github.com/celer-network/sgn-v2/cmd/sgnd/impl"
 	"github.com/spf13/cobra/doc"
 )
 
@@ -17,10 +17,11 @@ func main() {
 	}
 	path := os.Args[1]
 
-	sgncliPath := filepath.Join(path, "sgncli")
-	os.RemoveAll(sgncliPath)
-	os.Mkdir(sgncliPath, 0755)
-	err := doc.GenMarkdownTree(cmd.GetSgncliExecutor().Command, sgncliPath)
+	sgndPath := filepath.Join(path, "sgnd")
+	os.RemoveAll(sgndPath)
+	os.Mkdir(sgndPath, 0755)
+	rootCmd, _ := sgndimpl.NewRootCmd()
+	err := doc.GenMarkdownTree(rootCmd, sgndPath)
 	if err != nil {
 		log.Fatal(err)
 	}

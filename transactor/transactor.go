@@ -14,11 +14,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clienttx "github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/gammazero/deque"
 	"github.com/spf13/viper"
 )
@@ -42,10 +44,15 @@ type Transactor struct {
 	msgQueue   deque.Deque
 }
 
-func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc codec.Codec, legacyAmino *codec.LegacyAmino) (*Transactor, error) {
+func NewTransactor(
+	homeDir, chainID, nodeURI, accAddr, passphrase string,
+	legacyAmino *codec.LegacyAmino,
+	cdc codec.Codec,
+	interfaceRegistry codectypes.InterfaceRegistry,
+) (*Transactor, error) {
 	reader := strings.NewReader(passphrase + "\n")
 	kb, err := keyring.New(appName,
-		viper.GetString(common.FlagSgnKeyringBackend), cliHome, reader)
+		viper.GetString(common.FlagSgnKeyringBackend), homeDir, reader)
 	if err != nil {
 		return nil, err
 	}
@@ -94,11 +101,14 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc co
 		WithBroadcastMode(flags.BroadcastSync).
 		WithTxConfig(txConfig).
 		WithLegacyAmino(legacyAmino).
+		WithAccountRetriever(authtypes.AccountRetriever{}).
+		WithInterfaceRegistry(interfaceRegistry).
 		WithClient(cli)
 
 	f := clienttx.Factory{}.
 		WithKeybase(cliCtx.Keyring).
 		WithTxConfig(cliCtx.TxConfig).
+		WithAccountRetriever(cliCtx.AccountRetriever).
 		WithAccountNumber(viper.GetUint64(flags.FlagAccountNumber)).
 		WithSequence(viper.GetUint64(flags.FlagSequence)).
 		WithGas(common.DefaultSgnGasLimit).
@@ -120,15 +130,16 @@ func NewTransactor(cliHome, chainID, nodeURI, accAddr, passphrase string, cdc co
 	return transactor, nil
 }
 
-func NewCliTransactor(cdc codec.Codec, cliHome string, legacyAmino *codec.LegacyAmino) (*Transactor, error) {
+func NewCliTransactor(homeDir string, legacyAmino *codec.LegacyAmino, cdc codec.Codec, interfaceRegistry codectypes.InterfaceRegistry) (*Transactor, error) {
 	return NewTransactor(
-		cliHome,
+		homeDir,
 		viper.GetString(common.FlagSgnChainId),
 		viper.GetString(common.FlagSgnNodeURI),
 		viper.GetString(common.FlagSgnValidatorAccount),
 		viper.GetString(common.FlagSgnPassphrase),
-		cdc,
 		legacyAmino,
+		cdc,
+		interfaceRegistry,
 	)
 }
 
@@ -317,17 +328,24 @@ func (t *Transactor) CliSendTxMsgsWaitMined(msgs []sdk.Msg) {
 // the updated fields will be returned.
 func prepareFactory(clientCtx client.Context, txf clienttx.Factory) (clienttx.Factory, error) {
 	from := clientCtx.GetFromAddress()
+
+	if err := txf.AccountRetriever().EnsureExists(clientCtx, from); err != nil {
+		return txf, err
+	}
+
 	initNum, initSeq := txf.AccountNumber(), txf.Sequence()
 	if initNum == 0 || initSeq == 0 {
-		account, err := QueryAccount(clientCtx, from.String())
+		num, seq, err := txf.AccountRetriever().GetAccountNumberSequence(clientCtx, from)
 		if err != nil {
 			return txf, err
 		}
+
 		if initNum == 0 {
-			txf = txf.WithAccountNumber(account.AccountNumber)
+			txf = txf.WithAccountNumber(num)
 		}
+
 		if initSeq == 0 {
-			txf = txf.WithSequence(account.Sequence)
+			txf = txf.WithSequence(seq)
 		}
 	}
 

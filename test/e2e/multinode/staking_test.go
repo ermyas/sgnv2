@@ -44,10 +44,10 @@ func stakingTest(t *testing.T) {
 
 	transactor := tc.NewTestTransactor(
 		t,
-		tc.SgnCLIHomes[0],
+		tc.SgnHomes[0],
 		tc.SgnChainID,
 		tc.SgnNodeURI,
-		tc.SgnCLIAddr,
+		tc.SgnValAcct,
 		tc.SgnPassphrase,
 	)
 

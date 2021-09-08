@@ -1,5 +1,0 @@
-# Cosmos SDK common CLI configs
-
-trust-node = true
-indent = true
-output = "json"

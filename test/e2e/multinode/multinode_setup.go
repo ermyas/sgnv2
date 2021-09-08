@@ -104,7 +104,7 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool) {
 
 	log.Infoln("Updating config files of SGN nodes")
 	for i := 0; i < len(tc.ValEthKs); i++ {
-		configPath := fmt.Sprintf("../../../docker-volumes/node%d/sgncli/config/sgn.toml", i)
+		configPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/sgn.toml", i)
 		configFileViper := viper.New()
 		configFileViper.SetConfigFile(configPath)
 		err = configFileViper.ReadInConfig()
@@ -133,7 +133,7 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool) {
 	}
 
 	// Update global viper
-	node0ConfigPath := "../../../docker-volumes/node0/sgncli/config/sgn.toml"
+	node0ConfigPath := "../../../docker-volumes/node0/sgnd/config/sgn.toml"
 	viper.SetConfigFile(node0ConfigPath)
 	err = viper.ReadInConfig()
 	tc.ChkErr(err, "Failed to read config")

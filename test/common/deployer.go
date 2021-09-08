@@ -4,11 +4,13 @@ import (
 	"context"
 	"io/ioutil"
 	"math/big"
+	"path/filepath"
 	"strings"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -95,7 +97,11 @@ func DeployCommand() *cobra.Command {
 		Short: "Deploy contracts",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			configFileViper := viper.New()
-			configFileViper.SetConfigFile(viper.GetString(common.FlagConfig))
+			configDir := configFileViper.GetString(flags.FlagHome)
+			configPath := filepath.Join(configDir, "config")
+			configFileViper.SetConfigType("toml")
+			configFileViper.SetConfigName("sgn")
+			configFileViper.AddConfigPath(configPath)
 			err = configFileViper.ReadInConfig()
 			if err != nil {
 				return err

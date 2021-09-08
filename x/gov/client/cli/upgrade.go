@@ -88,7 +88,7 @@ func GetCmdSubmitUpgradeProposal() *cobra.Command {
 				return err
 			}
 
-			txr, err := transactor.NewCliTransactor(clientCtx.Codec, viper.GetString(flags.FlagHome), clientCtx.LegacyAmino)
+			txr, err := transactor.NewCliTransactor(viper.GetString(flags.FlagHome), clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
 			if err != nil {
 				log.Error(err)
 				return err

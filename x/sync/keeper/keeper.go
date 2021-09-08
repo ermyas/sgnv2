@@ -28,6 +28,6 @@ func NewKeeper(
 		cdc:        cdc,
 		storeKey:   storeKey,
 		valKeeper:  valKeeper,
-		paramstore: paramstore.WithKeyTable(ParamKeyTable()),
+		paramstore: paramstore,
 	}
 }

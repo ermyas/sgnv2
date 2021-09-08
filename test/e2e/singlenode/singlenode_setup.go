@@ -36,15 +36,15 @@ func setupNewSgnEnv(contractParams *tc.ContractParams, testName string) []tc.Kil
 
 	updateSgnConfig()
 
-	sgnProc, err := startSgnchain("", testName)
+	sgnProc, err := startSgnChain("", testName)
 	tc.ChkErr(err, "start sgnchain")
 
 	killable := []tc.Killable{sgnProc}
-	if contractParams.StartGateway {
-		gatewayProc, err := StartGateway("", testName)
-		tc.ChkErr(err, "start gateway")
-		killable = append(killable, gatewayProc)
-	}
+	// if contractParams.StartGateway {
+	// 	gatewayProc, err := StartGateway("", testName)
+	// 	tc.ChkErr(err, "start gateway")
+	// 	killable = append(killable, gatewayProc)
+	// }
 
 	return killable
 }
@@ -52,7 +52,7 @@ func setupNewSgnEnv(contractParams *tc.ContractParams, testName string) []tc.Kil
 func updateSgnConfig() {
 	log.Infoln("Updating sgn.toml")
 
-	configFilePath := "../../data/.sgncli/config/sgn.toml"
+	configFilePath := "../../data/.sgnd/config/sgn.toml"
 	configFileViper := viper.New()
 	configFileViper.SetConfigFile(configFilePath)
 	err := configFileViper.ReadInConfig()
@@ -83,7 +83,7 @@ func updateSgnConfig() {
 	tc.ChkErr(err, "failed to read config")
 }
 
-func installSgn() error {
+func installSgnd() error {
 	cmd := exec.Command("make", "install")
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "WITH_CLEVELDB=yes")
@@ -97,14 +97,14 @@ func installSgn() error {
 		return err
 	}
 
-	cmd = exec.Command("cp", "./test/data/.sgncli/config/sgn_template.toml", "./test/data/.sgncli/config/sgn.toml")
+	cmd = exec.Command("cp", "./test/data/.sgnd/config/sgn_template.toml", "./test/data/.sgnd/config/sgn.toml")
 	// set cmd.Dir under repo root path
 	cmd.Dir, _ = filepath.Abs("../../..")
 	return cmd.Run()
 }
 
-// startSgnchain starts sgn sgnchain with the data in test/data
-func startSgnchain(rootDir, testName string) (*os.Process, error) {
+// startSgnChain starts SGN chain with the data in test/data
+func startSgnChain(rootDir, testName string) (*os.Process, error) {
 	cmd := exec.Command("make", "update-test-data")
 	// set cmd.Dir under repo root path
 	cmd.Dir, _ = filepath.Abs("../../..")
@@ -126,18 +126,18 @@ func startSgnchain(rootDir, testName string) (*os.Process, error) {
 	return cmd.Process, nil
 }
 
-func StartGateway(rootDir, testName string) (*os.Process, error) {
-	cmd := exec.Command("sgncli", "gateway")
-	cmd.Dir, _ = filepath.Abs("../../..")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
+// func StartGateway(rootDir, testName string) (*os.Process, error) {
+// 	cmd := exec.Command("sgnd", "gateway")
+// 	cmd.Dir, _ = filepath.Abs("../../..")
+// 	cmd.Stdout = os.Stdout
+// 	cmd.Stderr = os.Stderr
+// 	if err := cmd.Start(); err != nil {
+// 		return nil, err
+// 	}
 
-	log.Infoln("gateway pid:", cmd.Process.Pid)
-	return cmd.Process, nil
-}
+// 	log.Infoln("gateway pid:", cmd.Process.Pid)
+// 	return cmd.Process, nil
+// }
 
 // start process to handle eth rpc, and fund etherbase and server account
 func startMainchain(outRootDir string) (*os.Process, error) {

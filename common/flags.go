@@ -6,9 +6,6 @@ import (
 )
 
 const (
-	FlagConfig  = "config"
-	FlagCLIHome = "cli-home"
-
 	FlagEthGateway           = "eth.gateway"
 	FlagEthContractCelr      = "eth.contract_address.celr"
 	FlagEthContractStaking   = "eth.contract_address.staking"
@@ -30,17 +27,17 @@ const (
 	FlagEthAddGasPriceGwei   = "eth.add_gas_price_gwei"
 	FlagEthMaxBlockDelta     = "eth.max_block_delta"
 
-	FlagSgnValidatorAccount = "sgn.validator_account"
-	FlagSgnTransactors      = "sgn.transactors"
-	FlagSgnPassphrase       = "sgn.passphrase"
-	FlagSgnChainId          = "sgn.chain_id"
-	FlagSgnNodeURI          = "sgn.node_uri"
-	FlagSgnBaseGasPrice     = "sgn.base_gas_price"
-	FlagSgnTimeoutCommit    = "sgn.timeout_commit"
-	FlagSgnKeyringBackend   = "sgn.keyring_backend"
-	FlagSgnGasAdjustment    = "sgn.gas_adjustment"
+	FlagSgnValidatorAccount = "sgnd.validator_account"
+	FlagSgnTransactors      = "sgnd.transactors"
+	FlagSgnPassphrase       = "sgnd.passphrase"
+	FlagSgnChainId          = "sgnd.chain_id"
+	FlagSgnNodeURI          = "sgnd.node_uri"
+	FlagSgnBaseGasPrice     = "sgnd.base_gas_price"
+	FlagSgnTimeoutCommit    = "sgnd.timeout_commit"
+	FlagSgnKeyringBackend   = "sgnd.keyring_backend"
+	FlagSgnGasAdjustment    = "sgnd.gas_adjustment"
 
-	FlagSgnCheckIntervalSlashQueue = "sgn.check_interval.slash_queue"
+	FlagSgnCheckIntervalSlashQueue = "sgnd.check_interval.slash_queue"
 
 	FlagLogLevel = "log.level"
 	FlagLogColor = "log.color"

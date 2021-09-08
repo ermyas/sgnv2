@@ -44,7 +44,7 @@ func GetCmdSetTransactors() *cobra.Command {
 				}*/
 			transactors := viper.GetStringSlice(common.FlagSgnTransactors)
 
-			txr, err := transactor.NewCliTransactor(clientCtx.Codec, viper.GetString(flags.FlagHome), clientCtx.LegacyAmino)
+			txr, err := transactor.NewCliTransactor(viper.GetString(flags.FlagHome), clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
 			if err != nil {
 				return err
 			}

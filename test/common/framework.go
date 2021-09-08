@@ -41,7 +41,9 @@ type ContractParams struct {
 	AdvanceNoticePeriod   *big.Int
 	ValidatorBondInterval *big.Int
 	MaxSlashFactor        *big.Int
-	StartGateway          bool
+
+	// TODO: Remove from here
+	StartGateway bool
 }
 
 type TestEthClient struct {

@@ -107,7 +107,7 @@ $ %s tx gov deposit 1 10
 				return err
 			}
 
-			txr, err := transactor.NewCliTransactor(clientCtx.Codec, viper.GetString(flags.FlagHome), clientCtx.LegacyAmino)
+			txr, err := transactor.NewCliTransactor(viper.GetString(flags.FlagHome), clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
 			if err != nil {
 				log.Error(err)
 				return err
@@ -161,7 +161,7 @@ $ %s tx gov vote 1 yes
 				return err
 			}
 
-			txr, err := transactor.NewCliTransactor(clientCtx.Codec, viper.GetString(flags.FlagHome), clientCtx.LegacyAmino)
+			txr, err := transactor.NewCliTransactor(viper.GetString(flags.FlagHome), clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
 			if err != nil {
 				log.Error(err)
 				return err

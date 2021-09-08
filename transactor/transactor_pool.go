@@ -4,24 +4,28 @@ import (
 	"sync/atomic"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 )
 
 type TransactorPool struct {
-	transactors []*Transactor
-	index       uint64
-	cliHome     string
-	chainID     string
-	cdc         codec.Codec
-	legacyAmino *codec.LegacyAmino
+	transactors       []*Transactor
+	index             uint64
+	homeDir           string
+	chainID           string
+	legacyAmino       *codec.LegacyAmino
+	cdc               codec.Codec
+	interfaceRegistry codectypes.InterfaceRegistry
 }
 
-func NewTransactorPool(cliHome, chainID string, cdc codec.Codec) *TransactorPool {
+func NewTransactorPool(homeDir, chainID string, legacyAmino *codec.LegacyAmino, cdc codec.Codec, interfaceRegistry codectypes.InterfaceRegistry) *TransactorPool {
 	return &TransactorPool{
-		transactors: []*Transactor{},
-		index:       0,
-		cliHome:     cliHome,
-		chainID:     chainID,
-		cdc:         cdc,
+		transactors:       []*Transactor{},
+		index:             0,
+		homeDir:           homeDir,
+		chainID:           chainID,
+		legacyAmino:       legacyAmino,
+		cdc:               cdc,
+		interfaceRegistry: interfaceRegistry,
 	}
 }
 
@@ -34,7 +38,7 @@ func (tp *TransactorPool) AddTransactor(transactor *Transactor) {
 func (tp *TransactorPool) AddTransactors(nodeURI, passphrase string, ts []string) error {
 	var transactors []*Transactor
 	for _, t := range ts {
-		transactor, err := NewTransactor(tp.cliHome, tp.chainID, nodeURI, t, passphrase, tp.cdc, tp.legacyAmino)
+		transactor, err := NewTransactor(tp.homeDir, tp.chainID, nodeURI, t, passphrase, tp.legacyAmino, tp.cdc, tp.interfaceRegistry)
 		if err != nil {
 			return err
 		}

@@ -36,22 +36,16 @@ all: lint install
 .PHONY: install
 install: go.sum
 	go install $(BUILD_FLAGS) ./cmd/sgnd
-	go install $(BUILD_FLAGS) ./cmd/sgncli
 
-install-cli: go.sum
-	go install $(BUILD_FLAGS) ./cmd/sgncli
+# install-ops: go.sum
+# 	go install $(BUILD_FLAGS) ./cmd/sgnops
 
-install-ops: go.sum
-	go install $(BUILD_FLAGS) ./cmd/sgnops
+# install-tools: go.sum
+# 	go install $(BUILD_FLAGS) ./cmd/sgnops
 
-install-tools: go.sum
-	go install $(BUILD_FLAGS) ./cmd/sgncli
-	go install $(BUILD_FLAGS) ./cmd/sgnops
-
-install-all: go.sum
-	go install $(BUILD_FLAGS) ./cmd/sgnd
-	go install $(BUILD_FLAGS) ./cmd/sgncli
-	go install $(BUILD_FLAGS) ./cmd/sgnops
+# install-all: go.sum
+# 	go install $(BUILD_FLAGS) ./cmd/sgnd
+# 	go install $(BUILD_FLAGS) ./cmd/sgnops
 
 generate-docs: go.sum
 	go run ./cmd/gendocs ./docs
@@ -71,10 +65,9 @@ lint:
 
 copy-test-data:
 	cp -r test/data/.sgnd ~/.sgnd
-	cp -r test/data/.sgncli ~/.sgncli
 
 remove-test-data:
-	rm -rf ~/.sgnd ~/.sgncli
+	rm -rf ~/.sgnd
 
 .PHONY: update-test-data
 update-test-data: remove-test-data copy-test-data
@@ -87,7 +80,6 @@ copy-test-config:
 build: go.sum
 	mkdir -p ./build
 	go build -o ./build/sgnd ./cmd/sgnd
-	go build -o ./build/sgncli ./cmd/sgncli
 
 .PHONY: build-linux
 build-linux: go.sum

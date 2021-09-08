@@ -17,7 +17,7 @@ const (
 	SgnChainID    = "sgn-localnet-1000"
 	SgnPassphrase = "12341234"
 	SgnGasPrice   = ""
-	SgnCLIAddr    = "sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe"
+	SgnValAcct    = "sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe"
 	SgnNodeURI    = "tcp://localhost:26657"
 
 	SgnBlockInterval = 1
@@ -32,11 +32,11 @@ const (
 )
 
 var (
-	SgnCLIHomes = [...]string{
-		"../../../docker-volumes/node0/sgncli",
-		"../../../docker-volumes/node1/sgncli",
-		"../../../docker-volumes/node2/sgncli",
-		"../../../docker-volumes/node3/sgncli",
+	SgnHomes = [...]string{
+		"../../../docker-volumes/node0/sgnd",
+		"../../../docker-volumes/node1/sgnd",
+		"../../../docker-volumes/node2/sgnd",
+		"../../../docker-volumes/node3/sgnd",
 	}
 
 	// validators
@@ -46,7 +46,7 @@ var (
 		"sgn19q9usqmjcmx8vynynfl5tj5n2k22gc5f6wjvd7",
 		"sgn1rjr9uaewus3qh4vs4sqdkdvepwyxq8ql84udfh",
 	}
-	ValConensusAddrs = [...]string{
+	ValConsensusAddrs = [...]string{
 		"sgnvalcons150sptaghyax9g3zwcg9hx8rshug9grdtzdfran",
 		"sgnvalcons1lp7hgu47jlyuwg5ed6ep5zhmk2s4r32q8emln0",
 		"sgnvalcons1cvrh4k08y73shw8ug5a3uex6huq6j9tm2sf2vs",

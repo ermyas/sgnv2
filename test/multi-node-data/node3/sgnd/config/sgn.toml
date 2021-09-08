@@ -4,7 +4,7 @@
 block_delay = 1
 chain_id = 883
 gateway = "http://192.168.10.1:8545"
-signer_keystore = "./keys/vethks0.json"
+signer_keystore = "./keys/vethks3.json"
 signer_passphrase = ""
 validator_address = ""
 poll_interval = 1
@@ -25,7 +25,7 @@ govern = ""
 color = false
 level = "debug"
 
-[sgn]
+[sgnd]
 base_gas_price = 0
 chain_id = "sgn-localnet-1000"
 execute_slash = true
@@ -34,8 +34,8 @@ keyring_backend = "file"
 node_uri = "tcp://localhost:26657"
 passphrase = "12341234"
 timeout_commit = 2
-transactors = ["sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe"]
-validator_account = "sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe"
+transactors = []
+validator_account = "sgn1rjr9uaewus3qh4vs4sqdkdvepwyxq8ql84udfh"
 
-[sgn.check_interval]
+[sgnd.check_interval]
 slash_queue = 2

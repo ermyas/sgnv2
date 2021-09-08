@@ -1,34 +1,25 @@
 package main
 
 import (
-	"context"
+	"os"
+
+	"github.com/cosmos/cosmos-sdk/server"
+	svrcmd "github.com/cosmos/cosmos-sdk/server/cmd"
 
 	"github.com/celer-network/sgn-v2/app"
-	"github.com/celer-network/sgn-v2/cmd"
-	"github.com/celer-network/sgn-v2/common"
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/server"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/spf13/cobra"
+	"github.com/celer-network/sgn-v2/cmd/sgnd/impl"
 )
 
 func main() {
-	cobra.EnableCommandSorting = false
-	config := sdk.GetConfig()
-	config.SetBech32PrefixForAccount(common.Bech32PrefixAccAddr, common.Bech32PrefixAccPub)
-	config.SetBech32PrefixForValidator(common.Bech32PrefixValAddr, common.Bech32PrefixValPub)
-	config.SetBech32PrefixForConsensusNode(common.Bech32PrefixConsAddr, common.Bech32PrefixConsPub)
-	config.Seal()
+	rootCmd, _ := impl.NewRootCmd()
 
-	// prepare and add flags
-	encodingConfig := app.MakeEncodingConfig()
-	executor := cmd.GetSgndExecutor(encodingConfig)
-	srvCtx := server.NewDefaultContext()
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, client.ClientContextKey, &client.Context{})
-	ctx = context.WithValue(ctx, server.ServerContextKey, srvCtx)
-	err := executor.ExecuteContext(ctx)
-	if err != nil {
-		panic(err)
+	if err := svrcmd.Execute(rootCmd, app.DefaultNodeHome); err != nil {
+		switch e := err.(type) {
+		case server.ErrorCode:
+			os.Exit(e.Code)
+
+		default:
+			os.Exit(1)
+		}
 	}
 }
