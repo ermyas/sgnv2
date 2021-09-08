@@ -88,6 +88,8 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 	go r.monitorSgnchainCreateValidator()
 
 	go r.processQueues()
+
+	NewCbridgeMgr(db) // do we need to save mgr somewhere?
 }
 
 func (r *Relayer) processQueues() {
