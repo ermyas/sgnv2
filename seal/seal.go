@@ -31,6 +31,7 @@ func NewMsgLog(module string) *MsgLog {
 	now := time.Now().UnixNano()
 	msgLog := &MsgLog{
 		ExecutionTimeMs: (float64)(now),
+		Govern:          &Govern{},
 	}
 	return msgLog
 }

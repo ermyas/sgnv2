@@ -12,8 +12,11 @@ import (
 	"github.com/celer-network/sgn-v2/app"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/transactor"
+	govcli "github.com/celer-network/sgn-v2/x/gov/client/cli"
+	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	"github.com/celer-network/sgn-v2/x/validator/client/cli"
 	"github.com/celer-network/sgn-v2/x/validator/types"
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -202,4 +205,24 @@ func printSdkVal(v sdk_staking.Validator) string {
 	out := proto.CompactTextString(&v)
 	out += pubkey
 	return out
+}
+
+func QueryProposal(cliCtx client.Context, proposalID uint64, status govtypes.ProposalStatus) (proposal govtypes.Proposal, err error) {
+	for retry := 0; retry < RetryLimit; retry++ {
+		proposal, err = govcli.QueryProposal(cliCtx, govtypes.RouterKey, proposalID)
+		if err == nil && status == proposal.Status {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+
+	if err != nil {
+		return
+	}
+
+	if status != proposal.Status {
+		err = fmt.Errorf("proposal status %s does not match expectation", status)
+	}
+
+	return
 }

@@ -13,30 +13,30 @@ const (
 )
 
 // Assert ParameterProposal implements Content at compile-time
-var _ Content = ParameterProposal{}
+var _ Content = &ParameterProposal{}
 
 func init() {
 	RegisterProposalType(ProposalTypeChange)
 }
 
-func NewParameterProposal(title, description string, changes []ParamChange) ParameterProposal {
-	return ParameterProposal{title, description, changes}
+func NewParameterProposal(title, description string, changes []ParamChange) *ParameterProposal {
+	return &ParameterProposal{title, description, changes}
 }
 
 // GetTitle returns the title of a parameter change proposal.
-func (pcp ParameterProposal) GetTitle() string { return pcp.Title }
+func (pcp *ParameterProposal) GetTitle() string { return pcp.Title }
 
 // GetDescription returns the description of a parameter change proposal.
-func (pcp ParameterProposal) GetDescription() string { return pcp.Description }
+func (pcp *ParameterProposal) GetDescription() string { return pcp.Description }
 
 // ProposalRoute returns the routing key of a parameter change proposal.
-func (pcp ParameterProposal) ProposalRoute() string { return proposal.RouterKey }
+func (pcp *ParameterProposal) ProposalRoute() string { return proposal.RouterKey }
 
 // ProposalType returns the type of a parameter change proposal.
-func (pcp ParameterProposal) ProposalType() string { return ProposalTypeChange }
+func (pcp *ParameterProposal) ProposalType() string { return ProposalTypeChange }
 
 // ValidateBasic validates the parameter change proposal
-func (pcp ParameterProposal) ValidateBasic() error {
+func (pcp *ParameterProposal) ValidateBasic() error {
 	err := ValidateAbstract(pcp)
 	if err != nil {
 		return err
@@ -46,7 +46,7 @@ func (pcp ParameterProposal) ValidateBasic() error {
 }
 
 // String implements the Stringer interface.
-func (pcp ParameterProposal) String() string {
+func (pcp *ParameterProposal) String() string {
 	var b strings.Builder
 
 	b.WriteString(fmt.Sprintf(`Parameter Change Proposal:

@@ -34,6 +34,8 @@ func RegisterInterfaces(registry types.InterfaceRegistry) {
 		"sgn.gov.v1.Content",
 		(*Content)(nil),
 		&TextProposal{},
+		&ParameterProposal{},
+		&UpgradeProposal{},
 	)
 }
 

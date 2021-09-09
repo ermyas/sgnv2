@@ -127,11 +127,6 @@ func (am AppModule) Route() sdk.Route {
 	return sdk.NewRoute(types.RouterKey, NewHandler(am.keeper))
 }
 
-// NewHandler returns an sdk.Handler for the gov module.
-func (am AppModule) NewHandler() sdk.Handler {
-	return NewHandler(am.keeper)
-}
-
 // QuerierRoute returns the gov module's querier route name.
 func (AppModule) QuerierRoute() string {
 	return types.QuerierRoute
