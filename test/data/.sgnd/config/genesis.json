@@ -1,5 +1,5 @@
 {
-  "genesis_time": "2021-09-08T05:48:28.971557Z",
+  "genesis_time": "2021-09-09T04:08:11.690947Z",
   "chain_id": "sgn-localnet-1000",
   "initial_height": "1",
   "consensus_params": {
@@ -96,69 +96,7 @@
       }
     },
     "genutil": {
-      "gen_txs": [
-        {
-          "body": {
-            "messages": [
-              {
-                "@type": "/cosmos.staking.v1beta1.MsgCreateValidator",
-                "description": {
-                  "moniker": "node0",
-                  "identity": "00078b31fa8b29a76bce074b5ea0d515a6aeaee7",
-                  "website": "",
-                  "security_contact": "",
-                  "details": ""
-                },
-                "commission": {
-                  "rate": "0.100000000000000000",
-                  "max_rate": "0.200000000000000000",
-                  "max_change_rate": "0.010000000000000000"
-                },
-                "min_self_delegation": "1000",
-                "delegator_address": "sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe",
-                "validator_address": "sgnvaloper15h2geedmud70gvpajdwpcaxfs4qcrw4zuzt5j4",
-                "pubkey": {
-                  "@type": "/cosmos.crypto.ed25519.PubKey",
-                  "key": "UradGKLBv+ASty5KxSP1sPaQRe9SO0EvZmzzXrpxUTg="
-                },
-                "value": {
-                  "denom": "stake",
-                  "amount": "100000000"
-                }
-              }
-            ],
-            "memo": "1f5a2d70a373d8508870fc4bbd61de578fe260d4@192.168.0.108:26656",
-            "timeout_height": "0",
-            "extension_options": [],
-            "non_critical_extension_options": []
-          },
-          "auth_info": {
-            "signer_infos": [
-              {
-                "public_key": {
-                  "@type": "/cosmos.crypto.secp256k1.PubKey",
-                  "key": "A6vyQHZsLnE7wzDxZYwZucpF2pMQLUlnqSgTPRLOb9vf"
-                },
-                "mode_info": {
-                  "single": {
-                    "mode": "SIGN_MODE_DIRECT"
-                  }
-                },
-                "sequence": "0"
-              }
-            ],
-            "fee": {
-              "amount": [],
-              "gas_limit": "200000",
-              "payer": "",
-              "granter": ""
-            }
-          },
-          "signatures": [
-            "/5rfvzeJ8PbF42o31wNXCCTFjYAtpFWJJ5h2zBDrni84r8cXA56XHWv856EJWmIdMFKnsrPVBqNJdAq6SUHHeg=="
-          ]
-        }
-      ]
+      "gen_txs": []
     },
     "params": null,
     "slashing": {
@@ -203,7 +141,23 @@
         "max_validator_diff": "0"
       },
       "syncer": null,
-      "validators": [],
+      "validators": [
+        {
+          "eth_address": "00078b31fa8b29a76bce074b5ea0d515a6aeaee7",
+          "eth_signer": "00078b31fa8b29a76bce074b5ea0d515a6aeaee7",
+          "sgn_address": "sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe",
+          "consensus_pubkey": {
+            "@type": "/cosmos.crypto.ed25519.PubKey",
+            "key": "UradGKLBv+ASty5KxSP1sPaQRe9SO0EvZmzzXrpxUTg="
+          },
+          "status": "Bonded",
+          "tokens": "100000000",
+          "shares": "100000000",
+          "commission_rate": "0",
+          "description": null,
+          "transactors": []
+        }
+      ],
       "delegators": []
     }
   }

@@ -8,8 +8,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk_auth "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	sdk_params "github.com/cosmos/cosmos-sdk/x/params/types"
-	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/keeper"
-	sdk_staking_types "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 // Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
@@ -17,7 +15,6 @@ type Keeper struct {
 	cdc              codec.BinaryCodec // The wire codec for binary encoding/decoding.
 	storeKey         sdk.StoreKey      // Unexposed key to access store from sdk.Context
 	sdkAccountKeeper sdk_auth.AccountKeeperI
-	sdkStakingKeeper sdk_staking.Keeper
 	paramstore       sdk_params.Subspace
 }
 
@@ -26,14 +23,12 @@ func NewKeeper(
 	cdc codec.BinaryCodec,
 	storeKey sdk.StoreKey,
 	sdkAccountKeeper sdk_auth.AccountKeeperI,
-	sdkStakingKeeper sdk_staking.Keeper,
 	paramstore sdk_params.Subspace,
 ) Keeper {
 	return Keeper{
 		cdc:              cdc,
 		storeKey:         storeKey,
 		sdkAccountKeeper: sdkAccountKeeper,
-		sdkStakingKeeper: sdkStakingKeeper,
 		paramstore:       paramstore,
 	}
 }
@@ -58,8 +53,4 @@ func (k Keeper) RemoveAccount(ctx sdk.Context, accAddress sdk.AccAddress) {
 		log.Infof("Remove sdk account %s", accAddress)
 		k.sdkAccountKeeper.RemoveAccount(ctx, account)
 	}
-}
-
-func (k Keeper) IterateBondedValidatorsByPower(ctx sdk.Context, fn func(index int64, validator sdk_staking_types.ValidatorI) (stop bool)) {
-	k.sdkStakingKeeper.IterateBondedValidatorsByPower(ctx, fn)
 }

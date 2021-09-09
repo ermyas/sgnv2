@@ -1,6 +1,10 @@
 package types
 
-import "github.com/celer-network/sgn-v2/eth"
+import (
+	"github.com/celer-network/sgn-v2/eth"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/address"
+)
 
 const (
 	// module name
@@ -17,10 +21,37 @@ const (
 )
 
 var (
-	ValidatorKey = []byte{0x01} // key prefix for validator
-	DelegatorKey = []byte{0x11} // key prefix for delegator
-	SyncerKey    = []byte{0x21} // key for syncer
+	ValidatorKey           = []byte{0x11} // prefix for each key to a validator
+	ValidatorBySgnAddrKey  = []byte{0x12} // prefix for each key to a validator index, by accAddress
+	ValidatorByConsAddrKey = []byte{0x13} // prefix for each key to a validator index, by pubkey
+
+	ValidatorPowerKey       = []byte{0x21}
+	ValidatorPowerUpdateKey = []byte{0x22}
+
+	DelegatorKey = []byte{0x31} // key prefix for delegator
+
+	SyncerKey = []byte{0x41} // key for syncer
 )
+
+func GetValidatorPowerKey(ethAddr string) []byte {
+	return append(ValidatorPowerKey, eth.Hex2Addr(ethAddr).Bytes()...)
+}
+
+func GetValidatorPowerUpdateKey(ethAddr string) []byte {
+	return append(ValidatorPowerUpdateKey, eth.Hex2Addr(ethAddr).Bytes()...)
+}
+
+func GetValidatorKey(ethAddr string) []byte {
+	return append(ValidatorKey, eth.Hex2Addr(ethAddr).Bytes()...)
+}
+
+func GetValidatorBySgnAddrKey(addr sdk.AccAddress) []byte {
+	return append(ValidatorBySgnAddrKey, address.MustLengthPrefix(addr)...)
+}
+
+func GetValidatorByConsAddrKey(addr sdk.ConsAddress) []byte {
+	return append(ValidatorByConsAddrKey, address.MustLengthPrefix(addr)...)
+}
 
 // get delegators key from validator address
 func GetDelegatorsKey(valAddr string) []byte {
@@ -32,7 +63,6 @@ func GetDelegatorKey(valAddr, delAddr string) []byte {
 	return append(GetDelegatorsKey(valAddr), eth.Hex2Addr(delAddr).Bytes()...)
 }
 
-// get validator key from valAddr
-func GetValidatorKey(ethAddr string) []byte {
-	return append(ValidatorKey, eth.Hex2Addr(ethAddr).Bytes()...)
+func AddrFromValidatorKey(key []byte) []byte {
+	return key[1:] // remove prefix
 }

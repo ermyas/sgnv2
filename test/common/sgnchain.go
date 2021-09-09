@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strconv"
 	"testing"
 	"time"
 
@@ -19,8 +18,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -77,6 +74,13 @@ func CheckValidator(t *testing.T, transactor *transactor.Transactor, expVal *typ
 	assert.True(t, sameValidators(validator, expVal), "The expected validator should be: "+expVal.String())
 }
 
+// called after CheckValidator
+func CheckValidatorBySgnAddr(t *testing.T, transactor *transactor.Transactor, expVal *types.Validator) {
+	validator, err := cli.QueryValidatorBySgnAddr(transactor.CliCtx, expVal.SgnAddress)
+	require.NoError(t, err, "failed to QueryValidatorBySgnAddr", err)
+	assert.True(t, sameValidators(validator, expVal), "Unexpected validator: "+validator.String())
+}
+
 func CheckValidators(t *testing.T, transactor *transactor.Transactor, expVals types.Validators) {
 	var validators types.Validators
 	var err error
@@ -108,36 +112,6 @@ func CheckDelegator(t *testing.T, transactor *transactor.Transactor, expDel *typ
 	require.NoError(t, err, "failed to queryDelegator")
 	log.Infof("Query sgn and get delegator: %s", delegator.String())
 	assert.True(t, sameDelegators(delegator, expDel), "The expected delegator should be: "+expDel.String())
-}
-
-func CheckSdkValidator(t *testing.T, transactor *transactor.Transactor, expVal *sdk_staking.Validator) {
-	var sdkval *sdk_staking.Validator
-	sgnAddr, err := sdk.ValAddressFromBech32(expVal.OperatorAddress)
-	require.NoError(t, err, "invalid operator address")
-	for retry := 0; retry < RetryLimit; retry++ {
-		sdkval, err = cli.QuerySdkValidator(transactor.CliCtx, sdk.AccAddress(sgnAddr).String())
-		if err == nil && sameSdkValidators(sdkval, expVal) {
-			break
-		}
-		time.Sleep(RetryPeriod)
-	}
-	require.NoError(t, err, "failed to QuerySdkValidator")
-	log.Infof("Query sgn and get sdk validator: %s", printSdkVal(*sdkval))
-	assert.True(t, sameSdkValidators(sdkval, expVal), "The expected sdk validator should be: "+printSdkVal(*expVal))
-}
-
-func CheckBondedSdkValidatorNum(t *testing.T, transactor *transactor.Transactor, expNum int) {
-	var sdkvals sdk_staking.Validators
-	var err error
-	for retry := 0; retry < RetryLimit; retry++ {
-		sdkvals, err = cli.QuerySdkValidators(transactor.CliCtx, sdk_staking.BondStatusBonded)
-		if err == nil && len(sdkvals) == expNum {
-			break
-		}
-		time.Sleep(RetryPeriod)
-	}
-	require.NoError(t, err, "failed to QuerySdkValidators")
-	assert.Equal(t, expNum, len(sdkvals), "The length of validators should be: "+strconv.Itoa(expNum))
 }
 
 func PrintTendermintValidators(t *testing.T, transactor *transactor.Transactor) {
@@ -183,28 +157,6 @@ func sameDelegators(d *types.Delegator, exp *types.Delegator) bool {
 	return d.GetValAddress() == exp.GetValAddress() &&
 		d.GetDelAddress() == exp.GetDelAddress() &&
 		d.GetShares() == exp.GetShares()
-}
-
-func sameSdkValidators(v *sdk_staking.Validator, exp *sdk_staking.Validator) bool {
-	return v.GetOperator().Equals(exp.GetOperator()) &&
-		v.GetStatus() == exp.GetStatus() &&
-		v.GetTokens().Equal(exp.GetTokens())
-}
-
-func printSdkVal(v sdk_staking.Validator) string {
-	var pubkey string
-	if v.ConsensusPubkey != nil {
-		consAddr, err := v.GetConsAddr()
-		if err != nil {
-			pubkey = fmt.Sprintf("consensus_address:%s", err)
-		} else {
-			pubkey = fmt.Sprintf("consensus_address:\"%s\"", consAddr.String())
-		}
-	}
-	v.ConsensusPubkey = nil
-	out := proto.CompactTextString(&v)
-	out += pubkey
-	return out
 }
 
 func QueryProposal(cliCtx client.Context, proposalID uint64, status govtypes.ProposalStatus) (proposal govtypes.Proposal, err error) {

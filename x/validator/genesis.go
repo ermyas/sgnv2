@@ -14,14 +14,14 @@ func InitGenesis(ctx sdk.Context, keeper keeper.Keeper, data *types.GenesisState
 	}
 
 	for _, validator := range data.Validators {
-		keeper.SetValidator(ctx, &validator)
+		keeper.SetValidatorStates(ctx, &validator)
 	}
 
 	for _, delegator := range data.Delegators {
 		keeper.SetDelegator(ctx, &delegator)
 	}
 
-	return []abci.ValidatorUpdate{}
+	return keeper.GetValidatorPowerUpdates(ctx)
 }
 
 func ExportGenesis(ctx sdk.Context, keeper keeper.Keeper) *types.GenesisState {

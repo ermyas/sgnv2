@@ -42,17 +42,18 @@ func handleMsgSetTransactors(
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender
 
-	valAddr, _ := types.SdkValAddrFromSgnBech32(msg.Sender)
-	sdkVal, found := keeper.GetSdkValidator(ctx, valAddr)
-	if !found {
-		return nil, fmt.Errorf("sender is not a validator")
+	sgnAddr, err := types.SdkAccAddrFromSgnBech32(msg.Sender)
+	if err != nil {
+		return nil, fmt.Errorf("invalid sender addr %s, %s", msg.Sender, err)
 	}
-
-	validator, found := keeper.GetValidator(ctx, sdkVal.Description.Identity)
+	validator, found := keeper.GetValidatorBySgnAddr(ctx, sgnAddr)
 	if !found {
 		return nil, fmt.Errorf("validator does not exist")
 	}
 	logEntry.ValAddr = validator.EthAddress
+	if validator.Status != types.ValidatorStatus_Bonded {
+		return nil, fmt.Errorf("validator is not bonded")
+	}
 
 	dedup := make(map[string]bool)
 	oldTransactors := validator.Transactors

@@ -290,7 +290,7 @@ func NewSgnApp(
 		govRouter,
 	)
 	app.ValidatorKeeper = valkeeper.NewKeeper(
-		appCodec, keys[valtypes.StoreKey], app.AccountKeeper, app.StakingKeeper, app.GetSubspace(valtypes.ModuleName),
+		appCodec, keys[valtypes.StoreKey], app.AccountKeeper, app.GetSubspace(valtypes.ModuleName),
 	)
 	app.SyncKeeper = synckeeper.NewKeeper(
 		appCodec, keys[synctypes.StoreKey], app.ValidatorKeeper, app.GetSubspace(synctypes.ModuleName),

@@ -8,18 +8,17 @@ import (
 	"github.com/celer-network/sgn-v2/x/sync/types"
 	valtypes "github.com/celer-network/sgn-v2/x/validator/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 // EndBlocker called every block, process inflation, update validator set.
 func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
-	sdkVals := keeper.GetBondedValidators(ctx)
+	vals := keeper.GetBondedValidators(ctx)
 	tokens := sdk.ZeroInt()
-	sdkValMaps := map[string]sdk_staking.Validator{}
+	valMaps := map[string]valtypes.Validator{}
 
-	for _, val := range sdkVals {
+	for _, val := range vals {
 		tokens = tokens.Add(val.Tokens)
-		sdkValMaps[val.OperatorAddress] = val
+		valMaps[val.SgnAddress] = val
 	}
 
 	// TODO: better float to Dec conversion
@@ -30,13 +29,9 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 	for _, update := range updates {
 		yesVotes := sdk.ZeroInt()
 		for _, vote := range update.Votes {
-			v, ok := sdkValMaps[vote.Voter]
+			v, ok := valMaps[vote.Voter]
 			if !ok {
-				vaddr, _ := valtypes.SdkValAddrFromSgnBech32(vote.Voter)
-				v, ok = sdkValMaps[vaddr.String()]
-				if !ok {
-					continue
-				}
+				continue
 			}
 			if vote.Option == types.VoteOption_Yes {
 				yesVotes = yesVotes.Add(v.Tokens)

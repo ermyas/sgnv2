@@ -165,11 +165,15 @@ func (v Validator) ABCIValidatorUpdateZero() abci.ValidatorUpdate {
 	}
 }
 
-func (v Validator) GetOperator() sdk.ValAddress {
-	if v.OperatorAddress == "" {
+func (v Validator) GetEthAddr() eth.Addr {
+	return eth.Hex2Addr(v.EthAddress)
+}
+
+func (v Validator) GetSgnAddr() sdk.AccAddress {
+	if v.SgnAddress == "" {
 		return nil
 	}
-	addr, err := sdk.ValAddressFromBech32(v.OperatorAddress)
+	addr, err := sdk.AccAddressFromBech32(v.SgnAddress)
 	if err != nil {
 		panic(err)
 	}

@@ -20,8 +20,6 @@ func GetQueryCmd() *cobra.Command {
 		GetCmdValidators(),
 		GetCmdDelegator(),
 		GetCmdDelegators(),
-		GetCmdSdkValidator(),
-		GetCmdSdkValidators(),
 		GetCmdSyncer(),
 		GetCmdQueryParams(),
 	)...)
@@ -95,16 +93,6 @@ func GetCmdValidators() *cobra.Command {
 // GetCmdDelegators queries request info
 // TODO: support pagination
 func GetCmdDelegators() *cobra.Command {
-	return &cobra.Command{}
-}
-
-// GetCmdValidator queries validator info
-func GetCmdSdkValidator() *cobra.Command {
-	return &cobra.Command{}
-}
-
-// GetCmdValidator queries validator info
-func GetCmdSdkValidators() *cobra.Command {
 	return &cobra.Command{}
 }
 

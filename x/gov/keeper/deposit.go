@@ -6,7 +6,6 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/x/gov/types"
-	valtypes "github.com/celer-network/sgn-v2/x/validator/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -114,15 +113,12 @@ func (keeper Keeper) AddDeposit(ctx sdk.Context, proposalID uint64, depositorAdd
 		return false, sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "%d", proposalID)
 	}
 
-	valAddr, _ := valtypes.SdkValAddrFromSgnBech32(depositorAddr.String())
-	log.Infoln("****valAddr", valAddr.String())
-	validator, found := keeper.vk.GetSdkValidator(ctx, valAddr)
+	validator, found := keeper.vk.GetValidatorBySgnAddr(ctx, depositorAddr)
 	if !found {
 		return false, sdkerrors.Wrapf(types.ErrUnknownProposal, "Invalid depositor addr %s", depositorAddr)
 	}
 
-	ethAddr := validator.Description.Identity
-	log.Infoln("****ethAddr", ethAddr)
+	ethAddr := validator.EthAddress
 	selfDelegator, found := keeper.vk.GetDelegator(ctx, ethAddr, ethAddr)
 	if !found {
 		return false, sdkerrors.Wrapf(types.ErrUnknownProposal, "Invalid depositor addr %s, %s", depositorAddr, ethAddr)

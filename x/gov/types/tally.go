@@ -8,18 +8,18 @@ import (
 
 // ValidatorGovInfo used for tallying
 type ValidatorGovInfo struct {
-	Address      sdk.ValAddress // address of the validator account
-	BondedTokens sdk.Int        // Power of a Validator
-	Vote         VoteOption     // Vote of the validator
+	Address sdk.AccAddress // sgn address of the validator
+	Tokens  sdk.Int        // Power of a Validator
+	Vote    VoteOption     // Vote of the validator
 }
 
 // NewValidatorGovInfo creates a ValidatorGovInfo instance
-func NewValidatorGovInfo(address sdk.ValAddress, bondedTokens sdk.Int, vote VoteOption) ValidatorGovInfo {
+func NewValidatorGovInfo(address sdk.AccAddress, tokens sdk.Int, vote VoteOption) ValidatorGovInfo {
 
 	return ValidatorGovInfo{
-		Address:      address,
-		BondedTokens: bondedTokens,
-		Vote:         vote,
+		Address: address,
+		Tokens:  tokens,
+		Vote:    vote,
 	}
 }
 

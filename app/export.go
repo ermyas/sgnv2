@@ -6,11 +6,11 @@ import (
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
-	"github.com/cosmos/cosmos-sdk/x/staking"
 )
 
 // ExportAppStateAndValidators exports the state of the application for a genesis
 // file.
+// TODO: complete this
 func (app *SgnApp) ExportAppStateAndValidators(
 	forZeroHeight bool, jailAllowedAddrs []string,
 ) (servertypes.ExportedApp, error) {
@@ -30,10 +30,10 @@ func (app *SgnApp) ExportAppStateAndValidators(
 		return servertypes.ExportedApp{}, err
 	}
 
-	validators, err := staking.WriteValidators(ctx, app.StakingKeeper)
+	//validators, err := staking.WriteValidators(ctx, app.StakingKeeper)
 	return servertypes.ExportedApp{
-		AppState:        appState,
-		Validators:      validators,
+		AppState: appState,
+		//Validators:      validators,
 		Height:          height,
 		ConsensusParams: app.BaseApp.GetConsensusParams(ctx),
 	}, err

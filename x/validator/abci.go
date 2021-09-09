@@ -17,17 +17,16 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) (updates []abci.Validator
 
 // Update syncer for every syncerDuration
 func setSyncer(ctx sdk.Context, keeper keeper.Keeper) {
-	syncer := keeper.GetSyncer(ctx)
-	validators := keeper.GetBondedSdkValidators(ctx)
 	syncerDuration := keeper.SyncerDuration(ctx)
+	if uint64(ctx.BlockHeight())/syncerDuration != 0 {
+		return
+	}
+	syncer := keeper.GetSyncer(ctx)
+	validators := keeper.GetBondedValidators(ctx)
 	vIdx := uint64(ctx.BlockHeight()) / syncerDuration % uint64(len(validators))
 
 	if syncer.ValIndex != vIdx || syncer.SgnAddress == "" {
-		addr, err := sdk.ValAddressFromBech32(validators[vIdx].OperatorAddress)
-		if err != nil {
-			panic(err)
-		}
-		syncer = types.NewSyncer(vIdx, sdk.AccAddress(addr).String())
+		syncer = types.NewSyncer(vIdx, validators[vIdx].SgnAddress)
 		keeper.SetSyncer(ctx, syncer)
 		log.Infof("set syncer to %s", syncer.SgnAddress)
 	}

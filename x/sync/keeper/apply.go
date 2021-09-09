@@ -59,6 +59,7 @@ func (k Keeper) applyValidatorSgnAddr(ctx sdk.Context, update *types.PendingUpda
 	return true, nil
 }
 
+// TODO: handle/restrict sgnaddr/consaddr update
 func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdate) (bool, error) {
 	v, err := vtypes.UnmarshalValidator(k.cdc, update.Data)
 	if err != nil {
@@ -81,7 +82,7 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 	}
 	val.ConsensusPubkey = v.ConsensusPubkey
 	val.CommissionRate = v.CommissionRate
-	k.valKeeper.SetValidator(ctx, val)
+	k.valKeeper.SetValidatorParams(ctx, val)
 	//TODO: gas coins
 	return true, nil
 }
@@ -100,10 +101,7 @@ func (k Keeper) applyValidatorStates(ctx sdk.Context, update *types.PendingUpdat
 	val.Tokens = v.Tokens
 	val.Shares = v.Shares
 
-	err = k.valKeeper.SetValidatorStates(ctx, val)
-	if err != nil {
-		return false, err
-	}
+	k.valKeeper.SetValidatorStates(ctx, val)
 	return true, nil
 }
 

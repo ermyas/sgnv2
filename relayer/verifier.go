@@ -12,14 +12,13 @@ import (
 	validatorcli "github.com/celer-network/sgn-v2/x/validator/client/cli"
 	validatortypes "github.com/celer-network/sgn-v2/x/validator/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/spf13/viper"
 )
 
 func (r *Relayer) verifyPendingUpdates() {
-	v, _ := validatorcli.QuerySdkValidator(r.Transactor.CliCtx, r.Transactor.Key.GetAddress().String())
-	if v == nil || v.Status != stakingtypes.Bonded {
+	v, _ := validatorcli.QueryValidator(r.Transactor.CliCtx, r.valAddr.Hex())
+	if v == nil || v.Status != validatortypes.ValidatorStatus_Bonded {
 		log.Traceln("skip verifying pending updates as I am not a bonded validator")
 		return
 	}

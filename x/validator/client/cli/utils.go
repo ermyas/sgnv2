@@ -8,7 +8,6 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/x/validator/types"
 	"github.com/cosmos/cosmos-sdk/client"
-	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 func QueryValidator(cliCtx client.Context, ethAddress string) (validator *types.Validator, err error) {
@@ -18,6 +17,38 @@ func QueryValidator(cliCtx client.Context, ethAddress string) (validator *types.
 		return
 	}
 	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryValidator)
+	res, err := common.RobustQueryWithData(cliCtx, route, data)
+	if err != nil {
+		return
+	}
+	validator = new(types.Validator)
+	err = cliCtx.LegacyAmino.UnmarshalJSON(res, validator)
+	return
+}
+
+func QueryValidatorBySgnAddr(cliCtx client.Context, sgnAddress string) (validator *types.Validator, err error) {
+	params := types.NewQueryValidatorBySgnAddrParams(sgnAddress)
+	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
+	if err != nil {
+		return
+	}
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryValidatorBySgnAddr)
+	res, err := common.RobustQueryWithData(cliCtx, route, data)
+	if err != nil {
+		return
+	}
+	validator = new(types.Validator)
+	err = cliCtx.LegacyAmino.UnmarshalJSON(res, validator)
+	return
+}
+
+func QueryValidatorByConsAddr(cliCtx client.Context, consAddress string) (validator *types.Validator, err error) {
+	params := types.NewQueryValidatorByConsAddrParams(consAddress)
+	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
+	if err != nil {
+		return
+	}
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryValidatorByConsAddr)
 	res, err := common.RobustQueryWithData(cliCtx, route, data)
 	if err != nil {
 		return
@@ -57,7 +88,7 @@ func QueryDelegator(cliCtx client.Context, valAddr, delAddr string) (delegator *
 }
 
 func QueryDelegators(cliCtx client.Context, ethAddress string) (delegators []*types.Delegator, err error) {
-	params := types.NewQueryValidatorParams(ethAddress)
+	params := types.NewQueryDelegatorsParams(ethAddress)
 	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
 	if err != nil {
 		return nil, err
@@ -83,43 +114,6 @@ func QuerySgnAccount(cliCtx client.Context, sgnAddr string) (exist bool, err err
 		return
 	}
 	exist = bytes.Compare(res, []byte{1}) == 0
-	return
-}
-
-// addrStr should be bech32 sgn account address with prefix sgn
-func QuerySdkValidator(cliCtx client.Context, sgnAddr string) (sdkval *sdk_staking.Validator, err error) {
-	vaddr, err := types.SdkValAddrFromSgnBech32(sgnAddr)
-	if err != nil {
-		return nil, err
-	}
-	params := sdk_staking.NewQueryValidatorParams(vaddr, 0, 0)
-	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
-	if err != nil {
-		return nil, err
-	}
-	route := fmt.Sprintf("custom/%s/%s", sdk_staking.QuerierRoute, sdk_staking.QueryValidator)
-	res, err := common.RobustQueryWithData(cliCtx, route, data)
-	if err != nil {
-		return
-	}
-	sdkval = new(sdk_staking.Validator)
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, sdkval)
-	return
-}
-
-// Query validators of given status in sdk staking module
-func QuerySdkValidators(cliCtx client.Context, status string) (sdkvals sdk_staking.Validators, err error) {
-	params := sdk_staking.NewQueryValidatorsParams(1, 100, status)
-	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
-	if err != nil {
-		return nil, err
-	}
-	route := fmt.Sprintf("custom/%s/%s", sdk_staking.QuerierRoute, sdk_staking.QueryValidators)
-	res, err := common.RobustQueryWithData(cliCtx, route, data)
-	if err != nil {
-		return
-	}
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &sdkvals)
 	return
 }
 

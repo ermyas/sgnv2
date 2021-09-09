@@ -15,6 +15,10 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 		switch path[0] {
 		case types.QueryValidator:
 			return queryValidator(ctx, req, k, legacyQuerierCdc)
+		case types.QueryValidatorBySgnAddr:
+			return queryValidatorBySgnAddr(ctx, req, k, legacyQuerierCdc)
+		case types.QueryValidatorByConsAddr:
+			return queryValidatorByConsAddr(ctx, req, k, legacyQuerierCdc)
 		case types.QueryValidators:
 			return queryValidators(ctx, k, legacyQuerierCdc)
 		case types.QueryDelegator:
@@ -42,6 +46,56 @@ func queryValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuer
 	}
 
 	validator, found := k.GetValidator(ctx, params.EthAddress)
+	if !found {
+		return nil, types.ErrValidatorNotFound
+	}
+
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, validator)
+	if err != nil {
+		log.Error(err)
+		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
+}
+
+func queryValidatorBySgnAddr(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var params types.QueryValidatorBySgnAddrParams
+
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONUnmarshal, err.Error())
+	}
+	sgnAddr, err := sdk.AccAddressFromBech32(params.SgnAddress)
+	if err != nil {
+		return nil, sdk_errors.Wrap(types.ErrInvalidAddress, err.Error())
+	}
+	validator, found := k.GetValidatorBySgnAddr(ctx, sgnAddr)
+	if !found {
+		return nil, types.ErrValidatorNotFound
+	}
+
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, validator)
+	if err != nil {
+		log.Error(err)
+		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
+}
+
+func queryValidatorByConsAddr(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var params types.QueryValidatorByConsAddrParams
+
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONUnmarshal, err.Error())
+	}
+	consAddr, err := sdk.ConsAddressFromBech32(params.ConsAddress)
+	if err != nil {
+		return nil, sdk_errors.Wrap(types.ErrInvalidAddress, err.Error())
+	}
+	validator, found := k.GetValidatorByConsAddr(ctx, consAddr)
 	if !found {
 		return nil, types.ErrValidatorNotFound
 	}

@@ -10,7 +10,6 @@ import (
 	tc "github.com/celer-network/sgn-v2/test/common"
 	"github.com/celer-network/sgn-v2/x/validator/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 )
@@ -43,6 +42,7 @@ func stakingTest(t *testing.T) {
 		viper.GetStringSlice(common.FlagSgnTransactors)[0],
 		viper.GetString(common.FlagSgnPassphrase),
 	)
+
 	vAmt := big.NewInt(2e18)
 	dAmts := []*big.Int{
 		big.NewInt(2e18),
@@ -65,19 +65,13 @@ func stakingTest(t *testing.T) {
 		CommissionRate: eth.CommissionRate(0.02),
 	}
 	tc.CheckValidator(t, transactor, expVal)
+	tc.CheckValidatorBySgnAddr(t, transactor, expVal)
 	expDel := &types.Delegator{
 		ValAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
 		DelAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
 		Shares:     vAmt.String(),
 	}
 	tc.CheckDelegator(t, transactor, expDel)
-	expSdkVal := &sdk_staking.Validator{
-		OperatorAddress: sdk.ValAddress(tc.ValSgnAddrs[0]).String(),
-		Status:          sdk_staking.Bonded,
-		Tokens:          sdk.NewIntFromBigInt(vAmt),
-	}
-	tc.CheckSdkValidator(t, transactor, expSdkVal)
-	tc.CheckBondedSdkValidatorNum(t, transactor, 1)
 	tc.PrintTendermintValidators(t, transactor)
 
 	log.Info("add delegators ...")
@@ -85,6 +79,7 @@ func stakingTest(t *testing.T) {
 		go tc.Delegate(tc.DelAuths[i], tc.ValEthAddrs[0], dAmts[i])
 	}
 	tc.Sleep(5)
+	tc.PrintTendermintValidators(t, transactor)
 	for i := 0; i < len(tc.DelEthKs); i++ {
 		expDel := &types.Delegator{
 			ValAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
@@ -97,6 +92,6 @@ func stakingTest(t *testing.T) {
 	expVal.Tokens = sdk.NewIntFromBigInt(totalAmts)
 	expVal.Shares = sdk.NewIntFromBigInt(totalAmts)
 	tc.CheckValidator(t, transactor, expVal)
-	expSdkVal.Tokens = sdk.NewIntFromBigInt(totalAmts)
-	tc.CheckSdkValidator(t, transactor, expSdkVal)
+	tc.Sleep(5)
+	tc.PrintTendermintValidators(t, transactor)
 }

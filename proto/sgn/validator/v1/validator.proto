@@ -25,31 +25,29 @@ message Validator {
   string eth_signer = 2 [(gogoproto.moretags) = "yaml:\"signer_address\""];
   // bech32-encoded sgn address (sdk.AccAddress) of the validator.
   string sgn_address = 3 [(gogoproto.moretags) = "yaml:\"sgn_address\""];
-  // bech32-encoded operator address (sdk.ValAddress) of the validator.
-  string operator_address = 4 [(gogoproto.moretags) = "yaml:\"operator_address\""];
   // consensus_pubkey is the consensus public key of the validator, as a Protobuf Any.
-  google.protobuf.Any consensus_pubkey = 5
+  google.protobuf.Any consensus_pubkey = 4
     [(cosmos_proto.accepts_interface) = "cosmos.crypto.PubKey", (gogoproto.moretags) = "yaml:\"consensus_pubkey\""];
   // validator status (bonded/unbonding/unbonded).
-  ValidatorStatus status = 6;
+  ValidatorStatus status = 5;
   // validator total tokens
-  string tokens = 7 [
+  string tokens = 6 [
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
     (gogoproto.moretags) = "yaml:\"tokens\"",
     (gogoproto.nullable)   = false
   ];
   // validator total shares
-  string shares = 8 [
+  string shares = 7 [
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
     (gogoproto.moretags) = "yaml:\"shares\"",
     (gogoproto.nullable)   = false
   ];
   // validator commission rate
-  uint64 commission_rate = 9 [(gogoproto.moretags) = "yaml:\"commission_rate\""];
+  uint64 commission_rate = 8 [(gogoproto.moretags) = "yaml:\"commission_rate\""];
   // validator descriptions
-  Description description = 10;
+  Description description = 9;
   // validator transactor account (sdk.AccAddress) addresses (TODO: move to separate message)
-  repeated string transactors = 11;
+  repeated string transactors = 10;
 }
 
 message Description {

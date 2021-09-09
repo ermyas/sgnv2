@@ -24,8 +24,7 @@ import (
 type Operator struct {
 	EthClient  *eth.EthClient
 	Transactor *transactor.Transactor
-
-	PubKeyAny *codectypes.Any
+	PubKeyAny  *codectypes.Any
 }
 
 func NewOperator(

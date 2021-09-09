@@ -9,7 +9,6 @@ import (
 	tc "github.com/celer-network/sgn-v2/test/common"
 	"github.com/celer-network/sgn-v2/x/validator/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk_staking "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -82,13 +81,6 @@ func stakingTest(t *testing.T) {
 			Shares:     amts[i].String(),
 		}
 		tc.CheckDelegator(t, transactor, expDel)
-		expSdkVal := &sdk_staking.Validator{
-			OperatorAddress: sdk.ValAddress(tc.ValSgnAddrs[i]).String(),
-			Status:          sdk_staking.Bonded,
-			Tokens:          sdk.NewIntFromBigInt(amts[i]),
-		}
-		tc.CheckSdkValidator(t, transactor, expSdkVal)
-		tc.CheckBondedSdkValidatorNum(t, transactor, i+1)
 	}
 
 	log.Infoln("---------- It should add unbonded validator 2 without enough delegation ----------")
@@ -107,7 +99,6 @@ func stakingTest(t *testing.T) {
 	}
 	expVals = append(expVals, expVal)
 	tc.CheckValidators(t, transactor, expVals)
-	tc.CheckBondedSdkValidatorNum(t, transactor, 2)
 	tc.PrintTendermintValidators(t, transactor)
 
 	log.Infoln("---------- It should add bonded validator 2 with enough delegation ----------")
@@ -119,13 +110,6 @@ func stakingTest(t *testing.T) {
 	expVals[2].Tokens = sdk.NewIntFromBigInt(amts[2])
 	expVals[2].Shares = sdk.NewIntFromBigInt(amts[2])
 	tc.CheckValidators(t, transactor, expVals)
-	expSdkVal := &sdk_staking.Validator{
-		OperatorAddress: sdk.ValAddress(tc.ValSgnAddrs[2]).String(),
-		Status:          sdk_staking.Bonded,
-		Tokens:          sdk.NewIntFromBigInt(amts[2]),
-	}
-	tc.CheckSdkValidator(t, transactor, expSdkVal)
-	tc.CheckBondedSdkValidatorNum(t, transactor, 3)
 	tc.Sleep(5)
 	tc.PrintTendermintValidators(t, transactor)
 
@@ -137,7 +121,6 @@ func stakingTest(t *testing.T) {
 	expVals[2].Tokens = sdk.NewIntFromBigInt(initialDelegation)
 	expVals[2].Shares = sdk.NewIntFromBigInt(initialDelegation)
 	tc.CheckValidators(t, transactor, expVals)
-	tc.CheckBondedSdkValidatorNum(t, transactor, 2)
 
 	tc.ConfirmUnbondedValidator(tc.ValAuths[2], tc.ValEthAddrs[2])
 	expVals[2].Status = eth.Unbonded
@@ -150,7 +133,6 @@ func stakingTest(t *testing.T) {
 	expVals[2].Tokens = sdk.NewIntFromBigInt(amts[2])
 	expVals[2].Shares = sdk.NewIntFromBigInt(amts[2])
 	tc.CheckValidators(t, transactor, expVals)
-	tc.CheckBondedSdkValidatorNum(t, transactor, 3)
 
 	log.Infoln("---------- It should correctly replace bonded validator 2 with validator 3 ----------")
 	err = tc.InitializeValidator(tc.ValAuths[3], tc.ValSgnAddrs[3], amts[3], eth.CommissionRate(0.02))
@@ -168,13 +150,6 @@ func stakingTest(t *testing.T) {
 	}
 	expVals = append(expVals, expVal)
 	tc.CheckValidators(t, transactor, expVals)
-	expSdkVal = &sdk_staking.Validator{
-		OperatorAddress: sdk.ValAddress(tc.ValSgnAddrs[3]).String(),
-		Status:          sdk_staking.Bonded,
-		Tokens:          sdk.NewIntFromBigInt(amts[3]),
-	}
-	tc.CheckSdkValidator(t, transactor, expSdkVal)
-	tc.CheckBondedSdkValidatorNum(t, transactor, 3)
 	tc.Sleep(5)
 	tc.PrintTendermintValidators(t, transactor)
 }

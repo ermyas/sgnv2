@@ -34,6 +34,10 @@ func (k Keeper) MaxValidatorDiff(ctx sdk.Context) (res uint64) {
 	return
 }
 
+func (k Keeper) PowerReduction(ctx sdk.Context) sdk.Int {
+	return sdk.DefaultPowerReduction
+}
+
 // Get all parameteras as types.Params
 func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	return types.NewParams(

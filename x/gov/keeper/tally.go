@@ -2,8 +2,8 @@ package keeper
 
 import (
 	"github.com/celer-network/sgn-v2/x/gov/types"
+	valtypes "github.com/celer-network/sgn-v2/x/validator/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 // TODO: Break into several smaller functions for clarity
@@ -22,14 +22,14 @@ func (keeper Keeper) Tally(ctx sdk.Context, proposal types.Proposal) (passes boo
 	currValidators := make(map[string]types.ValidatorGovInfo)
 
 	// fetch all the bonded validators, insert them into currValidators
-	keeper.vk.IterateBondedValidatorsByPower(ctx, func(index int64, validator stakingtypes.ValidatorI) (stop bool) {
-		currValidators[validator.GetOperator().String()] = types.NewValidatorGovInfo(
-			validator.GetOperator(),
-			validator.GetBondedTokens(),
+	keeper.vk.IterateBondedValidators(ctx, func(validator valtypes.Validator) (stop bool) {
+		currValidators[validator.SgnAddress] = types.NewValidatorGovInfo(
+			validator.GetSgnAddr(),
+			validator.Tokens,
 			types.OptionEmpty,
 		)
 
-		totalBondedTokens = totalBondedTokens.Add(validator.GetBondedTokens())
+		totalBondedTokens = totalBondedTokens.Add(validator.Tokens)
 		return false
 	})
 
@@ -52,8 +52,8 @@ func (keeper Keeper) Tally(ctx sdk.Context, proposal types.Proposal) (passes boo
 			continue
 		}
 
-		results[val.Vote] = results[val.Vote].Add(val.BondedTokens)
-		totalVotingPower = totalVotingPower.Add(val.BondedTokens)
+		results[val.Vote] = results[val.Vote].Add(val.Tokens)
+		totalVotingPower = totalVotingPower.Add(val.Tokens)
 	}
 
 	tallyParams := keeper.GetTallyParams(ctx)

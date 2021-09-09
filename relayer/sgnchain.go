@@ -2,11 +2,8 @@ package relayer
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/celer-network/goutils/log"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/rpc/client/http"
 	tm "github.com/tendermint/tendermint/types"
@@ -49,6 +46,7 @@ func MonitorTendermintEvent(nodeURI, eventTag string, handleEvent func(event abc
 	}
 }
 
+/*
 func (r *Relayer) monitorSgnchainCreateValidator() {
 	createValidatorEvent := fmt.Sprintf("%s.%s='%s'", stakingtypes.EventTypeCreateValidator, stakingtypes.AttributeKeyValidator, r.sgnAcct.String())
 	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, createValidatorEvent, func(e abci.Event) {
@@ -59,3 +57,4 @@ func (r *Relayer) monitorSgnchainCreateValidator() {
 		}
 	})
 }
+*/

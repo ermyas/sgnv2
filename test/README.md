@@ -36,11 +36,8 @@ From the project root directory, run:
 rm -rf ~/.sgnd
 cp -a test/data/.sgnd ~/.sgnd
 rm ~/.sgnd/config/genesis.json
-rm ~/.sgnd/config/gentx/*.json
 sgnd init node0 --chain-id sgn-localnet-1000
-sgnd add-genesis-account $(sgnd keys show alice -a --keyring-backend file --keyring-dir ~/.sgnd) 100000000stake # NOTE: Somehow Cosmos SDK requires this to be a large amount
-sgnd gentx alice 100000000stake --min-self-delegation 1000 --amount 100000000stake --identity 00078b31fa8b29a76bce074b5ea0d515a6aeaee7 --keyring-backend file --keyring-dir ~/.sgnd --chain-id sgn-localnet-1000
-sgnd collect-gentxs
+sgnd add-genesis-account $(sgnd keys show alice -a --keyring-backend file --keyring-dir ~/.sgnd) 100000000stake
+sgnd add-genesis-validator alice 100000000
 cp ~/.sgnd/config/genesis.json test/data/.sgnd/config/genesis.json
-cp ~/.sgnd/config/gentx/*.json test/data/.sgnd/config/gentx
 ```
