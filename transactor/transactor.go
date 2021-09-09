@@ -191,6 +191,10 @@ func (t *Transactor) sendTxMsgsWaitMined(msgs []sdk.Msg) (*sdk.TxResponse, error
 			logEntry.TxHash = txResponse.TxHash
 		}
 		if err != nil {
+			if strings.Contains(err.Error(), "account sequence mismatch") && retryNum < maxGasRetry {
+				retryNum++
+				continue
+			}
 			logEntry.Error = append(logEntry.Error, err.Error())
 			logEntry.Status = seal.TxMsgStatus_FAILED
 			seal.CommitTransactorLog(logEntry)
