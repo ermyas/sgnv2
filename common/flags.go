@@ -41,6 +41,8 @@ const (
 
 	FlagLogLevel = "log.level"
 	FlagLogColor = "log.color"
+
+	FlagMultiChain = "multichain" // array of toml tables, each table represents one chain, see common/multichain.go for details
 )
 
 const (
