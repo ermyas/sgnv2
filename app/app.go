@@ -11,6 +11,10 @@ import (
 	appparams "github.com/celer-network/sgn-v2/app/params"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/relayer"
+	"github.com/celer-network/sgn-v2/x/gov"
+	govclient "github.com/celer-network/sgn-v2/x/gov/client"
+	govkeeper "github.com/celer-network/sgn-v2/x/gov/keeper"
+	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	"github.com/celer-network/sgn-v2/x/sync"
 	synckeeper "github.com/celer-network/sgn-v2/x/sync/keeper"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
@@ -22,7 +26,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/codec/types"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/cosmos/cosmos-sdk/server/config"
@@ -55,6 +58,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/params"
 	paramskeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	"github.com/cosmos/cosmos-sdk/x/params/types/proposal"
 	slashing "github.com/cosmos/cosmos-sdk/x/slashing"
 	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
@@ -92,17 +96,12 @@ var (
 		capability.AppModuleBasic{},
 		staking.AppModuleBasic{},
 		slashing.AppModuleBasic{},
-		// TODO: Replace with custom gov
-		// gov.NewAppModuleBasic(
-		// 	paramsclient.ProposalHandler,
-		// 	upgradeclient.ProposalHandler,
-		// 	upgradeclient.CancelProposalHandler,
-		// ),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
 		upgrade.AppModuleBasic{},
 		evidence.AppModuleBasic{},
 
+		gov.NewAppModuleBasic(govclient.ParamProposalHandler, govclient.UpgradeProposalHandler),
 		sync.AppModule{},
 		validator.AppModuleBasic{},
 	)
@@ -128,7 +127,7 @@ type SgnApp struct {
 	*baseapp.BaseApp
 	legacyAmino       *codec.LegacyAmino
 	appCodec          codec.Codec
-	interfaceRegistry types.InterfaceRegistry
+	interfaceRegistry codectypes.InterfaceRegistry
 
 	invCheckPeriod uint
 
@@ -143,13 +142,13 @@ type SgnApp struct {
 	CapabilityKeeper *capabilitykeeper.Keeper
 	StakingKeeper    stakingkeeper.Keeper
 	SlashingKeeper   slashingkeeper.Keeper
-	// GovKeeper        govkeeper.Keeper
-	CrisisKeeper    crisiskeeper.Keeper
-	UpgradeKeeper   upgradekeeper.Keeper
-	ParamsKeeper    paramskeeper.Keeper
-	EvidenceKeeper  evidencekeeper.Keeper
-	SyncKeeper      synckeeper.Keeper
-	ValidatorKeeper valkeeper.Keeper
+	CrisisKeeper     crisiskeeper.Keeper
+	UpgradeKeeper    upgradekeeper.Keeper
+	ParamsKeeper     paramskeeper.Keeper
+	EvidenceKeeper   evidencekeeper.Keeper
+	GovKeeper        govkeeper.Keeper
+	SyncKeeper       synckeeper.Keeper
+	ValidatorKeeper  valkeeper.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -215,10 +214,9 @@ func NewSgnApp(
 
 	keys := sdk.NewKVStoreKeys(
 		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey, slashingtypes.StoreKey,
-		// govtypes.StoreKey,
 		paramstypes.StoreKey, upgradetypes.StoreKey,
 		evidencetypes.StoreKey, capabilitytypes.StoreKey,
-		synctypes.StoreKey, valtypes.StoreKey,
+		govtypes.StoreKey, synctypes.StoreKey, valtypes.StoreKey,
 	)
 	tKeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
@@ -280,22 +278,23 @@ func NewSgnApp(
 	app.EvidenceKeeper = *evidenceKeeper
 
 	// Initialize SGN-specific keepers
+	govRouter := govtypes.NewRouter()
+	govRouter.AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
+		AddRoute(proposal.RouterKey, gov.NewParamChangeProposalHandler(app.ParamsKeeper)).
+		AddRoute(upgradetypes.RouterKey, gov.NewUpgradeProposalHandler(app.UpgradeKeeper))
+	app.GovKeeper = govkeeper.NewKeeper(
+		app.AppCodec(),
+		keys[govtypes.StoreKey],
+		app.GetSubspace(govtypes.ModuleName),
+		app.ValidatorKeeper,
+		govRouter,
+	)
 	app.ValidatorKeeper = valkeeper.NewKeeper(
 		appCodec, keys[valtypes.StoreKey], app.AccountKeeper, app.StakingKeeper, app.GetSubspace(valtypes.ModuleName),
 	)
 	app.SyncKeeper = synckeeper.NewKeeper(
 		appCodec, keys[synctypes.StoreKey], app.ValidatorKeeper, app.GetSubspace(synctypes.ModuleName),
 	)
-
-	// Register the proposal types
-	// govRouter := govtypes.NewRouter()
-	// govRouter.AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
-	// 	AddRoute(paramproposal.RouterKey, params.NewParamChangeProposalHandler(app.ParamsKeeper)).
-	// 	AddRoute(upgradetypes.RouterKey, upgrade.NewSoftwareUpgradeProposalHandler(app.UpgradeKeeper))
-	// app.GovKeeper = govkeeper.NewKeeper(
-	// 	appCodec, keys[govtypes.StoreKey], app.GetSubspace(govtypes.ModuleName), app.AccountKeeper, app.BankKeeper,
-	// 	&stakingKeeper, govRouter,
-	// )
 
 	/****  Module Options ****/
 	var skipGenesisInvariants = cast.ToBool(appOpts.Get(crisis.FlagSkipGenesisInvariants))
@@ -311,7 +310,6 @@ func NewSgnApp(
 		bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
 		capability.NewAppModule(appCodec, *app.CapabilityKeeper),
 		crisis.NewAppModule(&app.CrisisKeeper, skipGenesisInvariants),
-		// gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper),
 		// slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
 		staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
 		upgrade.NewAppModule(app.UpgradeKeeper),
@@ -319,6 +317,7 @@ func NewSgnApp(
 		params.NewAppModule(app.ParamsKeeper),
 
 		validator.NewAppModule(app.ValidatorKeeper),
+		gov.NewAppModule(app.GovKeeper, app.AccountKeeper),
 		sync.NewAppModule(app.SyncKeeper),
 	)
 
@@ -333,9 +332,8 @@ func NewSgnApp(
 		// stakingtypes.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
-		valtypes.ModuleName, synctypes.ModuleName,
+		valtypes.ModuleName, govtypes.ModuleName, synctypes.ModuleName,
 		// crisistypes.ModuleName,
-		// govtypes.ModuleName,
 		// stakingtypes.ModuleName,
 	)
 
@@ -349,11 +347,10 @@ func NewSgnApp(
 		capabilitytypes.ModuleName, authtypes.ModuleName,
 		banktypes.ModuleName, stakingtypes.ModuleName,
 		// slashingtypes.ModuleName,
-		// govtypes.ModuleName,
 		crisistypes.ModuleName, genutiltypes.ModuleName,
 		evidencetypes.ModuleName,
 
-		valtypes.ModuleName, synctypes.ModuleName,
+		valtypes.ModuleName, govtypes.ModuleName, synctypes.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
@@ -371,7 +368,6 @@ func NewSgnApp(
 		// authzmodule.NewAppModule(appCodec, app.AuthzKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
 		bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
 		capability.NewAppModule(appCodec, *app.CapabilityKeeper),
-		// gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper),
 		staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
 		slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
 		params.NewAppModule(app.ParamsKeeper),
@@ -558,9 +554,9 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(banktypes.ModuleName)
 	paramsKeeper.Subspace(stakingtypes.ModuleName)
 	paramsKeeper.Subspace(slashingtypes.ModuleName)
-	// paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable())
 	paramsKeeper.Subspace(crisistypes.ModuleName)
 
+	paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable())
 	paramsKeeper.Subspace(valtypes.ModuleName).WithKeyTable(valkeeper.ParamKeyTable())
 	paramsKeeper.Subspace(synctypes.ModuleName).WithKeyTable(synckeeper.ParamKeyTable())
 

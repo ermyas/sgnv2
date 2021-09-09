@@ -29,9 +29,11 @@ func RegisterInterfaces(registry types.InterfaceRegistry) {
 		&MsgSubmitProposal{},
 		&MsgDeposit{},
 		&MsgVote{},
+	)
+	registry.RegisterInterface(
+		"sgn.gov.v1.Content",
+		(*Content)(nil),
 		&TextProposal{},
-		&ParameterProposal{},
-		&UpgradeProposal{},
 	)
 }
 
