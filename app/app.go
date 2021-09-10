@@ -215,6 +215,12 @@ func NewSgnApp(
 	app.UpgradeKeeper = upgradekeeper.NewKeeper(skipUpgradeHeights, keys[upgradetypes.StoreKey], appCodec, DefaultNodeHome, app.BaseApp)
 
 	// Initialize SGN-specific keepers
+	app.StakingKeeper = stakingkeeper.NewKeeper(
+		appCodec, keys[stakingtypes.StoreKey], app.AccountKeeper, app.GetSubspace(stakingtypes.ModuleName),
+	)
+	app.SyncKeeper = synckeeper.NewKeeper(
+		appCodec, keys[synctypes.StoreKey], app.StakingKeeper, app.GetSubspace(synctypes.ModuleName),
+	)
 	govRouter := govtypes.NewRouter()
 	govRouter.AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
 		AddRoute(proposal.RouterKey, gov.NewParamChangeProposalHandler(app.ParamsKeeper)).
@@ -225,12 +231,6 @@ func NewSgnApp(
 		app.GetSubspace(govtypes.ModuleName),
 		app.StakingKeeper,
 		govRouter,
-	)
-	app.StakingKeeper = stakingkeeper.NewKeeper(
-		appCodec, keys[stakingtypes.StoreKey], app.AccountKeeper, app.GetSubspace(stakingtypes.ModuleName),
-	)
-	app.SyncKeeper = synckeeper.NewKeeper(
-		appCodec, keys[synctypes.StoreKey], app.StakingKeeper, app.GetSubspace(synctypes.ModuleName),
 	)
 
 	/****  Module Options ****/

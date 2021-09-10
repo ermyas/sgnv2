@@ -82,7 +82,7 @@ $ %s query gov proposal 1
 }
 
 func QueryProposal(cliCtx client.Context, queryRoute string, proposalID uint64) (proposal types.Proposal, err error) {
-	cdc := cliCtx.Codec
+	cdc := cliCtx.LegacyAmino
 	res, err := gcutils.QueryProposalByID(proposalID, cliCtx, queryRoute)
 	if err != nil {
 		return

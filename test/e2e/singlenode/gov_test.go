@@ -31,8 +31,8 @@ func TestGov(t *testing.T) {
 	t.Run("e2e-gov", func(t *testing.T) {
 		t.Run("govTest", govTest)
 	})
-}
-*/
+}*/
+
 func govTest(t *testing.T) {
 	log.Info("=====================================================================")
 	log.Info("======================== Test gov ===========================")
@@ -62,7 +62,7 @@ func govTest(t *testing.T) {
 	tc.CheckValidator(t, transactor, expVal)
 
 	log.Info("======================== Test change epochlengh passed ===========================")
-	paramChanges := []govtypes.ParamChange{govtypes.NewParamChange("validator", "EpochLength", "\"2\"")}
+	paramChanges := []govtypes.ParamChange{govtypes.NewParamChange("staking", "EpochLength", "\"2\"")}
 	content := govtypes.NewParameterProposal("Guard Param Change", "Update EpochLength", paramChanges)
 	submitProposalmsg, err := govtypes.NewMsgSubmitProposal(content, sdk.ZeroInt(), transactor.Key.GetAddress())
 	require.NoError(t, err, "failed to create MsgSubmitProposal")
