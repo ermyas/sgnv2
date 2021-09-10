@@ -3,7 +3,7 @@ package types
 import (
 	"github.com/celer-network/sgn-v2/eth"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk_errors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 const (
@@ -28,17 +28,17 @@ func (msg *MsgSetTransactors) Type() string { return TypeMsgSetTransactors }
 // ValidateBasic runs stateless checks on the message
 func (msg *MsgSetTransactors) ValidateBasic() error {
 	if msg.Sender == "" {
-		return sdk_errors.Wrap(ErrInvalidAddress, msg.Sender)
+		return sdkerrors.Wrap(ErrInvalidAddress, msg.Sender)
 	}
 
 	for _, transactor := range msg.Transactors {
 		if transactor == "" {
-			return sdk_errors.Wrap(ErrInvalidAddress, transactor)
+			return sdkerrors.Wrap(ErrInvalidAddress, transactor)
 		}
 
 		_, err := SdkAccAddrFromSgnBech32(transactor)
 		if err != nil {
-			return sdk_errors.Wrap(ErrInvalidAddress, err.Error())
+			return sdkerrors.Wrap(ErrInvalidAddress, err.Error())
 		}
 	}
 
@@ -80,11 +80,11 @@ func (msg *MsgEditDescription) Type() string { return TypeMsgEditDescription }
 // ValidateBasic runs stateless checks on the message
 func (msg *MsgEditDescription) ValidateBasic() error {
 	if msg.EthAddress == "" {
-		return sdk_errors.Wrap(ErrInvalidAddress, "EthAddress cannot be empty")
+		return sdkerrors.Wrap(ErrInvalidAddress, "EthAddress cannot be empty")
 	}
 
 	if msg.Sender == "" {
-		return sdk_errors.Wrap(ErrInvalidAddress, msg.Sender)
+		return sdkerrors.Wrap(ErrInvalidAddress, msg.Sender)
 	}
 
 	return nil

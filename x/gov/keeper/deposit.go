@@ -113,13 +113,13 @@ func (keeper Keeper) AddDeposit(ctx sdk.Context, proposalID uint64, depositorAdd
 		return false, sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "%d", proposalID)
 	}
 
-	validator, found := keeper.vk.GetValidatorBySgnAddr(ctx, depositorAddr)
+	validator, found := keeper.stakingKeeper.GetValidatorBySgnAddr(ctx, depositorAddr)
 	if !found {
 		return false, sdkerrors.Wrapf(types.ErrUnknownProposal, "Invalid depositor addr %s", depositorAddr)
 	}
 
 	ethAddr := validator.EthAddress
-	selfDelegator, found := keeper.vk.GetDelegator(ctx, ethAddr, ethAddr)
+	selfDelegator, found := keeper.stakingKeeper.GetDelegator(ctx, ethAddr, ethAddr)
 	if !found {
 		return false, sdkerrors.Wrapf(types.ErrUnknownProposal, "Invalid depositor addr %s, %s", depositorAddr, ethAddr)
 	}

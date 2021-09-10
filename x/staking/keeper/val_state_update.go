@@ -4,13 +4,11 @@ import (
 	"fmt"
 
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/x/validator/types"
+	"github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	cryptoenc "github.com/tendermint/tendermint/crypto/encoding"
 )
-
-// Modify based on https://github.com/cosmos/cosmos-sdk/blob/v0.43.0/x/staking/keeper/val_state_change.go
 
 // BlockValidatorUpdates calculates the ValidatorUpdates for the current block
 // Called in each EndBlock

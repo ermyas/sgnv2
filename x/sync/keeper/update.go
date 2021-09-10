@@ -4,8 +4,8 @@ import (
 	"sort"
 
 	"github.com/celer-network/sgn-v2/seal"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/celer-network/sgn-v2/x/sync/types"
-	valtypes "github.com/celer-network/sgn-v2/x/validator/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -94,6 +94,6 @@ func (k Keeper) SetNextUpdateId(ctx sdk.Context, updateId uint64) {
 	store.Set(types.NextUpdateIdKey, types.GetUpdateIdToBytes(updateId))
 }
 
-func (k Keeper) GetBondedValidators(ctx sdk.Context) []valtypes.Validator {
-	return k.valKeeper.GetBondedValidators(ctx)
+func (k Keeper) GetBondedValidators(ctx sdk.Context) []stakingtypes.Validator {
+	return k.stakingKeeper.GetBondedValidators(ctx)
 }

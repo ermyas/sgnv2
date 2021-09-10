@@ -5,7 +5,7 @@ import (
 	"github.com/celer-network/sgn-v2/x/sync/keeper"
 	"github.com/celer-network/sgn-v2/x/sync/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk_errors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 func NewHandler(keeper keeper.Keeper) sdk.Handler {
@@ -21,7 +21,7 @@ func NewHandler(keeper keeper.Keeper) sdk.Handler {
 		case *types.MsgVoteUpdates:
 			res, err = handleMsgVoteUpdates(ctx, keeper, msg, logEntry)
 		default:
-			return nil, sdk_errors.Wrapf(sdk_errors.ErrUnknownRequest, "unrecognized %s message type: %T", types.ModuleName, msg)
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized %s message type: %T", types.ModuleName, msg)
 		}
 
 		if err != nil {

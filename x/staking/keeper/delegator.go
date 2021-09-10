@@ -3,7 +3,7 @@ package keeper
 import (
 	"fmt"
 
-	"github.com/celer-network/sgn-v2/x/validator/types"
+	"github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 

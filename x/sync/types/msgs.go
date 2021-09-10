@@ -1,9 +1,9 @@
 package types
 
 import (
-	vtypes "github.com/celer-network/sgn-v2/x/validator/types"
+	vtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk_errors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 const (
@@ -28,10 +28,10 @@ func (msg *MsgProposeUpdates) Type() string { return TypeMsgProposeUpdates }
 // ValidateBasic runs stateless checks on the message
 func (msg *MsgProposeUpdates) ValidateBasic() error {
 	if len(msg.Updates) == 0 {
-		return sdk_errors.Wrap(ErrInvalidMsg, "empty update list")
+		return sdkerrors.Wrap(ErrInvalidMsg, "empty update list")
 	}
 	if msg.Sender == "" {
-		return sdk_errors.Wrap(ErrInvalidAddress, msg.Sender)
+		return sdkerrors.Wrap(ErrInvalidAddress, msg.Sender)
 	}
 	return nil
 }
@@ -67,10 +67,10 @@ func (msg *MsgVoteUpdates) Type() string { return TypeMsgVoteUpdates }
 // ValidateBasic runs stateless checks on the message
 func (msg *MsgVoteUpdates) ValidateBasic() error {
 	if len(msg.Votes) == 0 {
-		return sdk_errors.Wrap(ErrInvalidMsg, "empty vote list")
+		return sdkerrors.Wrap(ErrInvalidMsg, "empty vote list")
 	}
 	if msg.Sender == "" {
-		return sdk_errors.Wrap(ErrInvalidAddress, msg.Sender)
+		return sdkerrors.Wrap(ErrInvalidAddress, msg.Sender)
 	}
 	return nil
 }

@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/celer-network/goutils/log"
+	vtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/celer-network/sgn-v2/x/sync/types"
-	vtypes "github.com/celer-network/sgn-v2/x/validator/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -52,7 +52,7 @@ func (k Keeper) applyValidatorSgnAddr(ctx sdk.Context, update *types.PendingUpda
 	if err != nil {
 		return false, err
 	}
-	err = k.valKeeper.InitAccount(ctx, acct)
+	err = k.stakingKeeper.InitAccount(ctx, acct)
 	if err != nil {
 		return false, err
 	}
@@ -72,7 +72,7 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 		return false, fmt.Errorf("empty consensus pub key")
 	}
 	log.Infof("Apply validator params %s", v.String())
-	val, found := k.valKeeper.GetValidator(ctx, v.EthAddress)
+	val, found := k.stakingKeeper.GetValidator(ctx, v.EthAddress)
 	if !found {
 		val = vtypes.NewValidator(v.EthAddress, v.EthSigner, v.SgnAddress)
 		val.Description = v.Description
@@ -82,7 +82,7 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 	}
 	val.ConsensusPubkey = v.ConsensusPubkey
 	val.CommissionRate = v.CommissionRate
-	k.valKeeper.SetValidatorParams(ctx, val)
+	k.stakingKeeper.SetValidatorParams(ctx, val)
 	//TODO: gas coins
 	return true, nil
 }
@@ -93,7 +93,7 @@ func (k Keeper) applyValidatorStates(ctx sdk.Context, update *types.PendingUpdat
 		return false, err
 	}
 	log.Infof("Apply validator states %s", v.String())
-	val, found := k.valKeeper.GetValidator(ctx, v.EthAddress)
+	val, found := k.stakingKeeper.GetValidator(ctx, v.EthAddress)
 	if !found {
 		return false, fmt.Errorf("validator %s not found", val.EthAddress)
 	}
@@ -101,7 +101,7 @@ func (k Keeper) applyValidatorStates(ctx sdk.Context, update *types.PendingUpdat
 	val.Tokens = v.Tokens
 	val.Shares = v.Shares
 
-	k.valKeeper.SetValidatorStates(ctx, val)
+	k.stakingKeeper.SetValidatorStates(ctx, val)
 	return true, nil
 }
 
@@ -111,7 +111,7 @@ func (k Keeper) applyDelegatorShares(ctx sdk.Context, update *types.PendingUpdat
 		return false, err
 	}
 	log.Infof("Apply delegator shares valAddr %s delAddr %s shares %s", d.ValAddress, d.DelAddress, d.Shares)
-	err = k.valKeeper.SetDelegatorShares(ctx, d.ValAddress, d.DelAddress, d.Shares)
+	err = k.stakingKeeper.SetDelegatorShares(ctx, d.ValAddress, d.DelAddress, d.Shares)
 	if err != nil {
 		return false, err
 	}

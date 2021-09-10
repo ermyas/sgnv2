@@ -1,11 +1,11 @@
 syntax = "proto3";
-package sgn.validator.v1;
+package sgn.staking.v1;
 
-option go_package = "github.com/celer-network/sgn-v2/x/validator/types";
+option go_package = "github.com/celer-network/sgn-v2/x/staking/types";
 
 import "gogoproto/gogo.proto";
 
-import "sgn/validator/v1/validator.proto";
+import "sgn/staking/v1/staking.proto";
 
 message GenesisState {
   Params params = 1 [(gogoproto.nullable) = false];

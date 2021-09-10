@@ -9,7 +9,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
-	valtypes "github.com/celer-network/sgn-v2/x/validator/types"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -64,12 +64,12 @@ func AddGenesisValidatorCmd(defaultNodeHome string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			validator := valtypes.Validator{
+			validator := stakingtypes.Validator{
 				EthAddress:      viper.GetString(common.FlagEthValidatorAddress),
 				EthSigner:       eth.Addr2Hex(ethKey.Address),
 				SgnAddress:      key.GetAddress().String(),
 				ConsensusPubkey: pkAny,
-				Status:          valtypes.ValidatorStatus_Bonded,
+				Status:          stakingtypes.ValidatorStatus_Bonded,
 				Tokens:          tokens,
 				Shares:          tokens,
 			}
@@ -81,14 +81,14 @@ func AddGenesisValidatorCmd(defaultNodeHome string) *cobra.Command {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 			}
 
-			valGenState := valtypes.GetGenesisStateFromAppState(cdc, appState)
+			valGenState := stakingtypes.GetGenesisStateFromAppState(cdc, appState)
 			valGenState.Validators = append(valGenState.Validators, validator)
 
 			valGenStateBz, err := cdc.MarshalJSON(valGenState)
 			if err != nil {
 				return fmt.Errorf("failed to marshal auth genesis state: %w", err)
 			}
-			appState[valtypes.ModuleName] = valGenStateBz
+			appState[stakingtypes.ModuleName] = valGenStateBz
 
 			appStateJSON, err := json.Marshal(appState)
 			if err != nil {

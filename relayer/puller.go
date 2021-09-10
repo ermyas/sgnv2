@@ -7,8 +7,8 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
+	vtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
-	vtypes "github.com/celer-network/sgn-v2/x/validator/types"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	"github.com/spf13/viper"
 )

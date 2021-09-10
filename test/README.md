@@ -40,4 +40,8 @@ sgnd init node0 --chain-id sgn-localnet-1000
 sgnd add-genesis-account $(sgnd keys show alice -a --keyring-backend file --keyring-dir ~/.sgnd) 100000000stake
 sgnd add-genesis-validator alice 100000000
 cp ~/.sgnd/config/genesis.json test/data/.sgnd/config/genesis.json
+cp ~/.sgnd/config/genesis.json test/multi-node-data/node0/sgnd/config/genesis.json
+cp ~/.sgnd/config/genesis.json test/multi-node-data/node1/sgnd/config/genesis.json
+cp ~/.sgnd/config/genesis.json test/multi-node-data/node2/sgnd/config/genesis.json
+cp ~/.sgnd/config/genesis.json test/multi-node-data/node3/sgnd/config/genesis.json
 ```

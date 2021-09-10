@@ -8,7 +8,7 @@ import (
 
 const (
 	// module name
-	ModuleName = "validator"
+	ModuleName = "staking"
 
 	// StoreKey is the string store representation
 	StoreKey = ModuleName

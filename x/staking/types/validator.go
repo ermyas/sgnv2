@@ -11,7 +11,7 @@ import (
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk_errors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	proto "github.com/gogo/protobuf/proto"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmprotocrypto "github.com/tendermint/tendermint/proto/tendermint/crypto"
@@ -79,7 +79,7 @@ func (v Validator) YamlStr() string {
 func (v Validator) ConsPubKey() (cryptotypes.PubKey, error) {
 	pk, ok := v.ConsensusPubkey.GetCachedValue().(cryptotypes.PubKey)
 	if !ok {
-		return nil, sdk_errors.Wrapf(ErrInvalidType, "expecting cryptotypes.PubKey, got %T", pk)
+		return nil, sdkerrors.Wrapf(ErrInvalidType, "expecting cryptotypes.PubKey, got %T", pk)
 	}
 
 	return pk, nil
@@ -102,7 +102,7 @@ func (v Validator) TmConsPublicKey() (tmprotocrypto.PublicKey, error) {
 func (v Validator) GetConsAddr() (sdk.ConsAddress, error) {
 	pk, ok := v.ConsensusPubkey.GetCachedValue().(cryptotypes.PubKey)
 	if !ok {
-		return nil, sdk_errors.Wrapf(ErrInvalidType, "expecting cryptotypes.PubKey, got %T", pk)
+		return nil, sdkerrors.Wrapf(ErrInvalidType, "expecting cryptotypes.PubKey, got %T", pk)
 	}
 
 	return sdk.ConsAddress(pk.Address()), nil

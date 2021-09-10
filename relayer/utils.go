@@ -6,7 +6,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
-	valcli "github.com/celer-network/sgn-v2/x/validator/client/cli"
+	valcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	"github.com/iancoleman/strcase"
 	"github.com/spf13/viper"
 )

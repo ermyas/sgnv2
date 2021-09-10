@@ -2,10 +2,10 @@ package keeper
 
 import (
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/x/validator/types"
+	"github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk_errors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -32,7 +32,7 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 		case types.QueryParams:
 			return queryParams(ctx, k, legacyQuerierCdc)
 		default:
-			return nil, sdk_errors.Wrap(sdk_errors.ErrUnknownRequest, "Unknown validator query endpoint")
+			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "Unknown validator query endpoint")
 		}
 	}
 }
@@ -42,7 +42,7 @@ func queryValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuer
 
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONUnmarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
 	validator, found := k.GetValidator(ctx, params.EthAddress)
@@ -53,7 +53,7 @@ func queryValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuer
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, validator)
 	if err != nil {
 		log.Error(err)
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 
 	return res, nil
@@ -64,11 +64,11 @@ func queryValidatorBySgnAddr(ctx sdk.Context, req abci.RequestQuery, k Keeper, l
 
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONUnmarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 	sgnAddr, err := sdk.AccAddressFromBech32(params.SgnAddress)
 	if err != nil {
-		return nil, sdk_errors.Wrap(types.ErrInvalidAddress, err.Error())
+		return nil, sdkerrors.Wrap(types.ErrInvalidAddress, err.Error())
 	}
 	validator, found := k.GetValidatorBySgnAddr(ctx, sgnAddr)
 	if !found {
@@ -78,7 +78,7 @@ func queryValidatorBySgnAddr(ctx sdk.Context, req abci.RequestQuery, k Keeper, l
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, validator)
 	if err != nil {
 		log.Error(err)
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 
 	return res, nil
@@ -89,11 +89,11 @@ func queryValidatorByConsAddr(ctx sdk.Context, req abci.RequestQuery, k Keeper, 
 
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONUnmarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 	consAddr, err := sdk.ConsAddressFromBech32(params.ConsAddress)
 	if err != nil {
-		return nil, sdk_errors.Wrap(types.ErrInvalidAddress, err.Error())
+		return nil, sdkerrors.Wrap(types.ErrInvalidAddress, err.Error())
 	}
 	validator, found := k.GetValidatorByConsAddr(ctx, consAddr)
 	if !found {
@@ -103,7 +103,7 @@ func queryValidatorByConsAddr(ctx sdk.Context, req abci.RequestQuery, k Keeper, 
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, validator)
 	if err != nil {
 		log.Error(err)
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 
 	return res, nil
@@ -113,7 +113,7 @@ func queryValidators(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAm
 	validators := k.GetAllValidators(ctx)
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, validators)
 	if err != nil {
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 	return res, nil
 }
@@ -123,7 +123,7 @@ func queryDelegator(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuer
 
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONUnmarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
 	delegator, found := k.GetDelegator(ctx, params.ValAddress, params.DelAddress)
@@ -133,7 +133,7 @@ func queryDelegator(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuer
 
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, delegator)
 	if err != nil {
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 
 	return res, nil
@@ -145,13 +145,13 @@ func queryDelegators(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQue
 
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONUnmarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
 	delegators := k.GetAllDelegators(ctx, params.EthAddress)
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, delegators)
 	if err != nil {
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 	return res, nil
 }
@@ -161,16 +161,16 @@ func querySgnAccountExist(ctx sdk.Context, req abci.RequestQuery, k Keeper, lega
 
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONUnmarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
 	acctAddr, err := types.SdkAccAddrFromSgnBech32(params.SgnAddress)
 	if err != nil {
-		return nil, sdk_errors.Wrapf(types.ErrInvalidAddress, "%s", params.SgnAddress)
+		return nil, sdkerrors.Wrapf(types.ErrInvalidAddress, "%s", params.SgnAddress)
 	}
 	account := k.sdkAccountKeeper.GetAccount(ctx, acctAddr)
 	if account == nil {
-		return nil, sdk_errors.Wrapf(types.ErrSgnAccounNotFound, "%s", params.SgnAddress)
+		return nil, sdkerrors.Wrapf(types.ErrSgnAccounNotFound, "%s", params.SgnAddress)
 	}
 
 	return []byte{1}, nil
@@ -180,7 +180,7 @@ func querySyncer(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino)
 	syncer := k.GetSyncer(ctx)
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, syncer)
 	if err != nil {
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 	return res, nil
 }
@@ -189,7 +189,7 @@ func queryParams(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino)
 	params := k.GetParams(ctx)
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, params)
 	if err != nil {
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 	return res, nil
 }

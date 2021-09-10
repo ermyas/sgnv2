@@ -1,5 +1,5 @@
 {
-  "genesis_time": "2021-09-09T04:08:11.690947Z",
+  "genesis_time": "2021-09-10T01:30:53.592242Z",
   "chain_id": "sgn-localnet-1000",
   "initial_height": "1",
   "consensus_params": {
@@ -64,59 +64,26 @@
       ],
       "denom_metadata": []
     },
-    "capability": {
-      "index": "1",
-      "owners": []
-    },
-    "crisis": {
-      "constant_fee": {
-        "denom": "stake",
-        "amount": "1000"
+    "govern": {
+      "starting_proposal_id": "1",
+      "deposits": [],
+      "votes": [],
+      "proposals": [],
+      "deposit_params": {
+        "min_deposit": "10000000",
+        "max_deposit_period": "172800s"
+      },
+      "voting_params": {
+        "voting_period": "172800s"
+      },
+      "tally_params": {
+        "quorum": "0.334000000000000000",
+        "threshold": "0.500000000000000000",
+        "veto": "0.334000000000000000"
       }
     },
-    "evidence": {
-      "evidence": []
-    },
-    "genutil": {
-      "gen_txs": []
-    },
     "params": null,
-    "slashing": {
-      "params": {
-        "signed_blocks_window": "100",
-        "min_signed_per_window": "0.500000000000000000",
-        "downtime_jail_duration": "600s",
-        "slash_fraction_double_sign": "0.050000000000000000",
-        "slash_fraction_downtime": "0.010000000000000000"
-      },
-      "signing_infos": [],
-      "missed_blocks": []
-    },
     "staking": {
-      "params": {
-        "unbonding_time": "1814400s",
-        "max_validators": 100,
-        "max_entries": 7,
-        "historical_entries": 10000,
-        "bond_denom": "stake"
-      },
-      "last_total_power": "0",
-      "last_validator_powers": [],
-      "validators": [],
-      "delegations": [],
-      "unbonding_delegations": [],
-      "redelegations": [],
-      "exported": false
-    },
-    "sync": {
-      "params": {
-        "voting_period": "15",
-        "tally_threshold": "0.667000000000000000"
-      },
-      "start_update_id": "0"
-    },
-    "upgrade": {},
-    "validator": {
       "params": {
         "syncer_duration": "10",
         "epoch_length": "5",
@@ -141,6 +108,14 @@
         }
       ],
       "delegators": []
-    }
+    },
+    "sync": {
+      "params": {
+        "voting_period": "15",
+        "tally_threshold": "0.667000000000000000"
+      },
+      "start_update_id": "0"
+    },
+    "upgrade": {}
   }
 }

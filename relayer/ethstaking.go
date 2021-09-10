@@ -8,7 +8,7 @@ import (
 	"github.com/celer-network/goutils/eth/monitor"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
-	validatorcli "github.com/celer-network/sgn-v2/x/validator/client/cli"
+	validatorcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"

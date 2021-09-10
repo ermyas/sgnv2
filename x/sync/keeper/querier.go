@@ -4,7 +4,7 @@ import (
 	"github.com/celer-network/sgn-v2/x/sync/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk_errors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -19,7 +19,7 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 		case types.QueryPendingUpdates:
 			return queryPendingUpdates(ctx, k, legacyQuerierCdc)
 		default:
-			return nil, sdk_errors.Wrap(sdk_errors.ErrUnknownRequest, "Unknown sync query endpoint")
+			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "Unknown sync query endpoint")
 		}
 	}
 }
@@ -29,7 +29,7 @@ func queryPendingUpdate(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacy
 
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONUnmarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
 	update, found := k.GetPendingUpdate(ctx, params.UpdateId)
@@ -39,7 +39,7 @@ func queryPendingUpdate(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacy
 
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, update)
 	if err != nil {
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 
 	return res, nil
@@ -49,7 +49,7 @@ func queryPendingUpdates(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.Lega
 	updates := k.GetAllPendingUpdates(ctx)
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, updates)
 	if err != nil {
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 	return res, nil
 }
@@ -58,7 +58,7 @@ func queryParams(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino)
 	params := k.GetParams(ctx)
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, params)
 	if err != nil {
-		return nil, sdk_errors.Wrap(sdk_errors.ErrJSONMarshal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 	return res, nil
 }

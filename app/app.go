@@ -15,12 +15,12 @@ import (
 	govclient "github.com/celer-network/sgn-v2/x/gov/client"
 	govkeeper "github.com/celer-network/sgn-v2/x/gov/keeper"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
+	staking "github.com/celer-network/sgn-v2/x/staking"
+	stakingkeeper "github.com/celer-network/sgn-v2/x/staking/keeper"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/celer-network/sgn-v2/x/sync"
 	synckeeper "github.com/celer-network/sgn-v2/x/sync/keeper"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
-	"github.com/celer-network/sgn-v2/x/validator"
-	valkeeper "github.com/celer-network/sgn-v2/x/validator/keeper"
-	valtypes "github.com/celer-network/sgn-v2/x/validator/types"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
@@ -44,31 +44,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	"github.com/cosmos/cosmos-sdk/x/capability"
-	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
-	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	"github.com/cosmos/cosmos-sdk/x/crisis"
-	crisiskeeper "github.com/cosmos/cosmos-sdk/x/crisis/keeper"
-	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
-	"github.com/cosmos/cosmos-sdk/x/evidence"
-	evidencekeeper "github.com/cosmos/cosmos-sdk/x/evidence/keeper"
-	evidencetypes "github.com/cosmos/cosmos-sdk/x/evidence/types"
-	"github.com/cosmos/cosmos-sdk/x/genutil"
-	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	paramskeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"github.com/cosmos/cosmos-sdk/x/params/types/proposal"
-	slashing "github.com/cosmos/cosmos-sdk/x/slashing"
-	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
-	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
-	"github.com/cosmos/cosmos-sdk/x/staking"
-	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	upgradekeeper "github.com/cosmos/cosmos-sdk/x/upgrade/keeper"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	"github.com/spf13/cast"
 	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmcfg "github.com/tendermint/tendermint/config"
@@ -91,26 +73,18 @@ var (
 	// and genesis verification.
 	ModuleBasics = module.NewBasicManager(
 		auth.AppModuleBasic{},
-		genutil.AppModuleBasic{},
 		bank.AppModuleBasic{},
-		capability.AppModuleBasic{},
-		staking.AppModuleBasic{},
-		slashing.AppModuleBasic{},
 		params.AppModuleBasic{},
-		crisis.AppModuleBasic{},
 		upgrade.AppModuleBasic{},
-		evidence.AppModuleBasic{},
 
 		gov.NewAppModuleBasic(govclient.ParamProposalHandler, govclient.UpgradeProposalHandler),
 		sync.AppModule{},
-		validator.AppModuleBasic{},
+		staking.AppModuleBasic{},
 	)
 
 	// module account permissions
 	maccPerms = map[string][]string{
-		authtypes.FeeCollectorName:     nil,
-		stakingtypes.BondedPoolName:    {authtypes.Burner, authtypes.Staking},
-		stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
+		authtypes.FeeCollectorName: nil,
 	}
 
 	// module accounts that are allowed to receive tokens
@@ -137,18 +111,13 @@ type SgnApp struct {
 	memKeys map[string]*sdk.MemoryStoreKey
 
 	// keepers
-	AccountKeeper    authkeeper.AccountKeeper
-	BankKeeper       bankkeeper.Keeper
-	CapabilityKeeper *capabilitykeeper.Keeper
-	StakingKeeper    stakingkeeper.Keeper
-	SlashingKeeper   slashingkeeper.Keeper
-	CrisisKeeper     crisiskeeper.Keeper
-	UpgradeKeeper    upgradekeeper.Keeper
-	ParamsKeeper     paramskeeper.Keeper
-	EvidenceKeeper   evidencekeeper.Keeper
-	GovKeeper        govkeeper.Keeper
-	SyncKeeper       synckeeper.Keeper
-	ValidatorKeeper  valkeeper.Keeper
+	AccountKeeper authkeeper.AccountKeeper
+	BankKeeper    bankkeeper.Keeper
+	UpgradeKeeper upgradekeeper.Keeper
+	ParamsKeeper  paramskeeper.Keeper
+	GovKeeper     govkeeper.Keeper
+	SyncKeeper    synckeeper.Keeper
+	StakingKeeper stakingkeeper.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -213,13 +182,11 @@ func NewSgnApp(
 	bApp.SetInterfaceRegistry(interfaceRegistry)
 
 	keys := sdk.NewKVStoreKeys(
-		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey, slashingtypes.StoreKey,
+		authtypes.StoreKey, banktypes.StoreKey,
 		paramstypes.StoreKey, upgradetypes.StoreKey,
-		evidencetypes.StoreKey, capabilitytypes.StoreKey,
-		govtypes.StoreKey, synctypes.StoreKey, valtypes.StoreKey,
+		govtypes.StoreKey, synctypes.StoreKey, stakingtypes.StoreKey,
 	)
 	tKeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
-	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
 
 	app := &SgnApp{
 		BaseApp:           bApp,
@@ -229,20 +196,12 @@ func NewSgnApp(
 		invCheckPeriod:    invCheckPeriod,
 		keys:              keys,
 		tKeys:             tKeys,
-		memKeys:           memKeys,
 	}
 
 	// Init params keeper and subspaces
 	app.ParamsKeeper = initParamsKeeper(appCodec, legacyAmino, keys[paramstypes.StoreKey], tKeys[paramstypes.TStoreKey])
 	// Set the BaseApp's parameter store
 	bApp.SetParamStore(app.ParamsKeeper.Subspace(baseapp.Paramspace).WithKeyTable(paramskeeper.ConsensusParamsKeyTable()))
-
-	// Add capability keeper
-	app.CapabilityKeeper = capabilitykeeper.NewKeeper(appCodec, keys[capabilitytypes.StoreKey], memKeys[capabilitytypes.MemStoreKey])
-
-	// Applications that wish to enforce statically created ScopedKeepers should call `Seal` after creating
-	// their scoped modules in `NewApp` with `ScopeToModule`
-	app.CapabilityKeeper.Seal()
 
 	// Add Cosmos SDK keepers
 	// The AccountKeeper handles address -> account lookups
@@ -253,29 +212,7 @@ func NewSgnApp(
 	app.BankKeeper = bankkeeper.NewBaseKeeper(
 		appCodec, keys[banktypes.StoreKey], app.AccountKeeper, app.GetSubspace(banktypes.ModuleName), app.BlockedAddrs(),
 	)
-	// The staking keeper
-	stakingKeeper := stakingkeeper.NewKeeper(
-		appCodec, keys[stakingtypes.StoreKey], app.AccountKeeper, app.BankKeeper, app.GetSubspace(stakingtypes.ModuleName),
-	)
-	// Register the staking hooks
-	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
-	app.StakingKeeper = *stakingKeeper.SetHooks(
-		stakingtypes.NewMultiStakingHooks(),
-	)
-	app.SlashingKeeper = slashingkeeper.NewKeeper(
-		appCodec, keys[slashingtypes.StoreKey], &stakingKeeper, app.GetSubspace(slashingtypes.ModuleName),
-	)
-	app.CrisisKeeper = crisiskeeper.NewKeeper(
-		app.GetSubspace(crisistypes.ModuleName), invCheckPeriod, app.BankKeeper, authtypes.FeeCollectorName,
-	)
 	app.UpgradeKeeper = upgradekeeper.NewKeeper(skipUpgradeHeights, keys[upgradetypes.StoreKey], appCodec, DefaultNodeHome, app.BaseApp)
-
-	// Create evidence keeper with router
-	evidenceKeeper := evidencekeeper.NewKeeper(
-		appCodec, keys[evidencetypes.StoreKey], &app.StakingKeeper, app.SlashingKeeper,
-	)
-	// If evidence needs to be handled for the app, set routes in router here and seal
-	app.EvidenceKeeper = *evidenceKeeper
 
 	// Initialize SGN-specific keepers
 	govRouter := govtypes.NewRouter()
@@ -286,37 +223,27 @@ func NewSgnApp(
 		app.AppCodec(),
 		keys[govtypes.StoreKey],
 		app.GetSubspace(govtypes.ModuleName),
-		app.ValidatorKeeper,
+		app.StakingKeeper,
 		govRouter,
 	)
-	app.ValidatorKeeper = valkeeper.NewKeeper(
-		appCodec, keys[valtypes.StoreKey], app.AccountKeeper, app.GetSubspace(valtypes.ModuleName),
+	app.StakingKeeper = stakingkeeper.NewKeeper(
+		appCodec, keys[stakingtypes.StoreKey], app.AccountKeeper, app.GetSubspace(stakingtypes.ModuleName),
 	)
 	app.SyncKeeper = synckeeper.NewKeeper(
-		appCodec, keys[synctypes.StoreKey], app.ValidatorKeeper, app.GetSubspace(synctypes.ModuleName),
+		appCodec, keys[synctypes.StoreKey], app.StakingKeeper, app.GetSubspace(synctypes.ModuleName),
 	)
 
 	/****  Module Options ****/
-	var skipGenesisInvariants = cast.ToBool(appOpts.Get(crisis.FlagSkipGenesisInvariants))
 
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
 	app.mm = module.NewManager(
-		genutil.NewAppModule(
-			app.AccountKeeper, app.StakingKeeper, app.BaseApp.DeliverTx,
-			encodingConfig.TxConfig,
-		),
 		auth.NewAppModule(appCodec, app.AccountKeeper, authsims.RandomGenesisAccounts),
 		bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
-		capability.NewAppModule(appCodec, *app.CapabilityKeeper),
-		crisis.NewAppModule(&app.CrisisKeeper, skipGenesisInvariants),
-		// slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
 		upgrade.NewAppModule(app.UpgradeKeeper),
-		evidence.NewAppModule(app.EvidenceKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 
-		validator.NewAppModule(app.ValidatorKeeper),
+		staking.NewAppModule(app.StakingKeeper),
 		gov.NewAppModule(app.GovKeeper, app.AccountKeeper),
 		sync.NewAppModule(app.SyncKeeper),
 	)
@@ -326,15 +253,10 @@ func NewSgnApp(
 	// CanWithdrawInvariant invariant.
 	// NOTE: staking module is required if HistoricalEntries param > 0
 	app.mm.SetOrderBeginBlockers(
-		upgradetypes.ModuleName, capabilitytypes.ModuleName,
-		// slashingtypes.ModuleName,
-		// evidencetypes.ModuleName,
-		// stakingtypes.ModuleName,
+		upgradetypes.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
-		valtypes.ModuleName, govtypes.ModuleName, synctypes.ModuleName,
-		// crisistypes.ModuleName,
-		// stakingtypes.ModuleName,
+		synctypes.ModuleName, govtypes.ModuleName, stakingtypes.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
@@ -344,16 +266,13 @@ func NewSgnApp(
 	// can do so safely.
 	// NOTE: Treasury must occur after bank module so that initial supply is properly set
 	app.mm.SetOrderInitGenesis(
-		capabilitytypes.ModuleName, authtypes.ModuleName,
-		banktypes.ModuleName, stakingtypes.ModuleName,
-		// slashingtypes.ModuleName,
-		crisistypes.ModuleName, genutiltypes.ModuleName,
-		evidencetypes.ModuleName,
-
-		valtypes.ModuleName, govtypes.ModuleName, synctypes.ModuleName,
+		authtypes.ModuleName,
+		banktypes.ModuleName,
+		stakingtypes.ModuleName,
+		govtypes.ModuleName,
+		synctypes.ModuleName,
 	)
 
-	app.mm.RegisterInvariants(&app.CrisisKeeper)
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter(), legacyAmino)
 	app.configurator = module.NewConfigurator(app.appCodec, app.MsgServiceRouter(), app.GRPCQueryRouter())
 	app.mm.RegisterServices(app.configurator)
@@ -367,11 +286,7 @@ func NewSgnApp(
 		// TODO - uncomment when v0.43.0 fix the simulation bug
 		// authzmodule.NewAppModule(appCodec, app.AuthzKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
 		bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
-		capability.NewAppModule(appCodec, *app.CapabilityKeeper),
-		staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
-		slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
 		params.NewAppModule(app.ParamsKeeper),
-		evidence.NewAppModule(app.EvidenceKeeper),
 	)
 
 	app.sm.RegisterStoreDecoders()
@@ -379,7 +294,6 @@ func NewSgnApp(
 	// Initialize stores
 	app.MountKVStores(keys)
 	app.MountTransientStores(tKeys)
-	app.MountMemoryStores(memKeys)
 
 	// Initialize BaseApp
 	// The InitChainer handles translating the genesis.json file into initial state for the network
@@ -499,13 +413,6 @@ func (app *SgnApp) GetTKey(storeKey string) *sdk.TransientStoreKey {
 	return app.tKeys[storeKey]
 }
 
-// GetMemKey returns the MemStoreKey for the provided mem key.
-//
-// NOTE: This is solely used for testing purposes.
-func (app *SgnApp) GetMemKey(storeKey string) *sdk.MemoryStoreKey {
-	return app.memKeys[storeKey]
-}
-
 // GetSubspace returns a param subspace for a given module name.
 //
 // NOTE: This is solely to be used for testing purposes.
@@ -552,12 +459,9 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 
 	paramsKeeper.Subspace(authtypes.ModuleName)
 	paramsKeeper.Subspace(banktypes.ModuleName)
-	paramsKeeper.Subspace(stakingtypes.ModuleName)
-	paramsKeeper.Subspace(slashingtypes.ModuleName)
-	paramsKeeper.Subspace(crisistypes.ModuleName)
 
 	paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable())
-	paramsKeeper.Subspace(valtypes.ModuleName).WithKeyTable(valkeeper.ParamKeyTable())
+	paramsKeeper.Subspace(stakingtypes.ModuleName).WithKeyTable(stakingkeeper.ParamKeyTable())
 	paramsKeeper.Subspace(synctypes.ModuleName).WithKeyTable(synckeeper.ParamKeyTable())
 
 	return paramsKeeper

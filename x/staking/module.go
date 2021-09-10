@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/celer-network/sgn-v2/x/validator/client/cli"
-	"github.com/celer-network/sgn-v2/x/validator/keeper"
-	"github.com/celer-network/sgn-v2/x/validator/types"
+	"github.com/celer-network/sgn-v2/x/staking/client/cli"
+	"github.com/celer-network/sgn-v2/x/staking/keeper"
+	"github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"

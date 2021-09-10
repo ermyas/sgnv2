@@ -1,8 +1,8 @@
 package validator
 
 import (
-	"github.com/celer-network/sgn-v2/x/validator/keeper"
-	"github.com/celer-network/sgn-v2/x/validator/types"
+	"github.com/celer-network/sgn-v2/x/staking/keeper"
+	"github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )

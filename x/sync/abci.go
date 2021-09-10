@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/celer-network/goutils/log"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/celer-network/sgn-v2/x/sync/keeper"
 	"github.com/celer-network/sgn-v2/x/sync/types"
-	valtypes "github.com/celer-network/sgn-v2/x/validator/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -14,7 +14,7 @@ import (
 func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 	vals := keeper.GetBondedValidators(ctx)
 	tokens := sdk.ZeroInt()
-	valMaps := map[string]valtypes.Validator{}
+	valMaps := map[string]stakingtypes.Validator{}
 
 	for _, val := range vals {
 		tokens = tokens.Add(val.Tokens)

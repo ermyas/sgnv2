@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/x/validator/types"
+	"github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/client"
 )
 

@@ -8,9 +8,9 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/transactor"
+	validatorcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
-	validatorcli "github.com/celer-network/sgn-v2/x/validator/client/cli"
-	validatortypes "github.com/celer-network/sgn-v2/x/validator/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
@@ -129,7 +129,7 @@ func (o *Operator) SyncValidatorSgnAddrMsg(valAddr eth.Addr) (*synctypes.Propose
 		log.Debugf("%s. already updated", logmsg)
 		return nil, true
 	}
-	updateVal := &validatortypes.Validator{
+	updateVal := &stakingtypes.Validator{
 		EthAddress: eth.Addr2Hex(valAddr),
 		SgnAddress: sdk.AccAddress(sgnAddr).String(),
 	}
@@ -164,13 +164,13 @@ func (o *Operator) SyncValidatorParamsMsg(valAddr eth.Addr) (*synctypes.ProposeU
 		return nil, false
 	}
 
-	updateVal := &validatortypes.Validator{
+	updateVal := &stakingtypes.Validator{
 		EthAddress:      eth.Addr2Hex(valAddr),
 		EthSigner:       eth.Addr2Hex(ethVal.Signer),
 		SgnAddress:      sdk.AccAddress(sgnAddrBytes).String(),
 		ConsensusPubkey: o.PubKeyAny,
 		CommissionRate:  ethVal.CommissionRate,
-		Description: &validatortypes.Description{
+		Description: &stakingtypes.Description{
 			Identity: eth.Addr2Hex(valAddr),
 		},
 	}
@@ -202,9 +202,9 @@ func (o *Operator) SyncValidatorStatesMsg(valAddr eth.Addr) (*synctypes.ProposeU
 		return nil, false
 	}
 
-	updateVal := &validatortypes.Validator{
+	updateVal := &stakingtypes.Validator{
 		EthAddress: eth.Addr2Hex(valAddr),
-		Status:     validatortypes.ValidatorStatus(ethVal.Status),
+		Status:     stakingtypes.ValidatorStatus(ethVal.Status),
 		Tokens:     sdk.NewIntFromBigInt(ethVal.Tokens),
 		Shares:     sdk.NewIntFromBigInt(ethVal.Shares),
 	}
@@ -228,7 +228,7 @@ func (o *Operator) SyncDelegatorMsg(valAddr, delAddr eth.Addr) *synctypes.Propos
 		return nil
 	}
 
-	updateDel := validatortypes.Delegator{
+	updateDel := stakingtypes.Delegator{
 		ValAddress: valAddr.Hex(),
 		DelAddress: delAddr.Hex(),
 		Shares:     ethDel.Shares.String(),

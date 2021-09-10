@@ -7,10 +7,10 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
+	validatorcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	synccli "github.com/celer-network/sgn-v2/x/sync/client/cli"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
-	validatorcli "github.com/celer-network/sgn-v2/x/validator/client/cli"
-	validatortypes "github.com/celer-network/sgn-v2/x/validator/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/spf13/viper"
@@ -18,7 +18,7 @@ import (
 
 func (r *Relayer) verifyPendingUpdates() {
 	v, _ := validatorcli.QueryValidator(r.Transactor.CliCtx, r.valAddr.Hex())
-	if v == nil || v.Status != validatortypes.ValidatorStatus_Bonded {
+	if v == nil || v.Status != stakingtypes.ValidatorStatus_Bonded {
 		log.Traceln("skip verifying pending updates as I am not a bonded validator")
 		return
 	}
@@ -95,7 +95,7 @@ func (r *Relayer) verifyStakingContractParam(update *synctypes.PendingUpdate) (d
 }
 
 func (r *Relayer) verifyValidatorSgnAddr(update *synctypes.PendingUpdate) (done, approve bool) {
-	updateVal, err := validatortypes.UnmarshalValidator(r.Transactor.CliCtx.Codec, update.Data)
+	updateVal, err := stakingtypes.UnmarshalValidator(r.Transactor.CliCtx.Codec, update.Data)
 	if err != nil {
 		return true, false
 	}
@@ -127,7 +127,7 @@ func (r *Relayer) verifyValidatorSgnAddr(update *synctypes.PendingUpdate) (done,
 }
 
 func (r *Relayer) verifyValidatorParams(update *synctypes.PendingUpdate) (done, approve bool) {
-	updateVal, err := validatortypes.UnmarshalValidator(r.Transactor.CliCtx.Codec, update.Data)
+	updateVal, err := stakingtypes.UnmarshalValidator(r.Transactor.CliCtx.Codec, update.Data)
 	if err != nil {
 		return true, false
 	}
@@ -171,7 +171,7 @@ func (r *Relayer) verifyValidatorParams(update *synctypes.PendingUpdate) (done, 
 }
 
 func (r *Relayer) verifyValidatorStates(update *synctypes.PendingUpdate) (done, approve bool) {
-	updateVal, err := validatortypes.UnmarshalValidator(r.Transactor.CliCtx.Codec, update.Data)
+	updateVal, err := stakingtypes.UnmarshalValidator(r.Transactor.CliCtx.Codec, update.Data)
 	if err != nil {
 		return true, false
 	}
@@ -192,7 +192,7 @@ func (r *Relayer) verifyValidatorStates(update *synctypes.PendingUpdate) (done, 
 		return false, false
 	}
 
-	if updateVal.Status != validatortypes.ValidatorStatus(ethVal.Status) ||
+	if updateVal.Status != stakingtypes.ValidatorStatus(ethVal.Status) ||
 		updateVal.Tokens.BigInt().Cmp(ethVal.Tokens) != 0 ||
 		updateVal.Shares.BigInt().Cmp(ethVal.Shares) != 0 {
 		values := fmt.Sprintf("status %s tokens %s shares %s",
@@ -210,7 +210,7 @@ func (r *Relayer) verifyValidatorStates(update *synctypes.PendingUpdate) (done, 
 }
 
 func (r *Relayer) verifyDelegatorShares(update *synctypes.PendingUpdate) (done, approve bool) {
-	updateDel, err := validatortypes.UnmarshalDelegator(r.Transactor.CliCtx.Codec, update.Data)
+	updateDel, err := stakingtypes.UnmarshalDelegator(r.Transactor.CliCtx.Codec, update.Data)
 	if err != nil {
 		return true, false
 	}
@@ -254,7 +254,7 @@ func (r *Relayer) cmpBlkNum(blkNum uint64) int8 {
 	return 0
 }
 
-func sameValidatorParams(updateVal, storeVal *validatortypes.Validator) bool {
+func sameValidatorParams(updateVal, storeVal *stakingtypes.Validator) bool {
 	if updateVal.EthAddress == storeVal.EthAddress &&
 		updateVal.EthSigner == storeVal.EthSigner &&
 		updateVal.SgnAddress == storeVal.SgnAddress &&
@@ -264,7 +264,7 @@ func sameValidatorParams(updateVal, storeVal *validatortypes.Validator) bool {
 	return false
 }
 
-func sameValidatorStates(updateVal, storeVal *validatortypes.Validator) bool {
+func sameValidatorStates(updateVal, storeVal *stakingtypes.Validator) bool {
 	if updateVal.EthAddress == storeVal.EthAddress &&
 		updateVal.Status == storeVal.Status &&
 		updateVal.Tokens == storeVal.Tokens &&

@@ -2,7 +2,7 @@ package keeper
 
 import (
 	"github.com/celer-network/sgn-v2/x/gov/types"
-	valtypes "github.com/celer-network/sgn-v2/x/validator/types"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -22,7 +22,7 @@ func (keeper Keeper) Tally(ctx sdk.Context, proposal types.Proposal) (passes boo
 	currValidators := make(map[string]types.ValidatorGovInfo)
 
 	// fetch all the bonded validators, insert them into currValidators
-	keeper.vk.IterateBondedValidators(ctx, func(validator valtypes.Validator) (stop bool) {
+	keeper.stakingKeeper.IterateBondedValidators(ctx, func(validator stakingtypes.Validator) (stop bool) {
 		currValidators[validator.SgnAddress] = types.NewValidatorGovInfo(
 			validator.GetSgnAddr(),
 			validator.Tokens,

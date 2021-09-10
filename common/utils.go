@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	vtypes "github.com/celer-network/sgn-v2/x/validator/types"
+	vtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	sdk "github.com/cosmos/cosmos-sdk/types"
