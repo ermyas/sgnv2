@@ -13,16 +13,15 @@ message Params {
 }
 
 message MultiChainTokenAsset {
-  map<uint64, ChainTokenAsset> chain_asset_map = 1[(gogoproto.nullable) = false]; // chain_id -> ChainTokenAsset
+  map<string, ChainAsset> token_symbol_asset_map = 1[(gogoproto.nullable) = false]; // token_symbol -> ChainAsset
 }
 
-message ChainTokenAsset {
-  map<string, Asset> token_asset_map = 1[(gogoproto.nullable) = false]; // token_addr -> Asset
+message ChainAsset {
+  map<uint64, Asset> chain_asset_map = 1[(gogoproto.nullable) = false]; // chain_id -> Asset
 }
 
 message Asset {
-  uint64 chain_id = 1;
-  string token = 2;
-  uint64 decimal = 3;
-  uint64 max_fee_amount = 4;
+  string token = 1; // token addr
+  uint64 decimal = 2;
+  uint64 max_fee_amount = 3;
 }

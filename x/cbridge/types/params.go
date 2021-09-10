@@ -36,7 +36,7 @@ func DefaultParams() Params {
 
 // validate a set of params
 func (p *Params) Validate() error {
-	if len(p.GetMultiChainTokenAsset().ChainAssetMap) == 0 {
+	if len(p.GetMultiChainTokenAsset().TokenSymbolAssetMap) == 0 {
 		return fmt.Errorf("validator parameter multiChainAsset must be positive")
 	}
 	return nil
@@ -47,7 +47,7 @@ func validateMultiChainAsset(i interface{}) error {
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
 	}
-	if len(v.ChainAssetMap) == 0 {
+	if len(v.TokenSymbolAssetMap) == 0 {
 		return fmt.Errorf("validator parameter multiChainAsset must be positive: %+v", v)
 	}
 	return nil
