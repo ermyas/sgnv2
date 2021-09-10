@@ -12,6 +12,12 @@ Run the following command from the sgn-v2 repo root folder
 go test -failfast -v -timeout 30m github.com/celer-network/sgn-v2/test/e2e/singlenode
 ```
 
+To run a single test (e.g., staking test), run following command in `test/e2e/singlenode` folder
+
+```sh
+go test -failfast -v -run ^TestStaking$
+```
+
 ### Multi-Node Automated Testing
 
 Run the following command from the sgn-v2 repo root folder
@@ -37,8 +43,8 @@ rm -rf ~/.sgnd
 cp -a test/data/.sgnd ~/.sgnd
 rm ~/.sgnd/config/genesis.json
 sgnd init node0 --chain-id sgn-localnet-1000
-sgnd add-genesis-account $(sgnd keys show alice -a --keyring-backend file --keyring-dir ~/.sgnd) 100000000stake
-sgnd add-genesis-validator alice 100000000
+sgnd add-genesis-account $(sgnd keys show alice -a --keyring-backend file --keyring-dir ~/.sgnd) 100stake
+sgnd add-genesis-validator alice 1000000000000 # passphrase: 12341234
 cp ~/.sgnd/config/genesis.json test/data/.sgnd/config/genesis.json
 cp ~/.sgnd/config/genesis.json test/multi-node-data/node0/sgnd/config/genesis.json
 cp ~/.sgnd/config/genesis.json test/multi-node-data/node1/sgnd/config/genesis.json

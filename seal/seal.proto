@@ -57,8 +57,8 @@ message Update {
 
 message Govern {
     uint64 proposal_id = 1;
-    uint64 amount = 2;
-    uint32 option = 3;
+    string deposit = 2;
+    string option = 3;
 }
 
 message ChannelInfo {

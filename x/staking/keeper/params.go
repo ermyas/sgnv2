@@ -28,14 +28,8 @@ func (k Keeper) EpochLength(ctx sdk.Context) (res uint64) {
 	return
 }
 
-// MaxValidatorDiff - max validator add
-func (k Keeper) MaxValidatorDiff(ctx sdk.Context) (res uint64) {
-	k.paramstore.Get(ctx, types.KeyMaxValidatorDiff, &res)
-	return
-}
-
 func (k Keeper) PowerReduction(ctx sdk.Context) sdk.Int {
-	return sdk.DefaultPowerReduction
+	return types.DefaultPowerReduction
 }
 
 // Get all parameteras as types.Params
@@ -43,7 +37,6 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	return types.NewParams(
 		k.SyncerDuration(ctx),
 		k.EpochLength(ctx),
-		k.MaxValidatorDiff(ctx),
 	)
 }
 

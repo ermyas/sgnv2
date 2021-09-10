@@ -12,7 +12,7 @@ import (
 func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) (updates []abci.ValidatorUpdate) {
 	setSyncer(ctx, keeper)
 
-	return keeper.BlockValidatorUpdates(ctx)
+	return keeper.TmValidatorUpdates(ctx)
 }
 
 // Update syncer for every syncerDuration

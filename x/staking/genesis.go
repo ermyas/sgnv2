@@ -21,7 +21,7 @@ func InitGenesis(ctx sdk.Context, keeper keeper.Keeper, data *types.GenesisState
 		keeper.SetDelegator(ctx, &delegator)
 	}
 
-	return keeper.GetValidatorPowerUpdates(ctx)
+	return keeper.TmValidatorUpdates(ctx)
 }
 
 func ExportGenesis(ctx sdk.Context, keeper keeper.Keeper) *types.GenesisState {

@@ -83,5 +83,4 @@ message Syncer {
 message Params {
   uint64 syncer_duration = 1;
   uint64 epoch_length = 2;
-  uint64 max_validator_diff = 3;
 }

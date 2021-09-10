@@ -177,7 +177,6 @@ func DeployCommand() *cobra.Command {
 					NewBigInt(1, 20),
 				)
 				ChkErr(err, "fund test CELR to clients")
-
 			}
 
 			return nil

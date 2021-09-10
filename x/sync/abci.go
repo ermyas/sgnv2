@@ -1,8 +1,6 @@
 package sync
 
 import (
-	"fmt"
-
 	"github.com/celer-network/goutils/log"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/celer-network/sgn-v2/x/sync/keeper"
@@ -21,10 +19,7 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 		valMaps[val.SgnAddress] = val
 	}
 
-	// TODO: better float to Dec conversion
-	thresholdRatio, _ := sdk.NewDecFromStr(fmt.Sprintf("%f", keeper.GetParams(ctx).TallyThreshold))
-	threshold := thresholdRatio.MulInt(tokens).TruncateInt()
-
+	threshold := keeper.GetParams(ctx).TallyThreshold.MulInt(tokens).TruncateInt()
 	updates := keeper.GetAllPendingUpdates(ctx)
 	for _, update := range updates {
 		yesVotes := sdk.ZeroInt()

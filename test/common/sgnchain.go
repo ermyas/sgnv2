@@ -173,7 +173,7 @@ func QueryProposal(cliCtx client.Context, proposalID uint64, status govtypes.Pro
 	}
 
 	if status != proposal.Status {
-		err = fmt.Errorf("proposal status %s does not match expectation", status)
+		err = fmt.Errorf("proposal status %s does not match expectation %s", proposal.Status, status)
 	}
 
 	return

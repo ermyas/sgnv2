@@ -120,16 +120,19 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool) {
 		err = configFileViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")
 
+		genesisPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/genesis.json", i)
+		genesisViper := viper.New()
+		genesisViper.SetConfigFile(genesisPath)
+		err = genesisViper.ReadInConfig()
+		tc.ChkErr(err, "Failed to read genesis")
 		if manual {
-			genesisPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/genesis.json", i)
-			genesisViper := viper.New()
-			genesisViper.SetConfigFile(genesisPath)
-			err = genesisViper.ReadInConfig()
-			tc.ChkErr(err, "Failed to read genesis")
-			genesisViper.Set("app_state.govern.voting_params.voting_period", "120000000000")
-			err = genesisViper.WriteConfig()
-			tc.ChkErr(err, "Failed to write genesis")
+			genesisViper.Set("app_state.govern.voting_params.voting_period", "120s")
+		} else {
+			genesisViper.Set("app_state.govern.voting_params.voting_period", "10s")
 		}
+		err = genesisViper.WriteConfig()
+		tc.ChkErr(err, "Failed to write genesis")
+
 	}
 
 	// Update global viper
