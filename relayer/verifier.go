@@ -231,12 +231,12 @@ func (r *Relayer) verifyDelegatorShares(update *synctypes.PendingUpdate) (done, 
 		return false, false
 	}
 
-	if updateDel.Shares != ethDel.Shares.String() {
+	if !updateDel.Shares.Equal(sdk.NewIntFromBigInt(ethDel.Shares)) {
 		if r.cmpBlkNum(update.EthBlock) == 1 {
-			log.Infof("%s. delegator shares not match eth value: %s", logmsg, ethDel.Shares.String())
+			log.Infof("%s. delegator shares not match eth value: %s", logmsg, ethDel.Shares)
 			return true, false
 		}
-		log.Infof("%s. eth block not passed, eth value: %s", logmsg, ethDel.Shares.String())
+		log.Infof("%s. eth block not passed, eth value: %s", logmsg, ethDel.Shares)
 		return false, false
 	}
 
@@ -267,8 +267,8 @@ func sameValidatorParams(updateVal, storeVal *stakingtypes.Validator) bool {
 func sameValidatorStates(updateVal, storeVal *stakingtypes.Validator) bool {
 	if updateVal.EthAddress == storeVal.EthAddress &&
 		updateVal.Status == storeVal.Status &&
-		updateVal.Tokens == storeVal.Tokens &&
-		updateVal.Shares == storeVal.Shares {
+		updateVal.Tokens.Equal(storeVal.Tokens) &&
+		updateVal.Shares.Equal(storeVal.Shares) {
 		return true
 	}
 	return false

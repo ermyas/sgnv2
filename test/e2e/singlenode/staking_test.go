@@ -69,7 +69,7 @@ func stakingTest(t *testing.T) {
 	expDel := &types.Delegator{
 		ValAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
 		DelAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
-		Shares:     vAmt.String(),
+		Shares:     sdk.NewIntFromBigInt(vAmt),
 	}
 	tc.CheckDelegator(t, transactor, expDel)
 	tc.PrintTendermintValidators(t, transactor)
@@ -84,7 +84,7 @@ func stakingTest(t *testing.T) {
 		expDel := &types.Delegator{
 			ValAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
 			DelAddress: eth.Addr2Hex(tc.DelEthAddrs[i]),
-			Shares:     dAmts[i].String(),
+			Shares:     sdk.NewIntFromBigInt(dAmts[i]),
 		}
 		tc.CheckDelegator(t, transactor, expDel)
 	}

@@ -156,7 +156,7 @@ func sameValidators(v *types.Validator, exp *types.Validator) bool {
 func sameDelegators(d *types.Delegator, exp *types.Delegator) bool {
 	return d.GetValAddress() == exp.GetValAddress() &&
 		d.GetDelAddress() == exp.GetDelAddress() &&
-		d.GetShares() == exp.GetShares()
+		d.Shares.Equal(exp.Shares)
 }
 
 func QueryProposal(cliCtx client.Context, proposalID uint64, status govtypes.ProposalStatus) (proposal govtypes.Proposal, err error) {

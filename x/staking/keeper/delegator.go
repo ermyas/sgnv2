@@ -1,8 +1,6 @@
 package keeper
 
 import (
-	"fmt"
-
 	"github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -37,20 +35,16 @@ func (k Keeper) SetDelegator(ctx sdk.Context, delegator *types.Delegator) {
 	store.Set(delegatorKey, types.MustMarshalDelegator(k.cdc, delegator))
 }
 
-func (k Keeper) SetDelegatorShares(ctx sdk.Context, valAddr, delAddr, shares string) error {
-	shInt, ok := sdk.NewIntFromString(shares)
-	if !ok {
-		return fmt.Errorf("invalid shares %s", shares)
-	}
-	delegator := types.NewDelegator(valAddr, delAddr, shares)
-	k.SetDelegator(ctx, delegator)
-	if shInt.IsZero() {
-		k.RemoveDelegator(ctx, delegator)
-	}
-	return nil
-}
-
 func (k Keeper) RemoveDelegator(ctx sdk.Context, delegator *types.Delegator) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(types.GetDelegatorKey(delegator.ValAddress, delegator.DelAddress))
+}
+
+func (k Keeper) SetDelegatorShares(ctx sdk.Context, valAddr, delAddr string, shares sdk.Int) {
+	delegator := types.NewDelegator(valAddr, delAddr, shares)
+	if shares.IsZero() {
+		k.RemoveDelegator(ctx, delegator)
+	} else {
+		k.SetDelegator(ctx, delegator)
+	}
 }

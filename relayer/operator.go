@@ -231,13 +231,13 @@ func (o *Operator) SyncDelegatorMsg(valAddr, delAddr eth.Addr) *synctypes.Propos
 	updateDel := stakingtypes.Delegator{
 		ValAddress: valAddr.Hex(),
 		DelAddress: delAddr.Hex(),
-		Shares:     ethDel.Shares.String(),
+		Shares:     sdk.NewIntFromBigInt(ethDel.Shares),
 	}
 
-	storeVal, _ := validatorcli.QueryDelegator(o.Transactor.CliCtx, valAddr.Hex(), delAddr.Hex())
+	storeDel, _ := validatorcli.QueryDelegator(o.Transactor.CliCtx, valAddr.Hex(), delAddr.Hex())
 
-	if storeVal != nil {
-		if updateDel.Shares == ethDel.Shares.String() {
+	if storeDel != nil {
+		if updateDel.Shares.Equal(storeDel.Shares) {
 			log.Debugf("delegator %x - %x shares already updated", valAddr, delAddr)
 			return nil
 		}

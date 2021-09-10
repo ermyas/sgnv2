@@ -78,7 +78,7 @@ func stakingTest(t *testing.T) {
 		expDel := &types.Delegator{
 			ValAddress: eth.Addr2Hex(tc.ValEthAddrs[i]),
 			DelAddress: eth.Addr2Hex(tc.ValEthAddrs[i]),
-			Shares:     amts[i].String(),
+			Shares:     sdk.NewIntFromBigInt(amts[i]),
 		}
 		tc.CheckDelegator(t, transactor, expDel)
 	}

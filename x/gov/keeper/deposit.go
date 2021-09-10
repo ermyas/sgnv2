@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/x/gov/types"
@@ -130,9 +129,7 @@ func (keeper Keeper) AddDeposit(ctx sdk.Context, proposalID uint64, depositorAdd
 	}
 
 	accTotalDeposit.Amount = accTotalDeposit.Amount.Add(depositAmount)
-	shares := new(big.Int)
-	shares.SetString(selfDelegator.Shares, 10)
-	if accTotalDeposit.Amount.GT(sdk.NewIntFromBigInt(shares)) {
+	if accTotalDeposit.Amount.GT(selfDelegator.Shares) {
 		return false, sdkerrors.Wrapf(
 			sdkerrors.ErrInvalidRequest,
 			"Depositor does not have enough stake to deposit, need %s, have %s", accTotalDeposit.Amount, selfDelegator.Shares)

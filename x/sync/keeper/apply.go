@@ -111,9 +111,6 @@ func (k Keeper) applyDelegatorShares(ctx sdk.Context, update *types.PendingUpdat
 		return false, err
 	}
 	log.Infof("Apply delegator shares valAddr %s delAddr %s shares %s", d.ValAddress, d.DelAddress, d.Shares)
-	err = k.stakingKeeper.SetDelegatorShares(ctx, d.ValAddress, d.DelAddress, d.Shares)
-	if err != nil {
-		return false, err
-	}
+	k.stakingKeeper.SetDelegatorShares(ctx, d.ValAddress, d.DelAddress, d.Shares)
 	return true, nil
 }

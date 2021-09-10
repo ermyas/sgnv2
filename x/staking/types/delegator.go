@@ -3,9 +3,10 @@ package types
 import (
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func NewDelegator(valAddr, delAddr, shares string) *Delegator {
+func NewDelegator(valAddr, delAddr string, shares sdk.Int) *Delegator {
 	return &Delegator{
 		ValAddress: eth.FormatAddrHex(valAddr),
 		DelAddress: eth.FormatAddrHex(delAddr),
