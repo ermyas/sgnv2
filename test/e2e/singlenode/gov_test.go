@@ -23,7 +23,6 @@ func setupGov() []tc.Killable {
 	return res
 }
 
-/*
 func TestGov(t *testing.T) {
 	toKill := setupGov()
 	defer tc.TearDown(toKill)
@@ -31,7 +30,7 @@ func TestGov(t *testing.T) {
 	t.Run("e2e-gov", func(t *testing.T) {
 		t.Run("govTest", govTest)
 	})
-}*/
+}
 
 func govTest(t *testing.T) {
 	log.Info("=====================================================================")

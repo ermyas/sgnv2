@@ -21,6 +21,7 @@ func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(&TextProposal{}, "sgn-v2/TextProposal", nil)
 	cdc.RegisterConcrete(&ParameterProposal{}, "sgn-v2/ParameterProposal", nil)
 	cdc.RegisterConcrete(&UpgradeProposal{}, "sgn-v2/UpgradeProposal", nil)
+	cdc.RegisterInterface((*Content)(nil), nil)
 }
 
 // RegisterInterfaces registers the x/staking interfaces types with the interface registry
