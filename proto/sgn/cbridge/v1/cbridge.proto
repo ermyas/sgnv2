@@ -1,0 +1,28 @@
+syntax = "proto3";
+package sgn.staking.v1;
+
+option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
+
+import "gogoproto/gogo.proto";
+import "google/protobuf/any.proto";
+
+import "cosmos_proto/cosmos.proto";
+
+message Params {
+  MultiChainTokenAsset multi_chain_token_asset = 1[(gogoproto.nullable) = false];
+}
+
+message MultiChainTokenAsset {
+  map<uint64, ChainTokenAsset> chain_asset_map = 1[(gogoproto.nullable) = false]; // chain_id -> ChainTokenAsset
+}
+
+message ChainTokenAsset {
+  map<string, Asset> token_asset_map = 1[(gogoproto.nullable) = false]; // token_addr -> Asset
+}
+
+message Asset {
+  uint64 chain_id = 1;
+  string token = 2;
+  uint64 decimal = 3;
+  uint64 max_fee_amount = 4;
+}
