@@ -3,13 +3,15 @@ package singlenode
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
-	"github.com/celer-network/sgn-v2/x/staking/types"
+	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -49,7 +51,7 @@ func govTest(t *testing.T) {
 	err := tc.InitializeValidator(tc.ValAuths[0], tc.ValSgnAddrs[0], amt, eth.CommissionRate(0.02))
 	require.NoError(t, err, "failed to initialize validator")
 	tc.Sleep(5)
-	expVal := &types.Validator{
+	expVal := &stakingtypes.Validator{
 		EthAddress:     eth.Addr2Hex(tc.ValEthAddrs[0]),
 		EthSigner:      eth.Addr2Hex(tc.ValEthAddrs[0]),
 		Status:         eth.Bonded,
@@ -73,40 +75,41 @@ func govTest(t *testing.T) {
 	assert.Equal(t, content.GetTitle(), proposal.GetContent().GetTitle(), "The proposal should have same title as submitted proposal")
 	assert.Equal(t, content.GetDescription(), proposal.GetContent().GetDescription(), "The proposal should have same description as submitted proposal")
 
-	// depositMsg := govtypes.NewMsgDeposit(transactor.Key.GetAddress(), proposalID, sdk.NewInt(2))
-	// transactor.AddTxMsg(depositMsg)
-	// proposal, err = tc.QueryProposal(transactor.CliCtx, proposalID, govtypes.StatusVotingPeriod)
-	// require.NoError(t, err, "failed to query proposal 1 with voting status")
+	depositMsg := govtypes.NewMsgDeposit(transactor.Key.GetAddress(), proposalID, sdk.NewInt(2e18))
+	transactor.AddTxMsg(depositMsg)
+	proposal, err = tc.QueryProposal(transactor.CliCtx, proposalID, govtypes.StatusVotingPeriod)
+	require.NoError(t, err, "failed to query proposal 1 with voting status")
 
-	// byteVoteOption, _ := govtypes.VoteOptionFromString("Yes")
-	// voteMsg := govtypes.NewMsgVote(transactor.Key.GetAddress(), proposal.ProposalID, byteVoteOption)
-	// transactor.AddTxMsg(voteMsg)
+	byteVoteOption, _ := govtypes.VoteOptionFromString("Yes")
+	voteMsg := govtypes.NewMsgVote(transactor.Key.GetAddress(), proposal.ProposalId, byteVoteOption)
+	transactor.AddTxMsg(voteMsg)
+	time.Sleep(10 * time.Second)
+	proposal, err = tc.QueryProposal(transactor.CliCtx, proposalID, govtypes.StatusPassed)
+	require.NoError(t, err, "failed to query proposal 1 with passed status")
 
-	// proposal, err = tc.QueryProposal(transactor.CliCtx, proposalID, govtypes.StatusPassed)
-	// require.NoError(t, err, "failed to query proposal 1 with passed status")
+	stakingParams, err := stakingcli.QueryParams(transactor.CliCtx)
+	require.NoError(t, err, "failed to query validator params")
+	assert.Equal(t, uint64(2), stakingParams.EpochLength, "EpochLength params should be updated to 2")
 
-	// validatorParams, err := validator.CLIQueryParams(transactor.CliCtx, validator.RouterKey)
-	// require.NoError(t, err, "failed to query validator params")
-	// assert.Equal(t, uint(2), validatorParams.EpochLength, "EpochLength params should be updated to 2")
+	log.Info("======================== Test change epochlengh rejected ===========================")
+	paramChanges = []govtypes.ParamChange{govtypes.NewParamChange("staking", "EpochLength", "\"5\"")}
+	content = govtypes.NewParameterProposal("Guard Param Change", "Update EpochLength", paramChanges)
+	submitProposalmsg, err = govtypes.NewMsgSubmitProposal(content, sdk.NewInt(2e18), transactor.Key.GetAddress())
+	require.NoError(t, err, "failed to create MsgSubmitProposal")
+	transactor.AddTxMsg(submitProposalmsg)
 
-	// log.Info("======================== Test change epochlengh rejected ===========================")
-	// paramChanges = []govtypes.ParamChange{govtypes.NewParamChange("validator", "EpochLength", "\"5\"")}
-	// content = govtypes.NewParameterProposal("Guard Param Change", "Update EpochLength", paramChanges)
-	// submitProposalmsg = govtypes.NewMsgSubmitProposal(content, sdk.NewInt(2), transactor.Key.GetAddress())
-	// transactor.AddTxMsg(submitProposalmsg)
+	proposalID = uint64(2)
+	proposal, err = tc.QueryProposal(transactor.CliCtx, proposalID, govtypes.StatusVotingPeriod)
+	require.NoError(t, err, "failed to query proposal 2 with voting status")
 
-	// proposalID = uint64(2)
-	// proposal, err = tc.QueryProposal(transactor.CliCtx, proposalID, govtypes.StatusVotingPeriod)
-	// require.NoError(t, err, "failed to query proposal 2 with voting status")
+	byteVoteOption, _ = govtypes.VoteOptionFromString("NoWithVeto")
+	voteMsg = govtypes.NewMsgVote(transactor.Key.GetAddress(), proposal.ProposalId, byteVoteOption)
+	transactor.AddTxMsg(voteMsg)
+	time.Sleep(10 * time.Second)
+	proposal, err = tc.QueryProposal(transactor.CliCtx, proposalID, govtypes.StatusRejected)
+	require.NoError(t, err, "failed to query proposal 2 with rejected status")
 
-	// byteVoteOption, _ = govtypes.VoteOptionFromString("NoWithVeto")
-	// voteMsg = govtypes.NewMsgVote(transactor.Key.GetAddress(), proposal.ProposalID, byteVoteOption)
-	// transactor.AddTxMsg(voteMsg)
-
-	// proposal, err = tc.QueryProposal(transactor.CliCtx, proposalID, govtypes.StatusRejected)
-	// require.NoError(t, err, "failed to query proposal 2 with rejected status")
-
-	// validatorParams, err = validator.CLIQueryParams(transactor.CliCtx, validator.RouterKey)
-	// require.NoError(t, err, "failed to query validator params")
-	// assert.Equal(t, uint(2), validatorParams.EpochLength, "EpochLength params should stay 2")
+	stakingParams, err = stakingcli.QueryParams(transactor.CliCtx)
+	require.NoError(t, err, "failed to query validator params")
+	assert.Equal(t, uint64(2), stakingParams.EpochLength, "EpochLength params should stay 2")
 }
