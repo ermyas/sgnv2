@@ -223,7 +223,7 @@ func (k Keeper) TmValidatorUpdates(ctx sdk.Context) (updates []abci.ValidatorUpd
 
 func (k Keeper) GetTransactors(ctx sdk.Context, ethAddr string) (transactors []string) {
 	store := ctx.KVStore(k.storeKey)
-	value := store.Get(types.GetValidatorKey(ethAddr))
+	value := store.Get(types.GetValidatorTransactorsKey(ethAddr))
 	if value == nil {
 		return
 	}
