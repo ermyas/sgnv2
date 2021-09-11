@@ -43,7 +43,7 @@ func govTest(t *testing.T) {
 		NodeHome,
 		viper.GetString(common.FlagSgnChainId),
 		viper.GetString(common.FlagSgnNodeURI),
-		viper.GetStringSlice(common.FlagSgnTransactors)[0],
+		viper.GetString(common.FlagSgnValidatorAccount),
 		viper.GetString(common.FlagSgnPassphrase),
 	)
 

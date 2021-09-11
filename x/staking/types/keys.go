@@ -28,9 +28,11 @@ var (
 	ValidatorPowerKey       = []byte{0x21}
 	ValidatorPowerUpdateKey = []byte{0x22}
 
-	DelegatorKey = []byte{0x31} // key prefix for delegator
+	ValidatorTransactorsKey = []byte{0x31}
 
-	SyncerKey = []byte{0x41} // key for syncer
+	DelegatorKey = []byte{0x41} // key prefix for delegator
+
+	SyncerKey = []byte{0x51} // key for syncer
 )
 
 func GetValidatorPowerKey(ethAddr string) []byte {
@@ -51,6 +53,10 @@ func GetValidatorBySgnAddrKey(addr sdk.AccAddress) []byte {
 
 func GetValidatorByConsAddrKey(addr sdk.ConsAddress) []byte {
 	return append(ValidatorByConsAddrKey, address.MustLengthPrefix(addr)...)
+}
+
+func GetValidatorTransactorsKey(ethAddr string) []byte {
+	return append(ValidatorTransactorsKey, eth.Hex2Addr(ethAddr).Bytes()...)
 }
 
 // get delegators key from validator address

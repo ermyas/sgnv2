@@ -29,7 +29,7 @@ func SetupSgnchain() {
 	config.SetBech32PrefixForConsensusNode(common.Bech32PrefixConsAddr, common.Bech32PrefixConsPub)
 	config.Seal()
 	for i := 0; i < len(ValSgnAddrStrs); i++ {
-		sgnAddr, err := types.SdkAccAddrFromSgnBech32(ValSgnAddrStrs[i])
+		sgnAddr, err := sdk.AccAddressFromBech32(ValSgnAddrStrs[i])
 		if err != nil {
 			log.Fatal(err)
 		}

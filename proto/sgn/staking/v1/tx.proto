@@ -5,13 +5,20 @@ option go_package = "github.com/celer-network/sgn-v2/x/staking/types";
 
 import "sgn/staking/v1/staking.proto";
 
+enum SetTransactorsOp {
+  NOP = 0;
+  Overwrite = 1;
+  Add = 2;
+  Remove = 3;
+}
+
 message MsgSetTransactors {
-  repeated string transactors = 1;
-  string sender = 2;
+  SetTransactorsOp operation = 1;
+  repeated string transactors = 2;
+  string sender = 3;
 }
 
 message MsgEditDescription {
-  string eth_address = 1;
-  Description description = 2;
-  string sender = 3;
+  Description description = 1;
+  string sender = 2;
 }

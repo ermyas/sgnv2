@@ -9,7 +9,6 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/seal"
-	vtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clienttx "github.com/cosmos/cosmos-sdk/client/tx"
@@ -57,7 +56,7 @@ func NewTransactor(
 		return nil, err
 	}
 
-	addr, err := vtypes.SdkAccAddrFromSgnBech32(accAddr)
+	addr, err := sdk.AccAddressFromBech32(accAddr)
 	if err != nil {
 		return nil, err
 	}

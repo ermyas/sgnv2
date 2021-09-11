@@ -25,6 +25,7 @@ message TransactorLog {
     repeated string warn = 102;
 }
 
+// TODO: MsgLog per module
 message MsgLog {
     string type = 1;
     string eth_address = 2;

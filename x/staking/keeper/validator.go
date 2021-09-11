@@ -14,12 +14,10 @@ import (
 
 func (k Keeper) GetValidator(ctx sdk.Context, ethAddr string) (validator *types.Validator, found bool) {
 	store := ctx.KVStore(k.storeKey)
-
 	value := store.Get(types.GetValidatorKey(ethAddr))
 	if value == nil {
 		return validator, false
 	}
-
 	v := types.MustUnmarshalValidator(k.cdc, value)
 	validator = &v
 	return validator, true
@@ -197,7 +195,7 @@ func (k Keeper) GetUpdatedValidators(ctx sdk.Context) (validators types.Validato
 	return validators
 }
 
-// Tendermint (abci) validator updates
+// get the list of temdermint abci.ValidatorUpdate
 func (k Keeper) TmValidatorUpdates(ctx sdk.Context) (updates []abci.ValidatorUpdate) {
 	powerReduction := k.PowerReduction(ctx)
 	updatedVals := k.GetUpdatedValidators(ctx)
@@ -210,20 +208,82 @@ func (k Keeper) TmValidatorUpdates(ctx sdk.Context) (updates []abci.ValidatorUpd
 		k.DeleteValidatorPowerUpdate(ctx, &val)
 	}
 	if len(updates) > 0 {
-		log.Infof("update tendermint validator: %s", printTmUpdates(updates))
+		var out string
+		for _, v := range updates {
+			pub, err := cryptoenc.PubKeyFromProto(v.PubKey)
+			if err != nil {
+				out += fmt.Sprintf("%s | ", err)
+			}
+			out += fmt.Sprintf("consaddr %s, power %d | ", sdk.ConsAddress(pub.Address()).String(), v.Power)
+		}
+		log.Infof("update tendermint validator: %s", out)
 	}
 	return
 }
 
-func printTmUpdates(updates []abci.ValidatorUpdate) string {
-	var out string
-	for _, v := range updates {
-		pub, err := cryptoenc.PubKeyFromProto(v.PubKey)
-		if err != nil {
-			out += fmt.Sprintf("%s | ", err)
-		}
-
-		out += fmt.Sprintf("consaddr %s, power %d | ", sdk.ConsAddress(pub.Address()).String(), v.Power)
+func (k Keeper) GetTransactors(ctx sdk.Context, ethAddr string) (transactors []string) {
+	store := ctx.KVStore(k.storeKey)
+	value := store.Get(types.GetValidatorKey(ethAddr))
+	if value == nil {
+		return
 	}
-	return out
+	var txs types.ValidatorTransactors
+	err := k.cdc.Unmarshal(value, &txs)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	transactors = txs.Transactors
+	return
+}
+
+func (k Keeper) SetTransactors(
+	ctx sdk.Context, op types.SetTransactorsOp, sgnAddr sdk.AccAddress, transactors []string) error {
+	// TODO: support other ops
+	if op != types.SetTransactorsOp_Overwrite {
+		return fmt.Errorf("only support overwrite for now")
+	}
+
+	validator, found := k.GetValidatorBySgnAddr(ctx, sgnAddr)
+	if !found {
+		return fmt.Errorf("validator not found")
+	}
+	if validator.Status != types.ValidatorStatus_Bonded {
+		return fmt.Errorf("validator not bonded")
+	}
+
+	currTransactors := k.GetTransactors(ctx, validator.EthAddress)
+	txrs := make(map[string]bool)
+	for _, transactor := range transactors {
+		acct, err := sdk.AccAddressFromBech32(transactor)
+		if err != nil {
+			return err
+		}
+		if acct.Equals(sgnAddr) {
+			return fmt.Errorf("transactor cannot be validator sgn addr")
+		}
+		if _, exist := txrs[transactor]; !exist {
+			return fmt.Errorf("duplicated transactor %s", transactor)
+		}
+		txrs[transactor] = true
+		k.InitAccount(ctx, acct)
+		// TODO: set quota coins
+	}
+
+	for _, transactor := range currTransactors {
+		if _, exist := txrs[transactor]; !exist {
+			acct, err := sdk.AccAddressFromBech32(transactor)
+			if err != nil {
+				log.Errorln(transactor, err)
+				continue
+			}
+			k.RemoveAccount(ctx, acct)
+		}
+	}
+
+	txsproto := &types.ValidatorTransactors{Transactors: transactors}
+	store := ctx.KVStore(k.storeKey)
+	validatorKey := types.GetValidatorTransactorsKey(validator.EthAddress)
+	store.Set(validatorKey, k.cdc.MustMarshal(txsproto))
+	return nil
 }

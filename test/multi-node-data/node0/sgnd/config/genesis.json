@@ -1,5 +1,5 @@
 {
-  "genesis_time": "2021-09-10T21:17:08.884912Z",
+  "genesis_time": "2021-09-11T02:06:33.361215Z",
   "chain_id": "sgn-localnet-1000",
   "initial_height": "1",
   "consensus_params": {
@@ -102,8 +102,7 @@
           "tokens": "1000000000000",
           "shares": "1000000000000",
           "commission_rate": "0",
-          "description": null,
-          "transactors": []
+          "description": null
         }
       ],
       "delegators": []

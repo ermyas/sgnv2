@@ -9,7 +9,7 @@ import (
 
 func InitGenesis(ctx sdk.Context, keeper keeper.Keeper, data *types.GenesisState) []abci.ValidatorUpdate {
 	keeper.SetParams(ctx, data.Params)
-	if data.GetSyncer().GetSgnAddress() != "" {
+	if data.GetSyncer().GetEthAddress() != "" {
 		keeper.SetSyncer(ctx, data.Syncer)
 	}
 

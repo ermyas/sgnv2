@@ -41,49 +41,14 @@ func handleMsgSetTransactors(
 
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender
-
-	sgnAddr, err := types.SdkAccAddrFromSgnBech32(msg.Sender)
+	sgnAddr, err := sdk.AccAddressFromBech32(msg.Sender)
 	if err != nil {
-		return nil, fmt.Errorf("invalid sender addr %s, %s", msg.Sender, err)
+		return nil, fmt.Errorf("invalid sender %w", err)
 	}
-	validator, found := keeper.GetValidatorBySgnAddr(ctx, sgnAddr)
-	if !found {
-		return nil, fmt.Errorf("validator does not exist")
+	err = keeper.SetTransactors(ctx, msg.GetOperation(), sgnAddr, msg.GetTransactors())
+	if err != nil {
+		return nil, err
 	}
-	logEntry.ValAddr = validator.EthAddress
-	if validator.Status != types.ValidatorStatus_Bonded {
-		return nil, fmt.Errorf("validator is not bonded")
-	}
-
-	dedup := make(map[string]bool)
-	oldTransactors := validator.Transactors
-	validator.Transactors = []string{}
-	for _, transactor := range msg.Transactors {
-		if transactor != (validator.SgnAddress) {
-			if _, exist := dedup[transactor]; !exist {
-				logEntry.Transactors = append(logEntry.Transactors, transactor)
-				validator.Transactors = append(validator.Transactors, transactor)
-				dedup[transactor] = true
-				acctAddr, err := types.SdkAccAddrFromSgnBech32(transactor)
-				if err != nil {
-					return nil, fmt.Errorf("invalid bech32 addr %s, %s", transactor, err)
-				}
-				keeper.InitAccount(ctx, acctAddr)
-			}
-		}
-	}
-
-	for _, transactor := range oldTransactors {
-		if _, exist := dedup[transactor]; !exist {
-			acctAddr, err := types.SdkAccAddrFromSgnBech32(transactor)
-			if err != nil {
-				return nil, fmt.Errorf("invalid bech32 addr %s, %s", transactor, err)
-			}
-			keeper.RemoveAccount(ctx, acctAddr)
-		}
-	}
-
-	keeper.SetValidator(ctx, validator)
 	return &sdk.Result{}, nil
 }
 
@@ -94,14 +59,20 @@ func handleMsgEditDescription(
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender
 
-	validator, found := keeper.GetValidator(ctx, msg.EthAddress)
+	addr, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		return nil, err
+	}
+	validator, found := keeper.GetValidatorBySgnAddr(ctx, addr)
 	if !found {
-		return nil, fmt.Errorf("validator does not exist")
+		return nil, fmt.Errorf("validator not found")
 	}
 	logEntry.ValAddr = validator.EthAddress
-	// TODO: copy update validator description from sdk_staking
 
-	validator.Description = msg.Description
+	err = validator.Description.UpdateDescription(msg.Description)
+	if err != nil {
+		return nil, err
+	}
 	keeper.SetValidator(ctx, validator)
 	return &sdk.Result{}, nil
 }

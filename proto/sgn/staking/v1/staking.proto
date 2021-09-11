@@ -46,23 +46,25 @@ message Validator {
   uint64 commission_rate = 8 [(gogoproto.moretags) = "yaml:\"commission_rate\""];
   // validator descriptions
   Description description = 9;
-  // validator transactor account (sdk.AccAddress) addresses (TODO: move to separate message)
-  repeated string transactors = 10;
 }
 
 message Description {
   option (gogoproto.equal) = true;
 
-  // moniker defines a human-readable name for the validator.
+  // human-readable name for the validator.
   string moniker = 1;
-  // identity defines an optional identity signature (ex. UPort or Keybase).
+  // optional identity signature (ex. UPort or Keybase).
   string identity = 2;
-  // website defines an optional website link.
+  // optional website link.
   string website = 3;
-  // security_contact defines an optional email for security contact.
-  string security_contact = 4 [(gogoproto.moretags) = "yaml:\"security_contact\""];
-  // details define other optional details.
+  // optional email for security contact.
+  string contact = 4;
+  // other optional details.
   string details = 5;
+}
+
+message ValidatorTransactors {
+  repeated string transactors = 1;
 }
 
 message Delegator {
@@ -77,7 +79,7 @@ message Delegator {
 
 message Syncer {
   uint64 val_index = 1;
-  string sgn_address = 2;
+  string eth_address = 2;
 }
 
 message Params {

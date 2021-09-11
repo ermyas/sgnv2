@@ -4,10 +4,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 )
 
-func NewSyncer(valIndex uint64, sgnAddress string) *Syncer {
+func NewSyncer(valIndex uint64, ethAddress string) *Syncer {
 	return &Syncer{
 		ValIndex:   valIndex,
-		SgnAddress: sgnAddress,
+		EthAddress: ethAddress,
 	}
 }
 
