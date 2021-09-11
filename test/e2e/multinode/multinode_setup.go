@@ -100,6 +100,13 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
+	if err != nil {
+		cmd = exec.Command("make", "prepare-sgn-data-sudo")
+		cmd.Dir = repoRoot
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err = cmd.Run()
+	}
 	tc.ChkErr(err, "Failed to make prepare-sgn-data")
 
 	log.Infoln("Updating config files of SGN nodes")
