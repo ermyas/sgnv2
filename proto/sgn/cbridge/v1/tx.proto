@@ -1,5 +1,5 @@
 syntax = "proto3";
-package sgn.staking.v1;
+package sgn.cbridge.v1;
 
 option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
 
@@ -12,4 +12,14 @@ message MsgMultiAssetProposal {
 
 message MsgMultiAssetUpdates {
   Params params = 1 [(gogoproto.nullable) = false];
+}
+
+message NewEvent {
+  uint64 chainid = 1;
+  EventType evtype = 2;
+  bytes elog = 3;
+}
+
+message MsgProposeUpdates {
+  repeated NewEvent events = 1;
 }

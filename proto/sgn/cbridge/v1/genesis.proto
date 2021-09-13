@@ -1,5 +1,5 @@
 syntax = "proto3";
-package sgn.staking.v1;
+package sgn.cbridge.v1;
 
 option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
 

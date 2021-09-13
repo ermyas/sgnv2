@@ -88,7 +88,8 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 
 	go r.processQueues()
 
-	NewCbridgeMgr(db) // do we need to save mgr somewhere?
+	cbr := NewCbridgeMgr(db) // do we need to save mgr somewhere?
+	go r.doCbridge(cbr)
 }
 
 func (r *Relayer) processQueues() {

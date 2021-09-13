@@ -1,6 +1,8 @@
 package relayer
 
 import (
+	"fmt"
+
 	"github.com/celer-network/goutils/eth/monitor"
 	"github.com/celer-network/goutils/eth/watcher"
 	"github.com/celer-network/goutils/log"
@@ -23,15 +25,6 @@ import (
 
 const (
 	cbrDbPrefix = "cbr-"
-
-	// event names
-	CbrEventSend  = "Send"
-	CbrEventRelay = "Relay"
-	// from pool.sol
-	CbrEventLiqAdd   = "LiquidityAdded"
-	CbrEventWithdraw = "WithdrawDone" // could be LP or user
-	// from signers.sol
-	CbrEventNewSigners = "SignersUpdated"
 )
 
 // just to satisfy monitor interface requirement
@@ -53,6 +46,7 @@ type CbrOneChain struct {
 	*ethclient.Client
 	mon      *monitor.Service
 	contract *cbrContract
+	db       *dbm.PrefixDB // cbr-xxx xxx is chainid
 }
 
 // key is chainid
@@ -67,18 +61,19 @@ func NewCbridgeMgr(db dbm.DB) CbrMgr {
 	}
 	// setup db/dal, shared by all chains
 	cbrDb := dbm.NewPrefixDB(db, []byte(cbrDbPrefix))
+	// watcherDal is shared because monitor adds chainID automatically
 	watcherDal := newWatcherDAL(cbrDb) // TODO: watcherDAL concurrency?
 	ret := make(CbrMgr)
 	ethChainID := viper.GetUint64(common.FlagEthChainId)
 	for _, onecfg := range mcc {
 		fixCfg(onecfg, ethChainID) // if cfg.chainid equals ethchainid, uses eth.xxx
 		log.Infof("Add cbridge chain: %+v", onecfg)
-		ret[onecfg.ChainID] = newOneChain(onecfg, watcherDal)
+		ret[onecfg.ChainID] = newOneChain(onecfg, watcherDal, cbrDb)
 	}
 	return ret
 }
 
-func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL) *CbrOneChain {
+func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.PrefixDB) *CbrOneChain {
 	ec, err := ethclient.Dial(cfg.Gateway)
 	if err != nil {
 		log.Fatalln("dial", cfg.Gateway, "err:", err)
@@ -97,6 +92,7 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL) *CbrOneChain {
 			Bridge:  cbr,
 			Address: eth.Hex2Addr(cfg.CBridge),
 		},
+		db: dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID))),
 	}
 	ret.startMon()
 	return ret
