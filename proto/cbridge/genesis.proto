@@ -1,0 +1,16 @@
+syntax = "proto3";
+package cbridge;
+
+import "gogoproto/gogo.proto";
+import "cbridge/cbridge.proto";
+
+// this line is used by starport scaffolding # genesis/proto/import
+
+option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
+
+// GenesisState defines the cbridge module's genesis state.
+message GenesisState {
+    // this line is used by starport scaffolding # genesis/proto/state
+    Params params = 1 [(gogoproto.nullable) = false];
+    // this line is used by starport scaffolding # ibc/genesis/proto
+}

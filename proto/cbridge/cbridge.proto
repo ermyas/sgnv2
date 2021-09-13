@@ -1,0 +1,34 @@
+syntax = "proto3";
+package cbridge;
+
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
+
+message Params {
+  MultiChainAsset multi_chain_asset = 1[(gogoproto.nullable) = false];
+}
+
+message MultiChainAsset {
+  map<string, ChainAsset> symbol_asset_map = 1[(gogoproto.nullable) = false]; // token_symbol -> ChainAsset
+}
+
+message ChainAsset {
+  map<uint64, Asset> chain_asset_map = 1[(gogoproto.nullable) = false]; // chain_id -> Asset
+}
+
+message Asset {
+  string token = 1; // token addr
+  uint64 decimal = 2;
+  string max_fee_amount = 3; // max fee, use string to avoid uint64 now enough for 18 decimal tokens
+}
+
+// cbridge onchain event
+enum EventType {
+  INVALID_EVENT = 0;
+  SEND = 1;
+  RELAY = 2;
+  LiqAdd = 3;
+  Withdraw = 4;
+  NewSigners = 5;
+}

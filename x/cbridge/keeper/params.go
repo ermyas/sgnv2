@@ -17,7 +17,7 @@ func ParamKeyTable() sdk_params.KeyTable {
 }
 
 // MaxValidatorDiff - max validator add
-func (k Keeper) MultiChainAsset(ctx sdk.Context) (res types.MultiChainTokenAsset) {
+func (k Keeper) MultiChainAsset(ctx sdk.Context) (res types.MultiChainAsset) {
 	k.paramstore.Get(ctx, types.KeyMultiChainAsset, &res)
 	return
 }

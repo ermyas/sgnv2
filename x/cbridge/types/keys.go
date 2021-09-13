@@ -1,15 +1,26 @@
 package types
 
 const (
-	// module name
+	// ModuleName defines the module name
 	ModuleName = "cbridge"
 
-	// StoreKey is the string store representation
+	// StoreKey defines the primary module store key
 	StoreKey = ModuleName
 
-	// RouterKey is the message route for cbridge
+	// RouterKey is the message route for slashing
 	RouterKey = ModuleName
 
-	// QuerierRoute is the querier route for cbridge
+	// QuerierRoute defines the module's query routing key
 	QuerierRoute = ModuleName
+
+	// MemStoreKey defines the in-memory store key
+	MemStoreKey = "mem_cbridge"
+
+	// this line is used by starport scaffolding # ibc/keys/name
 )
+
+// this line is used by starport scaffolding # ibc/keys/port
+
+func KeyPrefix(p string) []byte {
+	return []byte(p)
+}

@@ -1,6 +1,8 @@
 package relayer
 
 import (
+	"encoding/json"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -9,6 +11,19 @@ import (
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
+
+const (
+	// event names
+	CbrEventSend  = "Send"
+	CbrEventRelay = "Relay"
+	// from pool.sol
+	CbrEventLiqAdd   = "LiquidityAdded"
+	CbrEventWithdraw = "WithdrawDone" // could be LP or user
+	// from signers.sol
+	CbrEventNewSigners = "SignersUpdated"
+)
+
+var evNames = []string{CbrEventSend, CbrEventRelay, CbrEventLiqAdd, CbrEventWithdraw, CbrEventNewSigners}
 
 // funcs for monitor cbridge events
 func (c *CbrOneChain) startMon() {
@@ -41,7 +56,11 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 			return false
 		}
 		log.Infof("Send event: %+v", ev)
-		// TODO: logic
+		err = c.saveEvent(CbrEventSend, eLog)
+		if err != nil {
+			log.Errorln("saveEvent err:", err)
+			return true // ask to recreate to process event again
+		}
 		return false
 	})
 }
@@ -59,7 +78,11 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 			return false
 		}
 		log.Infof("Relay event: %+v", ev)
-		// TODO: logic
+		err = c.saveEvent(CbrEventRelay, eLog)
+		if err != nil {
+			log.Errorln("saveEvent err:", err)
+			return true // ask to recreate to process event again
+		}
 		return false
 	})
 }
@@ -77,7 +100,12 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 			return false
 		}
 		log.Infof("LiqAdd event: %+v", ev)
-		// TODO: logic
+
+		err = c.saveEvent(CbrEventLiqAdd, eLog)
+		if err != nil {
+			log.Errorln("saveEvent err:", err)
+			return true // ask to recreate to process event again
+		}
 		return false
 	})
 }
@@ -95,7 +123,11 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 			return false
 		}
 		log.Infof("Withdraw event: %+v", ev)
-		// TODO: logic
+		err = c.saveEvent(CbrEventWithdraw, eLog)
+		if err != nil {
+			log.Errorln("saveEvent err:", err)
+			return true // ask to recreate to process event again
+		}
 		return false
 	})
 }
@@ -113,7 +145,18 @@ func (c *CbrOneChain) monNewSigners(blk *big.Int) {
 			return false
 		}
 		log.Infof("NewSigners event: %+v", ev)
-		// TODO: logic
+		err = c.saveEvent(CbrEventNewSigners, eLog)
+		if err != nil {
+			log.Errorln("saveEvent err:", err)
+			return true // ask to recreate to process event again
+		}
 		return false
 	})
+}
+
+// each event's key is name-blkNum-index, value is json marshaled elog
+func (c *CbrOneChain) saveEvent(name string, elog ethtypes.Log) error {
+	key := fmt.Sprintf("%s-%d-%d", name, elog.BlockNumber, elog.Index)
+	val, _ := json.Marshal(elog)
+	return c.db.Set([]byte(key), val)
 }
