@@ -110,7 +110,7 @@ func voteHandlerFn(cliCtx client.Context) http.HandlerFunc {
 			return
 		}
 
-		voteOption, err := types.VoteOptionFromString(gcutils.NormalizeVoteOption(req.Option))
+		voteOption, err := types.VoteOptionFromString(req.Option)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return

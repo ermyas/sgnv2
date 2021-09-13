@@ -9,13 +9,13 @@ import (
 )
 
 func GetQueryCmd() *cobra.Command {
-	validatorQueryCmd := &cobra.Command{
+	stakingQueryCmd := &cobra.Command{
 		Use:                        types.ModuleName,
-		Short:                      "Querying commands for the validator module",
+		Short:                      "Querying commands for the staking module",
 		SuggestionsMinimumDistance: 2,
 		RunE:                       client.ValidateCmd,
 	}
-	validatorQueryCmd.AddCommand(common.GetCommands(
+	stakingQueryCmd.AddCommand(common.GetCommands(
 		GetCmdValidator(),
 		GetCmdValidators(),
 		GetCmdDelegator(),
@@ -23,7 +23,7 @@ func GetQueryCmd() *cobra.Command {
 		GetCmdSyncer(),
 		GetCmdQueryParams(),
 	)...)
-	return validatorQueryCmd
+	return stakingQueryCmd
 }
 
 // GetCmdSyncer queries syncer info
@@ -98,7 +98,25 @@ func GetCmdDelegators() *cobra.Command {
 
 // GetCmdQueryParams implements the params query command.
 func GetCmdQueryParams() *cobra.Command {
-	return &cobra.Command{}
+	return &cobra.Command{
+		Use:   "params",
+		Args:  cobra.NoArgs,
+		Short: "Query the current staking parameters information",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			params, err := QueryParams(cliCtx)
+			if err != nil {
+				log.Errorln("query error", err)
+				return err
+			}
+
+			return cliCtx.PrintObjectLegacy(params)
+		},
+	}
 }
 
 // ----------------------- CLI print-friendly output --------------------

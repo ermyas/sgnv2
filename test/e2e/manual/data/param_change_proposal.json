@@ -1,0 +1,12 @@
+{
+  "title": "Staking Param Change",
+  "description": "Update staking epoch length",
+  "changes": [
+    {
+      "subspace": "staking",
+      "key": "EpochLength",
+      "value": "3"
+    }
+  ],
+  "deposit": "100000000"
+}

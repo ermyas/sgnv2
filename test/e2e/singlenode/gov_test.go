@@ -90,7 +90,7 @@ func govTest(t *testing.T) {
 	require.NoError(t, err, "failed to query proposal 1 with passed status")
 
 	stakingParams, err := stakingcli.QueryParams(transactor.CliCtx)
-	require.NoError(t, err, "failed to query validator params")
+	require.NoError(t, err, "failed to query staking params")
 	assert.Equal(t, uint64(2), stakingParams.EpochLength, "EpochLength params should be updated to 2")
 
 	log.Info("======================== Test change epochlengh rejected ===========================")
@@ -112,6 +112,6 @@ func govTest(t *testing.T) {
 	require.NoError(t, err, "failed to query proposal 2 with rejected status")
 
 	stakingParams, err = stakingcli.QueryParams(transactor.CliCtx)
-	require.NoError(t, err, "failed to query validator params")
+	require.NoError(t, err, "failed to query staking params")
 	assert.Equal(t, uint64(2), stakingParams.EpochLength, "EpochLength params should stay 2")
 }

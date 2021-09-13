@@ -11,7 +11,6 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/transactor"
-	govutils "github.com/celer-network/sgn-v2/x/gov/client/utils"
 	"github.com/celer-network/sgn-v2/x/gov/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -174,7 +173,7 @@ $ %s tx gov vote 1 yes
 			}
 
 			// Find out which vote option user chose
-			byteVoteOption, err := types.VoteOptionFromString(govutils.NormalizeVoteOption(args[1]))
+			byteVoteOption, err := types.VoteOptionFromString(args[1])
 			if err != nil {
 				return err
 			}
