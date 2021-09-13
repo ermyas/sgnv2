@@ -56,7 +56,11 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 			return false
 		}
 		log.Infof("Send event: %+v", ev)
-		// TODO: logic
+		err = c.saveEvent(CbrEventSend, eLog)
+		if err != nil {
+			log.Errorln("saveEvent err:", err)
+			return true // ask to recreate to process event again
+		}
 		return false
 	})
 }
@@ -74,7 +78,11 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 			return false
 		}
 		log.Infof("Relay event: %+v", ev)
-		// TODO: logic
+		err = c.saveEvent(CbrEventRelay, eLog)
+		if err != nil {
+			log.Errorln("saveEvent err:", err)
+			return true // ask to recreate to process event again
+		}
 		return false
 	})
 }
@@ -115,7 +123,11 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 			return false
 		}
 		log.Infof("Withdraw event: %+v", ev)
-		// TODO: logic
+		err = c.saveEvent(CbrEventWithdraw, eLog)
+		if err != nil {
+			log.Errorln("saveEvent err:", err)
+			return true // ask to recreate to process event again
+		}
 		return false
 	})
 }
@@ -133,7 +145,11 @@ func (c *CbrOneChain) monNewSigners(blk *big.Int) {
 			return false
 		}
 		log.Infof("NewSigners event: %+v", ev)
-		// TODO: logic
+		err = c.saveEvent(CbrEventNewSigners, eLog)
+		if err != nil {
+			log.Errorln("saveEvent err:", err)
+			return true // ask to recreate to process event again
+		}
 		return false
 	})
 }

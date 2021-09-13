@@ -10,6 +10,7 @@ import (
 func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
 	for {
 		time.Sleep(15 * time.Second)
+		r.verifyCbrUpdates()
 		if !r.isSyncer() {
 			continue
 		}
@@ -29,3 +30,5 @@ func (c *CbrOneChain) pullEvents(chid uint64) {
 
 	}
 }
+
+func (r *Relayer) verifyCbrUpdates() {}
