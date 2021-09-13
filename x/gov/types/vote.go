@@ -57,16 +57,16 @@ func (v Vote) Empty() bool {
 // if the string is invalid.
 func VoteOptionFromString(str string) (VoteOption, error) {
 	switch str {
-	case "Yes":
+	case "Yes", "yes":
 		return OptionYes, nil
 
-	case "Abstain":
+	case "Abstain", "abstain":
 		return OptionAbstain, nil
 
-	case "No":
+	case "No", "no":
 		return OptionNo, nil
 
-	case "NoWithVeto":
+	case "NoWithVeto", "no_with_veto":
 		return OptionNoWithVeto, nil
 
 	default:

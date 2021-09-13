@@ -321,8 +321,12 @@ func (t *Transactor) CliSendTxMsgWaitMined(msg sdk.Msg) {
 }
 
 func (t *Transactor) CliSendTxMsgsWaitMined(msgs []sdk.Msg) {
-	res, _ := t.sendTxMsgsWaitMined(msgs)
-	t.CliCtx.PrintProto(res)
+	res, err := t.sendTxMsgsWaitMined(msgs)
+	if err == nil {
+		t.CliCtx.PrintProto(res)
+	} else {
+		t.CliCtx.PrintString(err.Error())
+	}
 }
 
 // prepareFactory ensures the account defined by ctx.GetFromAddress() exists and

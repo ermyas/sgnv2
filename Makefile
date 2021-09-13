@@ -37,16 +37,6 @@ all: lint install
 install: go.sum
 	go install $(BUILD_FLAGS) ./cmd/sgnd
 
-# install-ops: go.sum
-# 	go install $(BUILD_FLAGS) ./cmd/sgnops
-
-# install-tools: go.sum
-# 	go install $(BUILD_FLAGS) ./cmd/sgnops
-
-# install-all: go.sum
-# 	go install $(BUILD_FLAGS) ./cmd/sgnd
-# 	go install $(BUILD_FLAGS) ./cmd/sgnops
-
 generate-docs: go.sum
 	go run ./cmd/gendocs ./docs
 	find ./docs -type f | xargs sed -i '' 's|'"$$HOME"'|\$$HOME|g'
@@ -148,7 +138,6 @@ prepare-sgn-data-sudo:
 copy-manual-test-data:
 	rm -rf ./test/e2e/manual/data/node*
 	cp -r ./docker-volumes/node* ./test/e2e/manual/data/
-	rm -rf ./test/e2e/manual/data/node*/sgnd
 
 # Clean test data
 .PHONY: clean-test
