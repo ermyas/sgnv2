@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"fmt"
+
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/staking/types"
@@ -8,6 +10,15 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+)
+
+const (
+	flagTransactorOp = "op"
+	flagMoniker      = "moniker"
+	flagIdentity     = "identity"
+	flagWebsite      = "website"
+	flagContact      = "contact"
+	flagDetails      = "details"
 )
 
 func GetTxCmd() *cobra.Command {
@@ -20,6 +31,7 @@ func GetTxCmd() *cobra.Command {
 
 	validatorTxCmd.AddCommand(common.PostCommands(
 		GetCmdSetTransactors(),
+		GetCmdEditDescription(),
 	)...)
 
 	return validatorTxCmd
@@ -37,29 +49,100 @@ func GetCmdSetTransactors() *cobra.Command {
 				return err
 			}
 
-			/*
-				transactors, err := common.ParseTransactorAddrs(viper.GetStringSlice(common.FlagSgnTransactors))
-				if err != nil {
-					return err
-				}*/
-			transactors := viper.GetStringSlice(common.FlagSgnTransactors)
+			opstr, err := cmd.Flags().GetString(flagDetails)
+			if err != nil {
+				return err
+			}
+			var op types.SetTransactorsOp
+			if opstr == "overwrite" {
+				op = types.SetTransactorsOp_Overwrite
+			} else if opstr == "add" {
+				op = types.SetTransactorsOp_Add
+			} else if opstr == "remove" {
+				op = types.SetTransactorsOp_Remove
+			} else {
+				return fmt.Errorf("invalid op, should be one of overwrite | add | remove ")
+			}
 
-			txr, err := transactor.NewCliTransactor(viper.GetString(flags.FlagHome), clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
+			transactors := viper.GetStringSlice(common.FlagSgnTransactors)
+			txr, err := transactor.NewCliTransactor(
+				viper.GetString(flags.FlagHome), clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
 			if err != nil {
 				return err
 			}
 
-			msg := types.NewMsgSetTransactors(transactors, txr.Key.GetAddress().String())
+			msg := types.NewMsgSetTransactors(op, transactors, txr.Key.GetAddress().String())
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err
 			}
 
 			//TODO: txr.CliSendTxMsgWaitMined(msg)
+			return nil
+		},
+	}
+
+	cmd.Flags().String(flagTransactorOp, "", "operation (overwrite | add | remove)")
+
+	return cmd
+}
+
+func GetCmdEditDescription() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "edit-description",
+		Short: "Edit validator description",
+		Args:  cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			moniker, err := cmd.Flags().GetString(flagMoniker)
+			if err != nil {
+				return err
+			}
+			identity, err := cmd.Flags().GetString(flagIdentity)
+			if err != nil {
+				return err
+			}
+			website, err := cmd.Flags().GetString(flagWebsite)
+			if err != nil {
+				return err
+			}
+			contact, err := cmd.Flags().GetString(flagContact)
+			if err != nil {
+				return err
+			}
+			details, err := cmd.Flags().GetString(flagDetails)
+			if err != nil {
+				return err
+			}
+			description := types.NewDescription(moniker, identity, website, contact, details)
+
+			txr, err := transactor.NewCliTransactor(
+				viper.GetString(flags.FlagHome), clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
+			if err != nil {
+				return err
+			}
+
+			msg := types.NewMsgEditDescription(description, txr.Key.GetAddress().String())
+			err = msg.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			//txr.CliSendTxMsgWaitMined(msg)
 
 			return nil
 		},
 	}
+
+	cmd.Flags().String(flagMoniker, types.DoNotModifyDesc, "The validator's name")
+	cmd.Flags().String(flagIdentity, types.DoNotModifyDesc, "The validator's identity")
+	cmd.Flags().String(flagWebsite, types.DoNotModifyDesc, "The validator's website")
+	cmd.Flags().String(flagContact, types.DoNotModifyDesc, "The validator's contact email")
+	cmd.Flags().String(flagDetails, types.DoNotModifyDesc, "The validator's details")
 
 	return cmd
 }

@@ -43,7 +43,7 @@ func govTest(t *testing.T) {
 		NodeHome,
 		viper.GetString(common.FlagSgnChainId),
 		viper.GetString(common.FlagSgnNodeURI),
-		viper.GetStringSlice(common.FlagSgnTransactors)[0],
+		viper.GetString(common.FlagSgnValidatorAccount),
 		viper.GetString(common.FlagSgnPassphrase),
 	)
 
@@ -72,8 +72,10 @@ func govTest(t *testing.T) {
 	proposalID := uint64(1)
 	proposal, err := tc.QueryProposal(transactor.CliCtx, proposalID, govtypes.StatusDepositPeriod)
 	require.NoError(t, err, "failed to query proposal 1 with deposit status")
-	assert.Equal(t, content.GetTitle(), proposal.GetContent().GetTitle(), "The proposal should have same title as submitted proposal")
-	assert.Equal(t, content.GetDescription(), proposal.GetContent().GetDescription(), "The proposal should have same description as submitted proposal")
+	assert.Equal(t, content.GetTitle(), proposal.GetContent().GetTitle(),
+		"The proposal should have same title as submitted proposal")
+	assert.Equal(t, content.GetDescription(), proposal.GetContent().GetDescription(),
+		"The proposal should have same description as submitted proposal")
 
 	depositMsg := govtypes.NewMsgDeposit(transactor.Key.GetAddress(), proposalID, sdk.NewInt(2e18))
 	transactor.AddTxMsg(depositMsg)

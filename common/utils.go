@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 
-	vtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -20,7 +19,7 @@ const (
 func ParseTransactorAddrs(ts []string) ([]sdk.AccAddress, error) {
 	var transactors []sdk.AccAddress
 	for _, t := range ts {
-		transactor, err := vtypes.SdkAccAddrFromSgnBech32(t)
+		transactor, err := sdk.AccAddressFromBech32(t)
 		if err != nil {
 			return transactors, err
 		}

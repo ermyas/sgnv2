@@ -34,7 +34,7 @@ keyring_backend = "file"
 node_uri = "tcp://localhost:26657"
 passphrase = "12341234"
 timeout_commit = 2
-transactors = ["sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe"]
+transactors = ["sgn1qehw7sn3u3nhnjeqk8kjccj263rq5fv002l5fk"]
 validator_account = "sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe"
 
 [sgnd.check_interval]

@@ -136,6 +136,13 @@ prepare-sgn-data:
 	mkdir -p ./docker-volumes
 	cp -r ./test/multi-node-data/node* ./docker-volumes/
 
+# Prepare sgn nodes' data with sudo
+.PHONY: prepare-sgn-data-sudo
+prepare-sgn-data-sudo:
+	sudo rm -rf ./docker-volumes/node*
+	mkdir -p ./docker-volumes
+	cp -r ./test/multi-node-data/node* ./docker-volumes/
+
 # Make a copy of config files for local manual test
 .PHONY: copy-manual-test-data
 copy-manual-test-data:

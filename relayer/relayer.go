@@ -11,7 +11,6 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
-	vtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/spf13/viper"
@@ -76,7 +75,7 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 		startEthBlock:   startEthBlock,
 	}
 
-	r.sgnAcct, err = vtypes.SdkAccAddrFromSgnBech32(viper.GetString(common.FlagSgnValidatorAccount))
+	r.sgnAcct, err = sdk.AccAddressFromBech32(viper.GetString(common.FlagSgnValidatorAccount))
 	if err != nil {
 		log.Fatalln("sgn acct error")
 	}

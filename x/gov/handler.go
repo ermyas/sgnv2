@@ -83,7 +83,7 @@ func handleMsgDeposit(ctx sdk.Context, keeper keeper.Keeper, msg *types.MsgDepos
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Depositor
 	logEntry.Govern.ProposalId = msg.ProposalId
-	logEntry.Govern.Amount = msg.Amount.Uint64()
+	logEntry.Govern.Deposit = msg.Amount.String()
 
 	acc, _ := sdk.AccAddressFromBech32(msg.Depositor)
 	votingStarted, err := keeper.AddDeposit(ctx, msg.ProposalId, acc, msg.Amount)
@@ -115,7 +115,7 @@ func handleMsgVote(ctx sdk.Context, keeper keeper.Keeper, msg *types.MsgVote, lo
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Voter
 	logEntry.Govern.ProposalId = msg.ProposalId
-	logEntry.Govern.Option = uint32(msg.Option)
+	logEntry.Govern.Option = msg.Option.String()
 
 	acc, _ := sdk.AccAddressFromBech32(msg.Voter)
 	err := keeper.AddVote(ctx, msg.ProposalId, acc, msg.Option)

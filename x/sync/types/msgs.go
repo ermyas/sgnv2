@@ -1,7 +1,6 @@
 package types
 
 import (
-	vtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -44,7 +43,7 @@ func (msg *MsgProposeUpdates) GetSignBytes() []byte {
 
 // GetSigners defines whose signature is required
 func (msg *MsgProposeUpdates) GetSigners() []sdk.AccAddress {
-	addr, err := vtypes.SdkAccAddrFromSgnBech32(msg.Sender)
+	addr, err := sdk.AccAddressFromBech32(msg.Sender)
 	if err != nil {
 		panic(err)
 	}
@@ -83,7 +82,7 @@ func (msg *MsgVoteUpdates) GetSignBytes() []byte {
 
 // GetSigners defines whose signature is required
 func (msg *MsgVoteUpdates) GetSigners() []sdk.AccAddress {
-	addr, err := vtypes.SdkAccAddrFromSgnBech32(msg.Sender)
+	addr, err := sdk.AccAddressFromBech32(msg.Sender)
 	if err != nil {
 		panic(err)
 	}

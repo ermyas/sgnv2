@@ -45,16 +45,3 @@ func MonitorTendermintEvent(nodeURI, eventTag string, handleEvent func(event abc
 		}
 	}
 }
-
-/*
-func (r *Relayer) monitorSgnchainCreateValidator() {
-	createValidatorEvent := fmt.Sprintf("%s.%s='%s'", stakingtypes.EventTypeCreateValidator, stakingtypes.AttributeKeyValidator, r.sgnAcct.String())
-	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, createValidatorEvent, func(e abci.Event) {
-		event := sdk.StringifyEvent(e)
-		log.Infoln("monitorSidechainCreateValidator", event)
-		if event.Attributes[0].Value == r.sgnAcct.String() {
-			r.setTransactors()
-		}
-	})
-}
-*/

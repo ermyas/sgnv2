@@ -4,7 +4,8 @@ import (
 	"fmt"
 
 	"github.com/celer-network/goutils/log"
-	vtypes "github.com/celer-network/sgn-v2/x/staking/types"
+	"github.com/celer-network/sgn-v2/eth"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/celer-network/sgn-v2/x/sync/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -42,13 +43,13 @@ func (k Keeper) applyStakingContractParam(ctx sdk.Context, update *types.Pending
 }
 
 func (k Keeper) applyValidatorSgnAddr(ctx sdk.Context, update *types.PendingUpdate) (bool, error) {
-	v, err := vtypes.UnmarshalValidator(k.cdc, update.Data)
+	v, err := stakingtypes.UnmarshalValidator(k.cdc, update.Data)
 	if err != nil {
 		return false, err
 	}
 	log.Infof("Apply validator sgn addr %s", v.String())
 	// TODO: remove previous sgnaddr account
-	acct, err := vtypes.SdkAccAddrFromSgnBech32(v.SgnAddress)
+	acct, err := sdk.AccAddressFromBech32(v.SgnAddress)
 	if err != nil {
 		return false, err
 	}
@@ -61,7 +62,7 @@ func (k Keeper) applyValidatorSgnAddr(ctx sdk.Context, update *types.PendingUpda
 
 // TODO: handle/restrict sgnaddr/consaddr update
 func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdate) (bool, error) {
-	v, err := vtypes.UnmarshalValidator(k.cdc, update.Data)
+	v, err := stakingtypes.UnmarshalValidator(k.cdc, update.Data)
 	if err != nil {
 		return false, err
 	}
@@ -74,10 +75,10 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 	log.Infof("Apply validator params %s", v.String())
 	val, found := k.stakingKeeper.GetValidator(ctx, v.EthAddress)
 	if !found {
-		val = vtypes.NewValidator(v.EthAddress, v.EthSigner, v.SgnAddress)
+		val = stakingtypes.NewValidator(v.EthAddress, v.EthSigner, v.SgnAddress)
 		val.Description = v.Description
 	} else {
-		val.EthSigner = v.EthSigner
+		val.EthSigner = eth.FormatAddrHex(v.EthSigner)
 		val.SgnAddress = v.SgnAddress
 	}
 	val.ConsensusPubkey = v.ConsensusPubkey
@@ -88,7 +89,7 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 }
 
 func (k Keeper) applyValidatorStates(ctx sdk.Context, update *types.PendingUpdate) (bool, error) {
-	v, err := vtypes.UnmarshalValidator(k.cdc, update.Data)
+	v, err := stakingtypes.UnmarshalValidator(k.cdc, update.Data)
 	if err != nil {
 		return false, err
 	}
@@ -106,7 +107,7 @@ func (k Keeper) applyValidatorStates(ctx sdk.Context, update *types.PendingUpdat
 }
 
 func (k Keeper) applyDelegatorShares(ctx sdk.Context, update *types.PendingUpdate) (bool, error) {
-	d, err := vtypes.UnmarshalDelegator(k.cdc, update.Data)
+	d, err := stakingtypes.UnmarshalDelegator(k.cdc, update.Data)
 	if err != nil {
 		return false, err
 	}

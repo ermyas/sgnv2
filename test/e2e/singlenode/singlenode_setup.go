@@ -113,6 +113,15 @@ func startSgnChain(rootDir, testName string) (*os.Process, error) {
 		return nil, err
 	}
 
+	genesisPath := os.ExpandEnv("$HOME/.sgnd/config/genesis.json")
+	genesisViper := viper.New()
+	genesisViper.SetConfigFile(genesisPath)
+	err := genesisViper.ReadInConfig()
+	tc.ChkErr(err, "Failed to read genesis")
+	genesisViper.Set("app_state.govern.voting_params.voting_period", "10s")
+	err = genesisViper.WriteConfig()
+	tc.ChkErr(err, "Failed to write genesis")
+
 	cmd = exec.Command("sgnd", "start")
 	cmd.Dir, _ = filepath.Abs("../../..")
 	cmd.Stdout = os.Stdout

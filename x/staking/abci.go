@@ -12,7 +12,7 @@ import (
 func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) (updates []abci.ValidatorUpdate) {
 	setSyncer(ctx, keeper)
 
-	return keeper.BlockValidatorUpdates(ctx)
+	return keeper.TmValidatorUpdates(ctx)
 }
 
 // Update syncer for every syncerDuration
@@ -25,9 +25,9 @@ func setSyncer(ctx sdk.Context, keeper keeper.Keeper) {
 	validators := keeper.GetBondedValidators(ctx)
 	vIdx := uint64(ctx.BlockHeight()) / syncerDuration % uint64(len(validators))
 
-	if syncer.ValIndex != vIdx || syncer.SgnAddress == "" {
-		syncer = types.NewSyncer(vIdx, validators[vIdx].SgnAddress)
+	if syncer.ValIndex != vIdx || syncer.EthAddress == "" {
+		syncer = types.NewSyncer(vIdx, validators[vIdx].EthAddress)
 		keeper.SetSyncer(ctx, syncer)
-		log.Infof("set syncer to %s", syncer.SgnAddress)
+		log.Infof("set syncer to %s", syncer.EthAddress)
 	}
 }

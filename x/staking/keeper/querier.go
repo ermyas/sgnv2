@@ -164,7 +164,7 @@ func querySgnAccountExist(ctx sdk.Context, req abci.RequestQuery, k Keeper, lega
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
-	acctAddr, err := types.SdkAccAddrFromSgnBech32(params.SgnAddress)
+	acctAddr, err := sdk.AccAddressFromBech32(params.SgnAddress)
 	if err != nil {
 		return nil, sdkerrors.Wrapf(types.ErrInvalidAddress, "%s", params.SgnAddress)
 	}

@@ -1,21 +1,23 @@
 package keeper
 
 import (
+	"fmt"
+
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	gogotypes "github.com/gogo/protobuf/types"
+	abci "github.com/tendermint/tendermint/abci/types"
+	cryptoenc "github.com/tendermint/tendermint/crypto/encoding"
 )
 
 func (k Keeper) GetValidator(ctx sdk.Context, ethAddr string) (validator *types.Validator, found bool) {
 	store := ctx.KVStore(k.storeKey)
-
 	value := store.Get(types.GetValidatorKey(ethAddr))
 	if value == nil {
 		return validator, false
 	}
-
 	v := types.MustUnmarshalValidator(k.cdc, value)
 	validator = &v
 	return validator, true
@@ -48,7 +50,19 @@ func (k Keeper) SetValidatorParams(ctx sdk.Context, val *types.Validator) {
 
 func (k Keeper) SetValidatorStates(ctx sdk.Context, val *types.Validator) {
 	k.SetValidator(ctx, val)
-	k.updateValidatorPower(ctx, val)
+	// update validator power
+	oldPower := k.GetValidatorPower(ctx, val.EthAddress)
+	newPower := val.ConsensusPower(k.PowerReduction(ctx))
+	if val.GetStatus() == types.ValidatorStatus_Bonded {
+		if newPower != oldPower {
+			k.SetValidatorPower(ctx, val.EthAddress, newPower)
+		}
+	} else if oldPower > 0 {
+		k.DeleteValidatorPower(ctx, val)
+	}
+	if newPower != oldPower {
+		k.SetValidatorPowerUpdate(ctx, val.EthAddress, newPower)
+	}
 }
 
 func (k Keeper) GetValidatorBySgnAddr(ctx sdk.Context, sgnAddr sdk.AccAddress) (validator *types.Validator, found bool) {
@@ -96,12 +110,7 @@ func (k Keeper) GetValidatorPower(ctx sdk.Context, ethAddr string) (power int64)
 	return intV.GetValue()
 }
 
-func (k Keeper) SetValidatorPower(ctx sdk.Context, val *types.Validator) {
-	power := val.ConsensusPower(k.PowerReduction(ctx))
-	k.setValidatorPower(ctx, val.EthAddress, power)
-}
-
-func (k Keeper) setValidatorPower(ctx sdk.Context, ethAddr string, power int64) {
+func (k Keeper) SetValidatorPower(ctx sdk.Context, ethAddr string, power int64) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshal(&gogotypes.Int64Value{Value: power})
 	store.Set(types.GetValidatorPowerKey(ethAddr), bz)
@@ -123,12 +132,7 @@ func (k Keeper) GetValidatorPowerUpdate(ctx sdk.Context, ethAddr string) (power 
 	return intV.GetValue()
 }
 
-func (k Keeper) SetValidatorPowerUpdate(ctx sdk.Context, val *types.Validator) {
-	power := val.ConsensusPower(k.PowerReduction(ctx))
-	k.setValidatorPowerUpdate(ctx, val.EthAddress, power)
-}
-
-func (k Keeper) setValidatorPowerUpdate(ctx sdk.Context, ethAddr string, power int64) {
+func (k Keeper) SetValidatorPowerUpdate(ctx sdk.Context, ethAddr string, power int64) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshal(&gogotypes.Int64Value{Value: power})
 	store.Set(types.GetValidatorPowerUpdateKey(ethAddr), bz)
@@ -155,37 +159,6 @@ func (k Keeper) GetBondedValidators(ctx sdk.Context) (validators types.Validator
 	return validators
 }
 
-func (k Keeper) GetUpdatedValidators(ctx sdk.Context) (validators types.Validators) {
-	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, types.ValidatorPowerUpdateKey)
-	defer iterator.Close()
-	for ; iterator.Valid(); iterator.Next() {
-		addr := types.AddrFromValidatorKey(iterator.Key())
-		validator, found := k.GetValidator(ctx, eth.Bytes2AddrHex(addr))
-		if !found {
-			log.Errorf("validator %x not found", addr)
-			continue
-		}
-		validators = append(validators, *validator)
-	}
-	return validators
-}
-
-func (k Keeper) updateValidatorPower(ctx sdk.Context, val *types.Validator) {
-	oldPower := k.GetValidatorPower(ctx, val.EthAddress)
-	newPower := val.ConsensusPower(k.PowerReduction(ctx))
-	if val.GetStatus() == types.ValidatorStatus_Bonded {
-		if newPower != oldPower {
-			k.setValidatorPower(ctx, val.EthAddress, newPower)
-		}
-	} else if oldPower > 0 {
-		k.DeleteValidatorPower(ctx, val)
-	}
-	if newPower != oldPower {
-		k.setValidatorPowerUpdate(ctx, val.EthAddress, newPower)
-	}
-}
-
 func (k Keeper) IterateBondedValidators(ctx sdk.Context, fn func(validator types.Validator) (stop bool)) {
 	store := ctx.KVStore(k.storeKey)
 
@@ -204,4 +177,113 @@ func (k Keeper) IterateBondedValidators(ctx sdk.Context, fn func(validator types
 			break
 		}
 	}
+}
+
+func (k Keeper) GetUpdatedValidators(ctx sdk.Context) (validators types.Validators) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.ValidatorPowerUpdateKey)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		addr := types.AddrFromValidatorKey(iterator.Key())
+		validator, found := k.GetValidator(ctx, eth.Bytes2AddrHex(addr))
+		if !found {
+			log.Errorf("validator %x not found", addr)
+			continue
+		}
+		validators = append(validators, *validator)
+	}
+	return validators
+}
+
+// get the list of temdermint abci.ValidatorUpdate
+func (k Keeper) TmValidatorUpdates(ctx sdk.Context) (updates []abci.ValidatorUpdate) {
+	powerReduction := k.PowerReduction(ctx)
+	updatedVals := k.GetUpdatedValidators(ctx)
+	for _, val := range updatedVals {
+		if val.GetStatus() == types.ValidatorStatus_Bonded {
+			updates = append(updates, val.ABCIValidatorUpdate(powerReduction))
+		} else {
+			updates = append(updates, val.ABCIValidatorUpdateZero())
+		}
+		k.DeleteValidatorPowerUpdate(ctx, &val)
+	}
+	if len(updates) > 0 {
+		var out string
+		for _, v := range updates {
+			pub, err := cryptoenc.PubKeyFromProto(v.PubKey)
+			if err != nil {
+				out += fmt.Sprintf("%s | ", err)
+			}
+			out += fmt.Sprintf("consaddr %s, power %d | ", sdk.ConsAddress(pub.Address()).String(), v.Power)
+		}
+		log.Infof("update tendermint validator: %s", out)
+	}
+	return
+}
+
+func (k Keeper) GetTransactors(ctx sdk.Context, ethAddr string) (transactors []string) {
+	store := ctx.KVStore(k.storeKey)
+	value := store.Get(types.GetValidatorTransactorsKey(ethAddr))
+	if value == nil {
+		return
+	}
+	var txs types.ValidatorTransactors
+	err := k.cdc.Unmarshal(value, &txs)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	transactors = txs.Transactors
+	return
+}
+
+func (k Keeper) SetTransactors(
+	ctx sdk.Context, op types.SetTransactorsOp, sgnAddr sdk.AccAddress, transactors []string) error {
+	// TODO: support other ops
+	if op != types.SetTransactorsOp_Overwrite {
+		return fmt.Errorf("only support overwrite for now")
+	}
+
+	validator, found := k.GetValidatorBySgnAddr(ctx, sgnAddr)
+	if !found {
+		return fmt.Errorf("validator not found")
+	}
+	if validator.Status != types.ValidatorStatus_Bonded {
+		return fmt.Errorf("validator not bonded")
+	}
+
+	currTransactors := k.GetTransactors(ctx, validator.EthAddress)
+	txrs := make(map[string]bool)
+	for _, transactor := range transactors {
+		acct, err := sdk.AccAddressFromBech32(transactor)
+		if err != nil {
+			return err
+		}
+		if acct.Equals(sgnAddr) {
+			return fmt.Errorf("transactor cannot be validator sgn addr")
+		}
+		if _, exist := txrs[transactor]; !exist {
+			return fmt.Errorf("duplicated transactor %s", transactor)
+		}
+		txrs[transactor] = true
+		k.InitAccount(ctx, acct)
+		// TODO: set quota coins
+	}
+
+	for _, transactor := range currTransactors {
+		if _, exist := txrs[transactor]; !exist {
+			acct, err := sdk.AccAddressFromBech32(transactor)
+			if err != nil {
+				log.Errorln(transactor, err)
+				continue
+			}
+			k.RemoveAccount(ctx, acct)
+		}
+	}
+
+	txsproto := &types.ValidatorTransactors{Transactors: transactors}
+	store := ctx.KVStore(k.storeKey)
+	validatorKey := types.GetValidatorTransactorsKey(validator.EthAddress)
+	store.Set(validatorKey, k.cdc.MustMarshal(txsproto))
+	return nil
 }

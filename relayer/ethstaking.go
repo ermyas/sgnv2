@@ -51,7 +51,7 @@ func (r *Relayer) monitorEthValidatorNotice() {
 				if e.ValAddr == r.valAddr {
 					log.Debug("Self sync validator params")
 					go r.selfSyncValidatorParams()
-					if e.Key == "sgn-addr" {
+					if e.Key == "sgn-addr" && r.isBootstrapped() {
 						go r.selfSyncValidatorStates()
 					}
 				}

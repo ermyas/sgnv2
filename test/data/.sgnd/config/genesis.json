@@ -1,5 +1,5 @@
 {
-  "genesis_time": "2021-09-10T01:30:53.592242Z",
+  "genesis_time": "2021-09-11T02:06:33.361215Z",
   "chain_id": "sgn-localnet-1000",
   "initial_height": "1",
   "consensus_params": {
@@ -51,7 +51,7 @@
           "coins": [
             {
               "denom": "stake",
-              "amount": "100000000"
+              "amount": "100"
             }
           ]
         }
@@ -59,7 +59,7 @@
       "supply": [
         {
           "denom": "stake",
-          "amount": "100000000"
+          "amount": "100"
         }
       ],
       "denom_metadata": []
@@ -74,7 +74,7 @@
         "max_deposit_period": "172800s"
       },
       "voting_params": {
-        "voting_period": "10s"
+        "voting_period": "172800s"
       },
       "tally_params": {
         "quorum": "0.334000000000000000",
@@ -86,8 +86,7 @@
     "staking": {
       "params": {
         "syncer_duration": "10",
-        "epoch_length": "5",
-        "max_validator_diff": "0"
+        "epoch_length": "5"
       },
       "syncer": null,
       "validators": [
@@ -100,11 +99,10 @@
             "key": "UradGKLBv+ASty5KxSP1sPaQRe9SO0EvZmzzXrpxUTg="
           },
           "status": "Bonded",
-          "tokens": "100000000",
-          "shares": "100000000",
+          "tokens": "1000000000000",
+          "shares": "1000000000000",
           "commission_rate": "0",
-          "description": null,
-          "transactors": []
+          "description": null
         }
       ],
       "delegators": []

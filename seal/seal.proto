@@ -25,6 +25,7 @@ message TransactorLog {
     repeated string warn = 102;
 }
 
+// TODO: MsgLog per module
 message MsgLog {
     string type = 1;
     string eth_address = 2;
@@ -57,8 +58,8 @@ message Update {
 
 message Govern {
     uint64 proposal_id = 1;
-    uint64 amount = 2;
-    uint32 option = 3;
+    string deposit = 2;
+    string option = 3;
 }
 
 message ChannelInfo {
