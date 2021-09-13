@@ -19,7 +19,6 @@ const (
 	flagPacketTimeoutTimestamp = "packet-timeout-timestamp"
 )
 
-
 // GetTxCmd returns the transaction commands for this module
 func GetTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -35,6 +34,5 @@ func GetTxCmd() *cobra.Command {
 
 	cmd.AddCommand(CmdOnchainEvent())
 
-
-	return cmd 
+	return cmd
 }

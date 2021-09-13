@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-    "github.com/celer-network/sgn-v2/x/cbridge/types"
 )
 
 func setupMsgServer(t testing.TB) (types.MsgServer, context.Context) {

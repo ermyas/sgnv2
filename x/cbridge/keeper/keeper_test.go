@@ -3,6 +3,7 @@ package keeper
 import (
 	"testing"
 
+	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/store"
@@ -12,7 +13,6 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	tmdb "github.com/tendermint/tm-db"
-	"github.com/celer-network/sgn-v2/x/cbridge/types"
 )
 
 func setupKeeper(t testing.TB) (*Keeper, sdk.Context) {
@@ -27,10 +27,10 @@ func setupKeeper(t testing.TB) (*Keeper, sdk.Context) {
 
 	registry := codectypes.NewInterfaceRegistry()
 	keeper := NewKeeper(
-	    codec.NewProtoCodec(registry),
-	    storeKey,
-	    memStoreKey,
-	    )
+		codec.NewProtoCodec(registry),
+		storeKey,
+		memStoreKey,
+	)
 
 	ctx := sdk.NewContext(stateStore, tmproto.Header{}, false, log.NewNopLogger())
 	return keeper, ctx

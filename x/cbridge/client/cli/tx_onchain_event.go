@@ -1,13 +1,13 @@
 package cli
 
 import (
-    "strconv"
 	"github.com/spf13/cobra"
+	"strconv"
 
-    "github.com/cosmos/cosmos-sdk/client"
+	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
-	"github.com/celer-network/sgn-v2/x/cbridge/types"
 )
 
 var _ = strconv.Itoa(0)
@@ -18,8 +18,8 @@ func CmdOnchainEvent() *cobra.Command {
 		Short: "Broadcast message onchain-event",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-      argsChainid, _ := strconv.ParseUint(args[0], 10, 64)
-      
+			argsChainid, _ := strconv.ParseUint(args[0], 10, 64)
+
 			clientCtx, err := client.GetClientTxContext(cmd)
 			if err != nil {
 				return err
@@ -35,5 +35,5 @@ func CmdOnchainEvent() *cobra.Command {
 
 	flags.AddTxFlagsToCmd(cmd)
 
-    return cmd
+	return cmd
 }

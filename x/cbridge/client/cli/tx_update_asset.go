@@ -1,13 +1,13 @@
 package cli
 
 import (
-    "strconv"
 	"github.com/spf13/cobra"
+	"strconv"
 
-    "github.com/cosmos/cosmos-sdk/client"
+	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
-	"github.com/celer-network/sgn-v2/x/cbridge/types"
 )
 
 var _ = strconv.Itoa(0)
@@ -18,7 +18,7 @@ func CmdUpdateAsset() *cobra.Command {
 		Short: "Broadcast message update-asset",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-      
+
 			clientCtx, err := client.GetClientTxContext(cmd)
 			if err != nil {
 				return err
@@ -34,5 +34,5 @@ func CmdUpdateAsset() *cobra.Command {
 
 	flags.AddTxFlagsToCmd(cmd)
 
-    return cmd
+	return cmd
 }

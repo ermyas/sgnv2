@@ -3,9 +3,9 @@ package cbridge
 import (
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/celer-network/sgn-v2/x/cbridge/keeper"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
@@ -19,12 +19,12 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		switch msg := msg.(type) {
 		// this line is used by starport scaffolding # 1
 		case *types.MsgUpdateAsset:
-					res, err := msgServer.UpdateAsset(sdk.WrapSDKContext(ctx), msg)
-					return sdk.WrapServiceResult(ctx, res, err)
+			res, err := msgServer.UpdateAsset(sdk.WrapSDKContext(ctx), msg)
+			return sdk.WrapServiceResult(ctx, res, err)
 
 		case *types.MsgOnchainEvent:
-					res, err := msgServer.OnchainEvent(sdk.WrapSDKContext(ctx), msg)
-					return sdk.WrapServiceResult(ctx, res, err)
+			res, err := msgServer.OnchainEvent(sdk.WrapSDKContext(ctx), msg)
+			return sdk.WrapServiceResult(ctx, res, err)
 
 		default:
 			errMsg := fmt.Sprintf("unrecognized %s message type: %T", types.ModuleName, msg)
