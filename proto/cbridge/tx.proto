@@ -1,0 +1,33 @@
+syntax = "proto3";
+package cbridge;
+
+import "cbridge/cbridge.proto";
+// this line is used by starport scaffolding # proto/tx/import
+
+option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
+
+// Msg defines the Msg service.
+service Msg {
+    // this line is used by starport scaffolding # proto/tx/rpc
+  rpc UpdateAsset(MsgUpdateAsset) returns (MsgUpdateAssetResponse);
+  rpc OnchainEvent(MsgOnchainEvent) returns (MsgOnchainEventResponse);
+}
+
+// this line is used by starport scaffolding # proto/tx/message
+message MsgUpdateAsset {
+  string creator = 1;
+  MultiChainAsset assets = 2;
+}
+
+message MsgUpdateAssetResponse {
+}
+
+message MsgOnchainEvent {
+  string creator = 1;
+  uint64 chainid = 2;
+  EventType evtype = 3;
+  bytes elog = 4; // serialized json string
+}
+
+message MsgOnchainEventResponse {
+}

@@ -1,27 +1,42 @@
 package keeper
 
 import (
+	"fmt"
+
+	"github.com/tendermint/tendermint/libs/log"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk_params "github.com/cosmos/cosmos-sdk/x/params/types"
+	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	// this line is used by starport scaffolding # ibc/keeper/import
 )
 
-// Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
-type Keeper struct {
-	cdc        codec.BinaryCodec // The wire codec for binary encoding/decoding.
-	storeKey   sdk.StoreKey      // Unexposed key to access store from sdk.Context
-	paramstore sdk_params.Subspace
+type (
+	Keeper struct {
+		cdc      codec.Marshaler
+		storeKey sdk.StoreKey
+		memKey   sdk.StoreKey
+		// this line is used by starport scaffolding # ibc/keeper/attribute
+		
+	}
+)
+
+func NewKeeper(
+    cdc codec.Marshaler,
+    storeKey,
+    memKey sdk.StoreKey,
+    // this line is used by starport scaffolding # ibc/keeper/parameter
+    
+) *Keeper {
+	return &Keeper{
+		cdc:      cdc,
+		storeKey: storeKey,
+		memKey:   memKey,
+		// this line is used by starport scaffolding # ibc/keeper/return
+		
+	}
 }
 
-// NewKeeper creates new instances of the validator Keeper
-func NewKeeper(
-	cdc codec.BinaryCodec,
-	storeKey sdk.StoreKey,
-	paramstore sdk_params.Subspace,
-) Keeper {
-	return Keeper{
-		cdc:        cdc,
-		storeKey:   storeKey,
-		paramstore: paramstore,
-	}
+func (k Keeper) Logger(ctx sdk.Context) log.Logger {
+	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
 }
