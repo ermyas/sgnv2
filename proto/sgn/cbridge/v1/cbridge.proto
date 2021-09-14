@@ -1,5 +1,5 @@
 syntax = "proto3";
-package cbridge;
+package sgn.cbridge.v1;
 
 import "gogoproto/gogo.proto";
 
