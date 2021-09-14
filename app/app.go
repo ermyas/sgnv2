@@ -11,6 +11,9 @@ import (
 	appparams "github.com/celer-network/sgn-v2/app/params"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/relayer"
+	"github.com/celer-network/sgn-v2/x/cbridge"
+	cbridgekeeper "github.com/celer-network/sgn-v2/x/cbridge/keeper"
+	cbridgetypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	distr "github.com/celer-network/sgn-v2/x/distribution"
 	distrkeeper "github.com/celer-network/sgn-v2/x/distribution/keeper"
 	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
@@ -84,6 +87,7 @@ var (
 		gov.NewAppModuleBasic(govclient.ParamProposalHandler, govclient.UpgradeProposalHandler),
 		sync.AppModule{},
 		staking.AppModuleBasic{},
+		cbridge.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -124,6 +128,7 @@ type SgnApp struct {
 	GovKeeper     govkeeper.Keeper
 	SyncKeeper    synckeeper.Keeper
 	StakingKeeper stakingkeeper.Keeper
+	CbridgeKeeper cbridgekeeper.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -191,6 +196,7 @@ func NewSgnApp(
 		authtypes.StoreKey, banktypes.StoreKey,
 		paramstypes.StoreKey, upgradetypes.StoreKey, distrtypes.StoreKey,
 		govtypes.StoreKey, synctypes.StoreKey, stakingtypes.StoreKey,
+		cbridgetypes.MemStoreKey, cbridgetypes.StoreKey,
 	)
 	tKeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 
@@ -231,6 +237,10 @@ func NewSgnApp(
 	app.SyncKeeper = synckeeper.NewKeeper(
 		appCodec, keys[synctypes.StoreKey], stakingKeeper, app.GetSubspace(synctypes.ModuleName),
 	)
+	app.CbridgeKeeper = cbridgekeeper.NewKeeper(
+		appCodec, keys[cbridgetypes.StoreKey], keys[cbridgetypes.MemStoreKey], app.GetSubspace(cbridgetypes.ModuleName),
+	)
+
 	govRouter := govtypes.NewRouter()
 	govRouter.AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
 		AddRoute(proposal.RouterKey, gov.NewParamChangeProposalHandler(app.ParamsKeeper)).
@@ -260,6 +270,7 @@ func NewSgnApp(
 		staking.NewAppModule(app.StakingKeeper),
 		gov.NewAppModule(app.GovKeeper, app.AccountKeeper),
 		sync.NewAppModule(app.SyncKeeper),
+		cbridge.NewAppModule(appCodec, app.CbridgeKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -288,6 +299,7 @@ func NewSgnApp(
 		stakingtypes.ModuleName,
 		govtypes.ModuleName,
 		synctypes.ModuleName,
+		cbridgetypes.ModuleName,
 	)
 
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter(), legacyAmino)
@@ -481,6 +493,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable())
 	paramsKeeper.Subspace(stakingtypes.ModuleName).WithKeyTable(stakingkeeper.ParamKeyTable())
 	paramsKeeper.Subspace(synctypes.ModuleName).WithKeyTable(synckeeper.ParamKeyTable())
+	paramsKeeper.Subspace(cbridgetypes.ModuleName).WithKeyTable(cbridgekeeper.ParamKeyTable())
 
 	return paramsKeeper
 }
