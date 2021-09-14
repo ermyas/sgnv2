@@ -71,34 +71,34 @@ func QueryValidators(cliCtx client.Context) (validators types.Validators, err er
 	return
 }
 
-func QueryDelegator(cliCtx client.Context, valAddr, delAddr string) (delegator *types.Delegator, err error) {
-	params := types.NewQueryDelegatorParams(valAddr, delAddr)
+func QueryDelegation(cliCtx client.Context, valAddr, delAddr string) (delegation *types.Delegation, err error) {
+	params := types.NewQueryDelegationParams(valAddr, delAddr)
 	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
 	if err != nil {
 		return nil, err
 	}
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDelegator)
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDelegation)
 	res, err := common.RobustQueryWithData(cliCtx, route, data)
 	if err != nil {
 		return
 	}
-	delegator = new(types.Delegator)
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, delegator)
+	delegation = new(types.Delegation)
+	err = cliCtx.LegacyAmino.UnmarshalJSON(res, delegation)
 	return
 }
 
-func QueryDelegators(cliCtx client.Context, ethAddress string) (delegators []*types.Delegator, err error) {
-	params := types.NewQueryDelegatorsParams(ethAddress)
+func QueryDelegations(cliCtx client.Context, ethAddress string) (delegations []*types.Delegation, err error) {
+	params := types.NewQueryDelegationsParams(ethAddress)
 	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
 	if err != nil {
 		return nil, err
 	}
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDelegators)
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDelegations)
 	res, err := common.RobustQueryWithData(cliCtx, route, data)
 	if err != nil {
 		return
 	}
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, delegators)
+	err = cliCtx.LegacyAmino.UnmarshalJSON(res, delegations)
 	return
 }
 

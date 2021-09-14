@@ -55,7 +55,7 @@ func GetCmdDelegator() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx, _ := client.GetClientTxContext(cmd)
 			cliCtx := common.NewQueryCLIContext(&clientCtx.Codec)
-			delegator, err := QueryDelegator(cliCtx, args[0], args[1])
+			delegator, err := QueryDelegation(cliCtx, args[0], args[1])
 			if err != nil {
 				log.Errorln("query error", err)
 				return err

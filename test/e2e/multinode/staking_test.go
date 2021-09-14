@@ -65,22 +65,22 @@ func stakingTest(t *testing.T) {
 		require.NoError(t, err, "failed to initialize validator")
 		tc.Sleep(5)
 		expVal := types.Validator{
-			EthAddress:     eth.Addr2Hex(tc.ValEthAddrs[i]),
-			EthSigner:      eth.Addr2Hex(tc.ValEthAddrs[i]),
-			Status:         eth.Bonded,
-			SgnAddress:     tc.ValSgnAddrs[i].String(),
-			Tokens:         sdk.NewIntFromBigInt(amts[i]),
-			Shares:         sdk.NewIntFromBigInt(amts[i]),
-			CommissionRate: eth.CommissionRate(0.02),
+			EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[i]),
+			EthSigner:       eth.Addr2Hex(tc.ValEthAddrs[i]),
+			Status:          eth.Bonded,
+			SgnAddress:      tc.ValSgnAddrs[i].String(),
+			Tokens:          sdk.NewIntFromBigInt(amts[i]),
+			DelegatorShares: sdk.NewIntFromBigInt(amts[i]),
+			CommissionRate:  sdk.NewDecWithPrec(2, 2),
 		}
 		expVals = append(expVals, expVal)
 		tc.CheckValidators(t, transactor, expVals)
-		expDel := &types.Delegator{
-			ValAddress: eth.Addr2Hex(tc.ValEthAddrs[i]),
-			DelAddress: eth.Addr2Hex(tc.ValEthAddrs[i]),
-			Shares:     sdk.NewIntFromBigInt(amts[i]),
+		expDel := &types.Delegation{
+			DelegatorAddress: eth.Addr2Hex(tc.ValEthAddrs[i]),
+			ValidatorAddress: eth.Addr2Hex(tc.ValEthAddrs[i]),
+			Shares:           sdk.NewIntFromBigInt(amts[i]),
 		}
-		tc.CheckDelegator(t, transactor, expDel)
+		tc.CheckDelegation(t, transactor, expDel)
 	}
 
 	log.Infoln("---------- It should add unbonded validator 2 without enough delegation ----------")
@@ -89,13 +89,13 @@ func stakingTest(t *testing.T) {
 	require.NoError(t, err, "failed to initialize validator")
 	tc.Sleep(5)
 	expVal := types.Validator{
-		EthAddress:     eth.Addr2Hex(tc.ValEthAddrs[2]),
-		EthSigner:      eth.Addr2Hex(tc.ValEthAddrs[2]),
-		Status:         eth.Unbonded,
-		SgnAddress:     tc.ValSgnAddrs[2].String(),
-		Tokens:         sdk.NewIntFromBigInt(initialDelegation),
-		Shares:         sdk.NewIntFromBigInt(initialDelegation),
-		CommissionRate: eth.CommissionRate(0.02),
+		EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[2]),
+		EthSigner:       eth.Addr2Hex(tc.ValEthAddrs[2]),
+		Status:          eth.Unbonded,
+		SgnAddress:      tc.ValSgnAddrs[2].String(),
+		Tokens:          sdk.NewIntFromBigInt(initialDelegation),
+		DelegatorShares: sdk.NewIntFromBigInt(initialDelegation),
+		CommissionRate:  sdk.NewDecWithPrec(2, 2),
 	}
 	expVals = append(expVals, expVal)
 	tc.CheckValidators(t, transactor, expVals)
@@ -108,7 +108,7 @@ func stakingTest(t *testing.T) {
 	tc.Sleep(5)
 	expVals[2].Status = eth.Bonded
 	expVals[2].Tokens = sdk.NewIntFromBigInt(amts[2])
-	expVals[2].Shares = sdk.NewIntFromBigInt(amts[2])
+	expVals[2].DelegatorShares = sdk.NewIntFromBigInt(amts[2])
 	tc.CheckValidators(t, transactor, expVals)
 	tc.Sleep(5)
 	tc.PrintTendermintValidators(t, transactor)
@@ -119,7 +119,7 @@ func stakingTest(t *testing.T) {
 	tc.Sleep(5)
 	expVals[2].Status = eth.Unbonding
 	expVals[2].Tokens = sdk.NewIntFromBigInt(initialDelegation)
-	expVals[2].Shares = sdk.NewIntFromBigInt(initialDelegation)
+	expVals[2].DelegatorShares = sdk.NewIntFromBigInt(initialDelegation)
 	tc.CheckValidators(t, transactor, expVals)
 
 	tc.ConfirmUnbondedValidator(tc.ValAuths[2], tc.ValEthAddrs[2])
@@ -131,7 +131,7 @@ func stakingTest(t *testing.T) {
 	tc.Sleep(5)
 	expVals[2].Status = eth.Bonded
 	expVals[2].Tokens = sdk.NewIntFromBigInt(amts[2])
-	expVals[2].Shares = sdk.NewIntFromBigInt(amts[2])
+	expVals[2].DelegatorShares = sdk.NewIntFromBigInt(amts[2])
 	tc.CheckValidators(t, transactor, expVals)
 
 	log.Infoln("---------- It should correctly replace bonded validator 2 with validator 3 ----------")
@@ -140,13 +140,13 @@ func stakingTest(t *testing.T) {
 	require.NoError(t, err, "failed to initialize validator")
 	expVals[2].Status = eth.Unbonding
 	expVal = types.Validator{
-		EthAddress:     eth.Addr2Hex(tc.ValEthAddrs[3]),
-		EthSigner:      eth.Addr2Hex(tc.ValEthAddrs[3]),
-		Status:         eth.Bonded,
-		SgnAddress:     tc.ValSgnAddrs[3].String(),
-		Tokens:         sdk.NewIntFromBigInt(amts[3]),
-		Shares:         sdk.NewIntFromBigInt(amts[3]),
-		CommissionRate: eth.CommissionRate(0.02),
+		EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[3]),
+		EthSigner:       eth.Addr2Hex(tc.ValEthAddrs[3]),
+		Status:          eth.Bonded,
+		SgnAddress:      tc.ValSgnAddrs[3].String(),
+		Tokens:          sdk.NewIntFromBigInt(amts[3]),
+		DelegatorShares: sdk.NewIntFromBigInt(amts[3]),
+		CommissionRate:  sdk.NewDecWithPrec(2, 2),
 	}
 	expVals = append(expVals, expVal)
 	tc.CheckValidators(t, transactor, expVals)

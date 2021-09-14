@@ -7,8 +7,8 @@ const (
 	QueryValidatorBySgnAddr  = "validator-sgnaddr"
 	QueryValidatorByConsAddr = "validator-consaddr"
 	QueryValidators          = "validators"
-	QueryDelegator           = "delegator"
-	QueryDelegators          = "delegators"
+	QueryDelegation          = "delegation"
+	QueryDelegations         = "delegations"
 	QuerySgnAccount          = "account"
 	QuerySyncer              = "syncer"
 	QueryParams              = "params"
@@ -44,24 +44,24 @@ func NewQueryValidatorByConsAddrParams(consAddress string) QueryValidatorByConsA
 	}
 }
 
-type QueryDelegatorParams struct {
+type QueryDelegationParams struct {
 	ValAddress string
 	DelAddress string
 }
 
-func NewQueryDelegatorParams(valAddress, delAddress string) QueryDelegatorParams {
-	return QueryDelegatorParams{
+func NewQueryDelegationParams(valAddress, delAddress string) QueryDelegationParams {
+	return QueryDelegationParams{
 		ValAddress: eth.FormatAddrHex(valAddress),
 		DelAddress: eth.FormatAddrHex(delAddress),
 	}
 }
 
-type QueryDelegatorsParams struct {
+type QueryDelegationsParams struct {
 	ValAddress string
 }
 
-func NewQueryDelegatorsParams(ethAddress string) QueryDelegatorsParams {
-	return QueryDelegatorsParams{
+func NewQueryDelegationsParams(ethAddress string) QueryDelegationsParams {
+	return QueryDelegationsParams{
 		ValAddress: eth.FormatAddrHex(ethAddress),
 	}
 }

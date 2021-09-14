@@ -117,9 +117,9 @@ func (keeper Keeper) AddDeposit(ctx sdk.Context, proposalID uint64, depositorAdd
 		return false, sdkerrors.Wrapf(types.ErrUnknownProposal, "Invalid depositor addr %s", depositorAddr)
 	}
 
-	ethAddr := validator.EthAddress
-	selfDelegator, found := keeper.stakingKeeper.GetDelegator(ctx, ethAddr, ethAddr)
-	if !found {
+	ethAddr := validator.GetEthAddr()
+	selfDelegation := keeper.stakingKeeper.Delegation(ctx, ethAddr, ethAddr)
+	if selfDelegation == nil {
 		return false, sdkerrors.Wrapf(types.ErrUnknownProposal, "Invalid depositor addr %s, %s", depositorAddr, ethAddr)
 	}
 
@@ -129,10 +129,10 @@ func (keeper Keeper) AddDeposit(ctx sdk.Context, proposalID uint64, depositorAdd
 	}
 
 	accTotalDeposit.Amount = accTotalDeposit.Amount.Add(depositAmount)
-	if accTotalDeposit.Amount.GT(selfDelegator.Shares) {
+	if accTotalDeposit.Amount.GT(selfDelegation.GetShares()) {
 		return false, sdkerrors.Wrapf(
 			sdkerrors.ErrInvalidRequest,
-			"Depositor does not have enough stake to deposit, need %s, have %s", accTotalDeposit.Amount, selfDelegator.Shares)
+			"Depositor does not have enough stake to deposit, need %s, have %s", accTotalDeposit.Amount, selfDelegation.GetShares())
 	}
 	keeper.SetAccTotalDeposit(ctx, depositorAddr, accTotalDeposit)
 

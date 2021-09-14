@@ -18,7 +18,7 @@ import (
 
 func (r *Relayer) verifyPendingUpdates() {
 	v, _ := validatorcli.QueryValidator(r.Transactor.CliCtx, r.valAddr.Hex())
-	if v == nil || v.Status != stakingtypes.ValidatorStatus_Bonded {
+	if v == nil || v.Status != stakingtypes.Bonded {
 		log.Traceln("skip verifying pending updates as I am not a bonded validator")
 		return
 	}
@@ -155,7 +155,7 @@ func (r *Relayer) verifyValidatorParams(update *synctypes.PendingUpdate) (done, 
 
 	if updateVal.EthSigner != eth.Addr2Hex(ethVal.Signer) ||
 		updateVal.SgnAddress != sdk.AccAddress(sgnAddr).String() ||
-		updateVal.CommissionRate != ethVal.CommissionRate {
+		!updateVal.CommissionRate.Equal(sdk.NewDec(int64(ethVal.CommissionRate)).QuoInt64(eth.CommissionRateBase)) {
 		values := fmt.Sprintf("signer %x sgnaddr %s commission %d",
 			ethVal.Signer, sdk.AccAddress(sgnAddr).String(), ethVal.CommissionRate)
 		if r.cmpBlkNum(update.EthBlock) == 1 {
@@ -192,16 +192,18 @@ func (r *Relayer) verifyValidatorStates(update *synctypes.PendingUpdate) (done, 
 		return false, false
 	}
 
-	if updateVal.Status != stakingtypes.ValidatorStatus(ethVal.Status) ||
+	if updateVal.Status != stakingtypes.BondStatus(ethVal.Status) ||
 		updateVal.Tokens.BigInt().Cmp(ethVal.Tokens) != 0 ||
-		updateVal.Shares.BigInt().Cmp(ethVal.Shares) != 0 {
+		!updateVal.DelegatorShares.Equal(sdk.NewIntFromBigInt(ethVal.Shares)) {
+		states := fmt.Sprintf("status %s tokens %s shares %s",
+			updateVal.Status, updateVal.Tokens.BigInt(), updateVal.DelegatorShares)
 		values := fmt.Sprintf("status %s tokens %s shares %s",
-			eth.ParseValStatus(ethVal.Status), ethVal.Tokens, ethVal.Shares)
+			stakingtypes.BondStatus(ethVal.Status), ethVal.Tokens, sdk.NewIntFromBigInt(ethVal.Shares))
 		if r.cmpBlkNum(update.EthBlock) == 1 {
-			log.Infof("%s. validator states not match eth values: %s", logmsg, values)
+			log.Infof("%s. validator states not match, states: %s, eth values: %s", logmsg, states, values)
 			return true, false
 		}
-		log.Infof("%s. eth block not passed, eth values: %s", logmsg, values)
+		log.Infof("%s. eth block not passed, states: %s, eth values: %s", logmsg, states, values)
 		return false, false
 	}
 
@@ -210,13 +212,13 @@ func (r *Relayer) verifyValidatorStates(update *synctypes.PendingUpdate) (done, 
 }
 
 func (r *Relayer) verifyDelegatorShares(update *synctypes.PendingUpdate) (done, approve bool) {
-	updateDel, err := stakingtypes.UnmarshalDelegator(r.Transactor.CliCtx.Codec, update.Data)
+	updateDel, err := stakingtypes.UnmarshalDelegation(r.Transactor.CliCtx.Codec, update.Data)
 	if err != nil {
 		return true, false
 	}
 	logmsg := fmt.Sprintf("verify update id %d, shares for delegator: %s", update.Id, updateDel.String())
 
-	storeDel, err := validatorcli.QueryDelegator(r.Transactor.CliCtx, updateDel.ValAddress, updateDel.DelAddress)
+	storeDel, err := validatorcli.QueryDelegation(r.Transactor.CliCtx, updateDel.ValidatorAddress, updateDel.DelegatorAddress)
 	if err == nil {
 		if updateDel.Shares == storeDel.Shares {
 			log.Infof("%s. shares already updated", logmsg)
@@ -225,7 +227,9 @@ func (r *Relayer) verifyDelegatorShares(update *synctypes.PendingUpdate) (done, 
 	}
 
 	ethDel, err := r.EthClient.Contracts.Staking.GetDelegatorInfo(
-		&bind.CallOpts{}, eth.Hex2Addr(updateDel.ValAddress), eth.Hex2Addr(updateDel.DelAddress))
+		&bind.CallOpts{},
+		eth.Hex2Addr(updateDel.ValidatorAddress),
+		eth.Hex2Addr(updateDel.DelegatorAddress))
 	if err != nil {
 		log.Errorf("%s. query delegator info err: %s", logmsg, err)
 		return false, false
@@ -258,7 +262,7 @@ func sameValidatorParams(updateVal, storeVal *stakingtypes.Validator) bool {
 	if updateVal.EthAddress == storeVal.EthAddress &&
 		updateVal.EthSigner == storeVal.EthSigner &&
 		updateVal.SgnAddress == storeVal.SgnAddress &&
-		updateVal.CommissionRate == storeVal.CommissionRate {
+		updateVal.CommissionRate.Equal(storeVal.CommissionRate) {
 		return true
 	}
 	return false
@@ -268,7 +272,7 @@ func sameValidatorStates(updateVal, storeVal *stakingtypes.Validator) bool {
 	if updateVal.EthAddress == storeVal.EthAddress &&
 		updateVal.Status == storeVal.Status &&
 		updateVal.Tokens.Equal(storeVal.Tokens) &&
-		updateVal.Shares.Equal(storeVal.Shares) {
+		updateVal.DelegatorShares.Equal(storeVal.DelegatorShares) {
 		return true
 	}
 	return false

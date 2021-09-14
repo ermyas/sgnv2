@@ -4,17 +4,25 @@ import (
 	"fmt"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk_auth "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	sdk_params "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
+// Implements ValidatorSet interface
+var _ types.ValidatorSet = Keeper{}
+
+// Implements DelegationSet interface
+var _ types.DelegationSet = Keeper{}
+
 // Keeper maintains the link to data storage and exposes getter/setter methods for the various parts of the state machine
 type Keeper struct {
 	cdc              codec.BinaryCodec // The wire codec for binary encoding/decoding.
 	storeKey         sdk.StoreKey      // Unexposed key to access store from sdk.Context
 	sdkAccountKeeper sdk_auth.AccountKeeperI
+	hooks            types.StakingHooks
 	paramstore       sdk_params.Subspace
 }
 
@@ -30,6 +38,7 @@ func NewKeeper(
 		storeKey:         storeKey,
 		sdkAccountKeeper: sdkAccountKeeper,
 		paramstore:       paramstore,
+		hooks:            nil,
 	}
 }
 

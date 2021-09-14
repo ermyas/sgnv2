@@ -73,9 +73,9 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 		return false, fmt.Errorf("empty consensus pub key")
 	}
 	log.Infof("Apply validator params %s", v.String())
-	val, found := k.stakingKeeper.GetValidator(ctx, v.EthAddress)
+	val, found := k.stakingKeeper.GetValidator(ctx, eth.Hex2Addr(v.EthAddress))
 	if !found {
-		val = stakingtypes.NewValidator(v.EthAddress, v.EthSigner, v.SgnAddress)
+		val = *stakingtypes.NewValidator(v.EthAddress, v.EthSigner, v.SgnAddress)
 		val.Description = v.Description
 	} else {
 		val.EthSigner = eth.FormatAddrHex(v.EthSigner)
@@ -83,7 +83,7 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 	}
 	val.ConsensusPubkey = v.ConsensusPubkey
 	val.CommissionRate = v.CommissionRate
-	k.stakingKeeper.SetValidatorParams(ctx, val)
+	k.stakingKeeper.SetValidatorParams(ctx, &val, !found)
 	//TODO: gas coins
 	return true, nil
 }
@@ -94,24 +94,28 @@ func (k Keeper) applyValidatorStates(ctx sdk.Context, update *types.PendingUpdat
 		return false, err
 	}
 	log.Infof("Apply validator states %s", v.String())
-	val, found := k.stakingKeeper.GetValidator(ctx, v.EthAddress)
+	val, found := k.stakingKeeper.GetValidator(ctx, eth.Hex2Addr(v.EthAddress))
 	if !found {
 		return false, fmt.Errorf("validator %s not found", val.EthAddress)
 	}
 	val.Status = v.Status
 	val.Tokens = v.Tokens
-	val.Shares = v.Shares
+	val.DelegatorShares = v.DelegatorShares
 
-	k.stakingKeeper.SetValidatorStates(ctx, val)
+	k.stakingKeeper.SetValidatorStates(ctx, &val)
 	return true, nil
 }
 
 func (k Keeper) applyDelegatorShares(ctx sdk.Context, update *types.PendingUpdate) (bool, error) {
-	d, err := stakingtypes.UnmarshalDelegator(k.cdc, update.Data)
+	d, err := stakingtypes.UnmarshalDelegation(k.cdc, update.Data)
 	if err != nil {
 		return false, err
 	}
-	log.Infof("Apply delegator shares valAddr %s delAddr %s shares %s", d.ValAddress, d.DelAddress, d.Shares)
-	k.stakingKeeper.SetDelegatorShares(ctx, d.ValAddress, d.DelAddress, d.Shares)
+	log.Infof("Apply delegator shares valAddr %s delAddr %s shares %s", d.ValidatorAddress, d.DelegatorAddress, d.Shares)
+	k.stakingKeeper.SetDelegationShares(
+		ctx,
+		eth.Hex2Addr(d.DelegatorAddress),
+		eth.Hex2Addr(d.ValidatorAddress),
+		d.Shares)
 	return true, nil
 }

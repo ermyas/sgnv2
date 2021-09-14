@@ -86,19 +86,19 @@ func sidechainGovTest(t *testing.T) {
 		require.NoError(t, err, "failed to initialize validator")
 		tc.Sleep(5)
 		expVal := stakingtypes.Validator{
-			EthAddress:     eth.Addr2Hex(tc.ValEthAddrs[i]),
-			EthSigner:      eth.Addr2Hex(tc.ValEthAddrs[i]),
-			Status:         eth.Bonded,
-			SgnAddress:     tc.ValSgnAddrs[i].String(),
-			Tokens:         sdk.NewIntFromBigInt(amts[i]),
-			Shares:         sdk.NewIntFromBigInt(amts[i]),
-			CommissionRate: eth.CommissionRate(0.02),
+			EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[i]),
+			EthSigner:       eth.Addr2Hex(tc.ValEthAddrs[i]),
+			Status:          eth.Bonded,
+			SgnAddress:      tc.ValSgnAddrs[i].String(),
+			Tokens:          sdk.NewIntFromBigInt(amts[i]),
+			DelegatorShares: sdk.NewIntFromBigInt(amts[i]),
+			CommissionRate:  sdk.NewDecWithPrec(2, 2),
 		}
 		expVals = append(expVals, expVal)
 		tc.CheckValidators(t, transactor0, expVals)
 	}
 
-	log.Info("======================== Test change epochlengh rejected due to small quorum ===========================")
+	log.Info("======================== Test change epochlength rejected due to small quorum ===========================")
 	paramChanges := []govtypes.ParamChange{govtypes.NewParamChange("staking", "EpochLength", "\"2\"")}
 	content := govtypes.NewParameterProposal("Guard Param Change", "Update EpochLength", paramChanges)
 	submitProposalmsg, _ := govtypes.NewMsgSubmitProposal(content, sdk.NewInt(1e18), transactor1.Key.GetAddress())
@@ -119,7 +119,7 @@ func sidechainGovTest(t *testing.T) {
 	require.NoError(t, err, "failed to query staking params")
 	assert.Equal(t, stakingtypes.DefaultEpochLength, stakingParams.EpochLength, fmt.Sprintf("EpochLength params should stay %d", stakingtypes.DefaultEpochLength))
 
-	log.Info("======================== Test change epochlengh passed for reaching quorum ===========================")
+	log.Info("======================== Test change epochlength passed for reaching quorum ===========================")
 	paramChanges = []govtypes.ParamChange{govtypes.NewParamChange("staking", "EpochLength", "\"2\"")}
 	content = govtypes.NewParameterProposal("Guard Param Change", "Update EpochLength", paramChanges)
 	submitProposalmsg, _ = govtypes.NewMsgSubmitProposal(content, sdk.NewInt(1e18), transactor0.Key.GetAddress())
@@ -140,7 +140,7 @@ func sidechainGovTest(t *testing.T) {
 	require.NoError(t, err, "failed to query staking params")
 	assert.Equal(t, uint64(2), stakingParams.EpochLength, "EpochLength params should change to 2")
 
-	log.Info("======================== Test change epochlengh rejected due to 1/3 veto ===========================")
+	log.Info("======================== Test change epochlength rejected due to 1/3 veto ===========================")
 	paramChanges = []govtypes.ParamChange{govtypes.NewParamChange("staking", "EpochLength", "\"5\"")}
 	content = govtypes.NewParameterProposal("Guard Param Change", "Update EpochLength", paramChanges)
 	submitProposalmsg, _ = govtypes.NewMsgSubmitProposal(content, sdk.NewInt(1e18), transactor1.Key.GetAddress())
@@ -167,7 +167,7 @@ func sidechainGovTest(t *testing.T) {
 	require.NoError(t, err, "failed to query staking params")
 	assert.Equal(t, uint64(2), stakingParams.EpochLength, "EpochLength params should stay 2")
 
-	log.Info("======================== Test change epochlengh rejected due to 1/2 No ===========================")
+	log.Info("======================== Test change epochlength rejected due to 1/2 No ===========================")
 	paramChanges = []govtypes.ParamChange{govtypes.NewParamChange("staking", "EpochLength", "\"5\"")}
 	content = govtypes.NewParameterProposal("Guard Param Change", "Update EpochLength", paramChanges)
 	submitProposalmsg, _ = govtypes.NewMsgSubmitProposal(content, sdk.NewInt(1e18), transactor2.Key.GetAddress())
@@ -192,7 +192,7 @@ func sidechainGovTest(t *testing.T) {
 	require.NoError(t, err, "failed to query staking params")
 	assert.Equal(t, uint64(2), stakingParams.EpochLength, "EpochLength params should stay 2")
 
-	log.Info("======================== Test change epochlengh passed for over 1/2 yes ===========================")
+	log.Info("======================== Test change epochlength passed for over 1/2 yes ===========================")
 	paramChanges = []govtypes.ParamChange{govtypes.NewParamChange("staking", "EpochLength", "\"5\"")}
 	content = govtypes.NewParameterProposal("Gubscribe Param Change", "Update EpochLength", paramChanges)
 	submitProposalmsg, _ = govtypes.NewMsgSubmitProposal(content, sdk.NewInt(1e18), transactor2.Key.GetAddress())

@@ -169,7 +169,7 @@ func (o *Operator) SyncValidatorParamsMsg(valAddr eth.Addr) (*synctypes.ProposeU
 		EthSigner:       eth.Addr2Hex(ethVal.Signer),
 		SgnAddress:      sdk.AccAddress(sgnAddrBytes).String(),
 		ConsensusPubkey: o.PubKeyAny,
-		CommissionRate:  ethVal.CommissionRate,
+		CommissionRate:  sdk.NewDec(int64(ethVal.CommissionRate)).QuoInt64(eth.CommissionRateBase),
 		Description: &stakingtypes.Description{
 			Identity: eth.Addr2Hex(valAddr),
 		},
@@ -203,10 +203,10 @@ func (o *Operator) SyncValidatorStatesMsg(valAddr eth.Addr) (*synctypes.ProposeU
 	}
 
 	updateVal := &stakingtypes.Validator{
-		EthAddress: eth.Addr2Hex(valAddr),
-		Status:     stakingtypes.ValidatorStatus(ethVal.Status),
-		Tokens:     sdk.NewIntFromBigInt(ethVal.Tokens),
-		Shares:     sdk.NewIntFromBigInt(ethVal.Shares),
+		EthAddress:      eth.Addr2Hex(valAddr),
+		Status:          stakingtypes.BondStatus(ethVal.Status),
+		Tokens:          sdk.NewIntFromBigInt(ethVal.Tokens),
+		DelegatorShares: sdk.NewIntFromBigInt(ethVal.Shares),
 	}
 	if sameValidatorStates(updateVal, storeVal) {
 		log.Debugf("%s. Validator states already updated: %s", logmsg, updateVal)
@@ -228,13 +228,13 @@ func (o *Operator) SyncDelegatorMsg(valAddr, delAddr eth.Addr) *synctypes.Propos
 		return nil
 	}
 
-	updateDel := stakingtypes.Delegator{
-		ValAddress: valAddr.Hex(),
-		DelAddress: delAddr.Hex(),
-		Shares:     sdk.NewIntFromBigInt(ethDel.Shares),
+	updateDel := stakingtypes.Delegation{
+		DelegatorAddress: delAddr.Hex(),
+		ValidatorAddress: valAddr.Hex(),
+		Shares:           sdk.NewIntFromBigInt(ethDel.Shares),
 	}
 
-	storeDel, _ := validatorcli.QueryDelegator(o.Transactor.CliCtx, valAddr.Hex(), delAddr.Hex())
+	storeDel, _ := validatorcli.QueryDelegation(o.Transactor.CliCtx, valAddr.Hex(), delAddr.Hex())
 
 	if storeDel != nil {
 		if updateDel.Shares.Equal(storeDel.Shares) {

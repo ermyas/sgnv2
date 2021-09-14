@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/celer-network/sgn-v2/x/gov/types"
-	stakingkeeper "github.com/celer-network/sgn-v2/x/staking/keeper"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -17,7 +16,7 @@ type Keeper struct {
 	// The reference to the Paramstore to get and set gov specific params
 	paramSpace types.ParamSubspace
 
-	stakingKeeper stakingkeeper.Keeper
+	stakingKeeper types.StakingKeeper
 
 	// The (unexposed) keys used to access the stores from the Context.
 	storeKey sdk.StoreKey
@@ -38,7 +37,7 @@ type Keeper struct {
 // CONTRACT: the parameter Subspace must have the param key table already initialized
 func NewKeeper(
 	cdc codec.BinaryCodec, key sdk.StoreKey, paramSpace types.ParamSubspace,
-	stakingKeeper stakingkeeper.Keeper, rtr types.Router,
+	stakingKeeper types.StakingKeeper, rtr types.Router,
 ) Keeper {
 
 	// It is vital to seal the governance proposal router here as to not allow

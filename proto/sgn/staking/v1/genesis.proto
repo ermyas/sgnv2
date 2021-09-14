@@ -7,9 +7,14 @@ import "gogoproto/gogo.proto";
 
 import "sgn/staking/v1/staking.proto";
 
+// GenesisState defines the staking module's genesis state.
 message GenesisState {
   Params params = 1 [(gogoproto.nullable) = false];
   Syncer syncer = 2;
+
+  // delegations defines the validator set at genesis.
   repeated Validator validators = 3 [(gogoproto.nullable) = false];
-  repeated Delegator delegators = 4 [(gogoproto.nullable) = false];
+
+  // delegations defines the delegations active at genesis.
+  repeated Delegation delegations = 4 [(gogoproto.nullable) = false];
 }

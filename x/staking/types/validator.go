@@ -17,12 +17,14 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var _ ValidatorI = Validator{}
+
 func NewValidator(ethAddress, ethSigner, sgnAddress string) *Validator {
 	return &Validator{
 		EthAddress: eth.FormatAddrHex(ethAddress),
 		EthSigner:  eth.FormatAddrHex(ethSigner),
 		SgnAddress: sgnAddress,
-		Status:     ValidatorStatus_Unbonded,
+		Status:     Unbonded,
 	}
 }
 
@@ -51,8 +53,8 @@ func (v Validator) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 
 func (v Validator) String() string {
 	var pubkey string
-	if v.GetConsensusPubkey() != nil {
-		if v.GetConsensusPubkey().GetCachedValue() != nil {
+	if v.ConsensusPubkey != nil {
+		if v.ConsensusPubkey.GetCachedValue() != nil {
 			consAddr, err := v.GetConsAddr()
 			if err != nil {
 				pubkey = fmt.Sprintf("consensus_address:%s", err)
@@ -60,7 +62,7 @@ func (v Validator) String() string {
 				pubkey = fmt.Sprintf("consensus_address:\"%s\"", consAddr.String())
 			}
 		} else {
-			pubkey = fmt.Sprintf("consensus_pubkey:\"%x\"", v.GetConsensusPubkey().Value)
+			pubkey = fmt.Sprintf("consensus_pubkey:\"%x\"", v.ConsensusPubkey.Value)
 		}
 	}
 	v.ConsensusPubkey = nil
@@ -108,17 +110,25 @@ func (v Validator) GetConsAddr() (sdk.ConsAddress, error) {
 
 // IsBonded checks if the validator status equals Bonded
 func (v Validator) IsBonded() bool {
-	return v.GetStatus() == ValidatorStatus_Bonded
+	return v.GetStatus() == Bonded
 }
 
 // IsUnbonded checks if the validator status equals Unbonded
 func (v Validator) IsUnbonded() bool {
-	return v.GetStatus() == ValidatorStatus_Unbonded
+	return v.GetStatus() == Unbonded
 }
 
 // IsUnbonding checks if the validator status equals Unbonding
 func (v Validator) IsUnbonding() bool {
-	return v.GetStatus() == ValidatorStatus_Unbonding
+	return v.GetStatus() == Unbonding
+}
+
+// get the bonded tokens which the validator holds
+func (v Validator) BondedTokens() sdk.Int {
+	if v.IsBonded() {
+		return v.Tokens
+	}
+	return sdk.ZeroInt()
 }
 
 // ConsensusPower gets the consensus-engine power. Aa reduction of 10^6 from
@@ -178,7 +188,18 @@ func (v Validator) GetSgnAddr() sdk.AccAddress {
 	return addr
 }
 
-func (v Validator) GetMoniker() string { return v.GetDescription().GetMoniker() }
+func (v Validator) GetOperator() sdk.ValAddress {
+	if v.SgnAddress == "" {
+		return nil
+	}
+	addr, err := sdk.ValAddressFromBech32(v.SgnAddress)
+	if err != nil {
+		panic(err)
+	}
+	return addr
+}
+
+func (v Validator) GetMoniker() string { return v.Description.GetMoniker() }
 
 // Validators is a collection of Validator
 type Validators []Validator
@@ -195,7 +216,7 @@ func (v Validators) Len() int {
 
 // Implements sort interface
 func (v Validators) Less(i, j int) bool {
-	return v[i].GetEthAddress() < v[j].GetEthAddress()
+	return v[i].GetEthAddress().String() < v[j].GetEthAddress().String()
 }
 
 // Implements sort interface
@@ -213,85 +234,41 @@ func (v Validators) UnpackInterfaces(c codectypes.AnyUnpacker) error {
 	return nil
 }
 
+func (v Validator) GetCommission() sdk.Dec { return v.CommissionRate }
+
+func (v Validator) GetEthAddress() eth.Addr { return eth.Hex2Addr(v.EthAddress) }
+
+func (v Validator) GetStatus() BondStatus { return v.Status }
+
+func (v Validator) GetTokens() sdk.Int { return v.Tokens }
+
+func (v Validator) GetBondedTokens() sdk.Int { return v.BondedTokens() }
+
+func (v Validator) GetDelegatorShares() sdk.Int { return v.DelegatorShares }
+
+// calculate the token worth of provided shares
+func (v Validator) TokensFromShares(shares sdk.Int) sdk.Dec {
+	return (shares.Mul(v.Tokens)).ToDec().Quo(v.DelegatorShares.ToDec())
+}
+
+// calculate the token worth of provided shares, truncated
+func (v Validator) TokensFromSharesTruncated(shares sdk.Int) sdk.Dec {
+	return (shares.Mul(v.Tokens)).ToDec().QuoTruncate(v.DelegatorShares.ToDec())
+}
+
+// TokensFromSharesRoundUp returns the token worth of provided shares, rounded
+// up.
+func (v Validator) TokensFromSharesRoundUp(shares sdk.Int) sdk.Dec {
+	return (shares.Mul(v.Tokens)).ToDec().QuoRoundUp(v.DelegatorShares.ToDec())
+}
+
+func (v Validator) GetConsensusPower(r sdk.Int) int64 {
+	return v.ConsensusPower(r)
+}
+
 func (v Validators) String() (out string) {
 	for _, val := range v {
 		out += val.String() + " | "
 	}
 	return out
-}
-
-const (
-	MaxMonikerLength  = 70
-	MaxIdentityLength = 3000
-	MaxWebsiteLength  = 140
-	MaxContactLength  = 140
-	MaxDetailsLength  = 280
-
-	// constant used in flags to indicate that description field should not be updated
-	DoNotModifyDesc = "[do-not-modify]"
-)
-
-func NewDescription(moniker, identity, website, contact, details string) *Description {
-	return &Description{
-		Moniker:  moniker,
-		Identity: identity,
-		Website:  website,
-		Contact:  contact,
-		Details:  details,
-	}
-}
-
-func (d *Description) YamlString() string {
-	out, _ := yaml.Marshal(d)
-	return string(out)
-}
-
-// UpdateDescription updates the fields of a given description. An error is
-// returned if the resulting description contains an invalid length.
-func (d *Description) UpdateDescription(d2 *Description) error {
-	err := d2.EnsureLength()
-	if err != nil {
-		return err
-	}
-	if d2.Moniker != DoNotModifyDesc {
-		d.Moniker = d2.Moniker
-	}
-	if d2.Identity != DoNotModifyDesc {
-		d.Identity = d2.Identity
-	}
-	if d2.Website != DoNotModifyDesc {
-		d.Website = d2.Website
-	}
-	if d2.Contact != DoNotModifyDesc {
-		d.Contact = d2.Contact
-	}
-	if d.Details != DoNotModifyDesc {
-		d.Details = d2.Details
-	}
-	return nil
-}
-
-// EnsureLength ensures the length of a validator's description.
-func (d *Description) EnsureLength() error {
-	if len(d.Moniker) > MaxMonikerLength {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "invalid moniker length; got: %d, max: %d", len(d.Moniker), MaxMonikerLength)
-	}
-
-	if len(d.Identity) > MaxIdentityLength {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "invalid identity length; got: %d, max: %d", len(d.Identity), MaxIdentityLength)
-	}
-
-	if len(d.Website) > MaxWebsiteLength {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "invalid website length; got: %d, max: %d", len(d.Website), MaxWebsiteLength)
-	}
-
-	if len(d.Contact) > MaxContactLength {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "invalid security contact length; got: %d, max: %d", len(d.Contact), MaxContactLength)
-	}
-
-	if len(d.Details) > MaxDetailsLength {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "invalid details length; got: %d, max: %d", len(d.Details), MaxDetailsLength)
-	}
-
-	return nil
 }

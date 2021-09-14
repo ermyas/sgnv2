@@ -52,17 +52,17 @@ func govTest(t *testing.T) {
 	require.NoError(t, err, "failed to initialize validator")
 	tc.Sleep(5)
 	expVal := &stakingtypes.Validator{
-		EthAddress:     eth.Addr2Hex(tc.ValEthAddrs[0]),
-		EthSigner:      eth.Addr2Hex(tc.ValEthAddrs[0]),
-		Status:         eth.Bonded,
-		SgnAddress:     tc.ValSgnAddrs[0].String(),
-		Tokens:         sdk.NewIntFromBigInt(amt),
-		Shares:         sdk.NewIntFromBigInt(amt),
-		CommissionRate: eth.CommissionRate(0.02),
+		EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[0]),
+		EthSigner:       eth.Addr2Hex(tc.ValEthAddrs[0]),
+		Status:          eth.Bonded,
+		SgnAddress:      tc.ValSgnAddrs[0].String(),
+		Tokens:          sdk.NewIntFromBigInt(amt),
+		DelegatorShares: sdk.NewIntFromBigInt(amt),
+		CommissionRate:  sdk.NewDecWithPrec(2, 2),
 	}
 	tc.CheckValidator(t, transactor, expVal)
 
-	log.Info("======================== Test change epochlengh passed ===========================")
+	log.Info("======================== Test change epochlength passed ===========================")
 	paramChanges := []govtypes.ParamChange{govtypes.NewParamChange("staking", "EpochLength", "\"2\"")}
 	content := govtypes.NewParameterProposal("Guard Param Change", "Update EpochLength", paramChanges)
 	submitProposalmsg, err := govtypes.NewMsgSubmitProposal(content, sdk.ZeroInt(), transactor.Key.GetAddress())
@@ -93,7 +93,7 @@ func govTest(t *testing.T) {
 	require.NoError(t, err, "failed to query staking params")
 	assert.Equal(t, uint64(2), stakingParams.EpochLength, "EpochLength params should be updated to 2")
 
-	log.Info("======================== Test change epochlengh rejected ===========================")
+	log.Info("======================== Test change epochlength rejected ===========================")
 	paramChanges = []govtypes.ParamChange{govtypes.NewParamChange("staking", "EpochLength", "\"5\"")}
 	content = govtypes.NewParameterProposal("Guard Param Change", "Update EpochLength", paramChanges)
 	submitProposalmsg, err = govtypes.NewMsgSubmitProposal(content, sdk.NewInt(2e18), transactor.Key.GetAddress())

@@ -56,22 +56,22 @@ func stakingTest(t *testing.T) {
 	require.NoError(t, err, "failed to initialize validator")
 	tc.Sleep(5)
 	expVal := &types.Validator{
-		EthAddress:     eth.Addr2Hex(tc.ValEthAddrs[0]),
-		EthSigner:      eth.Addr2Hex(tc.ValEthAddrs[0]),
-		Status:         eth.Bonded,
-		SgnAddress:     tc.ValSgnAddrs[0].String(),
-		Tokens:         sdk.NewIntFromBigInt(vAmt),
-		Shares:         sdk.NewIntFromBigInt(vAmt),
-		CommissionRate: eth.CommissionRate(0.02),
+		EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[0]),
+		EthSigner:       eth.Addr2Hex(tc.ValEthAddrs[0]),
+		Status:          eth.Bonded,
+		SgnAddress:      tc.ValSgnAddrs[0].String(),
+		Tokens:          sdk.NewIntFromBigInt(vAmt),
+		DelegatorShares: sdk.NewIntFromBigInt(vAmt),
+		CommissionRate:  sdk.NewDecWithPrec(2, 2),
 	}
 	tc.CheckValidator(t, transactor, expVal)
 	tc.CheckValidatorBySgnAddr(t, transactor, expVal)
-	expDel := &types.Delegator{
-		ValAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
-		DelAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
-		Shares:     sdk.NewIntFromBigInt(vAmt),
+	expDel := &types.Delegation{
+		DelegatorAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
+		ValidatorAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
+		Shares:           sdk.NewIntFromBigInt(vAmt),
 	}
-	tc.CheckDelegator(t, transactor, expDel)
+	tc.CheckDelegation(t, transactor, expDel)
 	tc.PrintTendermintValidators(t, transactor)
 
 	log.Info("add delegators ...")
@@ -81,16 +81,16 @@ func stakingTest(t *testing.T) {
 	tc.Sleep(5)
 	tc.PrintTendermintValidators(t, transactor)
 	for i := 0; i < len(tc.DelEthKs); i++ {
-		expDel := &types.Delegator{
-			ValAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
-			DelAddress: eth.Addr2Hex(tc.DelEthAddrs[i]),
-			Shares:     sdk.NewIntFromBigInt(dAmts[i]),
+		expDel := &types.Delegation{
+			DelegatorAddress: eth.Addr2Hex(tc.DelEthAddrs[i]),
+			ValidatorAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
+			Shares:           sdk.NewIntFromBigInt(dAmts[i]),
 		}
-		tc.CheckDelegator(t, transactor, expDel)
+		tc.CheckDelegation(t, transactor, expDel)
 	}
 
 	expVal.Tokens = sdk.NewIntFromBigInt(totalAmts)
-	expVal.Shares = sdk.NewIntFromBigInt(totalAmts)
+	expVal.DelegatorShares = sdk.NewIntFromBigInt(totalAmts)
 	tc.CheckValidator(t, transactor, expVal)
 	tc.Sleep(5)
 	tc.PrintTendermintValidators(t, transactor)

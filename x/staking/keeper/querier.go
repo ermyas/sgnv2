@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -21,10 +22,10 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 			return queryValidatorByConsAddr(ctx, req, k, legacyQuerierCdc)
 		case types.QueryValidators:
 			return queryValidators(ctx, k, legacyQuerierCdc)
-		case types.QueryDelegator:
-			return queryDelegator(ctx, req, k, legacyQuerierCdc)
-		case types.QueryDelegators:
-			return queryDelegators(ctx, req, k, legacyQuerierCdc)
+		case types.QueryDelegation:
+			return queryDelegation(ctx, req, k, legacyQuerierCdc)
+		case types.QueryDelegations:
+			return queryDelegations(ctx, req, k, legacyQuerierCdc)
 		case types.QuerySgnAccount:
 			return querySgnAccountExist(ctx, req, k, legacyQuerierCdc)
 		case types.QuerySyncer:
@@ -45,7 +46,7 @@ func queryValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuer
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
-	validator, found := k.GetValidator(ctx, params.EthAddress)
+	validator, found := k.GetValidator(ctx, eth.Hex2Addr(params.EthAddress))
 	if !found {
 		return nil, types.ErrValidatorNotFound
 	}
@@ -118,20 +119,24 @@ func queryValidators(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAm
 	return res, nil
 }
 
-func queryDelegator(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
-	var params types.QueryDelegatorParams
+func queryDelegation(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var params types.QueryDelegationParams
 
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
-	delegator, found := k.GetDelegator(ctx, params.ValAddress, params.DelAddress)
+	delegation, found :=
+		k.GetDelegation(
+			ctx,
+			eth.Hex2Addr(params.DelAddress),
+			eth.Hex2Addr(params.ValAddress))
 	if !found {
-		return nil, types.ErrDelegatorNotFound
+		return nil, types.ErrDelegationNotFound
 	}
 
-	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, delegator)
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, delegation)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
@@ -139,8 +144,8 @@ func queryDelegator(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuer
 	return res, nil
 }
 
-// query all delegators of a given validator
-func queryDelegators(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+// query all delegations on a given validator
+func queryDelegations(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
 	var params types.QueryValidatorParams
 
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
@@ -148,8 +153,8 @@ func queryDelegators(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQue
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
-	delegators := k.GetAllDelegators(ctx, params.EthAddress)
-	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, delegators)
+	delegations := k.GetAllDelegations(ctx, eth.Hex2Addr(params.EthAddress))
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, delegations)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}

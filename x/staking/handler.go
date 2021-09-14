@@ -63,16 +63,17 @@ func handleMsgEditDescription(
 	if err != nil {
 		return nil, err
 	}
-	validator, found := keeper.GetValidatorBySgnAddr(ctx, addr)
+	v, found := keeper.GetValidatorBySgnAddr(ctx, addr)
 	if !found {
 		return nil, fmt.Errorf("validator not found")
 	}
-	logEntry.ValAddr = validator.EthAddress
+	validator := v.(types.Validator)
+	logEntry.ValAddr = validator.GetEthAddr().Hex()
 
 	err = validator.Description.UpdateDescription(msg.Description)
 	if err != nil {
 		return nil, err
 	}
-	keeper.SetValidator(ctx, validator)
+	keeper.SetValidator(ctx, &validator)
 	return &sdk.Result{}, nil
 }

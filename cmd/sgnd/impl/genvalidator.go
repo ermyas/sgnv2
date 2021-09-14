@@ -69,9 +69,9 @@ func AddGenesisValidatorCmd(defaultNodeHome string) *cobra.Command {
 				EthSigner:       eth.Addr2Hex(ethKey.Address),
 				SgnAddress:      key.GetAddress().String(),
 				ConsensusPubkey: pkAny,
-				Status:          stakingtypes.ValidatorStatus_Bonded,
+				Status:          stakingtypes.Bonded,
 				Tokens:          tokens,
-				Shares:          tokens,
+				DelegatorShares: tokens,
 			}
 			log.Infoln("validator: ", validator.String())
 

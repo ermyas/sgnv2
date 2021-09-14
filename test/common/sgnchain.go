@@ -71,14 +71,16 @@ func CheckValidator(t *testing.T, transactor *transactor.Transactor, expVal *typ
 	}
 	require.NoError(t, err, "failed to QueryValidator", err)
 	log.Infof("Query sgn and get validator: %s", validator.String())
-	assert.True(t, sameValidators(validator, expVal), "The expected validator should be: "+expVal.String())
+	msg := fmt.Sprintf("Expected validator:\n %s\n Actual validator:\n %s\n", expVal.String(), validator.String())
+	assert.True(t, sameValidators(validator, expVal), msg)
 }
 
 // called after CheckValidator
 func CheckValidatorBySgnAddr(t *testing.T, transactor *transactor.Transactor, expVal *types.Validator) {
 	validator, err := cli.QueryValidatorBySgnAddr(transactor.CliCtx, expVal.SgnAddress)
 	require.NoError(t, err, "failed to QueryValidatorBySgnAddr", err)
-	assert.True(t, sameValidators(validator, expVal), "Unexpected validator: "+validator.String())
+	msg := fmt.Sprintf("Expected validator:\n %s\n Actual validator:\n %s\n", expVal.String(), validator.String())
+	assert.True(t, sameValidators(validator, expVal), msg)
 }
 
 func CheckValidators(t *testing.T, transactor *transactor.Transactor, expVals types.Validators) {
@@ -96,22 +98,23 @@ func CheckValidators(t *testing.T, transactor *transactor.Transactor, expVals ty
 	}
 	require.NoError(t, err, "failed to QueryValidators", err)
 	log.Infof("Query sgn and get validators: %s", validators.String())
-	assert.True(t, sameEachValidators(validators, expVals), "The expected validators should be: "+expVals.String())
+	msg := fmt.Sprintf("Expected validators:\n %s\n Actual validators:\n %s\n", expVals.String(), validators.String())
+	assert.True(t, sameEachValidators(validators, expVals), msg)
 }
 
-func CheckDelegator(t *testing.T, transactor *transactor.Transactor, expDel *types.Delegator) {
-	var delegator *types.Delegator
+func CheckDelegation(t *testing.T, transactor *transactor.Transactor, expDel *types.Delegation) {
+	var delegation *types.Delegation
 	var err error
 	for retry := 0; retry < RetryLimit; retry++ {
-		delegator, err = cli.QueryDelegator(transactor.CliCtx, expDel.ValAddress, expDel.DelAddress)
-		if err == nil && sameDelegators(delegator, expDel) {
+		delegation, err = cli.QueryDelegation(transactor.CliCtx, expDel.ValidatorAddress, expDel.DelegatorAddress)
+		if err == nil && sameDelegations(delegation, expDel) {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
-	require.NoError(t, err, "failed to queryDelegator")
-	log.Infof("Query sgn and get delegator: %s", delegator.String())
-	assert.True(t, sameDelegators(delegator, expDel), "The expected delegator should be: "+expDel.String())
+	require.NoError(t, err, "failed to queryDelegation")
+	log.Infof("Query sgn and get delegator: %s", delegation.String())
+	assert.True(t, sameDelegations(delegation, expDel), "The expected delegator should be: "+expDel.String())
 }
 
 func PrintTendermintValidators(t *testing.T, transactor *transactor.Transactor) {
@@ -145,17 +148,17 @@ func sameEachValidators(vs []types.Validator, exps []types.Validator) bool {
 // TODO: check pubkey, transactors, and description
 func sameValidators(v *types.Validator, exp *types.Validator) bool {
 	return v.GetEthAddress() == exp.GetEthAddress() &&
-		v.GetEthSigner() == exp.GetEthSigner() &&
+		v.EthSigner == exp.EthSigner &&
 		v.GetStatus() == exp.GetStatus() &&
-		v.GetSgnAddress() == exp.GetSgnAddress() &&
+		v.SgnAddress == exp.SgnAddress &&
 		v.Tokens.Equal(exp.Tokens) &&
-		v.Shares.Equal(exp.Shares) &&
-		v.GetCommissionRate() == exp.GetCommissionRate()
+		v.DelegatorShares.Equal(exp.DelegatorShares) &&
+		v.CommissionRate.Equal(exp.CommissionRate)
 }
 
-func sameDelegators(d *types.Delegator, exp *types.Delegator) bool {
-	return d.GetValAddress() == exp.GetValAddress() &&
-		d.GetDelAddress() == exp.GetDelAddress() &&
+func sameDelegations(d *types.Delegation, exp *types.Delegation) bool {
+	return d.GetValidatorAddr() == exp.GetValidatorAddr() &&
+		d.GetDelegatorAddr() == exp.GetDelegatorAddr() &&
 		d.Shares.Equal(exp.Shares)
 }
 

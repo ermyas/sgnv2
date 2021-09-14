@@ -30,21 +30,21 @@ var (
 
 	ValidatorTransactorsKey = []byte{0x31}
 
-	DelegatorKey = []byte{0x41} // key prefix for delegator
+	DelegationKey = []byte{0x41} // key prefix for delegation
 
 	SyncerKey = []byte{0x51} // key for syncer
 )
 
-func GetValidatorPowerKey(ethAddr string) []byte {
-	return append(ValidatorPowerKey, eth.Hex2Addr(ethAddr).Bytes()...)
+func GetValidatorPowerKey(ethAddr eth.Addr) []byte {
+	return append(ValidatorPowerKey, ethAddr.Bytes()...)
 }
 
-func GetValidatorPowerUpdateKey(ethAddr string) []byte {
-	return append(ValidatorPowerUpdateKey, eth.Hex2Addr(ethAddr).Bytes()...)
+func GetValidatorPowerUpdateKey(ethAddr eth.Addr) []byte {
+	return append(ValidatorPowerUpdateKey, ethAddr.Bytes()...)
 }
 
-func GetValidatorKey(ethAddr string) []byte {
-	return append(ValidatorKey, eth.Hex2Addr(ethAddr).Bytes()...)
+func GetValidatorKey(ethAddr eth.Addr) []byte {
+	return append(ValidatorKey, ethAddr.Bytes()...)
 }
 
 func GetValidatorBySgnAddrKey(addr sdk.AccAddress) []byte {
@@ -55,18 +55,19 @@ func GetValidatorByConsAddrKey(addr sdk.ConsAddress) []byte {
 	return append(ValidatorByConsAddrKey, address.MustLengthPrefix(addr)...)
 }
 
-func GetValidatorTransactorsKey(ethAddr string) []byte {
-	return append(ValidatorTransactorsKey, eth.Hex2Addr(ethAddr).Bytes()...)
+func GetValidatorTransactorsKey(ethAddr eth.Addr) []byte {
+	return append(ValidatorTransactorsKey, ethAddr.Bytes()...)
 }
 
-// get delegators key from validator address
-func GetDelegatorsKey(valAddr string) []byte {
-	return append(DelegatorKey, eth.Hex2Addr(valAddr).Bytes()...)
+// get delegations key from validator address
+func GetDelegationsKey(valAddr eth.Addr) []byte {
+	return append(DelegationKey, valAddr.Bytes()...)
 }
 
-// get delegator key from validator address and delegator address
-func GetDelegatorKey(valAddr, delAddr string) []byte {
-	return append(GetDelegatorsKey(valAddr), eth.Hex2Addr(delAddr).Bytes()...)
+// get delegation key from validator address and delegator address
+func GetDelegationKey(delAddr eth.Addr, valAddr eth.Addr) []byte {
+	// NOTE: Currently we use the key format valAddr/delAddr whereas Cosmos SDK uses the reverse
+	return append(GetDelegationsKey(valAddr), delAddr.Bytes()...)
 }
 
 func AddrFromValidatorKey(key []byte) []byte {

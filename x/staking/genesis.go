@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/staking/keeper"
 	"github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -17,8 +18,8 @@ func InitGenesis(ctx sdk.Context, keeper keeper.Keeper, data *types.GenesisState
 		keeper.SetValidatorStates(ctx, &validator)
 	}
 
-	for _, delegator := range data.Delegators {
-		keeper.SetDelegator(ctx, &delegator)
+	for _, delegation := range data.Delegations {
+		keeper.SetDelegation(ctx, delegation)
 	}
 
 	return keeper.TmValidatorUpdates(ctx)
@@ -28,10 +29,12 @@ func ExportGenesis(ctx sdk.Context, keeper keeper.Keeper) *types.GenesisState {
 	params := keeper.GetParams(ctx)
 	syncer := keeper.GetSyncer(ctx)
 	validators := keeper.GetAllValidators(ctx)
-	delegators := []types.Delegator{}
+	delegations := []types.Delegation{}
 
 	for _, validator := range validators {
-		delegators = append(delegators, keeper.GetAllDelegators(ctx, validator.EthAddress)...)
+		delegations = append(
+			delegations,
+			keeper.GetAllDelegations(ctx, eth.Hex2Addr(validator.EthAddress))...)
 	}
 
 	vals := make([]types.Validator, 0)
@@ -39,10 +42,10 @@ func ExportGenesis(ctx sdk.Context, keeper keeper.Keeper) *types.GenesisState {
 		vals = append(vals, validators[i])
 	}
 	return &types.GenesisState{
-		Params:     params,
-		Syncer:     syncer,
-		Validators: vals,
-		Delegators: delegators,
+		Params:      params,
+		Syncer:      syncer,
+		Validators:  vals,
+		Delegations: delegations,
 	}
 }
 

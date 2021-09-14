@@ -5,9 +5,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/input"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkaddress "github.com/cosmos/cosmos-sdk/types/address"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/spf13/viper"
 )
@@ -88,4 +90,8 @@ func VerifyAddressFormat(bz []byte) error {
 	}
 
 	return nil
+}
+
+func DeriveSdkAccAddressFromEthAddress(ethAddr eth.Addr) sdk.AccAddress {
+	return sdk.AccAddress(sdkaddress.Module("eth", ethAddr.Bytes()))
 }
