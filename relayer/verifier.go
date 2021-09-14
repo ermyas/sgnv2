@@ -17,7 +17,7 @@ import (
 )
 
 func (r *Relayer) verifyPendingUpdates() {
-	v, _ := validatorcli.QueryValidator(r.Transactor.CliCtx, r.valAddr.Hex())
+	v, _ := validatorcli.QueryValidator(r.Transactor.CliCtx, r.Operator.ValAddr.Hex())
 	if v == nil || v.Status != stakingtypes.Bonded {
 		log.Traceln("skip verifying pending updates as I am not a bonded validator")
 		return

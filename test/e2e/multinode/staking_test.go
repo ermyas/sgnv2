@@ -61,12 +61,12 @@ func stakingTest(t *testing.T) {
 	log.Infoln("---------- It should add bonded validators 0 and 1 successfully ----------")
 	for i := 0; i < 2; i++ {
 		log.Infoln("Adding validator", i, tc.ValEthAddrs[i].Hex())
-		err := tc.InitializeValidator(tc.ValAuths[i], tc.ValSgnAddrs[i], amts[i], eth.CommissionRate(0.02))
+		err := tc.InitializeValidator(tc.ValAuths[i], tc.ValSignerAddrs[i], tc.ValSgnAddrs[i], amts[i], eth.CommissionRate(0.02))
 		require.NoError(t, err, "failed to initialize validator")
 		tc.Sleep(5)
 		expVal := types.Validator{
 			EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[i]),
-			EthSigner:       eth.Addr2Hex(tc.ValEthAddrs[i]),
+			EthSigner:       eth.Addr2Hex(tc.ValSignerAddrs[i]),
 			Status:          eth.Bonded,
 			SgnAddress:      tc.ValSgnAddrs[i].String(),
 			Tokens:          sdk.NewIntFromBigInt(amts[i]),
@@ -85,12 +85,12 @@ func stakingTest(t *testing.T) {
 
 	log.Infoln("---------- It should add unbonded validator 2 without enough delegation ----------")
 	initialDelegation := big.NewInt(1e18)
-	err := tc.InitializeValidator(tc.ValAuths[2], tc.ValSgnAddrs[2], initialDelegation, eth.CommissionRate(0.02))
+	err := tc.InitializeValidator(tc.ValAuths[2], tc.ValSignerAddrs[2], tc.ValSgnAddrs[2], initialDelegation, eth.CommissionRate(0.02))
 	require.NoError(t, err, "failed to initialize validator")
 	tc.Sleep(5)
 	expVal := types.Validator{
 		EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[2]),
-		EthSigner:       eth.Addr2Hex(tc.ValEthAddrs[2]),
+		EthSigner:       eth.Addr2Hex(tc.ValSignerAddrs[2]),
 		Status:          eth.Unbonded,
 		SgnAddress:      tc.ValSgnAddrs[2].String(),
 		Tokens:          sdk.NewIntFromBigInt(initialDelegation),
@@ -135,13 +135,13 @@ func stakingTest(t *testing.T) {
 	tc.CheckValidators(t, transactor, expVals)
 
 	log.Infoln("---------- It should correctly replace bonded validator 2 with validator 3 ----------")
-	err = tc.InitializeValidator(tc.ValAuths[3], tc.ValSgnAddrs[3], amts[3], eth.CommissionRate(0.02))
+	err = tc.InitializeValidator(tc.ValAuths[3], tc.ValSignerAddrs[3], tc.ValSgnAddrs[3], amts[3], eth.CommissionRate(0.02))
 	tc.Sleep(5)
 	require.NoError(t, err, "failed to initialize validator")
 	expVals[2].Status = eth.Unbonding
 	expVal = types.Validator{
 		EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[3]),
-		EthSigner:       eth.Addr2Hex(tc.ValEthAddrs[3]),
+		EthSigner:       eth.Addr2Hex(tc.ValSignerAddrs[3]),
 		Status:          eth.Bonded,
 		SgnAddress:      tc.ValSgnAddrs[3].String(),
 		Tokens:          sdk.NewIntFromBigInt(amts[3]),

@@ -82,12 +82,12 @@ func sidechainGovTest(t *testing.T) {
 	log.Infoln("---------- It should add bonded validators 0, 1 and 2 successfully ----------")
 	for i := 0; i < 3; i++ {
 		log.Infoln("Adding validator", i, tc.ValEthAddrs[i].Hex())
-		err := tc.InitializeValidator(tc.ValAuths[i], tc.ValSgnAddrs[i], amts[i], eth.CommissionRate(0.02))
+		err := tc.InitializeValidator(tc.ValAuths[i], tc.ValSignerAddrs[i], tc.ValSgnAddrs[i], amts[i], eth.CommissionRate(0.02))
 		require.NoError(t, err, "failed to initialize validator")
 		tc.Sleep(5)
 		expVal := stakingtypes.Validator{
 			EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[i]),
-			EthSigner:       eth.Addr2Hex(tc.ValEthAddrs[i]),
+			EthSigner:       eth.Addr2Hex(tc.ValSignerAddrs[i]),
 			Status:          eth.Bonded,
 			SgnAddress:      tc.ValSgnAddrs[i].String(),
 			Tokens:          sdk.NewIntFromBigInt(amts[i]),

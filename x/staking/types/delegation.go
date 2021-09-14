@@ -4,7 +4,7 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"gopkg.in/yaml.v2"
+	proto "github.com/gogo/protobuf/proto"
 )
 
 // Implements Delegation interface
@@ -16,8 +16,8 @@ func NewDelegation(
 	shares sdk.Int,
 ) Delegation {
 	return Delegation{
-		DelegatorAddress: delegatorAddress.String(),
-		ValidatorAddress: validatorAddress.String(),
+		DelegatorAddress: eth.Addr2Hex(delegatorAddress),
+		ValidatorAddress: eth.Addr2Hex(validatorAddress),
 		Shares:           shares,
 	}
 }
@@ -54,6 +54,5 @@ func (d Delegation) GetShares() sdk.Int { return d.Shares }
 
 // String returns a human readable string representation of a Delegation.
 func (d Delegation) String() string {
-	out, _ := yaml.Marshal(d)
-	return string(out)
+	return proto.CompactTextString(&d)
 }

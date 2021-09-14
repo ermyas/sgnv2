@@ -17,7 +17,7 @@ func (r *Relayer) isSyncer() bool {
 		log.Errorln("Get syncer err", err)
 		return false
 	}
-	return eth.Hex2Addr(syncer.EthAddress) == r.valAddr
+	return eth.Hex2Addr(syncer.EthAddress) == r.Operator.ValAddr
 }
 
 func (r *Relayer) getCurrentBlockNumber() *big.Int {

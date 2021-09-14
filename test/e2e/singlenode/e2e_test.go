@@ -45,6 +45,7 @@ func TestMain(m *testing.M) {
 	// first fund each account 100 ETH
 	addrs := []eth.Addr{
 		tc.ValEthAddrs[0],
+		tc.ValSignerAddrs[0],
 		tc.DelEthAddrs[0],
 		tc.DelEthAddrs[1],
 		tc.DelEthAddrs[2],

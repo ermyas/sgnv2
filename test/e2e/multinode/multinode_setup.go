@@ -45,6 +45,10 @@ func SetupMainchain() {
 		tc.ValEthAddrs[1],
 		tc.ValEthAddrs[2],
 		tc.ValEthAddrs[3],
+		tc.ValSignerAddrs[0],
+		tc.ValSignerAddrs[1],
+		tc.ValSignerAddrs[2],
+		tc.ValSignerAddrs[3],
 		tc.DelEthAddrs[0],
 		tc.DelEthAddrs[1],
 		tc.DelEthAddrs[2],
@@ -122,7 +126,6 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool) {
 		configFileViper.Set(common.FlagEthContractReward, tc.Contracts.Reward.Address.Hex())
 		configFileViper.Set(common.FlagEthContractViewer, tc.Contracts.Viewer.Address.Hex())
 		configFileViper.Set(common.FlagEthContractGovern, tc.Contracts.Govern.Address.Hex())
-		// TODO: different config for validator and signer
 		configFileViper.Set(common.FlagEthValidatorAddress, tc.ValEthAddrs[i].Hex())
 		err = configFileViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")

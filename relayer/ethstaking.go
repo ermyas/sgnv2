@@ -42,13 +42,13 @@ func (r *Relayer) monitorEthValidatorNotice() {
 					if err != nil {
 						log.Errorln("db Set err", err)
 					}
-					if e.ValAddr == r.valAddr {
+					if e.ValAddr == r.Operator.ValAddr {
 						if !r.isBonded() && r.shouldBondValidator() {
 							go r.bondValidator()
 						}
 					}
 				}
-				if e.ValAddr == r.valAddr {
+				if e.ValAddr == r.Operator.ValAddr {
 					log.Debug("Self sync validator params")
 					go r.selfSyncValidatorParams()
 					if e.Key == "sgn-addr" && r.isBootstrapped() {
@@ -84,7 +84,7 @@ func (r *Relayer) monitorEthValidatorStatusUpdate() {
 
 			if e.Status == eth.Bonded {
 				r.setBootstrapped()
-				if e.ValAddr == r.valAddr {
+				if e.ValAddr == r.Operator.ValAddr {
 					log.Infof("%s. Self sync bonded validator.", logmsg)
 					r.setBonded()
 					go r.selfSyncValidatorStates()
@@ -94,7 +94,7 @@ func (r *Relayer) monitorEthValidatorStatusUpdate() {
 			} else {
 				// only put unbonding or unbonded event to puller queue
 				log.Infof("%s. Put in queue", logmsg)
-				if e.ValAddr == r.valAddr {
+				if e.ValAddr == r.Operator.ValAddr {
 					r.clearBonded()
 				}
 				event := eth.NewEvent(eth.EventValidatorStatusUpdate, eLog)
@@ -133,7 +133,7 @@ func (r *Relayer) monitorEthDelegationUpdate() {
 					log.Errorln("parse event err", err2)
 					return false
 				}
-				if e.ValAddr == r.valAddr && r.shouldBondValidator() {
+				if e.ValAddr == r.Operator.ValAddr && r.shouldBondValidator() {
 					r.bondValidator()
 				}
 			}
@@ -146,7 +146,7 @@ func (r *Relayer) monitorEthDelegationUpdate() {
 }
 
 func (r *Relayer) shouldBondValidator() bool {
-	shouldBond, err := r.EthClient.Contracts.Viewer.ShouldBondValidator(&bind.CallOpts{}, r.valAddr)
+	shouldBond, err := r.EthClient.Contracts.Viewer.ShouldBondValidator(&bind.CallOpts{}, r.Operator.ValAddr)
 	if err != nil {
 		log.Errorln("Check if should bond validator err:", err)
 		return false
@@ -157,7 +157,7 @@ func (r *Relayer) shouldBondValidator() bool {
 		return false
 	}
 
-	sgnAddr, err := r.EthClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, r.valAddr)
+	sgnAddr, err := r.EthClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, r.Operator.ValAddr)
 	if err != nil {
 		log.Errorln("Get sgn addr err", err)
 		return false
@@ -192,7 +192,7 @@ func (r *Relayer) bondValidator() {
 		log.Errorln("BondValidator tx err", err)
 		return
 	}
-	log.Infof("Bond validator %x on mainchain", r.valAddr)
+	log.Infof("Bond validator %x on mainchain", r.Operator.ValAddr)
 }
 
 func (r *Relayer) selfSyncValidatorStates() {
@@ -213,12 +213,12 @@ func (r *Relayer) selfSyncValidator(options ValSyncOptions) {
 	if options.states {
 		valFound := r.waitForValidatorFound()
 		if !valFound {
-			log.Errorf("Validator %x not found", r.valAddr)
+			log.Errorf("Validator %x not found", r.Operator.ValAddr)
 			return
 		}
 	}
 	for i = 1; i < 5; i++ {
-		updated := r.SyncValidator(r.EthClient.Address, r.getCurrentBlockNumber(), options)
+		updated := r.SyncValidator(r.Operator.ValAddr, r.getCurrentBlockNumber(), options)
 		if updated {
 			log.Debugln("Self validator synced", options)
 			return
@@ -245,9 +245,9 @@ func (r *Relayer) waitForSgnAccountFound() bool {
 func (r *Relayer) waitForValidatorFound() bool {
 	var valFound bool
 	for i := 1; i < 10; i++ {
-		storeVal, _ := validatorcli.QueryValidator(r.Transactor.CliCtx, r.valAddr.Hex())
+		storeVal, _ := validatorcli.QueryValidator(r.Transactor.CliCtx, r.Operator.ValAddr.Hex())
 		if storeVal != nil {
-			log.Debugf("Validator %x found", r.valAddr)
+			log.Debugf("Validator %x found", r.Operator.ValAddr)
 			valFound = true
 			break
 		}

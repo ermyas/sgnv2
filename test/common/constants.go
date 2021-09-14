@@ -64,6 +64,18 @@ var (
 		eth.Hex2Addr("00290a43e5b2b151d530845b2d5a818240bc7c70"),
 		eth.Hex2Addr("003ea363bccfd7d14285a34a6b1deb862df0bc84"),
 	}
+	ValSignerKs = [...]string{
+		"../../keys/vsigner0.json",
+		"../../keys/vsigner1.json",
+		"../../keys/vsigner2.json",
+		"../../keys/vsigner3.json",
+	}
+	ValSignerAddrs = [...]eth.Addr{
+		eth.Hex2Addr("00a99dc08476bf4e0f8d68f32fcaa991b7836464"),
+		eth.Hex2Addr("00bee3477b0d08217642a3b53704a2f716571070"),
+		eth.Hex2Addr("00cee31b12d213987db5ea478aec02ad6f2ba3b6"),
+		eth.Hex2Addr("00de0c0fb32979b269686785bcf79d948d9a2d0e"),
+	}
 
 	// delegators
 	DelEthKs = [...]string{
@@ -79,7 +91,7 @@ var (
 		eth.Hex2Addr("d3f716da96b893d4bcefa489f65e4b3e9a3dd3e6"),
 	}
 
-	// state channel clients
+	// clients
 	ClientEthKs = [...]string{
 		"../../keys/cethks0.json",
 		"../../keys/cethks1.json",

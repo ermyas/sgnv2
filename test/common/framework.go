@@ -18,6 +18,7 @@ var (
 	EthClient     *ethclient.Client
 	EtherBaseAuth *bind.TransactOpts
 	ValAuths      []*bind.TransactOpts
+	SignerAuths   []*bind.TransactOpts
 	DelAuths      []*bind.TransactOpts
 
 	Contracts    *eth.Contracts

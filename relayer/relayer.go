@@ -22,7 +22,6 @@ type Relayer struct {
 	db              dbm.DB
 	ethMonitor      *monitor.Service
 	verifiedUpdates *bigcache.BigCache
-	valAddr         eth.Addr
 	sgnAcct         sdk.AccAddress
 	bonded          bool
 	bootstrapped    bool // SGN is bootstrapped with at least one bonded validator on the eth contract
@@ -44,7 +43,7 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 	ethMonitor.Init()
 
 	validatorStatus, err :=
-		operator.EthClient.Contracts.Staking.GetValidatorStatus(&bind.CallOpts{}, operator.EthClient.Address)
+		operator.EthClient.Contracts.Staking.GetValidatorStatus(&bind.CallOpts{}, operator.ValAddr)
 	if err != nil {
 		log.Fatalln("GetValidatorStatus err", err)
 	}
@@ -69,7 +68,6 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 		db:              db,
 		ethMonitor:      ethMonitor,
 		verifiedUpdates: verifiedUpdates,
-		valAddr:         eth.Hex2Addr(viper.GetString(common.FlagEthValidatorAddress)),
 		bonded:          validatorStatus == eth.Bonded,
 		bootstrapped:    bondedValNum.Uint64() > 0,
 		startEthBlock:   startEthBlock,

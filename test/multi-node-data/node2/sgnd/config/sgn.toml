@@ -4,7 +4,7 @@
 block_delay = 1
 chain_id = 883
 gateway = "http://192.168.10.1:8545"
-signer_keystore = "./keys/vethks2.json"
+signer_keystore = "./keys/vsigner2.json"
 signer_passphrase = ""
 validator_address = ""
 poll_interval = 1

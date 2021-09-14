@@ -52,12 +52,12 @@ func stakingTest(t *testing.T) {
 	}
 	totalAmts := tc.NewBigInt(11, 18) // vAmt + dAmts
 
-	err := tc.InitializeValidator(tc.ValAuths[0], tc.ValSgnAddrs[0], vAmt, eth.CommissionRate(0.02))
+	err := tc.InitializeValidator(tc.ValAuths[0], tc.ValSignerAddrs[0], tc.ValSgnAddrs[0], vAmt, eth.CommissionRate(0.02))
 	require.NoError(t, err, "failed to initialize validator")
 	tc.Sleep(5)
 	expVal := &types.Validator{
 		EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[0]),
-		EthSigner:       eth.Addr2Hex(tc.ValEthAddrs[0]),
+		EthSigner:       eth.Addr2Hex(tc.ValSignerAddrs[0]),
 		Status:          eth.Bonded,
 		SgnAddress:      tc.ValSgnAddrs[0].String(),
 		Tokens:          sdk.NewIntFromBigInt(vAmt),

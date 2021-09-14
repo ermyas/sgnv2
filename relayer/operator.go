@@ -23,6 +23,7 @@ import (
 
 type Operator struct {
 	EthClient  *eth.EthClient
+	ValAddr    eth.Addr
 	Transactor *transactor.Transactor
 	PubKeyAny  *codectypes.Any
 }
@@ -73,6 +74,7 @@ func NewOperator(
 
 	return &Operator{
 		EthClient:  ethClient,
+		ValAddr:    eth.Hex2Addr(viper.GetString(common.FlagEthValidatorAddress)),
 		Transactor: txr,
 		PubKeyAny:  pubKeyAny,
 	}, nil
@@ -143,8 +145,7 @@ func (o *Operator) SyncValidatorSgnAddrMsg(valAddr eth.Addr) (*synctypes.Propose
 
 func (o *Operator) SyncValidatorParamsMsg(valAddr eth.Addr) (*synctypes.ProposeUpdate, bool /*updated*/) {
 	logmsg := fmt.Sprintf("Generate sync validator params msg, val %x", valAddr)
-	// TODO: separate signer and val addr
-	if o.EthClient.Address != valAddr {
+	if o.ValAddr != valAddr {
 		log.Errorf("%s. Params sync can only be trigger by self validator", logmsg)
 		return nil, false
 	}
@@ -229,8 +230,8 @@ func (o *Operator) SyncDelegatorMsg(valAddr, delAddr eth.Addr) *synctypes.Propos
 	}
 
 	updateDel := stakingtypes.Delegation{
-		DelegatorAddress: delAddr.Hex(),
-		ValidatorAddress: valAddr.Hex(),
+		DelegatorAddress: eth.Addr2Hex(delAddr),
+		ValidatorAddress: eth.Addr2Hex(valAddr),
 		Shares:           sdk.NewIntFromBigInt(ethDel.Shares),
 	}
 

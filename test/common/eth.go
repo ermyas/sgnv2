@@ -42,7 +42,13 @@ func SetupEthClients() {
 		}
 		ValAuths = append(ValAuths, auth)
 	}
-
+	for i := 0; i < len(ValSignerKs); i++ {
+		_, auth, err = GetAuth(ValSignerKs[i])
+		if err != nil {
+			log.Fatal(err)
+		}
+		SignerAuths = append(SignerAuths, auth)
+	}
 	for i := 0; i < len(DelEthKs); i++ {
 		_, auth, err = GetAuth(DelEthKs[i])
 		if err != nil {
@@ -164,7 +170,7 @@ func FundAddrsErc20(erc20Addr eth.Addr, recipients []eth.Addr, amount *big.Int) 
 	return err
 }
 
-func InitializeValidator(auth *bind.TransactOpts, sgnAddr sdk.AccAddress, minSelfDelegation *big.Int, commissionRate uint64) error {
+func InitializeValidator(auth *bind.TransactOpts, signerAddr eth.Addr, sgnAddr sdk.AccAddress, minSelfDelegation *big.Int, commissionRate uint64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 
@@ -178,7 +184,7 @@ func InitializeValidator(auth *bind.TransactOpts, sgnAddr sdk.AccAddress, minSel
 	}
 	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "Approve")
 
-	tx, err = Contracts.Staking.InitializeValidator(auth, auth.From, minSelfDelegation, commissionRate)
+	tx, err = Contracts.Staking.InitializeValidator(auth, signerAddr, minSelfDelegation, commissionRate)
 	if err != nil {
 		return err
 	}

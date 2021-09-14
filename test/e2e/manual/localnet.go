@@ -77,7 +77,7 @@ func main() {
 			if err := configFileViper.ReadInConfig(); err != nil {
 				log.Error(err)
 			}
-			ksPath, _ := filepath.Abs(fmt.Sprintf("./data/node%d/keys/vethks%d.json", i, i))
+			ksPath, _ := filepath.Abs(fmt.Sprintf("./data/node%d/keys/vsigner%d.json", i, i))
 			configFileViper.Set(common.FlagEthSignerKeystore, ksPath)
 			configFileViper.Set(common.FlagEthGateway, tc.LocalGeth)
 			configFileViper.Set(common.FlagSgnNodeURI, tc.SgnNodeURIs[i])
@@ -168,7 +168,7 @@ func addValidators() {
 
 	for i := 0; i < 4; i++ {
 		log.Infoln("Adding validator ", i, tc.ValEthAddrs[i].Hex())
-		err := tc.InitializeValidator(tc.ValAuths[i], tc.ValSgnAddrs[i], amts[i], commissions[i])
+		err := tc.InitializeValidator(tc.ValAuths[i], tc.ValSignerAddrs[i], tc.ValSgnAddrs[i], amts[i], commissions[i])
 		if err != nil {
 			log.Errorln("failed to initialize validator: ", err)
 		}

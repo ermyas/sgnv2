@@ -44,12 +44,12 @@ func cbridgeTest(t *testing.T) {
 	)
 
 	amt := big.NewInt(5e18)
-	err := tc.InitializeValidator(tc.ValAuths[0], tc.ValSgnAddrs[0], amt, eth.CommissionRate(0.02))
+	err := tc.InitializeValidator(tc.ValAuths[0], tc.ValSignerAddrs[0], tc.ValSgnAddrs[0], amt, eth.CommissionRate(0.02))
 	require.NoError(t, err, "failed to initialize validator")
 	tc.Sleep(5)
 	expVal := &types.Validator{
 		EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[0]),
-		EthSigner:       eth.Addr2Hex(tc.ValEthAddrs[0]),
+		EthSigner:       eth.Addr2Hex(tc.ValSignerAddrs[0]),
 		Status:          eth.Bonded,
 		SgnAddress:      tc.ValSgnAddrs[0].String(),
 		Tokens:          sdk.NewIntFromBigInt(amt),

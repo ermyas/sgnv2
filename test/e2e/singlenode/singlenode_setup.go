@@ -2,7 +2,6 @@ package singlenode
 
 import (
 	"context"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"os/exec"
@@ -58,7 +57,7 @@ func updateSgnConfig() {
 	err := configFileViper.ReadInConfig()
 	tc.ChkErr(err, "failed to read config")
 
-	keystore, err := filepath.Abs("../../keys/vethks0.json")
+	keystore, err := filepath.Abs("../../keys/vsigner0.json")
 	tc.ChkErr(err, "get keystore path")
 
 	configFileViper.Set(common.FlagEthGateway, tc.LocalGeth)
@@ -69,12 +68,7 @@ func updateSgnConfig() {
 	configFileViper.Set(common.FlagEthContractViewer, tc.Contracts.Viewer.Address.Hex())
 	configFileViper.Set(common.FlagEthContractGovern, tc.Contracts.Govern.Address.Hex())
 	configFileViper.Set(common.FlagEthSignerKeystore, keystore)
-	// TODO: different config for validator and signer
-	ksbytes, err := ioutil.ReadFile(keystore)
-	tc.ChkErr(err, "failed to read keystore config")
-	ksAddrStr, err := eth.GetAddressFromKeystore(ksbytes)
-	tc.ChkErr(err, "failed get addr from keystore")
-	configFileViper.Set(common.FlagEthValidatorAddress, ksAddrStr)
+	configFileViper.Set(common.FlagEthValidatorAddress, eth.Addr2Hex(tc.ValEthAddrs[0]))
 	err = configFileViper.WriteConfig()
 	tc.ChkErr(err, "failed to write config")
 	// Update global viper
