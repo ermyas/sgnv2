@@ -64,7 +64,7 @@ func AddGenesisValidatorCmd(defaultNodeHome string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			validator := stakingtypes.Validator{
+			initialValidator := stakingtypes.Validator{
 				EthAddress:      viper.GetString(common.FlagEthValidatorAddress),
 				EthSigner:       eth.Addr2Hex(ethKey.Address),
 				SgnAddress:      key.GetAddress().String(),
@@ -73,7 +73,7 @@ func AddGenesisValidatorCmd(defaultNodeHome string) *cobra.Command {
 				Tokens:          tokens,
 				DelegatorShares: tokens,
 			}
-			log.Infoln("validator: ", validator.String())
+			log.Infoln("validator: ", initialValidator.String())
 
 			genFile := config.GenesisFile()
 			appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
@@ -81,14 +81,14 @@ func AddGenesisValidatorCmd(defaultNodeHome string) *cobra.Command {
 				return fmt.Errorf("failed to unmarshal genesis state: %w", err)
 			}
 
-			valGenState := stakingtypes.GetGenesisStateFromAppState(cdc, appState)
-			valGenState.Validators = append(valGenState.Validators, validator)
+			stakingGenState := stakingtypes.GetGenesisStateFromAppState(cdc, appState)
+			stakingGenState.Validators = append(stakingGenState.Validators, initialValidator)
 
-			valGenStateBz, err := cdc.MarshalJSON(valGenState)
+			stakingGenStateBz, err := cdc.MarshalJSON(stakingGenState)
 			if err != nil {
-				return fmt.Errorf("failed to marshal auth genesis state: %w", err)
+				return fmt.Errorf("failed to marshal staking genesis state: %w", err)
 			}
-			appState[stakingtypes.ModuleName] = valGenStateBz
+			appState[stakingtypes.ModuleName] = stakingGenStateBz
 
 			appStateJSON, err := json.Marshal(appState)
 			if err != nil {

@@ -1,5 +1,5 @@
 {
-  "genesis_time": "2021-09-14T08:21:09.398307Z",
+  "genesis_time": "2021-09-14T06:21:35.075828Z",
   "chain_id": "sgn-localnet-1000",
   "initial_height": "1",
   "consensus_params": {
@@ -14,7 +14,9 @@
       "max_bytes": "1048576"
     },
     "validator": {
-      "pub_key_types": ["ed25519"]
+      "pub_key_types": [
+        "ed25519"
+      ]
     },
     "version": {}
   },
@@ -109,7 +111,7 @@
       "validators": [
         {
           "eth_address": "00078b31fa8b29a76bce074b5ea0d515a6aeaee7",
-          "eth_signer": "00a99dc08476bf4e0f8d68f32fcaa991b7836464",
+          "eth_signer": "00078b31fa8b29a76bce074b5ea0d515a6aeaee7",
           "sgn_address": "sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe",
           "consensus_pubkey": {
             "@type": "/cosmos.crypto.ed25519.PubKey",

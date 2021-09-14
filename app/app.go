@@ -11,6 +11,9 @@ import (
 	appparams "github.com/celer-network/sgn-v2/app/params"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/relayer"
+	distr "github.com/celer-network/sgn-v2/x/distribution"
+	distrkeeper "github.com/celer-network/sgn-v2/x/distribution/keeper"
+	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
 	"github.com/celer-network/sgn-v2/x/gov"
 	govclient "github.com/celer-network/sgn-v2/x/gov/client"
 	govkeeper "github.com/celer-network/sgn-v2/x/gov/keeper"
@@ -77,6 +80,7 @@ var (
 		params.AppModuleBasic{},
 		upgrade.AppModuleBasic{},
 
+		distr.AppModuleBasic{},
 		gov.NewAppModuleBasic(govclient.ParamProposalHandler, govclient.UpgradeProposalHandler),
 		sync.AppModule{},
 		staking.AppModuleBasic{},
@@ -85,6 +89,7 @@ var (
 	// module account permissions
 	maccPerms = map[string][]string{
 		authtypes.FeeCollectorName: nil,
+		distrtypes.ModuleName:      nil,
 	}
 
 	// module accounts that are allowed to receive tokens
@@ -115,6 +120,7 @@ type SgnApp struct {
 	BankKeeper    bankkeeper.Keeper
 	UpgradeKeeper upgradekeeper.Keeper
 	ParamsKeeper  paramskeeper.Keeper
+	DistrKeeper   distrkeeper.Keeper
 	GovKeeper     govkeeper.Keeper
 	SyncKeeper    synckeeper.Keeper
 	StakingKeeper stakingkeeper.Keeper
@@ -183,7 +189,7 @@ func NewSgnApp(
 
 	keys := sdk.NewKVStoreKeys(
 		authtypes.StoreKey, banktypes.StoreKey,
-		paramstypes.StoreKey, upgradetypes.StoreKey,
+		paramstypes.StoreKey, upgradetypes.StoreKey, distrtypes.StoreKey,
 		govtypes.StoreKey, synctypes.StoreKey, stakingtypes.StoreKey,
 	)
 	tKeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
@@ -215,11 +221,15 @@ func NewSgnApp(
 	app.UpgradeKeeper = upgradekeeper.NewKeeper(skipUpgradeHeights, keys[upgradetypes.StoreKey], appCodec, DefaultNodeHome, app.BaseApp)
 
 	// Initialize SGN-specific keepers
-	app.StakingKeeper = stakingkeeper.NewKeeper(
+	stakingKeeper := stakingkeeper.NewKeeper(
 		appCodec, keys[stakingtypes.StoreKey], app.AccountKeeper, app.GetSubspace(stakingtypes.ModuleName),
 	)
+	app.DistrKeeper = distrkeeper.NewKeeper(
+		appCodec, keys[distrtypes.StoreKey], app.GetSubspace(distrtypes.ModuleName), app.AccountKeeper, app.BankKeeper,
+		&stakingKeeper, authtypes.FeeCollectorName, app.BlockedAddrs(),
+	)
 	app.SyncKeeper = synckeeper.NewKeeper(
-		appCodec, keys[synctypes.StoreKey], app.StakingKeeper, app.GetSubspace(synctypes.ModuleName),
+		appCodec, keys[synctypes.StoreKey], stakingKeeper, app.GetSubspace(synctypes.ModuleName),
 	)
 	govRouter := govtypes.NewRouter()
 	govRouter.AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
@@ -229,9 +239,12 @@ func NewSgnApp(
 		app.AppCodec(),
 		keys[govtypes.StoreKey],
 		app.GetSubspace(govtypes.ModuleName),
-		app.StakingKeeper,
+		stakingKeeper,
 		govRouter,
 	)
+	// register the staking hooks
+	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
+	app.StakingKeeper = *stakingKeeper.SetHooks(app.DistrKeeper.Hooks())
 
 	/****  Module Options ****/
 
@@ -243,6 +256,7 @@ func NewSgnApp(
 		upgrade.NewAppModule(app.UpgradeKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 
+		distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
 		staking.NewAppModule(app.StakingKeeper),
 		gov.NewAppModule(app.GovKeeper, app.AccountKeeper),
 		sync.NewAppModule(app.SyncKeeper),
@@ -254,6 +268,8 @@ func NewSgnApp(
 	// NOTE: staking module is required if HistoricalEntries param > 0
 	app.mm.SetOrderBeginBlockers(
 		upgradetypes.ModuleName,
+		stakingtypes.ModuleName,
+		distrtypes.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
 		synctypes.ModuleName, govtypes.ModuleName, stakingtypes.ModuleName,
@@ -268,6 +284,7 @@ func NewSgnApp(
 	app.mm.SetOrderInitGenesis(
 		authtypes.ModuleName,
 		banktypes.ModuleName,
+		distrtypes.ModuleName,
 		stakingtypes.ModuleName,
 		govtypes.ModuleName,
 		synctypes.ModuleName,
@@ -460,6 +477,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(authtypes.ModuleName)
 	paramsKeeper.Subspace(banktypes.ModuleName)
 
+	paramsKeeper.Subspace(distrtypes.ModuleName)
 	paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable())
 	paramsKeeper.Subspace(stakingtypes.ModuleName).WithKeyTable(stakingkeeper.ParamKeyTable())
 	paramsKeeper.Subspace(synctypes.ModuleName).WithKeyTable(synckeeper.ParamKeyTable())

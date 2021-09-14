@@ -4,12 +4,14 @@ go 1.16
 
 require (
 	github.com/allegro/bigcache v1.2.1
+	github.com/armon/go-metrics v0.3.9
 	github.com/celer-network/goutils v0.1.33
 	github.com/cosmos/cosmos-sdk v0.44.0
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/ethereum/go-ethereum v1.10.8
 	github.com/gammazero/deque v0.1.0
 	github.com/gogo/protobuf v1.3.3
+	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0

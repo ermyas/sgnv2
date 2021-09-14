@@ -42,6 +42,17 @@ func NewKeeper(
 	}
 }
 
+// Set the validator hooks
+func (k *Keeper) SetHooks(sh types.StakingHooks) *Keeper {
+	if k.hooks != nil {
+		panic("cannot set validator hooks twice")
+	}
+
+	k.hooks = sh
+
+	return k
+}
+
 func (k Keeper) InitAccount(ctx sdk.Context, accAddress sdk.AccAddress) error {
 	err := sdk.VerifyAddressFormat(accAddress)
 	if err != nil {

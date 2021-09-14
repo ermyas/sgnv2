@@ -15,6 +15,7 @@ func InitGenesis(ctx sdk.Context, keeper keeper.Keeper, data *types.GenesisState
 	}
 
 	for _, validator := range data.Validators {
+		keeper.SetValidatorParams(ctx, &validator, true)
 		keeper.SetValidatorStates(ctx, &validator)
 	}
 
