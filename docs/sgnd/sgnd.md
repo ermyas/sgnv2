@@ -11,6 +11,7 @@ SGN App
 ### SEE ALSO
 
 * [sgnd add-genesis-account](sgnd_add-genesis-account.md)	 - Add a genesis account to genesis.json
+* [sgnd add-genesis-validator](sgnd_add-genesis-validator.md)	 - Add a genesis validator to genesis.json
 * [sgnd collect-gentxs](sgnd_collect-gentxs.md)	 - Collect genesis txs and output a genesis.json file
 * [sgnd debug](sgnd_debug.md)	 - Tool for helping with debugging your application
 * [sgnd export](sgnd_export.md)	 - Export state to JSON
