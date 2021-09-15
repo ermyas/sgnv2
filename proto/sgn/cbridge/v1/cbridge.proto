@@ -6,21 +6,19 @@ import "gogoproto/gogo.proto";
 option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
 
 message Params {
-  MultiChainAsset multi_chain_asset = 1[(gogoproto.nullable) = false];
+  MultiChainAssetParam multi_chain_asset_param = 1[(gogoproto.nullable) = false];
 }
 
-message MultiChainAsset {
-  map<string, ChainAsset> symbol_asset_map = 1[(gogoproto.nullable) = false]; // token_symbol -> ChainAsset
+message MultiChainAssetParam {
+  repeated ChainAsset chain_asset = 1 [(gogoproto.nullable) = false];
 }
 
 message ChainAsset {
-  map<uint64, Asset> chain_asset_map = 1[(gogoproto.nullable) = false]; // chain_id -> Asset
-}
-
-message Asset {
-  string token = 1; // token addr
-  uint64 decimal = 2;
-  string max_fee_amount = 3; // max fee, use string to avoid uint64 now enough for 18 decimal tokens
+  uint64 chain_id = 1;
+  string token_symbol = 2;
+  string token_addr = 3;
+  uint64 decimal = 4;
+  string max_fee_amount = 5; // max fee, use string to avoid uint64 now enough for 18 decimal tokens
 }
 
 // cbridge onchain event

@@ -1,0 +1,14 @@
+{
+  "title": "Cbridge Param Change",
+  "description": "Update Cbridge params",
+  "changes": [
+    {
+      "subspace": "cbridge",
+      "key": "MultiChainAssetParam",
+      "value": {
+        "chain_asset": [{"chain_id":"3","token_symbol":"DAI","token_addr":"0xcc4C6bC9540B8c82252c35CFE8D601E93162Bc50","decimal":"18","max_fee_amount":"200"}]
+      }
+    }
+  ],
+  "deposit": "100000000"
+}

@@ -7,25 +7,25 @@ import (
 )
 
 var (
-	KeyMultiChainAsset     = []byte("MultiChainAsset")
-	DefaultMultiChainAsset = MultiChainAsset{}
+	KeyMultiChainAsset     = []byte("MultiChainAssetParam")
+	DefaultMultiChainAsset = MultiChainAssetParam{}
 )
 
 var _ sdk_params.ParamSet = (*Params)(nil)
 
 // NewParams creates a new Params instance
 func NewParams(
-	multiChainAsset MultiChainAsset) Params {
+	multiChainAssetParam MultiChainAssetParam) Params {
 
 	return Params{
-		MultiChainAsset: multiChainAsset,
+		MultiChainAssetParam: multiChainAssetParam,
 	}
 }
 
 // Implements params.ParamSet
 func (p *Params) ParamSetPairs() sdk_params.ParamSetPairs {
 	return sdk_params.ParamSetPairs{
-		sdk_params.NewParamSetPair(KeyMultiChainAsset, p.GetMultiChainAsset(), validateMultiChainAsset),
+		sdk_params.NewParamSetPair(KeyMultiChainAsset, p.GetMultiChainAssetParam(), validateMultiChainAsset),
 	}
 }
 
@@ -36,18 +36,18 @@ func DefaultParams() Params {
 
 // validate a set of params
 func (p *Params) Validate() error {
-	if len(p.GetMultiChainAsset().SymbolAssetMap) == 0 {
+	if len(p.GetMultiChainAssetParam().ChainAsset) == 0 {
 		return fmt.Errorf("validator parameter multiChainAsset must be positive")
 	}
 	return nil
 }
 
 func validateMultiChainAsset(i interface{}) error {
-	v, ok := i.(MultiChainAsset)
+	v, ok := i.(MultiChainAssetParam)
 	if !ok {
 		return fmt.Errorf("invalid parameter type: %T", i)
 	}
-	if len(v.SymbolAssetMap) == 0 {
+	if len(v.ChainAsset) == 0 {
 		return fmt.Errorf("validator parameter multiChainAsset must be positive: %+v", v)
 	}
 	return nil

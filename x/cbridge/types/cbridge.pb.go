@@ -62,7 +62,7 @@ func (EventType) EnumDescriptor() ([]byte, []int) {
 }
 
 type Params struct {
-	MultiChainAsset MultiChainAsset `protobuf:"bytes,1,opt,name=multi_chain_asset,json=multiChainAsset,proto3" json:"multi_chain_asset"`
+	MultiChainAssetParam MultiChainAssetParam `protobuf:"bytes,1,opt,name=multi_chain_asset_param,json=multiChainAssetParam,proto3" json:"multi_chain_asset_param"`
 }
 
 func (m *Params) Reset()         { *m = Params{} }
@@ -98,29 +98,29 @@ func (m *Params) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Params proto.InternalMessageInfo
 
-func (m *Params) GetMultiChainAsset() MultiChainAsset {
+func (m *Params) GetMultiChainAssetParam() MultiChainAssetParam {
 	if m != nil {
-		return m.MultiChainAsset
+		return m.MultiChainAssetParam
 	}
-	return MultiChainAsset{}
+	return MultiChainAssetParam{}
 }
 
-type MultiChainAsset struct {
-	SymbolAssetMap map[string]ChainAsset `protobuf:"bytes,1,rep,name=symbol_asset_map,json=symbolAssetMap,proto3" json:"symbol_asset_map" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+type MultiChainAssetParam struct {
+	ChainAsset []ChainAsset `protobuf:"bytes,1,rep,name=chain_asset,json=chainAsset,proto3" json:"chain_asset"`
 }
 
-func (m *MultiChainAsset) Reset()         { *m = MultiChainAsset{} }
-func (m *MultiChainAsset) String() string { return proto.CompactTextString(m) }
-func (*MultiChainAsset) ProtoMessage()    {}
-func (*MultiChainAsset) Descriptor() ([]byte, []int) {
+func (m *MultiChainAssetParam) Reset()         { *m = MultiChainAssetParam{} }
+func (m *MultiChainAssetParam) String() string { return proto.CompactTextString(m) }
+func (*MultiChainAssetParam) ProtoMessage()    {}
+func (*MultiChainAssetParam) Descriptor() ([]byte, []int) {
 	return fileDescriptor_ea88343271b63cf0, []int{1}
 }
-func (m *MultiChainAsset) XXX_Unmarshal(b []byte) error {
+func (m *MultiChainAssetParam) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *MultiChainAsset) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *MultiChainAssetParam) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_MultiChainAsset.Marshal(b, m, deterministic)
+		return xxx_messageInfo_MultiChainAssetParam.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -130,27 +130,31 @@ func (m *MultiChainAsset) XXX_Marshal(b []byte, deterministic bool) ([]byte, err
 		return b[:n], nil
 	}
 }
-func (m *MultiChainAsset) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MultiChainAsset.Merge(m, src)
+func (m *MultiChainAssetParam) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MultiChainAssetParam.Merge(m, src)
 }
-func (m *MultiChainAsset) XXX_Size() int {
+func (m *MultiChainAssetParam) XXX_Size() int {
 	return m.Size()
 }
-func (m *MultiChainAsset) XXX_DiscardUnknown() {
-	xxx_messageInfo_MultiChainAsset.DiscardUnknown(m)
+func (m *MultiChainAssetParam) XXX_DiscardUnknown() {
+	xxx_messageInfo_MultiChainAssetParam.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_MultiChainAsset proto.InternalMessageInfo
+var xxx_messageInfo_MultiChainAssetParam proto.InternalMessageInfo
 
-func (m *MultiChainAsset) GetSymbolAssetMap() map[string]ChainAsset {
+func (m *MultiChainAssetParam) GetChainAsset() []ChainAsset {
 	if m != nil {
-		return m.SymbolAssetMap
+		return m.ChainAsset
 	}
 	return nil
 }
 
 type ChainAsset struct {
-	ChainAssetMap map[uint64]Asset `protobuf:"bytes,1,rep,name=chain_asset_map,json=chainAssetMap,proto3" json:"chain_asset_map" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	ChainId      uint64 `protobuf:"varint,1,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
+	TokenSymbol  string `protobuf:"bytes,2,opt,name=token_symbol,json=tokenSymbol,proto3" json:"token_symbol,omitempty"`
+	TokenAddr    string `protobuf:"bytes,3,opt,name=token_addr,json=tokenAddr,proto3" json:"token_addr,omitempty"`
+	Decimal      uint64 `protobuf:"varint,4,opt,name=decimal,proto3" json:"decimal,omitempty"`
+	MaxFeeAmount string `protobuf:"bytes,5,opt,name=max_fee_amount,json=maxFeeAmount,proto3" json:"max_fee_amount,omitempty"`
 }
 
 func (m *ChainAsset) Reset()         { *m = ChainAsset{} }
@@ -186,67 +190,35 @@ func (m *ChainAsset) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ChainAsset proto.InternalMessageInfo
 
-func (m *ChainAsset) GetChainAssetMap() map[uint64]Asset {
+func (m *ChainAsset) GetChainId() uint64 {
 	if m != nil {
-		return m.ChainAssetMap
+		return m.ChainId
 	}
-	return nil
+	return 0
 }
 
-type Asset struct {
-	Token        string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
-	Decimal      uint64 `protobuf:"varint,2,opt,name=decimal,proto3" json:"decimal,omitempty"`
-	MaxFeeAmount string `protobuf:"bytes,3,opt,name=max_fee_amount,json=maxFeeAmount,proto3" json:"max_fee_amount,omitempty"`
-}
-
-func (m *Asset) Reset()         { *m = Asset{} }
-func (m *Asset) String() string { return proto.CompactTextString(m) }
-func (*Asset) ProtoMessage()    {}
-func (*Asset) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ea88343271b63cf0, []int{3}
-}
-func (m *Asset) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Asset) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Asset.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *Asset) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Asset.Merge(m, src)
-}
-func (m *Asset) XXX_Size() int {
-	return m.Size()
-}
-func (m *Asset) XXX_DiscardUnknown() {
-	xxx_messageInfo_Asset.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Asset proto.InternalMessageInfo
-
-func (m *Asset) GetToken() string {
+func (m *ChainAsset) GetTokenSymbol() string {
 	if m != nil {
-		return m.Token
+		return m.TokenSymbol
 	}
 	return ""
 }
 
-func (m *Asset) GetDecimal() uint64 {
+func (m *ChainAsset) GetTokenAddr() string {
+	if m != nil {
+		return m.TokenAddr
+	}
+	return ""
+}
+
+func (m *ChainAsset) GetDecimal() uint64 {
 	if m != nil {
 		return m.Decimal
 	}
 	return 0
 }
 
-func (m *Asset) GetMaxFeeAmount() string {
+func (m *ChainAsset) GetMaxFeeAmount() string {
 	if m != nil {
 		return m.MaxFeeAmount
 	}
@@ -256,49 +228,42 @@ func (m *Asset) GetMaxFeeAmount() string {
 func init() {
 	proto.RegisterEnum("sgn.cbridge.v1.EventType", EventType_name, EventType_value)
 	proto.RegisterType((*Params)(nil), "sgn.cbridge.v1.Params")
-	proto.RegisterType((*MultiChainAsset)(nil), "sgn.cbridge.v1.MultiChainAsset")
-	proto.RegisterMapType((map[string]ChainAsset)(nil), "sgn.cbridge.v1.MultiChainAsset.SymbolAssetMapEntry")
+	proto.RegisterType((*MultiChainAssetParam)(nil), "sgn.cbridge.v1.MultiChainAssetParam")
 	proto.RegisterType((*ChainAsset)(nil), "sgn.cbridge.v1.ChainAsset")
-	proto.RegisterMapType((map[uint64]Asset)(nil), "sgn.cbridge.v1.ChainAsset.ChainAssetMapEntry")
-	proto.RegisterType((*Asset)(nil), "sgn.cbridge.v1.Asset")
 }
 
 func init() { proto.RegisterFile("sgn/cbridge/v1/cbridge.proto", fileDescriptor_ea88343271b63cf0) }
 
 var fileDescriptor_ea88343271b63cf0 = []byte{
-	// 499 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x93, 0xcf, 0x6e, 0xd3, 0x40,
-	0x10, 0xc6, 0xb3, 0xcd, 0x1f, 0x9a, 0x69, 0x9b, 0xb8, 0x4b, 0x91, 0xa2, 0x08, 0xb9, 0x55, 0xc4,
-	0xa1, 0x02, 0xc5, 0xa6, 0xe9, 0x05, 0x71, 0x4b, 0xa9, 0x91, 0x22, 0xa5, 0x11, 0x24, 0x55, 0x2b,
-	0xa8, 0x22, 0x6b, 0xe3, 0x2c, 0x8e, 0x95, 0xec, 0xda, 0x78, 0x37, 0x4e, 0xfc, 0x16, 0x3c, 0x13,
-	0xa7, 0x1e, 0x7b, 0x41, 0xe2, 0x84, 0x50, 0xf2, 0x22, 0xc8, 0x76, 0x03, 0x4e, 0x0a, 0xe2, 0xf6,
-	0xed, 0xcc, 0xb7, 0xf3, 0xed, 0x6f, 0xa5, 0x81, 0xa7, 0xc2, 0xe6, 0xba, 0x35, 0xf0, 0x9d, 0xa1,
-	0x4d, 0xf5, 0xe0, 0x64, 0x25, 0x35, 0xcf, 0x77, 0xa5, 0x8b, 0x4b, 0xc2, 0xe6, 0xda, 0xaa, 0x14,
-	0x9c, 0x54, 0x0f, 0x6c, 0xd7, 0x76, 0xe3, 0x96, 0x1e, 0xa9, 0xc4, 0x55, 0xbb, 0x81, 0xc2, 0x3b,
-	0xe2, 0x13, 0x26, 0xf0, 0x7b, 0xd8, 0x67, 0xd3, 0x89, 0x74, 0x4c, 0x6b, 0x44, 0x1c, 0x6e, 0x12,
-	0x21, 0xa8, 0xac, 0xa0, 0x23, 0x74, 0xbc, 0xd3, 0x38, 0xd4, 0xd6, 0x67, 0x69, 0x17, 0x91, 0xf1,
-	0x4d, 0xe4, 0x6b, 0x46, 0xb6, 0xb3, 0xdc, 0xed, 0x8f, 0xc3, 0x4c, 0xb7, 0xcc, 0xd6, 0xcb, 0xb5,
-	0x6f, 0x08, 0xca, 0x1b, 0x56, 0x6c, 0x81, 0x22, 0x42, 0x36, 0x70, 0x27, 0x49, 0x82, 0xc9, 0x88,
-	0x57, 0x41, 0x47, 0xd9, 0xe3, 0x9d, 0xc6, 0xe9, 0x7f, 0x52, 0xb4, 0x5e, 0x7c, 0x2f, 0xd6, 0x17,
-	0xc4, 0x33, 0xb8, 0xf4, 0xc3, 0xfb, 0xe4, 0x92, 0x58, 0x6b, 0x55, 0xfb, 0xf0, 0xf8, 0x2f, 0x66,
-	0xac, 0x40, 0x76, 0x4c, 0xc3, 0x18, 0xaa, 0xd8, 0x8d, 0x24, 0x7e, 0x09, 0xf9, 0x80, 0x4c, 0xa6,
-	0xb4, 0xb2, 0x15, 0x83, 0x56, 0x37, 0x9f, 0xf0, 0x27, 0xbd, 0x9b, 0x18, 0x5f, 0x6f, 0xbd, 0x42,
-	0xb5, 0xaf, 0x08, 0x20, 0x85, 0x74, 0x03, 0xe5, 0xd4, 0x9f, 0xa5, 0x88, 0xea, 0xff, 0x1e, 0x97,
-	0x92, 0x1b, 0x2c, 0x7b, 0x56, 0xba, 0x53, 0xbd, 0x06, 0xfc, 0xd0, 0x9a, 0x26, 0xc9, 0x25, 0x24,
-	0x2f, 0xd6, 0x49, 0x9e, 0x6c, 0x46, 0x3f, 0x80, 0xe8, 0x43, 0x3e, 0x79, 0xfe, 0x01, 0xe4, 0xa5,
-	0x3b, 0xa6, 0xfc, 0xfe, 0x5f, 0x92, 0x03, 0xae, 0xc0, 0xa3, 0x21, 0xb5, 0x1c, 0x46, 0x26, 0xf1,
-	0xc4, 0x5c, 0x77, 0x75, 0xc4, 0xcf, 0xa0, 0xc4, 0xc8, 0xdc, 0xfc, 0x44, 0xa9, 0x49, 0x98, 0x3b,
-	0xe5, 0xb2, 0x92, 0x8d, 0x2f, 0xee, 0x32, 0x32, 0x7f, 0x4b, 0x69, 0x33, 0xae, 0x3d, 0xef, 0x43,
-	0xd1, 0x08, 0x28, 0x97, 0x97, 0xa1, 0x47, 0xf1, 0x3e, 0xec, 0xb5, 0x3a, 0x57, 0xcd, 0x76, 0xeb,
-	0xdc, 0x34, 0xae, 0x8c, 0xce, 0xa5, 0x92, 0xc1, 0xdb, 0x90, 0xeb, 0x19, 0x9d, 0x73, 0x05, 0xe1,
-	0x22, 0xe4, 0xbb, 0x46, 0xbb, 0xf9, 0x41, 0xd9, 0xc2, 0x00, 0x85, 0xb6, 0xf3, 0xb9, 0x39, 0x1c,
-	0x2a, 0x59, 0xbc, 0x0b, 0xdb, 0xd7, 0x8e, 0x1c, 0x0d, 0x7d, 0x32, 0x53, 0x72, 0xb8, 0x04, 0xd0,
-	0xa1, 0xb3, 0x9e, 0x63, 0x73, 0xea, 0x0b, 0x25, 0x7f, 0xd6, 0xba, 0x5d, 0xa8, 0xe8, 0x6e, 0xa1,
-	0xa2, 0x9f, 0x0b, 0x15, 0x7d, 0x59, 0xaa, 0x99, 0xbb, 0xa5, 0x9a, 0xf9, 0xbe, 0x54, 0x33, 0x1f,
-	0x75, 0xdb, 0x91, 0xa3, 0xe9, 0x40, 0xb3, 0x5c, 0xa6, 0x5b, 0x74, 0x42, 0xfd, 0x3a, 0xa7, 0x72,
-	0xe6, 0xfa, 0x63, 0x5d, 0xd8, 0xbc, 0x1e, 0x34, 0xf4, 0xf9, 0xef, 0x9d, 0x91, 0xa1, 0x47, 0xc5,
-	0xa0, 0x10, 0x6f, 0xc2, 0xe9, 0xaf, 0x00, 0x00, 0x00, 0xff, 0xff, 0x6d, 0xbe, 0x6f, 0x83, 0x4f,
-	0x03, 0x00, 0x00,
+	// 443 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x92, 0xdd, 0x6e, 0x12, 0x41,
+	0x14, 0xc7, 0xd9, 0xb2, 0x50, 0x38, 0x20, 0x59, 0x27, 0x24, 0xae, 0x8d, 0xae, 0x48, 0x7a, 0x41,
+	0x4c, 0xba, 0x9b, 0xe2, 0x13, 0x6c, 0xed, 0x9a, 0x90, 0x20, 0x31, 0xd0, 0xd4, 0xd4, 0xc4, 0x6c,
+	0x86, 0x9d, 0x71, 0xd9, 0xc0, 0xcc, 0xe0, 0xcc, 0xf0, 0xf5, 0x16, 0xbe, 0x86, 0x6f, 0xd2, 0xcb,
+	0x5e, 0x7a, 0x65, 0x0c, 0xbc, 0x88, 0xd9, 0xa1, 0x1f, 0x6a, 0x7a, 0x37, 0xe7, 0x77, 0x7e, 0xe7,
+	0x7f, 0xe6, 0xe2, 0xc0, 0x0b, 0x95, 0xf2, 0x20, 0x19, 0xcb, 0x8c, 0xa4, 0x34, 0x58, 0x9e, 0xde,
+	0x3d, 0xfd, 0xb9, 0x14, 0x5a, 0xa0, 0x86, 0x4a, 0xb9, 0x7f, 0x87, 0x96, 0xa7, 0x47, 0xcd, 0x54,
+	0xa4, 0xc2, 0xb4, 0x82, 0xfc, 0xb5, 0xb7, 0xda, 0x53, 0x28, 0x7f, 0xc4, 0x12, 0x33, 0x85, 0x30,
+	0x3c, 0x63, 0x8b, 0x99, 0xce, 0xe2, 0x64, 0x82, 0x33, 0x1e, 0x63, 0xa5, 0xa8, 0x8e, 0xe7, 0x79,
+	0xcf, 0xb5, 0x5a, 0x56, 0xa7, 0xd6, 0x3d, 0xf6, 0xff, 0x4d, 0xf4, 0x3f, 0xe4, 0xfa, 0xbb, 0xdc,
+	0x0e, 0x73, 0xd9, 0xe4, 0x9c, 0xd9, 0xd7, 0xbf, 0x5e, 0x15, 0x86, 0x4d, 0xf6, 0x48, 0xaf, 0x7d,
+	0x05, 0xcd, 0xc7, 0x66, 0x50, 0x08, 0xb5, 0xbf, 0x96, 0xba, 0x56, 0xab, 0xd8, 0xa9, 0x75, 0x8f,
+	0xfe, 0x5f, 0xf7, 0x30, 0x75, 0xbb, 0x04, 0x92, 0x7b, 0xd2, 0xfe, 0x61, 0x01, 0x3c, 0x08, 0xe8,
+	0x39, 0x54, 0xf6, 0x89, 0x19, 0x31, 0xbf, 0xb7, 0x87, 0x87, 0xa6, 0xee, 0x11, 0xf4, 0x1a, 0xea,
+	0x5a, 0x4c, 0x29, 0x8f, 0xd5, 0x86, 0x8d, 0xc5, 0xcc, 0x3d, 0x68, 0x59, 0x9d, 0xea, 0xb0, 0x66,
+	0xd8, 0xc8, 0x20, 0xf4, 0x12, 0x60, 0xaf, 0x60, 0x42, 0xa4, 0x5b, 0x34, 0x42, 0xd5, 0x90, 0x90,
+	0x10, 0x89, 0x5c, 0x38, 0x24, 0x34, 0xc9, 0x18, 0x9e, 0xb9, 0xf6, 0x3e, 0xfb, 0xb6, 0x44, 0xc7,
+	0xd0, 0x60, 0x78, 0x1d, 0x7f, 0xa5, 0x34, 0xc6, 0x4c, 0x2c, 0xb8, 0x76, 0x4b, 0x66, 0xb8, 0xce,
+	0xf0, 0xfa, 0x3d, 0xa5, 0xa1, 0x61, 0x6f, 0xbe, 0x40, 0x35, 0x5a, 0x52, 0xae, 0x2f, 0x36, 0x73,
+	0x8a, 0x9e, 0xc2, 0x93, 0xde, 0xe0, 0x32, 0xec, 0xf7, 0xce, 0xe3, 0xe8, 0x32, 0x1a, 0x5c, 0x38,
+	0x05, 0x54, 0x01, 0x7b, 0x14, 0x0d, 0xce, 0x1d, 0x0b, 0x55, 0xa1, 0x34, 0x8c, 0xfa, 0xe1, 0x95,
+	0x73, 0x80, 0x00, 0xca, 0xfd, 0xec, 0x5b, 0x48, 0x88, 0x53, 0x44, 0x75, 0xa8, 0x7c, 0xca, 0xf4,
+	0x84, 0x48, 0xbc, 0x72, 0x6c, 0xd4, 0x00, 0x18, 0xd0, 0xd5, 0x28, 0x4b, 0x39, 0x95, 0xca, 0x29,
+	0x9d, 0xf5, 0xae, 0xb7, 0x9e, 0x75, 0xb3, 0xf5, 0xac, 0xdf, 0x5b, 0xcf, 0xfa, 0xbe, 0xf3, 0x0a,
+	0x37, 0x3b, 0xaf, 0xf0, 0x73, 0xe7, 0x15, 0x3e, 0x07, 0x69, 0xa6, 0x27, 0x8b, 0xb1, 0x9f, 0x08,
+	0x16, 0x24, 0x74, 0x46, 0xe5, 0x09, 0xa7, 0x7a, 0x25, 0xe4, 0x34, 0x50, 0x29, 0x3f, 0x59, 0x76,
+	0x83, 0xf5, 0xfd, 0x39, 0xe9, 0xcd, 0x9c, 0xaa, 0x71, 0xd9, 0x1c, 0xc9, 0xdb, 0x3f, 0x01, 0x00,
+	0x00, 0xff, 0xff, 0x4e, 0xf4, 0x3e, 0xac, 0x6a, 0x02, 0x00, 0x00,
 }
 
 func (m *Params) Marshal() (dAtA []byte, err error) {
@@ -322,7 +287,7 @@ func (m *Params) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	var l int
 	_ = l
 	{
-		size, err := m.MultiChainAsset.MarshalToSizedBuffer(dAtA[:i])
+		size, err := m.MultiChainAssetParam.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -334,7 +299,7 @@ func (m *Params) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *MultiChainAsset) Marshal() (dAtA []byte, err error) {
+func (m *MultiChainAssetParam) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -344,36 +309,26 @@ func (m *MultiChainAsset) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *MultiChainAsset) MarshalTo(dAtA []byte) (int, error) {
+func (m *MultiChainAssetParam) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *MultiChainAsset) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *MultiChainAssetParam) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.SymbolAssetMap) > 0 {
-		for k := range m.SymbolAssetMap {
-			v := m.SymbolAssetMap[k]
-			baseI := i
+	if len(m.ChainAsset) > 0 {
+		for iNdEx := len(m.ChainAsset) - 1; iNdEx >= 0; iNdEx-- {
 			{
-				size, err := (&v).MarshalToSizedBuffer(dAtA[:i])
+				size, err := m.ChainAsset[iNdEx].MarshalToSizedBuffer(dAtA[:i])
 				if err != nil {
 					return 0, err
 				}
 				i -= size
 				i = encodeVarintCbridge(dAtA, i, uint64(size))
 			}
-			i--
-			dAtA[i] = 0x12
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarintCbridge(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = encodeVarintCbridge(dAtA, i, uint64(baseI-i))
 			i--
 			dAtA[i] = 0xa
 		}
@@ -401,69 +356,36 @@ func (m *ChainAsset) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.ChainAssetMap) > 0 {
-		for k := range m.ChainAssetMap {
-			v := m.ChainAssetMap[k]
-			baseI := i
-			{
-				size, err := (&v).MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintCbridge(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x12
-			i = encodeVarintCbridge(dAtA, i, uint64(k))
-			i--
-			dAtA[i] = 0x8
-			i = encodeVarintCbridge(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0xa
-		}
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *Asset) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Asset) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Asset) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
 	if len(m.MaxFeeAmount) > 0 {
 		i -= len(m.MaxFeeAmount)
 		copy(dAtA[i:], m.MaxFeeAmount)
 		i = encodeVarintCbridge(dAtA, i, uint64(len(m.MaxFeeAmount)))
 		i--
-		dAtA[i] = 0x1a
+		dAtA[i] = 0x2a
 	}
 	if m.Decimal != 0 {
 		i = encodeVarintCbridge(dAtA, i, uint64(m.Decimal))
 		i--
-		dAtA[i] = 0x10
+		dAtA[i] = 0x20
 	}
-	if len(m.Token) > 0 {
-		i -= len(m.Token)
-		copy(dAtA[i:], m.Token)
-		i = encodeVarintCbridge(dAtA, i, uint64(len(m.Token)))
+	if len(m.TokenAddr) > 0 {
+		i -= len(m.TokenAddr)
+		copy(dAtA[i:], m.TokenAddr)
+		i = encodeVarintCbridge(dAtA, i, uint64(len(m.TokenAddr)))
 		i--
-		dAtA[i] = 0xa
+		dAtA[i] = 0x1a
+	}
+	if len(m.TokenSymbol) > 0 {
+		i -= len(m.TokenSymbol)
+		copy(dAtA[i:], m.TokenSymbol)
+		i = encodeVarintCbridge(dAtA, i, uint64(len(m.TokenSymbol)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.ChainId != 0 {
+		i = encodeVarintCbridge(dAtA, i, uint64(m.ChainId))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -485,24 +407,21 @@ func (m *Params) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = m.MultiChainAsset.Size()
+	l = m.MultiChainAssetParam.Size()
 	n += 1 + l + sovCbridge(uint64(l))
 	return n
 }
 
-func (m *MultiChainAsset) Size() (n int) {
+func (m *MultiChainAssetParam) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if len(m.SymbolAssetMap) > 0 {
-		for k, v := range m.SymbolAssetMap {
-			_ = k
-			_ = v
-			l = v.Size()
-			mapEntrySize := 1 + len(k) + sovCbridge(uint64(len(k))) + 1 + l + sovCbridge(uint64(l))
-			n += mapEntrySize + 1 + sovCbridge(uint64(mapEntrySize))
+	if len(m.ChainAsset) > 0 {
+		for _, e := range m.ChainAsset {
+			l = e.Size()
+			n += 1 + l + sovCbridge(uint64(l))
 		}
 	}
 	return n
@@ -514,25 +433,14 @@ func (m *ChainAsset) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if len(m.ChainAssetMap) > 0 {
-		for k, v := range m.ChainAssetMap {
-			_ = k
-			_ = v
-			l = v.Size()
-			mapEntrySize := 1 + sovCbridge(uint64(k)) + 1 + l + sovCbridge(uint64(l))
-			n += mapEntrySize + 1 + sovCbridge(uint64(mapEntrySize))
-		}
+	if m.ChainId != 0 {
+		n += 1 + sovCbridge(uint64(m.ChainId))
 	}
-	return n
-}
-
-func (m *Asset) Size() (n int) {
-	if m == nil {
-		return 0
+	l = len(m.TokenSymbol)
+	if l > 0 {
+		n += 1 + l + sovCbridge(uint64(l))
 	}
-	var l int
-	_ = l
-	l = len(m.Token)
+	l = len(m.TokenAddr)
 	if l > 0 {
 		n += 1 + l + sovCbridge(uint64(l))
 	}
@@ -583,7 +491,7 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MultiChainAsset", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field MultiChainAssetParam", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -610,7 +518,7 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.MultiChainAsset.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.MultiChainAssetParam.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -635,7 +543,7 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *MultiChainAsset) Unmarshal(dAtA []byte) error {
+func (m *MultiChainAssetParam) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -658,15 +566,15 @@ func (m *MultiChainAsset) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: MultiChainAsset: wiretype end group for non-group")
+			return fmt.Errorf("proto: MultiChainAssetParam: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: MultiChainAsset: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: MultiChainAssetParam: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SymbolAssetMap", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ChainAsset", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -693,105 +601,10 @@ func (m *MultiChainAsset) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if m.SymbolAssetMap == nil {
-				m.SymbolAssetMap = make(map[string]ChainAsset)
+			m.ChainAsset = append(m.ChainAsset, ChainAsset{})
+			if err := m.ChainAsset[len(m.ChainAsset)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
 			}
-			var mapkey string
-			mapvalue := &ChainAsset{}
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowCbridge
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowCbridge
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return ErrInvalidLengthCbridge
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return ErrInvalidLengthCbridge
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					var mapmsglen int
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowCbridge
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						mapmsglen |= int(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					if mapmsglen < 0 {
-						return ErrInvalidLengthCbridge
-					}
-					postmsgIndex := iNdEx + mapmsglen
-					if postmsgIndex < 0 {
-						return ErrInvalidLengthCbridge
-					}
-					if postmsgIndex > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = &ChainAsset{}
-					if err := mapvalue.Unmarshal(dAtA[iNdEx:postmsgIndex]); err != nil {
-						return err
-					}
-					iNdEx = postmsgIndex
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := skipCbridge(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if (skippy < 0) || (iNdEx+skippy) < 0 {
-						return ErrInvalidLengthCbridge
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.SymbolAssetMap[mapkey] = *mapvalue
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -844,10 +657,10 @@ func (m *ChainAsset) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ChainAssetMap", wireType)
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChainId", wireType)
 			}
-			var msglen int
+			m.ChainId = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowCbridge
@@ -857,160 +670,14 @@ func (m *ChainAsset) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				m.ChainId |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthCbridge
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthCbridge
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.ChainAssetMap == nil {
-				m.ChainAssetMap = make(map[uint64]Asset)
-			}
-			var mapkey uint64
-			mapvalue := &Asset{}
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowCbridge
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowCbridge
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						mapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-				} else if fieldNum == 2 {
-					var mapmsglen int
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowCbridge
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						mapmsglen |= int(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					if mapmsglen < 0 {
-						return ErrInvalidLengthCbridge
-					}
-					postmsgIndex := iNdEx + mapmsglen
-					if postmsgIndex < 0 {
-						return ErrInvalidLengthCbridge
-					}
-					if postmsgIndex > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapvalue = &Asset{}
-					if err := mapvalue.Unmarshal(dAtA[iNdEx:postmsgIndex]); err != nil {
-						return err
-					}
-					iNdEx = postmsgIndex
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := skipCbridge(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if (skippy < 0) || (iNdEx+skippy) < 0 {
-						return ErrInvalidLengthCbridge
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.ChainAssetMap[mapkey] = *mapvalue
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipCbridge(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthCbridge
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Asset) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowCbridge
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Asset: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Asset: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
+		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Token", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TokenSymbol", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -1038,9 +705,41 @@ func (m *Asset) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Token = string(dAtA[iNdEx:postIndex])
+			m.TokenSymbol = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 2:
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TokenAddr", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCbridge
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthCbridge
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCbridge
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TokenAddr = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Decimal", wireType)
 			}
@@ -1059,7 +758,7 @@ func (m *Asset) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 3:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MaxFeeAmount", wireType)
 			}

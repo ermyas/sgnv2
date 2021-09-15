@@ -16,7 +16,7 @@ service Msg {
 // this line is used by starport scaffolding # proto/tx/message
 message MsgUpdateAsset {
   string creator = 1;
-  MultiChainAsset assets = 2;
+  MultiChainAssetParam assets = 2;
 }
 
 message MsgUpdateAssetResponse {
