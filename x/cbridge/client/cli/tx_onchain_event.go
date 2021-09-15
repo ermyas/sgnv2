@@ -1,8 +1,9 @@
 package cli
 
 import (
-	"github.com/spf13/cobra"
 	"strconv"
+
+	"github.com/spf13/cobra"
 
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -16,7 +17,7 @@ func CmdOnchainEvent() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "onchain-event [chainid]",
 		Short: "Broadcast message onchain-event",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			argsChainid, _ := strconv.ParseUint(args[0], 10, 64)
 
@@ -25,7 +26,7 @@ func CmdOnchainEvent() *cobra.Command {
 				return err
 			}
 
-			msg := types.NewMsgOnchainEvent(clientCtx.GetFromAddress().String(), uint64(argsChainid))
+			msg := types.NewMsgOnchainEvent(clientCtx.GetFromAddress().String(), uint64(argsChainid), args[1], []byte(args[2]))
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}

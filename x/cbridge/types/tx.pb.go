@@ -117,10 +117,10 @@ func (m *MsgUpdateAssetResponse) XXX_DiscardUnknown() {
 var xxx_messageInfo_MsgUpdateAssetResponse proto.InternalMessageInfo
 
 type MsgOnchainEvent struct {
-	Creator string    `protobuf:"bytes,1,opt,name=creator,proto3" json:"creator,omitempty"`
-	Chainid uint64    `protobuf:"varint,2,opt,name=chainid,proto3" json:"chainid,omitempty"`
-	Evtype  EventType `protobuf:"varint,3,opt,name=evtype,proto3,enum=sgn.cbridge.v1.EventType" json:"evtype,omitempty"`
-	Elog    []byte    `protobuf:"bytes,4,opt,name=elog,proto3" json:"elog,omitempty"`
+	Creator string `protobuf:"bytes,1,opt,name=creator,proto3" json:"creator,omitempty"`
+	Chainid uint64 `protobuf:"varint,2,opt,name=chainid,proto3" json:"chainid,omitempty"`
+	Evtype  string `protobuf:"bytes,3,opt,name=evtype,proto3" json:"evtype,omitempty"`
+	Elog    []byte `protobuf:"bytes,4,opt,name=elog,proto3" json:"elog,omitempty"`
 }
 
 func (m *MsgOnchainEvent) Reset()         { *m = MsgOnchainEvent{} }
@@ -170,11 +170,11 @@ func (m *MsgOnchainEvent) GetChainid() uint64 {
 	return 0
 }
 
-func (m *MsgOnchainEvent) GetEvtype() EventType {
+func (m *MsgOnchainEvent) GetEvtype() string {
 	if m != nil {
 		return m.Evtype
 	}
-	return EventType_INVALID_EVENT
+	return ""
 }
 
 func (m *MsgOnchainEvent) GetElog() []byte {
@@ -220,40 +220,133 @@ func (m *MsgOnchainEventResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgOnchainEventResponse proto.InternalMessageInfo
 
+type MsgOnchainManyEvents struct {
+	Creator string             `protobuf:"bytes,1,opt,name=creator,proto3" json:"creator,omitempty"`
+	Events  []*MsgOnchainEvent `protobuf:"bytes,2,rep,name=events,proto3" json:"events,omitempty"`
+}
+
+func (m *MsgOnchainManyEvents) Reset()         { *m = MsgOnchainManyEvents{} }
+func (m *MsgOnchainManyEvents) String() string { return proto.CompactTextString(m) }
+func (*MsgOnchainManyEvents) ProtoMessage()    {}
+func (*MsgOnchainManyEvents) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f8bb6ecae18aabd7, []int{4}
+}
+func (m *MsgOnchainManyEvents) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgOnchainManyEvents) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgOnchainManyEvents.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgOnchainManyEvents) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgOnchainManyEvents.Merge(m, src)
+}
+func (m *MsgOnchainManyEvents) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgOnchainManyEvents) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgOnchainManyEvents.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgOnchainManyEvents proto.InternalMessageInfo
+
+func (m *MsgOnchainManyEvents) GetCreator() string {
+	if m != nil {
+		return m.Creator
+	}
+	return ""
+}
+
+func (m *MsgOnchainManyEvents) GetEvents() []*MsgOnchainEvent {
+	if m != nil {
+		return m.Events
+	}
+	return nil
+}
+
+type MsgOnchainManyEventsResponse struct {
+}
+
+func (m *MsgOnchainManyEventsResponse) Reset()         { *m = MsgOnchainManyEventsResponse{} }
+func (m *MsgOnchainManyEventsResponse) String() string { return proto.CompactTextString(m) }
+func (*MsgOnchainManyEventsResponse) ProtoMessage()    {}
+func (*MsgOnchainManyEventsResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f8bb6ecae18aabd7, []int{5}
+}
+func (m *MsgOnchainManyEventsResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgOnchainManyEventsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgOnchainManyEventsResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgOnchainManyEventsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgOnchainManyEventsResponse.Merge(m, src)
+}
+func (m *MsgOnchainManyEventsResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgOnchainManyEventsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgOnchainManyEventsResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgOnchainManyEventsResponse proto.InternalMessageInfo
+
 func init() {
 	proto.RegisterType((*MsgUpdateAsset)(nil), "sgn.cbridge.v1.MsgUpdateAsset")
 	proto.RegisterType((*MsgUpdateAssetResponse)(nil), "sgn.cbridge.v1.MsgUpdateAssetResponse")
 	proto.RegisterType((*MsgOnchainEvent)(nil), "sgn.cbridge.v1.MsgOnchainEvent")
 	proto.RegisterType((*MsgOnchainEventResponse)(nil), "sgn.cbridge.v1.MsgOnchainEventResponse")
+	proto.RegisterType((*MsgOnchainManyEvents)(nil), "sgn.cbridge.v1.MsgOnchainManyEvents")
+	proto.RegisterType((*MsgOnchainManyEventsResponse)(nil), "sgn.cbridge.v1.MsgOnchainManyEventsResponse")
 }
 
 func init() { proto.RegisterFile("sgn/cbridge/v1/tx.proto", fileDescriptor_f8bb6ecae18aabd7) }
 
 var fileDescriptor_f8bb6ecae18aabd7 = []byte{
-	// 361 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x92, 0xc1, 0x4e, 0xea, 0x40,
-	0x14, 0x86, 0x99, 0x0b, 0xe1, 0xe6, 0x0e, 0x84, 0x9b, 0xcc, 0xe2, 0x52, 0xc8, 0x4d, 0x6d, 0x1a,
-	0xa3, 0xdd, 0xd0, 0x09, 0x75, 0xeb, 0x46, 0x8d, 0x0b, 0x17, 0x8d, 0xa6, 0x91, 0xc4, 0xb8, 0x2b,
-	0xe5, 0x64, 0x68, 0x84, 0x99, 0x66, 0x66, 0xa8, 0xf0, 0x0e, 0x2e, 0x7c, 0x1a, 0x9f, 0xc1, 0x25,
-	0x4b, 0x97, 0x06, 0x5e, 0xc4, 0xb4, 0xa1, 0x86, 0xa2, 0xc1, 0x5d, 0x27, 0xff, 0x77, 0xfe, 0xf3,
-	0xf7, 0xcf, 0xc1, 0x6d, 0xc5, 0x38, 0x8d, 0x86, 0x32, 0x1e, 0x31, 0xa0, 0x69, 0x9f, 0xea, 0xb9,
-	0x9b, 0x48, 0xa1, 0x05, 0x69, 0x29, 0xc6, 0xdd, 0x8d, 0xe0, 0xa6, 0xfd, 0xee, 0xff, 0x1d, 0xb0,
-	0x90, 0x72, 0xda, 0x1e, 0xe3, 0x96, 0xaf, 0xd8, 0x20, 0x19, 0x85, 0x1a, 0xce, 0x94, 0x02, 0x4d,
-	0x0c, 0xfc, 0x3b, 0x92, 0x10, 0x6a, 0x21, 0x0d, 0x64, 0x21, 0xe7, 0x4f, 0x50, 0x3c, 0xc9, 0x29,
-	0xae, 0x87, 0x19, 0xa2, 0x8c, 0x5f, 0x16, 0x72, 0x1a, 0xde, 0xa1, 0x5b, 0x5e, 0xe5, 0xfa, 0xb3,
-	0x89, 0x8e, 0x2f, 0xc6, 0x61, 0xcc, 0x73, 0xab, 0x9b, 0x50, 0x86, 0xd3, 0x60, 0x33, 0x63, 0x1b,
-	0xf8, 0x5f, 0x79, 0x53, 0x00, 0x2a, 0x11, 0x5c, 0x81, 0xfd, 0x84, 0xf0, 0x5f, 0x5f, 0xb1, 0x6b,
-	0x1e, 0x65, 0xa3, 0x97, 0x29, 0xf0, 0x7d, 0x29, 0x32, 0x25, 0xe3, 0xe2, 0x51, 0x1e, 0xa3, 0x16,
-	0x14, 0x4f, 0xd2, 0xc7, 0x75, 0x48, 0xf5, 0x22, 0x01, 0xa3, 0x6a, 0x21, 0xa7, 0xe5, 0x75, 0x76,
-	0xf3, 0xe5, 0xd6, 0xb7, 0x8b, 0x04, 0x82, 0x0d, 0x48, 0x08, 0xae, 0xc1, 0x44, 0x30, 0xa3, 0x66,
-	0x21, 0xa7, 0x19, 0xe4, 0xdf, 0x76, 0x07, 0xb7, 0x77, 0xd2, 0x14, 0x49, 0xbd, 0x17, 0x84, 0xab,
-	0xbe, 0x62, 0x64, 0x80, 0x1b, 0xdb, 0x95, 0x99, 0x5f, 0x8a, 0x28, 0xfd, 0x68, 0xf7, 0x68, 0xbf,
-	0x5e, 0xd8, 0x93, 0x3b, 0xdc, 0x2c, 0x95, 0x70, 0xf0, 0xcd, 0xdc, 0x36, 0xd0, 0x3d, 0xfe, 0x01,
-	0x28, 0x9c, 0xcf, 0xaf, 0x5e, 0x57, 0x26, 0x5a, 0xae, 0x4c, 0xf4, 0xbe, 0x32, 0xd1, 0xf3, 0xda,
-	0xac, 0x2c, 0xd7, 0x66, 0xe5, 0x6d, 0x6d, 0x56, 0xee, 0x29, 0x8b, 0xf5, 0x78, 0x36, 0x74, 0x23,
-	0x31, 0xa5, 0x11, 0x4c, 0x40, 0xf6, 0x38, 0xe8, 0x47, 0x21, 0x1f, 0xa8, 0x62, 0xbc, 0x97, 0x7a,
-	0x74, 0xfe, 0x79, 0x3c, 0x59, 0x63, 0x6a, 0x58, 0xcf, 0x0f, 0xe7, 0xe4, 0x23, 0x00, 0x00, 0xff,
-	0xff, 0x89, 0xea, 0x3d, 0x43, 0x81, 0x02, 0x00, 0x00,
+	// 402 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x93, 0xcf, 0x6e, 0xda, 0x40,
+	0x10, 0xc6, 0x31, 0x20, 0xaa, 0x0e, 0x88, 0xaa, 0xab, 0x0a, 0x5c, 0x0b, 0x6d, 0x2d, 0x0b, 0xb5,
+	0x3e, 0x14, 0x5b, 0xb8, 0x87, 0x5e, 0x7a, 0x69, 0xa2, 0x1c, 0x72, 0xb0, 0x12, 0x59, 0x42, 0x8a,
+	0x72, 0x33, 0x66, 0xb5, 0x58, 0x81, 0xb5, 0xe3, 0x5d, 0x1c, 0x78, 0x8b, 0xbc, 0x41, 0x5e, 0x27,
+	0x47, 0x8e, 0x39, 0x46, 0xf0, 0x22, 0x91, 0x2d, 0x9b, 0xff, 0x81, 0xdc, 0x3c, 0xfa, 0x7e, 0x33,
+	0xdf, 0xe7, 0xb1, 0x07, 0x9a, 0x9c, 0x32, 0xd3, 0xeb, 0x47, 0xfe, 0x80, 0x12, 0x33, 0xee, 0x9a,
+	0x62, 0x6a, 0x84, 0x51, 0x20, 0x02, 0x54, 0xe7, 0x94, 0x19, 0x99, 0x60, 0xc4, 0x5d, 0xa5, 0xb5,
+	0x03, 0xe6, 0x52, 0x4a, 0x6b, 0x43, 0xa8, 0xdb, 0x9c, 0xf6, 0xc2, 0x81, 0x2b, 0xc8, 0x7f, 0xce,
+	0x89, 0x40, 0x32, 0x7c, 0xf2, 0x22, 0xe2, 0x8a, 0x20, 0x92, 0x25, 0x55, 0xd2, 0x3f, 0x3b, 0x79,
+	0x89, 0xfe, 0x41, 0xc5, 0x4d, 0x10, 0x2e, 0x17, 0x55, 0x49, 0xaf, 0x5a, 0x6d, 0x63, 0xdb, 0xca,
+	0xb0, 0x27, 0x23, 0xe1, 0x9f, 0x0f, 0x5d, 0x9f, 0xa5, 0xa3, 0xae, 0xdd, 0xc8, 0x1d, 0x3b, 0x59,
+	0x8f, 0x26, 0x43, 0x63, 0xdb, 0xc9, 0x21, 0x3c, 0x0c, 0x18, 0x27, 0xda, 0x3d, 0x7c, 0xb1, 0x39,
+	0xbd, 0x62, 0x5e, 0xd2, 0x79, 0x11, 0x13, 0x76, 0x2c, 0x44, 0xa2, 0x24, 0x9c, 0x3f, 0x48, 0x53,
+	0x94, 0x9d, 0xbc, 0x44, 0x0d, 0xa8, 0x90, 0x58, 0xcc, 0x42, 0x22, 0x97, 0xd2, 0x96, 0xac, 0x42,
+	0x08, 0xca, 0x64, 0x14, 0x50, 0xb9, 0xac, 0x4a, 0x7a, 0xcd, 0x49, 0x9f, 0xb5, 0xef, 0xd0, 0xdc,
+	0xb1, 0x5c, 0xa5, 0xf1, 0xe1, 0xdb, 0x5a, 0xb2, 0x5d, 0x36, 0x4b, 0x65, 0x7e, 0x24, 0xd2, 0xdf,
+	0xc4, 0x38, 0x61, 0xe4, 0xa2, 0x5a, 0xd2, 0xab, 0xd6, 0x8f, 0xbd, 0xbd, 0xec, 0x58, 0x65, 0xb8,
+	0x86, 0xa1, 0x75, 0xc8, 0x2a, 0x8f, 0x62, 0x3d, 0x15, 0xa1, 0x64, 0x73, 0x8a, 0x7a, 0x50, 0xdd,
+	0xfc, 0x42, 0xf8, 0xc0, 0xfc, 0x0d, 0x5d, 0xf9, 0x79, 0x5c, 0xcf, 0xc7, 0xa3, 0x1b, 0xa8, 0x6d,
+	0x2d, 0xfd, 0x54, 0x6e, 0xe5, 0xd7, 0xa9, 0x17, 0xcb, 0x27, 0x53, 0xf8, 0xba, 0xbf, 0xc0, 0xf6,
+	0xfb, 0xdd, 0x6b, 0x4a, 0xf9, 0xfd, 0x11, 0x2a, 0x37, 0x3a, 0xbb, 0x7c, 0x5e, 0x60, 0x69, 0xbe,
+	0xc0, 0xd2, 0xeb, 0x02, 0x4b, 0x8f, 0x4b, 0x5c, 0x98, 0x2f, 0x71, 0xe1, 0x65, 0x89, 0x0b, 0xb7,
+	0x26, 0xf5, 0xc5, 0x70, 0xd2, 0x37, 0xbc, 0x60, 0x6c, 0x7a, 0x64, 0x44, 0xa2, 0x0e, 0x23, 0xe2,
+	0x21, 0x88, 0xee, 0x4c, 0x4e, 0x59, 0x27, 0xb6, 0xcc, 0xe9, 0xea, 0x28, 0x92, 0xbf, 0x84, 0xf7,
+	0x2b, 0xe9, 0x41, 0xfc, 0x79, 0x0b, 0x00, 0x00, 0xff, 0xff, 0xfe, 0xdc, 0xab, 0xe8, 0x59, 0x03,
+	0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -271,6 +364,7 @@ type MsgClient interface {
 	// this line is used by starport scaffolding # proto/tx/rpc
 	UpdateAsset(ctx context.Context, in *MsgUpdateAsset, opts ...grpc.CallOption) (*MsgUpdateAssetResponse, error)
 	OnchainEvent(ctx context.Context, in *MsgOnchainEvent, opts ...grpc.CallOption) (*MsgOnchainEventResponse, error)
+	OnchainManyEvents(ctx context.Context, in *MsgOnchainManyEvents, opts ...grpc.CallOption) (*MsgOnchainManyEventsResponse, error)
 }
 
 type msgClient struct {
@@ -299,11 +393,21 @@ func (c *msgClient) OnchainEvent(ctx context.Context, in *MsgOnchainEvent, opts 
 	return out, nil
 }
 
+func (c *msgClient) OnchainManyEvents(ctx context.Context, in *MsgOnchainManyEvents, opts ...grpc.CallOption) (*MsgOnchainManyEventsResponse, error) {
+	out := new(MsgOnchainManyEventsResponse)
+	err := c.cc.Invoke(ctx, "/sgn.cbridge.v1.Msg/OnchainManyEvents", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MsgServer is the server API for Msg service.
 type MsgServer interface {
 	// this line is used by starport scaffolding # proto/tx/rpc
 	UpdateAsset(context.Context, *MsgUpdateAsset) (*MsgUpdateAssetResponse, error)
 	OnchainEvent(context.Context, *MsgOnchainEvent) (*MsgOnchainEventResponse, error)
+	OnchainManyEvents(context.Context, *MsgOnchainManyEvents) (*MsgOnchainManyEventsResponse, error)
 }
 
 // UnimplementedMsgServer can be embedded to have forward compatible implementations.
@@ -315,6 +419,9 @@ func (*UnimplementedMsgServer) UpdateAsset(ctx context.Context, req *MsgUpdateAs
 }
 func (*UnimplementedMsgServer) OnchainEvent(ctx context.Context, req *MsgOnchainEvent) (*MsgOnchainEventResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method OnchainEvent not implemented")
+}
+func (*UnimplementedMsgServer) OnchainManyEvents(ctx context.Context, req *MsgOnchainManyEvents) (*MsgOnchainManyEventsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OnchainManyEvents not implemented")
 }
 
 func RegisterMsgServer(s grpc1.Server, srv MsgServer) {
@@ -357,6 +464,24 @@ func _Msg_OnchainEvent_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Msg_OnchainManyEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MsgOnchainManyEvents)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MsgServer).OnchainManyEvents(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sgn.cbridge.v1.Msg/OnchainManyEvents",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MsgServer).OnchainManyEvents(ctx, req.(*MsgOnchainManyEvents))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Msg_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "sgn.cbridge.v1.Msg",
 	HandlerType: (*MsgServer)(nil),
@@ -368,6 +493,10 @@ var _Msg_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "OnchainEvent",
 			Handler:    _Msg_OnchainEvent_Handler,
+		},
+		{
+			MethodName: "OnchainManyEvents",
+			Handler:    _Msg_OnchainManyEvents_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -466,10 +595,12 @@ func (m *MsgOnchainEvent) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x22
 	}
-	if m.Evtype != 0 {
-		i = encodeVarintTx(dAtA, i, uint64(m.Evtype))
+	if len(m.Evtype) > 0 {
+		i -= len(m.Evtype)
+		copy(dAtA[i:], m.Evtype)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Evtype)))
 		i--
-		dAtA[i] = 0x18
+		dAtA[i] = 0x1a
 	}
 	if m.Chainid != 0 {
 		i = encodeVarintTx(dAtA, i, uint64(m.Chainid))
@@ -502,6 +633,73 @@ func (m *MsgOnchainEventResponse) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *MsgOnchainEventResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgOnchainManyEvents) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgOnchainManyEvents) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgOnchainManyEvents) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Events) > 0 {
+		for iNdEx := len(m.Events) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Events[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintTx(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Creator) > 0 {
+		i -= len(m.Creator)
+		copy(dAtA[i:], m.Creator)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Creator)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgOnchainManyEventsResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgOnchainManyEventsResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgOnchainManyEventsResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -559,8 +757,9 @@ func (m *MsgOnchainEvent) Size() (n int) {
 	if m.Chainid != 0 {
 		n += 1 + sovTx(uint64(m.Chainid))
 	}
-	if m.Evtype != 0 {
-		n += 1 + sovTx(uint64(m.Evtype))
+	l = len(m.Evtype)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
 	}
 	l = len(m.Elog)
 	if l > 0 {
@@ -570,6 +769,34 @@ func (m *MsgOnchainEvent) Size() (n int) {
 }
 
 func (m *MsgOnchainEventResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	return n
+}
+
+func (m *MsgOnchainManyEvents) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Creator)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	if len(m.Events) > 0 {
+		for _, e := range m.Events {
+			l = e.Size()
+			n += 1 + l + sovTx(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *MsgOnchainManyEventsResponse) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -833,10 +1060,10 @@ func (m *MsgOnchainEvent) Unmarshal(dAtA []byte) error {
 				}
 			}
 		case 3:
-			if wireType != 0 {
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Evtype", wireType)
 			}
-			m.Evtype = 0
+			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowTx
@@ -846,11 +1073,24 @@ func (m *MsgOnchainEvent) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Evtype |= EventType(b&0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Evtype = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Elog", wireType)
@@ -933,6 +1173,172 @@ func (m *MsgOnchainEventResponse) Unmarshal(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: MsgOnchainEventResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgOnchainManyEvents) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgOnchainManyEvents: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgOnchainManyEvents: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Creator", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Creator = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Events", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Events = append(m.Events, &MsgOnchainEvent{})
+			if err := m.Events[len(m.Events)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgOnchainManyEventsResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgOnchainManyEventsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgOnchainManyEventsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:

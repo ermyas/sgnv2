@@ -11,6 +11,7 @@ service Msg {
     // this line is used by starport scaffolding # proto/tx/rpc
   rpc UpdateAsset(MsgUpdateAsset) returns (MsgUpdateAssetResponse);
   rpc OnchainEvent(MsgOnchainEvent) returns (MsgOnchainEventResponse);
+  rpc OnchainManyEvents(MsgOnchainManyEvents) returns (MsgOnchainManyEventsResponse);
 }
 
 // this line is used by starport scaffolding # proto/tx/message
@@ -25,9 +26,17 @@ message MsgUpdateAssetResponse {
 message MsgOnchainEvent {
   string creator = 1;
   uint64 chainid = 2;
-  EventType evtype = 3;
-  bytes elog = 4; // serialized json string
+  string evtype = 3; // see cbr_monitor.go for const strings
+  bytes elog = 4; // serialized json string, use bytes for easier marshal/unmarshal
 }
 
 message MsgOnchainEventResponse {
+}
+
+message MsgOnchainManyEvents {
+  string creator = 1;
+  repeated MsgOnchainEvent events = 2; // internal creator is not needed
+}
+
+message MsgOnchainManyEventsResponse {
 }
