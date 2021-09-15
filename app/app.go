@@ -21,6 +21,9 @@ import (
 	govclient "github.com/celer-network/sgn-v2/x/gov/client"
 	govkeeper "github.com/celer-network/sgn-v2/x/gov/keeper"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
+	"github.com/celer-network/sgn-v2/x/mint"
+	mintkeeper "github.com/celer-network/sgn-v2/x/mint/keeper"
+	minttypes "github.com/celer-network/sgn-v2/x/mint/types"
 	staking "github.com/celer-network/sgn-v2/x/staking"
 	stakingkeeper "github.com/celer-network/sgn-v2/x/staking/keeper"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
@@ -83,6 +86,7 @@ var (
 		params.AppModuleBasic{},
 		upgrade.AppModuleBasic{},
 
+		mint.AppModuleBasic{},
 		distr.AppModuleBasic{},
 		gov.NewAppModuleBasic(govclient.ParamProposalHandler, govclient.UpgradeProposalHandler),
 		sync.AppModule{},
@@ -92,6 +96,7 @@ var (
 
 	// module account permissions
 	maccPerms = map[string][]string{
+		minttypes.ModuleName:       {authtypes.Minter},
 		authtypes.FeeCollectorName: nil,
 		distrtypes.ModuleName:      nil,
 	}
@@ -124,6 +129,7 @@ type SgnApp struct {
 	BankKeeper    bankkeeper.Keeper
 	UpgradeKeeper upgradekeeper.Keeper
 	ParamsKeeper  paramskeeper.Keeper
+	MintKeeper    mintkeeper.Keeper
 	DistrKeeper   distrkeeper.Keeper
 	GovKeeper     govkeeper.Keeper
 	SyncKeeper    synckeeper.Keeper
@@ -194,7 +200,8 @@ func NewSgnApp(
 
 	keys := sdk.NewKVStoreKeys(
 		authtypes.StoreKey, banktypes.StoreKey,
-		paramstypes.StoreKey, upgradetypes.StoreKey, distrtypes.StoreKey,
+		paramstypes.StoreKey, upgradetypes.StoreKey,
+		minttypes.StoreKey, distrtypes.StoreKey,
 		govtypes.StoreKey, synctypes.StoreKey, stakingtypes.StoreKey,
 		cbridgetypes.MemStoreKey, cbridgetypes.StoreKey,
 	)
@@ -229,6 +236,10 @@ func NewSgnApp(
 	// Initialize SGN-specific keepers
 	stakingKeeper := stakingkeeper.NewKeeper(
 		appCodec, keys[stakingtypes.StoreKey], app.AccountKeeper, app.GetSubspace(stakingtypes.ModuleName),
+	)
+	app.MintKeeper = mintkeeper.NewKeeper(
+		appCodec, keys[minttypes.StoreKey], app.GetSubspace(minttypes.ModuleName),
+		app.AccountKeeper, app.BankKeeper, authtypes.FeeCollectorName,
 	)
 	app.DistrKeeper = distrkeeper.NewKeeper(
 		appCodec, keys[distrtypes.StoreKey], app.GetSubspace(distrtypes.ModuleName), app.AccountKeeper, app.BankKeeper,
@@ -266,6 +277,7 @@ func NewSgnApp(
 		upgrade.NewAppModule(app.UpgradeKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 
+		mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper),
 		distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
 		staking.NewAppModule(app.StakingKeeper),
 		gov.NewAppModule(app.GovKeeper, app.AccountKeeper),
@@ -280,6 +292,7 @@ func NewSgnApp(
 	app.mm.SetOrderBeginBlockers(
 		upgradetypes.ModuleName,
 		stakingtypes.ModuleName,
+		minttypes.ModuleName,
 		distrtypes.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
@@ -296,6 +309,7 @@ func NewSgnApp(
 		authtypes.ModuleName,
 		banktypes.ModuleName,
 		distrtypes.ModuleName,
+		minttypes.ModuleName,
 		stakingtypes.ModuleName,
 		govtypes.ModuleName,
 		synctypes.ModuleName,
@@ -489,6 +503,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(authtypes.ModuleName)
 	paramsKeeper.Subspace(banktypes.ModuleName)
 
+	paramsKeeper.Subspace(minttypes.ModuleName)
 	paramsKeeper.Subspace(distrtypes.ModuleName)
 	paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable())
 	paramsKeeper.Subspace(stakingtypes.ModuleName).WithKeyTable(stakingkeeper.ParamKeyTable())

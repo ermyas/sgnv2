@@ -1,5 +1,5 @@
 {
-  "genesis_time": "2021-09-14T08:21:09.398307Z",
+  "genesis_time": "2021-09-15T06:40:30.876024Z",
   "chain_id": "sgn-localnet-1000",
   "initial_height": "1",
   "consensus_params": {
@@ -14,7 +14,9 @@
       "max_bytes": "1048576"
     },
     "validator": {
-      "pub_key_types": ["ed25519"]
+      "pub_key_types": [
+        "ed25519"
+      ]
     },
     "version": {}
   },
@@ -62,12 +64,19 @@
       ],
       "denom_metadata": []
     },
+    "cbridge": {
+      "params": {
+        "multi_chain_asset_param": {
+          "chain_asset": []
+        }
+      }
+    },
     "distribution": {
       "params": {
-        "community_tax": "0.020000000000000000",
+        "community_tax": "0.000000000000000000",
         "base_proposer_reward": "0.010000000000000000",
         "bonus_proposer_reward": "0.040000000000000000",
-        "withdraw_addr_enabled": true
+        "withdraw_addr_enabled": false
       },
       "fee_pool": {
         "community_pool": []
@@ -97,6 +106,15 @@
         "quorum": "0.334000000000000000",
         "threshold": "0.500000000000000000",
         "veto": "0.334000000000000000"
+      }
+    },
+    "mint": {
+      "minter": {
+        "annual_provisions": "30000000000000000000000000.000000000000000000"
+      },
+      "params": {
+        "mint_denom": "reward-celr",
+        "blocks_per_year": "6311520"
       }
     },
     "params": null,

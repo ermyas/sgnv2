@@ -39,6 +39,7 @@ The passphrase for the test keyring should be set in [sgn_template.toml](data/.s
 From the project root directory, run:
 
 ```sh
+WITH_CLEVELDB=yes make install # Make sure sgnd is updated
 rm -rf ~/.sgnd
 cp -a test/data/.sgnd ~/.sgnd
 rm ~/.sgnd/config/genesis.json
