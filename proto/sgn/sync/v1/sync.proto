@@ -11,6 +11,10 @@ enum DataType {
   ValidatorParams = 2;  // signer, pubkey, commission
   ValidatorStates = 3;  // status, token, share
   DelegatorShares = 4;
+
+  // cbridge related proposals, data is serialized pb msg in cbridge.proto
+  CbrOnchainEvent = 5; // syncer saw a new onchain event
+  CbrWithdraw = 6; // LP or user asks gateway to withdraw fund
 }
 
 enum VoteOption {

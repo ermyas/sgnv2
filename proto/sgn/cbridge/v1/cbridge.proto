@@ -21,12 +21,16 @@ message ChainAsset {
   string max_fee_amount = 5; // max fee, use string to avoid uint64 now enough for 18 decimal tokens
 }
 
-// cbridge onchain event
-enum EventType {
-  INVALID_EVENT = 0;
-  SEND = 1;
-  RELAY = 2;
-  LiqAdd = 3;
-  Withdraw = 4;
-  NewSigners = 5;
+// to be included in sync propose update, broadcast by syncer to tell others
+// an onchain event happened. for completeness we include chainid, even though
+// propose update also has it
+message OnChainEvent {
+  uint64 chainid = 1;
+  string evtype = 2; // see cbr_monitor.go for const strings
+  bytes elog = 3; // serialized json string, use bytes for easier marshal/unmarshal
+}
+
+// to be included in sync propose updates, details TBD
+message Withdraw {
+
 }

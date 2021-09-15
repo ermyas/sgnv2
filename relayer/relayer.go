@@ -27,6 +27,7 @@ type Relayer struct {
 	bootstrapped    bool // SGN is bootstrapped with at least one bonded validator on the eth contract
 	startEthBlock   *big.Int
 	lock            sync.RWMutex
+	cbrMgr          CbrMgr
 }
 
 func NewRelayer(operator *Operator, db dbm.DB) {
@@ -86,8 +87,8 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 
 	go r.processQueues()
 
-	cbr := NewCbridgeMgr(db) // do we need to save mgr somewhere?
-	go r.doCbridge(cbr)
+	r.cbrMgr = NewCbridgeMgr(db) // do we need to save mgr somewhere?
+	go r.doCbridge(r.cbrMgr)
 }
 
 func (r *Relayer) processQueues() {
