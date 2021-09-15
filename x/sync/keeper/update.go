@@ -10,14 +10,14 @@ import (
 )
 
 func (k Keeper) ProposeUpdates(
-	ctx sdk.Context, updates []*types.ProposeUpdate, ethBlock uint64, sender string, logEntry *seal.MsgLog) error {
+	ctx sdk.Context, updates []*types.ProposeUpdate, sender string, logEntry *seal.MsgLog) error {
 
 	updateId := k.GetNextUpdateId(ctx)
 	proposeTs := uint64(ctx.BlockHeader().Time.Unix())
 	closingTs := proposeTs + k.VotingPeriod(ctx)
 
 	for _, u := range updates {
-		update := types.NewPendingUpdate(updateId, u.Type, u.Data, ethBlock, sender, proposeTs, closingTs)
+		update := types.NewPendingUpdate(updateId, u.Type, u.Data, u.ChainId, u.ChainBlock, sender, proposeTs, closingTs)
 		k.SetPendingUpdate(ctx, update)
 		logEntry.Updates = append(logEntry.Updates, &seal.Update{Id: updateId, Type: update.Type.String()})
 		updateId++

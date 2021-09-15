@@ -10,11 +10,10 @@ const (
 	TypeMsgVoteUpdates    = "vote_updates"
 )
 
-func NewMsgProposeUpdates(updates []*ProposeUpdate, ethBlock uint64, sender string) MsgProposeUpdates {
+func NewMsgProposeUpdates(updates []*ProposeUpdate, sender string) MsgProposeUpdates {
 	return MsgProposeUpdates{
-		Updates:  updates,
-		EthBlock: ethBlock,
-		Sender:   sender,
+		Updates: updates,
+		Sender:  sender,
 	}
 }
 

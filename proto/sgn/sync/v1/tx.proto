@@ -7,14 +7,11 @@ import "gogoproto/gogo.proto";
 
 import "sgn/sync/v1/sync.proto";
 
-message StakingContractParamData {
-  uint64 record = 1;
-  string value = 2;
-}
-
 message ProposeUpdate {
   DataType type = 1;
   bytes data = 2;
+  uint64 chain_id = 3;
+  uint64 chain_block = 4;
 }
 
 message MsgProposeUpdates {
@@ -22,8 +19,7 @@ message MsgProposeUpdates {
   option (gogoproto.goproto_getters) = false;
 
   repeated ProposeUpdate updates = 1;
-  uint64 eth_block = 2;
-  string sender = 3;
+  string sender = 2;
 }
 
 message VoteUpdate {

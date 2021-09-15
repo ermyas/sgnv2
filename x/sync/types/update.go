@@ -5,17 +5,18 @@ import (
 )
 
 func NewPendingUpdate(
-	id uint64, dataType DataType, data []byte, ethBlock uint64,
+	id uint64, dataType DataType, data []byte, chainId, chainBlock uint64,
 	proposer string, proposeTs, closingTs uint64) *PendingUpdate {
 
 	return &PendingUpdate{
-		Id:        id,
-		Type:      dataType,
-		Data:      data,
-		EthBlock:  ethBlock,
-		Proposer:  proposer,
-		ProposeTs: proposeTs,
-		ClosingTs: closingTs,
+		Id:         id,
+		Type:       dataType,
+		Data:       data,
+		ChainId:    chainId,
+		ChainBlock: chainBlock,
+		Proposer:   proposer,
+		ProposeTs:  proposeTs,
+		ClosingTs:  closingTs,
 	}
 }
 

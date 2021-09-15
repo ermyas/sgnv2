@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	validatorcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
@@ -13,7 +12,6 @@ import (
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/spf13/viper"
 )
 
 func (r *Relayer) verifyPendingUpdates() {
@@ -61,10 +59,6 @@ func (r *Relayer) verifyPendingUpdates() {
 
 func (r *Relayer) verifyUpdate(update *synctypes.PendingUpdate) (done, approve bool) {
 	switch update.Type {
-	case synctypes.DataType_EthBlkNum:
-		return r.verifyEthBlkNum(update)
-	case synctypes.DataType_StakingContractParam:
-		return r.verifyStakingContractParam(update)
 	case synctypes.DataType_ValidatorSgnAddr:
 		return r.verifyValidatorSgnAddr(update)
 	case synctypes.DataType_ValidatorParams:
@@ -76,22 +70,6 @@ func (r *Relayer) verifyUpdate(update *synctypes.PendingUpdate) (done, approve b
 	default:
 		return false, false
 	}
-}
-
-func (r *Relayer) verifyEthBlkNum(update *synctypes.PendingUpdate) (done, approve bool) {
-	log.Infof("Verify sync eth block: %d", update.EthBlock)
-	accceptedBlkRange := viper.GetUint64(common.FlagEthAcceptedBlkRange)
-	currentBlkNum := r.getCurrentBlockNumber().Uint64()
-
-	if update.EthBlock-currentBlkNum < accceptedBlkRange || currentBlkNum-update.EthBlock < accceptedBlkRange {
-		return true, true
-	}
-	return true, false
-}
-
-func (r *Relayer) verifyStakingContractParam(update *synctypes.PendingUpdate) (done, approve bool) {
-	// TODO
-	return true, true
 }
 
 func (r *Relayer) verifyValidatorSgnAddr(update *synctypes.PendingUpdate) (done, approve bool) {
@@ -115,7 +93,7 @@ func (r *Relayer) verifyValidatorSgnAddr(update *synctypes.PendingUpdate) (done,
 
 	if updateVal.SgnAddress != sdk.AccAddress(sgnAddr).String() {
 		values := fmt.Sprintf("sgnaddr %s", sdk.AccAddress(sgnAddr).String())
-		if r.cmpBlkNum(update.EthBlock) == 1 {
+		if r.cmpBlkNum(update.ChainBlock) == 1 {
 			log.Errorf("%s. validator params not match eth values: %s", logmsg, values)
 			return true, false
 		}
@@ -158,7 +136,7 @@ func (r *Relayer) verifyValidatorParams(update *synctypes.PendingUpdate) (done, 
 		!updateVal.CommissionRate.Equal(sdk.NewDec(int64(ethVal.CommissionRate)).QuoInt64(eth.CommissionRateBase)) {
 		values := fmt.Sprintf("signer %x sgnaddr %s commission %d",
 			ethVal.Signer, sdk.AccAddress(sgnAddr).String(), ethVal.CommissionRate)
-		if r.cmpBlkNum(update.EthBlock) == 1 {
+		if r.cmpBlkNum(update.ChainBlock) == 1 {
 			log.Errorf("%s. validator params not match eth values: %s", logmsg, values)
 			return true, false
 		}
@@ -199,7 +177,7 @@ func (r *Relayer) verifyValidatorStates(update *synctypes.PendingUpdate) (done, 
 			updateVal.Status, updateVal.Tokens.BigInt(), updateVal.DelegatorShares)
 		values := fmt.Sprintf("status %s tokens %s shares %s",
 			stakingtypes.BondStatus(ethVal.Status), ethVal.Tokens, sdk.NewIntFromBigInt(ethVal.Shares))
-		if r.cmpBlkNum(update.EthBlock) == 1 {
+		if r.cmpBlkNum(update.ChainBlock) == 1 {
 			log.Infof("%s. validator states not match, states: %s, eth values: %s", logmsg, states, values)
 			return true, false
 		}
@@ -236,7 +214,7 @@ func (r *Relayer) verifyDelegatorShares(update *synctypes.PendingUpdate) (done, 
 	}
 
 	if !updateDel.Shares.Equal(sdk.NewIntFromBigInt(ethDel.Shares)) {
-		if r.cmpBlkNum(update.EthBlock) == 1 {
+		if r.cmpBlkNum(update.ChainBlock) == 1 {
 			log.Infof("%s. delegator shares not match eth value: %s", logmsg, ethDel.Shares)
 			return true, false
 		}

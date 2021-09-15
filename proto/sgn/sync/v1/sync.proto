@@ -7,12 +7,10 @@ import "gogoproto/gogo.proto";
 
 enum DataType {
   Invalid = 0;
-  EthBlkNum = 1;
-  StakingContractParam = 2;
-  ValidatorSgnAddr = 3;
-  ValidatorParams = 4;  // signer, pubkey, commission
-  ValidatorStates = 5;  // status, token, share
-  DelegatorShares = 6;
+  ValidatorSgnAddr = 1;
+  ValidatorParams = 2;  // signer, pubkey, commission
+  ValidatorStates = 3;  // status, token, share
+  DelegatorShares = 4;
 }
 
 enum VoteOption {
@@ -31,9 +29,10 @@ message PendingUpdate {
   uint64 id = 1;
   DataType type = 2;
   bytes data = 3;
-  uint64 eth_block = 4;
-  string proposer = 5;
-  repeated Vote votes = 6;
+  uint64 chain_id = 4;
+  uint64 chain_block = 5;
+  string proposer = 6;
+  repeated Vote votes = 7;
   uint64 propose_ts = 8;
   uint64 closing_ts = 9;
 }

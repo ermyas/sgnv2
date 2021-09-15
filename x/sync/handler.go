@@ -39,7 +39,7 @@ func handleMsgProposeUpdates(
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender
 
-	err := keeper.ProposeUpdates(ctx, msg.Updates, msg.EthBlock, msg.Sender, logEntry)
+	err := keeper.ProposeUpdates(ctx, msg.Updates, msg.Sender, logEntry)
 	if err != nil {
 		return nil, err
 	}

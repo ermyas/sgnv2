@@ -2,7 +2,6 @@ package relayer
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -80,37 +79,36 @@ func NewOperator(
 	}, nil
 }
 
-func (o *Operator) SyncValidator(valAddr eth.Addr, currentBlkNum *big.Int, options ValSyncOptions) bool {
-	updates, updated := o.SyncValidatorMsgs(valAddr, options)
+func (o *Operator) SyncValidator(valAddr eth.Addr, blkNum uint64, options ValSyncOptions) bool {
+	updates, updated := o.SyncValidatorMsgs(valAddr, blkNum, options)
 	if len(updates) > 0 {
 		msgs := synctypes.MsgProposeUpdates{
-			Updates:  updates,
-			EthBlock: currentBlkNum.Uint64(),
-			Sender:   o.Transactor.Key.GetAddress().String(),
+			Updates: updates,
+			Sender:  o.Transactor.Key.GetAddress().String(),
 		}
 		o.Transactor.AddTxMsg(&msgs)
 	}
 	return updated
 }
 
-func (o *Operator) SyncValidatorMsgs(valAddr eth.Addr, options ValSyncOptions) ([]*synctypes.ProposeUpdate, bool) {
+func (o *Operator) SyncValidatorMsgs(valAddr eth.Addr, blkNum uint64, options ValSyncOptions) ([]*synctypes.ProposeUpdate, bool) {
 	var updates []*synctypes.ProposeUpdate
 	var update *synctypes.ProposeUpdate
 	var updated ValSyncOptions
 	if options.sgnaddr {
-		update, updated.sgnaddr = o.SyncValidatorSgnAddrMsg(valAddr)
+		update, updated.sgnaddr = o.SyncValidatorSgnAddrMsg(valAddr, blkNum)
 		if update != nil {
 			updates = append(updates, update)
 		}
 	}
 	if options.params {
-		update, updated.params = o.SyncValidatorParamsMsg(valAddr)
+		update, updated.params = o.SyncValidatorParamsMsg(valAddr, blkNum)
 		if update != nil {
 			updates = append(updates, update)
 		}
 	}
 	if options.states {
-		update, updated.states = o.SyncValidatorStatesMsg(valAddr)
+		update, updated.states = o.SyncValidatorStatesMsg(valAddr, blkNum)
 		if update != nil {
 			updates = append(updates, update)
 		}
@@ -118,7 +116,7 @@ func (o *Operator) SyncValidatorMsgs(valAddr eth.Addr, options ValSyncOptions) (
 	return updates, updated == options
 }
 
-func (o *Operator) SyncValidatorSgnAddrMsg(valAddr eth.Addr) (*synctypes.ProposeUpdate, bool /*updated*/) {
+func (o *Operator) SyncValidatorSgnAddrMsg(valAddr eth.Addr, blkNum uint64) (*synctypes.ProposeUpdate, bool /*updated*/) {
 	logmsg := fmt.Sprintf("Generate sync validator sgnaddr msg, val %x", valAddr)
 
 	sgnAddr, err := o.EthClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, valAddr)
@@ -136,14 +134,15 @@ func (o *Operator) SyncValidatorSgnAddrMsg(valAddr eth.Addr) (*synctypes.Propose
 		SgnAddress: sdk.AccAddress(sgnAddr).String(),
 	}
 	update := &synctypes.ProposeUpdate{
-		Type: synctypes.DataType_ValidatorSgnAddr,
-		Data: o.Transactor.CliCtx.Codec.MustMarshal(updateVal),
+		Type:       synctypes.DataType_ValidatorSgnAddr,
+		Data:       o.Transactor.CliCtx.Codec.MustMarshal(updateVal),
+		ChainBlock: blkNum,
 	}
 	log.Debugf("%s. sgnaddr %s", logmsg, sdk.AccAddress(sgnAddr))
 	return update, false
 }
 
-func (o *Operator) SyncValidatorParamsMsg(valAddr eth.Addr) (*synctypes.ProposeUpdate, bool /*updated*/) {
+func (o *Operator) SyncValidatorParamsMsg(valAddr eth.Addr, blkNum uint64) (*synctypes.ProposeUpdate, bool /*updated*/) {
 	logmsg := fmt.Sprintf("Generate sync validator params msg, val %x", valAddr)
 	if o.ValAddr != valAddr {
 		log.Errorf("%s. Params sync can only be trigger by self validator", logmsg)
@@ -183,14 +182,15 @@ func (o *Operator) SyncValidatorParamsMsg(valAddr eth.Addr) (*synctypes.ProposeU
 		}
 	}
 	update := &synctypes.ProposeUpdate{
-		Type: synctypes.DataType_ValidatorParams,
-		Data: o.Transactor.CliCtx.Codec.MustMarshal(updateVal),
+		Type:       synctypes.DataType_ValidatorParams,
+		Data:       o.Transactor.CliCtx.Codec.MustMarshal(updateVal),
+		ChainBlock: blkNum,
 	}
 	log.Debugf("%s, updateVal: %s", logmsg, updateVal)
 	return update, false
 }
 
-func (o *Operator) SyncValidatorStatesMsg(valAddr eth.Addr) (*synctypes.ProposeUpdate, bool /*updated*/) {
+func (o *Operator) SyncValidatorStatesMsg(valAddr eth.Addr, blkNum uint64) (*synctypes.ProposeUpdate, bool /*updated*/) {
 	logmsg := fmt.Sprintf("Generate sync validator states msg, val %x", valAddr)
 	ethVal, err := o.EthClient.Contracts.Staking.Validators(&bind.CallOpts{}, valAddr)
 	if err != nil {
@@ -215,14 +215,15 @@ func (o *Operator) SyncValidatorStatesMsg(valAddr eth.Addr) (*synctypes.ProposeU
 	}
 
 	update := &synctypes.ProposeUpdate{
-		Type: synctypes.DataType_ValidatorStates,
-		Data: o.Transactor.CliCtx.Codec.MustMarshal(updateVal),
+		Type:       synctypes.DataType_ValidatorStates,
+		Data:       o.Transactor.CliCtx.Codec.MustMarshal(updateVal),
+		ChainBlock: blkNum,
 	}
 	log.Debugf("%s, updateVal: %s", logmsg, updateVal)
 	return update, false
 }
 
-func (o *Operator) SyncDelegatorMsg(valAddr, delAddr eth.Addr) *synctypes.ProposeUpdate {
+func (o *Operator) SyncDelegatorMsg(valAddr, delAddr eth.Addr, blkNum uint64) *synctypes.ProposeUpdate {
 	ethDel, err := o.EthClient.Contracts.Staking.GetDelegatorInfo(&bind.CallOpts{}, valAddr, delAddr)
 	if err != nil {
 		log.Errorf("failed to query delegator info err: %s", err)
@@ -245,8 +246,9 @@ func (o *Operator) SyncDelegatorMsg(valAddr, delAddr eth.Addr) *synctypes.Propos
 	}
 
 	return &synctypes.ProposeUpdate{
-		Type: synctypes.DataType_DelegatorShares,
-		Data: o.Transactor.CliCtx.Codec.MustMarshal(&updateDel),
+		Type:       synctypes.DataType_DelegatorShares,
+		Data:       o.Transactor.CliCtx.Codec.MustMarshal(&updateDel),
+		ChainBlock: blkNum,
 	}
 
 }

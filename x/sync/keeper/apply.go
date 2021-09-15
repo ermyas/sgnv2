@@ -14,10 +14,6 @@ func (k Keeper) ApplyUpdate(ctx sdk.Context, update *types.PendingUpdate) bool {
 	var applied bool
 	var err error
 	switch update.Type {
-	case types.DataType_EthBlkNum:
-		applied, err = k.applyEthBlkNum(ctx, update)
-	case types.DataType_StakingContractParam:
-		applied, err = k.applyStakingContractParam(ctx, update)
 	case types.DataType_ValidatorSgnAddr:
 		applied, err = k.applyValidatorSgnAddr(ctx, update)
 	case types.DataType_ValidatorParams:
@@ -32,14 +28,6 @@ func (k Keeper) ApplyUpdate(ctx sdk.Context, update *types.PendingUpdate) bool {
 		log.Errorln("Apply update err:", err)
 	}
 	return applied
-}
-
-func (k Keeper) applyEthBlkNum(ctx sdk.Context, update *types.PendingUpdate) (bool, error) {
-	return true, nil
-}
-
-func (k Keeper) applyStakingContractParam(ctx sdk.Context, update *types.PendingUpdate) (bool, error) {
-	return true, nil
 }
 
 func (k Keeper) applyValidatorSgnAddr(ctx sdk.Context, update *types.PendingUpdate) (bool, error) {

@@ -218,7 +218,7 @@ func (r *Relayer) selfSyncValidator(options ValSyncOptions) {
 		}
 	}
 	for i = 1; i < 5; i++ {
-		updated := r.SyncValidator(r.Operator.ValAddr, r.getCurrentBlockNumber(), options)
+		updated := r.SyncValidator(r.Operator.ValAddr, r.getCurrentBlockNumber().Uint64(), options)
 		if updated {
 			log.Debugln("Self validator synced", options)
 			return

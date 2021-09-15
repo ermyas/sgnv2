@@ -67,20 +67,20 @@ func (r *Relayer) processPullerQueue() {
 	}
 
 	msgs := synctypes.MsgProposeUpdates{
-		Updates:  make([]*synctypes.ProposeUpdate, 0),
-		EthBlock: r.getCurrentBlockNumber().Uint64(),
-		Sender:   r.Transactor.Key.GetAddress().String(),
+		Updates: make([]*synctypes.ProposeUpdate, 0),
+		Sender:  r.Transactor.Key.GetAddress().String(),
 	}
 
+	blkNum := r.getCurrentBlockNumber().Uint64()
 	for vaddr := range validators {
-		updates, _ := r.SyncValidatorMsgs(vaddr, validators[vaddr])
+		updates, _ := r.SyncValidatorMsgs(vaddr, blkNum, validators[vaddr])
 		msgs.Updates = append(msgs.Updates, updates...)
 	}
 
 	for delegatorKey := range delegators {
 		validatorAddr := eth.Hex2Addr(strings.Split(delegatorKey, ":")[0])
 		delegatorAddr := eth.Hex2Addr(strings.Split(delegatorKey, ":")[1])
-		update := r.SyncDelegatorMsg(validatorAddr, delegatorAddr)
+		update := r.SyncDelegatorMsg(validatorAddr, delegatorAddr, blkNum)
 		if update != nil {
 			msgs.Updates = append(msgs.Updates, update)
 		}
