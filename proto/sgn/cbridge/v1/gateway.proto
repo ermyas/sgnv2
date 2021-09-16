@@ -77,14 +77,16 @@ message ChainTokenInfo {
     repeated TokenInfo token = 1;
 }
 
+message Token {
+    string symbol = 1;
+    string address = 2;
+    int32 decimal = 3;
+}
+
 message TokenInfo {
-    string name = 1;
-    int32 id = 2;
-    string symbol = 3;
-    string address = 4;
-    int32 decimal = 5;
-    string title = 6;
-    string icon = 7;
+    Token token = 1;
+    string name = 2;
+    string icon = 3;
 }
 
 
