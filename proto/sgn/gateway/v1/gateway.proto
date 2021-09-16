@@ -3,7 +3,7 @@ package sgn.cbridge.v1;
 
 import "google/api/annotations.proto";
 
-option go_package = "gateway/webapi";
+option go_package = "github.com/celer-network/sgn-v2/gateway/webapi";
 
 service Web {
     // transfer
