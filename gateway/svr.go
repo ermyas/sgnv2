@@ -53,6 +53,10 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 	panic("implement me")
 }
 
+func (gs *GatewayService) MarkTransferBegin(ctx context.Context, request *webapi.MarkTransferBeginRequest) (*webapi.MarkTransferBeginResponse, error) {
+	panic("implement me")
+}
+
 func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.GetLPInfoListRequest) (*webapi.GetLPInfoListResponse, error) {
 	panic("implement me")
 }

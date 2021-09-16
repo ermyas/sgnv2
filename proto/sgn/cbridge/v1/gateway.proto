@@ -28,6 +28,13 @@ service Web {
     };
     }
 
+    rpc MarkTransferBegin (MarkTransferBeginRequest) returns (MarkTransferBeginResponse) {
+        option (google.api.http) = {
+      post: "/v1/markTransferBegin"
+      body: "*"
+    };
+    }
+
     //LP
     rpc GetLPInfoList (GetLPInfoListRequest) returns (GetLPInfoListResponse) {
         option (google.api.http) = {
@@ -89,6 +96,11 @@ message TokenInfo {
     string icon = 3;
 }
 
+message TransferInfo {
+    Chain chain = 1;
+    Token token = 2;
+    double amount = 3;
+}
 
 message SetAdvancedInfoRequest {
     string addr = 1;
@@ -124,6 +136,16 @@ message EstimateAmtResponse {
     float slippage_tolerance = 3;
     double fee = 4; // how much token
     double minimum_received_amt = 5; // how much token
+}
+
+message MarkTransferBeginRequest {
+    string transfer_id = 1;
+    TransferInfo src_send_info = 2;
+    TransferInfo dst_min_received_info = 3;
+}
+
+message MarkTransferBeginResponse {
+    ErrMsg err = 1;
 }
 
 message GetLPInfoListRequest {
@@ -198,14 +220,13 @@ enum LPType {
 }
 
 message TransferHistory {
-    Chain src_chain = 1;
-    Chain dst_chain = 2;
-    double transfer_amt_src_chain = 3;
-    double received_amt_dst_chain = 4;
-    uint64 ts = 5;
-    string src_block_tx_link = 6;
-    string dst_block_tx_link = 7;
-    TransferHistoryStatus status = 8;
+    string transfer_id = 1;
+    TransferInfo src_send_info = 2;
+    TransferInfo dst_received_info = 3;
+    uint64 ts = 4;
+    string src_block_tx_link = 5;
+    string dst_block_tx_link = 6;
+    TransferHistoryStatus status = 7;
 }
 
 message LPHistory {
