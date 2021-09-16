@@ -24,6 +24,9 @@ import (
 	"github.com/celer-network/sgn-v2/x/mint"
 	mintkeeper "github.com/celer-network/sgn-v2/x/mint/keeper"
 	minttypes "github.com/celer-network/sgn-v2/x/mint/types"
+	"github.com/celer-network/sgn-v2/x/slash"
+	slashkeeper "github.com/celer-network/sgn-v2/x/slash/keeper"
+	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
 	staking "github.com/celer-network/sgn-v2/x/staking"
 	stakingkeeper "github.com/celer-network/sgn-v2/x/staking/keeper"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
@@ -89,6 +92,7 @@ var (
 		mint.AppModuleBasic{},
 		distr.AppModuleBasic{},
 		gov.NewAppModuleBasic(govclient.ParamProposalHandler, govclient.UpgradeProposalHandler),
+		slash.AppModule{},
 		sync.AppModule{},
 		staking.AppModuleBasic{},
 		cbridge.AppModuleBasic{},
@@ -132,6 +136,7 @@ type SgnApp struct {
 	MintKeeper    mintkeeper.Keeper
 	DistrKeeper   distrkeeper.Keeper
 	GovKeeper     govkeeper.Keeper
+	SlashKeeper   slashkeeper.Keeper
 	SyncKeeper    synckeeper.Keeper
 	StakingKeeper stakingkeeper.Keeper
 	CbridgeKeeper cbridgekeeper.Keeper
@@ -202,7 +207,7 @@ func NewSgnApp(
 		authtypes.StoreKey, banktypes.StoreKey,
 		paramstypes.StoreKey, upgradetypes.StoreKey,
 		minttypes.StoreKey, distrtypes.StoreKey,
-		govtypes.StoreKey, synctypes.StoreKey, stakingtypes.StoreKey,
+		govtypes.StoreKey, slashtypes.StoreKey, synctypes.StoreKey, stakingtypes.StoreKey,
 		cbridgetypes.MemStoreKey, cbridgetypes.StoreKey,
 	)
 	tKeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
@@ -257,7 +262,7 @@ func NewSgnApp(
 		AddRoute(proposal.RouterKey, gov.NewParamChangeProposalHandler(app.ParamsKeeper)).
 		AddRoute(upgradetypes.RouterKey, gov.NewUpgradeProposalHandler(app.UpgradeKeeper))
 	app.GovKeeper = govkeeper.NewKeeper(
-		app.AppCodec(),
+		appCodec,
 		keys[govtypes.StoreKey],
 		app.GetSubspace(govtypes.ModuleName),
 		stakingKeeper,
@@ -266,6 +271,13 @@ func NewSgnApp(
 	// register the staking hooks
 	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
 	app.StakingKeeper = *stakingKeeper.SetHooks(app.DistrKeeper.Hooks())
+
+	app.SlashKeeper = slashkeeper.NewKeeper(
+		keys[slashtypes.StoreKey],
+		appCodec,
+		app.StakingKeeper,
+		app.GetSubspace(slashtypes.ModuleName),
+	)
 
 	/****  Module Options ****/
 
@@ -281,6 +293,7 @@ func NewSgnApp(
 		distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
 		staking.NewAppModule(app.StakingKeeper),
 		gov.NewAppModule(app.GovKeeper, app.AccountKeeper),
+		slash.NewAppModule(app.SlashKeeper),
 		sync.NewAppModule(app.SyncKeeper),
 		cbridge.NewAppModule(appCodec, app.CbridgeKeeper),
 	)
@@ -294,6 +307,7 @@ func NewSgnApp(
 		stakingtypes.ModuleName,
 		minttypes.ModuleName,
 		distrtypes.ModuleName,
+		slashtypes.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
 		synctypes.ModuleName, govtypes.ModuleName, stakingtypes.ModuleName,
@@ -312,6 +326,7 @@ func NewSgnApp(
 		minttypes.ModuleName,
 		stakingtypes.ModuleName,
 		govtypes.ModuleName,
+		slashtypes.ModuleName,
 		synctypes.ModuleName,
 		cbridgetypes.ModuleName,
 	)
@@ -506,6 +521,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(minttypes.ModuleName)
 	paramsKeeper.Subspace(distrtypes.ModuleName)
 	paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable())
+	paramsKeeper.Subspace(slashtypes.ModuleName).WithKeyTable(slashtypes.ParamKeyTable())
 	paramsKeeper.Subspace(stakingtypes.ModuleName).WithKeyTable(stakingkeeper.ParamKeyTable())
 	paramsKeeper.Subspace(synctypes.ModuleName).WithKeyTable(synckeeper.ParamKeyTable())
 	paramsKeeper.Subspace(cbridgetypes.ModuleName).WithKeyTable(cbridgekeeper.ParamKeyTable())

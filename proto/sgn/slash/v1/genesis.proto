@@ -1,0 +1,15 @@
+syntax = "proto3";
+package sgn.slash.v1;
+
+option go_package = "github.com/celer-network/sgn-v2/x/slash/types";
+
+import "gogoproto/gogo.proto";
+
+import "sgn/slash/v1/slash.proto";
+
+// GenesisState defines the slash module's genesis state.
+message GenesisState {
+  Params params = 1 [(gogoproto.nullable) = false];
+  repeated Slash slashes = 2 [(gogoproto.nullable) = false];
+  uint64 slash_nonce = 3;
+}

@@ -108,6 +108,17 @@
         "veto": "0.334000000000000000"
       }
     },
+    "slash": {
+      "params": {
+        "enable_slash": true,
+        "signed_blocks_window": "20",
+        "slash_timeout": "1500",
+        "min_signed_per_window": "0.10000000000000000",
+        "slash_factor_double_sign": "50000",
+        "slash_factor_downtime": "10000",
+        "jail_period":"0"
+      }
+    },
     "mint": {
       "minter": {
         "annual_provisions": "30000000000000000000000000.000000000000000000"
