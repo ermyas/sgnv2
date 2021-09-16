@@ -18,6 +18,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.6.0 // indirect
 	github.com/iancoleman/strcase v0.1.0
 	github.com/regen-network/cosmos-proto v0.3.1
+	github.com/rs/cors v1.7.0
 	github.com/rs/zerolog v1.23.0
 	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.1.3

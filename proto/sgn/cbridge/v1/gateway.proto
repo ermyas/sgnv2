@@ -1,0 +1,248 @@
+syntax = "proto3";
+package sgn.cbridge.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "gateway/webapi";
+
+service Web {
+    // transfer
+    rpc SetAdvancedInfo (SetAdvancedInfoRequest) returns (SetAdvancedInfoResponse) {
+        option (google.api.http) = {
+      post: "/v1/setAdvancedInfo"
+      body: "*"
+    };
+    }
+
+    rpc GetTransferConfigs (GetTransferConfigsRequest) returns (GetTransferConfigsResponse) {
+        option (google.api.http) = {
+      post: "/v1/getTransferConfigs"
+      body: "*"
+    };
+    }
+
+    rpc EstimateAmt (EstimateAmtRequest) returns (EstimateAmtResponse) {
+        option (google.api.http) = {
+      post: "/v1/estimateAmt"
+      body: "*"
+    };
+    }
+
+    //LP
+    rpc GetLPInfoList (GetLPInfoListRequest) returns (GetLPInfoListResponse) {
+        option (google.api.http) = {
+      post: "/v1/getLPConfigs"
+      body: "*"
+    };
+    }
+
+    rpc GetTotalLiquidity (GetTotalLiquidityRequest) returns (GetTotalLiquidityResponse) {
+        option (google.api.http) = {
+      post: "/v1/getLPPersonalStatus"
+      body: "*"
+    };
+    }
+
+    // for refund failed user transfer and LP remove liquidity
+    rpc WithdrawLiquidity (WithdrawLiquidityRequest) returns (WithdrawLiquidityResponse) {
+        option (google.api.http) = {
+      post: "/v1/withdrawLiquidity"
+      body: "*"
+    };
+    }
+
+    //History
+    rpc TransferHistory (TransferHistoryRequest) returns (TransferHistoryResponse) {
+        option (google.api.http) = {
+      post: "/v1/transferHistory"
+      body: "*"
+    };
+    }
+
+    rpc LPHistory (LPHistoryRequest) returns (LPHistoryResponse) {
+        option (google.api.http) = {
+      post: "/v1/lpHistory"
+      body: "*"
+    };
+    }
+}
+
+message Chain {
+    uint64 id = 1;
+    string name = 2;
+    string icon = 3;
+}
+
+message ChainTokenInfo {
+    repeated TokenInfo token = 1;
+}
+
+message TokenInfo {
+    string name = 1;
+    int32 id = 2;
+    string symbol = 3;
+    string address = 4;
+    int32 decimal = 5;
+    string title = 6;
+    string icon = 7;
+}
+
+
+message SetAdvancedInfoRequest {
+    string addr = 1;
+    float slippage_tolerance = 2;
+}
+
+message SetAdvancedInfoResponse {
+    ErrMsg err = 1;
+}
+
+
+message GetTransferConfigsRequest {
+
+}
+
+message GetTransferConfigsResponse {
+    ErrMsg err = 1;
+    repeated Chain chains = 2;
+    map<uint64, ChainTokenInfo> chain_token = 3; //map<chain_id, ChainTokenInfo>
+}
+
+message EstimateAmtRequest {
+    string addr = 1;
+    uint64 src_chain_id = 2;
+    uint64 dst_chain_id = 3;
+    uint64 token_id = 4;
+    double amt = 5; // how much token
+}
+
+message EstimateAmtResponse {
+    ErrMsg err = 1;
+    float bridge_rate = 2;
+    float slippage_tolerance = 3;
+    double fee = 4; // how much token
+    double minimum_received_amt = 5; // how much token
+}
+
+message GetLPInfoListRequest {
+    string addr = 1;
+}
+
+message LPInfo {
+    Chain chain = 1;
+    TokenInfo token = 2;
+    double liquidity = 3;
+    double earning = 4;
+    double tvl = 5;
+    double volume_24h = 6;
+    double lp_fee_rate = 7;
+    double apy = 8;
+}
+message GetLPInfoListResponse {
+    ErrMsg err = 1;
+    repeated LPInfo lp_info = 2;
+}
+
+message GetTotalLiquidityRequest {
+    string addr = 1;
+}
+
+message GetTotalLiquidityResponse {
+    ErrMsg err = 1;
+    double liquidity = 2;
+    double earning = 3;
+    double farming_rewarding = 4;
+    double unclaimed_farming_rewarding = 5;
+}
+
+
+message WithdrawLiquidityRequest {
+    string receiver_addr = 1;
+    double amount = 2;
+    string token_addr = 3;
+    uint64 chain_id = 4;
+}
+
+message WithdrawLiquidityResponse {
+    ErrMsg err = 1;
+    uint64 nonce = 3;
+}
+
+enum TransferHistoryStatus {
+    TRANSFER_UNKNOWN = 0;
+    TRANSFER_SUBMITTING = 1;
+    TRANSFER_FAILED = 2;
+    TRANSFER_WAITING_FOR_FUND_RELEASE = 3;
+    TRANSFER_COMPLETED = 4;
+    TRANSFER_TO_BE_REFUNDED = 5;
+    TRANSFER_REQUESTING_REFUND = 6;
+    TRANSFER_REFUND_TO_BE_CONFIRMED = 7;
+    TRANSFER_CONFIRMING_YOUR_REFUND = 8;
+    TRANSFER_REFUNDED = 9;
+}
+
+enum LPHistoryStatus {
+    LP_UNKNOWN = 0;
+    LP_WAITING_FOR_SGN = 1;
+    LP_WAITING_FOR_LP = 2;
+    LP_SUBMITTING = 3;
+    LP_COMPLETED = 4;
+    LP_FAILED = 5;
+}
+enum LPType {
+    LP_TYPE_UNKNOWN = 0;
+    LP_TYPE_ADD = 1;
+    LP_TYPE_REMOVE = 2;
+}
+
+message TransferHistory {
+    Chain src_chain = 1;
+    Chain dst_chain = 2;
+    double transfer_amt_src_chain = 3;
+    double received_amt_dst_chain = 4;
+    uint64 ts = 5;
+    string src_block_tx_link = 6;
+    string dst_block_tx_link = 7;
+    TransferHistoryStatus status = 8;
+}
+
+message LPHistory {
+    Chain chain = 1;
+    TokenInfo token = 2;
+    double amount = 3;
+    uint64 ts = 4;
+    string block_tx_link = 5;
+    LPHistoryStatus status = 6;
+    LPType type = 7;
+}
+
+message TransferHistoryRequest {
+    string next_page_token = 1;
+    uint64 begin_time = 2;
+    uint64 end_time = 3;
+}
+
+message TransferHistoryResponse {
+    ErrMsg err = 1;
+    repeated TransferHistory history = 2;
+}
+
+message LPHistoryRequest {
+    string next_page_token = 1;
+    uint64 begin_time = 2;
+    uint64 end_time = 3;
+}
+
+message LPHistoryResponse {
+    ErrMsg err = 1;
+    repeated LPHistory history = 2;
+}
+
+message ErrMsg {
+    ErrCode code = 1;
+    string msg = 2;
+}
+
+enum ErrCode {
+    ERROR_CODE_UNDEFINED = 0;
+}
