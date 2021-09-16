@@ -245,11 +245,11 @@ func NewSgnApp(
 		appCodec, keys[distrtypes.StoreKey], app.GetSubspace(distrtypes.ModuleName), app.AccountKeeper, app.BankKeeper,
 		&stakingKeeper, authtypes.FeeCollectorName, app.BlockedAddrs(),
 	)
-	app.SyncKeeper = synckeeper.NewKeeper(
-		appCodec, keys[synctypes.StoreKey], stakingKeeper, app.GetSubspace(synctypes.ModuleName),
-	)
 	app.CbridgeKeeper = cbridgekeeper.NewKeeper(
 		appCodec, keys[cbridgetypes.StoreKey], keys[cbridgetypes.MemStoreKey], app.GetSubspace(cbridgetypes.ModuleName),
+	)
+	app.SyncKeeper = synckeeper.NewKeeper(
+		appCodec, keys[synctypes.StoreKey], stakingKeeper, app.GetSubspace(synctypes.ModuleName), app.CbridgeKeeper,
 	)
 
 	govRouter := govtypes.NewRouter()

@@ -22,6 +22,8 @@ func (k Keeper) ApplyUpdate(ctx sdk.Context, update *types.PendingUpdate) bool {
 		applied, err = k.applyValidatorStates(ctx, update)
 	case types.DataType_DelegatorShares:
 		applied, err = k.applyDelegatorShares(ctx, update)
+	case types.DataType_CbrOnchainEvent:
+		applied, err = k.cbrKeeper.ApplyEvent(ctx, update.Data)
 	}
 
 	if err != nil {
