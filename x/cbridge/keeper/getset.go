@@ -14,12 +14,15 @@ import (
 func ChangeLiquidity(kv sdk.KVStore, chid uint64, token, lp eth.Addr, delta *big.Int) *big.Int {
 	lqKey := types.LiqMapKey(chid, token, lp)
 	value := kv.Get(lqKey)
-	had := new(big.Int).SetBytes(value) // nil value is fine
+	had := new(big.Int)
+	if value != nil {
+		had.SetString(string(value), 10)
+	}
 	had.Add(had, delta)
 	if had.Sign() == -1 { // negative
 		panic(string(lqKey) + " negative liquidity: " + had.String())
 	}
-	kv.Set(lqKey, had.Bytes())
+	kv.Set(lqKey, []byte(had.String()))
 	// todo: add to per lp info for query
 	return had
 }
@@ -31,8 +34,14 @@ func SetEvLiqAdd(kv sdk.KVStore, chid, seq uint64) {
 
 // if get returns non-nil, return true, otherwise false
 func HasEvLiqAdd(kv sdk.KVStore, chid, seq uint64) bool {
-	if kv.Get(types.EvLiqAddKey(chid, seq)) != nil {
-		return true
-	}
-	return false
+	return kv.Get(types.EvLiqAddKey(chid, seq)) != nil
+}
+
+func HasEvSend(kv sdk.KVStore, xferId [32]byte) bool {
+	return kv.Get(types.EvSendKey(xferId)) != nil
+}
+
+func HasEnoughLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr, needed *big.Int) bool {
+	// sum over all liqmap, if larger than needed, return true
+	return true
 }

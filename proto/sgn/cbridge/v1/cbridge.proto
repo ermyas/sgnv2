@@ -5,6 +5,7 @@ import "gogoproto/gogo.proto";
 
 option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
 
+// ========== params
 message Params {
   MultiChainAssetParam multi_chain_asset_param = 1[(gogoproto.nullable) = false];
 }
@@ -21,6 +22,7 @@ message ChainAsset {
   string max_fee_amount = 5; // max fee, use string to avoid uint64 now enough for 18 decimal tokens
 }
 
+// ========== for sync propose
 // to be included in sync propose update, broadcast by syncer to tell others
 // an onchain event happened. for completeness we include chainid, even though
 // propose update also has it
@@ -30,11 +32,7 @@ message OnChainEvent {
   bytes elog = 3; // serialized json string, use bytes for easier marshal/unmarshal
 }
 
-// to be included in sync propose updates, details TBD
-message Withdraw {
-
-}
-
+// ========== onchain tx data
 // same proto used by solidity, serialized bytes are signed by sgn nodes then submit onchain to relay function
 // x/cbridge will emit tendermint event, relayer monitor and send msg w/ its signature
 message RelayOnChain {
@@ -44,6 +42,45 @@ message RelayOnChain {
   bytes amount = 4;
   uint64 src_chain_id = 5;
   uint64 dst_chain_id = 6;
-  uint64 nonce = 7;
-  bytes src_transfer_id = 8;
+  bytes src_transfer_id = 7;
+}
+
+// data when call withdraw onchain
+message WithdrawOnchain {
+  uint64 chainid = 1;
+  uint64 seqnum = 2; // global unique across chains, assigned by sgn
+  bytes receiver = 3;
+  bytes token = 4; // token address
+  bytes amount = 5;
+}
+
+// sorted by signer address
+message SortedSigners {
+  repeated AddrAmt signers = 1;
+}
+
+// ========== x/cbridge kv value types
+// for src transfer id
+enum XferStatus {
+  UNKNOWN = 0; // use as default for unknown xfer
+  BAD_LIQUIDITY = 1; // can't complete xfer due to low dst chain liquidity
+  BAD_SLIPPAGE = 2; // slippage larger than user specified max
+  OK_TO_RELAY = 3; // x/cbrige emit relay, waiting for sgn nodes to send sig
+  HAS_RELAY_SIG = 4; // received at least one sig for relay
+  COMPLETED = 5; // applied onchain relay event
+
+  // withdraw flow
+  HAS_WITHDRAW_SIG = 6; // received at least one sig for withdraw
+  WITHDRAW_DONE = 7; // applied onchain withdrawdone event
+}
+
+message AddrAmt {
+  bytes addr = 1; // eth address
+  bytes amt = 2; // big.Int.Bytes(), NO negative!
+}
+
+// saved by x/cbridge for each src transfer
+message XferDetail {
+  bytes send_event = 1; // json marshaled Send event, including chainid etc
+  repeated AddrAmt liq_to_add = 2; // liquidity to add to src chain provider when relay is done
 }

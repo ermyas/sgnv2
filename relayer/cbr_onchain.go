@@ -167,6 +167,13 @@ func (c *CbrOneChain) delEvent(name string, blknum, idx uint64) error {
 
 // query chain to verify event is the same, return true if match
 // TODO: impl logic
-func (oc *CbrOneChain) CheckEvent(tocheck *ethtypes.Log) (bool, error) {
+func (c *CbrOneChain) CheckEvent(evtype string, tocheck *ethtypes.Log) (bool, error) {
 	return true, nil
+}
+
+// send relay tx onchain to cbridge contract, no wait mine
+// TODO: logic
+func (c *CbrOneChain) SendRelay(relay, curss []byte, sigs [][]byte) error {
+	_, err := c.contract.Relay(nil, relay, curss, sigs)
+	return err
 }

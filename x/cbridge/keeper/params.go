@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk_params "github.com/cosmos/cosmos-sdk/x/params/types"
@@ -45,4 +46,17 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 // set the params
 func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	k.paramstore.SetParamSet(ctx, &params)
+}
+
+// utils to deal with asset, chid and address
+
+// given chid and token address, return which asset eg. USDT
+// empty string if not found
+func (k Keeper) GetAssetSymbol(chaddr *ChainIdTokenAddr) string {
+	return ""
+}
+
+// given asset symbol, return token address for chid, zero address if not found
+func (k Keeper) GetTokenAddr(sym string, chid uint64) eth.Addr {
+	return eth.ZeroAddr // TODO: impl
 }

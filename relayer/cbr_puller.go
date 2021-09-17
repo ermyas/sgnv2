@@ -82,22 +82,24 @@ func (r *Relayer) verifyCbrEventUpdate(data []byte) (done, approve bool) {
 		log.Errorf("failed to unmarshal %x to eth Log", onchev.Elog)
 		return true, false
 	}
+
+	// delete my local db event so this event won't be picked again when I become syncer
+	defer r.cbrMgr[onchev.Chainid].delEvent(onchev.Evtype, elog.BlockNumber, uint64(elog.Index))
+
 	// now we directly verify this event onchain
 	// why we have to do onchain check instead of local db only: our local db could
 	// be behind so we can't differentiate not yet see event vs. faked event
 	// only onchain query can give us 100% certainty
 	// we have 2 ways: getTransactionReceipt or getLogs
-	equal, err := r.cbrMgr[onchev.Chainid].CheckEvent(elog)
+	equal, err := r.cbrMgr[onchev.Chainid].CheckEvent(onchev.Evtype, elog)
 	if err != nil {
-		return false, false // onchain error, allows retry
+		return false, false // onchain error, so don't vote
 	}
-	// delete my local db event so this event won't be picked again when I become syncer
-	defer r.cbrMgr[onchev.Chainid].delEvent(onchev.Evtype, elog.BlockNumber, uint64(elog.Index))
 	if !equal {
 		return true, false
 	}
 	// event is the same as onchain, now move on to per event logic
-	// now query x/cbridge if this event has already been handled
+	// eg. query x/cbridge if this event has already been handled
 	// but if we only query applied state, we may still vote again?
 	// unless we can query x/cbridge w/ state plus pending?
 	// TODO: query x/cbridge
@@ -105,6 +107,14 @@ func (r *Relayer) verifyCbrEventUpdate(data []byte) (done, approve bool) {
 	// now per event logic
 	switch onchev.Evtype {
 	case CbrEventLiqAdd:
+		// if chid-seq already processed, return true, false
+		return true, true
+	case CbrEventSend:
+		// if transferid is waiting for vote status, return true, true
+		// otherwise, true, false
+		return true, true
+	case CbrEventRelay:
+		// this event means syncer already submitted relay tx onchain
 		return true, true
 	}
 	return true, false

@@ -2,13 +2,57 @@ syntax = "proto3";
 package sgn.cbridge.v1;
 
 import "sgn/cbridge/v1/cbridge.proto";
-// this line is used by starport scaffolding # proto/tx/import
 
 option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
 
-// Msg defines the Msg service.
 service Msg {
-    // this line is used by starport scaffolding # proto/tx/rpc
+    // called by gateway to start a withdraw flow
+    rpc InitWithdraw(MsgInitWithdraw) returns (MsgInitWithdrawResp);
+
+    // user can request to sign a previous withdraw again
+    // to mitigate dos attack, we could be smart and re-use sigs if
+    // they are still valid. we should also deny if withdraw already
+    // completed
+    rpc SignAgain(MsgSignAgain) returns (MsgSignAgainResp);
+
+    // send my sig for data, so it can be later submitted onchain
+    rpc SendMySig(MsgSendMySig) returns (MsgSendMySigResp);
 }
 
-// this line is used by starport scaffolding # proto/tx/message
+enum SignDataType {
+    INVALID = 0;
+    RELAY = 1; // data is serialized RelayOnChain
+    WITHDRAW = 2; // data is serialized WithdrawOnchain
+}
+
+message MsgSendMySig {
+    SignDataType datatype = 1; // relay or withdraw
+    bytes data = 2; // signed data
+    bytes my_sig = 3; // address should be recovered by x/cbridge and compare to validators
+
+    string creator = 4;
+}
+
+message MsgSendMySigResp {}
+
+message MsgInitWithdraw {
+    bytes xfer_id = 1; // if set, user refund src transfer id
+    // lp withdraw, only set if xfer_id is nil
+    uint64 chainid = 2;
+    bytes lp_addr = 3;
+    bytes token = 4;
+    bytes amount = 5;
+
+    string creator = 6;
+}
+
+message MsgInitWithdrawResp {
+    uint64 seqnum = 1; // global unique withdraw sequence number
+}
+
+message MsgSignAgain {
+    uint64 seqnum = 1; // received in MsgInitWithdrawResp
+    string creator = 2;
+}
+
+message MsgSignAgainResp {}
