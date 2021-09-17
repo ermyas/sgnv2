@@ -3,27 +3,8 @@ package webapi
 import (
 	"context"
 	"fmt"
-	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/goutils/sqldb"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 )
-
-type DAL struct {
-	*sqldb.Db
-}
-
-func NewDAL(driver, info string, poolSize int) (*DAL, error) {
-	db, err := sqldb.NewDb(driver, info, poolSize)
-	if err != nil {
-		log.Errorf("fail with db init:%s, %s, %d, err:%+v", driver, info, poolSize, err)
-		return nil, err
-	}
-
-	dal := &DAL{
-		db,
-	}
-	return dal, nil
-}
 
 // Close the database DAL.
 func (gs *GatewayService) Close() {
@@ -77,9 +58,9 @@ func (gs *GatewayService) LPHistory(ctx context.Context, request *webapi.LPHisto
 	panic("implement me")
 }
 
-func NewGatewayService() (*GatewayService, error) {
+func NewGatewayService(dbUrl string) (*GatewayService, error) {
 	// Make a private config copy.
-	dal, err := NewDAL("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", "dburl"), 10)
+	dal, err := NewDAL("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", dbUrl), 10)
 	if err != nil {
 		return nil, err
 	}

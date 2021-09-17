@@ -23,7 +23,7 @@ func InitGateway() {
 	flag.Parse()
 	log.Infof("Starting gateway at rest:%d, grpc:%d", *port, *rpcPort)
 
-	gs, err := NewGatewayService()
+	gs, err := NewGatewayService("127.0.0.1:26257")
 	if err != nil {
 		log.Fatalf("fail to init gateway server, err:%v", err)
 		return
