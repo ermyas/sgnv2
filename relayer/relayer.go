@@ -84,6 +84,7 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 	r.monitorEthDelegationUpdate()
 
 	//go r.monitorSgnchainCreateValidator()
+	go r.monitorSidechainSlash()
 
 	go r.processQueues()
 

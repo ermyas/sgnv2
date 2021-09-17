@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/slash/types"
 	stakingkeeper "github.com/celer-network/sgn-v2/x/staking/keeper"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
@@ -117,7 +116,7 @@ func (k Keeper) HandleValidatorSignature(ctx sdk.Context, addr crypto.Address, s
 func (k Keeper) Slash(ctx sdk.Context, reason string, failedValidator stakingtypes.Validator, slashFactor uint64, collectors []types.AcctAmtPair, blkTime time.Time) {
 	_, found := k.StakingKeeper.GetValidator(ctx, failedValidator.GetEthAddress())
 	if !found {
-		log.Errorln("cannot find profile for the failed validator, eth addr: ", failedValidator.GetEthAddress())
+		log.Errorln("cannot find profile for the failed validator, eth addr: ", failedValidator.EthAddress)
 		return
 	}
 
@@ -125,8 +124,7 @@ func (k Keeper) Slash(ctx sdk.Context, reason string, failedValidator stakingtyp
 	slashNonce := k.GetSlashNonce(ctx)
 	slashExpireTime := uint64(blkTime.Unix()) + k.SlashTimeout(ctx)
 
-	ethAddr := eth.Addr2Hex(failedValidator.GetEthAddr())
-	slash := types.NewSlash(slashNonce, slashFactor, k.JailPeriod(ctx), slashExpireTime, reason, ethAddr, collectors)
+	slash := types.NewSlash(slashNonce, slashFactor, k.JailPeriod(ctx), slashExpireTime, reason, failedValidator.EthAddress, collectors)
 
 	if enableSlash {
 		slash.GenerateEthSlashBytes()

@@ -98,3 +98,14 @@ func (s *Slash) AddSig(sig []byte, expectedSigner string) error {
 	s.Sigs = sigs
 	return nil
 }
+
+func (s *Slash) GetSigsBytes() [][]byte {
+	if s != nil {
+		sigs := make([][]byte, 0)
+		for _, sig := range s.Sigs {
+			sigs = append(sigs, sig.Sig)
+		}
+		return sigs
+	}
+	return nil
+}

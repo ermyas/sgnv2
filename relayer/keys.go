@@ -22,6 +22,6 @@ func GetPullerKey(eLog ethtypes.Log) []byte {
 }
 
 // get slash key from nonce
-func GetSlashyKey(nonce uint64) []byte {
+func GetSlashKey(nonce uint64) []byte {
 	return append(SlashKeyPrefix, sdk.Uint64ToBigEndian(nonce)...)
 }
