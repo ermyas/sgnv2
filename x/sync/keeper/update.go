@@ -19,7 +19,7 @@ func (k Keeper) ProposeUpdates(
 	for _, u := range updates {
 		update := types.NewPendingUpdate(updateId, u.Type, u.Data, u.ChainId, u.ChainBlock, sender, proposeTs, closingTs)
 		k.SetPendingUpdate(ctx, update)
-		logEntry.Updates = append(logEntry.Updates, &seal.Update{Id: updateId, Type: update.Type.String()})
+		logEntry.Sync.Updates = append(logEntry.Sync.Updates, &seal.Update{Id: updateId, Type: update.Type.String()})
 		updateId++
 	}
 
@@ -35,7 +35,7 @@ func (k Keeper) VoteUpdates(ctx sdk.Context, votes []*types.VoteUpdate, sender s
 		}
 		update.Votes = append(update.Votes, &types.Vote{Voter: sender, Option: v.Option})
 		k.SetPendingUpdate(ctx, update)
-		logEntry.Updates = append(logEntry.Updates, &seal.Update{Id: update.Id, Type: update.Type.String()})
+		logEntry.Sync.Updates = append(logEntry.Sync.Updates, &seal.Update{Id: update.Id, Type: update.Type.String()})
 	}
 }
 

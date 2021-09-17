@@ -68,7 +68,7 @@ func handleMsgEditDescription(
 		return nil, fmt.Errorf("validator not found")
 	}
 	validator := v.(types.Validator)
-	logEntry.ValAddr = validator.GetEthAddr().Hex()
+	logEntry.Staking.ValAddr = validator.GetEthAddr().Hex()
 
 	err = validator.Description.UpdateDescription(msg.Description)
 	if err != nil {

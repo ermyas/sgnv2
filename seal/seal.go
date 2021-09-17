@@ -4,6 +4,10 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
+	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
+	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
+	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 )
 
 func NewTransactorLog(sender string) *TransactorLog {
@@ -31,7 +35,16 @@ func NewMsgLog(module string) *MsgLog {
 	now := time.Now().UnixNano()
 	msgLog := &MsgLog{
 		ExecutionTimeMs: (float64)(now),
-		Govern:          &Govern{},
+	}
+	switch module {
+	case stakingtypes.ModuleName:
+		msgLog.Staking = &Staking{}
+	case slashtypes.ModuleName:
+		msgLog.Slash = &Slash{}
+	case synctypes.ModuleName:
+		msgLog.Sync = &Sync{}
+	case govtypes.ModuleName:
+		msgLog.Govern = &Govern{}
 	}
 	return msgLog
 }

@@ -25,24 +25,25 @@ message TransactorLog {
     repeated string warn = 102;
 }
 
-// TODO: MsgLog per module
 message MsgLog {
     string type = 1;
-    string eth_address = 2;
-    string pub_key = 3;
-    repeated string transactors = 4;
-    string val_addr = 5;
-    string del_addr = 6;
-    string signer = 7;
-    repeated Update updates = 8;
-    Govern govern = 9;
-    Slash slash = 10;
-    ChannelInfo chan_info = 11;
+    Staking staking = 2;
+    Govern govern = 3;
+    Slash slash = 4;
+    Sync sync = 5;
 
     string sender = 99;
     double execution_time_ms = 100;
     repeated string error = 101;
     repeated string warn = 102;
+}
+
+message Staking {
+    string val_addr = 1;
+    string del_addr = 2;
+    string signer = 3;
+    string pub_key = 4;
+    repeated string transactors = 5;
 }
 
 message Slash {
@@ -51,15 +52,19 @@ message Slash {
     string reason = 3;
 }
 
-message Update {
-    uint64 id = 1;
-    string type = 2;
-}
-
 message Govern {
     uint64 proposal_id = 1;
     string deposit = 2;
     string option = 3;
+}
+
+message Sync {
+    repeated Update updates = 1;
+}
+
+message Update {
+    uint64 id = 1;
+    string type = 2;
 }
 
 message ChannelInfo {
