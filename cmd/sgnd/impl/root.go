@@ -38,6 +38,7 @@ import (
 	"github.com/celer-network/sgn-v2/app"
 	"github.com/celer-network/sgn-v2/app/params"
 	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/ops"
 )
 
 // NewRootCmd creates a new root command for sgnd. It is called once in the
@@ -152,6 +153,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		rpc.StatusCommand(),
 		queryCommand(),
 		txCommand(),
+		ops.OpsCommand(),
 		keys.Commands(app.DefaultNodeHome),
 	)
 

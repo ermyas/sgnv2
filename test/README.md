@@ -52,3 +52,7 @@ cp ~/.sgnd/config/genesis.json test/multi-node-data/node1/sgnd/config/genesis.js
 cp ~/.sgnd/config/genesis.json test/multi-node-data/node2/sgnd/config/genesis.json
 cp ~/.sgnd/config/genesis.json test/multi-node-data/node3/sgnd/config/genesis.json
 ```
+
+## Manual Testing
+
+Follow instructions in [e2e/manual](./e2e/manual/README.md) for local manual testing.

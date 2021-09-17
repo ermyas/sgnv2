@@ -83,8 +83,7 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 	r.monitorEthValidatorStatusUpdate()
 	r.monitorEthDelegationUpdate()
 
-	//go r.monitorSgnchainCreateValidator()
-	go r.monitorSidechainSlash()
+	go r.monitorSgnchainSlash()
 
 	go r.processQueues()
 
@@ -94,16 +93,13 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 
 func (r *Relayer) processQueues() {
 	pullerInterval := time.Duration(viper.GetUint64(common.FlagEthPollInterval)) * time.Second
-	syncBlkInterval := time.Duration(viper.GetUint64(common.FlagEthSyncBlkInterval)) * time.Second
 	slashInterval := time.Duration(viper.GetUint64(common.FlagSgnCheckIntervalSlashQueue)) * time.Second
 	log.Infof("Queue process interval: puller %s, slash %s", pullerInterval, slashInterval)
 
 	pullerTicker := time.NewTicker(pullerInterval)
-	syncBlkTicker := time.NewTicker(syncBlkInterval)
 	slashTicker := time.NewTicker(slashInterval)
 	defer func() {
 		pullerTicker.Stop()
-		syncBlkTicker.Stop()
 		slashTicker.Stop()
 	}()
 
@@ -118,9 +114,6 @@ func (r *Relayer) processQueues() {
 			blkNum = newblk
 			r.processPullerQueue()
 			r.verifyPendingUpdates()
-
-		case <-syncBlkTicker.C:
-			r.syncBlkNum()
 
 		case <-slashTicker.C:
 			r.processSlashQueue()

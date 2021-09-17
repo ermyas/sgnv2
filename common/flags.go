@@ -17,8 +17,6 @@ const (
 	FlagEthSignerPassphrase  = "eth.signer_passphrase"
 	FlagEthValidatorAddress  = "eth.validator_address"
 	FlagEthPollInterval      = "eth.poll_interval"
-	FlagEthSyncBlkInterval   = "eth.sync_blk_interval"
-	FlagEthAcceptedBlkRange  = "eth.accepted_blk_range"
 	FlagEthBlockDelay        = "eth.block_delay"
 	FlagEthChainId           = "eth.chain_id"
 	FlagEthCheckInterval     = "eth.check_interval"

@@ -11,7 +11,7 @@ import (
 	tc "github.com/celer-network/sgn-v2/test/common"
 )
 
-// TestMain handles common setup (start mainchain, deploy, start sidechain etc)
+// TestMain handles common setup (start mainchain, deploy, start sgnchain etc)
 // and teardown. Test specific setup should be done in TestXxx
 func TestMain(m *testing.M) {
 	flag.Parse()

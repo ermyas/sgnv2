@@ -37,13 +37,13 @@ func setupGov() {
 
 func TestGov(t *testing.T) {
 	t.Run("e2e-gov", func(t *testing.T) {
-		t.Run("sidechainGovTest", sidechainGovTest)
+		t.Run("sgnchainGovTest", sgnchainGovTest)
 	})
 }
 
-func sidechainGovTest(t *testing.T) {
+func sgnchainGovTest(t *testing.T) {
 	log.Info("=====================================================================")
-	log.Info("======================== Test sidechain gov ===========================")
+	log.Info("======================== Test sgnchain gov ===========================")
 
 	setupGov()
 

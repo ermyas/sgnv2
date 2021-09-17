@@ -8,7 +8,6 @@ signer_keystore = "./keys/vsigner3.json"
 signer_passphrase = ""
 validator_address = ""
 poll_interval = 1
-sync_blk_interval = 1
 
 [eth.check_interval]
 confirm_param_proposal = 2

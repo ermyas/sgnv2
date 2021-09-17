@@ -56,7 +56,7 @@ func MonitorTendermintEvent(nodeURI, eventTag string, handleEvent func(event abc
 	}
 }
 
-func (r *Relayer) monitorSidechainSlash() {
+func (r *Relayer) monitorSgnchainSlash() {
 	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, EventSlash, func(e abci.Event) {
 		if !r.isBonded() {
 			return

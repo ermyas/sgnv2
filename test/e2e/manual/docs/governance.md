@@ -1,6 +1,6 @@
-## Sidechain Governance
+## Governance
 
-### Prerequisite
+### Setup
 
 Run `go run localnet.go -start -auto` to start testnet and auto config all nodes as validators.
 

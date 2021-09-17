@@ -26,4 +26,4 @@ protoc/
 # SGN files
 test/data/.sgnd/config/sgn.toml
 docker-volumes
-test/data/.sgncli/config/sgn.toml
+test/e2e/manual/data/node*

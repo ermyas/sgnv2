@@ -90,10 +90,3 @@ func (r *Relayer) processPullerQueue() {
 		r.Transactor.AddTxMsg(&msgs)
 	}
 }
-
-func (r *Relayer) syncBlkNum() {
-	if !r.isSyncer() {
-		return
-	}
-
-}

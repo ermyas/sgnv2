@@ -170,9 +170,6 @@ func (o *Operator) SyncValidatorParamsMsg(valAddr eth.Addr, blkNum uint64) (*syn
 		SgnAddress:      sdk.AccAddress(sgnAddrBytes).String(),
 		ConsensusPubkey: o.PubKeyAny,
 		CommissionRate:  sdk.NewDec(int64(ethVal.CommissionRate)).QuoInt64(eth.CommissionRateBase),
-		Description: &stakingtypes.Description{
-			Identity: eth.Addr2Hex(valAddr),
-		},
 	}
 	storeVal, _ := validatorcli.QueryValidator(o.Transactor.CliCtx, valAddr.Hex())
 	if storeVal != nil {

@@ -8,7 +8,7 @@ require (
 	github.com/celer-network/goutils v0.1.33
 	github.com/cosmos/cosmos-sdk v0.44.0
 	github.com/cosmos/go-bip39 v1.0.0
-	github.com/deckarep/golang-set v1.7.1 // indirect
+	github.com/deckarep/golang-set v1.7.1
 	github.com/ethereum/go-ethereum v1.10.8
 	github.com/gammazero/deque v0.1.0
 	github.com/gogo/protobuf v1.3.3
@@ -16,7 +16,6 @@ require (
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.6.0 // indirect
 	github.com/iancoleman/strcase v0.1.0
 	github.com/regen-network/cosmos-proto v0.3.1
 	github.com/rs/cors v1.7.0
@@ -29,7 +28,6 @@ require (
 	github.com/tendermint/tm-db v0.6.4
 	google.golang.org/genproto v0.0.0-20210903162649-d08c68adba83
 	google.golang.org/grpc v1.40.0
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.0.0 // indirect
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0
 )

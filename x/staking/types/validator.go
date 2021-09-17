@@ -71,11 +71,6 @@ func (v Validator) String() string {
 	return out
 }
 
-func (v Validator) YamlStr() string {
-	out, _ := yaml.Marshal(v)
-	return string(out)
-}
-
 func (v Validator) ConsPubKey() (cryptotypes.PubKey, error) {
 	pk, ok := v.ConsensusPubkey.GetCachedValue().(cryptotypes.PubKey)
 	if !ok {
@@ -271,4 +266,45 @@ func (v Validators) String() (out string) {
 		out += val.String() + " | "
 	}
 	return out
+}
+
+// ----------------------- CLI print-friendly output --------------------
+
+type ValidatorOutput struct {
+	EthAddress       string       `json:"eth_address" yaml:"eth_address"`
+	EthSigner        string       `json:"eth_signer" yaml:"signer_address"`
+	SgnAddress       string       `json:"sgn_address" yaml:"sgn_address"`
+	ConsensusAddress string       `json:"consensus_address" yaml:"consensus_address"`
+	Status           string       `json:"status" yaml:"status"`
+	Tokens           sdk.Int      `json:"tokens" yaml:"tokens"`
+	DelegatorShares  sdk.Int      `json:"delegator_shares" yaml:"delegator_shares"`
+	CommissionRate   sdk.Dec      `json:"commission_rate" yaml:"commission_rate"`
+	Description      *Description `json:"description" yaml:"description"`
+}
+
+func newValidatorOutput(v *Validator) *ValidatorOutput {
+	output := &ValidatorOutput{
+		EthAddress:      v.EthAddress,
+		EthSigner:       v.EthSigner,
+		SgnAddress:      v.SgnAddress,
+		Status:          v.Status.String(),
+		Tokens:          v.Tokens,
+		DelegatorShares: v.DelegatorShares,
+		CommissionRate:  v.CommissionRate,
+		Description:     v.Description,
+	}
+	if v.ConsensusPubkey != nil && v.ConsensusPubkey.GetCachedValue() != nil {
+		consAddr, err := v.GetConsAddr()
+		if err != nil {
+			output.ConsensusAddress = err.Error()
+		}
+		output.ConsensusAddress = consAddr.String()
+	}
+	return output
+}
+
+func (v *Validator) YamlStr() string {
+	output := newValidatorOutput(v)
+	out, _ := yaml.Marshal(output)
+	return string(out)
 }

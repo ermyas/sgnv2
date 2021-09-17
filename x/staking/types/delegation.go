@@ -5,6 +5,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	proto "github.com/gogo/protobuf/proto"
+	"gopkg.in/yaml.v2"
 )
 
 // Implements Delegation interface
@@ -55,4 +56,9 @@ func (d Delegation) GetShares() sdk.Int { return d.Shares }
 // String returns a human readable string representation of a Delegation.
 func (d Delegation) String() string {
 	return proto.CompactTextString(&d)
+}
+
+func (d Delegation) YamlStr() string {
+	out, _ := yaml.Marshal(&d)
+	return string(out)
 }

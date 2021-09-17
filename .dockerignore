@@ -2,4 +2,3 @@
 .git
 build
 docker-volumes
-test

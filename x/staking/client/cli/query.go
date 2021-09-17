@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"fmt"
+
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/x/staking/types"
@@ -18,85 +20,127 @@ func GetQueryCmd() *cobra.Command {
 	stakingQueryCmd.AddCommand(common.GetCommands(
 		GetCmdValidator(),
 		GetCmdValidators(),
-		GetCmdDelegator(),
-		GetCmdDelegators(),
+		GetCmdDelegation(),
+		GetCmdDelegations(),
 		GetCmdSyncer(),
 		GetCmdQueryParams(),
 	)...)
 	return stakingQueryCmd
 }
 
-// GetCmdSyncer queries syncer info
-func GetCmdSyncer() *cobra.Command {
-	return &cobra.Command{
-		Use:   "syncer",
-		Short: "query syncer info",
-		Args:  cobra.ExactArgs(0),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, _ := client.GetClientTxContext(cmd)
-			cliCtx := common.NewQueryCLIContext(&clientCtx.Codec)
-			syncer, err := QuerySyncer(cliCtx)
-			if err != nil {
-				log.Errorln("query error", err)
-				return err
-			}
-
-			return cliCtx.PrintProto(&syncer)
-		},
-	}
-}
-
-// GetCmdDelegator queries request info
-func GetCmdDelegator() *cobra.Command {
-	return &cobra.Command{
-		Use:   "delegator [validator-eth-addr] [delegator-eth-addr]",
-		Short: "query delegator info by validator and delegator ETH addresses",
-		Args:  cobra.ExactArgs(2),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, _ := client.GetClientTxContext(cmd)
-			cliCtx := common.NewQueryCLIContext(&clientCtx.Codec)
-			delegator, err := QueryDelegation(cliCtx, args[0], args[1])
-			if err != nil {
-				log.Errorln("query error", err)
-				return err
-			}
-
-			return cliCtx.PrintProto(delegator)
-		},
-	}
-}
-
-// GetCmdValidator queries request info
 func GetCmdValidator() *cobra.Command {
 	return &cobra.Command{
 		Use:   "validator [validator-eth-addr]",
 		Short: "query validator info by validator ETH address",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, _ := client.GetClientTxContext(cmd)
-			cliCtx := common.NewQueryCLIContext(&clientCtx.Codec)
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
 			validator, err := QueryValidator(cliCtx, args[0])
 			if err != nil {
 				log.Errorln("query error", err)
 				return err
 			}
-
-			return cliCtx.PrintProto(validator)
+			fmt.Println(validator.YamlStr())
+			return nil
 		},
 	}
 }
 
 func GetCmdValidators() *cobra.Command {
-	return &cobra.Command{}
+	return &cobra.Command{
+		Use:   "validators",
+		Short: "query all validators",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			validators, err := QueryValidators(cliCtx)
+			if err != nil {
+				log.Errorln("query error", err)
+				return err
+			}
+
+			for _, validator := range validators {
+				fmt.Println(validator.YamlStr())
+				fmt.Println()
+			}
+			return nil
+		},
+	}
+}
+
+func GetCmdDelegation() *cobra.Command {
+	return &cobra.Command{
+		Use:   "delegation [validator-eth-addr] [delegator-eth-addr]",
+		Short: "query delegator info by validator and delegator ETH addresses",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			delegation, err := QueryDelegation(cliCtx, args[0], args[1])
+			if err != nil {
+				log.Errorln("query error", err)
+				return err
+			}
+			fmt.Println(delegation.YamlStr())
+			return nil
+		},
+	}
 }
 
 // GetCmdDelegators queries request info
 // TODO: support pagination
-func GetCmdDelegators() *cobra.Command {
-	return &cobra.Command{}
+func GetCmdDelegations() *cobra.Command {
+	return &cobra.Command{
+		Use:   "delegations [validator-eth-addr]",
+		Short: "query validator info by validator ETH address",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			delegations, err := QueryDelegations(cliCtx, args[0])
+			if err != nil {
+				log.Errorln("query error", err)
+				return err
+			}
+
+			for _, delegation := range delegations {
+				fmt.Println(delegation.YamlStr())
+				fmt.Println()
+			}
+			return nil
+		},
+	}
 }
 
-// GetCmdQueryParams implements the params query command.
+func GetCmdSyncer() *cobra.Command {
+	return &cobra.Command{
+		Use:   "syncer",
+		Short: "query syncer info",
+		Args:  cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			syncer, err := QuerySyncer(cliCtx)
+			if err != nil {
+				log.Errorln("query error", err)
+				return err
+			}
+			return cliCtx.PrintProto(&syncer)
+		},
+	}
+}
+
 func GetCmdQueryParams() *cobra.Command {
 	return &cobra.Command{
 		Use:   "params",
@@ -107,16 +151,12 @@ func GetCmdQueryParams() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
 			params, err := QueryParams(cliCtx)
 			if err != nil {
 				log.Errorln("query error", err)
 				return err
 			}
-
-			return cliCtx.PrintObjectLegacy(params)
+			return cliCtx.PrintProto(&params)
 		},
 	}
 }
-
-// ----------------------- CLI print-friendly output --------------------

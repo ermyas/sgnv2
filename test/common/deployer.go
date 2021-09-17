@@ -4,13 +4,11 @@ import (
 	"context"
 	"io/ioutil"
 	"math/big"
-	"path/filepath"
 	"strings"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -96,17 +94,7 @@ func DeployCommand() *cobra.Command {
 		Use:   "deploy",
 		Short: "Deploy contracts",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			configFileViper := viper.New()
-			configDir := configFileViper.GetString(flags.FlagHome)
-			configPath := filepath.Join(configDir, "config")
-			configFileViper.SetConfigType("toml")
-			configFileViper.SetConfigName("sgn")
-			configFileViper.AddConfigPath(configPath)
-			err = configFileViper.ReadInConfig()
-			if err != nil {
-				return err
-			}
-			ethurl := configFileViper.GetString(common.FlagEthGateway)
+			ethurl := viper.GetString(common.FlagEthGateway)
 			var rpcClient *rpc.Client
 			rpcClient, err = rpc.Dial(ethurl)
 			if err != nil {
@@ -115,12 +103,12 @@ func DeployCommand() *cobra.Command {
 			EthClient = ethclient.NewClient(rpcClient)
 
 			var ksBytes []byte
-			ksBytes, err = ioutil.ReadFile(configFileViper.GetString(common.FlagEthSignerKeystore))
+			ksBytes, err = ioutil.ReadFile(viper.GetString(common.FlagEthSignerKeystore))
 			if err != nil {
 				return err
 			}
 			EtherBaseAuth, err = bind.NewTransactorWithChainID(
-				strings.NewReader(string(ksBytes)), configFileViper.GetString(common.FlagEthSignerPassphrase), big.NewInt(viper.GetInt64(common.FlagEthChainId)))
+				strings.NewReader(string(ksBytes)), viper.GetString(common.FlagEthSignerPassphrase), big.NewInt(viper.GetInt64(common.FlagEthChainId)))
 			if err != nil {
 				return err
 			}
@@ -134,7 +122,7 @@ func DeployCommand() *cobra.Command {
 						ClientEthAddrs[0],
 						ClientEthAddrs[1],
 					}, NewBigInt(1, 20))
-				ChkErr(err, "fund ETH to validator and clients")
+				ChkErr(err, "fund test ETH")
 			}
 
 			_, celrAddr, erc20 := DeployERC20Contract()
@@ -154,30 +142,30 @@ func DeployCommand() *cobra.Command {
 			tx := DeploySgnStakingContracts(contractParams)
 			WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "DeployStakingContracts")
 
-			configFileViper.Set(common.FlagEthContractCelr, celrAddr.Hex())
-			configFileViper.Set(common.FlagEthContractStaking, Contracts.Staking.Address.Hex())
-			configFileViper.Set(common.FlagEthContractSgn, Contracts.Sgn.Address.Hex())
-			configFileViper.Set(common.FlagEthContractReward, Contracts.Reward.Address.Hex())
-			configFileViper.Set(common.FlagEthContractViewer, Contracts.Viewer.Address.Hex())
-			configFileViper.Set(common.FlagEthContractGovern, Contracts.Govern.Address.Hex())
-			err = configFileViper.WriteConfig()
+			viper.Set(common.FlagEthContractCelr, celrAddr.Hex())
+			viper.Set(common.FlagEthContractStaking, Contracts.Staking.Address.Hex())
+			viper.Set(common.FlagEthContractSgn, Contracts.Sgn.Address.Hex())
+			viper.Set(common.FlagEthContractReward, Contracts.Reward.Address.Hex())
+			viper.Set(common.FlagEthContractViewer, Contracts.Viewer.Address.Hex())
+			viper.Set(common.FlagEthContractGovern, Contracts.Govern.Address.Hex())
+			err = viper.WriteConfig()
 			ChkErr(err, "failed to write config")
 
 			if ethurl == LocalGeth {
-				amt := NewBigInt(1, 20)
+				amt := NewBigInt(1, 25)
 				tx, err := erc20.Approve(EtherBaseAuth, Contracts.Reward.Address, amt)
 				ChkErr(err, "failed to approve erc20")
 				WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "approve erc20")
 				_, err = Contracts.Reward.ContributeToRewardPool(EtherBaseAuth, amt)
-				ChkErr(err, "failed to call ContributeToMiningPool of Staking contract")
+				ChkErr(err, "failed to call ContributeToRewardPool")
 				err = FundAddrsErc20(celrAddr,
 					[]eth.Addr{
-						ClientEthAddrs[0],
-						ClientEthAddrs[1],
+						ValEthAddrs[0],
+						DelEthAddrs[0],
 					},
-					NewBigInt(1, 20),
+					amt,
 				)
-				ChkErr(err, "fund test CELR to clients")
+				ChkErr(err, "fund test CELR")
 			}
 
 			return nil

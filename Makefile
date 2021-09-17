@@ -20,7 +20,7 @@ ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=sgn \
 		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
 		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
 		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)" \
-			-X github.com/tendermint/tendermint/version.TMCoreSemVer=$(TMVERSION)
+		  -X github.com/tendermint/tendermint/version.TMCoreSemVer=$(TMVERSION)
 
 ifeq ($(WITH_CLEVELDB),yes)
   ldflags += -X github.com/cosmos/cosmos-sdk/types.DBBackend=cleveldb
@@ -55,6 +55,7 @@ lint:
 
 copy-test-data:
 	cp -r test/data/.sgnd ~/.sgnd
+	cp -r test/keys ~/.sgnd/keys
 
 remove-test-data:
 	rm -rf ~/.sgnd
