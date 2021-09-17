@@ -2,13 +2,65 @@ syntax = "proto3";
 package sgn.cbridge.v1;
 
 import "google/api/annotations.proto";
+import "cosmos/base/query/v1beta1/pagination.proto";
+import "proto/sgn/gateway/v1/gateway.proto";
+
+
 // this line is used by starport scaffolding # 1
 
 option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
 
 // Query defines the gRPC querier service.
 service Query {
+    rpc ChainTokensConfig (ChainTokensConfigRequest) returns (ChainTokensConfigResponse) {
+    }
+
+    rpc GetFee (GetFeeRequest) returns (GetFeeResponse) {
+    }
+
+    rpc QueryTransferStatus (QueryTransferStatusRequest) returns (QueryTransferStatusResponse) {
+    }
     // this line is used by starport scaffolding # 2
+}
+
+message ChainTokensConfigRequest {
+}
+
+message ChainTokensConfigResponse {
+    ErrMsg err = 1;
+    map<uint64, Assets> chain_tokens = 2; //map<chain_id, Assets>
+}
+
+message Assets {
+    repeated AssetPerChain assets = 1;
+}
+message AssetPerChain {
+    Token token = 1;
+    string max_amt = 2;
+    string contract_addr = 3;
+}
+
+message GetFeeRequest {
+    uint64 src_chain_id = 1;
+    uint64 dst_chain_id = 2;
+    string src_token_addr = 3;
+    string amt = 4; //on_src_chain
+}
+
+message GetFeeResponse {
+    ErrMsg err = 1;
+    string eq_value_token_amt = 2; //on_dst_chain
+    string fee = 3; //on_dst_chain
+    uint64 decimal = 4; //on_dst_chain
+}
+
+message QueryTransferStatusRequest {
+    repeated string transfer_id = 1;
+}
+
+message QueryTransferStatusResponse {
+    ErrMsg err = 1;
+    map<string, TransferHistoryStatus> status = 2; //map<transfer_id, status>
 }
 
 // this line is used by starport scaffolding # 3
