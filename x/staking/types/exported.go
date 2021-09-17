@@ -23,6 +23,7 @@ type ValidatorI interface {
 	IsUnbonded() bool                                  // check if has status unbonded
 	IsUnbonding() bool                                 // check if has status unbonding
 	GetEthAddr() eth.Addr                              // ETH address
+	GetSignerAddr() eth.Addr                           // Signer ETH address
 	GetSgnAddr() sdk.AccAddress                        // SGN account address
 	GetOperator() sdk.ValAddress                       // operator address to receive/return validators coins
 	ConsPubKey() (cryptotypes.PubKey, error)           // validation consensus pubkey (cryptotypes.PubKey)

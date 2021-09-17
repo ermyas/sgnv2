@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
@@ -78,25 +77,7 @@ func sgnchainGovTest(t *testing.T) {
 	amt2 := big.NewInt(2e18)
 	amt3 := big.NewInt(2e18)
 	amts := []*big.Int{amt1, amt2, amt3}
-	var expVals stakingtypes.Validators
-	log.Infoln("---------- It should add bonded validators 0, 1 and 2 successfully ----------")
-	for i := 0; i < 3; i++ {
-		log.Infoln("Adding validator", i, tc.ValEthAddrs[i].Hex())
-		err := tc.InitializeValidator(tc.ValAuths[i], tc.ValSignerAddrs[i], tc.ValSgnAddrs[i], amts[i], eth.CommissionRate(0.02))
-		require.NoError(t, err, "failed to initialize validator")
-		tc.Sleep(5)
-		expVal := stakingtypes.Validator{
-			EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[i]),
-			EthSigner:       eth.Addr2Hex(tc.ValSignerAddrs[i]),
-			Status:          eth.Bonded,
-			SgnAddress:      tc.ValSgnAddrs[i].String(),
-			Tokens:          sdk.NewIntFromBigInt(amts[i]),
-			DelegatorShares: sdk.NewIntFromBigInt(amts[i]),
-			CommissionRate:  sdk.NewDecWithPrec(2, 2),
-		}
-		expVals = append(expVals, expVal)
-		tc.CheckValidators(t, transactor0, expVals)
-	}
+	SetupValidators(t, transactor0, amts)
 
 	log.Info("======================== Test change epochlength rejected due to small quorum ===========================")
 	paramChanges := []govtypes.ParamChange{govtypes.NewParamChange("staking", "EpochLength", "\"2\"")}

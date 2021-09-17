@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"testing"
@@ -13,6 +14,8 @@ import (
 	"github.com/celer-network/sgn-v2/transactor"
 	govcli "github.com/celer-network/sgn-v2/x/gov/client/cli"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
+	slashcli "github.com/celer-network/sgn-v2/x/slash/client/cli"
+	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
 	"github.com/celer-network/sgn-v2/x/staking/client/cli"
 	"github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -177,6 +180,30 @@ func QueryProposal(cliCtx client.Context, proposalID uint64, status govtypes.Pro
 
 	if status != proposal.Status {
 		err = fmt.Errorf("proposal status %s does not match expectation %s", proposal.Status, status)
+	}
+
+	return
+}
+
+func QuerySlash(cliCtx client.Context, nonce uint64, sigCount int) (slash slashtypes.Slash, err error) {
+	for retry := 0; retry < RetryLimit; retry++ {
+		slash, err = slashcli.QuerySlash(cliCtx, slashtypes.StoreKey, nonce)
+		if err == nil && len(slash.EthSlashBytes) > 0 && len(slash.Sigs) == sigCount {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+
+	if err != nil {
+		return
+	}
+
+	if len(slash.EthSlashBytes) == 0 {
+		err = errors.New("EthSlashBytes cannot be zero")
+	}
+
+	if len(slash.Sigs) != sigCount {
+		err = errors.New("signature count does not match expectation")
 	}
 
 	return

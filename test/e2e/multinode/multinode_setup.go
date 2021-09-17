@@ -7,12 +7,17 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"testing"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
+	"github.com/celer-network/sgn-v2/transactor"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/require"
 )
 
 func SetupMainchain() {
@@ -166,4 +171,36 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool) {
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	tc.ChkErr(err, "Failed to make localnet-up-nodes")
+}
+
+func SetupValidators(t *testing.T, transactor *transactor.Transactor, amts []*big.Int) {
+	var expVals stakingtypes.Validators
+	log.Infoln("---------- It should add bonded validators successfully ----------")
+	for i := 0; i < len(amts); i++ {
+		log.Infoln("Adding validator", i, tc.ValEthAddrs[i].Hex())
+		err := tc.InitializeValidator(tc.ValAuths[i], tc.ValSignerAddrs[i], tc.ValSgnAddrs[i], amts[i], eth.CommissionRate(0.02))
+		require.NoError(t, err, "failed to initialize validator")
+		tc.Sleep(5)
+		expVal := stakingtypes.Validator{
+			EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[i]),
+			EthSigner:       eth.Addr2Hex(tc.ValSignerAddrs[i]),
+			Status:          eth.Bonded,
+			SgnAddress:      tc.ValSgnAddrs[i].String(),
+			Tokens:          sdk.NewIntFromBigInt(amts[i]),
+			DelegatorShares: sdk.NewIntFromBigInt(amts[i]),
+			CommissionRate:  sdk.NewDecWithPrec(2, 2),
+		}
+		expVals = append(expVals, expVal)
+		tc.CheckValidators(t, transactor, expVals)
+	}
+}
+
+func ShutdownNode(node uint) {
+	log.Infoln("Shutdown node", node)
+	cmd := exec.Command("docker-compose", "stop", fmt.Sprintf("sgnnode%d", node))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		log.Error(err)
+	}
 }

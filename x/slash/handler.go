@@ -3,6 +3,7 @@ package slash
 import (
 	"fmt"
 
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/seal"
 	"github.com/celer-network/sgn-v2/x/slash/keeper"
 	"github.com/celer-network/sgn-v2/x/slash/types"
@@ -57,7 +58,7 @@ func handleMsgSignSlash(ctx sdk.Context, keeper keeper.Keeper, msg *types.MsgSig
 	logEntry.Slash.ValAddr = slash.Validator
 	logEntry.Slash.Reason = slash.Reason
 
-	err := slash.AddSig(msg.Sig, validator.GetEthAddr().Hex())
+	err := slash.AddSig(msg.Sig, eth.Addr2Hex(validator.GetSignerAddr()))
 	if err != nil {
 		return res, fmt.Errorf(fmt.Sprintf("failed to add sig: %s", err))
 	}

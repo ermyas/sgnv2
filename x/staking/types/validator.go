@@ -172,6 +172,10 @@ func (v Validator) GetEthAddr() eth.Addr {
 	return eth.Hex2Addr(v.EthAddress)
 }
 
+func (v Validator) GetSignerAddr() eth.Addr {
+	return eth.Hex2Addr(v.EthSigner)
+}
+
 func (v Validator) GetSgnAddr() sdk.AccAddress {
 	if v.SgnAddress == "" {
 		return nil
