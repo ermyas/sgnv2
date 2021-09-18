@@ -20,6 +20,7 @@ func GetQueryCmd() *cobra.Command {
 	stakingQueryCmd.AddCommand(common.GetCommands(
 		GetCmdValidator(),
 		GetCmdValidators(),
+		GetCmdTransactors(),
 		GetCmdDelegation(),
 		GetCmdDelegations(),
 		GetCmdSyncer(),
@@ -64,10 +65,32 @@ func GetCmdValidators() *cobra.Command {
 				return err
 			}
 
+			validators.Sort()
+			fmt.Printf("Number of validators: %d\n\n", len(validators))
 			for _, validator := range validators {
 				fmt.Println(validator.YamlStr())
-				fmt.Println()
 			}
+			return nil
+		},
+	}
+}
+
+func GetCmdTransactors() *cobra.Command {
+	return &cobra.Command{
+		Use:   "transactors [validator-eth-addr]",
+		Short: "query validator transactors validator ETH address",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			transactors, err := QueryTransactors(cliCtx, args[0])
+			if err != nil {
+				log.Errorln("query error", err)
+				return err
+			}
+			fmt.Println(transactors.Transactors)
 			return nil
 		},
 	}
@@ -111,10 +134,9 @@ func GetCmdDelegations() *cobra.Command {
 				log.Errorln("query error", err)
 				return err
 			}
-
+			delegations.Sort()
 			for _, delegation := range delegations {
 				fmt.Println(delegation.YamlStr())
-				fmt.Println()
 			}
 			return nil
 		},

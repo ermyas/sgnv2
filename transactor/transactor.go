@@ -322,6 +322,7 @@ func (t *Transactor) CliSendTxMsgWaitMined(msg sdk.Msg) {
 
 func (t *Transactor) CliSendTxMsgsWaitMined(msgs []sdk.Msg) {
 	res, err := t.sendTxMsgsWaitMined(msgs)
+	t.CliCtx.OutputFormat = "text"
 	if err == nil {
 		t.CliCtx.PrintProto(res)
 	} else {

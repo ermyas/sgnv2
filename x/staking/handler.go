@@ -70,6 +70,9 @@ func handleMsgEditDescription(
 	validator := v.(types.Validator)
 	logEntry.Staking.ValAddr = validator.GetEthAddr().Hex()
 
+	if validator.Description == nil {
+		validator.Description = &types.Description{}
+	}
 	err = validator.Description.UpdateDescription(msg.Description)
 	if err != nil {
 		return nil, err

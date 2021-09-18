@@ -44,7 +44,7 @@ message Validator {
     (gogoproto.moretags) = "yaml:\"tokens\"",
     (gogoproto.nullable) = false
   ];
-  // delegator_shares defines total shares issued to a validator's delegators.
+  // total shares issued to a validator's delegators.
   string delegator_shares = 7 [
     (gogoproto.moretags) = "yaml:\"delegator_shares\"",
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
@@ -81,19 +81,16 @@ message ValidatorTransactors {
   repeated string transactors = 1;
 }
 
-// Delegation represents the bond with tokens held by an account. It is
-// owned by one delegator, and is associated with the voting power of one
-// validator.
 message Delegation {
   option (gogoproto.equal) = false;
   option (gogoproto.goproto_getters) = false;
   option (gogoproto.goproto_stringer) = false;
 
-  // delegator_address is the bech32-encoded address of the delegator.
+  // eth address of the delegator.
   string delegator_address = 1 [(gogoproto.moretags) = "yaml:\"delegator_address\""];
-  // validator_address is the bech32-encoded address of the validator.
+  // eth address of the validator.
   string validator_address = 2 [(gogoproto.moretags) = "yaml:\"validator_address\""];
-  // shares define the delegation shares received.
+  // delegation shares.
   string shares = 3 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int", (gogoproto.nullable) = false];
 }
 

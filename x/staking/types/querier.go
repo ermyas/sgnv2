@@ -7,6 +7,7 @@ const (
 	QueryValidatorBySgnAddr  = "validator-sgnaddr"
 	QueryValidatorByConsAddr = "validator-consaddr"
 	QueryValidators          = "validators"
+	QueryTransactors         = "transactors"
 	QueryDelegation          = "delegation"
 	QueryDelegations         = "delegations"
 	QuerySgnAccount          = "account"
@@ -41,6 +42,16 @@ type QueryValidatorByConsAddrParams struct {
 func NewQueryValidatorByConsAddrParams(consAddress string) QueryValidatorByConsAddrParams {
 	return QueryValidatorByConsAddrParams{
 		ConsAddress: consAddress,
+	}
+}
+
+type QueryTransactorsParams struct {
+	ValAddress string
+}
+
+func NewQueryTransactorsParams(valAddress string) QueryTransactorsParams {
+	return QueryTransactorsParams{
+		ValAddress: eth.FormatAddrHex(valAddress),
 	}
 }
 

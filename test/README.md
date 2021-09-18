@@ -2,6 +2,10 @@
 
 Requirements for multi-node or manual testing: Install [docker](https://docs.docker.com/install/) and [docker-compose](https://docs.docker.com/compose/install/), start Docker daemon.
 
+## Manual Testing
+
+Follow instructions in [e2e/manual](./e2e/manual/README.md) for local manual testing.
+
 ## Automated Testing
 
 ### Single-Node Automated Testing
@@ -52,7 +56,3 @@ cp ~/.sgnd/config/genesis.json test/multi-node-data/node1/sgnd/config/genesis.js
 cp ~/.sgnd/config/genesis.json test/multi-node-data/node2/sgnd/config/genesis.json
 cp ~/.sgnd/config/genesis.json test/multi-node-data/node3/sgnd/config/genesis.json
 ```
-
-## Manual Testing
-
-Follow instructions in [e2e/manual](./e2e/manual/README.md) for local manual testing.

@@ -227,19 +227,16 @@ func (k Keeper) TmValidatorUpdates(ctx sdk.Context) (updates []abci.ValidatorUpd
 	return
 }
 
-func (k Keeper) GetTransactors(ctx sdk.Context, ethAddr eth.Addr) (transactors []string) {
+func (k Keeper) GetTransactors(ctx sdk.Context, ethAddr eth.Addr) (txs types.ValidatorTransactors) {
 	store := ctx.KVStore(k.storeKey)
 	value := store.Get(types.GetValidatorTransactorsKey(ethAddr))
 	if value == nil {
 		return
 	}
-	var txs types.ValidatorTransactors
 	err := k.cdc.Unmarshal(value, &txs)
 	if err != nil {
 		log.Error(err)
-		return
 	}
-	transactors = txs.Transactors
 	return
 }
 
@@ -268,7 +265,7 @@ func (k Keeper) SetTransactors(
 		if acct.Equals(sgnAddr) {
 			return fmt.Errorf("transactor cannot be validator sgn addr")
 		}
-		if _, exist := txrs[transactor]; !exist {
+		if _, exist := txrs[transactor]; exist {
 			return fmt.Errorf("duplicated transactor %s", transactor)
 		}
 		txrs[transactor] = true
@@ -276,7 +273,7 @@ func (k Keeper) SetTransactors(
 		// TODO: set quota coins
 	}
 
-	for _, transactor := range currTransactors {
+	for _, transactor := range currTransactors.Transactors {
 		if _, exist := txrs[transactor]; !exist {
 			acct, err := sdk.AccAddressFromBech32(transactor)
 			if err != nil {

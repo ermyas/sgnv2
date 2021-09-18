@@ -186,7 +186,6 @@ func (m *TransactorLog) GetWarn() []string {
 	return nil
 }
 
-// TODO: MsgLog per module
 type MsgLog struct {
 	Type            string   `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
 	Staking         *Staking `protobuf:"bytes,2,opt,name=staking,proto3" json:"staking,omitempty"`

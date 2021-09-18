@@ -22,6 +22,8 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 			return queryValidatorByConsAddr(ctx, req, k, legacyQuerierCdc)
 		case types.QueryValidators:
 			return queryValidators(ctx, k, legacyQuerierCdc)
+		case types.QueryTransactors:
+			return queryTransactors(ctx, req, k, legacyQuerierCdc)
 		case types.QueryDelegation:
 			return queryDelegation(ctx, req, k, legacyQuerierCdc)
 		case types.QueryDelegations:
@@ -119,6 +121,25 @@ func queryValidators(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAm
 	return res, nil
 }
 
+func queryTransactors(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var params types.QueryTransactorsParams
+
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+	}
+
+	transactors := k.GetTransactors(ctx, eth.Hex2Addr(params.ValAddress))
+
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, transactors)
+	if err != nil {
+		log.Error(err)
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
+}
+
 func queryDelegation(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
 	var params types.QueryDelegationParams
 
@@ -146,14 +167,14 @@ func queryDelegation(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQue
 
 // query all delegations on a given validator
 func queryDelegations(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
-	var params types.QueryValidatorParams
+	var params types.QueryDelegationsParams
 
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
-	delegations := k.GetAllDelegations(ctx, eth.Hex2Addr(params.EthAddress))
+	delegations := k.GetAllDelegations(ctx, eth.Hex2Addr(params.ValAddress))
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, delegations)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())

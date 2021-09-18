@@ -2,7 +2,6 @@ package ops
 
 import (
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -66,7 +65,7 @@ func CompleteUndelegateCommand() *cobra.Command {
 }
 
 func Delegate() error {
-	ethClient, err := common.NewEthClientFromConfig()
+	ethClient, err := newEthClient()
 	if err != nil {
 		return err
 	}
@@ -91,7 +90,7 @@ func Delegate() error {
 }
 
 func Undelegate() error {
-	ethClient, err := common.NewEthClientFromConfig()
+	ethClient, err := newEthClient()
 	if err != nil {
 		return err
 	}
@@ -112,7 +111,7 @@ func Undelegate() error {
 }
 
 func CompleteUndelegate() error {
-	ethClient, err := common.NewEthClientFromConfig()
+	ethClient, err := newEthClient()
 	if err != nil {
 		return err
 	}

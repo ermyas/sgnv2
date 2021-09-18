@@ -215,7 +215,7 @@ func (v Validators) Len() int {
 
 // Implements sort interface
 func (v Validators) Less(i, j int) bool {
-	return v[i].GetEthAddress().String() < v[j].GetEthAddress().String()
+	return v[i].Tokens.GT(v[j].Tokens)
 }
 
 // Implements sort interface
@@ -280,22 +280,22 @@ type ValidatorOutput struct {
 	SgnAddress       string       `json:"sgn_address" yaml:"sgn_address"`
 	ConsensusAddress string       `json:"consensus_address" yaml:"consensus_address"`
 	Status           string       `json:"status" yaml:"status"`
-	Tokens           sdk.Int      `json:"tokens" yaml:"tokens"`
-	DelegatorShares  sdk.Int      `json:"delegator_shares" yaml:"delegator_shares"`
+	Tokens           sdk.Dec      `json:"tokens" yaml:"tokens"`
+	Shares           sdk.Dec      `json:"shares" yaml:"shares"`
 	CommissionRate   sdk.Dec      `json:"commission_rate" yaml:"commission_rate"`
 	Description      *Description `json:"description" yaml:"description"`
 }
 
 func newValidatorOutput(v *Validator) *ValidatorOutput {
 	output := &ValidatorOutput{
-		EthAddress:      v.EthAddress,
-		EthSigner:       v.EthSigner,
-		SgnAddress:      v.SgnAddress,
-		Status:          v.Status.String(),
-		Tokens:          v.Tokens,
-		DelegatorShares: v.DelegatorShares,
-		CommissionRate:  v.CommissionRate,
-		Description:     v.Description,
+		EthAddress:     v.EthAddress,
+		EthSigner:      v.EthSigner,
+		SgnAddress:     v.SgnAddress,
+		Status:         v.Status.String(),
+		Tokens:         sdk.NewDecFromIntWithPrec(v.Tokens, 18),
+		Shares:         sdk.NewDecFromIntWithPrec(v.DelegatorShares, 18),
+		CommissionRate: v.CommissionRate,
+		Description:    v.Description,
 	}
 	if v.ConsensusPubkey != nil && v.ConsensusPubkey.GetCachedValue() != nil {
 		consAddr, err := v.GetConsAddr()

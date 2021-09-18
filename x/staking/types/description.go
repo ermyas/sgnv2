@@ -52,7 +52,7 @@ func (d *Description) UpdateDescription(d2 *Description) error {
 	if d2.Contact != DoNotModifyDesc {
 		d.Contact = d2.Contact
 	}
-	if d.Details != DoNotModifyDesc {
+	if d2.Details != DoNotModifyDesc {
 		d.Details = d2.Details
 	}
 	return nil

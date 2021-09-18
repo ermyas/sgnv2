@@ -75,7 +75,7 @@ type Validator struct {
 	Status BondStatus `protobuf:"varint,5,opt,name=status,proto3,enum=sgn.staking.v1.BondStatus" json:"status,omitempty"`
 	// validator total tokens
 	Tokens github_com_cosmos_cosmos_sdk_types.Int `protobuf:"bytes,6,opt,name=tokens,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Int" json:"tokens" yaml:"tokens"`
-	// delegator_shares defines total shares issued to a validator's delegators.
+	// total shares issued to a validator's delegators.
 	DelegatorShares github_com_cosmos_cosmos_sdk_types.Int `protobuf:"bytes,7,opt,name=delegator_shares,json=delegatorShares,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Int" json:"delegator_shares" yaml:"delegator_shares"`
 	// the commission rate charged to delegators, as a fraction.
 	CommissionRate github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,8,opt,name=commission_rate,json=commissionRate,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"commission_rate" yaml:"commission_rate"`
@@ -240,15 +240,12 @@ func (m *ValidatorTransactors) GetTransactors() []string {
 	return nil
 }
 
-// Delegation represents the bond with tokens held by an account. It is
-// owned by one delegator, and is associated with the voting power of one
-// validator.
 type Delegation struct {
-	// delegator_address is the bech32-encoded address of the delegator.
+	// eth address of the delegator.
 	DelegatorAddress string `protobuf:"bytes,1,opt,name=delegator_address,json=delegatorAddress,proto3" json:"delegator_address,omitempty" yaml:"delegator_address"`
-	// validator_address is the bech32-encoded address of the validator.
+	// eth address of the validator.
 	ValidatorAddress string `protobuf:"bytes,2,opt,name=validator_address,json=validatorAddress,proto3" json:"validator_address,omitempty" yaml:"validator_address"`
-	// shares define the delegation shares received.
+	// delegation shares.
 	Shares github_com_cosmos_cosmos_sdk_types.Int `protobuf:"bytes,3,opt,name=shares,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Int" json:"shares"`
 }
 

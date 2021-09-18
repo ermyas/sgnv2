@@ -1,6 +1,8 @@
 package types
 
 import (
+	"sort"
+
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -58,7 +60,46 @@ func (d Delegation) String() string {
 	return proto.CompactTextString(&d)
 }
 
-func (d Delegation) YamlStr() string {
-	out, _ := yaml.Marshal(&d)
+type Delegations []Delegation
+
+// Sort Validators sorts validator array in ascending operator address order
+func (d Delegations) Sort() {
+	sort.Sort(d)
+}
+
+// Implements sort interface
+func (d Delegations) Len() int {
+	return len(d)
+}
+
+// Implements sort interface
+func (d Delegations) Less(i, j int) bool {
+	return d[i].Shares.GT(d[j].Shares)
+}
+
+// Implements sort interface
+func (d Delegations) Swap(i, j int) {
+	d[i], d[j] = d[j], d[i]
+}
+
+// ----------------------- CLI print-friendly output --------------------
+
+type DelegationOutput struct {
+	DelegatorAddress string  `json:"delegator_address,omitempty" yaml:"delegator_address"`
+	ValidatorAddress string  `json:"validator_address,omitempty" yaml:"validator_address"`
+	Shares           sdk.Dec `json:"shares" yaml:"shares"`
+}
+
+func newDelegationOutput(d *Delegation) *DelegationOutput {
+	return &DelegationOutput{
+		DelegatorAddress: d.DelegatorAddress,
+		ValidatorAddress: d.ValidatorAddress,
+		Shares:           sdk.NewDecFromIntWithPrec(d.Shares, 18),
+	}
+}
+
+func (d *Delegation) YamlStr() string {
+	output := newDelegationOutput(d)
+	out, _ := yaml.Marshal(output)
 	return string(out)
 }

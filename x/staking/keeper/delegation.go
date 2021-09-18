@@ -21,7 +21,7 @@ func (k Keeper) GetDelegation(
 	return delegation, true
 }
 
-func (k Keeper) GetAllDelegations(ctx sdk.Context, valAddr eth.Addr) (delegations []types.Delegation) {
+func (k Keeper) GetAllDelegations(ctx sdk.Context, valAddr eth.Addr) (delegations types.Delegations) {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, types.GetDelegationsKey(valAddr))
 	defer iterator.Close()

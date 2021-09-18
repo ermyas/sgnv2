@@ -40,12 +40,12 @@ func main() {
 
 		p := &tc.ContractParams{
 			CelrAddr:              tc.CelrAddr,
-			ProposalDeposit:       big.NewInt(5e18),
-			VotePeriod:            big.NewInt(5),
+			ProposalDeposit:       big.NewInt(1e17),
+			VotePeriod:            big.NewInt(30),
 			UnbondingPeriod:       big.NewInt(5),
 			MaxBondedValidators:   big.NewInt(5),
-			MinValidatorTokens:    big.NewInt(2e18),
-			MinSelfDelegation:     big.NewInt(1e18),
+			MinValidatorTokens:    big.NewInt(5e18),
+			MinSelfDelegation:     big.NewInt(2e18),
 			AdvanceNoticePeriod:   big.NewInt(1),
 			ValidatorBondInterval: big.NewInt(0),
 			MaxSlashFactor:        big.NewInt(1e5),
@@ -161,10 +161,10 @@ func addValidators() {
 	amts := []*big.Int{
 		new(big.Int).Mul(big.NewInt(10000), big.NewInt(common.TokenDec)),
 		new(big.Int).Mul(big.NewInt(20000), big.NewInt(common.TokenDec)),
-		new(big.Int).Mul(big.NewInt(10000), big.NewInt(common.TokenDec)),
-		new(big.Int).Mul(big.NewInt(20000), big.NewInt(common.TokenDec)),
+		new(big.Int).Mul(big.NewInt(15000), big.NewInt(common.TokenDec)),
+		new(big.Int).Mul(big.NewInt(18000), big.NewInt(common.TokenDec)),
 	}
-	commissions := []uint64{eth.CommissionRate(0.015), eth.CommissionRate(0.02), eth.CommissionRate(0.012), eth.CommissionRate(0.02)}
+	commissions := []uint64{eth.CommissionRate(0.15), eth.CommissionRate(0.2), eth.CommissionRate(0.12), eth.CommissionRate(0.1)}
 
 	for i := 0; i < 4; i++ {
 		log.Infoln("Adding validator ", i, tc.ValEthAddrs[i].Hex())

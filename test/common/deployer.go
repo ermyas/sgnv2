@@ -119,6 +119,7 @@ func DeployCommand() *cobra.Command {
 					[]eth.Addr{
 						ValEthAddrs[0],
 						ValSignerAddrs[0],
+						DelEthAddrs[0],
 						ClientEthAddrs[0],
 						ClientEthAddrs[1],
 					}, NewBigInt(1, 20))

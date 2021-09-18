@@ -12,7 +12,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // GetCmdSubmitProposal implements a command handler for submitting a parameter
@@ -61,8 +60,11 @@ Where proposal.json contains:
 			if err != nil {
 				return err
 			}
-
-			txr, err := transactor.NewCliTransactor(viper.GetString(flags.FlagHome), clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
+			home, err := cmd.Flags().GetString(flags.FlagHome)
+			if err != nil {
+				return err
+			}
+			txr, err := transactor.NewCliTransactor(home, clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
 			if err != nil {
 				log.Error(err)
 				return err

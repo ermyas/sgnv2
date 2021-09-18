@@ -1,8 +1,6 @@
 package cli
 
 import (
-	"fmt"
-
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/staking/types"
@@ -48,41 +46,44 @@ func GetCmdSetTransactors() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
-			opstr, err := cmd.Flags().GetString(flagDetails)
-			if err != nil {
-				return err
-			}
-			var op types.SetTransactorsOp
-			if opstr == "overwrite" {
-				op = types.SetTransactorsOp_Overwrite
-			} else if opstr == "add" {
-				op = types.SetTransactorsOp_Add
-			} else if opstr == "remove" {
-				op = types.SetTransactorsOp_Remove
-			} else {
-				return fmt.Errorf("invalid op, should be one of overwrite | add | remove ")
-			}
-
+			/*
+				var op types.SetTransactorsOp
+				opstr, err := cmd.Flags().GetString(flagTransactorOp)
+				if err != nil {
+					return err
+				}
+				if opstr == "overwrite" {
+					op = types.SetTransactorsOp_Overwrite
+				} else if opstr == "add" {
+					op = types.SetTransactorsOp_Add
+				} else if opstr == "remove" {
+					op = types.SetTransactorsOp_Remove
+				} else {
+					return fmt.Errorf("invalid op, should be one of overwrite | add | remove ")
+				}
+			*/
 			transactors := viper.GetStringSlice(common.FlagSgnTransactors)
+			home, err := cmd.Flags().GetString(flags.FlagHome)
+			if err != nil {
+				return err
+			}
 			txr, err := transactor.NewCliTransactor(
-				viper.GetString(flags.FlagHome), clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
+				home, clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
 			if err != nil {
 				return err
 			}
 
-			msg := types.NewMsgSetTransactors(op, transactors, txr.Key.GetAddress().String())
+			msg := types.NewMsgSetTransactors(types.SetTransactorsOp_Overwrite, transactors, txr.Key.GetAddress().String())
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err
 			}
 
-			//TODO: txr.CliSendTxMsgWaitMined(msg)
+			txr.CliSendTxMsgWaitMined(&msg)
 			return nil
 		},
 	}
-
-	cmd.Flags().String(flagTransactorOp, "", "operation (overwrite | add | remove)")
+	//cmd.Flags().String(flagTransactorOp, "overwrite", "operation (overwrite | add | remove)")
 
 	return cmd
 }
@@ -119,9 +120,12 @@ func GetCmdEditDescription() *cobra.Command {
 				return err
 			}
 			description := types.NewDescription(moniker, identity, website, contact, details)
-
+			home, err := cmd.Flags().GetString(flags.FlagHome)
+			if err != nil {
+				return err
+			}
 			txr, err := transactor.NewCliTransactor(
-				viper.GetString(flags.FlagHome), clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
+				home, clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
 			if err != nil {
 				return err
 			}
@@ -132,7 +136,7 @@ func GetCmdEditDescription() *cobra.Command {
 				return err
 			}
 
-			//txr.CliSendTxMsgWaitMined(msg)
+			txr.CliSendTxMsgWaitMined(&msg)
 
 			return nil
 		},
