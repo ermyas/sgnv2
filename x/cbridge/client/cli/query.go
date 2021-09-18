@@ -65,3 +65,19 @@ func QueryParams(cliCtx client.Context) (params types.Params, err error) {
 	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &params)
 	return
 }
+
+func QueryRelay(cliCtx client.Context, xrefId []byte) (relay types.XferRelay, err error) {
+	data, err := cliCtx.LegacyAmino.MarshalJSON(types.NewQueryRelayParams(xrefId))
+	if err != nil {
+		return
+	}
+
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, "relay")
+	res, err := common.RobustQueryWithData(cliCtx, route, data)
+	if err != nil {
+		return
+	}
+
+	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &relay)
+	return
+}

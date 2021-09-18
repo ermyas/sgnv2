@@ -1,6 +1,7 @@
 package relayer
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/celer-network/goutils/eth/monitor"
@@ -108,4 +109,40 @@ func fixCfg(cfg *common.OneChainConfig, ethchainid uint64) {
 	cfg.BlkDelay = viper.GetUint64(common.FlagEthBlockDelay)
 	cfg.BlkInterval = viper.GetUint64(common.FlagEthPollInterval)
 	cfg.MaxBlkDelta = viper.GetUint64(common.FlagEthMaxBlockDelta)
+}
+
+type RelayEvent struct {
+	XferId     []byte `json:"xfer_id"`
+	RetryCount uint64 `json:"retry_count"`
+}
+
+func NewRelayEvent(xferId []byte) RelayEvent {
+	return RelayEvent{
+		XferId:     xferId,
+		RetryCount: 0,
+	}
+}
+
+func NewRelayEventFromBytes(input []byte) RelayEvent {
+	event := RelayEvent{}
+	event.MustUnMarshal(input)
+	return event
+}
+
+// Marshal event into json bytes
+func (e RelayEvent) MustMarshal() []byte {
+	res, err := json.Marshal(&e)
+	if err != nil {
+		panic(err)
+	}
+
+	return res
+}
+
+// Unmarshal json bytes to relay event
+func (e *RelayEvent) MustUnMarshal(input []byte) {
+	err := json.Unmarshal(input, e)
+	if err != nil {
+		panic(err)
+	}
 }

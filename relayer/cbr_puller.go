@@ -2,13 +2,23 @@ package relayer
 
 import (
 	"encoding/json"
+	"sort"
 	"time"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/eth"
+	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	"github.com/celer-network/sgn-v2/x/staking/types"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	mapset "github.com/deckarep/golang-set"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/gogo/protobuf/proto"
+)
+
+const (
+	maxRelayRetry = 5
 )
 
 // sleep, check if syncer, if yes, go over cbr dbs to send tx
@@ -32,9 +42,99 @@ func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
 			r.Transactor.AddTxMsg(msg)
 		}
 
-		// zhihua
-		// pull x/cbridge etc to get ready to send onchain relay msg, validators, and sigs
-		// call cbrMgr[relay.dst_chain_id].SendRelay
+		r.processCbridgeQueue()
+	}
+}
+
+func (r *Relayer) processCbridgeQueue() {
+	var keys, vals [][]byte
+	r.lock.RLock()
+	iterator, err := r.db.Iterator(CbrXferKeyPrefix, storetypes.PrefixEndBytes(CbrXferKeyPrefix))
+	if err != nil {
+		log.Errorln("Create db iterator err", err)
+		return
+	}
+	for ; iterator.Valid(); iterator.Next() {
+		keys = append(keys, iterator.Key())
+		vals = append(vals, iterator.Value())
+	}
+	iterator.Close()
+	r.lock.RUnlock()
+
+	for i, key := range keys {
+		event := NewRelayEventFromBytes(vals[i])
+		err = r.dbDelete(key)
+		if err != nil {
+			log.Errorln("db Delete err", err)
+			continue
+		}
+		r.submitRelay(event)
+	}
+}
+
+func (r *Relayer) submitRelay(relayEvent RelayEvent) {
+	log.Infoln("Process relay ", string(relayEvent.XferId))
+
+	relay, err := cbrcli.QueryRelay(r.Transactor.CliCtx, relayEvent.XferId)
+	if err != nil {
+		log.Errorln("QuerySlash err", err)
+		return
+	}
+
+	relayOnChain := new(cbrtypes.RelayOnChain)
+	err = relayOnChain.Unmarshal(relay.Relay)
+	if err != nil {
+		log.Errorln("Unmarshal relay.Relay err", err)
+		return
+	}
+
+	signedValidators := mapset.NewSet()
+	for _, sig := range relay.SortedSigs {
+		signedValidators.Add(string(sig.Addr))
+	}
+	pass, allValidators := r.validateSigs(signedValidators)
+	if !pass {
+		log.Debugf("relay %s does not have enough sigs", relayEvent.XferId)
+		r.requeueRelay(relayEvent)
+		return
+	}
+
+	currss, _ := proto.Marshal(getSortedSigners(allValidators))
+
+	err = r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, currss, relay.GetSortedSigsBytes())
+	if err != nil {
+		r.requeueRelay(relayEvent)
+		log.Errorln("relay err", err)
+		return
+	}
+}
+
+func getSortedSigners(validators types.Validators) *cbrtypes.SortedSigners {
+	signers := make([]*cbrtypes.AddrAmt, 0)
+	for _, v := range validators {
+		signers = append(signers, &cbrtypes.AddrAmt{
+			Addr: []byte(eth.Addr2Hex(v.GetSignerAddr())),
+			Amt:  v.BondedTokens().BigInt().Bytes(),
+		})
+	}
+	sort.Slice(signers, func(i, j int) bool {
+		return string(signers[i].Addr) < string(signers[j].Addr)
+	})
+	return &cbrtypes.SortedSigners{
+		Signers: signers,
+	}
+}
+
+func (r *Relayer) requeueRelay(relayEvent RelayEvent) {
+	if relayEvent.RetryCount >= maxRelayRetry {
+		log.Infof("relay %s hits retry limit", relayEvent.XferId)
+		return
+	}
+
+	relayEvent.RetryCount = relayEvent.RetryCount + 1
+	err := r.dbSet(GetCbrXferKey(relayEvent.XferId), relayEvent.MustMarshal())
+	if err != nil {
+		log.Errorln("db Set err", err)
 	}
 }
 

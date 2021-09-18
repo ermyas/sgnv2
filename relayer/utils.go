@@ -6,13 +6,16 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
-	valcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
+	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
+	"github.com/celer-network/sgn-v2/x/staking/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	mapset "github.com/deckarep/golang-set"
 	"github.com/iancoleman/strcase"
 	"github.com/spf13/viper"
 )
 
 func (r *Relayer) isSyncer() bool {
-	syncer, err := valcli.QuerySyncer(r.Transactor.CliCtx)
+	syncer, err := stakingcli.QuerySyncer(r.Transactor.CliCtx)
 	if err != nil {
 		log.Errorln("Get syncer err", err)
 		return false
@@ -22,12 +25,6 @@ func (r *Relayer) isSyncer() bool {
 
 func (r *Relayer) getCurrentBlockNumber() *big.Int {
 	return r.ethMonitor.GetCurrentBlockNumber()
-}
-
-func (r *Relayer) dbGet(key []byte) ([]byte, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-	return r.db.Get(key)
 }
 
 func (r *Relayer) dbSet(key, val []byte) error {
@@ -84,4 +81,24 @@ func getEventCheckInterval(name string) uint64 {
 
 func getDelegatorKey(validator, delegator eth.Addr) string {
 	return eth.Addr2Hex(validator) + ":" + eth.Addr2Hex(delegator)
+}
+
+func (r *Relayer) validateSigs(signedValidators mapset.Set) (pass bool, allValidators types.Validators) {
+	validators, err := stakingcli.QueryValidators(r.Transactor.CliCtx)
+	if err != nil {
+		log.Errorln("QueryValidators err", err)
+		return false, nil
+	}
+
+	totalStake := sdk.ZeroInt()
+	votingStake := sdk.ZeroInt()
+	for _, v := range validators {
+		totalStake = totalStake.Add(v.BondedTokens())
+
+		if signedValidators.Contains(v.EthSigner) {
+			votingStake = votingStake.Add(v.BondedTokens())
+		}
+	}
+	quorumStake := totalStake.MulRaw(2).QuoRaw(3)
+	return votingStake.GTE(quorumStake), validators
 }

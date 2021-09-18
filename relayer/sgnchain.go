@@ -18,7 +18,8 @@ import (
 )
 
 var (
-	EventSlash = fmt.Sprintf("%s.%s='%s'", slashingtypes.EventTypeSlash, sdk.AttributeKeyAction, slashtypes.ActionSlash)
+	EventSlash     = fmt.Sprintf("%s.%s='%s'", slashingtypes.EventTypeSlash, sdk.AttributeKeyAction, slashtypes.ActionSlash)
+	EventCbrToSign = fmt.Sprintf("%s.%s='%s'", cbrtypes.EventToSign, cbrtypes.EvAttrType, cbrtypes.SignDataType_RELAY.String())
 )
 
 func MonitorTendermintEvent(nodeURI, eventTag string, handleEvent func(event abci.Event)) {
@@ -101,10 +102,34 @@ func (r *Relayer) handleSlash(slashEvent SlashEvent) {
 	r.Transactor.AddTxMsg(&msg)
 }
 
-// zhihua
 func (r *Relayer) monitorCbrToSign() {
-	// cbr event to sign msg
-	// see cbridge/types/types.go for event attributes
-	// msg to send is MsgSendMySig
-	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, cbrtypes.EventToSign, func(e abci.Event) {})
+	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, EventCbrToSign, func(e abci.Event) {
+		if !r.isBonded() {
+			return
+		}
+
+		event := sdk.StringifyEvent(e)
+
+		relayRaw := []byte(event.Attributes[1].Value)
+		relay := new(cbrtypes.RelayOnChain)
+		err := relay.Unmarshal(relayRaw)
+		if err != nil {
+			log.Errorln("failed to unmarshal XrefRelay", err)
+			return
+		}
+
+		sig, err := r.EthClient.SignEthMessage(relayRaw)
+		if err != nil {
+			log.Errorln("SignEthMessage err", err)
+			return
+		}
+		msg := cbrtypes.NewMsgSendMySig(r.Transactor.Key.GetAddress().String(), cbrtypes.SignDataType_RELAY, relayRaw, sig)
+		r.Transactor.AddTxMsg(msg)
+
+		relayEvent := NewRelayEvent(relay.SrcTransferId)
+		err = r.dbSet(GetCbrXferKey(relayEvent.XferId), relayEvent.MustMarshal())
+		if err != nil {
+			log.Errorln("db Set err", err)
+		}
+	})
 }

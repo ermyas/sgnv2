@@ -42,6 +42,15 @@ func (msg *MsgInitWithdraw) ValidateBasic() error {
 	return nil
 }
 
+func NewMsgSendMySig(creator string, dataType SignDataType, data []byte, mySig []byte) *MsgSendMySig {
+	return &MsgSendMySig{
+		Creator:  creator,
+		Datatype: dataType,
+		Data:     data,
+		MySig:    mySig,
+	}
+}
+
 func (msg *MsgSendMySig) Route() string {
 	return RouterKey
 }

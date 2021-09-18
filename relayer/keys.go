@@ -10,8 +10,9 @@ import (
 var (
 	RelayerDbPrefix = []byte("relay")
 
-	PullerKeyPrefix = []byte{0x01} // Key prefix for puller
-	SlashKeyPrefix  = []byte{0x11} // Key prefix for slash
+	PullerKeyPrefix  = []byte{0x01} // Key prefix for puller
+	SlashKeyPrefix   = []byte{0x11} // Key prefix for slash
+	CbrXferKeyPrefix = []byte{0x12} // Key prefix for cbridge transfer
 )
 
 // get puller key from mainchain txHash
@@ -24,4 +25,9 @@ func GetPullerKey(eLog ethtypes.Log) []byte {
 // get slash key from nonce
 func GetSlashKey(nonce uint64) []byte {
 	return append(SlashKeyPrefix, sdk.Uint64ToBigEndian(nonce)...)
+}
+
+// get cbridge transfer key from xferId
+func GetCbrXferKey(xferId []byte) []byte {
+	return append(CbrXferKeyPrefix, xferId...)
 }

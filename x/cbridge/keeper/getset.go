@@ -5,6 +5,7 @@ import (
 
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -44,4 +45,18 @@ func HasEvSend(kv sdk.KVStore, xferId [32]byte) bool {
 func HasEnoughLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr, needed *big.Int) bool {
 	// sum over all liqmap, if larger than needed, return true
 	return true
+}
+
+func GetXferRelay(kv sdk.KVStore, xferId [32]byte, cdc codec.BinaryCodec) *types.XferRelay {
+	bz := kv.Get(types.XferRelayKey(xferId))
+	if bz == nil {
+		return nil
+	}
+	res := new(types.XferRelay)
+	cdc.MustUnmarshal(bz, res)
+	return res
+}
+
+func SetXferRelay(kv sdk.KVStore, xferId [32]byte, xferRelay *types.XferRelay, cdc codec.BinaryCodec) {
+	kv.Set(types.XferRelayKey(xferId), cdc.MustMarshal(xferRelay))
 }

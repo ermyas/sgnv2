@@ -8,9 +8,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	slashcli "github.com/celer-network/sgn-v2/x/slash/client/cli"
 	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
-	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	mapset "github.com/deckarep/golang-set"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -70,7 +68,12 @@ func (r *Relayer) submitSlash(slashEvent SlashEvent) {
 		return
 	}
 
-	if !r.validateslashSigs(slash) {
+	signedValidators := mapset.NewSet()
+	for _, sig := range slash.Sigs {
+		signedValidators.Add(sig.Signer)
+	}
+	pass, _ := r.validateSigs(signedValidators)
+	if !pass {
 		log.Debugf("Slash %d does not have enough sigs", slashEvent.Nonce)
 		r.requeueSlash(slashEvent)
 		return
@@ -99,31 +102,6 @@ func (r *Relayer) submitSlash(slashEvent SlashEvent) {
 		return
 	}
 	log.Infoln("Slash tx submitted", tx.Hash().Hex())
-}
-
-func (r *Relayer) validateslashSigs(slash slashtypes.Slash) bool {
-	signedValidators := mapset.NewSet()
-	for _, sig := range slash.Sigs {
-		signedValidators.Add(sig.Signer)
-	}
-
-	validators, err := stakingcli.QueryValidators(r.Transactor.CliCtx)
-	if err != nil {
-		log.Errorln("QueryValidators err", err)
-		return false
-	}
-
-	totalStake := sdk.ZeroInt()
-	votingStake := sdk.ZeroInt()
-	for _, v := range validators {
-		totalStake = totalStake.Add(v.BondedTokens())
-
-		if signedValidators.Contains(v.EthSigner) {
-			votingStake = votingStake.Add(v.BondedTokens())
-		}
-	}
-	quorumStake := totalStake.MulRaw(2).QuoRaw(3)
-	return votingStake.GTE(quorumStake)
 }
 
 func (r *Relayer) requeueSlash(slashEvent SlashEvent) {
