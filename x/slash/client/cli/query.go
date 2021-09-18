@@ -68,7 +68,7 @@ func QuerySlash(cliCtx client.Context, queryRoute string, nonce uint64) (slash t
 		return
 	}
 
-	err = cliCtx.Codec.UnmarshalJSON(res, &slash)
+	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &slash)
 	return
 }
 

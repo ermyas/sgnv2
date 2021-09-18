@@ -27,7 +27,10 @@ func NewSig(signer string, sig []byte) Sig {
 }
 
 func AddSig(sigs []Sig, msg []byte, sig []byte, expectedSigner string) ([]Sig, error) {
-	signer, err := ethutils.RecoverSigner(msg, sig)
+	// make sure sig won't be changed by callee
+	tmpSig := make([]byte, len(sig))
+	copy(tmpSig, sig)
+	signer, err := ethutils.RecoverSigner(msg, tmpSig)
 	if err != nil {
 		return nil, err
 	}
@@ -102,8 +105,8 @@ func (s *Slash) AddSig(sig []byte, expectedSigner string) error {
 func (s *Slash) GetSigsBytes() [][]byte {
 	if s != nil {
 		sigs := make([][]byte, 0)
-		for _, sig := range s.Sigs {
-			sigs = append(sigs, sig.Sig)
+		for i := range s.Sigs {
+			sigs = append(sigs, s.Sigs[i].Sig)
 		}
 		return sigs
 	}

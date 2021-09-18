@@ -133,5 +133,13 @@ func (ethClient *EthClient) setContracts(
 }
 
 func (ethClient *EthClient) SignEthMessage(data []byte) ([]byte, error) {
-	return ethClient.Signer.SignEthMessage(data)
+	sig, err := ethClient.Signer.SignEthMessage(data)
+	if err != nil {
+		return nil, err
+	}
+	if sig[64] <= 1 {
+		// Use 27/28 for v to be compatible with openzeppelin ECDSA lib
+		sig[64] = sig[64] + 27
+	}
+	return sig, nil
 }
