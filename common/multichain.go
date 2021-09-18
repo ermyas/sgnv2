@@ -6,7 +6,8 @@ type OneChainConfig struct {
 	Name, Gateway                      string
 	BlkInterval, BlkDelay, MaxBlkDelta uint64
 	// cbridge contract address, w/ 0x prefix
-	CBridge string
+	CBridge        string
+	KsFile, KsPass string
 }
 
 type MultiChainConfig []*OneChainConfig

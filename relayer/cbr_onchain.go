@@ -6,9 +6,11 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/eth/monitor"
 	"github.com/celer-network/goutils/log"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -172,8 +174,29 @@ func (c *CbrOneChain) CheckEvent(evtype string, tocheck *ethtypes.Log) (bool, er
 }
 
 // send relay tx onchain to cbridge contract, no wait mine
-// zhihua: auth/transactor, log tx hash
 func (c *CbrOneChain) SendRelay(relay, curss []byte, sigs [][]byte) error {
-	_, err := c.contract.Relay(nil, relay, curss, sigs)
-	return err
+	tx, err := c.Transactor.Transact(
+		&eth.TransactionStateHandler{
+			OnMined: func(receipt *ethtypes.Receipt) {
+				if receipt.Status == ethtypes.ReceiptStatusSuccessful {
+					log.Infof("Relay transaction %x succeeded", receipt.TxHash)
+				} else {
+					log.Errorf("Relay transaction %x failed", receipt.TxHash)
+				}
+			},
+			OnError: func(tx *ethtypes.Transaction, err error) {
+				log.Errorf("Relay transaction %x err: %s", tx.Hash(), err)
+			},
+		},
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.contract.Relay(opts, relay, curss, sigs)
+		},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	log.Infoln("Relay tx submitted", tx.Hash().Hex())
+	return nil
 }

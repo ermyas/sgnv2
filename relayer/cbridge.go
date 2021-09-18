@@ -3,7 +3,11 @@ package relayer
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"math/big"
+	"time"
 
+	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/eth/monitor"
 	"github.com/celer-network/goutils/eth/watcher"
 	"github.com/celer-network/goutils/log"
@@ -45,6 +49,7 @@ func (c *cbrContract) GetABI() string {
 // ethclient etc
 type CbrOneChain struct {
 	*ethclient.Client
+	*ethutils.Transactor
 	mon      *monitor.Service
 	contract *cbrContract
 	db       *dbm.PrefixDB // cbr-xxx xxx is chainid
@@ -86,9 +91,26 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 	if err != nil {
 		log.Fatalln("cbridge contract at", cfg.CBridge, "err:", err)
 	}
+
+	ksBytes, err := ioutil.ReadFile(cfg.KsFile)
+	if err != nil {
+		log.Fatalln("ReadFile err:", err)
+	}
+	transactor, err := ethutils.NewTransactor(
+		string(ksBytes),
+		cfg.KsPass,
+		ec,
+		big.NewInt(int64(cfg.ChainID)),
+		ethutils.WithBlockDelay(cfg.BlkDelay),
+		ethutils.WithPollingInterval(time.Duration(cfg.BlkInterval)*time.Second),
+	)
+	if err != nil {
+		log.Fatalln("NewTransactor err:", err)
+	}
 	ret := &CbrOneChain{
-		Client: ec,
-		mon:    mon,
+		Client:     ec,
+		Transactor: transactor,
+		mon:        mon,
 		contract: &cbrContract{
 			Bridge:  cbr,
 			Address: eth.Hex2Addr(cfg.CBridge),
