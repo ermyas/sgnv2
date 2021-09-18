@@ -63,6 +63,8 @@ func slashTest(t *testing.T) {
 	amts := []*big.Int{amt1, amt2}
 	SetupValidators(t, transactor, amts)
 
+	prev, _ := tc.Contracts.Staking.Validators(&bind.CallOpts{}, tc.ValEthAddrs[1])
+
 	ShutdownNode(1)
 
 	log.Infoln("Query sgn about slash info...")
@@ -73,6 +75,10 @@ func slashTest(t *testing.T) {
 	assert.Equal(t, slashingtypes.AttributeValueMissingSignature, slash.Reason)
 	assert.Equal(t, eth.Addr2Hex(tc.ValEthAddrs[1]), slash.Validator)
 	assert.Equal(t, eth.Addr2Hex(tc.ValSignerAddrs[0]), slash.Sigs[0].Signer)
+
+	current, _ := tc.Contracts.Staking.Validators(&bind.CallOpts{}, tc.ValEthAddrs[1])
+	log.Infof("Tokens before slash: %d, after slash: %d", prev.Tokens, current.Tokens)
+	//assert.True(t, prev.Tokens.Cmp(current.Tokens) == 1)
 }
 
 // Test disable slash

@@ -118,7 +118,7 @@ func (r *Relayer) validateslashSigs(slash slashtypes.Slash) bool {
 	for _, v := range validators {
 		totalStake = totalStake.Add(v.BondedTokens())
 
-		if signedValidators.Contains(v.EthAddress) {
+		if signedValidators.Contains(v.EthSigner) {
 			votingStake = votingStake.Add(v.BondedTokens())
 		}
 	}
