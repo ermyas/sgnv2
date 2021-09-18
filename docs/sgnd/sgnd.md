@@ -18,6 +18,7 @@ SGN App
 * [sgnd gentx](sgnd_gentx.md)	 - Generate a genesis tx carrying a self delegation
 * [sgnd init](sgnd_init.md)	 - Initialize private validator, p2p, genesis, and application configuration files
 * [sgnd keys](sgnd_keys.md)	 - Manage your application's keys
+* [sgnd ops](sgnd_ops.md)	 - Operation subcommands
 * [sgnd query](sgnd_query.md)	 - Querying subcommands
 * [sgnd rosetta](sgnd_rosetta.md)	 - spin up a rosetta server
 * [sgnd start](sgnd_start.md)	 - Run the full node

@@ -20,8 +20,12 @@ sgnd query [flags]
 * [sgnd query auth](sgnd_query_auth.md)	 - Querying commands for the auth module
 * [sgnd query bank](sgnd_query_bank.md)	 - Querying commands for the bank module
 * [sgnd query block](sgnd_query_block.md)	 - Get verified data for a the block at given height
+* [sgnd query cbridge](sgnd_query_cbridge.md)	 - Querying commands for the cbridge module
+* [sgnd query distribution](sgnd_query_distribution.md)	 - Querying commands for the distribution module
 * [sgnd query govern](sgnd_query_govern.md)	 - Querying commands for the governance module
+* [sgnd query mint](sgnd_query_mint.md)	 - Querying commands for the minting module
 * [sgnd query params](sgnd_query_params.md)	 - Querying commands for the params module
+* [sgnd query slash](sgnd_query_slash.md)	 - Querying commands for the slash module
 * [sgnd query staking](sgnd_query_staking.md)	 - Querying commands for the staking module
 * [sgnd query sync](sgnd_query_sync.md)	 - Querying commands for the sync module
 * [sgnd query tendermint-validator-set](sgnd_query_tendermint-validator-set.md)	 - Get the full tendermint validator set at given height

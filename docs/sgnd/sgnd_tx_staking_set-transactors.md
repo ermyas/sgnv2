@@ -9,8 +9,7 @@ sgnd tx staking set-transactors [flags]
 ### Options
 
 ```
-  -h, --help        help for set-transactors
-      --op string   operation (overwrite | add | remove)
+  -h, --help   help for set-transactors
 ```
 
 ### Options inherited from parent commands

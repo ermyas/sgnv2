@@ -20,13 +20,16 @@ sgnd tx [flags]
 * [sgnd tx ](sgnd_tx_.md)	 - 
 * [sgnd tx bank](sgnd_tx_bank.md)	 - Bank transaction subcommands
 * [sgnd tx broadcast](sgnd_tx_broadcast.md)	 - Broadcast transactions generated offline
+* [sgnd tx cbridge](sgnd_tx_cbridge.md)	 - cbridge transactions subcommands
 * [sgnd tx decode](sgnd_tx_decode.md)	 - Decode a binary encoded transaction string
+* [sgnd tx distribution](sgnd_tx_distribution.md)	 - Distribution transactions subcommands
 * [sgnd tx encode](sgnd_tx_encode.md)	 - Encode transactions generated offline
 * [sgnd tx govern](sgnd_tx_govern.md)	 - Governance transactions subcommands
 * [sgnd tx multisign](sgnd_tx_multisign.md)	 - Generate multisig signatures for transactions generated offline
 * [sgnd tx multisign-batch](sgnd_tx_multisign-batch.md)	 - Assemble multisig transactions in batch from batch signatures
 * [sgnd tx sign](sgnd_tx_sign.md)	 - Sign a transaction generated offline
 * [sgnd tx sign-batch](sgnd_tx_sign-batch.md)	 - Sign transaction batch files
+* [sgnd tx slash](sgnd_tx_slash.md)	 - Slash transaction subcommands
 * [sgnd tx staking](sgnd_tx_staking.md)	 - Validator transaction subcommands
 * [sgnd tx sync](sgnd_tx_sync.md)	 - Validator transaction subcommands
 * [sgnd tx validate-signatures](sgnd_tx_validate-signatures.md)	 - validate transactions signatures
