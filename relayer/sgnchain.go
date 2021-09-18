@@ -6,10 +6,12 @@ import (
 	"strconv"
 
 	"github.com/celer-network/goutils/log"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	slashcli "github.com/celer-network/sgn-v2/x/slash/client/cli"
 	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
+
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/rpc/client/http"
 	tm "github.com/tendermint/tendermint/types"
@@ -97,4 +99,12 @@ func (r *Relayer) handleSlash(slashEvent SlashEvent) {
 
 	msg := slashtypes.NewMsgSignSlash(slashEvent.Nonce, sig, r.Transactor.Key.GetAddress())
 	r.Transactor.AddTxMsg(&msg)
+}
+
+// zhihua
+func (r *Relayer) monitorCbrToSign() {
+	// cbr event to sign msg
+	// see cbridge/types/types.go for event attributes
+	// msg to send is MsgSendMySig
+	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, cbrtypes.EventToSign, func(e abci.Event) {})
 }

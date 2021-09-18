@@ -88,9 +88,17 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		// add src liquidity yet, must wait till Relay event
 		k.PickLPsAndAdjustLiquidity(src, dest, ev.Amount, destAmount, userGet)
 
-		// Save transfer detail, including relay msg
+		relayOnchain := &types.RelayOnChain{
+			// todo: fill fields
+		}
+		relayRaw, _ := relayOnchain.Marshal()
+		// Save transfer detail, including relayRaw
 		// Add to torelay xfer id list
-		// EmitEvent for sgn node to sign
+		ctx.EventManager().EmitEvent(sdk.NewEvent(
+			types.EventToSign,
+			sdk.NewAttribute(types.EvAttrType, types.SignDataType_RELAY.String()),
+			sdk.NewAttribute(types.EvAttrData, string(relayRaw)),
+		))
 	}
 	return true, nil
 }

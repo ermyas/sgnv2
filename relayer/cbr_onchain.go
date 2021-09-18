@@ -172,7 +172,7 @@ func (c *CbrOneChain) CheckEvent(evtype string, tocheck *ethtypes.Log) (bool, er
 }
 
 // send relay tx onchain to cbridge contract, no wait mine
-// TODO: logic
+// zhihua: auth/transactor, log tx hash
 func (c *CbrOneChain) SendRelay(relay, curss []byte, sigs [][]byte) error {
 	_, err := c.contract.Relay(nil, relay, curss, sigs)
 	return err

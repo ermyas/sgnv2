@@ -31,6 +31,10 @@ func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
 			// or we should call cbridge grpc here?
 			r.Transactor.AddTxMsg(msg)
 		}
+
+		// zhihua
+		// pull x/cbridge etc to get ready to send onchain relay msg, validators, and sigs
+		// call cbrMgr[relay.dst_chain_id].SendRelay
 	}
 }
 

@@ -19,7 +19,7 @@ message ChainAsset {
   string token_symbol = 2;
   string token_addr = 3;
   uint64 decimal = 4;
-  string max_fee_amount = 5; // max fee, use string to avoid uint64 now enough for 18 decimal tokens
+  string max_fee_amount = 5; // max fee, use string to avoid uint64 not enough for 18 decimal tokens
 }
 
 // ========== for sync propose
@@ -83,4 +83,17 @@ message AddrAmt {
 message XferDetail {
   bytes send_event = 1; // json marshaled Send event, including chainid etc
   repeated AddrAmt liq_to_add = 2; // liquidity to add to src chain provider when relay is done
+}
+
+// saved and updated when new sig is added
+message XferRelay {
+  bytes relay = 1; //serialized RelayOnChain
+  // each sgn node send SendMySig and x/cbridge add to sigs,
+  // NOTE sigs need to be sorted by recovered signer address
+  repeated AddrSig sorted_sigs = 2;
+}
+
+message AddrSig {
+  bytes addr = 1; // eth address recovered from sig and data in x/cbridge
+  bytes sig = 2;
 }

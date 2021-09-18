@@ -32,5 +32,8 @@ func (k msgServer) SignAgain(context.Context, *types.MsgSignAgain) (*types.MsgSi
 
 // send my sig for data, so it can be later submitted onchain
 func (k msgServer) SendMySig(context.Context, *types.MsgSendMySig) (*types.MsgSendMySigResp, error) {
+	// zhihua
+	// if type is relay, find xfer id, update XferRelayKey
+	// note sigs need to be sorted by signer address
 	return nil, nil
 }

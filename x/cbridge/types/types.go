@@ -11,3 +11,11 @@ const (
 	// from signers.sol
 	CbrEventNewSigners = "SignersUpdated"
 )
+
+const (
+	// emit cosmos event for nodes to monitor and send sig back
+	EventToSign = ModuleName + "ToSIgn"
+	// event attr for data type, value is relay or withdraw
+	EvAttrType = "DataType"
+	EvAttrData = "Data" // raw msg to be signed
+)
