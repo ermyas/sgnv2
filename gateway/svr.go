@@ -42,11 +42,15 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	panic("implement me")
 }
 
-func (gs *GatewayService) GetTotalLiquidity(ctx context.Context, request *webapi.GetTotalLiquidityRequest) (*webapi.GetTotalLiquidityResponse, error) {
+func (gs *GatewayService) MarkLiquidityAdd(ctx context.Context, request *webapi.MarkLiquidityAddRequest) (*webapi.MarkLiquidityAddResponse, error) {
 	panic("implement me")
 }
 
 func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi.WithdrawLiquidityRequest) (*webapi.WithdrawLiquidityResponse, error) {
+	panic("implement me")
+}
+
+func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *webapi.QueryLiquidityStatusRequest) (*webapi.QueryLiquidityStatusResponse, error) {
 	panic("implement me")
 }
 

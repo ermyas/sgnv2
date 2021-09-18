@@ -1,12 +1,12 @@
 syntax = "proto3";
-package sgn.cbridge.v1;
+package sgn.gateway.v1;
 
 import "google/api/annotations.proto";
 
 option go_package = "github.com/celer-network/sgn-v2/gateway/webapi";
 
 service Web {
-    // transfer
+    // current only for slippage_tolerance setting
     rpc SetAdvancedInfo (SetAdvancedInfoRequest) returns (SetAdvancedInfoResponse) {
         option (google.api.http) = {
       post: "/v1/setAdvancedInfo"
@@ -14,20 +14,22 @@ service Web {
     };
     }
 
+    // get chain and token selector
+    // after getting these info, remember to record them(especially decimal)
     rpc GetTransferConfigs (GetTransferConfigsRequest) returns (GetTransferConfigsResponse) {
         option (google.api.http) = {
-      post: "/v1/getTransferConfigs"
-      body: "*"
+      get: "/v1/getTransferConfigs"
     };
     }
 
+    // estimate transfer fee
     rpc EstimateAmt (EstimateAmtRequest) returns (EstimateAmtResponse) {
         option (google.api.http) = {
-      post: "/v1/estimateAmt"
-      body: "*"
+      get: "/v1/estimateAmt"
     };
     }
 
+    // same as V1, call this api after user confirm transfer on metamask
     rpc MarkTransferBegin (MarkTransferBeginRequest) returns (MarkTransferBeginResponse) {
         option (google.api.http) = {
       post: "/v1/markTransferBegin"
@@ -36,25 +38,10 @@ service Web {
     }
 
     //LP
+    // get LP table info
     rpc GetLPInfoList (GetLPInfoListRequest) returns (GetLPInfoListResponse) {
         option (google.api.http) = {
-      post: "/v1/getLPConfigs"
-      body: "*"
-    };
-    }
-
-    rpc GetTotalLiquidity (GetTotalLiquidityRequest) returns (GetTotalLiquidityResponse) {
-        option (google.api.http) = {
-      post: "/v1/getLPPersonalStatus"
-      body: "*"
-    };
-    }
-
-    //https://github.com/celer-network/sgn-v2/blob/main/proto/sgn/cbridge/v1/tx.proto#L10
-    rpc WithdrawLiquidity (WithdrawLiquidityRequest) returns (WithdrawLiquidityResponse) {
-        option (google.api.http) = {
-      post: "/v1/withdrawLiquidity"
-      body: "*"
+      get: "/v1/getLPInfoList"
     };
     }
 
@@ -65,6 +52,16 @@ service Web {
     };
     }
 
+    //https://github.com/celer-network/sgn-v2/blob/main/proto/sgn/cbridge/v1/tx.proto#L10
+    // remove liquidity or refund transfer calling this api
+    rpc WithdrawLiquidity (WithdrawLiquidityRequest) returns (WithdrawLiquidityResponse) {
+        option (google.api.http) = {
+      post: "/v1/withdrawLiquidity"
+      body: "*"
+    };
+    }
+
+    // bcz it's time cost for sgn voting, so we need a polling api to check the status
     rpc QueryLiquidityStatus (QueryLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {
         option (google.api.http) = {
       get: "/v1/queryLiquidityStatus"
@@ -74,15 +71,13 @@ service Web {
     //History
     rpc TransferHistory (TransferHistoryRequest) returns (TransferHistoryResponse) {
         option (google.api.http) = {
-      post: "/v1/transferHistory"
-      body: "*"
+      get: "/v1/transferHistory"
     };
     }
 
     rpc LPHistory (LPHistoryRequest) returns (LPHistoryResponse) {
         option (google.api.http) = {
-      post: "/v1/lpHistory"
-      body: "*"
+      get: "/v1/lpHistory"
     };
     }
 }
@@ -107,17 +102,19 @@ message TokenInfo {
     Token token = 1;
     string name = 2;
     string icon = 3;
+    string max_amt = 4; // showing in token list, max bridge amount, only for dst chain
+    string contract_addr = 5; // contract addr
 }
 
 message TransferInfo {
     Chain chain = 1;
     Token token = 2;
-    double amount = 3;
+    string amount = 3;
 }
 
 message SetAdvancedInfoRequest {
     string addr = 1;
-    float slippage_tolerance = 2;
+    uint32 slippage_tolerance = 5; // slippage * 1M, eg. 0.5% is 5000
 }
 
 message SetAdvancedInfoResponse {
@@ -136,25 +133,25 @@ message GetTransferConfigsResponse {
 }
 
 message EstimateAmtRequest {
-    string addr = 1;
-    uint64 src_chain_id = 2;
-    uint64 dst_chain_id = 3;
-    uint64 token_id = 4;
-    double amt = 5; // how much token
+    uint64 src_chain_id = 1;
+    uint64 dst_chain_id = 2;
+    string token_symbol = 3;
+    string amt = 4;
 }
 
 message EstimateAmtResponse {
     ErrMsg err = 1;
-    float bridge_rate = 2;
-    float slippage_tolerance = 3;
-    double fee = 4; // how much token
-    double minimum_received_amt = 5; // how much token
+    string eq_value_token_amt = 2; //on_dst_chain, to cal minimum_received_amt = eq_value_token_amt*(1-slippage_tolerance) -  fee
+    float bridge_rate = 3;
+    string fee = 4; //on_dst_chain
+    uint32 slippage_tolerance = 5; // slippage * 1M, eg. 0.5% is 5000
 }
 
 message MarkTransferBeginRequest {
     string transfer_id = 1;
     TransferInfo src_send_info = 2;
     TransferInfo dst_min_received_info = 3;
+    string addr = 4;
 }
 
 message MarkTransferBeginResponse {
@@ -168,46 +165,41 @@ message GetLPInfoListRequest {
 message LPInfo {
     Chain chain = 1;
     TokenInfo token = 2;
-    double liquidity = 3;
-    double earning = 4;
-    double tvl = 5;
-    double volume_24h = 6;
-    double lp_fee_rate = 7;
-    double apy = 8;
+    double liquidity = 3; // current liquidity of user in usd
+    bool has_farming_sessions = 4;
+    double lp_fee_earning = 5; // in usd
+    double farming_reward_earning = 6; // in usd
+    double tvl = 7; // in usd
+    double volume_24h = 8; //gateway cal this based on local db
+    double lp_fee_rate = 9;
+    double lp_fee_earning_apy = 10;
+    double farming_apy = 11;
 }
 message GetLPInfoListResponse {
     ErrMsg err = 1;
     repeated LPInfo lp_info = 2;
 }
 
-message GetTotalLiquidityRequest {
-    string addr = 1;
-}
-
-message GetTotalLiquidityResponse {
-    ErrMsg err = 1;
-    double liquidity = 2;
-    double earning = 3;
-    double farming_rewarding = 4;
-    double unclaimed_farming_rewarding = 5;
-}
-
-
 message WithdrawLiquidityRequest {
-    string receiver_addr = 1;
-    string amount = 2;
-    string token_addr = 3;
-    uint64 chain_id = 4;
+    string transfer_id = 1; // if set, user refund src transfer id
+    // lp withdraw, only set if xfer_id is nil
+    string receiver_addr = 2;
+    string amount = 3;
+    string token_addr = 4;
+    uint64 chain_id = 5;
+
+    string creator = 6; // check with junda what it is
 }
 
 message WithdrawLiquidityResponse {
     ErrMsg err = 1;
-    uint64 nonce = 2;
+    uint64 seq_num = 2; // nonce
+    string withdraw_id = 3;
 }
 
 message MarkLiquidityAddRequest {
-    string receiver_addr = 1;
-    string amount = 2;
+    string lp_addr = 1;
+    string amt_added = 2;
     string token_addr = 3;
     uint64 chain_id = 4;
     uint64 seq_num = 5;
@@ -218,10 +210,7 @@ message MarkLiquidityAddResponse {
 }
 
 message QueryLiquidityStatusRequest {
-    string receiver_addr = 1;
-    uint64 nonce = 2;
-    string token_addr = 3;
-    uint64 chain_id = 4;
+    string withdraw_id = 1;
 }
 
 message QueryLiquidityStatusResponse {
@@ -269,17 +258,18 @@ message TransferHistory {
 message LPHistory {
     Chain chain = 1;
     TokenInfo token = 2;
-    double amount = 3;
+    string amount = 3;
     uint64 ts = 4;
     string block_tx_link = 5;
     LPHistoryStatus status = 6;
     LPType type = 7;
+    string withdraw_id = 8; // for withdraw only
+    uint64 seq_num = 9; // for add only
 }
 
 message TransferHistoryRequest {
-    string next_page_token = 1;
-    uint64 begin_time = 2;
-    uint64 end_time = 3;
+    string next_page_token = 1; // for first page, it's ""
+    uint64 page_size = 2;
 }
 
 message TransferHistoryResponse {
@@ -288,9 +278,8 @@ message TransferHistoryResponse {
 }
 
 message LPHistoryRequest {
-    string next_page_token = 1;
-    uint64 begin_time = 2;
-    uint64 end_time = 3;
+    string next_page_token = 1; // for first page, it's ""
+    uint64 page_size = 2;
 }
 
 message LPHistoryResponse {
@@ -305,4 +294,5 @@ message ErrMsg {
 
 enum ErrCode {
     ERROR_CODE_UNDEFINED = 0;
+    ERROR_CODE_COMMON = 500;
 }
