@@ -50,11 +50,24 @@ service Web {
     };
     }
 
-    // for refund failed user transfer and LP remove liquidity
+    //https://github.com/celer-network/sgn-v2/blob/main/proto/sgn/cbridge/v1/tx.proto#L10
     rpc WithdrawLiquidity (WithdrawLiquidityRequest) returns (WithdrawLiquidityResponse) {
         option (google.api.http) = {
       post: "/v1/withdrawLiquidity"
       body: "*"
+    };
+    }
+
+    rpc MarkLiquidityAdd (MarkLiquidityAddRequest) returns (MarkLiquidityAddResponse) {
+        option (google.api.http) = {
+      post: "/v1/markLiquidityAdd"
+      body: "*"
+    };
+    }
+
+    rpc QueryLiquidityStatus (QueryLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {
+        option (google.api.http) = {
+      get: "/v1/queryLiquidityStatus"
     };
     }
 
@@ -182,14 +195,38 @@ message GetTotalLiquidityResponse {
 
 message WithdrawLiquidityRequest {
     string receiver_addr = 1;
-    double amount = 2;
+    string amount = 2;
     string token_addr = 3;
     uint64 chain_id = 4;
 }
 
 message WithdrawLiquidityResponse {
     ErrMsg err = 1;
-    uint64 nonce = 3;
+    uint64 nonce = 2;
+}
+
+message MarkLiquidityAddRequest {
+    string receiver_addr = 1;
+    string amount = 2;
+    string token_addr = 3;
+    uint64 chain_id = 4;
+    uint64 seq_num = 5;
+}
+
+message MarkLiquidityAddResponse {
+    ErrMsg err = 1;
+}
+
+message QueryLiquidityStatusRequest {
+    string receiver_addr = 1;
+    uint64 nonce = 2;
+    string token_addr = 3;
+    uint64 chain_id = 4;
+}
+
+message QueryLiquidityStatusResponse {
+    ErrMsg err = 1;
+    LPHistoryStatus status = 2;
 }
 
 enum TransferHistoryStatus {
