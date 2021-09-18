@@ -8,7 +8,7 @@ Follow instructions to start a local testnet with multiple validators and test d
 - [Staking](./docs/staking.md)
 - [Governance](./docs/governance.md)
 
-## Local Single-Node Manuual Testing
+## Local Single-Node Manual Testing
 
 #### Reset, Build, Start
 
