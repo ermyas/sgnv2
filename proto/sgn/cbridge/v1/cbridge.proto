@@ -75,7 +75,7 @@ enum XferStatus {
 }
 
 message AddrAmt {
-  bytes addr = 1; // eth address
+  bytes addr = 1; // eth address, NOT hex string
   bytes amt = 2; // big.Int.Bytes(), NO negative!
 }
 
@@ -93,7 +93,14 @@ message XferRelay {
   repeated AddrSig sorted_sigs = 2;
 }
 
+message WithdrawDetail {
+  bytes wd_onchain = 1; //serialized WithdrawOnchain
+  repeated AddrSig sorted_sigs = 2; // sorted sigs
+  bool completed = 3; // if set to true, means applied withdrawDone event
+  int64 last_req_time = 4; // to anti-dos, avoid constant re-signing. if last_req_time is still within x seconds of now, won't resign
+}
+
 message AddrSig {
-  bytes addr = 1; // eth address recovered from sig and data in x/cbridge
+  bytes addr = 1; // eth address recovered from sig and data in x/cbridge, eth.Addr[:], not hex string!
   bytes sig = 2;
 }

@@ -18,8 +18,7 @@ import (
 )
 
 var (
-	EventSlash     = fmt.Sprintf("%s.%s='%s'", slashingtypes.EventTypeSlash, sdk.AttributeKeyAction, slashtypes.ActionSlash)
-	EventCbrToSign = fmt.Sprintf("%s.%s='%s'", cbrtypes.EventToSign, cbrtypes.EvAttrType, cbrtypes.SignDataType_RELAY.String())
+	EventSlash = fmt.Sprintf("%s.%s='%s'", slashingtypes.EventTypeSlash, sdk.AttributeKeyAction, slashtypes.ActionSlash)
 )
 
 func MonitorTendermintEvent(nodeURI, eventTag string, handleEvent func(event abci.Event)) {
@@ -103,33 +102,36 @@ func (r *Relayer) handleSlash(slashEvent SlashEvent) {
 }
 
 func (r *Relayer) monitorCbrToSign() {
-	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, EventCbrToSign, func(e abci.Event) {
+	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, cbrtypes.EventToSign, func(e abci.Event) {
 		if !r.isBonded() {
 			return
 		}
-
 		event := sdk.StringifyEvent(e)
-
-		relayRaw := []byte(event.Attributes[1].Value)
-		relay := new(cbrtypes.RelayOnChain)
-		err := relay.Unmarshal(relayRaw)
-		if err != nil {
-			log.Errorln("failed to unmarshal XrefRelay", err)
-			return
+		// sign data first
+		data := []byte(event.Attributes[1].Value)
+		sig, _ := r.EthClient.SignEthMessage(data)
+		msg := &cbrtypes.MsgSendMySig{
+			Data:    data,
+			MySig:   sig,
+			Creator: r.Transactor.Key.GetAddress().String(),
 		}
-
-		sig, err := r.EthClient.SignEthMessage(relayRaw)
-		if err != nil {
-			log.Errorln("SignEthMessage err", err)
-			return
+		switch event.Attributes[0].Value {
+		case cbrtypes.SignDataType_RELAY.String():
+			msg.Datatype = cbrtypes.SignDataType_RELAY
+			relay := new(cbrtypes.RelayOnChain)
+			err := relay.Unmarshal(data)
+			if err != nil {
+				log.Errorln("failed to unmarshal XrefRelay", err)
+				return
+			}
+			relayEvent := NewRelayEvent(relay.SrcTransferId)
+			err = r.dbSet(GetCbrXferKey(relayEvent.XferId), relayEvent.MustMarshal())
+			if err != nil {
+				log.Errorln("db Set err", err)
+			}
+		case cbrtypes.SignDataType_WITHDRAW.String():
+			msg.Datatype = cbrtypes.SignDataType_WITHDRAW
 		}
-		msg := cbrtypes.NewMsgSendMySig(r.Transactor.Key.GetAddress().String(), cbrtypes.SignDataType_RELAY, relayRaw, sig)
 		r.Transactor.AddTxMsg(msg)
-
-		relayEvent := NewRelayEvent(relay.SrcTransferId)
-		err = r.dbSet(GetCbrXferKey(relayEvent.XferId), relayEvent.MustMarshal())
-		if err != nil {
-			log.Errorln("db Set err", err)
-		}
 	})
 }

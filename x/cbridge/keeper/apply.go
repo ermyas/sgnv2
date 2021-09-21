@@ -99,6 +99,18 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			sdk.NewAttribute(types.EvAttrType, types.SignDataType_RELAY.String()),
 			sdk.NewAttribute(types.EvAttrData, string(relayRaw)),
 		))
+	case types.CbrEventWithdraw:
+		ev, err := cbrContract.ParseWithdrawDone(*elog)
+		if err != nil {
+			return false, err
+		}
+		wdDetail := GetWithdrawDetail(kv, ev.Seqnum)
+		if wdDetail == nil {
+			// what to do if not found?
+			return true, nil
+		}
+		wdDetail.Completed = true
+		SaveWithdrawDetail(kv, ev.Seqnum, wdDetail)
 	}
 	return true, nil
 }

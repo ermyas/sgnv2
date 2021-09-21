@@ -2,6 +2,7 @@ package eth
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 
 	ec "github.com/ethereum/go-ethereum/common"
@@ -105,4 +106,19 @@ func Hex2Hash(s string) HashType {
 // Bytes2Hash converts bytes to HashType
 func Bytes2Hash(b []byte) HashType {
 	return ec.BytesToHash(b)
+}
+
+// if in is 20 bytes, return directly. otherwise return a new []byte w/ len 20, left pad 0x00..[in]
+// if len(in)>20, panic
+func Pad20Bytes(in []byte) []byte {
+	origLen := len(in)
+	if origLen == 20 {
+		return in
+	}
+	if origLen > 20 {
+		panic(fmt.Sprintf("%x len %d > 20", in, origLen))
+	}
+	ret := make([]byte, 20)
+	copy(ret[20-origLen:], in)
+	return ret
 }

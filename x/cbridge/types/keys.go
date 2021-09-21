@@ -30,6 +30,8 @@ var (
 	// to be pulled by relayer and send onchain, xfer will be removed
 	// when x/cbridge sees relay event
 	ToRelayXfersKey = []byte("torelay")
+	// value is big.NewInt(int).Bytes
+	WithdrawSeqNumKey = []byte("withdrawSeqNum")
 )
 
 // this line is used by starport scaffolding # ibc/keys/port
@@ -39,13 +41,15 @@ func KeyPrefix(p string) []byte {
 }
 
 /* states owned by cbridge module
-1. liquidity map, lm-chid-token-lp -> amount big.Int.String
+1. liquidity map, lm-chid-token-lp -> amount big.Int.Bytes
 2. processed add liquidity event, evliqadd-chid-seq -> true, to avoid process same event again
 3. send event, evsend-%x transferid, module has seen this event
 4. relay event, evrelay-%x transferid -> srcTransferid
 5. transferDetail: xfer-%x transferid -> tbd. only src transferid in key!
 6. torelaytransferIds: torelay -> [src xfer id]
 7. xfer relay: xferRelay-%x, src transfer id, relay msg and sigs
+8. withdraw seq num: withdrawSeqNum, value is big.Int bytes
+9. withdraw detail, wdDetail-%d seqnum, onchain msg and sigs
 */
 
 // key for liquidity map, chainid-tokenaddr-lpaddr
@@ -75,4 +79,8 @@ func XferDetailKey(tid [32]byte) []byte {
 // serialized relay msg and sigs, add sig when receive msg
 func XferRelayKey(tid [32]byte) []byte {
 	return []byte(fmt.Sprintf("xferRelay-%x", tid))
+}
+
+func WdDetailKey(seqnum uint64) []byte {
+	return []byte(fmt.Sprintf("wdDetail-%d", seqnum))
 }
