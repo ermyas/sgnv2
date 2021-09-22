@@ -90,5 +90,5 @@ message QueryAddLiquidityStatusRequest {
 }
 
 message QueryWithdrawLiquidityStatusRequest {
-    string withdraw_id = 1;
+    uint64 seq_num = 1;
 }

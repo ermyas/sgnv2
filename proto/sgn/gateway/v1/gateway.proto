@@ -194,7 +194,6 @@ message WithdrawLiquidityRequest {
 message WithdrawLiquidityResponse {
     ErrMsg err = 1;
     uint64 seq_num = 2; // nonce
-    string withdraw_id = 3;
 }
 
 message MarkLiquidityAddRequest {
@@ -210,7 +209,7 @@ message MarkLiquidityAddResponse {
 }
 
 message QueryLiquidityStatusRequest {
-    string withdraw_id = 1;
+    uint64 seq_num = 1;
 }
 
 message QueryLiquidityStatusResponse {
@@ -263,8 +262,7 @@ message LPHistory {
     string block_tx_link = 5;
     LPHistoryStatus status = 6;
     LPType type = 7;
-    string withdraw_id = 8; // for withdraw only
-    uint64 seq_num = 9; // for add only
+    uint64 seq_num = 8;
 }
 
 message TransferHistoryRequest {
