@@ -18,6 +18,18 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 			return queryParams(ctx, k, legacyQuerierCdc)
 		case types.QueryRelay:
 			return queryRelay(ctx, req, k, legacyQuerierCdc)
+		case types.QueryChainTokensConfig:
+			return queryChainTokensConfig(ctx, req, k, legacyQuerierCdc)
+		case types.QueryFee:
+			return queryFee(ctx, req, k, legacyQuerierCdc)
+		case types.QueryTransferStatus:
+			return queryTransferStatus(ctx, req, k, legacyQuerierCdc)
+		case types.QueryLiquidityDetailList:
+			return queryLiquidityDetailList(ctx, req, k, legacyQuerierCdc)
+		case types.QueryAddLiquidityStatus:
+			return queryAddLiquidityStatus(ctx, req, k, legacyQuerierCdc)
+		case types.QueryWithdrawLiquidityStatus:
+			return queryWithdrawLiquidityStatus(ctx, req, k, legacyQuerierCdc)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "Unknown sync query endpoint")
 		}
@@ -54,4 +66,62 @@ func queryRelay(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierC
 	}
 
 	return res, nil
+}
+
+func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	mca := k.MultiChainAsset(ctx)
+	chainTokens := make(map[uint64]*types.Assets)
+	for _, a := range mca.ChainAsset {
+		assets, ok := chainTokens[a.ChainId]
+		if !ok {
+			assets = &types.Assets{
+				Assets: make([]*types.AssetPerChain, 0),
+			}
+			chainTokens[a.ChainId] = assets
+		}
+		assets.Assets = append(assets.Assets, &types.AssetPerChain{
+			Token: &types.Token{
+				Symbol:  a.TokenSymbol,
+				Address: a.TokenAddr,
+				Decimal: int32(a.Decimal),
+			},
+			//TODO
+			//MaxAmt: ,
+			//ContractAddr: ,
+		})
+	}
+	resp := types.ChainTokensConfigResponse{
+		ChainTokens: chainTokens,
+	}
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, resp)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
+}
+
+func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	// TODO
+	return nil, nil
+}
+
+func queryTransferStatus(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	// TODO
+	return nil, nil
+}
+
+func queryLiquidityDetailList(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	// TODO
+	return nil, nil
+}
+
+func queryAddLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	// TODO
+	return nil, nil
+}
+
+func queryWithdrawLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	// TODO
+	return nil, nil
 }
