@@ -29,7 +29,6 @@ message ChainTokensConfigRequest {
 }
 
 message ChainTokensConfigResponse {
-    ErrMsg err = 1;
     map<uint64, Assets> chain_tokens = 2; //map<chain_id, Assets>
 }
 
@@ -50,7 +49,6 @@ message GetFeeRequest {
 }
 
 message GetFeeResponse {
-    ErrMsg err = 1;
     string eq_value_token_amt = 2; //on_dst_chain
     string fee = 3; //on_dst_chain
     uint64 decimal = 4; //on_dst_chain
@@ -61,7 +59,6 @@ message QueryTransferStatusRequest {
 }
 
 message QueryTransferStatusResponse {
-    ErrMsg err = 1;
     map<string, TransferHistoryStatus> status = 2; //map<transfer_id, status>
 }
 
@@ -78,7 +75,6 @@ message LiquidityDetailListRequest {
 }
 
 message LiquidityDetailListResponse {
-    ErrMsg err = 1;
     repeated LiquidityDetail liquidity_detail = 2;
 }
 
@@ -92,7 +88,6 @@ message QueryWithdrawLiquidityStatusRequest {
 }
 
 message QueryLiquidityStatusResponse {
-    ErrMsg err = 1;
     LPHistoryStatus status = 2;
 }
 
@@ -122,13 +117,4 @@ enum TransferHistoryStatus {
     TRANSFER_REFUND_TO_BE_CONFIRMED = 7;
     TRANSFER_CONFIRMING_YOUR_REFUND = 8;
     TRANSFER_REFUNDED = 9;
-}
-
-message ErrMsg {
-    ErrCode code = 1;
-    string msg = 2;
-}
-
-enum ErrCode {
-    ERROR_CODE_UNDEFINED = 0;
 }

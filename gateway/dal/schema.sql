@@ -11,9 +11,9 @@ CREATE TABLE IF NOT EXISTS transfer (
     src_chain_id INT NOT NULL,
     dst_chain_id INT NOT NULL,
     amt string NOT NULL DEFAULT '0',
-    received_amt string NOT NULL DEFAULT 0,
+    received_amt string NOT NULL DEFAULT '0',
     status INT NOT NULL DEFAULT 1,
-    volume float NOT NULL DEFAULT 0
+    volume FLOAT NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS tsf_utm_idx ON transfer (update_time);
 CREATE INDEX IF NOT EXISTS tsf_ctm_idx ON transfer (create_time);
@@ -29,9 +29,8 @@ CREATE TABLE IF NOT EXISTS lp (
     create_time TIMESTAMPTZ NOT NULL DEFAULT now(),
     status INT NOT NULL DEFAULT 1,
     type INT NOT NULL DEFAULT 1,
-    withdraw_id string NOT NULL DEFAULT '',
     seq_num INT NOT NULL DEFAULT 0,
-    volume float NOT NULL DEFAULT 0
+    volume FLOAT NOT NULL DEFAULT 0
     );
 CREATE INDEX IF NOT EXISTS lp_utm_idx ON lp (update_time);
 CREATE INDEX IF NOT EXISTS lp_ctm_idx ON lp (create_time);
@@ -45,12 +44,15 @@ CREATE TABLE IF NOT EXISTS token (
     address TEXT NOT NULL,
     name TEXT NOT NULL DEFAULT '',
     icon TEXT NOT NULL DEFAULT '',
-    PRIMARY KEY (symbol,chain_id)
+    price FLOAT NOT NULL DEFAULT 0,
+    max_amt TEXT NOT NULL,
+    contract TEXT NOT NULL,
+    PRIMARY KEY (symbol, chain_id)
 );
 CREATE INDEX IF NOT EXISTS tk_addr_idx ON token (address, chain_id);
 
 CREATE TABLE IF NOT EXISTS chain (
      id INT PRIMARY KEY NOT NULL,
      name TEXT NOT NULL DEFAULT '',
-     icon TEXT NOT NULL DEFAULT '',
+     icon TEXT NOT NULL DEFAULT ''
 );

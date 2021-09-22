@@ -3,24 +3,26 @@ package webapi
 import (
 	"context"
 	"fmt"
+	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 )
 
+var db *dal.DAL = nil // for sgn usage, in package instead of svr
+
 // Close the database DAL.
 func (gs *GatewayService) Close() {
-	if gs.dal == nil {
+	if db == nil {
 		return
 	}
-	gs.dal.Close()
-	gs.dal = nil
+	db.Close()
+	db = nil
 }
 
 type GatewayConfig struct {
 }
 
 type GatewayService struct {
-	dal *DAL
 }
 
 func (gs *GatewayService) SetAdvancedInfo(ctx context.Context, request *webapi.SetAdvancedInfoRequest) (*webapi.SetAdvancedInfoResponse, error) {
@@ -28,7 +30,37 @@ func (gs *GatewayService) SetAdvancedInfo(ctx context.Context, request *webapi.S
 }
 
 func (gs *GatewayService) GetTransferConfigs(ctx context.Context, request *webapi.GetTransferConfigsRequest) (*webapi.GetTransferConfigsResponse, error) {
-	panic("implement me")
+	chainTokenList, err := db.GetChainTokenList()
+	if err != nil {
+		return &webapi.GetTransferConfigsResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "get chain_token failed",
+			},
+			Chains:     nil,
+			ChainToken: nil,
+		}, nil
+	}
+	var chainIds []uint64
+	for key := range chainTokenList {
+		chainIds = append(chainIds, key)
+	}
+	chains, err := db.GetChainInfo(chainIds)
+	if err != nil {
+		return &webapi.GetTransferConfigsResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "get chain info failed",
+			},
+			Chains:     chains,
+			ChainToken: chainTokenList,
+		}, nil
+	}
+	return &webapi.GetTransferConfigsResponse{
+		Err:        nil,
+		Chains:     chains,
+		ChainToken: chainTokenList,
+	}, nil
 }
 
 func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.EstimateAmtRequest) (*webapi.EstimateAmtResponse, error) {
@@ -65,12 +97,11 @@ func (gs *GatewayService) LPHistory(ctx context.Context, request *webapi.LPHisto
 
 func NewGatewayService(dbUrl string) (*GatewayService, error) {
 	// Make a private config copy.
-	dal, err := NewDAL("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", dbUrl), 10)
+	_db, err := dal.NewDAL("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", dbUrl), 10)
 	if err != nil {
 		return nil, err
 	}
 
-	return &GatewayService{
-		dal: dal,
-	}, nil
+	db = _db
+	return &GatewayService{}, nil
 }

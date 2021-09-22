@@ -16,7 +16,7 @@ const (
 	stSvr    = "localhost:3333"
 	stWebSvr = "localhost:9099"
 	stDir    = "/tmp/crdbtest"
-	stSchema = "schema.sql"
+	stSchema = "dal/schema.sql"
 )
 
 // TestMain is used to setup/teardown a temporary CockroachDB instance
@@ -102,15 +102,15 @@ func checkStatus(t *testing.T, status int, dest int) {
 }
 
 func TestDb(t *testing.T) {
-	svr, err := NewGatewayService(stSvr)
+	_, err := NewGatewayService(stSvr)
 	if err != nil {
 		t.Errorf("fail to init service, err:%v", err)
 		return
 	}
 	transferId := "123"
-	err = svr.dal.InsertTransfer(transferId, "0x0000000", "USDT", 1, 2)
+	err = db.InsertTransfer(transferId, "0x0000000", "USDT", 1, 2)
 	errIsNil(t, err)
-	addr, token, srcChainId, dstChainId, found, err := svr.dal.GetTransfer(transferId)
+	addr, token, srcChainId, dstChainId, found, err := db.GetTransfer(transferId)
 	errIsNil(t, err)
 	if !found {
 		t.Error("transfer not found")
