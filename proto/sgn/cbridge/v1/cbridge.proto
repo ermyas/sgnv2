@@ -59,30 +59,29 @@ message SortedSigners {
   repeated AddrAmt signers = 1;
 }
 
-// ========== x/cbridge kv value types
-// for src transfer id
-enum XferStatus {
-  UNKNOWN = 0; // use as default for unknown xfer
-  BAD_LIQUIDITY = 1; // can't complete xfer due to low dst chain liquidity
-  BAD_SLIPPAGE = 2; // slippage larger than user specified max
-  OK_TO_RELAY = 3; // x/cbrige emit relay, waiting for sgn nodes to send sig
-  HAS_RELAY_SIG = 4; // received at least one sig for relay
-  COMPLETED = 5; // applied onchain relay event
-
-  // withdraw flow
-  HAS_WITHDRAW_SIG = 6; // received at least one sig for withdraw
-  WITHDRAW_DONE = 7; // applied onchain withdrawdone event
-}
-
 message AddrAmt {
   bytes addr = 1; // eth address, NOT hex string
   bytes amt = 2; // big.Int.Bytes(), NO negative!
 }
 
-// saved by x/cbridge for each src transfer
-message XferDetail {
-  bytes send_event = 1; // json marshaled Send event, including chainid etc
-  repeated AddrAmt liq_to_add = 2; // liquidity to add to src chain provider when relay is done
+// ========== x/cbridge kv value types
+// for src transfer id
+// normal status flow: after sgn applied user's Send event, status is OK_TO_RELAY. then after apply Relay event
+// status is SUCCESS
+// can't relay flow: after apply send, status will be BAD_xxx, and there'll be no relay. so user need to InitWithdraw, status becomes refund_requested
+// when sgn apply withdrawDone event, status becomes REFUND_DONE
+enum XferStatus {
+  UNKNOWN = 0; // use as default for unknown xfer
+  // normal flow only has ok then success
+  OK_TO_RELAY = 1; // x/cbrige emit relay, waiting for sgn nodes to send sig, then sgn will submit relay tx onchain
+  SUCCESS = 2; // applied onchain relay event
+
+  // can't relay flow status
+  BAD_LIQUIDITY = 3; // can't complete xfer due to low dst chain liquidity or equal value dest amount is 0
+  BAD_SLIPPAGE = 4; // slippage larger than user specified max
+  // refund, using withdraw flow
+  REFUND_REQUESTED = 5; // user/gateway called InitWithdraw, XferRefundKey has withdraw seq num
+  REFUND_DONE = 6; // applied onchain withdrawdone event
 }
 
 // saved and updated when new sig is added
@@ -98,6 +97,7 @@ message WithdrawDetail {
   repeated AddrSig sorted_sigs = 2; // sorted sigs
   bool completed = 3; // if set to true, means applied withdrawDone event
   int64 last_req_time = 4; // to anti-dos, avoid constant re-signing. if last_req_time is still within x seconds of now, won't resign
+  bytes xferId = 5; // if refund user transfer, add xfer id here so when we see withdraw done, we'll update xfer status
 }
 
 message AddrSig {

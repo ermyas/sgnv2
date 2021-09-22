@@ -1,8 +1,10 @@
 package keeper
 
 import (
+	"fmt"
 	"math/big"
 
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -47,9 +49,33 @@ func HasEvSend(kv sdk.KVStore, xferId [32]byte) bool {
 	return kv.Get(types.EvSendKey(xferId)) != nil
 }
 
+// do we want to add protection for status change?
+func SetEvSendStatus(kv sdk.KVStore, xferId [32]byte, status types.XferStatus) {
+	log.Infof("Set xfer %x to %s", xferId, status.String())
+	kv.Set(types.EvSendKey(xferId), []byte{byte(status)})
+}
+
+// if not found, return 0 unknown. xferid is src xfer id
+func GetEvSendStatus(kv sdk.KVStore, xferId [32]byte) types.XferStatus {
+	val := kv.Get(types.EvSendKey(xferId))
+	if val == nil {
+		return types.XferStatus_UNKNOWN
+	}
+	return types.XferStatus(val[0])
+}
+
 func HasEnoughLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr, needed *big.Int) bool {
 	// sum over all liqmap, if larger than needed, return true
-	return true
+	iter := sdk.KVStorePrefixIterator(kv, []byte(fmt.Sprintf("lm-%d-%s-", chaddr.ChId, eth.Addr2Hex(chaddr.TokenAddr))))
+	defer iter.Close()
+	totalLiq := new(big.Int)
+	for ; iter.Valid(); iter.Next() {
+		totalLiq.Add(totalLiq, new(big.Int).SetBytes(iter.Value()))
+		if totalLiq.Cmp(needed) >= 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func GetXferRelay(kv sdk.KVStore, xferId [32]byte, cdc codec.BinaryCodec) *types.XferRelay {
@@ -64,6 +90,17 @@ func GetXferRelay(kv sdk.KVStore, xferId [32]byte, cdc codec.BinaryCodec) *types
 
 func SetXferRelay(kv sdk.KVStore, xferId [32]byte, xferRelay *types.XferRelay, cdc codec.BinaryCodec) {
 	kv.Set(types.XferRelayKey(xferId), cdc.MustMarshal(xferRelay))
+}
+
+// only set when apply relay event
+func SetEvRelay(kv sdk.KVStore, relayXferId, srcXferId [32]byte) {
+	kv.Set(types.EvRelayKey(relayXferId), srcXferId[:])
+}
+
+// given relay xfer id, get EvRelayKey and return src xfer id.
+// if not found, return nil
+func GetSrcXferId(kv sdk.KVStore, relayXferId [32]byte) []byte {
+	return kv.Get(types.EvRelayKey(relayXferId))
 }
 
 // increment withdraw seq num by 1 and return new value
@@ -95,5 +132,23 @@ func GetWithdrawDetail(kv sdk.KVStore, seqnum uint64) *types.WithdrawDetail {
 	if err != nil {
 		panic("unmarshal to WithdrawDetail err: " + err.Error())
 	}
+	return ret
+}
+
+// during apply send, if xfer is bad_xxx, set user amount etc so later user can initwithdraw via xferid
+// when user call initwithdraw, set wd seqnum value
+func SetXferRefund(kv sdk.KVStore, tid [32]byte, wd *types.WithdrawOnchain) {
+	raw, _ := wd.Marshal()
+	kv.Set(types.XferRefundKey(tid), raw)
+}
+
+// return nil if not found
+func GetXferRefund(kv sdk.KVStore, tid [32]byte) *types.WithdrawOnchain {
+	raw := kv.Get(types.XferRefundKey(tid))
+	if raw == nil {
+		return nil
+	}
+	ret := new(types.WithdrawOnchain)
+	ret.Unmarshal(raw)
 	return ret
 }

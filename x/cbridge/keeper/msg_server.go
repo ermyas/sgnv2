@@ -34,36 +34,47 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	kv := sdkCtx.KVStore(k.storeKey)
 	// todo: do we need to check creator sig? or it doesn't matter anyway
-
-	if len(req.XferId) > 0 {
-		// user refund transfer
-		return nil, nil
-	}
-	// LP withdraw liquidity flow
-	lpAddr := eth.Bytes2Addr(req.LpAddr)
-	token := eth.Bytes2Addr(req.Token)
-	amt := new(big.Int).SetBytes(req.Amount)
-	balance := GetLPBalance(kv, req.Chainid, token, lpAddr)
-	if balance.Cmp(amt) < 0 {
-		// balance not enough, return error
-		return nil, fmt.Errorf("lp balance %s < %s", balance, amt)
+	var wdOnchain *types.WithdrawOnchain
+	if req.XferId != nil { // user refund
+		xferId := eth.Bytes2Hash(req.XferId)
+		wdOnchain = GetXferRefund(kv, xferId)
+		if wdOnchain == nil {
+			return nil, fmt.Errorf("xfer %x not valid for refund", xferId)
+		}
+		if wdOnchain.Seqnum != 0 {
+			// already requested withdraw before
+			return nil, fmt.Errorf("xfer %x already has withdraw seqnum %d, use SignAgain", xferId, wdOnchain.Seqnum)
+		}
+	} else { // LP withdraw liquidity
+		lpAddr := eth.Bytes2Addr(req.LpAddr)
+		token := eth.Bytes2Addr(req.Token)
+		amt := new(big.Int).SetBytes(req.Amount)
+		balance := GetLPBalance(kv, req.Chainid, token, lpAddr)
+		if balance.Cmp(amt) < 0 {
+			// balance not enough, return error
+			return nil, fmt.Errorf("lp balance %s < %s", balance, amt)
+		}
+		ChangeLiquidity(kv, req.Chainid, token, lpAddr, new(big.Int).Neg(amt)) // remove amt from lp map
+		wdOnchain = &types.WithdrawOnchain{
+			Chainid:  req.Chainid,
+			Receiver: req.LpAddr,
+			Token:    req.Token,
+			Amount:   req.Amount,
+		}
 	}
 	resp := new(types.MsgInitWithdrawResp)
-	ChangeLiquidity(kv, req.Chainid, token, lpAddr, new(big.Int).Neg(amt)) // remove amt from lp map
 	newseq := IncrWithdrawSeq(kv)
 	resp.Seqnum = newseq
-	// todo: save withdraw seq detail
-	wdOnChain := &types.WithdrawOnchain{
-		Chainid:  req.Chainid,
-		Seqnum:   newseq,
-		Receiver: req.LpAddr,
-		Token:    req.Token,
-		Amount:   req.Amount,
+	wdOnchain.Seqnum = newseq
+	if req.XferId != nil {
+		// save this back to avoid dup initwithdraw for refund
+		SetXferRefund(kv, eth.Bytes2Hash(req.XferId), wdOnchain)
 	}
-	wdOnChainRaw, _ := wdOnChain.Marshal()
+	wdOnChainRaw, _ := wdOnchain.Marshal()
 	SaveWithdrawDetail(kv, newseq, &types.WithdrawDetail{
 		WdOnchain:   wdOnChainRaw, // only has what to send onchain now
 		LastReqTime: sdkCtx.BlockTime().Unix(),
+		XferId:      req.XferId, // nil if not user refund
 	})
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventToSign,

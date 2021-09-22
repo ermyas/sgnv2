@@ -53,7 +53,19 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		if HasEvSend(kv, ev.TransferId) {
 			return false, fmt.Errorf("already applied send event. chainid %d xferId %x", onchev.Chainid, ev.TransferId)
 		}
-		// TODO: SetEvSend
+		// in case of bad_xxx, save info for later user refund, NO seqnum yet as it'll be set
+		// when user calls InitWithdraw
+		wdOnchain := &types.WithdrawOnchain{
+			Chainid:  onchev.Chainid,
+			Receiver: ev.Sender[:],
+			Token:    ev.Token[:],
+			Amount:   ev.Amount.Bytes(),
+		}
+
+		// must set to non-zero before return
+		var sendStatus types.XferStatus
+		defer SetEvSendStatus(kv, ev.TransferId, sendStatus)
+
 		src := &ChainIdTokenAddr{
 			ChId:      onchev.Chainid,
 			TokenAddr: ev.Token,
@@ -66,13 +78,17 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		}
 		// now we need to decide if this send can be completed by sgn, eg. has enough liquidity on dest chain etc
 		destAmount := k.CalcEqualOnDestChain(src, dest, ev.Amount)
-		if destAmount.Sign() == 0 {
-			// what do we do?
-			// must not continue to avoid div by zero in slippage calc
+		if destAmount.Sign() == 0 { // avoid div by 0
+			// define another enum?
+			sendStatus = types.XferStatus_BAD_LIQUIDITY
+			SetXferRefund(kv, ev.TransferId, wdOnchain)
+			return true, nil
 		}
 		// check has enough liq on dest chain
 		if !HasEnoughLiq(kv, dest, destAmount) {
-			// bad transfer, what to do?
+			sendStatus = types.XferStatus_BAD_LIQUIDITY
+			SetXferRefund(kv, ev.TransferId, wdOnchain)
+			return true, nil
 		}
 		userGet := k.CalcUserGet(src, dest, destAmount)
 		// check slippage
@@ -81,24 +97,43 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			slippage := new(big.Int).Mul(lessAmount, big.NewInt(1e6))
 			slippage.Div(slippage, destAmount)
 			if slippage.Uint64() > uint64(ev.MaxSlippage) {
-				// slippage too big, bad transfer
+				sendStatus = types.XferStatus_BAD_SLIPPAGE
+				SetXferRefund(kv, ev.TransferId, wdOnchain)
+				return true, nil
 			}
 		}
-		// pick LPs, minus each's destChain liquidity, return how much to add on src chain into kv, but not
-		// add src liquidity yet, must wait till Relay event
-		k.PickLPsAndAdjustLiquidity(src, dest, ev.Amount, destAmount, userGet)
+
+		// pick LPs, minus each's destChain liquidity, add src liquidity
+		k.PickLPsAndAdjustLiquidity(ctx, src, dest, ev.Amount, destAmount, userGet)
 
 		relayOnchain := &types.RelayOnChain{
-			// todo: fill fields
+			Sender:        ev.Sender[:],
+			Receiver:      ev.Receiver[:],
+			Token:         destTokenAddr[:],
+			Amount:        userGet.Bytes(),
+			SrcChainId:    onchev.Chainid,
+			DstChainId:    ev.DstChainId,
+			SrcTransferId: ev.TransferId[:],
 		}
 		relayRaw, _ := relayOnchain.Marshal()
-		// Save transfer detail, including relayRaw
-		// Add to torelay xfer id list
+		SetXferRelay(kv, ev.TransferId, &types.XferRelay{
+			Relay: relayRaw,
+		}, k.cdc)
 		ctx.EventManager().EmitEvent(sdk.NewEvent(
 			types.EventToSign,
 			sdk.NewAttribute(types.EvAttrType, types.SignDataType_RELAY.String()),
 			sdk.NewAttribute(types.EvAttrData, string(relayRaw)),
 		))
+		sendStatus = types.XferStatus_OK_TO_RELAY
+	case types.CbrEventRelay:
+		// relay happened on dest chain
+		ev, err := cbrContract.ParseRelay(*elog)
+		if err != nil {
+			return false, err
+		}
+		SetEvSendStatus(kv, ev.SrcTransferId, types.XferStatus_SUCCESS)
+		// only set value when apply event, relay xferid -> src xferid only for debugging
+		SetEvRelay(kv, ev.TransferId, ev.SrcTransferId)
 	case types.CbrEventWithdraw:
 		ev, err := cbrContract.ParseWithdrawDone(*elog)
 		if err != nil {
@@ -111,6 +146,10 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		}
 		wdDetail.Completed = true
 		SaveWithdrawDetail(kv, ev.Seqnum, wdDetail)
+		if wdDetail.XferId != nil {
+			// this is a refund so we set xfer status to refund_done
+			SetEvSendStatus(kv, eth.Bytes2Hash(wdDetail.XferId), types.XferStatus_REFUND_DONE)
+		}
 	}
 	return true, nil
 }

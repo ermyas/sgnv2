@@ -53,6 +53,7 @@ message MsgInitWithdrawResp {
 message MsgSignAgain {
     uint64 seqnum = 1; // received in MsgInitWithdrawResp
     string creator = 2;
+    bytes xfer_id = 3; // if set, re-emit sign for relay, xfer_id is src xfer_id
 }
 
 message MsgSignAgainResp {}
