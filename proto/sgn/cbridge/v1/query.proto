@@ -1,8 +1,6 @@
 syntax = "proto3";
 package sgn.cbridge.v1;
 
-import "sgn/gateway/v1/gateway.proto";
-
 option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
 
 // Query defines the gRPC querier service.
@@ -20,10 +18,10 @@ service Query {
     rpc LiquidityDetailList (LiquidityDetailListRequest) returns (LiquidityDetailListResponse) {
     }
 
-    rpc QueryAddLiquidityStatus (QueryAddLiquidityStatusRequest) returns (gateway.v1.QueryLiquidityStatusResponse) {
+    rpc QueryAddLiquidityStatus (QueryAddLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {
     }
 
-    rpc QueryWithdrawLiquidityStatus (QueryWithdrawLiquidityStatusRequest) returns (gateway.v1.QueryLiquidityStatusResponse) {
+    rpc QueryWithdrawLiquidityStatus (QueryWithdrawLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {
     }
 }
 
@@ -31,7 +29,7 @@ message ChainTokensConfigRequest {
 }
 
 message ChainTokensConfigResponse {
-    gateway.v1.ErrMsg err = 1;
+    ErrMsg err = 1;
     map<uint64, Assets> chain_tokens = 2; //map<chain_id, Assets>
 }
 
@@ -39,7 +37,7 @@ message Assets {
     repeated AssetPerChain assets = 1;
 }
 message AssetPerChain {
-    gateway.v1.Token token = 1;
+    Token token = 1;
     string max_amt = 2;
     string contract_addr = 3;
 }
@@ -52,7 +50,7 @@ message GetFeeRequest {
 }
 
 message GetFeeResponse {
-    gateway.v1.ErrMsg err = 1;
+    ErrMsg err = 1;
     string eq_value_token_amt = 2; //on_dst_chain
     string fee = 3; //on_dst_chain
     uint64 decimal = 4; //on_dst_chain
@@ -63,13 +61,13 @@ message QueryTransferStatusRequest {
 }
 
 message QueryTransferStatusResponse {
-    gateway.v1.ErrMsg err = 1;
-    map<string, gateway.v1.TransferHistoryStatus> status = 2; //map<transfer_id, status>
+    ErrMsg err = 1;
+    map<string, TransferHistoryStatus> status = 2; //map<transfer_id, status>
 }
 
 message LiquidityDetail {
     uint64 chain_id = 1;
-    gateway.v1.Token token = 2;
+    Token token = 2;
     string usr_liquidity = 3; // current liquidity of user
     string usr_lp_fee_earning = 4; // current lp earning of user
     string total_liquidity = 5; // the LP’s liquidity for this (chain, token)
@@ -80,7 +78,7 @@ message LiquidityDetailListRequest {
 }
 
 message LiquidityDetailListResponse {
-    gateway.v1.ErrMsg err = 1;
+    ErrMsg err = 1;
     repeated LiquidityDetail liquidity_detail = 2;
 }
 
@@ -91,4 +89,46 @@ message QueryAddLiquidityStatusRequest {
 
 message QueryWithdrawLiquidityStatusRequest {
     uint64 seq_num = 1;
+}
+
+message QueryLiquidityStatusResponse {
+    ErrMsg err = 1;
+    LPHistoryStatus status = 2;
+}
+
+message Token {
+    string symbol = 1;
+    string address = 2;
+    int32 decimal = 3;
+}
+
+enum LPHistoryStatus {
+    LP_UNKNOWN = 0;
+    LP_WAITING_FOR_SGN = 1;
+    LP_WAITING_FOR_LP = 2;
+    LP_SUBMITTING = 3;
+    LP_COMPLETED = 4;
+    LP_FAILED = 5;
+}
+
+enum TransferHistoryStatus {
+    TRANSFER_UNKNOWN = 0;
+    TRANSFER_SUBMITTING = 1;
+    TRANSFER_FAILED = 2;
+    TRANSFER_WAITING_FOR_FUND_RELEASE = 3;
+    TRANSFER_COMPLETED = 4;
+    TRANSFER_TO_BE_REFUNDED = 5;
+    TRANSFER_REQUESTING_REFUND = 6;
+    TRANSFER_REFUND_TO_BE_CONFIRMED = 7;
+    TRANSFER_CONFIRMING_YOUR_REFUND = 8;
+    TRANSFER_REFUNDED = 9;
+}
+
+message ErrMsg {
+    ErrCode code = 1;
+    string msg = 2;
+}
+
+enum ErrCode {
+    ERROR_CODE_UNDEFINED = 0;
 }

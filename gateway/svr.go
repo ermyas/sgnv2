@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
+	"github.com/celer-network/sgn-v2/x/cbridge/types"
 )
 
 // Close the database DAL.
@@ -50,7 +51,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 	panic("implement me")
 }
 
-func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *webapi.QueryLiquidityStatusRequest) (*webapi.QueryLiquidityStatusResponse, error) {
+func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *webapi.QueryLiquidityStatusRequest) (*types.QueryLiquidityStatusResponse, error) {
 	panic("implement me")
 }
 

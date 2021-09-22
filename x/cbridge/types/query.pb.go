@@ -7,7 +7,6 @@ import (
 	context "context"
 	encoding_binary "encoding/binary"
 	fmt "fmt"
-	webapi "github.com/celer-network/sgn-v2/gateway/webapi"
 	grpc1 "github.com/gogo/protobuf/grpc"
 	proto "github.com/gogo/protobuf/proto"
 	grpc "google.golang.org/grpc"
@@ -28,6 +27,114 @@ var _ = math.Inf
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
+
+type LPHistoryStatus int32
+
+const (
+	LPHistoryStatus_LP_UNKNOWN         LPHistoryStatus = 0
+	LPHistoryStatus_LP_WAITING_FOR_SGN LPHistoryStatus = 1
+	LPHistoryStatus_LP_WAITING_FOR_LP  LPHistoryStatus = 2
+	LPHistoryStatus_LP_SUBMITTING      LPHistoryStatus = 3
+	LPHistoryStatus_LP_COMPLETED       LPHistoryStatus = 4
+	LPHistoryStatus_LP_FAILED          LPHistoryStatus = 5
+)
+
+var LPHistoryStatus_name = map[int32]string{
+	0: "LP_UNKNOWN",
+	1: "LP_WAITING_FOR_SGN",
+	2: "LP_WAITING_FOR_LP",
+	3: "LP_SUBMITTING",
+	4: "LP_COMPLETED",
+	5: "LP_FAILED",
+}
+
+var LPHistoryStatus_value = map[string]int32{
+	"LP_UNKNOWN":         0,
+	"LP_WAITING_FOR_SGN": 1,
+	"LP_WAITING_FOR_LP":  2,
+	"LP_SUBMITTING":      3,
+	"LP_COMPLETED":       4,
+	"LP_FAILED":          5,
+}
+
+func (x LPHistoryStatus) String() string {
+	return proto.EnumName(LPHistoryStatus_name, int32(x))
+}
+
+func (LPHistoryStatus) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_5ff091f26d628673, []int{0}
+}
+
+type TransferHistoryStatus int32
+
+const (
+	TransferHistoryStatus_TRANSFER_UNKNOWN                  TransferHistoryStatus = 0
+	TransferHistoryStatus_TRANSFER_SUBMITTING               TransferHistoryStatus = 1
+	TransferHistoryStatus_TRANSFER_FAILED                   TransferHistoryStatus = 2
+	TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE TransferHistoryStatus = 3
+	TransferHistoryStatus_TRANSFER_COMPLETED                TransferHistoryStatus = 4
+	TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED           TransferHistoryStatus = 5
+	TransferHistoryStatus_TRANSFER_REQUESTING_REFUND        TransferHistoryStatus = 6
+	TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED   TransferHistoryStatus = 7
+	TransferHistoryStatus_TRANSFER_CONFIRMING_YOUR_REFUND   TransferHistoryStatus = 8
+	TransferHistoryStatus_TRANSFER_REFUNDED                 TransferHistoryStatus = 9
+)
+
+var TransferHistoryStatus_name = map[int32]string{
+	0: "TRANSFER_UNKNOWN",
+	1: "TRANSFER_SUBMITTING",
+	2: "TRANSFER_FAILED",
+	3: "TRANSFER_WAITING_FOR_FUND_RELEASE",
+	4: "TRANSFER_COMPLETED",
+	5: "TRANSFER_TO_BE_REFUNDED",
+	6: "TRANSFER_REQUESTING_REFUND",
+	7: "TRANSFER_REFUND_TO_BE_CONFIRMED",
+	8: "TRANSFER_CONFIRMING_YOUR_REFUND",
+	9: "TRANSFER_REFUNDED",
+}
+
+var TransferHistoryStatus_value = map[string]int32{
+	"TRANSFER_UNKNOWN":                  0,
+	"TRANSFER_SUBMITTING":               1,
+	"TRANSFER_FAILED":                   2,
+	"TRANSFER_WAITING_FOR_FUND_RELEASE": 3,
+	"TRANSFER_COMPLETED":                4,
+	"TRANSFER_TO_BE_REFUNDED":           5,
+	"TRANSFER_REQUESTING_REFUND":        6,
+	"TRANSFER_REFUND_TO_BE_CONFIRMED":   7,
+	"TRANSFER_CONFIRMING_YOUR_REFUND":   8,
+	"TRANSFER_REFUNDED":                 9,
+}
+
+func (x TransferHistoryStatus) String() string {
+	return proto.EnumName(TransferHistoryStatus_name, int32(x))
+}
+
+func (TransferHistoryStatus) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_5ff091f26d628673, []int{1}
+}
+
+type ErrCode int32
+
+const (
+	ErrCode_ERROR_CODE_UNDEFINED ErrCode = 0
+)
+
+var ErrCode_name = map[int32]string{
+	0: "ERROR_CODE_UNDEFINED",
+}
+
+var ErrCode_value = map[string]int32{
+	"ERROR_CODE_UNDEFINED": 0,
+}
+
+func (x ErrCode) String() string {
+	return proto.EnumName(ErrCode_name, int32(x))
+}
+
+func (ErrCode) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_5ff091f26d628673, []int{2}
+}
 
 type ChainTokensConfigRequest struct {
 }
@@ -66,7 +173,7 @@ func (m *ChainTokensConfigRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_ChainTokensConfigRequest proto.InternalMessageInfo
 
 type ChainTokensConfigResponse struct {
-	Err         *webapi.ErrMsg     `protobuf:"bytes,1,opt,name=err,proto3" json:"err,omitempty"`
+	Err         *ErrMsg            `protobuf:"bytes,1,opt,name=err,proto3" json:"err,omitempty"`
 	ChainTokens map[uint64]*Assets `protobuf:"bytes,2,rep,name=chain_tokens,json=chainTokens,proto3" json:"chain_tokens,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
@@ -103,7 +210,7 @@ func (m *ChainTokensConfigResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ChainTokensConfigResponse proto.InternalMessageInfo
 
-func (m *ChainTokensConfigResponse) GetErr() *webapi.ErrMsg {
+func (m *ChainTokensConfigResponse) GetErr() *ErrMsg {
 	if m != nil {
 		return m.Err
 	}
@@ -162,9 +269,9 @@ func (m *Assets) GetAssets() []*AssetPerChain {
 }
 
 type AssetPerChain struct {
-	Token        *webapi.Token `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
-	MaxAmt       string        `protobuf:"bytes,2,opt,name=max_amt,json=maxAmt,proto3" json:"max_amt,omitempty"`
-	ContractAddr string        `protobuf:"bytes,3,opt,name=contract_addr,json=contractAddr,proto3" json:"contract_addr,omitempty"`
+	Token        *Token `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	MaxAmt       string `protobuf:"bytes,2,opt,name=max_amt,json=maxAmt,proto3" json:"max_amt,omitempty"`
+	ContractAddr string `protobuf:"bytes,3,opt,name=contract_addr,json=contractAddr,proto3" json:"contract_addr,omitempty"`
 }
 
 func (m *AssetPerChain) Reset()         { *m = AssetPerChain{} }
@@ -200,7 +307,7 @@ func (m *AssetPerChain) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_AssetPerChain proto.InternalMessageInfo
 
-func (m *AssetPerChain) GetToken() *webapi.Token {
+func (m *AssetPerChain) GetToken() *Token {
 	if m != nil {
 		return m.Token
 	}
@@ -290,10 +397,10 @@ func (m *GetFeeRequest) GetAmt() string {
 }
 
 type GetFeeResponse struct {
-	Err             *webapi.ErrMsg `protobuf:"bytes,1,opt,name=err,proto3" json:"err,omitempty"`
-	EqValueTokenAmt string         `protobuf:"bytes,2,opt,name=eq_value_token_amt,json=eqValueTokenAmt,proto3" json:"eq_value_token_amt,omitempty"`
-	Fee             string         `protobuf:"bytes,3,opt,name=fee,proto3" json:"fee,omitempty"`
-	Decimal         uint64         `protobuf:"varint,4,opt,name=decimal,proto3" json:"decimal,omitempty"`
+	Err             *ErrMsg `protobuf:"bytes,1,opt,name=err,proto3" json:"err,omitempty"`
+	EqValueTokenAmt string  `protobuf:"bytes,2,opt,name=eq_value_token_amt,json=eqValueTokenAmt,proto3" json:"eq_value_token_amt,omitempty"`
+	Fee             string  `protobuf:"bytes,3,opt,name=fee,proto3" json:"fee,omitempty"`
+	Decimal         uint64  `protobuf:"varint,4,opt,name=decimal,proto3" json:"decimal,omitempty"`
 }
 
 func (m *GetFeeResponse) Reset()         { *m = GetFeeResponse{} }
@@ -329,7 +436,7 @@ func (m *GetFeeResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_GetFeeResponse proto.InternalMessageInfo
 
-func (m *GetFeeResponse) GetErr() *webapi.ErrMsg {
+func (m *GetFeeResponse) GetErr() *ErrMsg {
 	if m != nil {
 		return m.Err
 	}
@@ -402,8 +509,8 @@ func (m *QueryTransferStatusRequest) GetTransferId() []string {
 }
 
 type QueryTransferStatusResponse struct {
-	Err    *webapi.ErrMsg                          `protobuf:"bytes,1,opt,name=err,proto3" json:"err,omitempty"`
-	Status map[string]webapi.TransferHistoryStatus `protobuf:"bytes,2,rep,name=status,proto3" json:"status,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3,enum=sgn.gateway.v1.TransferHistoryStatus"`
+	Err    *ErrMsg                          `protobuf:"bytes,1,opt,name=err,proto3" json:"err,omitempty"`
+	Status map[string]TransferHistoryStatus `protobuf:"bytes,2,rep,name=status,proto3" json:"status,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3,enum=sgn.cbridge.v1.TransferHistoryStatus"`
 }
 
 func (m *QueryTransferStatusResponse) Reset()         { *m = QueryTransferStatusResponse{} }
@@ -439,14 +546,14 @@ func (m *QueryTransferStatusResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_QueryTransferStatusResponse proto.InternalMessageInfo
 
-func (m *QueryTransferStatusResponse) GetErr() *webapi.ErrMsg {
+func (m *QueryTransferStatusResponse) GetErr() *ErrMsg {
 	if m != nil {
 		return m.Err
 	}
 	return nil
 }
 
-func (m *QueryTransferStatusResponse) GetStatus() map[string]webapi.TransferHistoryStatus {
+func (m *QueryTransferStatusResponse) GetStatus() map[string]TransferHistoryStatus {
 	if m != nil {
 		return m.Status
 	}
@@ -454,12 +561,12 @@ func (m *QueryTransferStatusResponse) GetStatus() map[string]webapi.TransferHist
 }
 
 type LiquidityDetail struct {
-	ChainId         uint64        `protobuf:"varint,1,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
-	Token           *webapi.Token `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
-	UsrLiquidity    string        `protobuf:"bytes,3,opt,name=usr_liquidity,json=usrLiquidity,proto3" json:"usr_liquidity,omitempty"`
-	UsrLpFeeEarning string        `protobuf:"bytes,4,opt,name=usr_lp_fee_earning,json=usrLpFeeEarning,proto3" json:"usr_lp_fee_earning,omitempty"`
-	TotalLiquidity  string        `protobuf:"bytes,5,opt,name=total_liquidity,json=totalLiquidity,proto3" json:"total_liquidity,omitempty"`
-	LpFeeRate       float64       `protobuf:"fixed64,6,opt,name=lp_fee_rate,json=lpFeeRate,proto3" json:"lp_fee_rate,omitempty"`
+	ChainId         uint64  `protobuf:"varint,1,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
+	Token           *Token  `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
+	UsrLiquidity    string  `protobuf:"bytes,3,opt,name=usr_liquidity,json=usrLiquidity,proto3" json:"usr_liquidity,omitempty"`
+	UsrLpFeeEarning string  `protobuf:"bytes,4,opt,name=usr_lp_fee_earning,json=usrLpFeeEarning,proto3" json:"usr_lp_fee_earning,omitempty"`
+	TotalLiquidity  string  `protobuf:"bytes,5,opt,name=total_liquidity,json=totalLiquidity,proto3" json:"total_liquidity,omitempty"`
+	LpFeeRate       float64 `protobuf:"fixed64,6,opt,name=lp_fee_rate,json=lpFeeRate,proto3" json:"lp_fee_rate,omitempty"`
 }
 
 func (m *LiquidityDetail) Reset()         { *m = LiquidityDetail{} }
@@ -502,7 +609,7 @@ func (m *LiquidityDetail) GetChainId() uint64 {
 	return 0
 }
 
-func (m *LiquidityDetail) GetToken() *webapi.Token {
+func (m *LiquidityDetail) GetToken() *Token {
 	if m != nil {
 		return m.Token
 	}
@@ -582,7 +689,7 @@ func (m *LiquidityDetailListRequest) GetAddr() string {
 }
 
 type LiquidityDetailListResponse struct {
-	Err             *webapi.ErrMsg     `protobuf:"bytes,1,opt,name=err,proto3" json:"err,omitempty"`
+	Err             *ErrMsg            `protobuf:"bytes,1,opt,name=err,proto3" json:"err,omitempty"`
 	LiquidityDetail []*LiquidityDetail `protobuf:"bytes,2,rep,name=liquidity_detail,json=liquidityDetail,proto3" json:"liquidity_detail,omitempty"`
 }
 
@@ -619,7 +726,7 @@ func (m *LiquidityDetailListResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_LiquidityDetailListResponse proto.InternalMessageInfo
 
-func (m *LiquidityDetailListResponse) GetErr() *webapi.ErrMsg {
+func (m *LiquidityDetailListResponse) GetErr() *ErrMsg {
 	if m != nil {
 		return m.Err
 	}
@@ -729,7 +836,174 @@ func (m *QueryWithdrawLiquidityStatusRequest) GetSeqNum() uint64 {
 	return 0
 }
 
+type QueryLiquidityStatusResponse struct {
+	Err    *ErrMsg         `protobuf:"bytes,1,opt,name=err,proto3" json:"err,omitempty"`
+	Status LPHistoryStatus `protobuf:"varint,2,opt,name=status,proto3,enum=sgn.cbridge.v1.LPHistoryStatus" json:"status,omitempty"`
+}
+
+func (m *QueryLiquidityStatusResponse) Reset()         { *m = QueryLiquidityStatusResponse{} }
+func (m *QueryLiquidityStatusResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryLiquidityStatusResponse) ProtoMessage()    {}
+func (*QueryLiquidityStatusResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5ff091f26d628673, []int{13}
+}
+func (m *QueryLiquidityStatusResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryLiquidityStatusResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryLiquidityStatusResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryLiquidityStatusResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryLiquidityStatusResponse.Merge(m, src)
+}
+func (m *QueryLiquidityStatusResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryLiquidityStatusResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryLiquidityStatusResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryLiquidityStatusResponse proto.InternalMessageInfo
+
+func (m *QueryLiquidityStatusResponse) GetErr() *ErrMsg {
+	if m != nil {
+		return m.Err
+	}
+	return nil
+}
+
+func (m *QueryLiquidityStatusResponse) GetStatus() LPHistoryStatus {
+	if m != nil {
+		return m.Status
+	}
+	return LPHistoryStatus_LP_UNKNOWN
+}
+
+type Token struct {
+	Symbol  string `protobuf:"bytes,1,opt,name=symbol,proto3" json:"symbol,omitempty"`
+	Address string `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	Decimal int32  `protobuf:"varint,3,opt,name=decimal,proto3" json:"decimal,omitempty"`
+}
+
+func (m *Token) Reset()         { *m = Token{} }
+func (m *Token) String() string { return proto.CompactTextString(m) }
+func (*Token) ProtoMessage()    {}
+func (*Token) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5ff091f26d628673, []int{14}
+}
+func (m *Token) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Token) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_Token.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *Token) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Token.Merge(m, src)
+}
+func (m *Token) XXX_Size() int {
+	return m.Size()
+}
+func (m *Token) XXX_DiscardUnknown() {
+	xxx_messageInfo_Token.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Token proto.InternalMessageInfo
+
+func (m *Token) GetSymbol() string {
+	if m != nil {
+		return m.Symbol
+	}
+	return ""
+}
+
+func (m *Token) GetAddress() string {
+	if m != nil {
+		return m.Address
+	}
+	return ""
+}
+
+func (m *Token) GetDecimal() int32 {
+	if m != nil {
+		return m.Decimal
+	}
+	return 0
+}
+
+type ErrMsg struct {
+	Code ErrCode `protobuf:"varint,1,opt,name=code,proto3,enum=sgn.cbridge.v1.ErrCode" json:"code,omitempty"`
+	Msg  string  `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`
+}
+
+func (m *ErrMsg) Reset()         { *m = ErrMsg{} }
+func (m *ErrMsg) String() string { return proto.CompactTextString(m) }
+func (*ErrMsg) ProtoMessage()    {}
+func (*ErrMsg) Descriptor() ([]byte, []int) {
+	return fileDescriptor_5ff091f26d628673, []int{15}
+}
+func (m *ErrMsg) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ErrMsg) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_ErrMsg.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *ErrMsg) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ErrMsg.Merge(m, src)
+}
+func (m *ErrMsg) XXX_Size() int {
+	return m.Size()
+}
+func (m *ErrMsg) XXX_DiscardUnknown() {
+	xxx_messageInfo_ErrMsg.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ErrMsg proto.InternalMessageInfo
+
+func (m *ErrMsg) GetCode() ErrCode {
+	if m != nil {
+		return m.Code
+	}
+	return ErrCode_ERROR_CODE_UNDEFINED
+}
+
+func (m *ErrMsg) GetMsg() string {
+	if m != nil {
+		return m.Msg
+	}
+	return ""
+}
+
 func init() {
+	proto.RegisterEnum("sgn.cbridge.v1.LPHistoryStatus", LPHistoryStatus_name, LPHistoryStatus_value)
+	proto.RegisterEnum("sgn.cbridge.v1.TransferHistoryStatus", TransferHistoryStatus_name, TransferHistoryStatus_value)
+	proto.RegisterEnum("sgn.cbridge.v1.ErrCode", ErrCode_name, ErrCode_value)
 	proto.RegisterType((*ChainTokensConfigRequest)(nil), "sgn.cbridge.v1.ChainTokensConfigRequest")
 	proto.RegisterType((*ChainTokensConfigResponse)(nil), "sgn.cbridge.v1.ChainTokensConfigResponse")
 	proto.RegisterMapType((map[uint64]*Assets)(nil), "sgn.cbridge.v1.ChainTokensConfigResponse.ChainTokensEntry")
@@ -739,77 +1013,101 @@ func init() {
 	proto.RegisterType((*GetFeeResponse)(nil), "sgn.cbridge.v1.GetFeeResponse")
 	proto.RegisterType((*QueryTransferStatusRequest)(nil), "sgn.cbridge.v1.QueryTransferStatusRequest")
 	proto.RegisterType((*QueryTransferStatusResponse)(nil), "sgn.cbridge.v1.QueryTransferStatusResponse")
-	proto.RegisterMapType((map[string]webapi.TransferHistoryStatus)(nil), "sgn.cbridge.v1.QueryTransferStatusResponse.StatusEntry")
+	proto.RegisterMapType((map[string]TransferHistoryStatus)(nil), "sgn.cbridge.v1.QueryTransferStatusResponse.StatusEntry")
 	proto.RegisterType((*LiquidityDetail)(nil), "sgn.cbridge.v1.LiquidityDetail")
 	proto.RegisterType((*LiquidityDetailListRequest)(nil), "sgn.cbridge.v1.LiquidityDetailListRequest")
 	proto.RegisterType((*LiquidityDetailListResponse)(nil), "sgn.cbridge.v1.LiquidityDetailListResponse")
 	proto.RegisterType((*QueryAddLiquidityStatusRequest)(nil), "sgn.cbridge.v1.QueryAddLiquidityStatusRequest")
 	proto.RegisterType((*QueryWithdrawLiquidityStatusRequest)(nil), "sgn.cbridge.v1.QueryWithdrawLiquidityStatusRequest")
+	proto.RegisterType((*QueryLiquidityStatusResponse)(nil), "sgn.cbridge.v1.QueryLiquidityStatusResponse")
+	proto.RegisterType((*Token)(nil), "sgn.cbridge.v1.Token")
+	proto.RegisterType((*ErrMsg)(nil), "sgn.cbridge.v1.ErrMsg")
 }
 
 func init() { proto.RegisterFile("sgn/cbridge/v1/query.proto", fileDescriptor_5ff091f26d628673) }
 
 var fileDescriptor_5ff091f26d628673 = []byte{
-	// 939 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x56, 0xcf, 0x6f, 0xe3, 0x44,
-	0x14, 0x8e, 0x93, 0x26, 0xa5, 0x2f, 0x6d, 0x52, 0x06, 0x41, 0xb3, 0xde, 0x25, 0x5b, 0xb9, 0x20,
-	0x02, 0xdd, 0x75, 0x68, 0x56, 0x08, 0xb4, 0x08, 0x50, 0x59, 0xba, 0x50, 0xb4, 0xfc, 0x32, 0xd5,
-	0x22, 0x21, 0x21, 0x33, 0xb5, 0x5f, 0x5d, 0xd3, 0xd8, 0x4e, 0x66, 0xc6, 0x69, 0xc3, 0x95, 0x23,
-	0x17, 0x24, 0xfe, 0x04, 0xfe, 0x19, 0x8e, 0x3d, 0x72, 0x44, 0xed, 0xbf, 0xc0, 0x09, 0x71, 0x40,
-	0x33, 0xb6, 0x53, 0xe7, 0xa7, 0x9a, 0xdb, 0xf8, 0xbd, 0x6f, 0xde, 0xf7, 0xf9, 0xcd, 0xf7, 0xc6,
-	0x06, 0x9d, 0x7b, 0x61, 0xdb, 0x39, 0x66, 0xbe, 0xeb, 0x61, 0x7b, 0xb0, 0xd7, 0xee, 0xc7, 0xc8,
-	0x86, 0x66, 0x8f, 0x45, 0x22, 0x22, 0x35, 0xee, 0x85, 0x66, 0x9a, 0x33, 0x07, 0x7b, 0xfa, 0x3d,
-	0x89, 0xf5, 0xa8, 0xc0, 0x73, 0x3a, 0x94, 0xd8, 0x74, 0x99, 0xa0, 0x0d, 0x1d, 0x1a, 0x4f, 0x4e,
-	0xa9, 0x1f, 0x1e, 0x45, 0x67, 0x18, 0xf2, 0x27, 0x51, 0x78, 0xe2, 0x7b, 0x16, 0xf6, 0x63, 0xe4,
-	0xc2, 0xf8, 0x4f, 0x83, 0x3b, 0x33, 0x92, 0xbc, 0x17, 0x85, 0x1c, 0x49, 0x0b, 0x4a, 0xc8, 0x58,
-	0x43, 0xdb, 0xd6, 0x5a, 0xd5, 0xce, 0x2b, 0xa6, 0x64, 0xcd, 0x4a, 0x0f, 0xf6, 0xcc, 0x03, 0xc6,
-	0xbe, 0xe0, 0x9e, 0x25, 0x21, 0xe4, 0x07, 0x58, 0x77, 0x64, 0x19, 0x5b, 0xa8, 0x3a, 0x8d, 0xe2,
-	0x76, 0xa9, 0x55, 0xed, 0x3c, 0x36, 0xc7, 0x85, 0x9a, 0x73, 0xa9, 0xf2, 0x99, 0x83, 0x50, 0xb0,
-	0xa1, 0x55, 0x75, 0x6e, 0x22, 0xfa, 0x73, 0xd8, 0x9c, 0x04, 0x90, 0x4d, 0x28, 0x9d, 0xe1, 0x50,
-	0x89, 0x5b, 0xb1, 0xe4, 0x92, 0x3c, 0x80, 0xf2, 0x80, 0x76, 0x63, 0x6c, 0x14, 0x73, 0x82, 0x73,
-	0xec, 0xfb, 0x9c, 0xa3, 0xe0, 0x56, 0x02, 0x7a, 0x5c, 0x7c, 0x4f, 0x33, 0x3e, 0x82, 0x4a, 0x12,
-	0x24, 0xef, 0x40, 0x85, 0xaa, 0x55, 0x43, 0x53, 0xd2, 0x5f, 0x9d, 0xb9, 0xf9, 0x6b, 0x64, 0x4a,
-	0x87, 0x95, 0x82, 0x8d, 0x9f, 0x61, 0x63, 0x2c, 0x41, 0x76, 0xa1, 0xac, 0x5a, 0x90, 0x36, 0xed,
-	0xe5, 0xc9, 0xa6, 0xa9, 0x37, 0xb0, 0x12, 0x0c, 0xd9, 0x82, 0xd5, 0x80, 0x5e, 0xd8, 0x34, 0x10,
-	0x4a, 0xf2, 0x9a, 0x55, 0x09, 0xe8, 0xc5, 0x7e, 0x20, 0xc8, 0x0e, 0x6c, 0x38, 0x51, 0x28, 0x18,
-	0x75, 0x84, 0x4d, 0x5d, 0x97, 0x35, 0x4a, 0x2a, 0xbd, 0x9e, 0x05, 0xf7, 0x5d, 0x97, 0x19, 0xbf,
-	0x6a, 0xb0, 0xf1, 0x29, 0x8a, 0xa7, 0x88, 0xe9, 0x69, 0x92, 0x6d, 0x58, 0xe7, 0xcc, 0xb1, 0x93,
-	0x93, 0xf0, 0xdd, 0xb4, 0x37, 0xc0, 0x99, 0xa3, 0xc4, 0x1d, 0xba, 0x12, 0xe1, 0x72, 0x71, 0x83,
-	0x28, 0x26, 0x08, 0x97, 0x8b, 0x0c, 0xf1, 0x1a, 0xd4, 0x64, 0x0d, 0x25, 0x70, 0x8c, 0x9b, 0x33,
-	0x47, 0x89, 0x97, 0xdc, 0xb2, 0xf9, 0x52, 0xf5, 0x8a, 0x4a, 0xc9, 0xa5, 0xf1, 0xbb, 0x06, 0xb5,
-	0x4c, 0xcd, 0xd2, 0xf6, 0xd9, 0x05, 0x82, 0x7d, 0x5b, 0x9d, 0x4b, 0xc6, 0x3c, 0xea, 0x49, 0x1d,
-	0xfb, 0xcf, 0x65, 0x22, 0x21, 0x0f, 0x84, 0xe4, 0x3e, 0x41, 0x4c, 0x65, 0xc9, 0x25, 0x69, 0xc0,
-	0xaa, 0x8b, 0x8e, 0x1f, 0xd0, 0xae, 0x52, 0xb4, 0x62, 0x65, 0x8f, 0xc6, 0x07, 0xa0, 0x7f, 0x23,
-	0x07, 0xe7, 0x88, 0xd1, 0x90, 0x9f, 0x20, 0xfb, 0x56, 0x50, 0x11, 0xf3, 0xac, 0x5f, 0xf7, 0xa1,
-	0x2a, 0xd2, 0x44, 0xd2, 0xae, 0x52, 0x6b, 0xcd, 0x82, 0x2c, 0x74, 0xe8, 0x1a, 0xff, 0x6a, 0x70,
-	0x77, 0xe6, 0xfe, 0xa5, 0xdf, 0xf0, 0x2b, 0xa8, 0x70, 0xb5, 0x37, 0x1d, 0x8d, 0x77, 0x27, 0xfd,
-	0xb5, 0x80, 0xc6, 0x4c, 0x1e, 0x93, 0xb9, 0x48, 0xcb, 0xe8, 0x3f, 0x42, 0x35, 0x17, 0xce, 0x4f,
-	0xc3, 0x5a, 0x32, 0x0d, 0xef, 0xe7, 0xa7, 0xa1, 0xd6, 0x79, 0x7d, 0xca, 0x89, 0x29, 0xd7, 0x67,
-	0x3e, 0x17, 0x11, 0x1b, 0xa6, 0x94, 0xb9, 0xe1, 0xf8, 0x47, 0x83, 0xfa, 0x33, 0xbf, 0x1f, 0xfb,
-	0xae, 0x2f, 0x86, 0x9f, 0xa0, 0xa0, 0x7e, 0x97, 0xdc, 0x81, 0x17, 0x26, 0xdc, 0xb5, 0xea, 0xa4,
-	0xc6, 0x19, 0x39, 0xbf, 0x78, 0x0b, 0xe7, 0xef, 0xc0, 0x46, 0xcc, 0x99, 0xdd, 0xcd, 0xca, 0x67,
-	0x26, 0x8b, 0x39, 0x1b, 0x51, 0x4a, 0x57, 0x28, 0x50, 0xcf, 0x3e, 0x41, 0xb4, 0x91, 0xb2, 0xd0,
-	0x0f, 0xbd, 0xd4, 0x73, 0x75, 0x89, 0xec, 0x3d, 0x45, 0x3c, 0x48, 0xc2, 0xe4, 0x0d, 0xa8, 0x8b,
-	0x48, 0xd0, 0x6e, 0xae, 0x66, 0x59, 0x21, 0x6b, 0x2a, 0x7c, 0x53, 0xb5, 0x09, 0xd5, 0xb4, 0x22,
-	0xa3, 0x02, 0x1b, 0x95, 0x6d, 0xad, 0xa5, 0x59, 0x6b, 0x5d, 0x59, 0xcb, 0xa2, 0x02, 0x8d, 0xb7,
-	0x41, 0x9f, 0x78, 0xeb, 0x67, 0x3e, 0x17, 0x99, 0x65, 0x08, 0xac, 0xa8, 0xa1, 0x48, 0x1a, 0xad,
-	0xd6, 0xd2, 0xfa, 0x77, 0x67, 0x6e, 0x59, 0xda, 0x25, 0x9f, 0xc3, 0xe6, 0x48, 0xbe, 0xed, 0xaa,
-	0x4a, 0xa9, 0x5f, 0xee, 0x4f, 0xfa, 0x65, 0x82, 0xd0, 0xaa, 0x77, 0xc7, 0x03, 0xc6, 0x11, 0x34,
-	0x95, 0xa7, 0xf6, 0x5d, 0x77, 0x84, 0x1d, 0xb7, 0xff, 0x82, 0xc3, 0xdc, 0x82, 0x55, 0x8e, 0x7d,
-	0x3b, 0x8c, 0x83, 0xf4, 0x8a, 0xa8, 0x70, 0xec, 0x7f, 0x19, 0x07, 0xc6, 0x87, 0xb0, 0xa3, 0xaa,
-	0x7e, 0xe7, 0x8b, 0x53, 0x97, 0xd1, 0xf3, 0x39, 0xa5, 0x73, 0xfb, 0xb5, 0xfc, 0xfe, 0xce, 0x1f,
-	0x65, 0x28, 0xab, 0x02, 0xe4, 0x27, 0x78, 0x71, 0xea, 0x73, 0x40, 0x5a, 0xb7, 0xf8, 0x62, 0x28,
-	0x06, 0xfd, 0xcd, 0x5b, 0x7f, 0x5b, 0x8c, 0x02, 0x39, 0x84, 0x4a, 0x72, 0x37, 0x91, 0xa9, 0x7b,
-	0x7d, 0xec, 0x06, 0xd5, 0x9b, 0xf3, 0xd2, 0xa3, 0x52, 0x3d, 0x78, 0x69, 0xc6, 0xa8, 0x92, 0xb7,
-	0x6e, 0x35, 0xcf, 0x09, 0xc9, 0xee, 0x12, 0xb3, 0x9f, 0x30, 0xce, 0x70, 0xd7, 0x34, 0xe3, 0x7c,
-	0xd7, 0x4e, 0x33, 0x2e, 0xb0, 0xab, 0x51, 0x20, 0x43, 0xd8, 0x9a, 0x63, 0x1d, 0x62, 0xce, 0xd4,
-	0x3e, 0xd7, 0x63, 0xfa, 0x83, 0x49, 0xbb, 0x2b, 0xfc, 0x14, 0x78, 0x44, 0xfd, 0x8b, 0x06, 0xf7,
-	0x16, 0x19, 0x8c, 0x3c, 0x9a, 0x29, 0x60, 0xb1, 0x1d, 0x97, 0x55, 0xf1, 0xf1, 0xe1, 0x9f, 0x57,
-	0x4d, 0xed, 0xf2, 0xaa, 0xa9, 0xfd, 0x7d, 0xd5, 0xd4, 0x7e, 0xbb, 0x6e, 0x16, 0x2e, 0xaf, 0x9b,
-	0x85, 0xbf, 0xae, 0x9b, 0x85, 0xef, 0xdb, 0x9e, 0x2f, 0x4e, 0xe3, 0x63, 0xd3, 0x89, 0x82, 0xb6,
-	0x83, 0x5d, 0x64, 0x0f, 0x43, 0x14, 0xe7, 0x11, 0x3b, 0x6b, 0x73, 0x2f, 0x7c, 0x38, 0xe8, 0xb4,
-	0x2f, 0x46, 0x3f, 0x6d, 0x62, 0xd8, 0x43, 0x7e, 0x5c, 0x51, 0x3f, 0x61, 0x8f, 0xfe, 0x0f, 0x00,
-	0x00, 0xff, 0xff, 0x37, 0xc7, 0xda, 0xd9, 0xd0, 0x09, 0x00, 0x00,
+	// 1268 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x57, 0xcf, 0x72, 0xdb, 0xd4,
+	0x17, 0xb6, 0xec, 0xd8, 0x69, 0x4e, 0x12, 0x47, 0xbd, 0xfd, 0x13, 0xd7, 0xfd, 0xfd, 0xdc, 0xa0,
+	0xd0, 0x21, 0x24, 0xad, 0x4d, 0xd3, 0x61, 0xca, 0x94, 0x01, 0xc6, 0x8d, 0xe5, 0x60, 0x70, 0x6c,
+	0x57, 0x76, 0xda, 0x81, 0x19, 0x46, 0x28, 0xd2, 0x8d, 0x2b, 0x6a, 0x4b, 0xf1, 0xbd, 0xd7, 0x69,
+	0xcd, 0x8e, 0x81, 0x1d, 0x1b, 0x66, 0x78, 0x04, 0x5e, 0x82, 0x47, 0x60, 0xd9, 0x25, 0x4b, 0xa6,
+	0x79, 0x05, 0x56, 0x0c, 0x0b, 0xe6, 0x5e, 0xfd, 0x89, 0x6c, 0xcb, 0x99, 0x78, 0x77, 0x7d, 0xce,
+	0x77, 0xbe, 0xf3, 0xe9, 0xdc, 0x73, 0x8e, 0x64, 0xc8, 0xd3, 0xae, 0x53, 0x32, 0x8f, 0x88, 0x6d,
+	0x75, 0x71, 0xe9, 0xf4, 0x41, 0x69, 0x30, 0xc4, 0x64, 0x54, 0x3c, 0x21, 0x2e, 0x73, 0x51, 0x96,
+	0x76, 0x9d, 0xa2, 0xef, 0x2b, 0x9e, 0x3e, 0x50, 0xf2, 0x90, 0xdb, 0x7b, 0x61, 0xd8, 0x4e, 0xc7,
+	0x7d, 0x89, 0x1d, 0xba, 0xe7, 0x3a, 0xc7, 0x76, 0x57, 0xc3, 0x83, 0x21, 0xa6, 0x4c, 0xf9, 0x57,
+	0x82, 0x5b, 0x31, 0x4e, 0x7a, 0xe2, 0x3a, 0x14, 0xa3, 0x2d, 0x48, 0x61, 0x42, 0x72, 0xd2, 0x86,
+	0xb4, 0xb5, 0xbc, 0x7b, 0xb3, 0x38, 0xce, 0x5b, 0x54, 0x09, 0x39, 0xa0, 0x5d, 0x8d, 0x43, 0xd0,
+	0x37, 0xb0, 0x62, 0x72, 0x1a, 0x9d, 0x09, 0x9e, 0x5c, 0x72, 0x23, 0xb5, 0xb5, 0xbc, 0xfb, 0x78,
+	0x32, 0x64, 0x66, 0xaa, 0xa8, 0x47, 0x75, 0x18, 0x19, 0x69, 0xcb, 0xe6, 0xb9, 0x25, 0xff, 0x0c,
+	0xe4, 0x49, 0x00, 0x92, 0x21, 0xf5, 0x12, 0x8f, 0x84, 0xb8, 0x05, 0x8d, 0x1f, 0xd1, 0x3d, 0x48,
+	0x9f, 0x1a, 0xbd, 0x21, 0xce, 0x25, 0xe3, 0x05, 0x97, 0x29, 0xc5, 0x8c, 0x6a, 0x1e, 0xe8, 0x71,
+	0xf2, 0x23, 0x49, 0xf9, 0x0c, 0x32, 0x9e, 0x11, 0x7d, 0x08, 0x19, 0x43, 0x9c, 0x72, 0x92, 0x90,
+	0xfe, 0xff, 0xd8, 0xe0, 0x16, 0x26, 0x42, 0x87, 0xe6, 0x83, 0x95, 0xef, 0x61, 0x75, 0xcc, 0x81,
+	0x76, 0x20, 0x2d, 0x4a, 0xe0, 0x17, 0xed, 0xc6, 0x24, 0x8d, 0x78, 0x02, 0xcd, 0xc3, 0xa0, 0x75,
+	0x58, 0xec, 0x1b, 0xaf, 0x75, 0xa3, 0xcf, 0x84, 0xe4, 0x25, 0x2d, 0xd3, 0x37, 0x5e, 0x97, 0xfb,
+	0x0c, 0x6d, 0xc2, 0xaa, 0xe9, 0x3a, 0x8c, 0x18, 0x26, 0xd3, 0x0d, 0xcb, 0x22, 0xb9, 0x94, 0x70,
+	0xaf, 0x04, 0xc6, 0xb2, 0x65, 0x11, 0xe5, 0x67, 0x09, 0x56, 0xf7, 0x31, 0xab, 0x62, 0xec, 0xdf,
+	0x26, 0xda, 0x80, 0x15, 0x4a, 0x4c, 0xdd, 0xbb, 0x09, 0xdb, 0xf2, 0x6b, 0x03, 0x94, 0x98, 0x42,
+	0x5c, 0xcd, 0xe2, 0x08, 0x8b, 0xb2, 0x73, 0x44, 0xd2, 0x43, 0x58, 0x94, 0x05, 0x88, 0x77, 0x21,
+	0xcb, 0x39, 0x84, 0xc0, 0xb1, 0xdc, 0x94, 0x98, 0x42, 0x3c, 0xcf, 0xcd, 0x8b, 0xcf, 0x55, 0x2f,
+	0x08, 0x17, 0x3f, 0x2a, 0xbf, 0x4a, 0x90, 0x0d, 0xd4, 0xcc, 0xdd, 0x3e, 0x3b, 0x80, 0xf0, 0x40,
+	0x17, 0xf7, 0x12, 0x64, 0x0e, 0x6b, 0xb2, 0x86, 0x07, 0xcf, 0xb8, 0xc3, 0x4b, 0xde, 0x67, 0x3c,
+	0xf7, 0x31, 0xc6, 0xbe, 0x2c, 0x7e, 0x44, 0x39, 0x58, 0xb4, 0xb0, 0x69, 0xf7, 0x8d, 0x9e, 0x50,
+	0xb4, 0xa0, 0x05, 0x3f, 0x95, 0x4f, 0x20, 0xff, 0x94, 0x8f, 0x46, 0x87, 0x18, 0x0e, 0x3d, 0xc6,
+	0xa4, 0xcd, 0x0c, 0x36, 0xa4, 0x41, 0xbd, 0xee, 0xc0, 0x32, 0xf3, 0x1d, 0x5e, 0xb9, 0x52, 0x5b,
+	0x4b, 0x1a, 0x04, 0xa6, 0x9a, 0xa5, 0xfc, 0x23, 0xc1, 0xed, 0xd8, 0xf8, 0xb9, 0x9f, 0xb0, 0x09,
+	0x19, 0x2a, 0x62, 0xfd, 0xd1, 0x78, 0x34, 0x09, 0xbe, 0x20, 0x4d, 0xd1, 0xfb, 0xe9, 0xcd, 0x85,
+	0x4f, 0x93, 0xff, 0x16, 0x96, 0x23, 0xe6, 0xe8, 0x34, 0x2c, 0x79, 0xd3, 0xf0, 0x71, 0x74, 0x1a,
+	0xb2, 0xbb, 0x77, 0xa7, 0x3a, 0xd1, 0xcf, 0xf5, 0xb9, 0x4d, 0x99, 0x4b, 0x46, 0x7e, 0xca, 0xc8,
+	0x70, 0xfc, 0x2d, 0xc1, 0x5a, 0xdd, 0x1e, 0x0c, 0x6d, 0xcb, 0x66, 0xa3, 0x0a, 0x66, 0x86, 0xdd,
+	0x43, 0xb7, 0xe0, 0xca, 0x44, 0x77, 0x2d, 0x9a, 0x7e, 0xe3, 0x84, 0x9d, 0x9f, 0xbc, 0x44, 0xe7,
+	0x6f, 0xc2, 0xea, 0x90, 0x12, 0xbd, 0x17, 0xd0, 0x07, 0x4d, 0x36, 0xa4, 0x24, 0x4c, 0xc9, 0xbb,
+	0x42, 0x80, 0x4e, 0xf4, 0x63, 0x8c, 0x75, 0x6c, 0x10, 0xc7, 0x76, 0xba, 0x7e, 0xcf, 0xad, 0x71,
+	0xe4, 0x49, 0x15, 0x63, 0xd5, 0x33, 0xa3, 0xf7, 0x60, 0x8d, 0xb9, 0xcc, 0xe8, 0x45, 0x38, 0xd3,
+	0x02, 0x99, 0x15, 0xe6, 0x73, 0xd6, 0x02, 0x2c, 0xfb, 0x8c, 0xc4, 0x60, 0x38, 0x97, 0xd9, 0x90,
+	0xb6, 0x24, 0x6d, 0xa9, 0xc7, 0xb9, 0x34, 0x83, 0x61, 0xe5, 0x03, 0xc8, 0x4f, 0x3c, 0x75, 0xdd,
+	0xa6, 0x2c, 0x68, 0x19, 0x04, 0x0b, 0x62, 0x28, 0xbc, 0x42, 0x8b, 0x33, 0x6f, 0xfd, 0xdb, 0xb1,
+	0x21, 0x73, 0x77, 0xc9, 0x17, 0x20, 0x87, 0xf2, 0x75, 0x4b, 0x30, 0xf9, 0xfd, 0x72, 0x67, 0x32,
+	0x6c, 0x22, 0xa1, 0xb6, 0xd6, 0x1b, 0x37, 0x28, 0x1d, 0x28, 0x88, 0x9e, 0x2a, 0x5b, 0x56, 0x88,
+	0x1d, 0x6f, 0xff, 0x0b, 0x2e, 0x73, 0x1d, 0x16, 0x29, 0x1e, 0xe8, 0xce, 0xb0, 0xef, 0xaf, 0x88,
+	0x0c, 0xc5, 0x83, 0xc6, 0xb0, 0xaf, 0x7c, 0x0a, 0x9b, 0x82, 0xf5, 0xb9, 0xcd, 0x5e, 0x58, 0xc4,
+	0x78, 0x35, 0x83, 0x3a, 0x12, 0x2f, 0x8d, 0xc5, 0xff, 0x20, 0xc1, 0xff, 0x04, 0xc1, 0x54, 0xe0,
+	0xdc, 0xc5, 0x7a, 0x14, 0x19, 0x29, 0xde, 0xe1, 0xd3, 0x25, 0x6a, 0x8d, 0xf7, 0xb6, 0x0f, 0x57,
+	0xda, 0x90, 0x16, 0xcd, 0x88, 0x6e, 0x42, 0x86, 0x8e, 0xfa, 0x47, 0x6e, 0xcf, 0xbf, 0x4e, 0xff,
+	0x17, 0xdf, 0x27, 0xfc, 0x62, 0x31, 0xa5, 0xfe, 0x0e, 0x0a, 0x7e, 0x46, 0x37, 0x0d, 0xef, 0xd8,
+	0xf4, 0xf9, 0xa6, 0xd9, 0x87, 0x8c, 0x27, 0x0e, 0xed, 0xc0, 0x82, 0xe9, 0x5a, 0x58, 0x70, 0x66,
+	0x77, 0xd7, 0x63, 0x1e, 0x61, 0xcf, 0xb5, 0xb0, 0x26, 0x40, 0x7c, 0x6e, 0xfb, 0xb4, 0xeb, 0xa7,
+	0xe1, 0xc7, 0xed, 0x9f, 0xf8, 0xd8, 0x8d, 0x2b, 0x47, 0x59, 0x80, 0x7a, 0x4b, 0x3f, 0x6c, 0x7c,
+	0xd9, 0x68, 0x3e, 0x6f, 0xc8, 0x09, 0x74, 0x13, 0x50, 0xbd, 0xa5, 0x3f, 0x2f, 0xd7, 0x3a, 0xb5,
+	0xc6, 0xbe, 0x5e, 0x6d, 0x6a, 0x7a, 0x7b, 0xbf, 0x21, 0x4b, 0xe8, 0x06, 0x5c, 0x9d, 0xb0, 0xd7,
+	0x5b, 0x72, 0x12, 0x5d, 0x85, 0xd5, 0x7a, 0x4b, 0x6f, 0x1f, 0x3e, 0x39, 0xa8, 0x75, 0xb8, 0x47,
+	0x4e, 0x21, 0x19, 0x56, 0xea, 0x2d, 0x7d, 0xaf, 0x79, 0xd0, 0xaa, 0xab, 0x1d, 0xb5, 0x22, 0x2f,
+	0xa0, 0x55, 0x58, 0xaa, 0xb7, 0xf4, 0x6a, 0xb9, 0x56, 0x57, 0x2b, 0x72, 0x7a, 0xfb, 0xf7, 0x24,
+	0xdc, 0x88, 0x5d, 0x11, 0xe8, 0x3a, 0xc8, 0x1d, 0xad, 0xdc, 0x68, 0x57, 0x55, 0x2d, 0x22, 0x69,
+	0x1d, 0xae, 0x85, 0xd6, 0x48, 0x26, 0x09, 0x5d, 0x83, 0xb5, 0xd0, 0xe1, 0xb3, 0x27, 0xd1, 0x5d,
+	0x78, 0x27, 0x34, 0x46, 0xe5, 0x56, 0x0f, 0x1b, 0x15, 0x5d, 0x53, 0xeb, 0x6a, 0xb9, 0xad, 0xca,
+	0x29, 0xfe, 0x9c, 0x21, 0x2c, 0xaa, 0xf5, 0x36, 0xac, 0x87, 0xf6, 0x4e, 0x53, 0x7f, 0xa2, 0xea,
+	0x9a, 0xca, 0x43, 0xb9, 0x72, 0x54, 0x80, 0x7c, 0xe8, 0xd4, 0xd4, 0xa7, 0x87, 0x6a, 0x5b, 0xd0,
+	0x7b, 0x08, 0x39, 0x83, 0x36, 0xe1, 0x4e, 0xc4, 0x2f, 0x32, 0x7a, 0x1c, 0x7b, 0xcd, 0x46, 0xb5,
+	0xa6, 0x1d, 0xa8, 0x15, 0x79, 0x71, 0x0c, 0xe4, 0xdb, 0x39, 0xc9, 0x57, 0xcd, 0xc3, 0x20, 0x48,
+	0xbe, 0xc2, 0xcb, 0x3d, 0xc1, 0xa4, 0x56, 0xe4, 0xa5, 0xed, 0x4d, 0x58, 0xf4, 0x2f, 0x19, 0xe5,
+	0xe0, 0xba, 0xaa, 0x69, 0x4d, 0xce, 0x51, 0x51, 0x75, 0x0e, 0xa8, 0xd6, 0x1a, 0x6a, 0x45, 0x4e,
+	0xec, 0xfe, 0x96, 0x86, 0xb4, 0x18, 0x04, 0xf4, 0x1d, 0x5c, 0x9d, 0xfa, 0x2e, 0x42, 0x5b, 0x97,
+	0xf8, 0x74, 0x12, 0xa3, 0x96, 0x7f, 0xff, 0xd2, 0x1f, 0x59, 0x4a, 0x02, 0xd5, 0x20, 0xe3, 0xbd,
+	0xa4, 0xd1, 0xd4, 0x07, 0xce, 0xd8, 0xa7, 0x44, 0xbe, 0x30, 0xcb, 0x1d, 0x52, 0x9d, 0xc0, 0xb5,
+	0x98, 0x77, 0x16, 0xda, 0xbe, 0xd4, 0x8b, 0xcd, 0x4b, 0xb2, 0x33, 0xc7, 0x4b, 0xd0, 0xcb, 0x18,
+	0xb3, 0x66, 0xa7, 0x33, 0xce, 0x5e, 0xdf, 0xd3, 0x19, 0x2f, 0xd8, 0xdb, 0x4a, 0x02, 0x8d, 0x60,
+	0x7d, 0xc6, 0x0e, 0x45, 0xc5, 0x58, 0xed, 0x33, 0x97, 0x6d, 0xfe, 0x5e, 0x2c, 0x7e, 0xc6, 0x16,
+	0x54, 0x12, 0xe8, 0xc7, 0x60, 0x51, 0xce, 0xd8, 0xb4, 0xe8, 0x61, 0x2c, 0xe1, 0xc5, 0x7b, 0x79,
+	0x5e, 0x15, 0x4f, 0x6a, 0x7f, 0xbc, 0x2d, 0x48, 0x6f, 0xde, 0x16, 0xa4, 0xbf, 0xde, 0x16, 0xa4,
+	0x5f, 0xce, 0x0a, 0x89, 0x37, 0x67, 0x85, 0xc4, 0x9f, 0x67, 0x85, 0xc4, 0xd7, 0xa5, 0xae, 0xcd,
+	0x5e, 0x0c, 0x8f, 0x8a, 0xa6, 0xdb, 0x2f, 0x99, 0xb8, 0x87, 0xc9, 0x7d, 0x07, 0xb3, 0x57, 0x2e,
+	0x79, 0x59, 0xa2, 0x5d, 0xe7, 0xfe, 0xe9, 0x6e, 0xe9, 0x75, 0xf8, 0xff, 0x84, 0x8d, 0x4e, 0x30,
+	0x3d, 0xca, 0x88, 0x7f, 0x27, 0x0f, 0xff, 0x0b, 0x00, 0x00, 0xff, 0xff, 0xa8, 0xe4, 0x4d, 0x4d,
+	0xbb, 0x0c, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -829,8 +1127,8 @@ type QueryClient interface {
 	QueryTransferStatus(ctx context.Context, in *QueryTransferStatusRequest, opts ...grpc.CallOption) (*QueryTransferStatusResponse, error)
 	//LP
 	LiquidityDetailList(ctx context.Context, in *LiquidityDetailListRequest, opts ...grpc.CallOption) (*LiquidityDetailListResponse, error)
-	QueryAddLiquidityStatus(ctx context.Context, in *QueryAddLiquidityStatusRequest, opts ...grpc.CallOption) (*webapi.QueryLiquidityStatusResponse, error)
-	QueryWithdrawLiquidityStatus(ctx context.Context, in *QueryWithdrawLiquidityStatusRequest, opts ...grpc.CallOption) (*webapi.QueryLiquidityStatusResponse, error)
+	QueryAddLiquidityStatus(ctx context.Context, in *QueryAddLiquidityStatusRequest, opts ...grpc.CallOption) (*QueryLiquidityStatusResponse, error)
+	QueryWithdrawLiquidityStatus(ctx context.Context, in *QueryWithdrawLiquidityStatusRequest, opts ...grpc.CallOption) (*QueryLiquidityStatusResponse, error)
 }
 
 type queryClient struct {
@@ -877,8 +1175,8 @@ func (c *queryClient) LiquidityDetailList(ctx context.Context, in *LiquidityDeta
 	return out, nil
 }
 
-func (c *queryClient) QueryAddLiquidityStatus(ctx context.Context, in *QueryAddLiquidityStatusRequest, opts ...grpc.CallOption) (*webapi.QueryLiquidityStatusResponse, error) {
-	out := new(webapi.QueryLiquidityStatusResponse)
+func (c *queryClient) QueryAddLiquidityStatus(ctx context.Context, in *QueryAddLiquidityStatusRequest, opts ...grpc.CallOption) (*QueryLiquidityStatusResponse, error) {
+	out := new(QueryLiquidityStatusResponse)
 	err := c.cc.Invoke(ctx, "/sgn.cbridge.v1.Query/QueryAddLiquidityStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -886,8 +1184,8 @@ func (c *queryClient) QueryAddLiquidityStatus(ctx context.Context, in *QueryAddL
 	return out, nil
 }
 
-func (c *queryClient) QueryWithdrawLiquidityStatus(ctx context.Context, in *QueryWithdrawLiquidityStatusRequest, opts ...grpc.CallOption) (*webapi.QueryLiquidityStatusResponse, error) {
-	out := new(webapi.QueryLiquidityStatusResponse)
+func (c *queryClient) QueryWithdrawLiquidityStatus(ctx context.Context, in *QueryWithdrawLiquidityStatusRequest, opts ...grpc.CallOption) (*QueryLiquidityStatusResponse, error) {
+	out := new(QueryLiquidityStatusResponse)
 	err := c.cc.Invoke(ctx, "/sgn.cbridge.v1.Query/QueryWithdrawLiquidityStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -902,8 +1200,8 @@ type QueryServer interface {
 	QueryTransferStatus(context.Context, *QueryTransferStatusRequest) (*QueryTransferStatusResponse, error)
 	//LP
 	LiquidityDetailList(context.Context, *LiquidityDetailListRequest) (*LiquidityDetailListResponse, error)
-	QueryAddLiquidityStatus(context.Context, *QueryAddLiquidityStatusRequest) (*webapi.QueryLiquidityStatusResponse, error)
-	QueryWithdrawLiquidityStatus(context.Context, *QueryWithdrawLiquidityStatusRequest) (*webapi.QueryLiquidityStatusResponse, error)
+	QueryAddLiquidityStatus(context.Context, *QueryAddLiquidityStatusRequest) (*QueryLiquidityStatusResponse, error)
+	QueryWithdrawLiquidityStatus(context.Context, *QueryWithdrawLiquidityStatusRequest) (*QueryLiquidityStatusResponse, error)
 }
 
 // UnimplementedQueryServer can be embedded to have forward compatible implementations.
@@ -922,10 +1220,10 @@ func (*UnimplementedQueryServer) QueryTransferStatus(ctx context.Context, req *Q
 func (*UnimplementedQueryServer) LiquidityDetailList(ctx context.Context, req *LiquidityDetailListRequest) (*LiquidityDetailListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LiquidityDetailList not implemented")
 }
-func (*UnimplementedQueryServer) QueryAddLiquidityStatus(ctx context.Context, req *QueryAddLiquidityStatusRequest) (*webapi.QueryLiquidityStatusResponse, error) {
+func (*UnimplementedQueryServer) QueryAddLiquidityStatus(ctx context.Context, req *QueryAddLiquidityStatusRequest) (*QueryLiquidityStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method QueryAddLiquidityStatus not implemented")
 }
-func (*UnimplementedQueryServer) QueryWithdrawLiquidityStatus(ctx context.Context, req *QueryWithdrawLiquidityStatusRequest) (*webapi.QueryLiquidityStatusResponse, error) {
+func (*UnimplementedQueryServer) QueryWithdrawLiquidityStatus(ctx context.Context, req *QueryWithdrawLiquidityStatusRequest) (*QueryLiquidityStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method QueryWithdrawLiquidityStatus not implemented")
 }
 
@@ -1634,6 +1932,123 @@ func (m *QueryWithdrawLiquidityStatusRequest) MarshalToSizedBuffer(dAtA []byte) 
 	return len(dAtA) - i, nil
 }
 
+func (m *QueryLiquidityStatusResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryLiquidityStatusResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryLiquidityStatusResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Status != 0 {
+		i = encodeVarintQuery(dAtA, i, uint64(m.Status))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Err != nil {
+		{
+			size, err := m.Err.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Token) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Token) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Token) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Decimal != 0 {
+		i = encodeVarintQuery(dAtA, i, uint64(m.Decimal))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Address) > 0 {
+		i -= len(m.Address)
+		copy(dAtA[i:], m.Address)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.Address)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Symbol) > 0 {
+		i -= len(m.Symbol)
+		copy(dAtA[i:], m.Symbol)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.Symbol)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ErrMsg) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ErrMsg) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ErrMsg) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Msg) > 0 {
+		i -= len(m.Msg)
+		copy(dAtA[i:], m.Msg)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.Msg)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Code != 0 {
+		i = encodeVarintQuery(dAtA, i, uint64(m.Code))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintQuery(dAtA []byte, offset int, v uint64) int {
 	offset -= sovQuery(v)
 	base := offset
@@ -1889,6 +2304,58 @@ func (m *QueryWithdrawLiquidityStatusRequest) Size() (n int) {
 	return n
 }
 
+func (m *QueryLiquidityStatusResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Err != nil {
+		l = m.Err.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	if m.Status != 0 {
+		n += 1 + sovQuery(uint64(m.Status))
+	}
+	return n
+}
+
+func (m *Token) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Symbol)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	l = len(m.Address)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	if m.Decimal != 0 {
+		n += 1 + sovQuery(uint64(m.Decimal))
+	}
+	return n
+}
+
+func (m *ErrMsg) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Code != 0 {
+		n += 1 + sovQuery(uint64(m.Code))
+	}
+	l = len(m.Msg)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
 func sovQuery(x uint64) (n int) {
 	return (math_bits.Len64(x|1) + 6) / 7
 }
@@ -2004,7 +2471,7 @@ func (m *ChainTokensConfigResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Err == nil {
-				m.Err = &webapi.ErrMsg{}
+				m.Err = &ErrMsg{}
 			}
 			if err := m.Err.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2289,7 +2756,7 @@ func (m *AssetPerChain) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Token == nil {
-				m.Token = &webapi.Token{}
+				m.Token = &Token{}
 			}
 			if err := m.Token.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2591,7 +3058,7 @@ func (m *GetFeeResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Err == nil {
-				m.Err = &webapi.ErrMsg{}
+				m.Err = &ErrMsg{}
 			}
 			if err := m.Err.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2842,7 +3309,7 @@ func (m *QueryTransferStatusResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Err == nil {
-				m.Err = &webapi.ErrMsg{}
+				m.Err = &ErrMsg{}
 			}
 			if err := m.Err.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -2878,10 +3345,10 @@ func (m *QueryTransferStatusResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Status == nil {
-				m.Status = make(map[string]webapi.TransferHistoryStatus)
+				m.Status = make(map[string]TransferHistoryStatus)
 			}
 			var mapkey string
-			var mapvalue webapi.TransferHistoryStatus
+			var mapvalue TransferHistoryStatus
 			for iNdEx < postIndex {
 				entryPreIndex := iNdEx
 				var wire uint64
@@ -2939,7 +3406,7 @@ func (m *QueryTransferStatusResponse) Unmarshal(dAtA []byte) error {
 						}
 						b := dAtA[iNdEx]
 						iNdEx++
-						mapvalue |= webapi.TransferHistoryStatus(b&0x7F) << shift
+						mapvalue |= TransferHistoryStatus(b&0x7F) << shift
 						if b < 0x80 {
 							break
 						}
@@ -3060,7 +3527,7 @@ func (m *LiquidityDetail) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Token == nil {
-				m.Token = &webapi.Token{}
+				m.Token = &Token{}
 			}
 			if err := m.Token.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -3335,7 +3802,7 @@ func (m *LiquidityDetailListResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Err == nil {
-				m.Err = &webapi.ErrMsg{}
+				m.Err = &ErrMsg{}
 			}
 			if err := m.Err.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -3532,6 +3999,345 @@ func (m *QueryWithdrawLiquidityStatusRequest) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryLiquidityStatusResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryLiquidityStatusResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryLiquidityStatusResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Err", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Err == nil {
+				m.Err = &ErrMsg{}
+			}
+			if err := m.Err.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Status |= LPHistoryStatus(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Token) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Token: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Token: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Symbol", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Symbol = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Address = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Decimal", wireType)
+			}
+			m.Decimal = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Decimal |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ErrMsg) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ErrMsg: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ErrMsg: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Code", wireType)
+			}
+			m.Code = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Code |= ErrCode(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Msg", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Msg = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipQuery(dAtA[iNdEx:])

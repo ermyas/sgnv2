@@ -2,6 +2,7 @@ syntax = "proto3";
 package sgn.gateway.v1;
 
 import "google/api/annotations.proto";
+import "sgn/cbridge/v1/query.proto";
 
 option go_package = "github.com/celer-network/sgn-v2/gateway/webapi";
 
@@ -62,7 +63,7 @@ service Web {
     }
 
     // bcz it's time cost for sgn voting, so we need a polling api to check the status
-    rpc QueryLiquidityStatus (QueryLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {
+    rpc QueryLiquidityStatus (QueryLiquidityStatusRequest) returns (cbridge.v1.QueryLiquidityStatusResponse) {
         option (google.api.http) = {
       get: "/v1/queryLiquidityStatus"
     };
@@ -92,14 +93,8 @@ message ChainTokenInfo {
     repeated TokenInfo token = 1;
 }
 
-message Token {
-    string symbol = 1;
-    string address = 2;
-    int32 decimal = 3;
-}
-
 message TokenInfo {
-    Token token = 1;
+    cbridge.v1.Token token = 1;
     string name = 2;
     string icon = 3;
     string max_amt = 4; // showing in token list, max bridge amount, only for dst chain
@@ -108,7 +103,7 @@ message TokenInfo {
 
 message TransferInfo {
     Chain chain = 1;
-    Token token = 2;
+    cbridge.v1.Token token = 2;
     string amount = 3;
 }
 
@@ -212,32 +207,6 @@ message QueryLiquidityStatusRequest {
     uint64 seq_num = 1;
 }
 
-message QueryLiquidityStatusResponse {
-    ErrMsg err = 1;
-    LPHistoryStatus status = 2;
-}
-
-enum TransferHistoryStatus {
-    TRANSFER_UNKNOWN = 0;
-    TRANSFER_SUBMITTING = 1;
-    TRANSFER_FAILED = 2;
-    TRANSFER_WAITING_FOR_FUND_RELEASE = 3;
-    TRANSFER_COMPLETED = 4;
-    TRANSFER_TO_BE_REFUNDED = 5;
-    TRANSFER_REQUESTING_REFUND = 6;
-    TRANSFER_REFUND_TO_BE_CONFIRMED = 7;
-    TRANSFER_CONFIRMING_YOUR_REFUND = 8;
-    TRANSFER_REFUNDED = 9;
-}
-
-enum LPHistoryStatus {
-    LP_UNKNOWN = 0;
-    LP_WAITING_FOR_SGN = 1;
-    LP_WAITING_FOR_LP = 2;
-    LP_SUBMITTING = 3;
-    LP_COMPLETED = 4;
-    LP_FAILED = 5;
-}
 enum LPType {
     LP_TYPE_UNKNOWN = 0;
     LP_TYPE_ADD = 1;
@@ -251,7 +220,7 @@ message TransferHistory {
     uint64 ts = 4;
     string src_block_tx_link = 5;
     string dst_block_tx_link = 6;
-    TransferHistoryStatus status = 7;
+    cbridge.v1.TransferHistoryStatus status = 7;
 }
 
 message LPHistory {
@@ -260,7 +229,7 @@ message LPHistory {
     string amount = 3;
     uint64 ts = 4;
     string block_tx_link = 5;
-    LPHistoryStatus status = 6;
+    cbridge.v1.LPHistoryStatus status = 6;
     LPType type = 7;
     uint64 seq_num = 8;
 }
