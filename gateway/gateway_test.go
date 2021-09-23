@@ -108,9 +108,9 @@ func TestDb(t *testing.T) {
 		return
 	}
 	transferId := "123"
-	err = db.InsertTransfer(transferId, "0x0000000", "USDT", 1, 2)
+	err = DB.InsertTransfer(transferId, "0x0000000", "USDT", 1, 2)
 	errIsNil(t, err)
-	addr, token, srcChainId, dstChainId, found, err := db.GetTransfer(transferId)
+	addr, token, srcChainId, dstChainId, found, err := DB.GetTransfer(transferId)
 	errIsNil(t, err)
 	if !found {
 		t.Error("transfer not found")

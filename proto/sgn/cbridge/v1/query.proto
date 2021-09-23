@@ -70,8 +70,13 @@ message LiquidityDetail {
     string total_liquidity = 5; // the LP’s liquidity for this (chain, token)
     double lp_fee_rate = 6; // LP fee percentage: A portion (X%) of each {token_symbol} transfer to {chain_name} goes to liquidity providers
 }
+message ChainTokenAddrPair {
+    uint64 chain_id = 1;
+    string token_addr = 2;
+}
 message LiquidityDetailListRequest {
-    string addr = 1;
+    string lp_addr = 1;
+    repeated ChainTokenAddrPair chain_token = 2;
 }
 
 message LiquidityDetailListResponse {

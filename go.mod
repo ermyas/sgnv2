@@ -18,6 +18,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.6.0 // indirect
 	github.com/iancoleman/strcase v0.1.0
+	github.com/lthibault/jitterbug v2.0.0+incompatible
 	github.com/regen-network/cosmos-proto v0.3.1
 	github.com/rs/cors v1.7.0
 	github.com/rs/zerolog v1.23.0
@@ -30,7 +31,9 @@ require (
 	google.golang.org/genproto v0.0.0-20210903162649-d08c68adba83
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.27.1
+	gopkg.in/resty.v1 v1.12.0
 	gopkg.in/yaml.v2 v2.4.0
+
 )
 
 replace google.golang.org/grpc => google.golang.org/grpc v1.33.2

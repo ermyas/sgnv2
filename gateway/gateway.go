@@ -9,6 +9,7 @@ import (
 	"github.com/rs/cors"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/celer-network/goutils/log"
 	"google.golang.org/grpc"
@@ -30,6 +31,7 @@ func InitGateway() {
 	}
 	defer gs.Close()
 
+	gs.StartChainTokenPolling(10 * time.Second)
 	// start a rpc server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *rpcPort))
 	if err != nil {
