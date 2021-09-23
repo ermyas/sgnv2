@@ -46,7 +46,7 @@ service Web {
     };
     }
 
-    rpc MarkLiquidityAdd (MarkLiquidityAddRequest) returns (MarkLiquidityAddResponse) {
+    rpc MarkLiquidityOnChainEvent (MarkLiquidityOnChainEventRequest) returns (MarkLiquidityOnChainEventResponse) {
         option (google.api.http) = {
       post: "/v1/markLiquidityAdd"
       body: "*"
@@ -191,15 +191,16 @@ message WithdrawLiquidityResponse {
     uint64 seq_num = 2; // nonce
 }
 
-message MarkLiquidityAddRequest {
+message MarkLiquidityOnChainEventRequest {
     string lp_addr = 1;
-    string amt_added = 2;
+    string amt = 2;
     string token_addr = 3;
     uint64 chain_id = 4;
     uint64 seq_num = 5;
+    LPType type = 6;
 }
 
-message MarkLiquidityAddResponse {
+message MarkLiquidityOnChainEventResponse {
     ErrMsg err = 1;
 }
 

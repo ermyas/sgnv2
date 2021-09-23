@@ -191,8 +191,8 @@ func local_request_Web_GetLPInfoList_0(ctx context.Context, marshaler runtime.Ma
 
 }
 
-func request_Web_MarkLiquidityAdd_0(ctx context.Context, marshaler runtime.Marshaler, client WebClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MarkLiquidityAddRequest
+func request_Web_MarkLiquidityOnChainEvent_0(ctx context.Context, marshaler runtime.Marshaler, client WebClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq MarkLiquidityOnChainEventRequest
 	var metadata runtime.ServerMetadata
 
 	newReader, berr := utilities.IOReaderFactory(req.Body)
@@ -203,13 +203,13 @@ func request_Web_MarkLiquidityAdd_0(ctx context.Context, marshaler runtime.Marsh
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := client.MarkLiquidityAdd(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	msg, err := client.MarkLiquidityOnChainEvent(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 
 }
 
-func local_request_Web_MarkLiquidityAdd_0(ctx context.Context, marshaler runtime.Marshaler, server WebServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq MarkLiquidityAddRequest
+func local_request_Web_MarkLiquidityOnChainEvent_0(ctx context.Context, marshaler runtime.Marshaler, server WebServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq MarkLiquidityOnChainEventRequest
 	var metadata runtime.ServerMetadata
 
 	newReader, berr := utilities.IOReaderFactory(req.Body)
@@ -220,7 +220,7 @@ func local_request_Web_MarkLiquidityAdd_0(ctx context.Context, marshaler runtime
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	msg, err := server.MarkLiquidityAdd(ctx, &protoReq)
+	msg, err := server.MarkLiquidityOnChainEvent(ctx, &protoReq)
 	return msg, metadata, err
 
 }
@@ -488,7 +488,7 @@ func RegisterWebHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 
 	})
 
-	mux.Handle("POST", pattern_Web_MarkLiquidityAdd_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_Web_MarkLiquidityOnChainEvent_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
@@ -499,7 +499,7 @@ func RegisterWebHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_Web_MarkLiquidityAdd_0(rctx, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_Web_MarkLiquidityOnChainEvent_0(rctx, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
@@ -507,7 +507,7 @@ func RegisterWebHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 			return
 		}
 
-		forward_Web_MarkLiquidityAdd_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_Web_MarkLiquidityOnChainEvent_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -744,7 +744,7 @@ func RegisterWebHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 
 	})
 
-	mux.Handle("POST", pattern_Web_MarkLiquidityAdd_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_Web_MarkLiquidityOnChainEvent_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
@@ -753,14 +753,14 @@ func RegisterWebHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_Web_MarkLiquidityAdd_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_Web_MarkLiquidityOnChainEvent_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_Web_MarkLiquidityAdd_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_Web_MarkLiquidityOnChainEvent_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -858,7 +858,7 @@ var (
 
 	pattern_Web_GetLPInfoList_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "getLPInfoList"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_Web_MarkLiquidityAdd_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "markLiquidityAdd"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_Web_MarkLiquidityOnChainEvent_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "markLiquidityAdd"}, "", runtime.AssumeColonVerbOpt(true)))
 
 	pattern_Web_WithdrawLiquidity_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "withdrawLiquidity"}, "", runtime.AssumeColonVerbOpt(true)))
 
@@ -880,7 +880,7 @@ var (
 
 	forward_Web_GetLPInfoList_0 = runtime.ForwardResponseMessage
 
-	forward_Web_MarkLiquidityAdd_0 = runtime.ForwardResponseMessage
+	forward_Web_MarkLiquidityOnChainEvent_0 = runtime.ForwardResponseMessage
 
 	forward_Web_WithdrawLiquidity_0 = runtime.ForwardResponseMessage
 

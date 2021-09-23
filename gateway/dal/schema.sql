@@ -9,9 +9,11 @@ CREATE TABLE IF NOT EXISTS transfer (
     create_time TIMESTAMPTZ NOT NULL DEFAULT now(),
     token_symbol TEXT NOT NULL,
     src_chain_id INT NOT NULL,
+    src_tx_hash TEXT NOT NULL DEFAULT '',
     dst_chain_id INT NOT NULL,
-    amt string NOT NULL DEFAULT '0',
-    received_amt string NOT NULL DEFAULT '0',
+    dst_tx_hash TEXT NOT NULL DEFAULT '',
+    amt TEXT NOT NULL DEFAULT '0',
+    received_amt TEXT NOT NULL DEFAULT '0',
     status INT NOT NULL DEFAULT 1,
     volume FLOAT NOT NULL DEFAULT 0
 );
@@ -24,7 +26,8 @@ CREATE TABLE IF NOT EXISTS lp (
     usr_addr TEXT NOT NULL,
     chain_id INT NOT NULL,
     token_symbol TEXT NOT NULL,
-    amt string NOT NULL DEFAULT '0',
+    amt TEXT NOT NULL DEFAULT '0',
+    add_tx_hash TEXT NOT NULL DEFAULT '',
     update_time TIMESTAMPTZ NOT NULL DEFAULT now(),
     create_time TIMESTAMPTZ NOT NULL DEFAULT now(),
     status INT NOT NULL DEFAULT 1,
@@ -53,5 +56,6 @@ CREATE INDEX IF NOT EXISTS tk_addr_idx ON token (address, chain_id);
 CREATE TABLE IF NOT EXISTS chain (
      id INT PRIMARY KEY NOT NULL,
      name TEXT NOT NULL DEFAULT '',
-     icon TEXT NOT NULL DEFAULT ''
+     icon TEXT NOT NULL DEFAULT '',
+     tx_url TEXT NOT NULL DEFAULT '',
 );

@@ -31,12 +31,16 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 type LPHistoryStatus int32
 
 const (
-	LPHistoryStatus_LP_UNKNOWN         LPHistoryStatus = 0
+	LPHistoryStatus_LP_UNKNOWN LPHistoryStatus = 0
+	// user for withdraw: after calling withdraw api
+	// relayer for add: monitored add event
 	LPHistoryStatus_LP_WAITING_FOR_SGN LPHistoryStatus = 1
 	LPHistoryStatus_LP_WAITING_FOR_LP  LPHistoryStatus = 2
 	LPHistoryStatus_LP_SUBMITTING      LPHistoryStatus = 3
 	LPHistoryStatus_LP_COMPLETED       LPHistoryStatus = 4
-	LPHistoryStatus_LP_FAILED          LPHistoryStatus = 5
+	// relayer: on chain reverted event monitored
+	// x: sgn rejected
+	LPHistoryStatus_LP_FAILED LPHistoryStatus = 5
 )
 
 var LPHistoryStatus_name = map[int32]string{

@@ -85,7 +85,7 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	panic("implement me")
 }
 
-func (gs *GatewayService) MarkLiquidityAdd(ctx context.Context, request *webapi.MarkLiquidityAddRequest) (*webapi.MarkLiquidityAddResponse, error) {
+func (gs *GatewayService) MarkLiquidityOnChainEvent(ctx context.Context, request *webapi.MarkLiquidityOnChainEventRequest) (*webapi.MarkLiquidityOnChainEventResponse, error) {
 	panic("implement me")
 }
 

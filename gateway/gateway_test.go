@@ -108,7 +108,7 @@ func TestDb(t *testing.T) {
 		return
 	}
 	transferId := "123"
-	err = DB.InsertTransfer(transferId, "0x0000000", "USDT", 1, 2)
+	//err = DB.InsertTransfer(transferId, "0x0000000", "USDT", 1, 2)
 	errIsNil(t, err)
 	addr, token, srcChainId, dstChainId, found, err := DB.GetTransfer(transferId)
 	errIsNil(t, err)
