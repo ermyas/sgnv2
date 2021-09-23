@@ -99,7 +99,7 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 		return
 	}
 
-	currss, _ := proto.Marshal(getSortedSigners(allValidators))
+	currss, _ := proto.Marshal(GetSortedSigners(allValidators))
 
 	err = r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, currss, relay.GetSortedSigsBytes())
 	if err != nil {
@@ -109,7 +109,7 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 	}
 }
 
-func getSortedSigners(validators types.Validators) *cbrtypes.SortedSigners {
+func GetSortedSigners(validators types.Validators) *cbrtypes.SortedSigners {
 	signers := make([]*cbrtypes.AddrAmt, 0)
 	for _, v := range validators {
 		signers = append(signers, &cbrtypes.AddrAmt{

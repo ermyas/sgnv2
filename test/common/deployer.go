@@ -27,6 +27,19 @@ func DeployERC20Contract(ethClient *ethclient.Client, auth *bind.TransactOpts) (
 	return tx, erc20Addr, erc20
 }
 
+func DeployBridgeContract(ethClient *ethclient.Client, auth *bind.TransactOpts, signers []byte) (cbrAddr ethcommon.Address, cbrContract *eth.BridgeContract) {
+	cbrAddr, tx, _, err := eth.DeployBridge(auth, ethClient, signers)
+	ChkErr(err, "failed to deploy bridge contract")
+	cbrContract, err = eth.NewBridgeContract(cbrAddr, ethClient)
+	ChkErr(err, "failed to set bridge contract")
+
+	log.Infoln("bridge address:", cbrAddr.String())
+
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployBridgeContract")
+
+	return
+}
+
 func DeployCelrContract(ethClient *ethclient.Client, auth *bind.TransactOpts) (celrAddr ethcommon.Address, celrContract *eth.Erc20) {
 	var tx *types.Transaction
 	tx, celrAddr, celrContract = DeployERC20Contract(ethClient, auth)

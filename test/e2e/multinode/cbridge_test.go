@@ -5,10 +5,22 @@ import (
 	"testing"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/eth"
+	"github.com/celer-network/sgn-v2/relayer"
 	tc "github.com/celer-network/sgn-v2/test/common"
+	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/gogo/protobuf/proto"
 )
 
-func setupCbridge() {
+var (
+	Cbr1Addr     ethcommon.Address
+	Cbr1Contract *eth.BridgeContract
+	Cbr2Addr     ethcommon.Address
+	Cbr2Contract *eth.BridgeContract
+)
+
+func setupCbridge(t *testing.T) {
 	log.Infoln("Set up another mainchain for bridge")
 	SetupMainchain2ForBridge()
 
@@ -28,7 +40,26 @@ func setupCbridge() {
 	SetupNewSgnEnv(p, false)
 	tc.SleepWithLog(10, "sgn being ready")
 
-	//DeployBridgeContract()
+	transactor := tc.NewTestTransactor(
+		t,
+		tc.SgnHomes[0],
+		tc.SgnChainID,
+		tc.SgnNodeURI,
+		tc.ValSgnAddrStrs[0],
+		tc.SgnPassphrase,
+	)
+
+	amt1 := big.NewInt(3e18)
+	amt2 := big.NewInt(2e18)
+	amt3 := big.NewInt(2e18)
+	amts := []*big.Int{amt1, amt2, amt3}
+	SetupValidators(t, transactor, amts)
+
+	validators, err := stakingcli.QueryValidators(transactor.CliCtx)
+	tc.ChkErr(err, "failed to query validators contract")
+	signers, _ := proto.Marshal(relayer.GetSortedSigners(validators))
+	Cbr1Addr, Cbr1Contract = tc.DeployBridgeContract(tc.EthClient, tc.EtherBaseAuth, signers)
+	Cbr2Addr, Cbr2Contract = tc.DeployBridgeContract(tc.EthClient2, tc.EtherBaseAuth2, signers)
 }
 
 func TestCbridge(t *testing.T) {
@@ -37,10 +68,10 @@ func TestCbridge(t *testing.T) {
 	})
 }
 
-// Test penalty slash when a validator is offline
+// Test cbridge
 func cbridgeTest(t *testing.T) {
 	log.Infoln("===================================================================")
-	log.Infoln("======================== Test slash ===========================")
+	log.Infoln("======================== Test cbridge ===========================")
 
-	setupCbridge()
+	setupCbridge(t)
 }
