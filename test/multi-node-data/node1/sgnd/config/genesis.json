@@ -65,10 +65,8 @@
       "denom_metadata": []
     },
     "cbridge": {
-      "params": {
-        "multi_chain_asset_param": {
-          "chain_asset": []
-        }
+      "config": {
+        "lp_fee": 100
       }
     },
     "distribution": {

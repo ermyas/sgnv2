@@ -257,7 +257,8 @@ func NewSgnApp(
 	govRouter := govtypes.NewRouter()
 	govRouter.AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
 		AddRoute(proposal.RouterKey, gov.NewParamChangeProposalHandler(app.ParamsKeeper)).
-		AddRoute(upgradetypes.RouterKey, gov.NewUpgradeProposalHandler(app.UpgradeKeeper))
+		AddRoute(upgradetypes.RouterKey, gov.NewUpgradeProposalHandler(app.UpgradeKeeper)).
+		AddRoute(cbridgetypes.RouterKey, gov.NewCbrProposalHandler(app.CbridgeKeeper))
 	app.GovKeeper = govkeeper.NewKeeper(
 		appCodec,
 		keys[govtypes.StoreKey],
@@ -529,7 +530,6 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(slashtypes.ModuleName).WithKeyTable(slashtypes.ParamKeyTable())
 	paramsKeeper.Subspace(stakingtypes.ModuleName).WithKeyTable(stakingkeeper.ParamKeyTable())
 	paramsKeeper.Subspace(synctypes.ModuleName).WithKeyTable(synckeeper.ParamKeyTable())
-	paramsKeeper.Subspace(cbridgetypes.ModuleName).WithKeyTable(cbridgekeeper.ParamKeyTable())
 
 	return paramsKeeper
 }

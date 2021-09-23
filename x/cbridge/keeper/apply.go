@@ -70,8 +70,9 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			ChId:      onchev.Chainid,
 			TokenAddr: ev.Token,
 		}
-		assetSym := k.GetAssetSymbol(src)
-		destTokenAddr := k.GetTokenAddr(assetSym, ev.DstChainId)
+		assetSym := GetAssetSymbol(kv, src)
+		destToken := GetAssetInfo(kv, assetSym, ev.DstChainId)
+		destTokenAddr := eth.Hex2Addr(destToken.Addr)
 		dest := &ChainIdTokenAddr{
 			ChId:      ev.DstChainId,
 			TokenAddr: destTokenAddr,

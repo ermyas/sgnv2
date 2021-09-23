@@ -37,8 +37,8 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 }
 
 func queryParams(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
-	params := k.GetParams(ctx)
-	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, params)
+	cfg := new(types.CbrConfig) // todo: impl
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, cfg)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
@@ -69,9 +69,9 @@ func queryRelay(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierC
 }
 
 func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
-	mca := k.MultiChainAsset(ctx)
+	mca := new(types.CbrConfig) // todo: impl
 	chainTokens := make(map[uint64]*types.Assets)
-	for _, a := range mca.ChainAsset {
+	for _, a := range mca.Assets {
 		assets, ok := chainTokens[a.ChainId]
 		if !ok {
 			assets = &types.Assets{
@@ -81,8 +81,8 @@ func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, le
 		}
 		assets.Assets = append(assets.Assets, &types.AssetPerChain{
 			Token: &types.Token{
-				Symbol:  a.TokenSymbol,
-				Address: a.TokenAddr,
+				Symbol:  a.Symbol,
+				Address: a.Addr,
 				Decimal: int32(a.Decimal),
 			},
 			//TODO

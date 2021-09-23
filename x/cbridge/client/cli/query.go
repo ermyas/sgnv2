@@ -25,18 +25,18 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 
-	cmd.AddCommand(common.GetCommands(GetCmdQueryParams())...)
+	cmd.AddCommand(common.GetCommands(GetCmdQueryConfig())...)
 	// this line is used by starport scaffolding # 1
 
 	return cmd
 }
 
-// GetCmdQueryParams implements the params query command.
-func GetCmdQueryParams() *cobra.Command {
+// GetCmdQueryConfig implements the params query command.
+func GetCmdQueryConfig() *cobra.Command {
 	return &cobra.Command{
-		Use:   "params",
+		Use:   "config",
 		Args:  cobra.NoArgs,
-		Short: "Query the current staking parameters information",
+		Short: "Query the current cbridge config",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx, err := client.GetClientQueryContext(cmd)
 			if err != nil {
@@ -55,7 +55,7 @@ func GetCmdQueryParams() *cobra.Command {
 }
 
 // Query params info
-func QueryParams(cliCtx client.Context) (params types.Params, err error) {
+func QueryParams(cliCtx client.Context) (params types.CbrConfig, err error) {
 	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryParams)
 	res, err := common.RobustQuery(cliCtx, route)
 	if err != nil {

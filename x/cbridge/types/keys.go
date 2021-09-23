@@ -81,3 +81,29 @@ func XferRefundKey(tid [32]byte) []byte {
 func WdDetailKey(seqnum uint64) []byte {
 	return []byte(fmt.Sprintf("wdDetail-%d", seqnum))
 }
+
+/* ================ config kv, all governable
+1. fee percentage goes to cbridge lp, eg. 80 means 80% goes to lp
+2. chid-tokenAddr -> asset symbol string eg. "USDT", all uppercase
+3. symbol-chid -> ChainAsset, note proto has dup info symbol and chain_id
+4. chid1-chid2 -> ChainPair. keys are sorted so chid1 < chid2
+*/
+
+var (
+	CfgKeyFeePerc = []byte("cfg-feeperc")
+)
+
+func CfgKeyChain2Sym(chid uint64, addr eth.Addr) []byte {
+	return []byte(fmt.Sprintf("cfg-ch2sym-%d-%s", chid, eth.Addr2Hex(addr)))
+}
+
+func CfgKeySym2Info(sym string, chid uint64) []byte {
+	return []byte(fmt.Sprintf("cfg-sym2info-%s-%d", sym, chid))
+}
+
+func CfgKeyChainPair(chid1, chid2 uint64) []byte {
+	if chid1 > chid2 {
+		panic(fmt.Sprintf("chid1 %d > chid2 %d", chid2, chid2))
+	}
+	return []byte(fmt.Sprintf("cfg-chpair-%d-%d", chid1, chid2))
+}

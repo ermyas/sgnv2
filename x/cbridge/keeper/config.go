@@ -1,0 +1,50 @@
+package keeper
+
+import (
+	"math/big"
+	"strings"
+
+	"github.com/celer-network/sgn-v2/eth"
+	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+)
+
+// We don't use paramstore at all as the configs are complicated
+
+// set the params, delete all param kvs first
+func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
+	kv := ctx.KVStore(k.storeKey)
+	kv.Set(types.CfgKeyFeePerc, big.NewInt(int64(cfg.LpFee)).Bytes())
+	// todo: iter and del all cfg-xxx key/val if we're removing asset
+	// go over asset and set ch2sym and sym2info
+	for _, asset := range cfg.Assets {
+		addr := eth.Hex2Addr(asset.Addr)
+		sym := strings.ToUpper(asset.Symbol)
+		kv.Set(types.CfgKeyChain2Sym(asset.ChainId, addr), []byte(sym))
+		raw, _ := asset.Marshal()
+		kv.Set(types.CfgKeySym2Info(sym, asset.ChainId), raw)
+	}
+	for _, chpair := range cfg.ChainPairs {
+		raw, _ := chpair.Marshal()
+		kv.Set(types.CfgKeyChainPair(chpair.Chid1, chpair.Chid2), raw)
+	}
+}
+
+// utils to deal with asset, chid and address
+
+// given chid and token address, return which asset eg. USDT
+// empty string if not found
+func GetAssetSymbol(kv sdk.KVStore, chaddr *ChainIdTokenAddr) string {
+	return string(kv.Get(types.CfgKeyChain2Sym(chaddr.ChId, chaddr.TokenAddr)))
+}
+
+// given asset symbol, return token address for chid, zero address if not found
+func GetAssetInfo(kv sdk.KVStore, sym string, chid uint64) *types.ChainAsset {
+	raw := kv.Get(types.CfgKeySym2Info(sym, chid))
+	if raw == nil {
+		return nil
+	}
+	asset := new(types.ChainAsset)
+	asset.Unmarshal(raw)
+	return asset
+}

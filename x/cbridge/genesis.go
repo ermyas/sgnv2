@@ -10,7 +10,10 @@ import (
 // state.
 func InitGenesis(ctx sdk.Context, k keeper.Keeper, genState types.GenesisState) {
 	// this line is used by starport scaffolding # genesis/module/init
-
+	if err := genState.Validate(); err != nil {
+		panic(err)
+	}
+	k.SetCbrConfig(ctx, genState.Config)
 	// this line is used by starport scaffolding # ibc/genesis/init
 }
 

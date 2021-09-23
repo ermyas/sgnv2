@@ -5,21 +5,30 @@ import "gogoproto/gogo.proto";
 
 option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
 
-// ========== params
-message Params {
-  MultiChainAssetParam multi_chain_asset_param = 1[(gogoproto.nullable) = false];
+// ========== configs
+// use configs to avoid confusion w/ cosmos param
+message CbrConfig {
+  uint32 lp_fee = 1; // eg. 80 means 80% fee goes to cbridge lp, 20% goes to sgn
+  repeated ChainAsset assets = 2; // multi-asset, multi-chain
+  repeated ChainPair chain_pairs = 3; // per chain pair configs
 }
 
-message MultiChainAssetParam {
-  repeated ChainAsset chain_asset = 1 [(gogoproto.nullable) = false];
-}
-
+// represent asset detail on one chain.
 message ChainAsset {
-  uint64 chain_id = 1;
-  string token_symbol = 2;
-  string token_addr = 3;
-  uint64 decimal = 4;
-  string max_fee_amount = 5; // max fee, use string to avoid uint64 not enough for 18 decimal tokens
+  string symbol = 1; // eg. "USDT"
+  uint64 chain_id = 2;
+  string addr = 3; // hex string of erc20 address, use string for easier json integration
+  uint32 decimal = 4; // to handle same asset has different decimal on different chains
+  string max_fee_amount = 5; // max fee, use string to avoid uint64 not enough for 18 decimal
+}
+
+// chid1/2 order doesn't matter but must only specify once
+message ChainPair {
+  uint64 chid1 = 1;
+  uint64 chid2 = 2;
+  uint32 weight1 = 3; // chid1's weight * 1000, chid2's weight is (2000 - weight1)/1000
+  uint32 fee1to2 = 4; // fee percentage when xfer from ch1 to ch2 * 1M, eg. value 10 means 0.001% fee
+  uint32 fee2to1 = 5; // fee percentage when xfer from ch2 to ch1 * 1M, eg. value 10 means 0.001% fee
 }
 
 // ========== for sync propose
