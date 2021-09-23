@@ -3,11 +3,16 @@ package keeper
 import (
 	"errors"
 	"fmt"
+	"math/big"
 
+	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/spf13/viper"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -62,16 +67,31 @@ func queryRelay(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierC
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, relay)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
-
 	}
 
 	return res, nil
 }
 
 func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var mcc []*common.OneChainConfig
+	err := viper.UnmarshalKey(common.FlagMultiChain, &mcc)
+	if err != nil {
+		log.Fatalln("fail to load multichain configs err:", err)
+	}
+	mccMap := make(map[uint64]*common.OneChainConfig)
+	for _, occ := range mcc {
+		mccMap[occ.ChainID] = occ
+	}
+
 	mca := new(types.CbrConfig) // todo: impl
 	chainTokens := make(map[uint64]*types.Assets)
 	for _, a := range mca.Assets {
+		occ, ok := mccMap[a.ChainId]
+		if !ok {
+			log.Errorf("chain with Id %d is not configured", a.ChainId)
+			return nil, fmt.Errorf("chain with Id %d is not configured", a.ChainId)
+		}
+
 		assets, ok := chainTokens[a.ChainId]
 		if !ok {
 			assets = &types.Assets{
@@ -85,9 +105,8 @@ func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, le
 				Address: a.Addr,
 				Decimal: int32(a.Decimal),
 			},
-			//TODO
-			//MaxAmt: ,
-			//ContractAddr: ,
+			MaxAmt:       occ.MaxAmt,
+			ContractAddr: occ.CBridge,
 		})
 	}
 	resp := types.ChainTokensConfigResponse{
@@ -102,26 +121,171 @@ func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, le
 }
 
 func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
-	// TODO
-	return nil, nil
+	var params types.GetFeeRequest
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse params: %s", err)
+	}
+
+	src := &ChainIdTokenAddr{
+		ChId:      params.SrcChainId,
+		TokenAddr: eth.Hex2Addr(params.SrcTokenAddr),
+	}
+	assetSym := GetAssetSymbol(ctx.KVStore(k.storeKey), src)
+	destToken := GetAssetInfo(ctx.KVStore(k.storeKey), assetSym, params.DstChainId)
+	destTokenAddr := eth.Hex2Addr(destToken.Addr)
+	dest := &ChainIdTokenAddr{
+		ChId:      params.DstChainId,
+		TokenAddr: destTokenAddr,
+	}
+	srcAmt, _ := big.NewInt(0).SetString(params.Amt, 10)
+	destAmt := k.CalcEqualOnDestChain(src, dest, srcAmt)
+	userGet := k.CalcUserGet(src, dest, destAmt)
+
+	resp := types.GetFeeResponse{
+		EqValueTokenAmt: userGet.String(),
+		Fee:             big.NewInt(0).Sub(destAmt, userGet).String(),
+		Decimal:         uint64(destToken.Decimal),
+	}
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, resp)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
 }
 
 func queryTransferStatus(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
-	// TODO
-	return nil, nil
+	var params types.QueryTransferStatusRequest
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse params: %s", err)
+	}
+
+	status := make(map[string]types.TransferHistoryStatus)
+
+	for _, xferId := range params.TransferId {
+		xferStatus := GetEvSendStatus(ctx.KVStore(k.storeKey), eth.Bytes2Hash([]byte(xferId)))
+		switch xferStatus {
+		case types.XferStatus_UNKNOWN:
+			status[xferId] = types.TransferHistoryStatus_TRANSFER_UNKNOWN
+		case types.XferStatus_OK_TO_RELAY:
+			status[xferId] = types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE
+		case types.XferStatus_SUCCESS:
+			status[xferId] = types.TransferHistoryStatus_TRANSFER_COMPLETED
+		case types.XferStatus_BAD_LIQUIDITY:
+			status[xferId] = types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED
+		case types.XferStatus_BAD_SLIPPAGE:
+			status[xferId] = types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED
+		case types.XferStatus_REFUND_REQUESTED:
+			status[xferId] = types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND
+		case types.XferStatus_REFUND_DONE:
+			status[xferId] = types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED
+		default:
+			log.Errorln("unknown status:", xferStatus)
+			status[xferId] = types.TransferHistoryStatus_TRANSFER_UNKNOWN
+		}
+	}
+
+	resp := types.QueryTransferStatusResponse{
+		Status: status,
+	}
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, resp)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
 }
 
 func queryLiquidityDetailList(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
-	// TODO
-	return nil, nil
+	var params types.LiquidityDetailListRequest
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse params: %s", err)
+	}
+
+	ldList := make([]*types.LiquidityDetail, 0)
+	for _, pair := range params.ChainToken {
+		ld := GetLPBalance(ctx.KVStore(k.storeKey), pair.ChainId, eth.Hex2Addr(pair.TokenAddr), eth.Hex2Addr(params.LpAddr))
+		ldList = append(ldList, &types.LiquidityDetail{
+			ChainId: pair.ChainId,
+			Token: &types.Token{
+				Address: pair.TokenAddr,
+			},
+			UsrLiquidity: ld.String(),
+			//TODO
+			//UsrLpFeeEarning: ,
+			//TotalLiquidity: ,
+			//LpFeeRate: ,
+		})
+	}
+
+	resp := types.LiquidityDetailListResponse{
+		LiquidityDetail: ldList,
+	}
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, resp)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
 }
 
 func queryAddLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
-	// TODO
-	return nil, nil
+	var params types.QueryAddLiquidityStatusRequest
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse params: %s", err)
+	}
+
+	var status types.LPHistoryStatus
+	if HasEvLiqAdd(ctx.KVStore(k.storeKey), params.ChainId, params.SeqNum) {
+		status = types.LPHistoryStatus_LP_COMPLETED
+	} else {
+		// TODO: to check the biz logic
+		status = types.LPHistoryStatus_LP_FAILED
+	}
+
+	resp := types.QueryLiquidityStatusResponse{
+		Status: status,
+	}
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, resp)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
 }
 
 func queryWithdrawLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
-	// TODO
-	return nil, nil
+	var params types.QueryWithdrawLiquidityStatusRequest
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse params: %s", err)
+	}
+
+	var status types.LPHistoryStatus
+	wd := GetWithdrawDetail(ctx.KVStore(k.storeKey), params.SeqNum)
+	if wd == nil {
+		log.Errorf("withdraw not exist, seq: %d", params.SeqNum)
+		return nil, fmt.Errorf("withdraw not exist, seq: %d", params.SeqNum)
+	}
+
+	if wd.Completed {
+		status = types.LPHistoryStatus_LP_COMPLETED
+	} else {
+		// TODO: to check the biz logic
+		status = types.LPHistoryStatus_LP_FAILED
+	}
+
+	resp := types.QueryLiquidityStatusResponse{
+		Status: status,
+	}
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, resp)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
 }
