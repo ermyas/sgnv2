@@ -31,9 +31,9 @@ service Web {
     }
 
     // same as V1, call this api after user confirm transfer on metamask
-    rpc MarkTransferBegin (MarkTransferBeginRequest) returns (MarkTransferBeginResponse) {
+    rpc MarkTransfer (MarkTransferRequest) returns (MarkTransferResponse) {
         option (google.api.http) = {
-      post: "/v1/markTransferBegin"
+      post: "/v1/markTransfer"
       body: "*"
     };
     }
@@ -46,9 +46,9 @@ service Web {
     };
     }
 
-    rpc MarkLiquidityOnChainEvent (MarkLiquidityOnChainEventRequest) returns (MarkLiquidityOnChainEventResponse) {
+    rpc MarkLiquidity (MarkLiquidityRequest) returns (MarkLiquidityResponse) {
         option (google.api.http) = {
-      post: "/v1/markLiquidityAdd"
+      post: "/v1/markLiquidity"
       body: "*"
     };
     }
@@ -142,14 +142,22 @@ message EstimateAmtResponse {
     uint32 slippage_tolerance = 5; // slippage * 1M, eg. 0.5% is 5000
 }
 
-message MarkTransferBeginRequest {
+enum MarkTransferTypeRequest {
+    TRANSFER_TYPE_UNKNOWN = 0;
+    TRANSFER_TYPE_SEND = 1;
+    TRANSFER_TYPE_REFUND = 2;
+}
+message MarkTransferRequest {
     string transfer_id = 1;
-    TransferInfo src_send_info = 2;
-    TransferInfo dst_min_received_info = 3;
-    string addr = 4;
+    string dst_transfer_id = 2;
+    TransferInfo src_send_info = 3;
+    TransferInfo dst_min_received_info = 4;
+    string addr = 5;
+    string src_tx_hash = 6;
+    MarkTransferTypeRequest type = 7;
 }
 
-message MarkTransferBeginResponse {
+message MarkTransferResponse {
     ErrMsg err = 1;
 }
 
@@ -166,9 +174,10 @@ message LPInfo {
     double farming_reward_earning = 6; // in usd
     double tvl = 7; // in usd
     double volume_24h = 8; //gateway cal this based on local db
-    double lp_fee_rate = 9;
-    double lp_fee_earning_apy = 10;
-    double farming_apy = 11;
+    double total_liquidity = 9; // current liquidity of user in usd
+    double lp_fee_rate = 10;
+    double lp_fee_earning_apy = 11;
+    double farming_apy = 12;
 }
 message GetLPInfoListResponse {
     ErrMsg err = 1;
@@ -191,16 +200,17 @@ message WithdrawLiquidityResponse {
     uint64 seq_num = 2; // nonce
 }
 
-message MarkLiquidityOnChainEventRequest {
+message MarkLiquidityRequest {
     string lp_addr = 1;
     string amt = 2;
     string token_addr = 3;
     uint64 chain_id = 4;
     uint64 seq_num = 5;
-    LPType type = 6;
+    string tx_hash = 6;
+    LPType type = 7;
 }
 
-message MarkLiquidityOnChainEventResponse {
+message MarkLiquidityResponse {
     ErrMsg err = 1;
 }
 

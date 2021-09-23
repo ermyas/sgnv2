@@ -77,7 +77,7 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 	panic("implement me")
 }
 
-func (gs *GatewayService) MarkTransferBegin(ctx context.Context, request *webapi.MarkTransferBeginRequest) (*webapi.MarkTransferBeginResponse, error) {
+func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.MarkTransferRequest) (*webapi.MarkTransferResponse, error) {
 	panic("implement me")
 }
 
@@ -85,7 +85,7 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	panic("implement me")
 }
 
-func (gs *GatewayService) MarkLiquidityOnChainEvent(ctx context.Context, request *webapi.MarkLiquidityOnChainEventRequest) (*webapi.MarkLiquidityOnChainEventResponse, error) {
+func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.MarkLiquidityRequest) (*webapi.MarkLiquidityResponse, error) {
 	panic("implement me")
 }
 
