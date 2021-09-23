@@ -13,6 +13,7 @@ const (
 	OutRootDirPrefix = "/tmp/celer_e2e_"
 	EnvDir           = "../../env"
 	LocalGeth        = "http://127.0.0.1:8545"
+	LocalGeth2       = "http://127.0.0.1:8547"
 
 	SgnChainID    = "sgn-localnet-1000"
 	SgnPassphrase = "12341234"

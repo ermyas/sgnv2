@@ -62,16 +62,65 @@ func SetupMainchain() {
 		tc.ClientEthAddrs[1],
 	}
 	log.Infoln("fund each test addr 100 ETH")
-	err := tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20))
+	err := tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20), tc.LocalGeth, int64(tc.ChainID))
 	tc.ChkErr(err, "fund each test addr 100 ETH")
 
 	log.Infoln("set up mainchain")
 	tc.SetupEthClients()
-	tc.DeployCelrContract()
+	tc.CelrAddr, tc.CelrContract = tc.DeployCelrContract(tc.EthClient, tc.EtherBaseAuth)
 
 	// fund CELR to each eth account
 	log.Infoln("fund each test addr 10 million CELR")
-	err = tc.FundAddrsErc20(tc.CelrAddr, addrs, tc.NewBigInt(1, 25))
+	err = tc.FundAddrsErc20(tc.CelrAddr, addrs, tc.NewBigInt(1, 25), tc.EthClient, tc.EtherBaseAuth)
+	tc.ChkErr(err, "fund each test addr 10 million CELR")
+}
+
+// should be invoked after mainchain 1 setup
+func SetupMainchain2ForBridge() {
+	repoRoot, _ := filepath.Abs("../../..")
+	log.Infoln("prepare geth2 env")
+	cmd := exec.Command("make", "prepare-geth2-env")
+	cmd.Dir = repoRoot
+	if err := cmd.Run(); err != nil {
+		log.Error(err)
+	}
+
+	log.Infoln("start geth2 container")
+	cmd = exec.Command("make", "localnet-start-geth2")
+	cmd.Dir = repoRoot
+	if err := cmd.Run(); err != nil {
+		log.Fatal(err)
+	}
+	tc.SleepWithLog(5, "geth2 start")
+
+	// set up mainchain: deploy contracts, fund addrs, etc
+	addrs := []eth.Addr{
+		tc.ValEthAddrs[0],
+		tc.ValEthAddrs[1],
+		tc.ValEthAddrs[2],
+		tc.ValEthAddrs[3],
+		tc.ValSignerAddrs[0],
+		tc.ValSignerAddrs[1],
+		tc.ValSignerAddrs[2],
+		tc.ValSignerAddrs[3],
+		tc.DelEthAddrs[0],
+		tc.DelEthAddrs[1],
+		tc.DelEthAddrs[2],
+		tc.DelEthAddrs[3],
+		tc.ClientEthAddrs[0],
+		tc.ClientEthAddrs[1],
+	}
+	log.Infoln("fund each test addr 100 ETH")
+	err := tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20), tc.LocalGeth2, int64(tc.Geth2ChainID))
+	tc.ChkErr(err, "fund each test addr 100 ETH")
+
+	log.Infoln("set up mainchain")
+	tc.SetupEthClient2()
+	tc.CelrAddr2, tc.CelrContract2 = tc.DeployCelrContract(tc.EthClient2, tc.EtherBaseAuth2)
+
+	// fund CELR to each eth account
+	log.Infoln("fund each test addr 10 million CELR")
+	err = tc.FundAddrsErc20(tc.CelrAddr, addrs, tc.NewBigInt(1, 25), tc.EthClient2, tc.EtherBaseAuth2)
 	tc.ChkErr(err, "fund each test addr 10 million CELR")
 }
 

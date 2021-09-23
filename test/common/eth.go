@@ -29,28 +29,28 @@ func SetupEthClients() {
 	}
 	EthClient = ethclient.NewClient(rpcClient)
 
-	_, EtherBaseAuth, err = GetAuth(etherBaseKs)
+	_, EtherBaseAuth, err = GetAuth(etherBaseKs, int64(ChainID))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	var auth *bind.TransactOpts
 	for i := 0; i < len(ValEthKs); i++ {
-		_, auth, err = GetAuth(ValEthKs[i])
+		_, auth, err = GetAuth(ValEthKs[i], int64(ChainID))
 		if err != nil {
 			log.Fatal(err)
 		}
 		ValAuths = append(ValAuths, auth)
 	}
 	for i := 0; i < len(ValSignerKs); i++ {
-		_, auth, err = GetAuth(ValSignerKs[i])
+		_, auth, err = GetAuth(ValSignerKs[i], int64(ChainID))
 		if err != nil {
 			log.Fatal(err)
 		}
 		SignerAuths = append(SignerAuths, auth)
 	}
 	for i := 0; i < len(DelEthKs); i++ {
-		_, auth, err = GetAuth(DelEthKs[i])
+		_, auth, err = GetAuth(DelEthKs[i], int64(ChainID))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -67,8 +67,20 @@ func SetupEthClients() {
 	}
 }
 
+func SetupEthClient2() {
+	rpcClient, err := rpc.Dial(LocalGeth2)
+	if err != nil {
+		log.Fatal(err)
+	}
+	EthClient2 = ethclient.NewClient(rpcClient)
+	_, EtherBaseAuth2, err = GetAuth(etherBaseKs, int64(Geth2ChainID))
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func SetupTestEthClient(ksfile string) (*TestEthClient, error) {
-	addr, auth, err := GetAuth(ksfile)
+	addr, auth, err := GetAuth(ksfile, int64(ChainID))
 	if err != nil {
 		return nil, err
 	}
@@ -87,8 +99,8 @@ func SetupTestEthClient(ksfile string) (*TestEthClient, error) {
 	return testClient, nil
 }
 
-func FundAddrsETH(recipients []eth.Addr, amount *big.Int) error {
-	conn, auth, ctx, senderAddr, connErr := prepareEtherBaseClient()
+func FundAddrsETH(recipients []eth.Addr, amount *big.Int, gatewayAddr string, chainId int64) error {
+	conn, auth, ctx, senderAddr, connErr := prepareEtherBaseClient(gatewayAddr, chainId)
 	if connErr != nil {
 		return connErr
 	}
@@ -152,21 +164,21 @@ func FundAddrsETH(recipients []eth.Addr, amount *big.Int) error {
 	return nil
 }
 
-func FundAddrsErc20(erc20Addr eth.Addr, recipients []eth.Addr, amount *big.Int) error {
-	erc20Contract, err := eth.NewErc20(erc20Addr, EthClient)
+func FundAddrsErc20(erc20Addr eth.Addr, recipients []eth.Addr, amount *big.Int, ethClient *ethclient.Client, auth *bind.TransactOpts) error {
+	erc20Contract, err := eth.NewErc20(erc20Addr, ethClient)
 	if err != nil {
 		return err
 	}
 	var lastTx *types.Transaction
 	for _, addr := range recipients {
-		tx, transferErr := erc20Contract.Transfer(EtherBaseAuth, addr, amount)
+		tx, transferErr := erc20Contract.Transfer(auth, addr, amount)
 		if transferErr != nil {
 			return transferErr
 		}
 		lastTx = tx
-		log.Infof("Sending ERC20 %s to %x from %x", amount, addr, EtherBaseAuth.From)
+		log.Infof("Sending ERC20 %s to %x from %x", amount, addr, auth.From)
 	}
-	_, err = ethutils.WaitMined(context.Background(), EthClient, lastTx, ethutils.WithBlockDelay(BlockDelay), ethutils.WithPollingInterval(PollingInterval))
+	_, err = ethutils.WaitMined(context.Background(), ethClient, lastTx, ethutils.WithBlockDelay(BlockDelay), ethutils.WithPollingInterval(PollingInterval))
 	return err
 }
 
@@ -248,9 +260,9 @@ func ConfirmUnbondedValidator(auth *bind.TransactOpts, valAddr eth.Addr) error {
 	return nil
 }
 
-func prepareEtherBaseClient() (
+func prepareEtherBaseClient(gatewayAddr string, chainId int64) (
 	*ethclient.Client, *bind.TransactOpts, context.Context, eth.Addr, error) {
-	conn, err := ethclient.Dial(LocalGeth)
+	conn, err := ethclient.Dial(gatewayAddr)
 	if err != nil {
 		return nil, nil, nil, eth.Addr{}, err
 	}
@@ -264,7 +276,7 @@ func prepareEtherBaseClient() (
 		return nil, nil, nil, eth.Addr{}, err
 	}
 	etherBaseAddr := eth.Hex2Addr(etherBaseAddrStr)
-	auth, err := bind.NewTransactorWithChainID(strings.NewReader(string(etherBaseKsBytes)), "", big.NewInt(int64(ChainID))) // Private Mainchain Testnet
+	auth, err := bind.NewTransactorWithChainID(strings.NewReader(string(etherBaseKsBytes)), "", big.NewInt(int64(chainId))) // Private Mainchain Testnet
 	if err != nil {
 		return nil, nil, nil, eth.Addr{}, err
 	}

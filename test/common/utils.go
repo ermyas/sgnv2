@@ -18,7 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-func GetAuth(ksfile string) (addr eth.Addr, auth *bind.TransactOpts, err error) {
+func GetAuth(ksfile string, chainId int64) (addr eth.Addr, auth *bind.TransactOpts, err error) {
 	keystoreBytes, err := ioutil.ReadFile(ksfile)
 	if err != nil {
 		return
@@ -28,7 +28,7 @@ func GetAuth(ksfile string) (addr eth.Addr, auth *bind.TransactOpts, err error) 
 		return
 	}
 	addr = key.Address
-	auth, err = bind.NewTransactorWithChainID(strings.NewReader(string(keystoreBytes)), "", big.NewInt(int64(ChainID)))
+	auth, err = bind.NewTransactorWithChainID(strings.NewReader(string(keystoreBytes)), "", big.NewInt(chainId))
 	if err != nil {
 		return
 	}

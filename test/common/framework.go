@@ -12,18 +12,23 @@ import (
 )
 
 var (
-	etherBaseKs = EnvDir + "/keystore/etherbase.json"
-	ChainID     = 883
+	etherBaseKs  = EnvDir + "/keystore/etherbase.json"
+	ChainID      = 883
+	Geth2ChainID = 884
 
-	EthClient     *ethclient.Client
-	EtherBaseAuth *bind.TransactOpts
-	ValAuths      []*bind.TransactOpts
-	SignerAuths   []*bind.TransactOpts
-	DelAuths      []*bind.TransactOpts
+	EthClient      *ethclient.Client
+	EthClient2     *ethclient.Client
+	EtherBaseAuth  *bind.TransactOpts
+	EtherBaseAuth2 *bind.TransactOpts
+	ValAuths       []*bind.TransactOpts
+	SignerAuths    []*bind.TransactOpts
+	DelAuths       []*bind.TransactOpts
 
-	Contracts    *eth.Contracts
-	CelrAddr     eth.Addr
-	CelrContract *eth.Erc20
+	Contracts     *eth.Contracts
+	CelrAddr      eth.Addr
+	CelrContract  *eth.Erc20
+	CelrAddr2     eth.Addr
+	CelrContract2 *eth.Erc20
 
 	Client0 *TestEthClient
 	Client1 *TestEthClient

@@ -90,12 +90,27 @@ build-node:
 .PHONY: prepare-docker-env
 prepare-docker-env: build-dockers build-linux prepare-geth-data
 
+# Prepare geth2 environment for cbridge testing
+.PHONY: prepare-geth2-env
+prepare-geth2-env:
+	DOCKER_BUILDKIT=1 docker build --tag celer-network/geth2 networks/local/geth2
+	rm -rf ./docker-volumes/geth2-env
+	mkdir -p ./docker-volumes
+	cp -r ./test/multi-node-data/geth2-env ./docker-volumes/
+
 # Run geth
 .PHONY: localnet-start-geth
 localnet-start-geth:
 	docker-compose stop geth
 	docker-compose rm -f geth
 	docker-compose up -d geth
+
+# Run geth2
+.PHONY: localnet-start-geth2
+localnet-start-geth2:
+	docker-compose stop geth2
+	docker-compose rm -f geth2
+	docker-compose up -d geth2
 
 # Run a 3-node sgn testnet locally
 .PHONY: localnet-up-nodes

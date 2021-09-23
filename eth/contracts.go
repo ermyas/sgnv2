@@ -121,3 +121,27 @@ func (c *ViewerContract) GetAddr() Addr {
 func (c *ViewerContract) GetABI() string {
 	return ViewerABI
 }
+
+type BridgeContract struct {
+	*Bridge
+	Address Addr
+}
+
+func NewBridgeContract(address Addr, client *ethclient.Client) (*BridgeContract, error) {
+	bridge, err := NewBridge(address, client)
+	if err != nil {
+		return nil, err
+	}
+	return &BridgeContract{
+		Bridge:  bridge,
+		Address: address,
+	}, nil
+}
+
+func (c *BridgeContract) GetAddr() Addr {
+	return c.Address
+}
+
+func (c *BridgeContract) GetABI() string {
+	return BridgeABI
+}

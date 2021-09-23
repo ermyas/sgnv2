@@ -53,14 +53,14 @@ func TestMain(m *testing.M) {
 		tc.ClientEthAddrs[0],
 		tc.ClientEthAddrs[1],
 	}
-	err = tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20))
+	err = tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20), tc.LocalGeth, int64(tc.ChainID))
 	tc.ChkErr(err, "fund eth")
 	tc.SetupEthClients()
-	tc.DeployCelrContract()
+	tc.CelrAddr, tc.CelrContract = tc.DeployCelrContract(tc.EthClient, tc.EtherBaseAuth)
 
 	// fund CELR to each eth account
 	log.Infoln("fund each addr 10 million CELR")
-	err = tc.FundAddrsErc20(tc.CelrAddr, addrs, tc.NewBigInt(1, 25))
+	err = tc.FundAddrsErc20(tc.CelrAddr, addrs, tc.NewBigInt(1, 25), tc.EthClient, tc.EtherBaseAuth)
 	tc.ChkErr(err, "fund each addr ERC20")
 
 	// make install sgnd
