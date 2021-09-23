@@ -48,3 +48,19 @@ func GetAssetInfo(kv sdk.KVStore, sym string, chid uint64) *types.ChainAsset {
 	asset.Unmarshal(raw)
 	return asset
 }
+
+// fee percent from src to dest chain, note cfg always save smaller chid as chid1
+// return value is actual fee percent * 1e6
+func GetFeePerc(kv sdk.KVStore, srcChid, destChid uint64) uint32 {
+	pair := new(types.ChainPair)
+	if srcChid < destChid {
+		raw := kv.Get(types.CfgKeyChainPair(srcChid, destChid))
+		pair.Unmarshal(raw)
+		return pair.Fee1To2
+	} else {
+		// dest is ch1, src is ch2
+		raw := kv.Get(types.CfgKeyChainPair(destChid, srcChid))
+		pair.Unmarshal(raw)
+		return pair.Fee2To1
+	}
+}

@@ -140,11 +140,12 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 	}
 	srcAmt, _ := big.NewInt(0).SetString(params.Amt, 10)
 	destAmt := k.CalcEqualOnDestChain(src, dest, srcAmt)
-	userGet := k.CalcUserGet(src, dest, destAmt)
+	feeAmt := CalcFee(ctx.KVStore(k.storeKey), src, dest, destAmt)
+	userGet := new(big.Int).Sub(destAmt, feeAmt)
 
 	resp := types.GetFeeResponse{
 		EqValueTokenAmt: userGet.String(),
-		Fee:             big.NewInt(0).Sub(destAmt, userGet).String(),
+		Fee:             feeAmt.String(),
 		Decimal:         uint64(destToken.Decimal),
 	}
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, resp)

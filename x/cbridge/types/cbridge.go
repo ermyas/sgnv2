@@ -1,6 +1,9 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+	"math/big"
+)
 
 func (m *XferRelay) GetSortedSigsBytes() [][]byte {
 	if m != nil {
@@ -18,11 +21,44 @@ func (c *CbrConfig) Validate() error {
 	if c.LpFee > 100 {
 		return fmt.Errorf("lp_fee %d > 100", c.LpFee)
 	}
-	// todo: make sure assets are multi-chain correctly?
-	for _, chpair := range c.ChainPairs {
-		if chpair.Chid1 > chpair.Chid2 {
-			return fmt.Errorf("chid1 %d > chid2 %d", chpair.Chid1, chpair.Chid2)
+	var err error
+	for _, ast := range c.Assets {
+		err = ast.Validate()
+		if err != nil {
+			return fmt.Errorf("asset %s invalid: %w", ast.String(), err)
 		}
+	}
+	for _, cp := range c.ChainPairs {
+		err = cp.Validate()
+		if err != nil {
+			return fmt.Errorf("chainpair %s invalid: %w", cp.String(), err)
+		}
+	}
+	// todo: make sure assets are multi-chain correctly?
+	// todo: also check all chains in assets are in chainpairs
+	return nil
+}
+
+func (ast *ChainAsset) Validate() error {
+	_, good := new(big.Int).SetString(ast.MaxFeeAmount, 10)
+	if !good {
+		return fmt.Errorf("max_fee_amount %s bad format", ast.MaxFeeAmount)
+	}
+	return nil
+}
+
+func (cp *ChainPair) Validate() error {
+	if cp.Chid1 > cp.Chid2 {
+		return fmt.Errorf("chid1 %d > chid2 %d", cp.Chid1, cp.Chid2)
+	}
+	if cp.Fee1To2 > 1e6 {
+		return fmt.Errorf("Fee1To2 %d > 1e6", cp.Fee1To2)
+	}
+	if cp.Fee2To1 > 1e6 {
+		return fmt.Errorf("Fee2To1 %d > 1e6", cp.Fee2To1)
+	}
+	if cp.Weight1 >= 200 {
+		return fmt.Errorf("weight1 %d >= 200", cp.Weight1)
 	}
 	return nil
 }

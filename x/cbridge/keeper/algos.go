@@ -57,9 +57,22 @@ func getAddr(lpmapkey []byte) string {
 	return keystr[lastDashIdx+1:]
 }
 
-// return how much user receive on dest chain
-// note fee and max fee cap
-// return usergtt, total-userget=fee
-func (k Keeper) CalcUserGet(src, dest *ChainIdTokenAddr, total *big.Int) *big.Int {
-	return new(big.Int).Set(total)
+// total is dest amount, return fee
+func CalcFee(kv sdk.KVStore, src, dest *ChainIdTokenAddr, total *big.Int) *big.Int {
+	feePerc := GetFeePerc(kv, src.ChId, dest.ChId) // fee percent * 1e6
+	if feePerc == 0 {
+		return new(big.Int)
+	}
+	feeAmt := new(big.Int).Mul(total, big.NewInt(int64(feePerc)))
+	feeAmt.Div(feeAmt, big.NewInt(1e6))
+	// now compare feeAmt to max fee amt for dest chain token
+	assetInfo := GetAssetInfo(kv, GetAssetSymbol(kv, dest), dest.ChId)
+	if assetInfo == nil {
+		return feeAmt
+	}
+	maxFee, _ := new(big.Int).SetString(assetInfo.MaxFeeAmount, 10)
+	if feeAmt.Cmp(maxFee) > 0 {
+		return maxFee
+	}
+	return feeAmt
 }

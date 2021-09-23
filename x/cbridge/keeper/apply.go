@@ -91,11 +91,10 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			SetXferRefund(kv, ev.TransferId, wdOnchain)
 			return true, nil
 		}
-		userGet := k.CalcUserGet(src, dest, destAmount)
+		feeAmt := CalcFee(kv, src, dest, destAmount)
 		// check slippage
-		lessAmount := new(big.Int).Sub(ev.Amount, destAmount)
-		if lessAmount.Sign() == 1 {
-			slippage := new(big.Int).Mul(lessAmount, big.NewInt(1e6))
+		if feeAmt.Sign() == 1 {
+			slippage := new(big.Int).Mul(feeAmt, big.NewInt(1e6))
 			slippage.Div(slippage, destAmount)
 			if slippage.Uint64() > uint64(ev.MaxSlippage) {
 				sendStatus = types.XferStatus_BAD_SLIPPAGE
@@ -105,13 +104,13 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		}
 
 		// pick LPs, minus each's destChain liquidity, add src liquidity
-		k.PickLPsAndAdjustLiquidity(ctx, src, dest, ev.Amount, destAmount, userGet)
+		k.PickLPsAndAdjustLiquidity(ctx, src, dest, ev.Amount, destAmount, feeAmt)
 
 		relayOnchain := &types.RelayOnChain{
 			Sender:        ev.Sender[:],
 			Receiver:      ev.Receiver[:],
 			Token:         destTokenAddr[:],
-			Amount:        userGet.Bytes(),
+			Amount:        new(big.Int).Sub(destAmount, feeAmt).Bytes(),
 			SrcChainId:    onchev.Chainid,
 			DstChainId:    ev.DstChainId,
 			SrcTransferId: ev.TransferId[:],
