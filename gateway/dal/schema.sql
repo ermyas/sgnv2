@@ -15,12 +15,16 @@ CREATE TABLE IF NOT EXISTS transfer (
     amt TEXT NOT NULL DEFAULT '0',
     received_amt TEXT NOT NULL DEFAULT '0',
     status INT NOT NULL DEFAULT 1,
-    volume FLOAT NOT NULL DEFAULT 0
+    volume FLOAT NOT NULL DEFAULT 0,
+    refund_tx TEXT NOT NULL DEFAULT '',
+    refund_seq_num INT NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS tsf_utm_idx ON transfer (update_time);
 CREATE INDEX IF NOT EXISTS tsf_ctm_idx ON transfer (create_time);
 CREATE INDEX IF NOT EXISTS tsf_addr_idx ON transfer (usr_addr);
 CREATE INDEX IF NOT EXISTS tsf_tid_idx ON transfer (transfer_id);
+CREATE INDEX IF NOT EXISTS tsf_dtid_idx ON transfer (dst_transfer_id);
+CREATE INDEX IF NOT EXISTS tsf_sqn_idx ON transfer (refund_seq_num);
 
 CREATE TABLE IF NOT EXISTS lp (
     usr_addr TEXT NOT NULL,

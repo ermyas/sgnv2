@@ -58,6 +58,8 @@ type CbrOneChain struct {
 // key is chainid
 type CbrMgr map[uint64]*CbrOneChain
 
+var CbrMgrInstance CbrMgr
+
 // for each chain, dial gw, newprefixdb, newWatchDAL, monitor
 func NewCbridgeMgr(db dbm.DB) CbrMgr {
 	var mcc []*common.OneChainConfig
@@ -76,6 +78,7 @@ func NewCbridgeMgr(db dbm.DB) CbrMgr {
 		log.Infof("Add cbridge chain: %+v", onecfg)
 		ret[onecfg.ChainID] = newOneChain(onecfg, watcherDal, cbrDb)
 	}
+	CbrMgrInstance = ret
 	return ret
 }
 

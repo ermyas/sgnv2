@@ -1,9 +1,10 @@
-package webapi
+package gateway
 
 import (
 	"flag"
 	"fmt"
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/gateway/dal"
 	"io"
 	"math/rand"
 	"os"
@@ -110,10 +111,10 @@ func TestDb(t *testing.T) {
 	transferId := "123"
 	//err = DB.InsertTransfer(transferId, "0x0000000", "USDT", 1, 2)
 	errIsNil(t, err)
-	addr, token, srcChainId, dstChainId, found, err := DB.GetTransfer(transferId)
+	addr, token, srcChainId, dstChainId, status, found, err := dal.DB.GetTransfer(transferId)
 	errIsNil(t, err)
 	if !found {
 		t.Error("transfer not found")
 	}
-	log.Infof("transfer info: addr:%s, token:%s, src_chain_id:%d, dst_chain_id:%d", addr, token, srcChainId, dstChainId)
+	log.Infof("transfer info: addr:%s, token:%s, src_chain_id:%d, dst_chain_id:%d, status:%d", addr, token, srcChainId, dstChainId, status)
 }

@@ -155,6 +155,7 @@ message MarkTransferRequest {
     string addr = 5;
     string src_tx_hash = 6;
     MarkTransferTypeRequest type = 7;
+    uint64 withdraw_seq_num = 8;
 }
 
 message MarkTransferResponse {

@@ -3,6 +3,9 @@ package relayer
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"math/big"
 	"time"
 
@@ -63,6 +66,10 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
 		}
+		err = dal.DB.UpdateTransferStatus(common.Hash(ev.TransferId).String(), uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE))
+		if err != nil {
+			log.Errorln("UpdateTransfer err:", err)
+		}
 		return false
 	})
 }
@@ -84,6 +91,10 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
+		}
+		err = dal.DB.TransferCompleted(common.Hash(ev.TransferId).String(), eLog.TxHash.String())
+		if err != nil {
+			log.Errorln("UpdateTransfer err:", err)
 		}
 		return false
 	})
@@ -129,6 +140,12 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
+		}
+		transferId, found, err := dal.DB.GetTransferBySeqNum(ev.Seqnum)
+		if found {
+			dal.DB.UpdateTransferStatus(transferId, uint64(types.TransferHistoryStatus_TRANSFER_REFUNDED))
+		} else {
+			// todo for LP withdraw completed
 		}
 		return false
 	})

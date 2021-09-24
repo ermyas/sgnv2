@@ -83,6 +83,16 @@ func (t *TokenPriceCache) GetUsdPrice(tokenSymbol string) (float64, error) {
 	return price, nil
 }
 
+// GetUsdPrice gets the token/USD price by token symbol. e.g. "ETH", "DAI", "USDT"
+func (t *TokenPriceCache) GetUsdVolume(token *types.Token, amt *big.Int) float64 {
+	tokenPrize, err := t.GetUsdPrice(token.GetSymbol())
+	if err != nil {
+		return 0
+	}
+	tokenAmt, _ := new(big.Float).Quo(new(big.Float).SetInt(amt), big.NewFloat(math.Pow(10, float64(token.GetDecimal())))).Float64()
+	return tokenAmt * tokenPrize
+}
+
 func (t *TokenPriceCache) GetTokenPrice(token *types.Token, chainToken *types.Token, chainTokenAmt *big.Int) (*big.Int, error) {
 	tokenPrize, err := t.GetUsdPrice(token.GetSymbol())
 	if err != nil {

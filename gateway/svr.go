@@ -1,31 +1,32 @@
-package webapi
+package gateway
 
 import (
 	"context"
 	"fmt"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/app"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/fee"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
+	"github.com/celer-network/sgn-v2/relayer"
 	"github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/lthibault/jitterbug"
 	"os"
 	"time"
 )
 
-var DB *dal.DAL = nil // for sgn usage, in package instead of svr
-
 // Close the database DAL.
 func (gs *GatewayService) Close() {
-	if DB == nil {
+	if dal.DB == nil {
 		return
 	}
-	DB.Close()
-	DB = nil
+	dal.DB.Close()
+	dal.DB = nil
 }
 
 type GatewayConfig struct {
@@ -40,7 +41,7 @@ func (gs *GatewayService) SetAdvancedInfo(ctx context.Context, request *webapi.S
 }
 
 func (gs *GatewayService) GetTransferConfigs(ctx context.Context, request *webapi.GetTransferConfigsRequest) (*webapi.GetTransferConfigsResponse, error) {
-	chainTokenList, err := DB.GetChainTokenList()
+	chainTokenList, err := dal.DB.GetChainTokenList()
 	if err != nil {
 		return &webapi.GetTransferConfigsResponse{
 			Err: &webapi.ErrMsg{
@@ -55,7 +56,7 @@ func (gs *GatewayService) GetTransferConfigs(ctx context.Context, request *webap
 	for key := range chainTokenList {
 		chainIds = append(chainIds, key)
 	}
-	chains, err := DB.GetChainInfo(chainIds)
+	chains, err := dal.DB.GetChainInfo(chainIds)
 	if err != nil {
 		return &webapi.GetTransferConfigsResponse{
 			Err: &webapi.ErrMsg{
@@ -78,7 +79,40 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 }
 
 func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.MarkTransferRequest) (*webapi.MarkTransferResponse, error) {
-	panic("implement me")
+	transferId := request.GetTransferId()
+	addr := common.Hex2Addr(request.GetAddr())
+	sendInfo := request.GetSrcSendInfo()
+	receivedInfo := request.GetDstMinReceivedInfo()
+	dstTransferId := request.GetDstTransferId()
+	txHash := request.GetSrcTxHash()
+	txType := request.GetType()
+	withdrawSeqNum := request.GetWithdrawSeqNum()
+	if txType == webapi.MarkTransferTypeRequest_TRANSFER_TYPE_SEND {
+		err := dal.DB.MarkTransferSend(transferId, dstTransferId, addr.String(), sendInfo.GetToken().GetSymbol(),
+			sendInfo.GetAmount(), receivedInfo.GetAmount(), txHash, sendInfo.GetChain().GetId(),
+			receivedInfo.GetChain().GetId(), gs.f.GetUsdVolume(sendInfo.GetToken(), common.Str2BigInt(sendInfo.GetAmount())))
+		if err != nil {
+			return &webapi.MarkTransferResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  "mark transfer refund failed",
+				},
+			}, nil
+		}
+	} else if txType == webapi.MarkTransferTypeRequest_TRANSFER_TYPE_REFUND {
+		err := dal.DB.MarkTransferRefund(transferId, txHash, withdrawSeqNum)
+		if err != nil {
+			return &webapi.MarkTransferResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  "mark transfer refund failed",
+				},
+			}, nil
+		}
+	}
+	return &webapi.MarkTransferResponse{
+		Err: nil,
+	}, nil
 }
 
 func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.GetLPInfoListRequest) (*webapi.GetLPInfoListResponse, error) {
@@ -111,7 +145,7 @@ func NewGatewayService(dbUrl string) (*GatewayService, error) {
 	if err != nil {
 		return nil, err
 	}
-	DB = _db
+	dal.DB = _db
 	gateway := &GatewayService{}
 
 	gateway.f = fee.NewTokenPriceCache()
@@ -142,7 +176,7 @@ func (gs *GatewayService) StartChainTokenPolling(interval time.Duration) {
 							log.Error("get price error", err)
 						}
 					}
-					dbErr := DB.UpsertTokenBaseInfo(token.GetSymbol(), token.GetAddress(), asset.GetContractAddr(), asset.GetMaxAmt(), chainId, uint64(token.GetDecimal()))
+					dbErr := dal.DB.UpsertTokenBaseInfo(token.GetSymbol(), token.GetAddress(), asset.GetContractAddr(), asset.GetMaxAmt(), chainId, uint64(token.GetDecimal()))
 					if dbErr != nil {
 						log.Errorln("failed to write token:", err)
 					}
@@ -151,6 +185,61 @@ func (gs *GatewayService) StartChainTokenPolling(interval time.Duration) {
 
 		}
 	}()
+}
+
+// todo add this in history query @aric
+func UpdateTransferStatusInHistory(sender string, endTime time.Time, pageSize uint64) error {
+	transferList, _, _, err := dal.DB.PaginateTransferList(sender, endTime, pageSize)
+
+	var transferIds []string
+	for _, transfer := range transferList {
+		transferIds = append(transferIds, transfer.TransferId)
+	}
+	transferMap, err := cli.QueryTransferStatus(initClientCtx(), &types.QueryTransferStatusRequest{
+		TransferId: transferIds,
+	})
+	if err != nil {
+		return err
+	}
+	transferStatusMap := transferMap.Status
+
+	for _, transfer := range transferList {
+		transferId := transfer.TransferId
+		status := transfer.Status
+		srcChainId := transfer.SrcChainId
+		txHash := transfer.SrcTxHash
+
+		if status == types.TransferHistoryStatus_TRANSFER_SUBMITTING {
+			var ctx context.Context
+			receipt, recErr := relayer.CbrMgrInstance[srcChainId].TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))
+			if recErr == nil && receipt.Status != ethtypes.ReceiptStatusSuccessful {
+				log.Warnf("find transfer failed, chain_id %d, hash:%s", srcChainId, txHash)
+				dbErr := dal.DB.UpdateTransferStatus(transferId, uint64(types.TransferHistoryStatus_TRANSFER_FAILED))
+				if dbErr != nil {
+					log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", srcChainId, txHash)
+				}
+			}
+		}
+
+		if err != nil {
+			return err
+		}
+		if status == types.TransferHistoryStatus_TRANSFER_FAILED ||
+			status == types.TransferHistoryStatus_TRANSFER_COMPLETED ||
+			status == types.TransferHistoryStatus_TRANSFER_REFUNDED {
+			continue
+		}
+		if transferStatusMap[transferId] == types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED ||
+			transferStatusMap[transferId] == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND ||
+			transferStatusMap[transferId] == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED {
+			dbErr := dal.DB.UpdateTransferStatus(transferId, uint64(transferStatusMap[transferId]))
+			if dbErr != nil {
+				log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", srcChainId, txHash)
+			}
+		}
+		return nil
+	}
+	return nil
 }
 
 func initClientCtx() client.Context {
