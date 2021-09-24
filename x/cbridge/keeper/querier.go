@@ -277,7 +277,7 @@ func queryWithdrawLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keep
 	}
 
 	if wd.Completed {
-		status = types.LPHistoryStatus_LP_COMPLETED
+		status = types.LPHistoryStatus_LP_WAITING_FOR_LP
 	} else {
 		status = types.LPHistoryStatus_LP_WAITING_FOR_SGN
 	}
