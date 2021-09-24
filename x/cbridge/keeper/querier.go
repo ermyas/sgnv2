@@ -42,7 +42,7 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 }
 
 func queryParams(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
-	cfg := new(types.CbrConfig) // todo: impl
+	cfg := k.GetCbrConfig(ctx)
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, cfg)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
@@ -83,7 +83,7 @@ func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, le
 		mccMap[occ.ChainID] = occ
 	}
 
-	mca := new(types.CbrConfig) // todo: impl
+	mca := k.GetCbrConfig(ctx)
 	chainTokens := make(map[uint64]*types.Assets)
 	for _, a := range mca.Assets {
 		occ, ok := mccMap[a.ChainId]
@@ -208,16 +208,20 @@ func queryLiquidityDetailList(ctx sdk.Context, req abci.RequestQuery, k Keeper, 
 
 	ldList := make([]*types.LiquidityDetail, 0)
 	for _, pair := range params.ChainToken {
-		ld := GetLPBalance(ctx.KVStore(k.storeKey), pair.ChainId, eth.Hex2Addr(pair.TokenAddr), eth.Hex2Addr(params.LpAddr))
+		tokenEthAddr := eth.Hex2Addr(pair.TokenAddr)
+		lpEthAddr := eth.Hex2Addr(params.LpAddr)
 		ldList = append(ldList, &types.LiquidityDetail{
 			ChainId: pair.ChainId,
 			Token: &types.Token{
 				Address: pair.TokenAddr,
 			},
-			UsrLiquidity: ld.String(),
+			UsrLiquidity:    GetLPBalance(ctx.KVStore(k.storeKey), pair.ChainId, tokenEthAddr, lpEthAddr).String(),
+			UsrLpFeeEarning: GetLPFee(ctx.KVStore(k.storeKey), pair.ChainId, tokenEthAddr, lpEthAddr).String(),
+			TotalLiquidity: GetLiq(ctx.KVStore(k.storeKey), &ChainIdTokenAddr{
+				ChId:      pair.ChainId,
+				TokenAddr: tokenEthAddr,
+			}).String(),
 			//TODO
-			//UsrLpFeeEarning: ,
-			//TotalLiquidity: ,
 			//LpFeeRate: ,
 		})
 	}
@@ -244,8 +248,7 @@ func queryAddLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keeper, l
 	if HasEvLiqAdd(ctx.KVStore(k.storeKey), params.ChainId, params.SeqNum) {
 		status = types.LPHistoryStatus_LP_COMPLETED
 	} else {
-		// TODO: to check the biz logic
-		status = types.LPHistoryStatus_LP_FAILED
+		status = types.LPHistoryStatus_LP_WAITING_FOR_SGN
 	}
 
 	resp := types.QueryLiquidityStatusResponse{
@@ -276,8 +279,7 @@ func queryWithdrawLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keep
 	if wd.Completed {
 		status = types.LPHistoryStatus_LP_COMPLETED
 	} else {
-		// TODO: to check the biz logic
-		status = types.LPHistoryStatus_LP_FAILED
+		status = types.LPHistoryStatus_LP_WAITING_FOR_SGN
 	}
 
 	resp := types.QueryLiquidityStatusResponse{

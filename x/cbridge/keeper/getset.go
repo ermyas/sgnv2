@@ -64,6 +64,17 @@ func GetEvSendStatus(kv sdk.KVStore, xferId [32]byte) types.XferStatus {
 	return types.XferStatus(val[0])
 }
 
+func GetLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr) *big.Int {
+	iter := sdk.KVStorePrefixIterator(kv, []byte(fmt.Sprintf("lm-%d-%s-", chaddr.ChId, eth.Addr2Hex(chaddr.TokenAddr))))
+	defer iter.Close()
+	totalLiq := new(big.Int)
+	for ; iter.Valid(); iter.Next() {
+		totalLiq.Add(totalLiq, new(big.Int).SetBytes(iter.Value()))
+	}
+
+	return totalLiq
+}
+
 func HasEnoughLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr, needed *big.Int) bool {
 	// sum over all liqmap, if larger than needed, return true
 	iter := sdk.KVStorePrefixIterator(kv, []byte(fmt.Sprintf("lm-%d-%s-", chaddr.ChId, eth.Addr2Hex(chaddr.TokenAddr))))

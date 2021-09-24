@@ -30,6 +30,34 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 	}
 }
 
+func (k Keeper) GetCbrConfig(ctx sdk.Context) types.CbrConfig {
+	var cbrConfig types.CbrConfig
+	kv := ctx.KVStore(k.storeKey)
+	cbrConfig.LpFee = uint32(new(big.Int).SetBytes(kv.Get(types.CfgKeyFeePerc)).Int64())
+	cbrConfig.Assets = make([]*types.ChainAsset, 0)
+	cbrConfig.ChainPairs = make([]*types.ChainPair, 0)
+
+	iter := sdk.KVStorePrefixIterator(kv, []byte("cfg-sym2info-"))
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		assetRaw := iter.Value()
+		asset := new(types.ChainAsset)
+		asset.Unmarshal(assetRaw)
+		cbrConfig.Assets = append(cbrConfig.Assets, asset)
+	}
+
+	iter2 := sdk.KVStorePrefixIterator(kv, []byte("cfg-chpair-"))
+	defer iter2.Close()
+	for ; iter.Valid(); iter.Next() {
+		pairRaw := iter.Value()
+		pair := new(types.ChainPair)
+		pair.Unmarshal(pairRaw)
+		cbrConfig.ChainPairs = append(cbrConfig.ChainPairs, pair)
+	}
+
+	return cbrConfig
+}
+
 // utils to deal with asset, chid and address
 
 // given chid and token address, return which asset eg. USDT
