@@ -31,13 +31,13 @@ CREATE TABLE IF NOT EXISTS lp (
     chain_id INT NOT NULL,
     token_symbol TEXT NOT NULL,
     amt TEXT NOT NULL DEFAULT '0',
-    add_tx_hash TEXT NOT NULL DEFAULT '',
+    tx_hash TEXT NOT NULL DEFAULT '',
     update_time TIMESTAMPTZ NOT NULL DEFAULT now(),
     create_time TIMESTAMPTZ NOT NULL DEFAULT now(),
     status INT NOT NULL DEFAULT 1,
-    type INT NOT NULL DEFAULT 1,
+    lp_type INT NOT NULL DEFAULT 1,
     seq_num INT NOT NULL DEFAULT 0,
-    volume FLOAT NOT NULL DEFAULT 0
+    PRIMARY KEY (chain_id, seq_num, lp_type)
     );
 CREATE INDEX IF NOT EXISTS lp_utm_idx ON lp (update_time);
 CREATE INDEX IF NOT EXISTS lp_ctm_idx ON lp (create_time);

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"math/big"
 	"time"
@@ -119,6 +120,21 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
 		}
+		chainId, err := c.ChainID(nil)
+		if err != nil {
+			log.Errorln("get chain id err:", err)
+			return false
+		}
+		token, found, err := dal.DB.GetTokenByAddr(ev.Token.String(), chainId.Uint64())
+		if err != nil || !found {
+			log.Errorf("token %s on chain %d not found, err:%+v", ev.Token.String(), chainId.Uint64(), err)
+			return false
+		}
+		err = dal.DB.UpsertLP(ev.Provider.String(), token.Token.Symbol, ev.Amount.String(), eLog.TxHash.String(), chainId.Uint64(), uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_ADD), ev.Seqnum)
+		if err != nil {
+			log.Errorln("UpsertLP db err:", err)
+			return false
+		}
 		return false
 	})
 }
@@ -143,9 +159,15 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 		}
 		transferId, found, err := dal.DB.GetTransferBySeqNum(ev.Seqnum)
 		if found {
-			dal.DB.UpdateTransferStatus(transferId, uint64(types.TransferHistoryStatus_TRANSFER_REFUNDED))
+			dbErr := dal.DB.UpdateTransferStatus(transferId, uint64(types.TransferHistoryStatus_TRANSFER_REFUNDED))
+			if dbErr != nil {
+				log.Errorln("db when UpdateTransferStatus to TRANSFER_REFUNDED err:", err)
+			}
 		} else {
-			// todo for LP withdraw completed
+			dbErr := dal.DB.UpdateLPStatus(ev.Seqnum, uint64(types.LPHistoryStatus_LP_COMPLETED))
+			if dbErr != nil {
+				log.Errorln("db when UpdateLPStatus to LP_COMPLETED err:", err)
+			}
 		}
 		return false
 	})

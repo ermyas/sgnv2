@@ -54,10 +54,10 @@ func (d *DAL) UpdateTransferStatus(transferId string, status uint64) error {
 	case
 		uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE), // relayer event
 		uint64(types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED),           // UpdateTransferStatusInHistory
-		uint64(types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND),        // UpdateTransferStatusInHistory
 		uint64(types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED):   // UpdateTransferStatusInHistory
 		checked = true //todo CheckTransferStatusNotIn @Aric
 	case
+		uint64(types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND),      // MarkTransferRequestingRefund
 		uint64(types.TransferHistoryStatus_TRANSFER_COMPLETED),              //TransferCompleted called by relayer event
 		uint64(types.TransferHistoryStatus_TRANSFER_CONFIRMING_YOUR_REFUND), // MarkTransferRefund called by user
 		uint64(types.TransferHistoryStatus_TRANSFER_SUBMITTING):             //MarkTransferSend called by user
@@ -135,6 +135,7 @@ func (d *DAL) TransferCompleted(transferId, txHash string) error {
 	res, err := d.Exec(q, transferId, txHash, status, now())
 	return sqldb.ChkExec(res, err, 1, "TransferCompleted")
 }
+
 func (d *DAL) MarkTransferRefund(transferId, txHash string, withdrawSeqNum uint64) error {
 	status := uint64(types.TransferHistoryStatus_TRANSFER_CONFIRMING_YOUR_REFUND)
 	var statusList []uint64
@@ -143,6 +144,17 @@ func (d *DAL) MarkTransferRefund(transferId, txHash string, withdrawSeqNum uint6
 	}
 	q := `UPDATE transfer SET refund_tx=$2, status=$3, update_time=$4, refund_seq_num=$5 WHERE transfer_id=$1`
 	res, err := d.Exec(q, transferId, txHash, status, now(), withdrawSeqNum)
+	return sqldb.ChkExec(res, err, 1, "MarkTransferRefund")
+}
+
+func (d *DAL) MarkTransferRequestingRefund(transferId string, withdrawSeqNum uint64) error {
+	status := uint64(types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND)
+	var statusList []uint64
+	if !d.CheckTransferStatusNotIn(transferId, statusList) {
+		return nil
+	}
+	q := `UPDATE transfer SET status=$3, update_time=$4, refund_seq_num=$5 WHERE transfer_id=$1`
+	res, err := d.Exec(q, transferId, status, now(), withdrawSeqNum)
 	return sqldb.ChkExec(res, err, 1, "MarkTransferRefund")
 }
 

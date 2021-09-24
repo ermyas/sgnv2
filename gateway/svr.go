@@ -120,15 +120,132 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 }
 
 func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.MarkLiquidityRequest) (*webapi.MarkLiquidityResponse, error) {
-	panic("implement me")
+	lpType := request.GetType()
+	chainId := request.GetChainId()
+	amt := request.GetAmt()
+	addr := common.Hex2Addr(request.GetLpAddr()).String()
+	seqNum := request.GetSeqNum()
+	tokenAddr := common.Hex2Addr(request.GetTokenAddr()).String()
+	token, found, err := dal.DB.GetTokenByAddr(tokenAddr, chainId)
+	if !found || err != nil {
+		return &webapi.MarkLiquidityResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "token not found in gateway DB",
+			},
+		}, nil
+	}
+	txHash := request.GetTxHash()
+	err = dal.DB.UpsertLP(addr, token.GetToken().GetSymbol(), amt, txHash, chainId, uint64(types.LPHistoryStatus_LP_SUBMITTING), uint64(lpType), seqNum)
+	if err != nil {
+		return &webapi.MarkLiquidityResponse{}, nil
+	} else {
+		return &webapi.MarkLiquidityResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "update data err",
+			},
+		}, nil
+	}
 }
 
 func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi.WithdrawLiquidityRequest) (*webapi.WithdrawLiquidityResponse, error) {
-	panic("implement me")
+	transferId := request.GetTransferId()
+	if transferId != "" {
+		// refund transfer
+		seqNum, err := gs.initWithdraw(&types.MsgInitWithdraw{
+			XferId: common.Hex2Bytes(transferId),
+		})
+		if err != nil {
+			return &webapi.WithdrawLiquidityResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  err.Error(),
+				},
+			}, nil
+		}
+		err = dal.DB.MarkTransferRequestingRefund(transferId, seqNum)
+		if err != nil {
+			return &webapi.WithdrawLiquidityResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  "db error when mark refund",
+				},
+			}, nil
+		}
+		return &webapi.WithdrawLiquidityResponse{
+			SeqNum: seqNum,
+		}, nil
+	} else {
+		// remove liquidity
+		amt := request.GetAmount()
+		chainId := request.GetChainId()
+		tokenAddr := common.Hex2Addr(request.GetTokenAddr()).String()
+		token, found, err := dal.DB.GetTokenByAddr(tokenAddr, chainId)
+		if !found || err != nil {
+			return &webapi.WithdrawLiquidityResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  "token not found in gateway DB",
+				},
+			}, nil
+		}
+		creator := common.Hex2Addr(request.GetCreator()).String()
+		lp := common.Hex2Addr(request.GetReceiverAddr()).String()
+		seqNum, err := gs.initWithdraw(&types.MsgInitWithdraw{
+			Chainid: chainId,
+			LpAddr:  common.Hex2Bytes(lp),
+			Token:   common.Hex2Bytes(tokenAddr),
+			Amount:  common.Hex2Bytes(amt),
+			Creator: creator,
+		})
+		err = dal.DB.UpsertLP(lp, token.Token.Symbol, amt, "", chainId, uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
+		if err != nil {
+			_ = dal.DB.UpdateLPStatus(seqNum, uint64(types.LPHistoryStatus_LP_FAILED))
+			return &webapi.WithdrawLiquidityResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  "db error when mark refund",
+				},
+			}, nil
+		}
+		return &webapi.WithdrawLiquidityResponse{
+			SeqNum: seqNum,
+		}, nil
+	}
 }
 
+func (gs *GatewayService) initWithdraw(req *types.MsgInitWithdraw) (uint64, error) {
+	// todo how to call msg_server @aric
+	return 0, nil
+}
+
+// for withdraw only
 func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *webapi.QueryLiquidityStatusRequest) (*types.QueryLiquidityStatusResponse, error) {
-	panic("implement me")
+	// todo add logic in history too @aric
+	seqNum := request.SeqNum
+	chainId, txHash, status, found, err := dal.DB.GetLPInfo(seqNum)
+	if found && err == nil && status == uint64(types.LPHistoryStatus_LP_SUBMITTING) && txHash != "" {
+		var ctx context.Context
+		receipt, recErr := relayer.CbrMgrInstance[chainId].TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))
+		if recErr == nil && receipt.Status != ethtypes.ReceiptStatusSuccessful {
+			log.Warnf("find transfer failed, chain_id %d, hash:%s", chainId, txHash)
+			dbErr := dal.DB.UpdateLPStatus(seqNum, uint64(types.LPHistoryStatus_LP_FAILED))
+			if dbErr != nil {
+				log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", chainId, txHash)
+			}
+		}
+	}
+
+	resp, _ := cli.QueryWithdrawLiquidityStatus(initClientCtx(), &types.QueryWithdrawLiquidityStatusRequest{
+		SeqNum: seqNum,
+	})
+	if resp.GetStatus() == types.LPHistoryStatus_LP_WAITING_FOR_LP {
+		_ = dal.DB.UpdateLPStatus(seqNum, uint64(types.LPHistoryStatus_LP_WAITING_FOR_LP))
+	}
+	return &types.QueryLiquidityStatusResponse{
+		Status: resp.GetStatus(),
+	}, nil
 }
 
 func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.TransferHistoryRequest) (*webapi.TransferHistoryResponse, error) {
@@ -208,7 +325,6 @@ func UpdateTransferStatusInHistory(sender string, endTime time.Time, pageSize ui
 		status := transfer.Status
 		srcChainId := transfer.SrcChainId
 		txHash := transfer.SrcTxHash
-
 		if status == types.TransferHistoryStatus_TRANSFER_SUBMITTING {
 			var ctx context.Context
 			receipt, recErr := relayer.CbrMgrInstance[srcChainId].TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))

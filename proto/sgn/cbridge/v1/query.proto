@@ -114,8 +114,8 @@ enum LPHistoryStatus {
     LP_SUBMITTING = 3; // user: after calling mark add or withdraw
     LP_COMPLETED = 4; // relayer: on chain event monitored
 
-    // user: check if tx reverted when shown status is LP_SUBMITTING
-    // x: sgn rejected
+    // user for add: check if tx reverted when shown status is LP_SUBMITTING
+    // x for withdraw: sgn rejected
     LP_FAILED = 5;
 }
 
@@ -126,7 +126,7 @@ enum TransferHistoryStatus {
     TRANSFER_WAITING_FOR_FUND_RELEASE = 3; // relayer: on send tx success event
     TRANSFER_COMPLETED = 4; // relayer: on relay tx success event
     TRANSFER_TO_BE_REFUNDED = 5; // x: transfer rejected by sgn and waiting for withdraw api called
-    TRANSFER_REQUESTING_REFUND = 6; // x: withdraw api has been called and withdraw is processing by sgn
+    TRANSFER_REQUESTING_REFUND = 6; // user: withdraw api has been called and withdraw is processing by sgn
     TRANSFER_REFUND_TO_BE_CONFIRMED = 7; // x: withdraw is approved by sgn
     TRANSFER_CONFIRMING_YOUR_REFUND = 8; // user: mark refund has been submitted on chain
     TRANSFER_REFUNDED = 9; //relayer: on refund(withdraw liquidity actually) tx event
