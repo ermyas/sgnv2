@@ -10,7 +10,6 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -18,16 +17,18 @@ import (
 	"github.com/spf13/viper"
 )
 
-func DeployERC20Contract(ethClient *ethclient.Client, auth *bind.TransactOpts) (*types.Transaction, eth.Addr, *eth.Erc20) {
+func DeployERC20Contract(ethClient *ethclient.Client, auth *bind.TransactOpts, name, symbol string, decimal uint8) (eth.Addr, *eth.Erc20) {
 	initAmt := NewBigInt(1, 28)
-	erc20Addr, tx, erc20, err := eth.DeployErc20(auth, ethClient, "Celer", "CELR", initAmt, 18)
+	erc20Addr, tx, erc20, err := eth.DeployErc20(auth, ethClient, name, symbol, initAmt, decimal)
 	ChkErr(err, "failed to deploy ERC20")
 
 	log.Infoln("Erc20 address:", erc20Addr.String())
-	return tx, erc20Addr, erc20
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployERC20")
+
+	return erc20Addr, erc20
 }
 
-func DeployBridgeContract(ethClient *ethclient.Client, auth *bind.TransactOpts, signers []byte) (cbrAddr ethcommon.Address, cbrContract *eth.BridgeContract) {
+func DeployBridgeContract(ethClient *ethclient.Client, auth *bind.TransactOpts, signers []byte) (cbrAddr eth.Addr, cbrContract *eth.BridgeContract) {
 	cbrAddr, tx, _, err := eth.DeployBridge(auth, ethClient, signers)
 	ChkErr(err, "failed to deploy bridge contract")
 	cbrContract, err = eth.NewBridgeContract(cbrAddr, ethClient)
@@ -36,14 +37,6 @@ func DeployBridgeContract(ethClient *ethclient.Client, auth *bind.TransactOpts, 
 	log.Infoln("bridge address:", cbrAddr.String())
 
 	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployBridgeContract")
-
-	return
-}
-
-func DeployCelrContract(ethClient *ethclient.Client, auth *bind.TransactOpts) (celrAddr ethcommon.Address, celrContract *eth.Erc20) {
-	var tx *types.Transaction
-	tx, celrAddr, celrContract = DeployERC20Contract(ethClient, auth)
-	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployERC20")
 
 	return
 }
@@ -149,7 +142,7 @@ func DeployCommand() *cobra.Command {
 				ChkErr(err, "fund test ETH")
 			}
 
-			_, celrAddr, erc20 := DeployERC20Contract(EthClient, EtherBaseAuth)
+			celrAddr, erc20 := DeployERC20Contract(EthClient, EtherBaseAuth, "Celer", "CELR", 18)
 			// NOTE: values below are for local tests
 			contractParams := &ContractParams{
 				CelrAddr:              celrAddr,

@@ -35,7 +35,6 @@ func stakingTest(t *testing.T) {
 	log.Info("======================== Test staking ===========================")
 
 	transactor := tc.NewTestTransactor(
-		t,
 		NodeHome,
 		viper.GetString(common.FlagSgnChainId),
 		viper.GetString(common.FlagSgnNodeURI),

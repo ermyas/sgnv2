@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupGov() {
+func setupGov(t *testing.T) {
 	log.Infoln("Set up new sgn env")
 	p := &tc.ContractParams{
 		CelrAddr:              tc.CelrAddr,
@@ -30,7 +30,7 @@ func setupGov() {
 		ValidatorBondInterval: big.NewInt(0),
 		MaxSlashFactor:        big.NewInt(1e5),
 	}
-	SetupNewSgnEnv(p, false)
+	SetupNewSgnEnv(p, false, false)
 	tc.SleepWithLog(10, "sgn being ready")
 }
 
@@ -44,10 +44,9 @@ func sgnchainGovTest(t *testing.T) {
 	log.Info("=====================================================================")
 	log.Info("======================== Test sgnchain gov ===========================")
 
-	setupGov()
+	setupGov(t)
 
 	transactor0 := tc.NewTestTransactor(
-		t,
 		tc.SgnHomes[0],
 		tc.SgnChainID,
 		tc.SgnNodeURI,
@@ -56,7 +55,6 @@ func sgnchainGovTest(t *testing.T) {
 	)
 
 	transactor1 := tc.NewTestTransactor(
-		t,
 		tc.SgnHomes[1],
 		tc.SgnChainID,
 		tc.SgnNodeURI,
@@ -65,7 +63,6 @@ func sgnchainGovTest(t *testing.T) {
 	)
 
 	transactor2 := tc.NewTestTransactor(
-		t,
 		tc.SgnHomes[2],
 		tc.SgnChainID,
 		tc.SgnNodeURI,
@@ -77,7 +74,7 @@ func sgnchainGovTest(t *testing.T) {
 	amt2 := big.NewInt(2e18)
 	amt3 := big.NewInt(2e18)
 	amts := []*big.Int{amt1, amt2, amt3}
-	SetupValidators(t, transactor0, amts)
+	SetupValidators(transactor0, amts)
 
 	log.Info("======================== Test change epochlength rejected due to small quorum ===========================")
 	paramChanges := []govtypes.ParamChange{govtypes.NewParamChange("staking", "EpochLength", "\"2\"")}

@@ -50,7 +50,7 @@ func main() {
 			ValidatorBondInterval: big.NewInt(0),
 			MaxSlashFactor:        big.NewInt(1e5),
 		}
-		multinode.SetupNewSgnEnv(p, true)
+		multinode.SetupNewSgnEnv(p, true, false)
 
 		log.Infoln("install sgnd in host machine")
 		cmd := exec.Command("make", "install")

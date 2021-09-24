@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupSlash() {
+func setupSlash(t *testing.T) {
 	log.Infoln("Set up new sgn env")
 	p := &tc.ContractParams{
 		CelrAddr:              tc.CelrAddr,
@@ -31,7 +31,7 @@ func setupSlash() {
 		ValidatorBondInterval: big.NewInt(0),
 		MaxSlashFactor:        big.NewInt(1e5),
 	}
-	SetupNewSgnEnv(p, false)
+	SetupNewSgnEnv(p, false, false)
 	tc.SleepWithLog(10, "sgn being ready")
 }
 
@@ -48,10 +48,9 @@ func slashTest(t *testing.T) {
 	log.Infoln("===================================================================")
 	log.Infoln("======================== Test slash ===========================")
 
-	setupSlash()
+	setupSlash(t)
 
 	transactor := tc.NewTestTransactor(
-		t,
 		tc.SgnHomes[0],
 		tc.SgnChainID,
 		tc.SgnNodeURI,
@@ -62,7 +61,7 @@ func slashTest(t *testing.T) {
 	amt1 := big.NewInt(8e18)
 	amt2 := big.NewInt(1e18)
 	amts := []*big.Int{amt1, amt2}
-	SetupValidators(t, transactor, amts)
+	SetupValidators(transactor, amts)
 
 	prev, _ := tc.Contracts.Staking.Validators(&bind.CallOpts{}, tc.ValEthAddrs[1])
 
@@ -88,10 +87,9 @@ func disableSlashTest(t *testing.T) {
 	log.Infoln("===================================================================")
 	log.Infoln("======================== Test disableSlash ===========================")
 
-	setupSlash()
+	setupSlash(t)
 
 	transactor := tc.NewTestTransactor(
-		t,
 		tc.SgnHomes[0],
 		tc.SgnChainID,
 		tc.SgnNodeURI,
@@ -102,7 +100,7 @@ func disableSlashTest(t *testing.T) {
 	amt1 := big.NewInt(8e18)
 	amt2 := big.NewInt(1e18)
 	amts := []*big.Int{amt1, amt2}
-	SetupValidators(t, transactor, amts)
+	SetupValidators(transactor, amts)
 
 	paramChanges := []govtypes.ParamChange{govtypes.NewParamChange("slash", "EnableSlash", "false")}
 	content := govtypes.NewParameterProposal("Slash Param Change", "Update EnableSlash", paramChanges)
@@ -130,10 +128,9 @@ func expireSlashTest(t *testing.T) {
 	log.Infoln("===================================================================")
 	log.Infoln("======================== Test expireSlash ===========================")
 
-	setupSlash()
+	setupSlash(t)
 
 	transactor := tc.NewTestTransactor(
-		t,
 		tc.SgnHomes[0],
 		tc.SgnChainID,
 		tc.SgnNodeURI,
@@ -144,7 +141,7 @@ func expireSlashTest(t *testing.T) {
 	amt1 := big.NewInt(8e18)
 	amt2 := big.NewInt(1e18)
 	amts := []*big.Int{amt1, amt2}
-	SetupValidators(t, transactor, amts)
+	SetupValidators(transactor, amts)
 
 	prevBalance, _ := tc.CelrContract.BalanceOf(&bind.CallOpts{}, tc.ValEthAddrs[0])
 

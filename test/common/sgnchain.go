@@ -40,7 +40,7 @@ func SetupSgnchain() {
 	}
 }
 
-func NewTestTransactor(t *testing.T, sgnHomeDir, sgnChainID, sgnNodeURI, sgnValAcct, sgnPassphrase string) *transactor.Transactor {
+func NewTestTransactor(sgnHomeDir, sgnChainID, sgnNodeURI, sgnValAcct, sgnPassphrase string) *transactor.Transactor {
 	encodingConfig := app.MakeEncodingConfig()
 
 	tr, err := transactor.NewTransactor(
@@ -53,7 +53,7 @@ func NewTestTransactor(t *testing.T, sgnHomeDir, sgnChainID, sgnNodeURI, sgnValA
 		encodingConfig.Codec,
 		encodingConfig.InterfaceRegistry,
 	)
-	require.NoError(t, err, "Failed to create new transactor.")
+	ChkErr(err, "Failed to create new transactor.")
 	tr.Run()
 
 	return tr
@@ -86,7 +86,7 @@ func CheckValidatorBySgnAddr(t *testing.T, transactor *transactor.Transactor, ex
 	assert.True(t, sameValidators(validator, expVal), msg)
 }
 
-func CheckValidators(t *testing.T, transactor *transactor.Transactor, expVals types.Validators) {
+func CheckValidators(transactor *transactor.Transactor, expVals types.Validators) {
 	var validators types.Validators
 	var err error
 	for retry := 0; retry < RetryLimit; retry++ {
@@ -99,10 +99,12 @@ func CheckValidators(t *testing.T, transactor *transactor.Transactor, expVals ty
 		}
 		time.Sleep(RetryPeriod)
 	}
-	require.NoError(t, err, "failed to QueryValidators", err)
+	ChkErr(err, "failed to QueryValidators")
 	log.Infof("Query sgn and get validators: %s", validators.String())
 	msg := fmt.Sprintf("Expected validators:\n %s\n Actual validators:\n %s\n", expVals.String(), validators.String())
-	assert.True(t, sameEachValidators(validators, expVals), msg)
+	if !sameEachValidators(validators, expVals) {
+		log.Fatalln(msg)
+	}
 }
 
 func CheckDelegation(t *testing.T, transactor *transactor.Transactor, expDel *types.Delegation) {

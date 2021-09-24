@@ -56,7 +56,7 @@ func TestMain(m *testing.M) {
 	err = tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20), tc.LocalGeth, int64(tc.ChainID))
 	tc.ChkErr(err, "fund eth")
 	tc.SetupEthClients()
-	tc.CelrAddr, tc.CelrContract = tc.DeployCelrContract(tc.EthClient, tc.EtherBaseAuth)
+	tc.CelrAddr, tc.CelrContract = tc.DeployERC20Contract(tc.EthClient, tc.EtherBaseAuth, "Celer", "CELR", 18)
 
 	// fund CELR to each eth account
 	log.Infoln("fund each addr 10 million CELR")

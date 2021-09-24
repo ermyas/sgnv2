@@ -2,22 +2,22 @@ package multinode
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"testing"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
 	"github.com/celer-network/sgn-v2/transactor"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
 )
 
 func SetupMainchain() {
@@ -67,7 +67,7 @@ func SetupMainchain() {
 
 	log.Infoln("set up mainchain")
 	tc.SetupEthClients()
-	tc.CelrAddr, tc.CelrContract = tc.DeployCelrContract(tc.EthClient, tc.EtherBaseAuth)
+	tc.CelrAddr, tc.CelrContract = tc.DeployERC20Contract(tc.EthClient, tc.EtherBaseAuth, "Celer", "CELR", 18)
 
 	// fund CELR to each eth account
 	log.Infoln("fund each test addr 10 million CELR")
@@ -114,17 +114,11 @@ func SetupMainchain2ForBridge() {
 	err := tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20), tc.LocalGeth2, int64(tc.Geth2ChainID))
 	tc.ChkErr(err, "fund each test addr 100 ETH")
 
-	log.Infoln("set up mainchain")
+	log.Infoln("set up mainchain2")
 	tc.SetupEthClient2()
-	tc.CelrAddr2, tc.CelrContract2 = tc.DeployCelrContract(tc.EthClient2, tc.EtherBaseAuth2)
-
-	// fund CELR to each eth account
-	log.Infoln("fund each test addr 10 million CELR")
-	err = tc.FundAddrsErc20(tc.CelrAddr, addrs, tc.NewBigInt(1, 25), tc.EthClient2, tc.EtherBaseAuth2)
-	tc.ChkErr(err, "fund each test addr 10 million CELR")
 }
 
-func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool) {
+func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridgeTest bool) {
 	log.Infoln("Deploy Staking and SGN contracts")
 	if contractParams == nil {
 		contractParams = &tc.ContractParams{
@@ -196,7 +190,11 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool) {
 		}
 		err = genesisViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write genesis")
+	}
 
+	if cbridgeTest {
+		DeployUsdtForBridge()
+		DeployBridgeContract()
 	}
 
 	// Update global viper
@@ -211,8 +209,6 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool) {
 	viper.Set(common.FlagEthContractViewer, tc.Contracts.Viewer.Address.Hex())
 	viper.Set(common.FlagEthContractGovern, tc.Contracts.Govern.Address.Hex())
 
-	tc.ChkErr(err, "Failed to SetContracts")
-
 	log.Infoln("make localnet-up-nodes")
 	cmd = exec.Command("make", "localnet-up-nodes")
 	cmd.Dir = repoRoot
@@ -222,13 +218,13 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool) {
 	tc.ChkErr(err, "Failed to make localnet-up-nodes")
 }
 
-func SetupValidators(t *testing.T, transactor *transactor.Transactor, amts []*big.Int) {
+func SetupValidators(transactor *transactor.Transactor, amts []*big.Int) {
 	var expVals stakingtypes.Validators
 	log.Infoln("---------- It should add bonded validators successfully ----------")
 	for i := 0; i < len(amts); i++ {
 		log.Infoln("Adding validator", i, tc.ValEthAddrs[i].Hex())
 		err := tc.InitializeValidator(tc.ValAuths[i], tc.ValSignerAddrs[i], tc.ValSgnAddrs[i], amts[i], eth.CommissionRate(0.02))
-		require.NoError(t, err, "failed to initialize validator")
+		tc.ChkErr(err, "failed to initialize validator")
 		tc.Sleep(5)
 		expVal := stakingtypes.Validator{
 			EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[i]),
@@ -240,7 +236,89 @@ func SetupValidators(t *testing.T, transactor *transactor.Transactor, amts []*bi
 			CommissionRate:  sdk.NewDecWithPrec(2, 2),
 		}
 		expVals = append(expVals, expVal)
-		tc.CheckValidators(t, transactor, expVals)
+		tc.CheckValidators(transactor, expVals)
+	}
+}
+
+func DeployUsdtForBridge() {
+	addrs := []eth.Addr{
+		tc.ValEthAddrs[0],
+		tc.ValEthAddrs[1],
+		tc.ValEthAddrs[2],
+		tc.ValEthAddrs[3],
+		tc.ValSignerAddrs[0],
+		tc.ValSignerAddrs[1],
+		tc.ValSignerAddrs[2],
+		tc.ValSignerAddrs[3],
+		tc.DelEthAddrs[0],
+		tc.DelEthAddrs[1],
+		tc.DelEthAddrs[2],
+		tc.DelEthAddrs[3],
+		tc.ClientEthAddrs[0],
+		tc.ClientEthAddrs[1],
+	}
+
+	usdt1Addr, _ := tc.DeployERC20Contract(tc.EthClient, tc.EtherBaseAuth, "USDT", "USDT", 6)
+	usdt2Addr, _ := tc.DeployERC20Contract(tc.EthClient2, tc.EtherBaseAuth2, "USDT", "USDT", 6)
+
+	// fund usdt to each eth account
+	log.Infoln("fund each test addr 10 million usdt on each chain")
+	err := tc.FundAddrsErc20(usdt1Addr, addrs, tc.NewBigInt(1, 13), tc.EthClient, tc.EtherBaseAuth)
+	tc.ChkErr(err, "fund each test addr 10 million usdt on chain 1")
+	err = tc.FundAddrsErc20(usdt2Addr, addrs, tc.NewBigInt(1, 13), tc.EthClient2, tc.EtherBaseAuth2)
+	tc.ChkErr(err, "fund each test addr 10 million usdt on chain 2")
+
+	log.Infoln("Updating config files of SGN nodes")
+	for i := 0; i < len(tc.ValEthKs); i++ {
+		genesisPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/genesis.json", i)
+		genesisViper := viper.New()
+		genesisViper.SetConfigFile(genesisPath)
+		err = genesisViper.ReadInConfig()
+		tc.ChkErr(err, "Failed to read genesis")
+		cbrConfig := new(cbrtypes.CbrConfig)
+		jsonByte, _ := json.Marshal(genesisViper.Get("app_state.cbridge.config"))
+		json.Unmarshal(jsonByte, cbrConfig)
+		cbrConfig.Assets[0].Addr = eth.Addr2Hex(usdt1Addr)
+		cbrConfig.Assets[1].Addr = eth.Addr2Hex(usdt2Addr)
+		genesisViper.Set("app_state.cbridge.config", cbrConfig)
+		err = genesisViper.WriteConfig()
+		tc.ChkErr(err, "Failed to write genesis")
+	}
+}
+
+func DeployBridgeContract() {
+	// transactor := tc.NewTestTransactor(
+	// 	tc.SgnHomes[0],
+	// 	tc.SgnChainID,
+	// 	tc.SgnNodeURI,
+	// 	tc.ValSgnAddrStrs[0],
+	// 	tc.SgnPassphrase,
+	// )
+
+	// amt1 := big.NewInt(3e18)
+	// amt2 := big.NewInt(2e18)
+	// amt3 := big.NewInt(2e18)
+	// amts := []*big.Int{amt1, amt2, amt3}
+	// SetupValidators(transactor, amts)
+
+	// validators, err := stakingcli.QueryValidators(transactor.CliCtx)
+	// tc.ChkErr(err, "failed to query validators contract")
+	// signers, _ := proto.Marshal(relayer.GetSortedSigners(validators))
+	cbr1Addr, _ := tc.DeployBridgeContract(tc.EthClient, tc.EtherBaseAuth, make([]byte, 0))
+	cbr2Addr, _ := tc.DeployBridgeContract(tc.EthClient2, tc.EtherBaseAuth2, make([]byte, 0))
+
+	for i := 0; i < len(tc.ValEthKs); i++ {
+		configPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/sgn.toml", i)
+		configFileViper := viper.New()
+		configFileViper.SetConfigFile(configPath)
+		err := configFileViper.ReadInConfig()
+		tc.ChkErr(err, "Failed to read config")
+		multichains := configFileViper.Get("multichain").([]interface{})
+		multichains[0].(map[string]interface{})["cbridge"] = eth.Addr2Hex(cbr1Addr)
+		multichains[1].(map[string]interface{})["cbridge"] = eth.Addr2Hex(cbr2Addr)
+		configFileViper.Set("multichain", multichains)
+		err = configFileViper.WriteConfig()
+		tc.ChkErr(err, "Failed to write config")
 	}
 }
 

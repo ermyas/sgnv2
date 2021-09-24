@@ -24,11 +24,9 @@ var (
 	SignerAuths    []*bind.TransactOpts
 	DelAuths       []*bind.TransactOpts
 
-	Contracts     *eth.Contracts
-	CelrAddr      eth.Addr
-	CelrContract  *eth.Erc20
-	CelrAddr2     eth.Addr
-	CelrContract2 *eth.Erc20
+	Contracts    *eth.Contracts
+	CelrAddr     eth.Addr
+	CelrContract *eth.Erc20
 
 	Client0 *TestEthClient
 	Client1 *TestEthClient
