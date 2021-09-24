@@ -152,3 +152,19 @@ func GetXferRefund(kv sdk.KVStore, tid [32]byte) *types.WithdrawOnchain {
 	ret.Unmarshal(raw)
 	return ret
 }
+
+// if not found, return 0
+func GetLPFee(kv sdk.KVStore, chid uint64, token, lp eth.Addr) *big.Int {
+	lpfeeKey := types.LpFeeKey(chid, token, lp)
+	value := kv.Get(lpfeeKey)
+	return new(big.Int).SetBytes(value)
+}
+
+// add new fee, return new sum
+func AddLPFee(kv sdk.KVStore, chid uint64, token, lp eth.Addr, newamt *big.Int) *big.Int {
+	lpfeeKey := types.LpFeeKey(chid, token, lp)
+	had := new(big.Int).SetBytes(kv.Get(lpfeeKey))
+	had.Add(had, newamt)
+	kv.Set(lpfeeKey, had.Bytes())
+	return had
+}

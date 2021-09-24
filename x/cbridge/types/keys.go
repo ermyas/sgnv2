@@ -45,6 +45,7 @@ func KeyPrefix(p string) []byte {
 6. withdraw seq num: withdrawSeqNum, value is big.Int bytes
 7. withdraw detail, wdDetail-%d seqnum, onchain msg and sigs
 8. xfer refund, xferRefund-%x src xfer id -> withdrawonchain, only for failed xfer. first set when apply send, but no seqnum, later when user InitWithdraw, set seqnum
+9. lp fee, lpfee-chid-token-lp -> fee big.Int bytes on this (chain,token)
 */
 
 // key for liquidity map, chainid-tokenaddr-lpaddr
@@ -80,6 +81,11 @@ func XferRefundKey(tid [32]byte) []byte {
 
 func WdDetailKey(seqnum uint64) []byte {
 	return []byte(fmt.Sprintf("wdDetail-%d", seqnum))
+}
+
+// for chid, token, how much fee this lp has earned
+func LpFeeKey(chid uint64, token, lp eth.Addr) []byte {
+	return []byte(fmt.Sprintf("lm-%d-%s-%s", chid, eth.Addr2Hex(token), eth.Addr2Hex(lp)))
 }
 
 /* ================ config kv, all governable
