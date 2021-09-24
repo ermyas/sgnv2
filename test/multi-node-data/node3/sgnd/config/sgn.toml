@@ -38,3 +38,27 @@ validator_account = "sgn1rjr9uaewus3qh4vs4sqdkdvepwyxq8ql84udfh"
 
 [sgnd.check_interval]
 slash_queue = 2
+
+[[multichain]]
+chainID = 883
+name = "test1"
+gateway = "http://127.0.0.1:8545"
+blkinterval = 1
+blkdelay = 1
+maxblkdelta = 5000
+cbridge = "0x"
+maxamt = "10000000000000000000000"
+ksfile = "./keys/vsigner3.json"
+kspass = ""
+
+[[multichain]]
+chainID = 884
+name = "test2"
+gateway = "http://127.0.0.1:8547"
+blkinterval = 1
+blkdelay = 1
+maxblkdelta = 5000
+cbridge = "0x"
+maxamt = "10000000000000000000000"
+ksfile = "./keys/vsigner3.json"
+kspass = ""

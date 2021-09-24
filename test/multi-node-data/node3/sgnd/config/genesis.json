@@ -66,7 +66,32 @@
     },
     "cbridge": {
       "config": {
-        "lp_fee": 100
+        "lp_fee": 80,
+        "assets": [
+          {
+            "symbol": "USDT",
+            "chain_id": 883,
+            "addr": "0x",
+            "decimal": 6,
+            "max_fee_amount": "100000000"
+          },
+          {
+            "symbol": "USDT",
+            "chain_id": 884,
+            "addr": "0x",
+            "decimal": 6,
+            "max_fee_amount": "100000000"
+          }
+        ],
+        "chain_pairs": [
+          {
+            "chid1": 883,
+            "chid2": 884,
+            "weight1": 100,
+            "fee1to2": 10000,
+            "fee2to1": 20000
+          }
+        ]
       }
     },
     "distribution": {
