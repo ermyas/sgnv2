@@ -104,7 +104,8 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		}
 
 		// pick LPs, minus each's destChain liquidity, add src liquidity
-		k.PickLPsAndAdjustLiquidity(ctx, src, dest, ev.Amount, destAmount, feeAmt)
+		randNum := new(big.Int).SetBytes(ev.TransferId[28:]).Uint64() // last 4B of xfer id
+		PickLPsAndAdjustLiquidity(kv, src, dest, ev.Amount, destAmount, feeAmt, randNum)
 
 		relayOnchain := &types.RelayOnChain{
 			Sender:        ev.Sender[:],

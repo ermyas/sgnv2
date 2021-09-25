@@ -24,10 +24,18 @@ type AddrHexAmtInt struct {
 	AmtInt  *big.Int
 }
 
-// pick LPs, minus each's destChain liquidity, return how much to add on src chain
-// destAmount - userGet is total fees
-func (k Keeper) PickLPsAndAdjustLiquidity(ctx sdk.Context, src, dest *ChainIdTokenAddr, srcAmount, destAmount, userGet *big.Int) []*types.AddrAmt {
-	kv := ctx.KVStore(k.storeKey)
+// pick LPs, minus each's destChain liquidity and add srcChain liq
+// for each lp, try to use all he has, if enough, we are good, if not, we move on to next LP
+// fee and add liq on src are calculated based on ratio this LP contributed into destAmount
+func PickLPsAndAdjustLiquidity(kv sdk.KVStore, src, dest *ChainIdTokenAddr, srcAmount, destAmount, fee *big.Int, randN uint64) {
+	lpFeePerc := new(big.Int).SetBytes(kv.Get(types.CfgKeyFeePerc))
+	totalLpFee := new(big.Int).Mul(fee, lpFeePerc)
+	totalLpFee.Div(totalLpFee, big.NewInt(100))
+	sgnFee := new(big.Int).Sub(fee, totalLpFee)
+	if sgnFee.Sign() == 1 {
+		AddSgnFee(kv, dest.ChId, dest.TokenAddr, sgnFee)
+	}
+
 	// get all LPs for dest chain
 	iter := sdk.KVStorePrefixIterator(kv, []byte(fmt.Sprintf("lm-%d-%s-", dest.ChId, eth.Addr2Hex(dest.TokenAddr))))
 	defer iter.Close()
@@ -38,16 +46,42 @@ func (k Keeper) PickLPsAndAdjustLiquidity(ctx sdk.Context, src, dest *ChainIdTok
 			AmtInt:  new(big.Int).SetBytes(iter.Value()),
 		})
 	}
-	// todo: pick a random LP as first
-	firstLPIdx := 0
-	// used := make(map[string]*big.Int) // each addrhex, how much is used
-	for idx := firstLPIdx; idx < len(allLPs); idx++ {
-		// allLPs[idx]
+	lpCnt := len(allLPs)
+	firstLPIdx := int(randN) % lpCnt           // first LP index
+	toAllocate := new(big.Int).Set(destAmount) // how much left to allocate to LP
+	for cnt := 0; cnt < lpCnt; cnt++ {         // how many LPs we have used
+		idx := (cnt + firstLPIdx) % lpCnt
+		used := new(big.Int)
+		if allLPs[idx].AmtInt.Cmp(toAllocate) >= 0 {
+			// this lp has enough for all remaining needed liquidity
+			used.Set(toAllocate)
+			toAllocate.SetInt64(0)
+		} else {
+			// not enough, use all this lp has
+			used.Set(allLPs[idx].AmtInt)
+			toAllocate.Sub(toAllocate, used)
+		}
+		lpAddr := eth.Hex2Addr(allLPs[idx].AddrHex)
+		// fee = totalFee * used/destAmt
+		earnedFee := new(big.Int).Mul(used, totalLpFee)
+		earnedFee.Div(earnedFee, destAmount)
+		// on dest chain, minus used, plus earnedfee
+		ChangeLiquidity(kv, dest.ChId, dest.TokenAddr, lpAddr, new(big.Int).Sub(earnedFee, used))
+		AddLPFee(kv, dest.ChId, dest.TokenAddr, lpAddr, earnedFee)
+		// add LP liquidity on src chain, toadd = srcAmt * used/destAmt
+		addOnSrc := new(big.Int).Mul(used, srcAmount)
+		addOnSrc.Div(addOnSrc, destAmount)
+		if addOnSrc.Sign() == 1 {
+			ChangeLiquidity(kv, src.ChId, src.TokenAddr, lpAddr, addOnSrc)
+		}
 	}
-	// todo: logic
-	// must sort list due to go map iter
-	var ret []*types.AddrAmt
-	return ret
+	if toAllocate.Sign() == 1 {
+		// if we're here but toAllocate > 0, means we went over all LPs but still have no enough
+		// what to do?
+		panic(fmt.Sprintf("toAllocate still has %s", toAllocate))
+	}
+
+	return
 }
 
 // return the lp addr hex part of key, "lm-%d-%s-%s"

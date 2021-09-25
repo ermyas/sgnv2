@@ -172,10 +172,25 @@ func GetLPFee(kv sdk.KVStore, chid uint64, token, lp eth.Addr) *big.Int {
 }
 
 // add new fee, return new sum
-func AddLPFee(kv sdk.KVStore, chid uint64, token, lp eth.Addr, newamt *big.Int) *big.Int {
+func AddLPFee(kv sdk.KVStore, chid uint64, token, lp eth.Addr, delta *big.Int) *big.Int {
 	lpfeeKey := types.LpFeeKey(chid, token, lp)
 	had := new(big.Int).SetBytes(kv.Get(lpfeeKey))
-	had.Add(had, newamt)
+	had.Add(had, delta)
 	kv.Set(lpfeeKey, had.Bytes())
+	return had
+}
+
+func GetSgnFee(kv sdk.KVStore, chid uint64, token eth.Addr) *big.Int {
+	feeKey := types.SgnFeeKey(chid, token)
+	value := kv.Get(feeKey)
+	return new(big.Int).SetBytes(value)
+}
+
+// add new fee, return new sum
+func AddSgnFee(kv sdk.KVStore, chid uint64, token eth.Addr, delta *big.Int) *big.Int {
+	feeKey := types.SgnFeeKey(chid, token)
+	had := new(big.Int).SetBytes(kv.Get(feeKey))
+	had.Add(had, delta)
+	kv.Set(feeKey, had.Bytes())
 	return had
 }

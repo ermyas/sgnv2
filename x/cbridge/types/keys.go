@@ -57,6 +57,7 @@ func GetChainSignersKey(chid uint64) []byte {
 7. withdraw detail, wdDetail-%d seqnum, onchain msg and sigs
 8. xfer refund, xferRefund-%x src xfer id -> withdrawonchain, only for failed xfer. first set when apply send, but no seqnum, later when user InitWithdraw, set seqnum
 9. lp fee, lpfee-chid-token-lp -> fee big.Int bytes on this (chain,token)
+10. sgn fee, sgnfee-chid-token -> big.Int bytes
 */
 
 // key for liquidity map, chainid-tokenaddr-lpaddr
@@ -96,7 +97,11 @@ func WdDetailKey(seqnum uint64) []byte {
 
 // for chid, token, how much fee this lp has earned
 func LpFeeKey(chid uint64, token, lp eth.Addr) []byte {
-	return []byte(fmt.Sprintf("lm-%d-%s-%s", chid, eth.Addr2Hex(token), eth.Addr2Hex(lp)))
+	return []byte(fmt.Sprintf("lpfee-%d-%s-%s", chid, eth.Addr2Hex(token), eth.Addr2Hex(lp)))
+}
+
+func SgnFeeKey(chid uint64, token eth.Addr) []byte {
+	return []byte(fmt.Sprintf("sgnfee-%d-%s", chid, eth.Addr2Hex(token)))
 }
 
 /* ================ config kv, all governable
