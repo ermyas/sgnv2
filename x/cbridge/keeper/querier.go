@@ -35,8 +35,12 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 			return queryAddLiquidityStatus(ctx, req, k, legacyQuerierCdc)
 		case types.QueryWithdrawLiquidityStatus:
 			return queryWithdrawLiquidityStatus(ctx, req, k, legacyQuerierCdc)
+		case types.QueryChainSigners:
+			return queryChainSigners(ctx, req, k, legacyQuerierCdc)
+		case types.QueryLatestSigners:
+			return queryLatestSigners(ctx, k, legacyQuerierCdc)
 		default:
-			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "Unknown sync query endpoint")
+			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "Unknown cbridge query endpoint")
 		}
 	}
 }
@@ -290,5 +294,38 @@ func queryWithdrawLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keep
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 
+	return res, nil
+}
+
+func queryChainSigners(
+	ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var params types.QueryChainSignersParams
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse params: %s", err)
+	}
+	chainSigners, found := k.GetChainSigners(ctx, params.ChainId)
+	if !found {
+		return nil, types.ErrRecordNotFound
+	}
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, chainSigners)
+	if err != nil {
+		log.Error(err)
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+	return res, nil
+}
+
+func queryLatestSigners(
+	ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	latestSigners, found := k.GetLatestSigners(ctx)
+	if !found {
+		return nil, types.ErrRecordNotFound
+	}
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, latestSigners)
+	if err != nil {
+		log.Error(err)
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
 	return res, nil
 }

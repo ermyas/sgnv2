@@ -28,6 +28,7 @@ type Relayer struct {
 	startEthBlock   *big.Int
 	lock            sync.RWMutex
 	cbrMgr          CbrMgr
+	cbrSsUpdating   bool
 }
 
 func NewRelayer(operator *Operator, db dbm.DB) {
@@ -88,7 +89,7 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 
 	go r.processQueues()
 
-	r.cbrMgr = NewCbridgeMgr(db) // do we need to save mgr somewhere?
+	r.cbrMgr = NewCbridgeMgr(db, r.Transactor.CliCtx) // do we need to save mgr somewhere?
 	go r.doCbridge(r.cbrMgr)
 }
 

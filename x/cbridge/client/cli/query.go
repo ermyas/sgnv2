@@ -172,3 +172,30 @@ func QueryWithdrawLiquidityStatus(cliCtx client.Context, request *types.QueryWit
 	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &resp)
 	return
 }
+
+func QueryChainSigners(cliCtx client.Context, chainId uint64) (chainSigners *types.ChainSigners, err error) {
+	params := types.NewQueryChainSignersParams(chainId)
+	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
+	if err != nil {
+		return
+	}
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryChainSigners)
+	res, err := common.RobustQueryWithData(cliCtx, route, data)
+	if err != nil {
+		return
+	}
+	chainSigners = new(types.ChainSigners)
+	err = cliCtx.LegacyAmino.UnmarshalJSON(res, chainSigners)
+	return
+}
+
+func QueryLatestSigners(cliCtx client.Context) (latestSigners *types.LatestSigners, err error) {
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryLatestSigners)
+	res, err := common.RobustQuery(cliCtx, route)
+	if err != nil {
+		return
+	}
+	latestSigners = new(types.LatestSigners)
+	err = cliCtx.LegacyAmino.UnmarshalJSON(res, latestSigners)
+	return
+}

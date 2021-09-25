@@ -61,7 +61,7 @@ func (k Keeper) SetDelegationShares(
 		// New delegation
 		k.BeforeDelegationCreated(ctx, delAddr, valAddr)
 	} else {
-		k.BeforeDelegationSharesModified(ctx, delAddr, valAddr)
+		k.BeforeDelegationModified(ctx, delAddr, valAddr)
 	}
 
 	delegation := types.NewDelegation(delAddr, valAddr, shares)

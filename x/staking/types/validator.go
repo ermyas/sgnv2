@@ -203,7 +203,7 @@ func (v Validator) GetMoniker() string { return v.Description.GetMoniker() }
 // Validators is a collection of Validator
 type Validators []Validator
 
-// Sort Validators sorts validator array in ascending operator address order
+// Sort validator array in descending token amount order
 func (v Validators) Sort() {
 	sort.Sort(v)
 }

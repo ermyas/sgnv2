@@ -11,9 +11,11 @@ import (
 	"github.com/celer-network/goutils/eth/monitor"
 	"github.com/celer-network/goutils/eth/watcher"
 	"github.com/celer-network/goutils/log"
-
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
+	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
 
@@ -46,6 +48,17 @@ func (c *cbrContract) GetABI() string {
 	return eth.BridgeABI
 }
 
+type curSs struct {
+	signers *cbrtypes.SortedSigners
+	bytes   []byte
+	updated bool
+}
+
+func (s *curSs) setSigners(bytes []byte) {
+	s.bytes = bytes
+	s.signers.Unmarshal(bytes)
+}
+
 // ethclient etc
 type CbrOneChain struct {
 	*ethclient.Client
@@ -53,6 +66,7 @@ type CbrOneChain struct {
 	mon      *monitor.Service
 	contract *cbrContract
 	db       *dbm.PrefixDB // cbr-xxx xxx is chainid
+	curss    *curSs
 }
 
 // key is chainid
@@ -61,7 +75,7 @@ type CbrMgr map[uint64]*CbrOneChain
 var CbrMgrInstance CbrMgr
 
 // for each chain, dial gw, newprefixdb, newWatchDAL, monitor
-func NewCbridgeMgr(db dbm.DB) CbrMgr {
+func NewCbridgeMgr(db dbm.DB, cliCtx client.Context) CbrMgr {
 	var mcc []*common.OneChainConfig
 	err := viper.UnmarshalKey(common.FlagMultiChain, &mcc)
 	if err != nil {
@@ -76,13 +90,13 @@ func NewCbridgeMgr(db dbm.DB) CbrMgr {
 	for _, onecfg := range mcc {
 		fixCfg(onecfg, ethChainID) // if cfg.chainid equals ethchainid, uses eth.xxx
 		log.Infof("Add cbridge chain: %+v", onecfg)
-		ret[onecfg.ChainID] = newOneChain(onecfg, watcherDal, cbrDb)
+		ret[onecfg.ChainID] = newOneChain(onecfg, watcherDal, cbrDb, cliCtx)
 	}
 	CbrMgrInstance = ret
 	return ret
 }
 
-func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.PrefixDB) *CbrOneChain {
+func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.PrefixDB, cliCtx client.Context) *CbrOneChain {
 	ec, err := ethclient.Dial(cfg.Gateway)
 	if err != nil {
 		log.Fatalln("dial", cfg.Gateway, "err:", err)
@@ -118,7 +132,14 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 			Bridge:  cbr,
 			Address: eth.Hex2Addr(cfg.CBridge),
 		},
-		db: dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID))),
+		db:    dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID))),
+		curss: &curSs{},
+	}
+	chainSigners, err := cbrcli.QueryChainSigners(cliCtx, cfg.ChainID)
+	if err != nil {
+		log.Warnln("failed to get chain signers", err)
+	} else {
+		ret.curss.setSigners(chainSigners.GetSignersBytes())
 	}
 	ret.startMon()
 	return ret

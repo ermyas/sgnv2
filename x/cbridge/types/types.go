@@ -9,7 +9,7 @@ const (
 	CbrEventLiqAdd   = "LiquidityAdded"
 	CbrEventWithdraw = "WithdrawDone" // could be LP or user
 	// from signers.sol
-	CbrEventNewSigners = "SignersUpdated"
+	CbrEventSignersUpdated = "SignersUpdated"
 )
 
 const (

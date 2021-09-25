@@ -150,6 +150,17 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			// this is a refund so we set xfer status to refund_done
 			SetEvSendStatus(kv, eth.Bytes2Hash(wdDetail.XferId), types.XferStatus_REFUND_DONE)
 		}
+	case types.CbrEventSignersUpdated:
+		ev, err := cbrContract.ParseSignersUpdated(*elog)
+		if err != nil {
+			return false, err
+		}
+		chainSigners := &types.ChainSigners{
+			ChainId:      onchev.Chainid,
+			SignersBytes: ev.CurSigners,
+		}
+		chainSigners.CurrSigners.Unmarshal(ev.CurSigners)
+		k.SetChainSigners(ctx, chainSigners)
 	}
 	return true, nil
 }

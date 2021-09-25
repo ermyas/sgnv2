@@ -25,7 +25,7 @@ func (h Hooks) AfterValidatorCreated(ctx sdk.Context, valAddr eth.Addr) {
 }
 
 // AfterValidatorRemoved performs clean up after a validator is removed
-func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr eth.Addr) {
+func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, valAddr eth.Addr) {
 	// fetch outstanding
 	outstanding := h.k.GetValidatorOutstandingRewardsCoins(ctx, valAddr)
 
@@ -85,7 +85,7 @@ func (h Hooks) BeforeDelegationCreated(ctx sdk.Context, delAddr eth.Addr, valAdd
 }
 
 // withdraw delegation rewards (which also increments period)
-func (h Hooks) BeforeDelegationSharesModified(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr) {
+func (h Hooks) BeforeDelegationModified(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr) {
 	val := h.k.stakingKeeper.Validator(ctx, valAddr)
 	del := h.k.stakingKeeper.Delegation(ctx, delAddr, valAddr)
 
@@ -99,12 +99,5 @@ func (h Hooks) AfterDelegationModified(ctx sdk.Context, delAddr eth.Addr, valAdd
 	h.k.initializeDelegation(ctx, valAddr, delAddr)
 }
 
-// record the slash event
-func (h Hooks) BeforeValidatorSlashed(ctx sdk.Context, valAddr eth.Addr, fraction sdk.Dec) {
-	h.k.updateValidatorSlashFraction(ctx, valAddr, fraction)
-}
-
-func (h Hooks) BeforeValidatorModified(_ sdk.Context, _ eth.Addr)                         {}
-func (h Hooks) AfterValidatorBonded(_ sdk.Context, _ sdk.ConsAddress, _ eth.Addr)         {}
-func (h Hooks) AfterValidatorBeginUnbonding(_ sdk.Context, _ sdk.ConsAddress, _ eth.Addr) {}
-func (h Hooks) BeforeDelegationRemoved(_ sdk.Context, _ eth.Addr, _ eth.Addr)             {}
+func (h Hooks) AfterValidatorBonded(_ sdk.Context, _ eth.Addr)         {}
+func (h Hooks) AfterValidatorBeginUnbonding(_ sdk.Context, _ eth.Addr) {}

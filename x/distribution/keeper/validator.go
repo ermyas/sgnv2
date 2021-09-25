@@ -1,8 +1,6 @@
 package keeper
 
 import (
-	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/celer-network/sgn-v2/eth"
@@ -86,23 +84,4 @@ func (k Keeper) decrementReferenceCount(ctx sdk.Context, valAddr eth.Addr, perio
 	} else {
 		k.SetValidatorHistoricalRewards(ctx, valAddr, period, historical)
 	}
-}
-
-func (k Keeper) updateValidatorSlashFraction(ctx sdk.Context, valAddr eth.Addr, fraction sdk.Dec) {
-	if fraction.GT(sdk.OneDec()) || fraction.IsNegative() {
-		panic(fmt.Sprintf("fraction must be >=0 and <=1, current fraction: %v", fraction))
-	}
-
-	val := k.stakingKeeper.Validator(ctx, valAddr)
-
-	// increment current period
-	newPeriod := k.IncrementValidatorPeriod(ctx, val)
-
-	// increment reference count on period we need to track
-	k.incrementReferenceCount(ctx, valAddr, newPeriod)
-
-	slashEvent := types.NewValidatorSlashEvent(newPeriod, fraction)
-	height := uint64(ctx.BlockHeight())
-
-	k.SetValidatorSlashEvent(ctx, valAddr, height, newPeriod, slashEvent)
 }

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"math/big"
 
-	"github.com/celer-network/goutils/eth"
+	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	slashcli "github.com/celer-network/sgn-v2/x/slash/client/cli"
 	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
@@ -80,7 +80,7 @@ func (r *Relayer) submitSlash(slashEvent SlashEvent) {
 	}
 
 	tx, err := r.EthClient.Transactor.Transact(
-		&eth.TransactionStateHandler{
+		&ethutils.TransactionStateHandler{
 			OnMined: func(receipt *ethtypes.Receipt) {
 				if receipt.Status == ethtypes.ReceiptStatusSuccessful {
 					log.Infof("Slash transaction %x succeeded", receipt.TxHash)

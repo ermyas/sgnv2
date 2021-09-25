@@ -6,6 +6,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	"github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -69,6 +70,24 @@ func (r *Relayer) setBootstrapped() {
 	r.bootstrapped = true
 }
 
+func (r *Relayer) setCbrSsUpdating() {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.cbrSsUpdating = true
+}
+
+func (r *Relayer) setCbrSsUpdated() {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.cbrSsUpdating = false
+}
+
+func (r *Relayer) isCbrSsUpdating() bool {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+	return r.cbrSsUpdating
+}
+
 func getEventCheckInterval(name string) uint64 {
 	m := viper.GetStringMap(common.FlagEthCheckInterval)
 	eventNameInConfig := strcase.ToSnake(string(name))
@@ -100,5 +119,9 @@ func (r *Relayer) validateSigs(signedValidators mapset.Set) (pass bool, allValid
 		}
 	}
 	quorumStake := totalStake.MulRaw(2).QuoRaw(3)
-	return votingStake.GTE(quorumStake), validators
+	return votingStake.GT(quorumStake), validators
+}
+
+func (r *Relayer) validateCbrSigs(sigs []*cbrtypes.AddrSig, curss *cbrtypes.SortedSigners) bool {
+	return true
 }

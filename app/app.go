@@ -268,8 +268,9 @@ func NewSgnApp(
 	)
 	// register the staking hooks
 	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
-	app.StakingKeeper = *stakingKeeper.SetHooks(app.DistrKeeper.Hooks())
-
+	app.StakingKeeper = *stakingKeeper.SetHooks(
+		stakingtypes.NewMultiStakingHooks(app.DistrKeeper.Hooks(), app.CbridgeKeeper.Hooks()),
+	)
 	app.SlashKeeper = slashkeeper.NewKeeper(
 		keys[slashtypes.StoreKey],
 		appCodec,

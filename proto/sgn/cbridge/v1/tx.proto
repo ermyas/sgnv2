@@ -23,6 +23,7 @@ enum SignDataType {
     INVALID = 0;
     RELAY = 1; // data is serialized RelayOnChain
     WITHDRAW = 2; // data is serialized WithdrawOnchain
+    SIGNERS = 3; // data is serialized SortedSigners
 }
 
 message MsgSendMySig {

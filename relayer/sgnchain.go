@@ -131,6 +131,9 @@ func (r *Relayer) monitorCbrToSign() {
 			}
 		case cbrtypes.SignDataType_WITHDRAW.String():
 			msg.Datatype = cbrtypes.SignDataType_WITHDRAW
+		case cbrtypes.SignDataType_SIGNERS.String():
+			msg.Datatype = cbrtypes.SignDataType_SIGNERS
+			r.setCbrSsUpdating()
 		}
 		r.Transactor.AddTxMsg(msg)
 	})

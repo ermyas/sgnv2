@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/celer-network/sgn-v2/eth"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const (
@@ -22,18 +23,28 @@ const (
 	// MemStoreKey defines the in-memory store key
 	MemStoreKey = "mem_cbridge"
 
+	// DefaultParamspace default name for parameter store
+	DefaultParamspace = ModuleName
+
 	// this line is used by starport scaffolding # ibc/keys/name
 )
 
 var (
 	// value is big.NewInt(int).Bytes
 	WithdrawSeqNumKey = []byte("withdrawSeqNum")
+
+	ChainSignersKey  = []byte("cs")
+	LatestSignersKey = []byte("ls")
 )
 
 // this line is used by starport scaffolding # ibc/keys/port
 
 func KeyPrefix(p string) []byte {
 	return []byte(p)
+}
+
+func GetChainSignersKey(chid uint64) []byte {
+	return append(ChainSignersKey, sdk.Uint64ToBigEndian(chid)...)
 }
 
 /* states owned by cbridge module

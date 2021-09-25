@@ -209,8 +209,7 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 		})
 		SetXferRelay(kv, xferId, xferRelay, k.cdc)
 		return ret, nil
-	}
-	if msg.Datatype == types.SignDataType_WITHDRAW {
+	} else if msg.Datatype == types.SignDataType_WITHDRAW {
 		onchain := new(types.WithdrawOnchain)
 		err := onchain.Unmarshal(msg.Data)
 		if err != nil {
@@ -225,6 +224,19 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 			Sig:  msg.MySig,
 		})
 		SaveWithdrawDetail(kv, onchain.Seqnum, wdDetail)
+	} else if msg.Datatype == types.SignDataType_SIGNERS {
+		latestSigners, found := k.GetLatestSigners(sdkCtx)
+		if !found {
+			return nil, fmt.Errorf("latest signers not found")
+		}
+		if bytes.Compare(latestSigners.GetSignersBytes(), msg.Data) != 0 {
+			return nil, fmt.Errorf("signed latest signers not match stored data")
+		}
+		latestSigners.SortedSigs = UpdateSortedSigs(latestSigners.SortedSigs, &types.AddrSig{
+			Addr: signer[:],
+			Sig:  msg.MySig,
+		})
+		k.SetLatestSigners(sdkCtx, &latestSigners)
 	}
 	return ret, nil
 }

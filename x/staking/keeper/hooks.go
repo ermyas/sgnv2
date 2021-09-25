@@ -16,31 +16,24 @@ func (k Keeper) AfterValidatorCreated(ctx sdk.Context, valAddr eth.Addr) {
 	}
 }
 
-// BeforeValidatorModified - call hook if registered
-func (k Keeper) BeforeValidatorModified(ctx sdk.Context, valAddr eth.Addr) {
-	if k.hooks != nil {
-		k.hooks.BeforeValidatorModified(ctx, valAddr)
-	}
-}
-
 // AfterValidatorRemoved - call hook if registered
-func (k Keeper) AfterValidatorRemoved(ctx sdk.Context, consAddr sdk.ConsAddress, valAddr eth.Addr) {
+func (k Keeper) AfterValidatorRemoved(ctx sdk.Context, valAddr eth.Addr) {
 	if k.hooks != nil {
-		k.hooks.AfterValidatorRemoved(ctx, consAddr, valAddr)
+		k.hooks.AfterValidatorRemoved(ctx, valAddr)
 	}
 }
 
 // AfterValidatorBonded - call hook if registered
-func (k Keeper) AfterValidatorBonded(ctx sdk.Context, consAddr sdk.ConsAddress, valAddr eth.Addr) {
+func (k Keeper) AfterValidatorBonded(ctx sdk.Context, valAddr eth.Addr) {
 	if k.hooks != nil {
-		k.hooks.AfterValidatorBonded(ctx, consAddr, valAddr)
+		k.hooks.AfterValidatorBonded(ctx, valAddr)
 	}
 }
 
 // AfterValidatorBeginUnbonding - call hook if registered
-func (k Keeper) AfterValidatorBeginUnbonding(ctx sdk.Context, consAddr sdk.ConsAddress, valAddr eth.Addr) {
+func (k Keeper) AfterValidatorBeginUnbonding(ctx sdk.Context, valAddr eth.Addr) {
 	if k.hooks != nil {
-		k.hooks.AfterValidatorBeginUnbonding(ctx, consAddr, valAddr)
+		k.hooks.AfterValidatorBeginUnbonding(ctx, valAddr)
 	}
 }
 
@@ -51,17 +44,10 @@ func (k Keeper) BeforeDelegationCreated(ctx sdk.Context, delAddr eth.Addr, valAd
 	}
 }
 
-// BeforeDelegationSharesModified - call hook if registered
-func (k Keeper) BeforeDelegationSharesModified(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr) {
+// BeforeDelegationModified - call hook if registered
+func (k Keeper) BeforeDelegationModified(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr) {
 	if k.hooks != nil {
-		k.hooks.BeforeDelegationSharesModified(ctx, delAddr, valAddr)
-	}
-}
-
-// BeforeDelegationRemoved - call hook if registered
-func (k Keeper) BeforeDelegationRemoved(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr) {
-	if k.hooks != nil {
-		k.hooks.BeforeDelegationRemoved(ctx, delAddr, valAddr)
+		k.hooks.BeforeDelegationModified(ctx, delAddr, valAddr)
 	}
 }
 
@@ -69,12 +55,5 @@ func (k Keeper) BeforeDelegationRemoved(ctx sdk.Context, delAddr eth.Addr, valAd
 func (k Keeper) AfterDelegationModified(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr) {
 	if k.hooks != nil {
 		k.hooks.AfterDelegationModified(ctx, delAddr, valAddr)
-	}
-}
-
-// BeforeValidatorSlashed - call hook if registered
-func (k Keeper) BeforeValidatorSlashed(ctx sdk.Context, valAddr eth.Addr, fraction sdk.Dec) {
-	if k.hooks != nil {
-		k.hooks.BeforeValidatorSlashed(ctx, valAddr, fraction)
 	}
 }

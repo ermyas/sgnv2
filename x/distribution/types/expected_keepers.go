@@ -42,14 +42,3 @@ type StakingKeeper interface {
 	IterateDelegations(ctx sdk.Context, delegator eth.Addr,
 		fn func(index int64, delegation stakingtypes.DelegationI) (stop bool))
 }
-
-// StakingHooks event hooks for staking validator object (noalias)
-type StakingHooks interface {
-	AfterValidatorCreated(ctx sdk.Context, valAddr eth.Addr)                           // Must be called when a validator is created
-	AfterValidatorRemoved(ctx sdk.Context, consAddr sdk.ConsAddress, valAddr eth.Addr) // Must be called when a validator is deleted
-
-	BeforeDelegationCreated(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr)        // Must be called when a delegation is created
-	BeforeDelegationSharesModified(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr) // Must be called when a delegation's shares are modified
-	AfterDelegationModified(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr)
-	BeforeValidatorSlashed(ctx sdk.Context, valAddr eth.Addr, fraction sdk.Dec)
-}

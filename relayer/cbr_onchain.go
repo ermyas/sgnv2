@@ -3,19 +3,22 @@ package relayer
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/gateway/dal"
-	"github.com/celer-network/sgn-v2/gateway/webapi"
-	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"math/big"
 	"time"
 
-	"github.com/celer-network/goutils/eth"
+	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/eth"
+	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/gateway/webapi"
+	"github.com/celer-network/sgn-v2/x/cbridge/types"
+
+	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/eth/monitor"
 	"github.com/celer-network/goutils/log"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const (
@@ -26,10 +29,10 @@ const (
 	CbrEventLiqAdd   = "LiquidityAdded"
 	CbrEventWithdraw = "WithdrawDone" // could be LP or user
 	// from signers.sol
-	CbrEventNewSigners = "SignersUpdated"
+	CbrEventSignersUpdated = "SignersUpdated"
 )
 
-var evNames = []string{CbrEventSend, CbrEventRelay, CbrEventLiqAdd, CbrEventWithdraw, CbrEventNewSigners}
+var evNames = []string{CbrEventSend, CbrEventRelay, CbrEventLiqAdd, CbrEventWithdraw, CbrEventSignersUpdated}
 
 // funcs for monitor cbridge events
 func (c *CbrOneChain) startMon() {
@@ -175,7 +178,7 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 
 func (c *CbrOneChain) monNewSigners(blk *big.Int) {
 	cfg := &monitor.Config{
-		EventName:  CbrEventNewSigners,
+		EventName:  CbrEventSignersUpdated,
 		Contract:   c.contract,
 		StartBlock: blk,
 	}
@@ -186,11 +189,12 @@ func (c *CbrOneChain) monNewSigners(blk *big.Int) {
 			return false
 		}
 		log.Infof("NewSigners event: %+v", ev)
-		err = c.saveEvent(CbrEventNewSigners, eLog)
+		err = c.saveEvent(CbrEventSignersUpdated, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
 		}
+		c.curss.setSigners(ev.CurSigners)
 		return false
 	})
 }
@@ -206,16 +210,37 @@ func (c *CbrOneChain) delEvent(name string, blknum, idx uint64) error {
 	return c.db.Delete([]byte(fmt.Sprintf("%s-%d-%d", name, blknum, idx)))
 }
 
-// query chain to verify event is the same, return true if match
+// query chain to verify event is the same, return err if mismatch
 // TODO: impl logic
-func (c *CbrOneChain) CheckEvent(evtype string, tocheck *ethtypes.Log) (bool, error) {
-	return true, nil
+func (c *CbrOneChain) CheckEvent(evtype string, tocheck *ethtypes.Log) (retry bool, err error) {
+	switch evtype {
+	case CbrEventLiqAdd:
+		return false, nil
+	case CbrEventSend:
+		return false, nil
+	case CbrEventRelay:
+		return false, nil
+	case CbrEventSignersUpdated:
+		ev, err := c.contract.ParseSignersUpdated(*tocheck)
+		if err != nil {
+			return false, err
+		}
+		ssHash, err := c.contract.SsHash(&bind.CallOpts{})
+		if err != nil {
+			return true, err
+		}
+		if eth.Bytes2Hash(crypto.Keccak256(ev.CurSigners)) != ssHash {
+			return false, fmt.Errorf("ssHash not match onchain value")
+		}
+		return false, nil
+	}
+	return false, fmt.Errorf("invalid event type %s", evtype)
 }
 
 // send relay tx onchain to cbridge contract, no wait mine
 func (c *CbrOneChain) SendRelay(relay, curss []byte, sigs [][]byte) error {
 	tx, err := c.Transactor.Transact(
-		&eth.TransactionStateHandler{
+		&ethutils.TransactionStateHandler{
 			OnMined: func(receipt *ethtypes.Receipt) {
 				if receipt.Status == ethtypes.ReceiptStatusSuccessful {
 					log.Infof("Relay transaction %x succeeded", receipt.TxHash)
@@ -237,5 +262,33 @@ func (c *CbrOneChain) SendRelay(relay, curss []byte, sigs [][]byte) error {
 	}
 
 	log.Infoln("Relay tx submitted", tx.Hash().Hex())
+	return nil
+}
+
+// send updateSigners tx onchain to cbridge contract, no wait mine
+func (c *CbrOneChain) UpdateSigners(newss, curss []byte, sigs [][]byte) error {
+	tx, err := c.Transactor.Transact(
+		&ethutils.TransactionStateHandler{
+			OnMined: func(receipt *ethtypes.Receipt) {
+				if receipt.Status == ethtypes.ReceiptStatusSuccessful {
+					log.Infof("UpdateSigners transaction %x succeeded", receipt.TxHash)
+				} else {
+					log.Errorf("UpdateSigners transaction %x failed", receipt.TxHash)
+				}
+			},
+			OnError: func(tx *ethtypes.Transaction, err error) {
+				log.Errorf("UpdateSigners transaction %x err: %s", tx.Hash(), err)
+			},
+		},
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.contract.UpdateSigners(opts, newss, curss, sigs)
+		},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	log.Infoln("UpdateSigners tx submitted", tx.Hash().Hex())
 	return nil
 }

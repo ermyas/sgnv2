@@ -2,8 +2,20 @@ syntax = "proto3";
 package sgn.cbridge.v1;
 
 import "gogoproto/gogo.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
 
 option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
+
+// ========== params
+message Params {
+  google.protobuf.Duration signer_update_duration = 1 [
+    (gogoproto.nullable)    = false,
+    (gogoproto.stdduration) = true,
+    (gogoproto.jsontag)     = "signer_update_duration,omitempty",
+    (gogoproto.moretags)    = "yaml:\"signer_update_duration\""
+  ];
+}
 
 // ========== configs
 // use configs to avoid confusion w/ cosmos param
@@ -66,6 +78,8 @@ message WithdrawOnchain {
 
 // sorted by signer address
 message SortedSigners {
+  option (gogoproto.goproto_stringer) = false;
+
   repeated AddrAmt signers = 1;
 }
 
@@ -113,4 +127,24 @@ message WithdrawDetail {
 message AddrSig {
   bytes addr = 1; // eth address recovered from sig and data in x/cbridge, eth.Addr[:], not hex string!
   bytes sig = 2;
+}
+
+// ========== bridge signers
+
+message ChainSigners {
+  option (gogoproto.goproto_stringer) = false;
+
+  uint64 chain_id = 1;
+  SortedSigners curr_signers = 2;
+  bytes signers_bytes = 3;
+}
+
+message LatestSigners {
+  option (gogoproto.goproto_stringer) = false;
+
+  SortedSigners signers = 1;
+  bytes signers_bytes = 2; // serialized signers
+  repeated AddrSig sorted_sigs = 3;
+  google.protobuf.Timestamp update_time = 4
+    [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"update_time\""];
 }

@@ -1,6 +1,7 @@
 package relayer
 
 import (
+	"bytes"
 	"encoding/json"
 	"sort"
 	"time"
@@ -13,7 +14,9 @@ import (
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	mapset "github.com/deckarep/golang-set"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -43,6 +46,14 @@ func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
 		}
 
 		r.processCbridgeQueue()
+		if r.isCbrSsUpdating() {
+			latestSs, err := cbrcli.QueryLatestSigners(r.Transactor.CliCtx)
+			if err != nil {
+				log.Errorln("failed to get latest signers", err)
+				continue
+			}
+			r.updateSigners(latestSs)
+		}
 	}
 }
 
@@ -195,12 +206,14 @@ func (r *Relayer) verifyCbrEventUpdate(data []byte) (done, approve bool) {
 	// be behind so we can't differentiate not yet see event vs. faked event
 	// only onchain query can give us 100% certainty
 	// we have 2 ways: getTransactionReceipt or getLogs
-	equal, err := r.cbrMgr[onchev.Chainid].CheckEvent(onchev.Evtype, elog)
+	retry, err := r.cbrMgr[onchev.Chainid].CheckEvent(onchev.Evtype, elog)
 	if err != nil {
-		return false, false // onchain error, so don't vote
-	}
-	if !equal {
-		return true, false
+		if retry {
+			return false, false // onchain error, so don't vote
+		} else {
+			return true, false
+		}
+
 	}
 	// event is the same as onchain, now move on to per event logic
 	// eg. query x/cbridge if this event has already been handled
@@ -220,6 +233,48 @@ func (r *Relayer) verifyCbrEventUpdate(data []byte) (done, approve bool) {
 	case CbrEventRelay:
 		// this event means syncer already submitted relay tx onchain
 		return true, true
+	case CbrEventSignersUpdated:
+		ev, err := r.cbrMgr[onchev.Chainid].contract.ParseSignersUpdated(*elog)
+		if err != nil {
+			return true, false
+		}
+		storedChainSigners, err := cbrcli.QueryChainSigners(r.Transactor.CliCtx, onchev.Chainid)
+		if err == nil {
+			if bytes.Compare(storedChainSigners.GetSignersBytes(), ev.CurSigners) == 0 {
+				return true, false
+			}
+		}
+		return true, true
 	}
 	return true, false
+}
+
+func (r *Relayer) updateSigners(latestSs *cbrtypes.LatestSigners) {
+	updated := true
+	for chainId, c := range r.cbrMgr {
+		ssHash, err := c.contract.SsHash(&bind.CallOpts{})
+		if err != nil {
+			log.Errorln("failed to get sshash", chainId, err)
+			updated = false
+			continue
+		}
+		if eth.Bytes2Hash(crypto.Keccak256(latestSs.GetSignersBytes())) == ssHash {
+			log.Debugf("signers for chain %d already updated", chainId)
+			continue
+		}
+		// TODO: fine-grainded per chain updated flag
+		updated = false
+
+		if !r.validateCbrSigs(latestSs.SortedSigs, c.curss.signers) {
+			log.Infof("chain %d signers not enough yet", chainId)
+			continue
+		}
+		err = c.UpdateSigners(latestSs.SignersBytes, c.curss.bytes, latestSs.GetSortedSigsBytes())
+		if err != nil {
+			log.Error(err)
+		}
+	}
+	if updated {
+		r.setCbrSsUpdated()
+	}
 }
