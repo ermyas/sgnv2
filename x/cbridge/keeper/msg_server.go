@@ -35,14 +35,26 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 	kv := sdkCtx.KVStore(k.storeKey)
 	// todo: do we need to check creator sig? or it doesn't matter anyway
 	var wdOnchain *types.WithdrawOnchain
+	resp := &types.MsgInitWithdrawResp{
+		ReqId: req.ReqId,
+	}
+	// we have to emit event to let caller know the response, seqnum or errmsg will set before return
+	defer emitWdResp(sdkCtx, resp)
 	if req.XferId != nil { // user refund
 		xferId := eth.Bytes2Hash(req.XferId)
 		wdOnchain = GetXferRefund(kv, xferId)
 		if wdOnchain == nil {
-			return nil, fmt.Errorf("xfer %x not valid for refund", xferId)
+			resp.Errmsg = &types.ErrMsg{
+				Code: types.ErrCode_XFER_NOT_REFUNDABLE,
+			}
+			return resp, fmt.Errorf("xfer %x not valid for refund", xferId)
 		}
 		if wdOnchain.Seqnum != 0 {
 			// already requested withdraw before
+			resp.Errmsg = &types.ErrMsg{
+				Code: types.ErrCode_XFER_HAS_SEQNUM,
+				Msg:  fmt.Sprintf("%d", wdOnchain.Seqnum),
+			}
 			return nil, fmt.Errorf("xfer %x already has withdraw seqnum %d, use SignAgain", xferId, wdOnchain.Seqnum)
 		}
 	} else { // LP withdraw liquidity
@@ -52,6 +64,10 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 		balance := GetLPBalance(kv, req.Chainid, token, lpAddr)
 		if balance.Cmp(amt) < 0 {
 			// balance not enough, return error
+			resp.Errmsg = &types.ErrMsg{
+				Code: types.ErrCode_LP_BAL_NOT_ENOUGH,
+				Msg:  balance.String(),
+			}
 			return nil, fmt.Errorf("lp balance %s < %s", balance, amt)
 		}
 		ChangeLiquidity(kv, req.Chainid, token, lpAddr, new(big.Int).Neg(amt)) // remove amt from lp map
@@ -62,7 +78,7 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 			Amount:   req.Amount,
 		}
 	}
-	resp := new(types.MsgInitWithdrawResp)
+	// can withdraw, errmsg is nil, only set seqnum. seqnum start from 1
 	newseq := IncrWithdrawSeq(kv)
 	resp.Seqnum = newseq
 	wdOnchain.Seqnum = newseq
@@ -83,6 +99,23 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 	return resp, nil
 }
 
+// helper util to emit EventWdResp event
+func emitWdResp(sdkCtx sdk.Context, wdresp *types.MsgInitWithdrawResp) {
+	raw, _ := wdresp.Marshal()
+	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventMsgResp,
+		sdk.NewAttribute(types.EvAttrMsgType, "MsgInitWithdrawResp"),
+		sdk.NewAttribute(types.EvAttrResp, string(raw))))
+}
+
+func emitSignAgainResp(sdkCtx sdk.Context, resp *types.MsgSignAgainResp) {
+	raw, _ := resp.Marshal()
+	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventMsgResp,
+		sdk.NewAttribute(types.EvAttrMsgType, "MsgSignAgainResp"),
+		sdk.NewAttribute(types.EvAttrResp, string(raw))))
+}
+
 // user can request to sign a previous withdraw again
 // to mitigate dos attack, we could be smart and re-use sigs if
 // they are still valid. we should also deny if withdraw already
@@ -90,16 +123,31 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*types.MsgSignAgainResp, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	kv := sdkCtx.KVStore(k.storeKey)
+	// resp.errmsg is nil if accepted
+	resp := &types.MsgSignAgainResp{
+		ReqId: req.ReqId,
+	}
+	defer emitSignAgainResp(sdkCtx, resp)
+
 	wdDetail := GetWithdrawDetail(kv, req.Seqnum)
 	if wdDetail == nil {
 		// not found
+		resp.Errmsg = &types.ErrMsg{
+			Code: types.ErrCode_SEQ_NOT_FOUND,
+		}
 		return nil, fmt.Errorf("withdraw seq %d not found", req.Seqnum)
 	}
 	if wdDetail.Completed {
+		resp.Errmsg = &types.ErrMsg{
+			Code: types.ErrCode_ALREADY_DONE,
+		}
 		return nil, fmt.Errorf("withdraw seq %d already completed", req.Seqnum)
 	}
 	now := sdkCtx.BlockTime().Unix()
 	if now-wdDetail.LastReqTime < SignAgainCoolDownSec {
+		resp.Errmsg = &types.ErrMsg{
+			Code: types.ErrCode_REQ_TOO_SOON,
+		}
 		return nil, fmt.Errorf("withdraw seq %d sig was last requested at %d, try again after 10min", req.Seqnum, wdDetail.LastReqTime)
 	}
 	// remove all previous sigs

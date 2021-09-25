@@ -18,4 +18,9 @@ const (
 	// event attr for data type, value is relay or withdraw
 	EvAttrType = "DataType"
 	EvAttrData = "Data" // raw msg to be signed
+
+	// due to async nature, we have to use event to tell caller the msg grpc response
+	EventMsgResp  = ModuleName + "MsgResp"
+	EvAttrMsgType = "MsgType" // string of MsgInitWithdrawResp or MsgSignAgainResp
+	EvAttrResp    = "Resp"    // value is serlized bytes of MsgInitWithdrawResp or MsgSignAgainResp
 )

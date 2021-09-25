@@ -135,3 +135,11 @@ func (r *Relayer) monitorCbrToSign() {
 		r.Transactor.AddTxMsg(msg)
 	})
 }
+
+// todo: zhihua/aric save MsgInitWithdrawResp or MsgSignAgainResp by req_id
+// so gateway can know the result
+func (r *Relayer) monitorCbrMsgResp() {
+	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, cbrtypes.EventMsgResp, func(e abci.Event) {
+		// EvAttrMsgType is MsgInitWithdrawResp or MsgSignAgainResp
+	})
+}

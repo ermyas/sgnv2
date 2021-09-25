@@ -38,8 +38,8 @@ const (
 	LPHistoryStatus_LP_WAITING_FOR_LP  LPHistoryStatus = 2
 	LPHistoryStatus_LP_SUBMITTING      LPHistoryStatus = 3
 	LPHistoryStatus_LP_COMPLETED       LPHistoryStatus = 4
-	// user: check if tx reverted when shown status is LP_SUBMITTING
-	// x: sgn rejected
+	// user for add: check if tx reverted when shown status is LP_SUBMITTING
+	// x for withdraw: sgn rejected
 	LPHistoryStatus_LP_FAILED LPHistoryStatus = 5
 )
 

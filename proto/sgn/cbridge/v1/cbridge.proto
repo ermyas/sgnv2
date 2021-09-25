@@ -22,13 +22,14 @@ message ChainAsset {
   string max_fee_amount = 5; // max fee, use string to avoid uint64 not enough for 18 decimal
 }
 
-// chid1/2 order doesn't matter but must only specify once
+// chid1 must be smaller than chid2 order
 message ChainPair {
   uint64 chid1 = 1;
   uint64 chid2 = 2;
   uint32 weight1 = 3; // chid1's weight * 100, chid2's weight is (200 - weight1)/100
   uint32 fee1to2 = 4; // fee percentage when xfer from ch1 to ch2 * 1M, eg. value 10 means 0.001% fee
   uint32 fee2to1 = 5; // fee percentage when xfer from ch2 to ch1 * 1M, eg. value 10 means 0.001% fee
+  uint32 const_a = 6; // constant A in price formula, if not set, will use 100 default
 }
 
 // ========== for sync propose
