@@ -74,7 +74,7 @@ func (m *Params) GetWithdrawAddrEnabled() bool {
 
 // ValidatorHistoricalRewards represents historical rewards for a validator.
 // Height is implicit within the store key.
-// Cumulative reward ratio is the sum from the zeroeth period
+// Cumulative reward ratio is the sum from the zeroth period
 // until this period of rewards / tokens, per the spec.
 // The reference count indicates the number of objects
 // which might need to reference this historical entry at any point.
@@ -83,7 +83,7 @@ func (m *Params) GetWithdrawAddrEnabled() bool {
 //    might need to read that record)
 //  + number of slashes which ended the associated period (and might need to
 //  read that record)
-//  + one per validator for the zeroeth period, set on initialization
+//  + one per validator for the zeroth period, set on initialization
 type ValidatorHistoricalRewards struct {
 	CumulativeRewardRatio github_com_cosmos_cosmos_sdk_types.DecCoins `protobuf:"bytes,1,rep,name=cumulative_reward_ratio,json=cumulativeRewardRatio,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.DecCoins" json:"cumulative_reward_ratio" yaml:"cumulative_reward_ratio"`
 	ReferenceCount        uint32                                      `protobuf:"varint,2,opt,name=reference_count,json=referenceCount,proto3" json:"reference_count,omitempty" yaml:"reference_count"`

@@ -1,0 +1,144 @@
+package keeper
+
+import (
+	"context"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/celer-network/sgn-v2/eth"
+	"github.com/celer-network/sgn-v2/x/farming/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+)
+
+var _ types.QueryServer = Keeper{}
+
+// Pools queries the current state of all the pools.
+func (k Keeper) Pools(c context.Context, req *types.QueryPoolsRequest) (*types.QueryPoolsResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	ctx := sdk.UnwrapSDKContext(c)
+
+	pools := k.GetFarmingPools(ctx)
+	var updatedPools types.FarmingPools
+	for _, pool := range pools {
+		updatedPool, _ := k.CalculateAmountEarnedBetween(ctx, pool)
+		updatedPools = append(updatedPools, updatedPool)
+	}
+	return &types.QueryPoolsResponse{Pools: updatedPools}, nil
+}
+
+// Pool queries the current state of a single pool.
+func (k Keeper) Pool(c context.Context, req *types.QueryPoolRequest) (*types.QueryPoolResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	if req.PoolName == "" {
+		return nil, status.Error(codes.InvalidArgument, "empty pool name")
+	}
+	ctx := sdk.UnwrapSDKContext(c)
+
+	poolName := req.PoolName
+	pool, found := k.GetFarmingPool(ctx, poolName)
+	if !found {
+		return nil, status.Errorf(codes.NotFound, "pool %s not found", poolName)
+	}
+	updatedPool, _ := k.CalculateAmountEarnedBetween(ctx, pool)
+	return &types.QueryPoolResponse{Pool: updatedPool}, nil
+}
+
+// Earnings queries the current earnings of an account in a pool.
+func (k Keeper) Earnings(c context.Context, req *types.QueryEarningsRequest) (*types.QueryEarningsResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	if req.PoolName == "" {
+		return nil, status.Error(codes.InvalidArgument, "empty pool name")
+	}
+	if req.Address == "" {
+		return nil, status.Error(codes.InvalidArgument, "empty address")
+	}
+	ctx := sdk.UnwrapSDKContext(c)
+
+	earnings, err := k.GetEarnings(ctx, req.PoolName, eth.Hex2Addr(req.Address))
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return &types.QueryEarningsResponse{Earnings: earnings}, nil
+}
+
+// StakeInfo queries the current stake info of an account in a pool.
+func (k Keeper) StakeInfo(c context.Context, req *types.QueryStakeInfoRequest) (*types.QueryStakeInfoResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	if req.PoolName == "" {
+		return nil, status.Error(codes.InvalidArgument, "empty pool name")
+	}
+	if req.Address == "" {
+		return nil, status.Error(codes.InvalidArgument, "empty address")
+	}
+	ctx := sdk.UnwrapSDKContext(c)
+
+	stakeInfo, found := k.GetStakeInfo(ctx, eth.Hex2Addr(req.Address), req.PoolName)
+	if !found {
+		return nil, status.Errorf(codes.NotFound, "stake info not found")
+	}
+	return &types.QueryStakeInfoResponse{StakeInfo: stakeInfo}, nil
+}
+
+// StakedPools queries the current state of all the pools that an account has stakes in.
+func (k Keeper) StakedPools(c context.Context, req *types.QueryStakedPoolsRequest) (*types.QueryStakedPoolsResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	if req.Address == "" {
+		return nil, status.Error(codes.InvalidArgument, "empty address")
+	}
+	ctx := sdk.UnwrapSDKContext(c)
+
+	poolNames := k.GetFarmingPoolNamesForAccount(ctx, eth.Hex2Addr(req.Address))
+	var updatedPools types.FarmingPools
+	for _, poolName := range poolNames {
+		pool, found := k.GetFarmingPool(ctx, poolName)
+		if !found {
+			return nil, status.Errorf(codes.NotFound, "pool %s not found", poolName)
+		}
+		updatedPool, _ := k.CalculateAmountEarnedBetween(ctx, pool)
+		updatedPools = append(updatedPools, updatedPool)
+	}
+	return &types.QueryStakedPoolsResponse{Pools: updatedPools}, nil
+}
+
+func (k Keeper) AccountsStakedIn(c context.Context, req *types.QueryAccountsStakedInRequest) (*types.QueryAccountsStakedInResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	if req.PoolName == "" {
+		return nil, status.Error(codes.InvalidArgument, "empty pool name")
+	}
+	ctx := sdk.UnwrapSDKContext(c)
+
+	addrList := k.getAccountsStakedIn(ctx, req.PoolName)
+	var addrs []string
+	for _, addr := range addrList {
+		addrs = append(addrs, eth.Addr2Hex(addr))
+	}
+	return &types.QueryAccountsStakedInResponse{Addresses: addrs}, nil
+}
+
+func (k Keeper) NumPools(c context.Context, req *types.QueryNumPoolsRequest) (*types.QueryNumPoolsResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	ctx := sdk.UnwrapSDKContext(c)
+
+	numPools := k.GetNumPools(ctx)
+	return &types.QueryNumPoolsResponse{NumPools: numPools.NumPools}, nil
+}
+
+func (k Keeper) RewardClaimInfo(c context.Context, req *types.QueryRewardClaimInfoRequest) (*types.QueryRewardClaimInfoResponse, error) {
+	// TODO
+	return nil, nil
+}

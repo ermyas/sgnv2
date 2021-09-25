@@ -1,0 +1,57 @@
+syntax = "proto3";
+package sgn.farming.v1;
+
+option go_package = "github.com/celer-network/sgn-v2/x/farming/types";
+option (gogoproto.equal_all) = true;
+
+import "gogoproto/gogo.proto";
+import "sgn/farming/v1/farming.proto";
+
+// PoolHistoricalRewardsRecord is used for import / export via genesis json.
+message PoolHistoricalRewardsRecord {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  string pool_name = 1 [(gogoproto.moretags) = "yaml:\"pool_name\""];
+  uint64 period = 2 [(gogoproto.moretags) = "yaml:\"period\""];
+  PoolHistoricalRewards rewards = 3 [(gogoproto.moretags) = "yaml:\"pool_historical_rewards\"", (gogoproto.nullable) = false];
+}
+
+// PoolCurrentRewardsRecord is used for import / export via genesis json.
+message PoolCurrentRewardsRecord {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  string pool_name = 1 [(gogoproto.moretags) = "yaml:\"pool_name\""];
+  PoolCurrentRewards rewards = 2 [(gogoproto.moretags) = "yaml:\"pool_current_rewards\"", (gogoproto.nullable) = false];
+}
+
+// StakeInfoRecord is used for import / export via genesis json.
+message StakeInfoRecord {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  string pool_name = 1 [(gogoproto.moretags) = "yaml:\"pool_name\""];
+  string staker_address = 2 [(gogoproto.moretags) = "yaml:\"staker_address\""];
+  StakeInfo stake_info = 3 [(gogoproto.moretags) = "yaml:\"stake_info\"", (gogoproto.nullable) = false];
+}
+
+// GenesisState defines the farming module's genesis state.
+message GenesisState {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // pools defines the farming pools at genesis.
+  repeated FarmingPool pools = 1 [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"pools\""];
+
+  // stake_infos defines the stake infos at genesis.
+  repeated StakeInfo stake_infos = 2 [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"stake_infos\""];
+
+  // pool_historical_rewards defines the historical rewards of all pools at genesis.
+  repeated PoolHistoricalRewardsRecord pool_historical_rewards = 3
+      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"pool_historical_rewards\""];
+
+  // pool_current_rewards defines the current rewards of all pools at genesis.
+  repeated PoolCurrentRewardsRecord pool_current_rewards = 4
+      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"pool_current_rewards\""];
+}

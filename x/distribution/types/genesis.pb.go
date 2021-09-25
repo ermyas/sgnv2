@@ -72,7 +72,7 @@ var xxx_messageInfo_DelegatorWithdrawInfo proto.InternalMessageInfo
 type ValidatorOutstandingRewardsRecord struct {
 	// validator_address is the address of the validator.
 	ValidatorAddress string `protobuf:"bytes,1,opt,name=validator_address,json=validatorAddress,proto3" json:"validator_address,omitempty" yaml:"validator_address"`
-	// outstanding_rewards represents the oustanding rewards of a validator.
+	// outstanding_rewards represents the outstanding rewards of a validator.
 	OutstandingRewards github_com_cosmos_cosmos_sdk_types.DecCoins `protobuf:"bytes,2,rep,name=outstanding_rewards,json=outstandingRewards,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.DecCoins" json:"outstanding_rewards" yaml:"outstanding_rewards"`
 }
 
@@ -283,7 +283,7 @@ var xxx_messageInfo_DelegatorStartingInfoRecord proto.InternalMessageInfo
 type ValidatorSlashEventRecord struct {
 	// validator_address is the address of the validator.
 	ValidatorAddress string `protobuf:"bytes,1,opt,name=validator_address,json=validatorAddress,proto3" json:"validator_address,omitempty" yaml:"validator_address"`
-	// height defines the block height at which the slash event occured.
+	// height defines the block height at which the slash event occurred.
 	Height uint64 `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`
 	// period is the period of the slash event.
 	Period uint64 `protobuf:"varint,3,opt,name=period,proto3" json:"period,omitempty"`
@@ -326,25 +326,25 @@ var xxx_messageInfo_ValidatorSlashEventRecord proto.InternalMessageInfo
 
 // GenesisState defines the distribution module's genesis state.
 type GenesisState struct {
-	// params defines all the paramaters of the module.
+	// params defines all the parameters of the module.
 	Params Params `protobuf:"bytes,1,opt,name=params,proto3" json:"params" yaml:"params"`
 	// fee_pool defines the fee pool at genesis.
 	FeePool FeePool `protobuf:"bytes,2,opt,name=fee_pool,json=feePool,proto3" json:"fee_pool" yaml:"fee_pool"`
-	// fee_pool defines the delegator withdraw infos at genesis.
+	// delegator_withdraw_infos defines the delegator withdraw infos at genesis.
 	DelegatorWithdrawInfos []DelegatorWithdrawInfo `protobuf:"bytes,3,rep,name=delegator_withdraw_infos,json=delegatorWithdrawInfos,proto3" json:"delegator_withdraw_infos" yaml:"delegator_withdraw_infos"`
-	// fee_pool defines the previous proposer at genesis.
+	// previous_proposer defines the previous proposer at genesis.
 	PreviousProposer string `protobuf:"bytes,4,opt,name=previous_proposer,json=previousProposer,proto3" json:"previous_proposer,omitempty" yaml:"previous_proposer"`
-	// fee_pool defines the outstanding rewards of all validators at genesis.
+	// outstanding_rewards defines the outstanding rewards of all validators at genesis.
 	OutstandingRewards []ValidatorOutstandingRewardsRecord `protobuf:"bytes,5,rep,name=outstanding_rewards,json=outstandingRewards,proto3" json:"outstanding_rewards" yaml:"outstanding_rewards"`
-	// fee_pool defines the accumulated commisions of all validators at genesis.
+	// validator_accumulated_commissions defines the accumulated commissions of all validators at genesis.
 	ValidatorAccumulatedCommissions []ValidatorAccumulatedCommissionRecord `protobuf:"bytes,6,rep,name=validator_accumulated_commissions,json=validatorAccumulatedCommissions,proto3" json:"validator_accumulated_commissions" yaml:"validator_accumulated_commissions"`
-	// fee_pool defines the historical rewards of all validators at genesis.
+	// validator_historical_rewards defines the historical rewards of all validators at genesis.
 	ValidatorHistoricalRewards []ValidatorHistoricalRewardsRecord `protobuf:"bytes,7,rep,name=validator_historical_rewards,json=validatorHistoricalRewards,proto3" json:"validator_historical_rewards" yaml:"validator_historical_rewards"`
-	// fee_pool defines the current rewards of all validators at genesis.
+	// validator_current_rewards defines the current rewards of all validators at genesis.
 	ValidatorCurrentRewards []ValidatorCurrentRewardsRecord `protobuf:"bytes,8,rep,name=validator_current_rewards,json=validatorCurrentRewards,proto3" json:"validator_current_rewards" yaml:"validator_current_rewards"`
-	// fee_pool defines the delegator starting infos at genesis.
+	// delegator_starting_infos defines the delegator starting infos at genesis.
 	DelegatorStartingInfos []DelegatorStartingInfoRecord `protobuf:"bytes,9,rep,name=delegator_starting_infos,json=delegatorStartingInfos,proto3" json:"delegator_starting_infos" yaml:"delegator_starting_infos"`
-	// fee_pool defines the validator slash events at genesis.
+	// validator_slash_events defines the validator slash events at genesis.
 	ValidatorSlashEvents []ValidatorSlashEventRecord `protobuf:"bytes,10,rep,name=validator_slash_events,json=validatorSlashEvents,proto3" json:"validator_slash_events" yaml:"validator_slash_events"`
 }
 

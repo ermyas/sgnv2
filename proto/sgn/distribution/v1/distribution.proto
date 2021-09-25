@@ -30,7 +30,7 @@ message Params {
 
 // ValidatorHistoricalRewards represents historical rewards for a validator.
 // Height is implicit within the store key.
-// Cumulative reward ratio is the sum from the zeroeth period
+// Cumulative reward ratio is the sum from the zeroth period
 // until this period of rewards / tokens, per the spec.
 // The reference count indicates the number of objects
 // which might need to reference this historical entry at any point.
@@ -39,7 +39,7 @@ message Params {
 //    might need to read that record)
 //  + number of slashes which ended the associated period (and might need to
 //  read that record)
-//  + one per validator for the zeroeth period, set on initialization
+//  + one per validator for the zeroth period, set on initialization
 message ValidatorHistoricalRewards {
   repeated cosmos.base.v1beta1.DecCoin cumulative_reward_ratio = 1 [
     (gogoproto.moretags) = "yaml:\"cumulative_reward_ratio\"",

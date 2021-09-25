@@ -50,5 +50,4 @@ func RegisterProposalTypeCodec(o interface{}, name string) {
 func init() {
 	RegisterLegacyAminoCodec(amino)
 	cryptocodec.RegisterCrypto(amino)
-	amino.Seal()
 }

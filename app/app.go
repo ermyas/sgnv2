@@ -17,6 +17,9 @@ import (
 	distr "github.com/celer-network/sgn-v2/x/distribution"
 	distrkeeper "github.com/celer-network/sgn-v2/x/distribution/keeper"
 	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
+	"github.com/celer-network/sgn-v2/x/farming"
+	farmingkeeper "github.com/celer-network/sgn-v2/x/farming/keeper"
+	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	"github.com/celer-network/sgn-v2/x/gov"
 	govclient "github.com/celer-network/sgn-v2/x/gov/client"
 	govkeeper "github.com/celer-network/sgn-v2/x/gov/keeper"
@@ -91,6 +94,7 @@ var (
 
 		mint.AppModuleBasic{},
 		distr.AppModuleBasic{},
+		farming.AppModuleBasic{},
 		gov.NewAppModuleBasic(govclient.ParamProposalHandler, govclient.UpgradeProposalHandler),
 		slash.AppModule{},
 		sync.AppModule{},
@@ -103,6 +107,7 @@ var (
 		minttypes.ModuleName:       {authtypes.Minter},
 		authtypes.FeeCollectorName: nil,
 		distrtypes.ModuleName:      nil,
+		farming.ModuleName:         nil,
 	}
 
 	// module accounts that are allowed to receive tokens
@@ -135,6 +140,7 @@ type SgnApp struct {
 	ParamsKeeper  paramskeeper.Keeper
 	MintKeeper    mintkeeper.Keeper
 	DistrKeeper   distrkeeper.Keeper
+	FarmingKeeper farmingkeeper.Keeper
 	GovKeeper     govkeeper.Keeper
 	SlashKeeper   slashkeeper.Keeper
 	SyncKeeper    synckeeper.Keeper
@@ -206,7 +212,7 @@ func NewSgnApp(
 	keys := sdk.NewKVStoreKeys(
 		authtypes.StoreKey, banktypes.StoreKey,
 		paramstypes.StoreKey, upgradetypes.StoreKey,
-		minttypes.StoreKey, distrtypes.StoreKey,
+		minttypes.StoreKey, distrtypes.StoreKey, farmingtypes.StoreKey,
 		govtypes.StoreKey, slashtypes.StoreKey, synctypes.StoreKey, stakingtypes.StoreKey,
 		cbridgetypes.MemStoreKey, cbridgetypes.StoreKey,
 	)
@@ -249,6 +255,9 @@ func NewSgnApp(
 	app.DistrKeeper = distrkeeper.NewKeeper(
 		appCodec, keys[distrtypes.StoreKey], app.GetSubspace(distrtypes.ModuleName), app.AccountKeeper, app.BankKeeper,
 		&stakingKeeper, authtypes.FeeCollectorName, app.BlockedAddrs(),
+	)
+	app.FarmingKeeper = farmingkeeper.NewKeeper(
+		appCodec, keys[farmingtypes.StoreKey], app.AccountKeeper, app.BankKeeper,
 	)
 	app.SyncKeeper = synckeeper.NewKeeper(
 		appCodec, keys[synctypes.StoreKey], stakingKeeper, app.GetSubspace(synctypes.ModuleName), app.CbridgeKeeper,
@@ -298,6 +307,7 @@ func NewSgnApp(
 
 		mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper),
 		distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
+		farming.NewAppModule(appCodec, app.FarmingKeeper),
 		staking.NewAppModule(app.StakingKeeper),
 		gov.NewAppModule(app.GovKeeper, app.AccountKeeper),
 		slash.NewAppModule(app.SlashKeeper),
@@ -330,6 +340,7 @@ func NewSgnApp(
 		authtypes.ModuleName,
 		banktypes.ModuleName,
 		distrtypes.ModuleName,
+		farmingtypes.ModuleName,
 		minttypes.ModuleName,
 		stakingtypes.ModuleName,
 		govtypes.ModuleName,

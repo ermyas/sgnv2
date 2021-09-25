@@ -6,12 +6,12 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/celer-network/sgn-v2/x/distribution/types"
+	govrest "github.com/celer-network/sgn-v2/x/gov/client/rest"
+	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	clientrest "github.com/cosmos/cosmos-sdk/client/rest"
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/types/rest"
-	govrest "github.com/cosmos/cosmos-sdk/x/gov/client/rest"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 )
 
 func RegisterHandlers(clientCtx client.Context, rtr *mux.Router) {
@@ -44,7 +44,9 @@ func postProposalHandlerFn(clientCtx client.Context) http.HandlerFunc {
 
 		content := types.NewCommunityPoolSpendProposal(req.Title, req.Description, req.Recipient, req.Amount)
 
-		msg, err := govtypes.NewMsgSubmitProposal(content, req.Deposit, req.Proposer)
+		// TODO: Add check
+		depositAmount := req.Deposit[0].Amount
+		msg, err := govtypes.NewMsgSubmitProposal(content, depositAmount, req.Proposer)
 		if rest.CheckBadRequestError(w, err) {
 			return
 		}

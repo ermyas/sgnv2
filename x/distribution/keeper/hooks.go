@@ -47,7 +47,7 @@ func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, valAddr eth.Addr) {
 		if !coins.IsZero() {
 			validator := h.k.stakingKeeper.Validator(ctx, valAddr)
 			withdrawAddr := h.k.GetDelegatorWithdrawAddr(ctx, validator.GetEthAddr())
-			derivedWithdrawAddr := common.DeriveSdkAccAddressFromEthAddress(withdrawAddr)
+			derivedWithdrawAddr := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, withdrawAddr)
 
 			if err := h.k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, derivedWithdrawAddr, coins); err != nil {
 				panic(err)

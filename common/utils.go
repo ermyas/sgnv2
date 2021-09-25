@@ -3,7 +3,7 @@ package common
 import (
 	"bufio"
 	"encoding/hex"
-	ec "github.com/ethereum/go-ethereum/common"
+	"fmt"
 	"math/big"
 	"os"
 	"time"
@@ -14,6 +14,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkaddress "github.com/cosmos/cosmos-sdk/types/address"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	ec "github.com/ethereum/go-ethereum/common"
 	"github.com/spf13/viper"
 )
 
@@ -95,8 +96,8 @@ func VerifyAddressFormat(bz []byte) error {
 	return nil
 }
 
-func DeriveSdkAccAddressFromEthAddress(ethAddr eth.Addr) sdk.AccAddress {
-	return sdk.AccAddress(sdkaddress.Module("eth", ethAddr.Bytes()))
+func DeriveSdkAccAddressFromEthAddress(namespace string, ethAddr eth.Addr) sdk.AccAddress {
+	return sdk.AccAddress(sdkaddress.Module(fmt.Sprintf("eth-%s", namespace), ethAddr.Bytes()))
 }
 
 func TsMilliToTime(ms uint64) time.Time {

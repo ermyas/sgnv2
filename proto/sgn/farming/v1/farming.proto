@@ -1,0 +1,199 @@
+syntax = "proto3";
+package sgn.farming.v1;
+
+option go_package = "github.com/celer-network/sgn-v2/x/farming/types";
+option (gogoproto.equal_all) = true;
+
+import "gogoproto/gogo.proto";
+import "cosmos/base/v1beta1/coin.proto";
+
+// ERC20Token describes an ERC20 token on a specific EVM-compatible chain
+message ERC20Token {
+  uint64 chain_id = 1 [(gogoproto.moretags) = "yaml:\"chain_id\""];
+  string symbol = 2 [(gogoproto.moretags) = "yaml:\"symbol\""];
+  string address = 3 [(gogoproto.moretags) = "yaml:\"address\""];
+}
+
+// FarmingPool represents a pool that rewards liquidity providers with tokens
+message FarmingPool {
+  string name = 1;
+  ERC20Token stake_token = 2 [(gogoproto.moretags) = "yaml:\"stake_token\"", (gogoproto.nullable) = false];
+  cosmos.base.v1beta1.DecCoin total_staked_amount = 3 [(gogoproto.moretags) = "yaml:\"total_staked_amount\"", (gogoproto.nullable) = false];
+  repeated RewardTokenInfo reward_token_infos = 4 [(gogoproto.moretags) = "yaml:\"reward_token_infos\"", (gogoproto.nullable) = false];
+  repeated cosmos.base.v1beta1.DecCoin total_accumulated_rewards = 5 [
+    (gogoproto.moretags) = "yaml:\"total_accumulated_rewards\"",
+    (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.DecCoins",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// NumPools is a wrapper of uint to display by CLI query
+message NumPools {
+  uint64 num_pools = 1;
+}
+
+// RewardTokenInfo describes the status of a reward token in a pool
+message RewardTokenInfo {
+  cosmos.base.v1beta1.DecCoin remaining_amount = 1 [(gogoproto.moretags) = "yaml:\"remaining_amount\"", (gogoproto.nullable) = false];
+  int64 reward_start_block_height = 2 [(gogoproto.moretags) = "yaml:\"reward_start_block_height\""];
+  string reward_amount_per_block = 3 [
+    (gogoproto.moretags) = "yaml:\"reward_amount_per_block\"",
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// StakeInfo describes the stake of a liquidity provider in a pool
+message StakeInfo {
+  string staker_address = 1 [(gogoproto.moretags) = "yaml:\"staker_address\""];
+  string pool_name = 2 [(gogoproto.moretags) = "yaml:\"pool_name\""];
+  cosmos.base.v1beta1.DecCoin amount = 3 [(gogoproto.nullable) = false];
+  int64 start_block_height = 4 [(gogoproto.moretags) = "yaml:\"start_block_height\""];
+  uint64 reference_period = 5 [(gogoproto.moretags) = "yaml:\"reference_period\""];
+}
+
+// PoolHistoricalRewards records the reward ratio of one liquidity provider account in a pool
+message PoolHistoricalRewards {
+  repeated cosmos.base.v1beta1.DecCoin cumulative_reward_ratio = 1 [
+    (gogoproto.moretags) = "yaml:\"cumulative_reward_ratio\"",
+    (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.DecCoins",
+    (gogoproto.nullable) = false
+  ];
+  uint32 reference_count = 2 [(gogoproto.moretags) = "yaml:\"reference_count\""];
+}
+
+// PoolCurrentRewards records the rewards in the current period
+message PoolCurrentRewards {
+  int64 start_block_height = 1 [(gogoproto.moretags) = "yaml:\"start_block_height\""];
+  uint64 period = 2 [(gogoproto.moretags) = "yaml:\"period\""];
+  repeated cosmos.base.v1beta1.DecCoin rewards = 3 [
+    (gogoproto.moretags) = "yaml:\"rewards\"",
+    (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.DecCoins",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// Earnings is the structure for an earnings query for one liquidity provider account in a pool
+message Earnings {
+  int64 target_block_height = 1 [(gogoproto.moretags) = "yaml:\"target_block_height\""];
+  cosmos.base.v1beta1.DecCoin staked_amount = 2 [(gogoproto.moretags) = "yaml:\"staked_amount\"", (gogoproto.nullable) = false];
+  repeated cosmos.base.v1beta1.DecCoin reward_amount = 3 [
+    (gogoproto.moretags) = "yaml:\"reward_amount\"",
+    (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.DecCoins",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// RewardAdjustmentInput describes the input to add / adjust a reward token in a pool
+message RewardAdjustmentInput {
+  cosmos.base.v1beta1.DecCoin add_amount = 1 [(gogoproto.moretags) = "yaml:\"add_amount\"", (gogoproto.nullable) = false];
+  int64 reward_start_block_delay = 2 [(gogoproto.moretags) = "yaml:\"reward_start_block_delay\""];
+  string new_reward_amount_per_block = 3 [
+    (gogoproto.moretags) = "yaml:\"new_reward_amount_per_block\"",
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
+    (gogoproto.nullable) = false
+  ];
+}
+
+// -------------------- Governance Proposals --------------------
+
+// AddPoolProposal details a proposal to add a farming pool. If passed, it automatically registers
+// the stake and reward tokens involved.
+message AddPoolProposal {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.goproto_stringer) = false;
+
+  string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
+  string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
+  string pool_name = 3 [(gogoproto.moretags) = "yaml:\"pool_name\""];
+  ERC20Token stake_token = 4 [(gogoproto.moretags) = "yaml:\"stake_token\"", (gogoproto.nullable) = false];
+  repeated ERC20Token reward_tokens = 5 [(gogoproto.moretags) = "yaml:\"reward_tokens\"", (gogoproto.nullable) = false];
+  repeated RewardAdjustmentInput initial_reward_inputs = 6
+      [(gogoproto.moretags) = "yaml:\"initial_reward_inputs\"", (gogoproto.nullable) = false];
+}
+
+// AddPoolProposalWithDeposit defines an AddPoolProposal with a deposit, for CLI usage.
+message AddPoolProposalWithDeposit {
+  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.goproto_stringer) = true;
+
+  string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
+  string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
+  string pool_name = 3 [(gogoproto.moretags) = "yaml:\"pool_name\""];
+  ERC20Token stake_token = 4 [(gogoproto.moretags) = "yaml:\"stake_token\"", (gogoproto.nullable) = false];
+  repeated ERC20Token reward_tokens = 5 [(gogoproto.moretags) = "yaml:\"reward_tokens\"", (gogoproto.nullable) = false];
+  repeated RewardAdjustmentInput initial_reward_inputs = 6
+      [(gogoproto.moretags) = "yaml:\"initial_reward_inputs\"", (gogoproto.nullable) = false];
+  string deposit = 7 [(gogoproto.moretags) = "yaml:\"deposit\""];
+}
+
+// AdjustRewardProposal details a proposal to adjust reward tokens in a pool.
+message AdjustRewardProposal {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.goproto_stringer) = false;
+
+  string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
+  string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
+  string pool_name = 3 [(gogoproto.moretags) = "yaml:\"pool_name\""];
+  repeated RewardAdjustmentInput reward_adjustment_inputs = 4
+      [(gogoproto.moretags) = "yaml:\"reward_adjustment_inputs\"", (gogoproto.nullable) = false];
+}
+
+// AdjustRewardProposalWithDeposit defines an AdjustRewardProposal with a deposit, for CLI usage.
+message AdjustRewardProposalWithDeposit {
+  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.goproto_stringer) = true;
+
+  string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
+  string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
+  string pool_name = 3 [(gogoproto.moretags) = "yaml:\"pool_name\""];
+  repeated RewardAdjustmentInput reward_adjustment_inputs = 4
+      [(gogoproto.moretags) = "yaml:\"reward_adjustment_inputs\"", (gogoproto.nullable) = false];
+  string deposit = 5 [(gogoproto.moretags) = "yaml:\"deposit\""];
+}
+
+// RemovePoolProposal details a proposal to remove a finished farming pool.
+message RemovePoolProposal {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.goproto_stringer) = false;
+
+  string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
+  string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
+  string pool_name = 3 [(gogoproto.moretags) = "yaml:\"pool_name\""];
+}
+
+// RemovePoolProposalWithDeposit defines a RemovePoolProposal with a deposit, for CLI usage.
+message RemovePoolProposalWithDeposit {
+  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.goproto_stringer) = true;
+
+  string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
+  string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
+  string pool_name = 3 [(gogoproto.moretags) = "yaml:\"pool_name\""];
+  string deposit = 4 [(gogoproto.moretags) = "yaml:\"deposit\""];
+}
+
+// AddTokensProposal details a proposal to add new ERC20 tokens.
+message AddTokensProposal {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.goproto_stringer) = false;
+
+  string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
+  string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
+  repeated ERC20Token tokens = 3 [(gogoproto.moretags) = "yaml:\"tokens\"", (gogoproto.nullable) = false];
+}
+
+// AddTokensProposalWithDeposit defines a AddTokensProposal with a deposit, for CLI usage.
+message AddTokensProposalWithDeposit {
+  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.goproto_stringer) = true;
+
+  string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
+  string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
+  repeated ERC20Token tokens = 3 [(gogoproto.moretags) = "yaml:\"tokens\"", (gogoproto.nullable) = false];
+  string deposit = 4 [(gogoproto.moretags) = "yaml:\"deposit\""];
+}

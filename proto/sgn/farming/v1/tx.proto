@@ -1,0 +1,46 @@
+syntax = "proto3";
+package sgn.farming.v1;
+
+option go_package = "github.com/celer-network/sgn-v2/x/farming/types";
+option (gogoproto.equal_all) = true;
+
+import "gogoproto/gogo.proto";
+
+// Msg defines the farming Msg service.
+service Msg {
+  // ClaimRewards defines a method to claim the farming rewards from a single pool.
+  rpc ClaimRewards(MsgClaimRewards) returns (MsgClaimRewardsResponse);
+
+  // ClaimAllRewards defines a method to claim the farming rewards from all the staked pools.
+  rpc ClaimAllRewards(MsgClaimAllRewards) returns (MsgClaimAllRewardsResponse);
+}
+
+// MsgClaimRewards claims the farming rewards from a single pool for an account.
+message MsgClaimRewards {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // pool_name defines the pool name to claim from.
+  string pool_name = 1;
+  // address defines the account address to claim for.
+  string address = 2;
+  // sender defines the SGN account sending the claim Msg.
+  string sender = 3;
+}
+
+// MsgClaimRewardsResponse defines the Msg/ClaimRewards response type.
+message MsgClaimRewardsResponse {}
+
+// MsgClaimRewards claims all the farming rewards for an account.
+message MsgClaimAllRewards {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // address defines the account address to claim for.
+  string address = 1;
+  // sender defines the SGN account sending the claim Msg.
+  string sender = 2;
+}
+
+// MsgClaimRewardsResponse defines the Msg/ClaimRewards response type.
+message MsgClaimAllRewardsResponse {}

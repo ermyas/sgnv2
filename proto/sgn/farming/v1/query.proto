@@ -1,0 +1,207 @@
+syntax = "proto3";
+package sgn.farming.v1;
+
+import "cosmos/base/query/v1beta1/pagination.proto";
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "sgn/farming/v1/farming.proto";
+
+option go_package = "github.com/celer-network/sgn-v2/x/farming/types";
+
+// Query defines the gRPC querier service for farming module.
+service Query {
+  // Pools queries the current state of all the pools.
+  rpc Pools(QueryPoolsRequest) returns (QueryPoolsResponse) {
+    option (google.api.http).get = "/sgn/farming/v1/pools";
+  }
+
+  // Pool queries the current state of a single pool.
+  rpc Pool(QueryPoolRequest) returns (QueryPoolResponse) {
+    option (google.api.http).get = "/sgn/farming/v1/pool/{pool_name}";
+  }
+
+  // Earnings queries the current earnings of an account in a pool.
+  rpc Earnings(QueryEarningsRequest) returns (QueryEarningsResponse) {
+    option (google.api.http).get = "/sgn/farming/v1/earnings/{pool_name}/{address}";
+  }
+
+  // StakeInfo queries the current stake info of an account in a pool.
+  rpc StakeInfo(QueryStakeInfoRequest) returns (QueryStakeInfoResponse) {
+    option (google.api.http).get = "/sgn/farming/v1/stake_info/{pool_name}/{address}";
+  }
+
+  // StakedPools queries the current state of all the pools that an account has stakes in.
+  rpc StakedPools(QueryStakedPoolsRequest) returns (QueryStakedPoolsResponse) {
+    option (google.api.http).get = "/sgn/farming/v1/staked_pools/{address}";
+  }
+
+  // AccountsStakedIn queries the list of accounts staked in a pool.
+  rpc AccountsStakedIn(QueryAccountsStakedInRequest) returns (QueryAccountsStakedInResponse) {
+    option (google.api.http).get = "/sgn/farming/v1/accounts_staked_in/{pool_name}";
+  }
+
+  rpc NumPools(QueryNumPoolsRequest) returns (QueryNumPoolsResponse) {
+    option (google.api.http).get = "/sgn/farming/v1/num_pools";
+  }
+
+  // RewardClaimInfo queries the info for claiming farming rewards on the mainchain.
+  rpc RewardClaimInfo(QueryRewardClaimInfoRequest) returns (QueryRewardClaimInfoResponse) {
+    option (google.api.http).get = "/sgn/farming/v1/reward_claim_info/{address}";
+  }
+}
+
+// QueryPoolsRequest is the request type for the
+// Query/Pools RPC method.
+message QueryPoolsRequest {
+  // TODO: Support pagination
+}
+
+// QueryPoolsResponse is the response type for the
+// Query/Pools RPC method.
+message QueryPoolsResponse {
+  // pools defines the current state of the farming pools.
+  repeated FarmingPool pools = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryPoolRequest is the request type for the
+// Query/Pool RPC method.
+message QueryPoolRequest {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // pool_name defines the pool name to query for.
+  string pool_name = 1;
+}
+
+// QueryPoolResponse is the response type for the
+// Query/Pool RPC method.
+message QueryPoolResponse {
+  // pool defines the current state of the farming pool.
+  FarmingPool pool = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryEarningsRequest is the request type for the
+// Query/Earnings RPC method.
+message QueryEarningsRequest {
+  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.goproto_stringer) = true;
+
+  // pool_name defines the pool name to query for.
+  string pool_name = 1;
+  // address defines the account address to query for.
+  string address = 2;
+}
+
+// QueryEarningsResponse is the response type for the
+// Query/Earnings RPC method.
+message QueryEarningsResponse {
+  // earnings defines the earnings info.
+  Earnings earnings = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryStakeInfoRequest is the request type for the
+// Query/StakeInfo RPC method.
+message QueryStakeInfoRequest {
+  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.goproto_stringer) = true;
+
+  // pool_name defines the pool name to query for.
+  string pool_name = 1;
+  // address defines the account address to query for.
+  string address = 2;
+}
+
+// QueryStakeInfoResponse is the response type for the
+// Query/StakeInfo RPC method.
+message QueryStakeInfoResponse {
+  // stake_info defines the stake info.
+  StakeInfo stake_info = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryStakedPoolsRequest is the request type for the
+// Query/StakedPools RPC method.
+message QueryStakedPoolsRequest {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // address defines the account address to query for.
+  string address = 1;
+}
+
+// QueryStakedPoolsResponse is the response type for the
+// Query/StakedPools RPC method.
+message QueryStakedPoolsResponse {
+  // pools defines the current state of the farming pools.
+  repeated FarmingPool pools = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryAccountsStakedInRequest is the request type for the
+// Query/AccountsStakedIn RPC method.
+message QueryAccountsStakedInRequest {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // pool_name defines the pool name to query for.
+  string pool_name = 1;
+}
+
+// QueryAccountsStakedInResponse is the response type for the
+// Query/AccountsStakedIn RPC method.
+message QueryAccountsStakedInResponse {
+  // addresses defines the addresses of the accounts staked in a pool.
+  repeated string addresses = 1;
+}
+
+// QueryRewardClaimInfoRequest is the request type for the
+// Query/RewardClaimInfo RPC method.
+message QueryRewardClaimInfoRequest {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // address defines the account address to query for.
+  string address = 1;
+}
+
+// Signature is the structure representing an Ethereum ECDSA signature.
+message Signature {
+  // signer defines the Ethereum address of the signer.
+  string signer = 1 [(gogoproto.moretags) = "yaml:\"signer\""];
+
+  // sig_bytes defines the signature bytes.
+  bytes sig_bytes = 2 [(gogoproto.moretags) = "yaml:\"sig_bytes\""];
+}
+
+// QueryRewardClaimInfoResponse is the response type for the
+// Query/RewardClaimInfo RPC method.
+message QueryRewardClaimInfoResponse {
+  // recipient defines the Ethereum address of the reward recipient.
+  string recipient = 1;
+
+  // reward_amount defines the amount of the reward claimed by the last request.
+  string reward_amount = 2 [
+    (gogoproto.moretags) = "yaml:\"reward_amount\"",
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.nullable) = false
+  ];
+
+  // reward_proto_bytes defines the serialized reward protobuf to be submitted on the mainchain.
+  bytes reward_proto_bytes = 3 [(gogoproto.moretags) = "yaml:\"reward_proto_bytes\""];
+
+  // last_claim_time defines the last time a reward claim was signed by the validators.
+  google.protobuf.Timestamp last_claim_time = 4
+      [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"last_claim_time\""];
+
+  // signatures defines the signatures to be verified on the mainchain.
+  repeated Signature signatures = 5 [(gogoproto.moretags) = "yaml:\"signatures\"", (gogoproto.nullable) = false];
+}
+
+// QueryNumPoolsRequest is the request type for the
+// Query/NumPools RPC method.
+message QueryNumPoolsRequest {}
+
+// QueryNumPoolsResponse is the response type for the
+// Query/NumPools RPC method.
+message QueryNumPoolsResponse {
+  uint64 num_pools = 1 [(gogoproto.moretags) = "yaml:\"num_pools\""];
+}

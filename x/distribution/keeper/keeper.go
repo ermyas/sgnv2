@@ -132,7 +132,7 @@ func (k Keeper) WithdrawValidatorCommission(ctx sdk.Context, valAddr eth.Addr) (
 	if !commission.IsZero() {
 		validator := k.stakingKeeper.Validator(ctx, valAddr)
 		withdrawAddr := k.GetDelegatorWithdrawAddr(ctx, validator.GetEthAddr())
-		derivedWithdrawAddr := common.DeriveSdkAccAddressFromEthAddress(withdrawAddr)
+		derivedWithdrawAddr := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, withdrawAddr)
 		err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, derivedWithdrawAddr, commission)
 		if err != nil {
 			return nil, err
