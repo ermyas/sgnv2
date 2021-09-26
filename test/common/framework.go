@@ -32,6 +32,14 @@ var (
 	Client1 *TestEthClient
 
 	ValSgnAddrs []sdk.AccAddress
+
+	//cbridge related
+	Usdt1Addr     eth.Addr
+	Usdt2Addr     eth.Addr
+	Usdt1Contract *eth.Erc20
+	Usdt2Contract *eth.Erc20
+	Cbr1Contract  *eth.BridgeContract
+	Cbr2Contract  *eth.BridgeContract
 )
 
 type ContractParams struct {

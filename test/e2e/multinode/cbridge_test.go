@@ -1,11 +1,16 @@
 package multinode
 
 import (
+	"context"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/celer-network/goutils/log"
 	tc "github.com/celer-network/sgn-v2/test/common"
+	"github.com/celer-network/sgn-v2/transactor"
+	bridgecli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 )
 
 func setupCbridge() {
@@ -41,4 +46,49 @@ func cbridgeTest(t *testing.T) {
 	log.Infoln("======================== Test cbridge ===========================")
 
 	setupCbridge()
+
+	transactor := tc.NewTestTransactor(
+		tc.SgnHomes[0],
+		tc.SgnChainID,
+		tc.SgnNodeURI,
+		tc.ValSgnAddrStrs[0],
+		tc.SgnPassphrase,
+	)
+
+	log.Infoln("======================== Add liquidity on chain 1 ===========================")
+	ctx, cancel := context.WithTimeout(context.Background(), tc.DefaultTimeout)
+	defer cancel()
+
+	tx, err := tc.Usdt1Contract.Approve(tc.ValAuths[0], tc.Cbr1Contract.Address, big.NewInt(5*1e6))
+	tc.ChkErr(err, "failed to approve allowance")
+	tc.WaitMinedWithChk(ctx, tc.EthClient, tx, tc.BlockDelay, tc.PollingInterval, "Approve")
+
+	tx, err = tc.Cbr1Contract.Bridge.AddLiquidity(tc.ValAuths[0], tc.Usdt1Addr, big.NewInt(5*1e6))
+	tc.ChkErr(err, "failed to add liquidity")
+	tc.WaitMinedWithChk(ctx, tc.EthClient, tx, tc.BlockDelay, tc.PollingInterval, "AddLiquidity")
+
+	checkAddLiquidityStatus(transactor, 883, 0)
+}
+
+func checkAddLiquidityStatus(transactor *transactor.Transactor, chainId, seqNum uint64) {
+	var resp *cbrtypes.QueryLiquidityStatusResponse
+	var err error
+	for retry := 0; retry < tc.RetryLimit; retry++ {
+		resp, err = bridgecli.QueryAddLiquidityStatus(transactor.CliCtx, &cbrtypes.QueryAddLiquidityStatusRequest{
+			ChainId: 883,
+			SeqNum:  0,
+		})
+		if err != nil {
+			log.Debugln("retry due to err:", err)
+		}
+		if err == nil && resp.Status == cbrtypes.LPHistoryStatus_LP_COMPLETED {
+			break
+		}
+		time.Sleep(tc.RetryPeriod)
+	}
+	tc.ChkErr(err, "failed to QueryAddLiquidityStatus")
+	// TODO: status check
+	// if resp.Status != cbrtypes.LPHistoryStatus_LP_COMPLETED {
+	// 	log.Fatalln("incorrect status")
+	// }
 }

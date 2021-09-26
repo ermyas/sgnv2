@@ -272,14 +272,14 @@ func DeployUsdtForBridge() {
 		tc.ClientEthAddrs[1],
 	}
 
-	usdt1Addr, _ := tc.DeployERC20Contract(tc.EthClient, tc.EtherBaseAuth, "USDT", "USDT", 6)
-	usdt2Addr, _ := tc.DeployERC20Contract(tc.EthClient2, tc.EtherBaseAuth2, "USDT", "USDT", 6)
+	tc.Usdt1Addr, tc.Usdt1Contract = tc.DeployERC20Contract(tc.EthClient, tc.EtherBaseAuth, "USDT", "USDT", 6)
+	tc.Usdt2Addr, tc.Usdt2Contract = tc.DeployERC20Contract(tc.EthClient2, tc.EtherBaseAuth2, "USDT", "USDT", 6)
 
 	// fund usdt to each eth account
 	log.Infoln("fund each test addr 10 million usdt on each chain")
-	err := tc.FundAddrsErc20(usdt1Addr, addrs, tc.NewBigInt(1, 13), tc.EthClient, tc.EtherBaseAuth)
+	err := tc.FundAddrsErc20(tc.Usdt1Addr, addrs, tc.NewBigInt(1, 13), tc.EthClient, tc.EtherBaseAuth)
 	tc.ChkErr(err, "fund each test addr 10 million usdt on chain 1")
-	err = tc.FundAddrsErc20(usdt2Addr, addrs, tc.NewBigInt(1, 13), tc.EthClient2, tc.EtherBaseAuth2)
+	err = tc.FundAddrsErc20(tc.Usdt2Addr, addrs, tc.NewBigInt(1, 13), tc.EthClient2, tc.EtherBaseAuth2)
 	tc.ChkErr(err, "fund each test addr 10 million usdt on chain 2")
 
 	log.Infoln("Updating config files of SGN nodes")
@@ -292,8 +292,8 @@ func DeployUsdtForBridge() {
 		cbrConfig := new(cbrtypes.CbrConfig)
 		jsonByte, _ := json.Marshal(genesisViper.Get("app_state.cbridge.config"))
 		json.Unmarshal(jsonByte, cbrConfig)
-		cbrConfig.Assets[0].Addr = eth.Addr2Hex(usdt1Addr)
-		cbrConfig.Assets[1].Addr = eth.Addr2Hex(usdt2Addr)
+		cbrConfig.Assets[0].Addr = eth.Addr2Hex(tc.Usdt1Addr)
+		cbrConfig.Assets[1].Addr = eth.Addr2Hex(tc.Usdt2Addr)
 		genesisViper.Set("app_state.cbridge.config", cbrConfig)
 		err = genesisViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write genesis")
@@ -309,8 +309,10 @@ func DeployBridgeContract(amts []*big.Int) {
 	ss, _ := proto.Marshal(&cbrtypes.SortedSigners{
 		Signers: signers,
 	})
-	cbr1Addr, _ := tc.DeployBridgeContract(tc.EthClient, tc.EtherBaseAuth, ss)
-	cbr2Addr, _ := tc.DeployBridgeContract(tc.EthClient2, tc.EtherBaseAuth2, ss)
+	cbr1Addr, cbr1Contract := tc.DeployBridgeContract(tc.EthClient, tc.EtherBaseAuth, ss)
+	cbr2Addr, cbr2Contract := tc.DeployBridgeContract(tc.EthClient2, tc.EtherBaseAuth2, ss)
+	tc.Cbr1Contract = cbr1Contract
+	tc.Cbr2Contract = cbr2Contract
 
 	for i := 0; i < len(tc.ValEthKs); i++ {
 		configPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/sgn.toml", i)
