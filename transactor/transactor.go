@@ -170,10 +170,10 @@ func (t *Transactor) drainTxMsgQueue() {
 		msgs = append(msgs, msg)
 	}
 
-	t.sendTxMsgsWaitMined(msgs)
+	t.SendTxMsgsWaitMined(msgs)
 }
 
-func (t *Transactor) sendTxMsgsWaitMined(msgs []sdk.Msg) (*sdk.TxResponse, error) {
+func (t *Transactor) SendTxMsgsWaitMined(msgs []sdk.Msg) (*sdk.TxResponse, error) {
 	var txResponse *sdk.TxResponse
 	var err error
 	var gas uint64
@@ -321,7 +321,7 @@ func (t *Transactor) CliSendTxMsgWaitMined(msg sdk.Msg) {
 }
 
 func (t *Transactor) CliSendTxMsgsWaitMined(msgs []sdk.Msg) {
-	res, err := t.sendTxMsgsWaitMined(msgs)
+	res, err := t.SendTxMsgsWaitMined(msgs)
 	t.CliCtx.OutputFormat = "text"
 	if err == nil {
 		t.CliCtx.PrintProto(res)

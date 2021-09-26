@@ -17,6 +17,7 @@ import (
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/gogo/protobuf/proto"
 	"github.com/spf13/viper"
 )
 
@@ -192,9 +193,11 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridgeTest 
 		tc.ChkErr(err, "Failed to write genesis")
 	}
 
+	amt1 := big.NewInt(3e18)
+	amts := []*big.Int{amt1}
 	if cbridgeTest {
 		DeployUsdtForBridge()
-		DeployBridgeContract()
+		DeployBridgeContract(amts)
 	}
 
 	// Update global viper
@@ -216,6 +219,17 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridgeTest 
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	tc.ChkErr(err, "Failed to make localnet-up-nodes")
+
+	if cbridgeTest {
+		transactor := tc.NewTestTransactor(
+			tc.SgnHomes[0],
+			tc.SgnChainID,
+			tc.SgnNodeURI,
+			tc.ValSgnAddrStrs[0],
+			tc.SgnPassphrase,
+		)
+		SetupValidators(transactor, amts)
+	}
 }
 
 func SetupValidators(transactor *transactor.Transactor, amts []*big.Int) {
@@ -286,26 +300,17 @@ func DeployUsdtForBridge() {
 	}
 }
 
-func DeployBridgeContract() {
-	// transactor := tc.NewTestTransactor(
-	// 	tc.SgnHomes[0],
-	// 	tc.SgnChainID,
-	// 	tc.SgnNodeURI,
-	// 	tc.ValSgnAddrStrs[0],
-	// 	tc.SgnPassphrase,
-	// )
-
-	// amt1 := big.NewInt(3e18)
-	// amt2 := big.NewInt(2e18)
-	// amt3 := big.NewInt(2e18)
-	// amts := []*big.Int{amt1, amt2, amt3}
-	// SetupValidators(transactor, amts)
-
-	// validators, err := stakingcli.QueryValidators(transactor.CliCtx)
-	// tc.ChkErr(err, "failed to query validators contract")
-	// signers, _ := proto.Marshal(relayer.GetSortedSigners(validators))
-	cbr1Addr, _ := tc.DeployBridgeContract(tc.EthClient, tc.EtherBaseAuth, make([]byte, 0))
-	cbr2Addr, _ := tc.DeployBridgeContract(tc.EthClient2, tc.EtherBaseAuth2, make([]byte, 0))
+func DeployBridgeContract(amts []*big.Int) {
+	signers := make([]*cbrtypes.AddrAmt, 0)
+	signers = append(signers, &cbrtypes.AddrAmt{
+		Addr: []byte(eth.Addr2Hex(tc.ValSignerAddrs[0])),
+		Amt:  amts[0].Bytes(),
+	})
+	ss, _ := proto.Marshal(&cbrtypes.SortedSigners{
+		Signers: signers,
+	})
+	cbr1Addr, _ := tc.DeployBridgeContract(tc.EthClient, tc.EtherBaseAuth, ss)
+	cbr2Addr, _ := tc.DeployBridgeContract(tc.EthClient2, tc.EtherBaseAuth2, ss)
 
 	for i := 0; i < len(tc.ValEthKs); i++ {
 		configPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/sgn.toml", i)
