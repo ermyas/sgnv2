@@ -132,6 +132,7 @@ message EstimateAmtRequest {
     uint64 dst_chain_id = 2;
     string token_symbol = 3;
     string amt = 4;
+    string usr_addr = 5;
 }
 
 message EstimateAmtResponse {
@@ -249,21 +250,27 @@ message LPHistory {
 message TransferHistoryRequest {
     string next_page_token = 1; // for first page, it's ""
     uint64 page_size = 2;
+    string addr = 3;
 }
 
 message TransferHistoryResponse {
     ErrMsg err = 1;
     repeated TransferHistory history = 2;
+    string next_page_token = 3;
+    uint64 current_size = 4;
 }
 
 message LPHistoryRequest {
     string next_page_token = 1; // for first page, it's ""
     uint64 page_size = 2;
+    string addr = 3;
 }
 
 message LPHistoryResponse {
     ErrMsg err = 1;
     repeated LPHistory history = 2;
+    string next_page_token = 3;
+    uint64 current_size = 4;
 }
 
 message ErrMsg {

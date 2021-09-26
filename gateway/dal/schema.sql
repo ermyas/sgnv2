@@ -62,5 +62,11 @@ CREATE TABLE IF NOT EXISTS chain (
      id INT PRIMARY KEY NOT NULL,
      name TEXT NOT NULL DEFAULT '',
      icon TEXT NOT NULL DEFAULT '',
-     tx_url TEXT NOT NULL DEFAULT '',
+     tx_url TEXT NOT NULL DEFAULT ''
+);
+
+
+CREATE TABLE IF NOT EXISTS usr_slippage (
+     addr TEXT PRIMARY KEY NOT NULL,
+     slippage INT NOT NULL DEFAULT 0
 );

@@ -10,13 +10,16 @@ import (
 	"github.com/celer-network/sgn-v2/gateway/fee"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/relayer"
+	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
-	"github.com/cosmos/cosmos-sdk/client"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
+	github_com_cosmos_cosmos_sdk_types "github.com/cosmos/cosmos-sdk/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/lthibault/jitterbug"
-	"os"
+	"github.com/spf13/viper"
+	"path/filepath"
+	"strconv"
 	"time"
 )
 
@@ -33,11 +36,23 @@ type GatewayConfig struct {
 }
 
 type GatewayService struct {
-	f *fee.TokenPriceCache
+	f  *fee.TokenPriceCache
+	tr *transactor.Transactor
 }
 
 func (gs *GatewayService) SetAdvancedInfo(ctx context.Context, request *webapi.SetAdvancedInfoRequest) (*webapi.SetAdvancedInfoResponse, error) {
-	panic("implement me")
+	addr := common.Hex2Addr(request.GetAddr()).String()
+	err := dal.DB.UpsertSlippageSetting(addr, request.GetSlippageTolerance())
+	if err == nil {
+		return &webapi.SetAdvancedInfoResponse{}, nil
+	} else {
+		return &webapi.SetAdvancedInfoResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "update setting failed",
+			},
+		}, nil
+	}
 }
 
 func (gs *GatewayService) GetTransferConfigs(ctx context.Context, request *webapi.GetTransferConfigsRequest) (*webapi.GetTransferConfigsResponse, error) {
@@ -75,7 +90,54 @@ func (gs *GatewayService) GetTransferConfigs(ctx context.Context, request *webap
 }
 
 func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.EstimateAmtRequest) (*webapi.EstimateAmtResponse, error) {
-	panic("implement me")
+	amt := request.GetAmt()
+	srcChainId := request.GetSrcChainId()
+	dstChainId := request.GetDstChainId()
+	tokenSymbol := request.GetTokenSymbol()
+	srcToken, found1, err1 := dal.DB.GetTokenBySymbol(tokenSymbol, srcChainId)
+	dstToken, found2, err2 := dal.DB.GetTokenBySymbol(tokenSymbol, dstChainId)
+	if err1 != nil || !found1 || err2 != nil || !found2 {
+		return &webapi.EstimateAmtResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "token not found",
+			},
+		}, nil
+	}
+	addr := common.Hex2Addr(request.GetUsrAddr()).String()
+	slippage, found, err := dal.DB.GetSlippageSetting(addr)
+	if err != nil || !found {
+		slippage = 0
+	}
+	feeInfo, err := cli.GetFee(gs.tr.CliCtx, &types.GetFeeRequest{
+		SrcChainId:   srcChainId,
+		DstChainId:   dstChainId,
+		SrcTokenAddr: srcToken.Token.GetAddress(),
+		Amt:          amt,
+	})
+	if feeInfo == nil {
+		return &webapi.EstimateAmtResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "can not estimate fee",
+			},
+		}, nil
+	}
+	eqValueTokenAmt := feeInfo.GetEqValueTokenAmt()
+	feeAmt := feeInfo.GetFee()
+
+	srcVolume := gs.f.GetUsdVolume(srcToken.Token, common.Str2BigInt(amt))
+	dstVolume := gs.f.GetUsdVolume(dstToken.Token, common.Str2BigInt(eqValueTokenAmt))
+	bridgeRate := 0.0
+	if srcVolume > 0.000000001 {
+		bridgeRate = dstVolume / srcVolume
+	}
+	return &webapi.EstimateAmtResponse{
+		EqValueTokenAmt:   eqValueTokenAmt,
+		BridgeRate:        float32(bridgeRate),
+		Fee:               feeAmt,
+		SlippageTolerance: uint32(slippage),
+	}, nil
 }
 
 func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.MarkTransferRequest) (*webapi.MarkTransferResponse, error) {
@@ -122,20 +184,23 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 		return &webapi.GetLPInfoListResponse{}, nil
 	}
 	var lps []*webapi.LPInfo
-	detailList, err := cli.LiquidityDetailList(initClientCtx(), &types.LiquidityDetailListRequest{
+	detailList, err := cli.LiquidityDetailList(gs.tr.CliCtx, &types.LiquidityDetailListRequest{
 		LpAddr:     userAddr,
 		ChainToken: chainTokens,
 	})
 	if err != nil || detailList == nil || len(detailList.GetLiquidityDetail()) == 0 {
 		return &webapi.GetLPInfoListResponse{}, nil
 	}
+	stakingMap := gs.GetUserStaking(ctx, userAddr)
+	farmingApyMap := gs.GetFarmingApy(ctx)
+
 	for _, detail := range detailList.GetLiquidityDetail() {
 		chainId := detail.GetChainId()
 		tokenWithAddr := detail.GetToken() // only has addr field
 		totalLiquidity := detail.GetTotalLiquidity()
 		usrLpFeeEarning := detail.GetUsrLpFeeEarning()
 		usrLiquidity := detail.GetUsrLiquidity()
-		chain, found, err := dal.DB.GetChain(chainId)
+		chain, _, found, err := dal.DB.GetChain(chainId)
 		if !found || err != nil {
 			continue
 		}
@@ -143,19 +208,18 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 		if !found || err != nil {
 			continue
 		}
-		// todo enrich data @aric
+		// todo enrich 0 data @aric
 		lp := &webapi.LPInfo{
 			Chain:                chain,
 			Token:                token,
 			Liquidity:            gs.f.GetUsdVolume(token.Token, common.Str2BigInt(usrLiquidity)),
-			HasFarmingSessions:   false,
+			HasFarmingSessions:   stakingMap[chainId][token.Token.GetSymbol()] > 0,
 			LpFeeEarning:         gs.f.GetUsdVolume(token.Token, common.Str2BigInt(usrLpFeeEarning)),
-			FarmingRewardEarning: 0,
-			Tvl:                  0,
-			Volume_24H:           0,
+			FarmingRewardEarning: 0, // from farming
+			Volume_24H:           0, // local
 			TotalLiquidity:       gs.f.GetUsdVolume(token.Token, common.Str2BigInt(totalLiquidity)),
-			LpFeeEarningApy:      0,
-			FarmingApy:           0,
+			LpFeeEarningApy:      0, // local+total
+			FarmingApy:           farmingApyMap[chainId][token.Token.GetSymbol()],
 		}
 		lps = append(lps, lp)
 	}
@@ -262,13 +326,15 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 }
 
 func (gs *GatewayService) initWithdraw(req *types.MsgInitWithdraw) (uint64, error) {
-	// todo how to call msg_server @aric
-	return 0, nil
+	resp, err := cli.InitWithdraw(gs.tr, req)
+	if resp == nil {
+		return 0, fmt.Errorf("can not init withdraw, resp is empty")
+	}
+	return resp.GetSeqnum(), err
 }
 
 // for withdraw only
 func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *webapi.QueryLiquidityStatusRequest) (*types.QueryLiquidityStatusResponse, error) {
-	// todo add logic in history too @aric
 	seqNum := request.SeqNum
 	chainId, txHash, status, found, err := dal.DB.GetLPInfo(seqNum)
 	if found && err == nil && status == uint64(types.LPHistoryStatus_LP_SUBMITTING) && txHash != "" {
@@ -283,7 +349,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 		}
 	}
 
-	resp, _ := cli.QueryWithdrawLiquidityStatus(initClientCtx(), &types.QueryWithdrawLiquidityStatusRequest{
+	resp, _ := cli.QueryWithdrawLiquidityStatus(gs.tr.CliCtx, &types.QueryWithdrawLiquidityStatusRequest{
 		SeqNum: seqNum,
 	})
 	if resp.GetStatus() == types.LPHistoryStatus_LP_WAITING_FOR_LP {
@@ -295,11 +361,116 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 }
 
 func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.TransferHistoryRequest) (*webapi.TransferHistoryResponse, error) {
-	panic("implement me")
+	addr := common.Hex2Addr(request.GetAddr()).String()
+	endTime := time.Now()
+	if request.GetNextPageToken() != "" {
+		ts, err := strconv.Atoi(request.GetNextPageToken())
+		if err != nil {
+			return &webapi.TransferHistoryResponse{}, nil
+		}
+		endTime = common.TsToTime(uint64(ts))
+	}
+	transferList, currentPageSize, next, err := dal.DB.PaginateTransferList(addr, endTime, request.GetPageSize())
+	if err != nil {
+		return &webapi.TransferHistoryResponse{}, nil
+	}
+	err = gs.UpdateTransferStatusInHistory(transferList)
+	if err != nil {
+		log.Warnf("update transfer status failed for user:%s, error:%v", addr, err)
+	}
+	var transfers []*webapi.TransferHistory
+	for _, transfer := range transferList {
+		srcChain, srcChainUrl, srcFound, err1 := dal.DB.GetChain(transfer.SrcChainId)
+		dstChain, dstChainUrl, dstFound, err2 := dal.DB.GetChain(transfer.SrcChainId)
+		if !srcFound || !dstFound || err1 != nil || err2 != nil {
+			continue
+		}
+		srcToken, srcFound, err1 := dal.DB.GetTokenBySymbol(transfer.TokenSymbol, transfer.SrcChainId)
+		dstToken, dstFound, err2 := dal.DB.GetTokenBySymbol(transfer.TokenSymbol, transfer.DstChainId)
+		if !srcFound || !dstFound || err1 != nil || err2 != nil {
+			continue
+		}
+		srcTxLink := ""
+		dstTxLink := ""
+		if transfer.SrcTxHash != "" {
+			srcTxLink = srcChainUrl + transfer.SrcTxHash
+		}
+
+		if transfer.DstTxHash != "" {
+			dstTxLink = dstChainUrl + transfer.DstTxHash
+		}
+
+		transfers = append(transfers, &webapi.TransferHistory{
+			TransferId: transfer.TransferId,
+			SrcSendInfo: &webapi.TransferInfo{
+				Chain:  srcChain,
+				Token:  srcToken.GetToken(),
+				Amount: transfer.SrcAmt,
+			},
+			DstReceivedInfo: &webapi.TransferInfo{
+				Chain:  dstChain,
+				Token:  dstToken.GetToken(),
+				Amount: transfer.DstAmt,
+			},
+			Ts:             common.TsMilli(transfer.CT),
+			SrcBlockTxLink: srcTxLink,
+			DstBlockTxLink: dstTxLink,
+			Status:         transfer.Status,
+		})
+	}
+	return &webapi.TransferHistoryResponse{
+		History:       transfers,
+		NextPageToken: strconv.FormatUint(common.TsMilli(next), 10),
+		CurrentSize:   uint64(currentPageSize),
+	}, nil
 }
 
 func (gs *GatewayService) LPHistory(ctx context.Context, request *webapi.LPHistoryRequest) (*webapi.LPHistoryResponse, error) {
-	panic("implement me")
+	addr := common.Hex2Addr(request.GetAddr()).String()
+	endTime := time.Now()
+	if request.GetNextPageToken() != "" {
+		ts, err := strconv.Atoi(request.GetNextPageToken())
+		if err != nil {
+			return &webapi.LPHistoryResponse{}, nil
+		}
+		endTime = common.TsToTime(uint64(ts))
+	}
+	lpHistory, currentPageSize, next, err := dal.DB.PaginateLpHistory(addr, endTime, request.GetPageSize())
+	if err != nil {
+		return &webapi.LPHistoryResponse{}, nil
+	}
+	gs.UpdateLpStatusInHistory(lpHistory)
+	var lps []*webapi.LPHistory
+	for _, lp := range lpHistory {
+		chain, chainUrl, found, lpErr := dal.DB.GetChain(lp.ChainId)
+		if !found || lpErr != nil {
+			continue
+		}
+		token, found, lpErr := dal.DB.GetTokenBySymbol(lp.TokenSymbol, lp.ChainId)
+		if !found || lpErr != nil {
+			continue
+		}
+		txLink := ""
+		if lp.TxHash != "" {
+			txLink = chainUrl + lp.TxHash
+		}
+
+		lps = append(lps, &webapi.LPHistory{
+			Chain:       chain,
+			Token:       token,
+			Amount:      lp.Amt,
+			Ts:          common.TsMilli(lp.Ct),
+			BlockTxLink: txLink,
+			Status:      lp.Status,
+			Type:        lp.LpType,
+			SeqNum:      lp.SeqNum,
+		})
+	}
+	return &webapi.LPHistoryResponse{
+		History:       lps,
+		NextPageToken: strconv.FormatUint(common.TsMilli(next), 10),
+		CurrentSize:   uint64(currentPageSize),
+	}, nil
 }
 
 func NewGatewayService(dbUrl string) (*GatewayService, error) {
@@ -324,7 +495,7 @@ func (gs *GatewayService) StartChainTokenPolling(interval time.Duration) {
 		)
 		defer ticker.Stop()
 		for ; true; <-ticker.C {
-			resp, err := cli.ChainTokensConfig(initClientCtx(), nil)
+			resp, err := cli.ChainTokensConfig(gs.tr.CliCtx, nil)
 			if err != nil {
 				log.Errorln("failed to load basic token info:", err)
 			}
@@ -350,15 +521,26 @@ func (gs *GatewayService) StartChainTokenPolling(interval time.Duration) {
 	}()
 }
 
-// todo add this in history query @aric
-func UpdateTransferStatusInHistory(sender string, endTime time.Time, pageSize uint64) error {
-	transferList, _, _, err := dal.DB.PaginateTransferList(sender, endTime, pageSize)
+func (gs *GatewayService) UpdateLpStatusInHistory(lpHistory []*dal.LP) {
+	for _, lp := range lpHistory {
+		if lp.Status == types.LPHistoryStatus_LP_SUBMITTING || lp.Status == types.LPHistoryStatus_LP_WAITING_FOR_SGN {
+			resp, err := gs.QueryLiquidityStatus(nil, &webapi.QueryLiquidityStatusRequest{
+				SeqNum: lp.SeqNum,
+			})
+			if err != nil {
+				continue
+			}
+			lp.Status = resp.GetStatus()
+		}
+	}
+}
 
+func (gs *GatewayService) UpdateTransferStatusInHistory(transferList []*dal.Transfer) error {
 	var transferIds []string
 	for _, transfer := range transferList {
 		transferIds = append(transferIds, transfer.TransferId)
 	}
-	transferMap, err := cli.QueryTransferStatus(initClientCtx(), &types.QueryTransferStatusRequest{
+	transferMap, err := cli.QueryTransferStatus(gs.tr.CliCtx, &types.QueryTransferStatusRequest{
 		TransferId: transferIds,
 	})
 	if err != nil {
@@ -404,15 +586,77 @@ func UpdateTransferStatusInHistory(sender string, endTime time.Time, pageSize ui
 	return nil
 }
 
-func initClientCtx() client.Context {
+func (gs *GatewayService) initTransactor(rootDir string) error {
+	configFilePath := filepath.Join(rootDir, "config", "sgn.toml")
+	viper.SetConfigFile(configFilePath)
+	if err := viper.ReadInConfig(); err != nil {
+		return fmt.Errorf("failed to read in SGN configuration: %w", err)
+	}
+
 	encodingConfig := app.MakeEncodingConfig()
-	return client.Context{}.
-		WithCodec(encodingConfig.Codec).
-		WithInterfaceRegistry(encodingConfig.InterfaceRegistry).
-		WithTxConfig(encodingConfig.TxConfig).
-		WithLegacyAmino(encodingConfig.Amino).
-		WithInput(os.Stdin).
-		WithAccountRetriever(authtypes.AccountRetriever{}).
-		WithHomeDir(app.DefaultNodeHome).
-		WithViper("SGN")
+	tr, err := transactor.NewTransactor(
+		rootDir,
+		viper.GetString(common.FlagSgnChainId),
+		viper.GetString(common.FlagSgnNodeURI),
+		viper.GetString(common.FlagSgnValidatorAccount),
+		viper.GetString(common.FlagSgnPassphrase),
+		encodingConfig.Amino,
+		encodingConfig.Codec,
+		encodingConfig.InterfaceRegistry,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to new transactor: %w", err)
+	}
+	tr.Run()
+	gs.tr = tr
+
+	return nil
+}
+
+func (gs *GatewayService) GetUserStaking(ctx context.Context, address string) map[uint64]map[string]int {
+	queryClient := farmingtypes.NewQueryClient(gs.tr.CliCtx)
+	stakingRes, err := queryClient.StakedPools(
+		ctx,
+		&farmingtypes.QueryStakedPoolsRequest{
+			Address: address,
+		},
+	)
+	stakingPools := make(map[uint64]map[string]int) // map<chain_id, map<token_symbol, FarmingPool>>
+	if err == nil {
+		for _, pool := range stakingRes.GetPools() {
+			staking := make(map[string]int)
+			token := pool.GetStakeToken()
+			staking[token.Symbol] = len(pool.GetRewardTokenInfos())
+			stakingPools[token.ChainId] = staking
+		}
+	}
+	return stakingPools
+}
+
+// todo cache this @aric
+func (gs *GatewayService) GetFarmingApy(ctx context.Context) map[uint64]map[string]float64 {
+	queryClient := farmingtypes.NewQueryClient(gs.tr.CliCtx)
+	res, err := queryClient.Pools(
+		ctx,
+		&farmingtypes.QueryPoolsRequest{},
+	)
+	if err != nil {
+		return nil
+	}
+	farmingPools := make(map[uint64]map[string]float64) // map<chain_id, map<token_symbol, FarmingPool>>
+	for _, pool := range res.GetPools() {
+
+		farmingPool := make(map[string]float64)
+		token := pool.GetStakeToken()
+
+		totalStakedAmount := pool.TotalStakedAmount
+		var totalReward github_com_cosmos_cosmos_sdk_types.Dec
+		for _, reward := range pool.GetRewardTokenInfos() {
+			totalReward = totalReward.Add(reward.RewardAmountPerBlock)
+		}
+		apy, _ := totalReward.Quo(totalStakedAmount.Amount).Float64()
+		farmingPool[token.GetSymbol()] = apy
+		farmingPools[token.GetChainId()] = farmingPool
+	}
+	return farmingPools
 }

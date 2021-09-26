@@ -73,18 +73,21 @@ func (d *DAL) UpdateTransferStatus(transferId string, status uint64) error {
 	return sqldb.ChkExec(res, err, 1, "UpdateTransferStatus")
 }
 
-// todo all fields @aric
 type Transfer struct {
-	TransferId string
-	SrcChainId uint64
-	DstChainId uint64
-	Status     types.TransferHistoryStatus
-	SrcTxHash  string
-	CT         time.Time
+	TransferId  string
+	SrcChainId  uint64
+	DstChainId  uint64
+	Status      types.TransferHistoryStatus
+	SrcTxHash   string
+	DstTxHash   string
+	SrcAmt      string
+	DstAmt      string
+	TokenSymbol string
+	CT          time.Time
 }
 
 func (d *DAL) PaginateTransferList(sender string, end time.Time, size uint64) ([]*Transfer, int, time.Time, error) {
-	q := "SELECT transfer_id, create_time, status, src_chain_id,dst_chain_id, src_tx_hash FROM transfer WHERE sender = $1 and create_time < $3 order by create_time desc limit $2"
+	q := "SELECT transfer_id, create_time, status, src_chain_id,dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt FROM transfer WHERE sender = $1 and create_time < $3 order by create_time desc limit $2"
 	rows, err := d.Query(q, sender, size, end)
 	if err != nil {
 		return nil, 0, time.Unix(0, 0), err
@@ -92,23 +95,27 @@ func (d *DAL) PaginateTransferList(sender string, end time.Time, size uint64) ([
 	defer closeRows(rows)
 
 	var tps []*Transfer
-	var transferId, srcTxHash string
+	var transferId, srcTxHash, dstTxHash, tokenSymbol, srcAmt, dstAmt string
 	var srcChainId, status, dstChainId uint64
 	var ct time.Time
 	minTime := now()
 	for rows.Next() {
-		err = rows.Scan(&transferId, &transferId, &ct, &status, &srcChainId, &dstChainId, &srcTxHash)
+		err = rows.Scan(&transferId, &transferId, &ct, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt)
 		if err != nil {
 			return nil, 0, time.Unix(0, 0), err
 		}
 
 		tp := &Transfer{
-			TransferId: transferId,
-			SrcChainId: srcChainId,
-			DstChainId: dstChainId,
-			CT:         ct,
-			SrcTxHash:  srcTxHash,
-			Status:     types.TransferHistoryStatus(int32(status)),
+			TransferId:  transferId,
+			SrcChainId:  srcChainId,
+			DstChainId:  dstChainId,
+			CT:          ct,
+			SrcTxHash:   srcTxHash,
+			DstTxHash:   dstTxHash,
+			Status:      types.TransferHistoryStatus(int32(status)),
+			TokenSymbol: tokenSymbol,
+			SrcAmt:      srcAmt,
+			DstAmt:      dstAmt,
 		}
 		if minTime.After(ct) {
 			minTime = ct
@@ -170,4 +177,18 @@ func (d *DAL) UpdateTransferOnRelay(dstTransferId, receivedAmt, relayTx string, 
 	q := `UPDATE transfer set received_amt=$2, dst_tx_hash=$3, status= $4, update_time=$5 WHERE dst_transfer_id=$1`
 	res, err := d.Exec(q, dstTransferId, receivedAmt, relayTx, status, now())
 	return sqldb.ChkExec(res, err, 1, "UpdateTransferOnRelay")
+}
+
+func (d *DAL) UpsertSlippageSetting(addr string, slippage uint32) error {
+	q := `INSERT INTO usr_slippage (addr, slippage) VALUES ($1, $2) ON CONFLICT (addr) DO UPDATE SET slippage=$2`
+	res, err := d.Exec(q, addr, slippage)
+	return sqldb.ChkExec(res, err, 1, "UpsertSlippageSetting")
+}
+
+func (d *DAL) GetSlippageSetting(addr string) (uint32, bool, error) {
+	var slippage uint32
+	q := `SELECT slippage FROM usr_slippage WHERE addr = $1`
+	err := d.QueryRow(q, addr).Scan(&slippage)
+	found, err := sqldb.ChkQueryRow(err)
+	return slippage, found, err
 }

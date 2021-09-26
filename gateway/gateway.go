@@ -9,6 +9,7 @@ import (
 	"github.com/rs/cors"
 	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/celer-network/goutils/log"
@@ -21,6 +22,11 @@ var (
 )
 
 func InitGateway() {
+	rooDir := os.Args[1]
+	if rooDir == "" {
+		log.Fatal("rooDir is needed")
+		return
+	}
 	flag.Parse()
 	log.Infof("Starting gateway at rest:%d, grpc:%d", *port, *rpcPort)
 
@@ -30,6 +36,12 @@ func InitGateway() {
 		return
 	}
 	defer gs.Close()
+
+	err = gs.initTransactor(rooDir)
+	if err != nil {
+		log.Fatalf("fail to init transactor in gateway server, err:%v", err)
+		return
+	}
 
 	gs.StartChainTokenPolling(10 * time.Second)
 	// start a rpc server

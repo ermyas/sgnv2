@@ -2,7 +2,9 @@ package dal
 
 import (
 	"github.com/celer-network/goutils/sqldb"
+	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	"time"
 )
 
 func (d *DAL) UpsertLP(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum uint64) error {
@@ -53,4 +55,56 @@ func (d *DAL) GetAllLpChainToken(usr string) ([]*types.ChainTokenAddrPair, error
 	}
 
 	return tps, nil
+}
+
+type LP struct {
+	ChainId     uint64
+	TokenSymbol string
+	Amt         string
+	TxHash      string
+	Ct          time.Time
+	Status      types.LPHistoryStatus
+	LpType      webapi.LPType
+	SeqNum      uint64
+}
+
+func (d *DAL) PaginateLpHistory(sender string, end time.Time, size uint64) ([]*LP, int, time.Time, error) {
+	q := "SELECT chain_id, token_symbol, amt, tx_hash, create_time, status, lp_type, seq_num FROM lp WHERE usr_addr = $1 and create_time < $3 order by create_time desc limit $2"
+	rows, err := d.Query(q, sender, size, end)
+	if err != nil {
+		return nil, 0, time.Unix(0, 0), err
+	}
+	defer closeRows(rows)
+
+	var tps []*LP
+	var txHash, tokenSymbol, amt string
+	var chainId, status, lpType, seqnum uint64
+	var ct time.Time
+	minTime := now()
+	for rows.Next() {
+		err = rows.Scan(&chainId, &tokenSymbol, &amt, &txHash, &ct, &status, &lpType, &seqnum)
+		if err != nil {
+			return nil, 0, time.Unix(0, 0), err
+		}
+
+		tp := &LP{
+			ChainId:     chainId,
+			TokenSymbol: tokenSymbol,
+			Amt:         amt,
+			TxHash:      txHash,
+			Ct:          ct,
+			Status:      types.LPHistoryStatus(status),
+			LpType:      webapi.LPType(lpType),
+			SeqNum:      seqnum,
+		}
+		if minTime.After(ct) {
+			minTime = ct
+		}
+		tps = append(tps, tp)
+	}
+	if len(tps) == 0 {
+		minTime = time.Unix(0, 0)
+	}
+
+	return tps, len(tps), minTime, nil
 }
