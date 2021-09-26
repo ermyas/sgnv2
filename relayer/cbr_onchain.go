@@ -133,7 +133,7 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 			log.Errorf("token %s on chain %d not found, err:%+v", ev.Token.String(), chainId.Uint64(), err)
 			return false
 		}
-		err = dal.DB.UpsertLP(ev.Provider.String(), token.Token.Symbol, ev.Amount.String(), eLog.TxHash.String(), chainId.Uint64(), uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_ADD), ev.Seqnum)
+		err = dal.DB.UpsertLP(ev.Provider.String(), token.Token.Symbol, token.Token.Address, ev.Amount.String(), eLog.TxHash.String(), chainId.Uint64(), uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_ADD), ev.Seqnum)
 		if err != nil {
 			log.Errorln("UpsertLP db err:", err)
 			return false

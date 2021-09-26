@@ -116,7 +116,53 @@ func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.Mark
 }
 
 func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.GetLPInfoListRequest) (*webapi.GetLPInfoListResponse, error) {
-	panic("implement me")
+	userAddr := common.Hex2Addr(request.GetAddr()).String()
+	chainTokens, err := dal.DB.GetAllLpChainToken(userAddr)
+	if err != nil || len(chainTokens) == 0 {
+		return &webapi.GetLPInfoListResponse{}, nil
+	}
+	var lps []*webapi.LPInfo
+	detailList, err := cli.LiquidityDetailList(initClientCtx(), &types.LiquidityDetailListRequest{
+		LpAddr:     userAddr,
+		ChainToken: chainTokens,
+	})
+	if err != nil || detailList == nil || len(detailList.GetLiquidityDetail()) == 0 {
+		return &webapi.GetLPInfoListResponse{}, nil
+	}
+	for _, detail := range detailList.GetLiquidityDetail() {
+		chainId := detail.GetChainId()
+		tokenWithAddr := detail.GetToken() // only has addr field
+		totalLiquidity := detail.GetTotalLiquidity()
+		usrLpFeeEarning := detail.GetUsrLpFeeEarning()
+		usrLiquidity := detail.GetUsrLiquidity()
+		chain, found, err := dal.DB.GetChain(chainId)
+		if !found || err != nil {
+			continue
+		}
+		token, found, err := dal.DB.GetTokenByAddr(tokenWithAddr.GetAddress(), chainId)
+		if !found || err != nil {
+			continue
+		}
+		// todo enrich data @aric
+		lp := &webapi.LPInfo{
+			Chain:                chain,
+			Token:                token,
+			Liquidity:            gs.f.GetUsdVolume(token.Token, common.Str2BigInt(usrLiquidity)),
+			HasFarmingSessions:   false,
+			LpFeeEarning:         gs.f.GetUsdVolume(token.Token, common.Str2BigInt(usrLpFeeEarning)),
+			FarmingRewardEarning: 0,
+			Tvl:                  0,
+			Volume_24H:           0,
+			TotalLiquidity:       gs.f.GetUsdVolume(token.Token, common.Str2BigInt(totalLiquidity)),
+			LpFeeEarningApy:      0,
+			FarmingApy:           0,
+		}
+		lps = append(lps, lp)
+	}
+
+	return &webapi.GetLPInfoListResponse{
+		LpInfo: lps,
+	}, nil
 }
 
 func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.MarkLiquidityRequest) (*webapi.MarkLiquidityResponse, error) {
@@ -136,7 +182,7 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 		}, nil
 	}
 	txHash := request.GetTxHash()
-	err = dal.DB.UpsertLP(addr, token.GetToken().GetSymbol(), amt, txHash, chainId, uint64(types.LPHistoryStatus_LP_SUBMITTING), uint64(lpType), seqNum)
+	err = dal.DB.UpsertLP(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, chainId, uint64(types.LPHistoryStatus_LP_SUBMITTING), uint64(lpType), seqNum)
 	if err != nil {
 		return &webapi.MarkLiquidityResponse{}, nil
 	} else {
@@ -199,7 +245,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			Amount:  common.Hex2Bytes(amt),
 			Creator: creator,
 		})
-		err = dal.DB.UpsertLP(lp, token.Token.Symbol, amt, "", chainId, uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
+		err = dal.DB.UpsertLP(lp, token.Token.Symbol, token.Token.Address, amt, "", chainId, uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
 		if err != nil {
 			_ = dal.DB.UpdateLPStatus(seqNum, uint64(types.LPHistoryStatus_LP_FAILED))
 			return &webapi.WithdrawLiquidityResponse{

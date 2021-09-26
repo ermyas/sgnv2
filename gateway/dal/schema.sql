@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS lp (
     usr_addr TEXT NOT NULL,
     chain_id INT NOT NULL,
     token_symbol TEXT NOT NULL,
+    token_addr TEXT NOT NULL,
     amt TEXT NOT NULL DEFAULT '0',
     tx_hash TEXT NOT NULL DEFAULT '',
     update_time TIMESTAMPTZ NOT NULL DEFAULT now(),

@@ -159,3 +159,15 @@ func (d *DAL) GetChainInfo(ids []uint64) ([]*webapi.Chain, error) {
 	}
 	return tps, nil
 }
+
+func (d *DAL) GetChain(id uint64) (*webapi.Chain, bool, error) {
+	var name, icon string
+	q := `SELECT name, icon FROM chain where id=$1`
+	err := d.QueryRow(q, id).Scan(&name, &icon)
+	found, err := sqldb.ChkQueryRow(err)
+	return &webapi.Chain{
+		Id:   id,
+		Name: name,
+		Icon: icon,
+	}, found, err
+}
