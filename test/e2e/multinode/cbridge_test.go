@@ -67,7 +67,7 @@ func cbridgeTest(t *testing.T) {
 	tc.ChkErr(err, "failed to add liquidity")
 	tc.WaitMinedWithChk(ctx, tc.EthClient, tx, tc.BlockDelay, tc.PollingInterval, "AddLiquidity")
 
-	checkAddLiquidityStatus(transactor, 883, 0)
+	checkAddLiquidityStatus(transactor, 883, 1)
 }
 
 func checkAddLiquidityStatus(transactor *transactor.Transactor, chainId, seqNum uint64) {
@@ -75,8 +75,8 @@ func checkAddLiquidityStatus(transactor *transactor.Transactor, chainId, seqNum 
 	var err error
 	for retry := 0; retry < tc.RetryLimit; retry++ {
 		resp, err = bridgecli.QueryAddLiquidityStatus(transactor.CliCtx, &cbrtypes.QueryAddLiquidityStatusRequest{
-			ChainId: 883,
-			SeqNum:  0,
+			ChainId: chainId,
+			SeqNum:  seqNum,
 		})
 		if err != nil {
 			log.Debugln("retry due to err:", err)
