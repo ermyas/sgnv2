@@ -259,6 +259,13 @@ func NewSgnApp(
 	app.FarmingKeeper = farmingkeeper.NewKeeper(
 		appCodec, keys[farmingtypes.StoreKey], app.AccountKeeper, app.BankKeeper,
 	)
+	app.CbridgeKeeper = cbridgekeeper.NewKeeper(
+		appCodec,
+		keys[cbridgetypes.StoreKey],
+		keys[cbridgetypes.MemStoreKey],
+		app.GetSubspace(cbridgetypes.ModuleName),
+		stakingKeeper,
+	)
 	app.SyncKeeper = synckeeper.NewKeeper(
 		appCodec, keys[synctypes.StoreKey], stakingKeeper, app.GetSubspace(synctypes.ModuleName), app.CbridgeKeeper,
 	)
@@ -285,14 +292,6 @@ func NewSgnApp(
 		appCodec,
 		app.StakingKeeper,
 		app.GetSubspace(slashtypes.ModuleName),
-	)
-
-	app.CbridgeKeeper = cbridgekeeper.NewKeeper(
-		appCodec,
-		keys[cbridgetypes.StoreKey],
-		keys[cbridgetypes.MemStoreKey],
-		app.GetSubspace(cbridgetypes.ModuleName),
-		app.StakingKeeper,
 	)
 
 	/****  Module Options ****/

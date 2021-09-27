@@ -73,7 +73,7 @@ func cbridgeTest(t *testing.T) {
 func checkAddLiquidityStatus(transactor *transactor.Transactor, chainId, seqNum uint64) {
 	var resp *cbrtypes.QueryLiquidityStatusResponse
 	var err error
-	for retry := 0; retry < tc.RetryLimit; retry++ {
+	for retry := 0; retry < tc.RetryLimit*2; retry++ {
 		resp, err = bridgecli.QueryAddLiquidityStatus(transactor.CliCtx, &cbrtypes.QueryAddLiquidityStatusRequest{
 			ChainId: chainId,
 			SeqNum:  seqNum,
@@ -87,8 +87,7 @@ func checkAddLiquidityStatus(transactor *transactor.Transactor, chainId, seqNum 
 		time.Sleep(tc.RetryPeriod)
 	}
 	tc.ChkErr(err, "failed to QueryAddLiquidityStatus")
-	// TODO: status check
-	// if resp.Status != cbrtypes.LPHistoryStatus_LP_COMPLETED {
-	// 	log.Fatalln("incorrect status")
-	// }
+	if resp.Status != cbrtypes.LPHistoryStatus_LP_COMPLETED {
+		log.Fatalln("incorrect status")
+	}
 }
