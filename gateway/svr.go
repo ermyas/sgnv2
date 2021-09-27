@@ -18,6 +18,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/lthibault/jitterbug"
 	"github.com/spf13/viper"
+	"math/big"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -191,9 +192,9 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	if err != nil || detailList == nil || len(detailList.GetLiquidityDetail()) == 0 {
 		return &webapi.GetLPInfoListResponse{}, nil
 	}
-	stakingMap := gs.GetUserStaking(ctx, userAddr)
-	farmingApyMap := gs.GetFarmingApy(ctx)
-
+	stakingMap := gs.getUserStaking(ctx, userAddr)
+	farmingApyMap := gs.getFarmingApy(ctx)
+	data24h := gs.get24hTx()
 	for _, detail := range detailList.GetLiquidityDetail() {
 		chainId := detail.GetChainId()
 		tokenWithAddr := detail.GetToken() // only has addr field
@@ -208,17 +209,24 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 		if !found || err != nil {
 			continue
 		}
-		// todo enrich 0 data @aric
+
+		data := data24h[chainId][token.Token.GetSymbol()]
+		lpFeeEarningApy := 0.0
+		volume24h := 0.0
+		if data != nil {
+			lpFeeEarningApy, _ = new(big.Float).Quo(new(big.Float).SetInt(data.fee), new(big.Float).SetInt(common.Str2BigInt(totalLiquidity))).Float64()
+			volume24h = data.volume
+		}
 		lp := &webapi.LPInfo{
 			Chain:                chain,
 			Token:                token,
 			Liquidity:            gs.f.GetUsdVolume(token.Token, common.Str2BigInt(usrLiquidity)),
 			HasFarmingSessions:   stakingMap[chainId][token.Token.GetSymbol()] > 0,
 			LpFeeEarning:         gs.f.GetUsdVolume(token.Token, common.Str2BigInt(usrLpFeeEarning)),
-			FarmingRewardEarning: 0, // from farming
-			Volume_24H:           0, // local
+			FarmingRewardEarning: 0, // // todo enrich 0 data from farming @aric
+			Volume_24H:           volume24h,
 			TotalLiquidity:       gs.f.GetUsdVolume(token.Token, common.Str2BigInt(totalLiquidity)),
-			LpFeeEarningApy:      0, // local+total
+			LpFeeEarningApy:      lpFeeEarningApy,
 			FarmingApy:           farmingApyMap[chainId][token.Token.GetSymbol()],
 		}
 		lps = append(lps, lp)
@@ -613,7 +621,46 @@ func (gs *GatewayService) initTransactor(rootDir string) error {
 	return nil
 }
 
-func (gs *GatewayService) GetUserStaking(ctx context.Context, address string) map[uint64]map[string]int {
+// todo cache this @aric
+type txData struct {
+	volume   float64
+	fee      *big.Int
+	dstToken *types.Token
+}
+
+func (gs *GatewayService) get24hTx() map[uint64]map[string]*txData {
+	txs, err := dal.DB.Get24hTx()
+	resp := make(map[uint64]map[string]*txData) // map<chain_id, map<token_symbol, txData>>
+	if err == nil {
+		for _, tx := range txs {
+			tokenSymbol := tx.TokenSymbol
+			dstToken, found, dbErr := dal.DB.GetTokenBySymbol(tokenSymbol, tx.DstChainId)
+			if !found || dbErr != nil {
+				continue
+			}
+			dstChainId := tx.DstChainId
+			data, found := resp[dstChainId]
+			if !found || data == nil {
+				data = make(map[string]*txData)
+			}
+			d, found := data[tokenSymbol]
+			if !found || d == nil {
+				d = &txData{
+					volume:   0,
+					fee:      new(big.Int),
+					dstToken: dstToken.Token,
+				}
+			}
+			d.fee = new(big.Int).Add(d.fee, common.Str2BigInt(tx.DstAmt))
+			d.volume += tx.Volume
+			data[tokenSymbol] = d
+			resp[tx.DstChainId] = data
+		}
+	}
+	return resp
+}
+
+func (gs *GatewayService) getUserStaking(ctx context.Context, address string) map[uint64]map[string]int {
 	queryClient := farmingtypes.NewQueryClient(gs.tr.CliCtx)
 	stakingRes, err := queryClient.StakedPools(
 		ctx,
@@ -634,7 +681,7 @@ func (gs *GatewayService) GetUserStaking(ctx context.Context, address string) ma
 }
 
 // todo cache this @aric
-func (gs *GatewayService) GetFarmingApy(ctx context.Context) map[uint64]map[string]float64 {
+func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[string]float64 {
 	queryClient := farmingtypes.NewQueryClient(gs.tr.CliCtx)
 	res, err := queryClient.Pools(
 		ctx,

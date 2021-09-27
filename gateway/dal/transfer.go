@@ -84,6 +84,7 @@ type Transfer struct {
 	DstAmt      string
 	TokenSymbol string
 	CT          time.Time
+	Volume      float64
 }
 
 func (d *DAL) PaginateTransferList(sender string, end time.Time, size uint64) ([]*Transfer, int, time.Time, error) {
@@ -191,4 +192,34 @@ func (d *DAL) GetSlippageSetting(addr string) (uint32, bool, error) {
 	err := d.QueryRow(q, addr).Scan(&slippage)
 	found, err := sqldb.ChkQueryRow(err)
 	return slippage, found, err
+}
+
+func (d *DAL) Get24hTx() ([]*Transfer, error) {
+	q := "SELECT dst_chain_id, token_symbol, volume, received_amt FROM transfer WHERE create_time > $1"
+	rows, err := d.Query(q)
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+
+	var tps []*Transfer
+	var tokenSymbol, rcvAmt string
+	var dstChainId uint64
+	var volume float64
+	for rows.Next() {
+		err = rows.Scan(&dstChainId, &tokenSymbol, &volume, &rcvAmt)
+		if err != nil {
+			return nil, err
+		}
+
+		tp := &Transfer{
+			DstChainId:  dstChainId,
+			TokenSymbol: tokenSymbol,
+			DstAmt:      rcvAmt,
+			Volume:      volume,
+		}
+		tps = append(tps, tp)
+	}
+
+	return tps, nil
 }
