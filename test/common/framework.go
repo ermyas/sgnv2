@@ -13,8 +13,8 @@ import (
 
 var (
 	etherBaseKs  = EnvDir + "/keystore/etherbase.json"
-	ChainID      = 883
-	Geth2ChainID = 884
+	ChainID      = uint64(883)
+	Geth2ChainID = uint64(884)
 
 	EthClient      *ethclient.Client
 	EthClient2     *ethclient.Client

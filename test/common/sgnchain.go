@@ -234,3 +234,24 @@ func CheckAddLiquidityStatus(transactor *transactor.Transactor, chainId, seqNum 
 		log.Fatalln("incorrect status")
 	}
 }
+
+func CheckXfer(transactor *transactor.Transactor, xferId []byte) {
+	var resp *cbrtypes.QueryTransferStatusResponse
+	var err error
+	for retry := 0; retry < RetryLimit*2; retry++ {
+		resp, err = bridgecli.QueryTransferStatus(transactor.CliCtx, &cbrtypes.QueryTransferStatusRequest{
+			TransferId: []string{string(xferId)},
+		})
+		if err != nil {
+			log.Debugln("retry due to err:", err)
+		}
+		if err == nil && resp.Status[string(xferId)] == cbrtypes.TransferHistoryStatus_TRANSFER_COMPLETED {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryTransferStatus")
+	if resp.Status[string(xferId)] != cbrtypes.TransferHistoryStatus_TRANSFER_COMPLETED {
+		log.Fatalln("incorrect status")
+	}
+}

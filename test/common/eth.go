@@ -312,3 +312,12 @@ func (c *CbrClient) AddLiq(amt *big.Int) error {
 	_, err = ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
 	return err
 }
+
+func (c *CbrClient) Send(amt *big.Int, receiver eth.Addr, dstChainId, nonce uint64) error {
+	tx, err := c.CbrContract.Send(c.Auth, receiver, c.USDTAddr, amt, dstChainId, nonce, 10000) //1% slippage
+	if err != nil {
+		return err
+	}
+	_, err = ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
+	return err
+}
