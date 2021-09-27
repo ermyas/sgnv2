@@ -272,14 +272,14 @@ func DeployUsdtForBridge() {
 		tc.ClientEthAddrs[1],
 	}
 
-	tc.Usdt1Addr, tc.Usdt1Contract = tc.DeployERC20Contract(tc.EthClient, tc.EtherBaseAuth, "USDT", "USDT", 6)
-	tc.Usdt2Addr, tc.Usdt2Contract = tc.DeployERC20Contract(tc.EthClient2, tc.EtherBaseAuth2, "USDT", "USDT", 6)
+	tc.CbrClient1.USDTAddr, tc.CbrClient1.USDTContract = tc.DeployERC20Contract(tc.CbrClient1.Ec, tc.CbrClient1.Auth, "USDT", "USDT", 6)
+	tc.CbrClient2.USDTAddr, tc.CbrClient2.USDTContract = tc.DeployERC20Contract(tc.CbrClient2.Ec, tc.CbrClient2.Auth, "USDT", "USDT", 6)
 
 	// fund usdt to each eth account
 	log.Infoln("fund each test addr 10 million usdt on each chain")
-	err := tc.FundAddrsErc20(tc.Usdt1Addr, addrs, tc.NewBigInt(1, 13), tc.EthClient, tc.EtherBaseAuth)
+	err := tc.FundAddrsErc20(tc.CbrClient1.USDTAddr, addrs, tc.NewBigInt(1, 13), tc.CbrClient1.Ec, tc.CbrClient1.Auth)
 	tc.ChkErr(err, "fund each test addr 10 million usdt on chain 1")
-	err = tc.FundAddrsErc20(tc.Usdt2Addr, addrs, tc.NewBigInt(1, 13), tc.EthClient2, tc.EtherBaseAuth2)
+	err = tc.FundAddrsErc20(tc.CbrClient2.USDTAddr, addrs, tc.NewBigInt(1, 13), tc.CbrClient2.Ec, tc.CbrClient2.Auth)
 	tc.ChkErr(err, "fund each test addr 10 million usdt on chain 2")
 
 	log.Infoln("Updating config files of SGN nodes")
@@ -292,8 +292,8 @@ func DeployUsdtForBridge() {
 		cbrConfig := new(cbrtypes.CbrConfig)
 		jsonByte, _ := json.Marshal(genesisViper.Get("app_state.cbridge.config"))
 		json.Unmarshal(jsonByte, cbrConfig)
-		cbrConfig.Assets[0].Addr = eth.Addr2Hex(tc.Usdt1Addr)
-		cbrConfig.Assets[1].Addr = eth.Addr2Hex(tc.Usdt2Addr)
+		cbrConfig.Assets[0].Addr = eth.Addr2Hex(tc.CbrClient1.USDTAddr)
+		cbrConfig.Assets[1].Addr = eth.Addr2Hex(tc.CbrClient2.USDTAddr)
 		genesisViper.Set("app_state.cbridge.config", cbrConfig)
 		err = genesisViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write genesis")
@@ -309,10 +309,8 @@ func DeployBridgeContract(amts []*big.Int) {
 	ss, _ := proto.Marshal(&cbrtypes.SortedSigners{
 		Signers: signers,
 	})
-	cbr1Addr, cbr1Contract := tc.DeployBridgeContract(tc.EthClient, tc.EtherBaseAuth, ss)
-	cbr2Addr, cbr2Contract := tc.DeployBridgeContract(tc.EthClient2, tc.EtherBaseAuth2, ss)
-	tc.Cbr1Contract = cbr1Contract
-	tc.Cbr2Contract = cbr2Contract
+	tc.CbrClient1.CbrAddr, tc.CbrClient1.CbrContract = tc.DeployBridgeContract(tc.CbrClient1.Ec, tc.CbrClient1.Auth, ss)
+	tc.CbrClient2.CbrAddr, tc.CbrClient2.CbrContract = tc.DeployBridgeContract(tc.CbrClient2.Ec, tc.CbrClient2.Auth, ss)
 
 	for i := 0; i < len(tc.ValEthKs); i++ {
 		configPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/sgn.toml", i)
@@ -321,8 +319,8 @@ func DeployBridgeContract(amts []*big.Int) {
 		err := configFileViper.ReadInConfig()
 		tc.ChkErr(err, "Failed to read config")
 		multichains := configFileViper.Get("multichain").([]interface{})
-		multichains[0].(map[string]interface{})["cbridge"] = eth.Addr2Hex(cbr1Addr)
-		multichains[1].(map[string]interface{})["cbridge"] = eth.Addr2Hex(cbr2Addr)
+		multichains[0].(map[string]interface{})["cbridge"] = eth.Addr2Hex(tc.CbrClient1.CbrAddr)
+		multichains[1].(map[string]interface{})["cbridge"] = eth.Addr2Hex(tc.CbrClient2.CbrAddr)
 		configFileViper.Set("multichain", multichains)
 		err = configFileViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")

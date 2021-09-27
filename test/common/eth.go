@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"strings"
+	"time"
 
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
@@ -65,6 +66,11 @@ func SetupEthClients() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	CbrClient1 = &CbrClient{
+		Ec:   EthClient,
+		Auth: EtherBaseAuth,
+	}
 }
 
 func SetupEthClient2() {
@@ -76,6 +82,11 @@ func SetupEthClient2() {
 	_, EtherBaseAuth2, err = GetAuth(etherBaseKs, int64(Geth2ChainID))
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	CbrClient2 = &CbrClient{
+		Ec:   EthClient2,
+		Auth: EtherBaseAuth2,
 	}
 }
 
@@ -281,4 +292,23 @@ func prepareEtherBaseClient(gatewayAddr string, chainId int64) (
 		return nil, nil, nil, eth.Addr{}, err
 	}
 	return conn, auth, context.Background(), etherBaseAddr, nil
+}
+
+// call usdt contract approve for cbr addr
+func (c *CbrClient) Approve(amt *big.Int) error {
+	tx, err := c.USDTContract.Approve(c.Auth, c.CbrAddr, amt)
+	if err != nil {
+		return err
+	}
+	_, err = ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
+	return err
+}
+
+func (c *CbrClient) AddLiq(amt *big.Int) error {
+	tx, err := c.CbrContract.AddLiquidity(c.Auth, c.USDTAddr, amt)
+	if err != nil {
+		return err
+	}
+	_, err = ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
+	return err
 }

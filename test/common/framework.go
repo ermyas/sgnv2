@@ -33,14 +33,18 @@ var (
 
 	ValSgnAddrs []sdk.AccAddress
 
-	//cbridge related
-	Usdt1Addr     eth.Addr
-	Usdt2Addr     eth.Addr
-	Usdt1Contract *eth.Erc20
-	Usdt2Contract *eth.Erc20
-	Cbr1Contract  *eth.BridgeContract
-	Cbr2Contract  *eth.BridgeContract
+	// one client for one chain, has cbr addr and usdt addr
+	CbrClient1, CbrClient2 *CbrClient
 )
+
+type CbrClient struct {
+	Ec   *ethclient.Client
+	Auth *bind.TransactOpts
+	// contract addr
+	CbrAddr, USDTAddr eth.Addr
+	CbrContract       *eth.BridgeContract
+	USDTContract      *eth.Erc20
+}
 
 type ContractParams struct {
 	CelrAddr              eth.Addr

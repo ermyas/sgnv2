@@ -12,6 +12,8 @@ import (
 	"github.com/celer-network/sgn-v2/app"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/transactor"
+	bridgecli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	govcli "github.com/celer-network/sgn-v2/x/gov/client/cli"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	slashcli "github.com/celer-network/sgn-v2/x/slash/client/cli"
@@ -209,4 +211,26 @@ func QuerySlash(cliCtx client.Context, nonce uint64, sigCount int) (slash slasht
 	}
 
 	return
+}
+
+func CheckAddLiquidityStatus(transactor *transactor.Transactor, chainId, seqNum uint64) {
+	var resp *cbrtypes.QueryLiquidityStatusResponse
+	var err error
+	for retry := 0; retry < RetryLimit*2; retry++ {
+		resp, err = bridgecli.QueryAddLiquidityStatus(transactor.CliCtx, &cbrtypes.QueryAddLiquidityStatusRequest{
+			ChainId: chainId,
+			SeqNum:  seqNum,
+		})
+		if err != nil {
+			log.Debugln("retry due to err:", err)
+		}
+		if err == nil && resp.Status == cbrtypes.LPHistoryStatus_LP_COMPLETED {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryAddLiquidityStatus")
+	if resp.Status != cbrtypes.LPHistoryStatus_LP_COMPLETED {
+		log.Fatalln("incorrect status")
+	}
 }
