@@ -24,11 +24,12 @@ type EthClient struct {
 }
 
 type Contracts struct {
-	Staking *StakingContract
-	Sgn     *SgnContract
-	Reward  *RewardContract
-	Viewer  *ViewerContract
-	Govern  *GovernContract
+	Staking        *StakingContract
+	Sgn            *SgnContract
+	StakingReward  *StakingRewardContract
+	FarmingRewards *FarmingRewardsContract
+	Viewer         *ViewerContract
+	Govern         *GovernContract
 }
 
 type TransactorConfig struct {
@@ -44,7 +45,9 @@ func NewEthClient(
 	ksfile string,
 	passphrase string,
 	tconfig *TransactorConfig,
-	stakingContract, sgnContract, rewardContract, viewerContract, governContract string) (*EthClient, error) {
+	stakingContract, sgnContract,
+	stakingRewardContract, farmingRewardsContract,
+	viewerContract, governContract string) (*EthClient, error) {
 	ethClient := &EthClient{
 		Contracts: &Contracts{},
 	}
@@ -55,7 +58,10 @@ func NewEthClient(
 	}
 
 	ethClient.Client = ethclient.NewClient(rpcClient)
-	err = ethClient.setContracts(stakingContract, sgnContract, rewardContract, viewerContract, governContract)
+	err = ethClient.setContracts(
+		stakingContract, sgnContract,
+		stakingRewardContract, farmingRewardsContract,
+		viewerContract, governContract)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +108,9 @@ func (ethClient *EthClient) setTransactor(ksfile string, passphrase string, tcon
 }
 
 func (ethClient *EthClient) setContracts(
-	stakingContract, sgnContract, rewardContract, viewerContract, governContract string) error {
+	stakingContract, sgnContract,
+	stakingRewardContract, farmingRewardsContract,
+	viewerContract, governContract string) error {
 	var err error
 	ethClient.Contracts.Staking, err = NewStakingContract(Hex2Addr(stakingContract), ethClient.Client)
 	if err != nil {
@@ -114,7 +122,12 @@ func (ethClient *EthClient) setContracts(
 		return err
 	}
 
-	ethClient.Contracts.Reward, err = NewRewardContract(Hex2Addr(rewardContract), ethClient.Client)
+	ethClient.Contracts.StakingReward, err = NewStakingRewardContract(Hex2Addr(stakingRewardContract), ethClient.Client)
+	if err != nil {
+		return err
+	}
+
+	ethClient.Contracts.FarmingRewards, err = NewFarmingRewardsContract(Hex2Addr(farmingRewardsContract), ethClient.Client)
 	if err != nil {
 		return err
 	}

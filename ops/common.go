@@ -32,7 +32,8 @@ func newEthClient() (*eth.EthClient, error) {
 		},
 		viper.GetString(common.FlagEthContractStaking),
 		viper.GetString(common.FlagEthContractSgn),
-		viper.GetString(common.FlagEthContractReward),
+		viper.GetString(common.FlagEthContractStakingReward),
+		viper.GetString(common.FlagEthContractFarmingRewards),
 		viper.GetString(common.FlagEthContractViewer),
 		viper.GetString(common.FlagEthContractGovern),
 	)

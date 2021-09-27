@@ -50,28 +50,52 @@ func (c *SgnContract) GetABI() string {
 	return SGNABI
 }
 
-type RewardContract struct {
-	*Reward
+type StakingRewardContract struct {
+	*StakingReward
 	Address Addr
 }
 
-func NewRewardContract(address Addr, client *ethclient.Client) (*RewardContract, error) {
-	Reward, err := NewReward(address, client)
+func NewStakingRewardContract(address Addr, client *ethclient.Client) (*StakingRewardContract, error) {
+	stakingReward, err := NewStakingReward(address, client)
 	if err != nil {
 		return nil, err
 	}
-	return &RewardContract{
-		Reward:  Reward,
-		Address: address,
+	return &StakingRewardContract{
+		StakingReward: stakingReward,
+		Address:       address,
 	}, nil
 }
 
-func (c *RewardContract) GetAddr() Addr {
+func (c *StakingRewardContract) GetAddr() Addr {
 	return c.Address
 }
 
-func (c *RewardContract) GetABI() string {
-	return RewardABI
+func (c *StakingRewardContract) GetABI() string {
+	return StakingRewardABI
+}
+
+type FarmingRewardsContract struct {
+	*FarmingRewards
+	Address Addr
+}
+
+func NewFarmingRewardsContract(address Addr, client *ethclient.Client) (*FarmingRewardsContract, error) {
+	farmingRewards, err := NewFarmingRewards(address, client)
+	if err != nil {
+		return nil, err
+	}
+	return &FarmingRewardsContract{
+		FarmingRewards: farmingRewards,
+		Address:        address,
+	}, nil
+}
+
+func (c *FarmingRewardsContract) GetAddr() Addr {
+	return c.Address
+}
+
+func (c *FarmingRewardsContract) GetABI() string {
+	return FarmingRewardsABI
 }
 
 type GovernContract struct {

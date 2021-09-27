@@ -65,10 +65,16 @@ func DeploySgnStakingContracts(contractParams *ContractParams) *types.Transactio
 	Contracts.Sgn, err = eth.NewSgnContract(sgnContractAddr, EthClient)
 	ChkErr(err, "failed to set sgn contract")
 
-	rewardContractAddr, _, _, err := eth.DeployReward(
-		EtherBaseAuth, EthClient, stakingContractAddr, contractParams.CelrAddr)
-	ChkErr(err, "failed to deploy reward contract")
-	Contracts.Reward, err = eth.NewRewardContract(rewardContractAddr, EthClient)
+	stakingRewardContractAddr, _, _, err := eth.DeployStakingReward(
+		EtherBaseAuth, EthClient, stakingContractAddr)
+	ChkErr(err, "failed to deploy staking reward contract")
+	Contracts.StakingReward, err = eth.NewStakingRewardContract(stakingRewardContractAddr, EthClient)
+	ChkErr(err, "failed to set reward contract")
+
+	farmingRewardsContractAddr, _, _, err := eth.DeployFarmingRewards(
+		EtherBaseAuth, EthClient, stakingContractAddr)
+	ChkErr(err, "failed to deploy farming rewards contract")
+	Contracts.FarmingRewards, err = eth.NewFarmingRewardsContract(farmingRewardsContractAddr, EthClient)
 	ChkErr(err, "failed to set reward contract")
 
 	viewerContractAddr, _, _, err := eth.DeployViewer(EtherBaseAuth, EthClient, stakingContractAddr)
@@ -77,7 +83,7 @@ func DeploySgnStakingContracts(contractParams *ContractParams) *types.Transactio
 	ChkErr(err, "failed to set viewer contract")
 
 	governContractAddr, _, _, err := eth.DeployGovern(
-		EtherBaseAuth, EthClient, stakingContractAddr, contractParams.CelrAddr, rewardContractAddr)
+		EtherBaseAuth, EthClient, stakingContractAddr, contractParams.CelrAddr, stakingRewardContractAddr)
 	ChkErr(err, "failed to deploy govern contract")
 	Contracts.Govern, err = eth.NewGovernContract(governContractAddr, EthClient)
 	ChkErr(err, "failed to set govern contract")
@@ -85,13 +91,14 @@ func DeploySgnStakingContracts(contractParams *ContractParams) *types.Transactio
 	EtherBaseAuth.GasLimit = 8000000
 	_, err = staking.SetGovContract(EtherBaseAuth, governContractAddr)
 	ChkErr(err, "failed to set gov contract")
-	tx, err := staking.SetRewardContract(EtherBaseAuth, rewardContractAddr)
+	tx, err := staking.SetRewardContract(EtherBaseAuth, stakingRewardContractAddr)
 	ChkErr(err, "failed to set gov contract")
 	EtherBaseAuth.GasLimit = 0
 
 	log.Infoln("Staking address:", stakingContractAddr.String())
 	log.Infoln("SGN address:", sgnContractAddr.String())
-	log.Infoln("Reward address:", rewardContractAddr.String())
+	log.Infoln("StakingReward address:", stakingRewardContractAddr.String())
+	log.Infoln("FarmingRewards address:", farmingRewardsContractAddr.String())
 	log.Infoln("Viewer address:", viewerContractAddr.String())
 	log.Infoln("Govern address:", governContractAddr.String())
 
@@ -162,7 +169,8 @@ func DeployCommand() *cobra.Command {
 			viper.Set(common.FlagEthContractCelr, celrAddr.Hex())
 			viper.Set(common.FlagEthContractStaking, Contracts.Staking.Address.Hex())
 			viper.Set(common.FlagEthContractSgn, Contracts.Sgn.Address.Hex())
-			viper.Set(common.FlagEthContractReward, Contracts.Reward.Address.Hex())
+			viper.Set(common.FlagEthContractStakingReward, Contracts.StakingReward.Address.Hex())
+			viper.Set(common.FlagEthContractFarmingRewards, Contracts.FarmingRewards.Address.Hex())
 			viper.Set(common.FlagEthContractViewer, Contracts.Viewer.Address.Hex())
 			viper.Set(common.FlagEthContractGovern, Contracts.Govern.Address.Hex())
 			err = viper.WriteConfig()
@@ -170,11 +178,18 @@ func DeployCommand() *cobra.Command {
 
 			if ethurl == LocalGeth {
 				amt := NewBigInt(1, 25)
-				tx, err := erc20.Approve(EtherBaseAuth, Contracts.Reward.Address, amt)
-				ChkErr(err, "failed to approve erc20")
+				tx, err := erc20.Approve(EtherBaseAuth, Contracts.StakingReward.Address, amt)
+				ChkErr(err, "failed to approve erc20 to StakingReward")
 				WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "approve erc20")
-				_, err = Contracts.Reward.ContributeToRewardPool(EtherBaseAuth, amt)
-				ChkErr(err, "failed to call ContributeToRewardPool")
+				_, err = Contracts.StakingReward.ContributeToRewardPool(EtherBaseAuth, amt)
+				ChkErr(err, "failed to call StakingReward.ContributeToRewardPool")
+
+				tx, err = erc20.Approve(EtherBaseAuth, Contracts.FarmingRewards.Address, amt)
+				ChkErr(err, "failed to approve erc20 to FarmingRewards")
+				WaitMinedWithChk(context.Background(), EthClient, tx, BlockDelay, PollingInterval, "approve erc20")
+				_, err = Contracts.FarmingRewards.ContributeToRewardPool(EtherBaseAuth, celrAddr, amt)
+				ChkErr(err, "failed to call FarmingRewards.ContributeToRewardPool")
+
 				err = FundAddrsErc20(celrAddr,
 					[]eth.Addr{
 						ValEthAddrs[0],
