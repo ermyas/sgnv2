@@ -5,9 +5,7 @@ import (
 	"testing"
 
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func setupCbridge() {
@@ -76,13 +74,16 @@ func cbridgeTest(t *testing.T) {
 	xferAmt := big.NewInt(1e10)
 	err = tc.CbrClient1.Approve(xferAmt)
 	tc.ChkErr(err, "client1 approve")
-	err = tc.CbrClient1.Send(xferAmt, tc.ValEthAddrs[0], tc.Geth2ChainID, 1)
+	xferId, err := tc.CbrClient1.Send(xferAmt, tc.ValEthAddrs[0], tc.Geth2ChainID, 1)
 	tc.ChkErr(err, "client1 send")
-	// TODO: to check xferid generation rule
-	// xferId := generateXferId(tc.CbrClient1.Auth.From, tc.ValEthAddrs[0], tc.CbrClient1.USDTAddr, xferAmt, int64(tc.Geth2ChainID), 1, int64(tc.ChainID))
-	// tc.CheckXfer(transactor, xferId)
+	tc.CheckXfer(transactor, xferId[:])
+
+	log.Infoln("======================== Refund ===========================")
+
+	log.Infoln("======================== LP Withdraw ===========================")
 }
 
+/*
 func generateXferId(sender, receiver, token eth.Addr, amt *big.Int, dstChainId, nonce, srcChainId int64) []byte {
 	var b []byte
 	b = append(b, sender[:]...)
@@ -123,3 +124,4 @@ func toPadBytes(v interface{}, rlen ...int) []byte {
 	copy(ret[retlen-len(orig):], orig)
 	return ret
 }
+*/
