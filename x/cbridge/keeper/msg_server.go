@@ -95,7 +95,9 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventToSign,
 		sdk.NewAttribute(types.EvAttrType, types.SignDataType_WITHDRAW.String()),
-		sdk.NewAttribute(types.EvAttrData, string(wdOnChainRaw))))
+		sdk.NewAttribute(types.EvAttrData, string(wdOnChainRaw)),
+		sdk.NewAttribute(sdk.AttributeKeyAction, types.EventToSign),
+	))
 	return resp, nil
 }
 
@@ -157,7 +159,9 @@ func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*typ
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventToSign,
 		sdk.NewAttribute(types.EvAttrType, types.SignDataType_WITHDRAW.String()),
-		sdk.NewAttribute(types.EvAttrData, string(wdDetail.WdOnchain))))
+		sdk.NewAttribute(types.EvAttrData, string(wdDetail.WdOnchain)),
+		sdk.NewAttribute(sdk.AttributeKeyAction, types.EventToSign),
+	))
 	return nil, nil
 }
 

@@ -20,7 +20,8 @@ import (
 )
 
 var (
-	EventSlash = fmt.Sprintf("%s.%s='%s'", slashingtypes.EventTypeSlash, sdk.AttributeKeyAction, slashtypes.ActionSlash)
+	EventSlash   = fmt.Sprintf("%s.%s='%s'", slashingtypes.EventTypeSlash, sdk.AttributeKeyAction, slashtypes.ActionSlash)
+	EventCbridge = fmt.Sprintf("%s.%s='%s'", cbrtypes.EventToSign, sdk.AttributeKeyAction, cbrtypes.EventToSign)
 )
 
 func MonitorTendermintEvent(nodeURI, eventTag string, handleEvent func(event abci.Event)) {
@@ -104,7 +105,11 @@ func (r *Relayer) handleSlash(slashEvent SlashEvent) {
 }
 
 func (r *Relayer) monitorCbrToSign() {
-	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, cbrtypes.EventToSign, func(e abci.Event) {
+	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, EventCbridge, func(e abci.Event) {
+		log.Infoln("monitorCbrToSign, eventType: ", e.Type)
+		if e.Type != cbrtypes.EventToSign {
+			return
+		}
 		if !r.isBonded() {
 			return
 		}

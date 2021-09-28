@@ -69,5 +69,7 @@ func (k Keeper) UpdateLatestSigners(ctx sdk.Context, force bool) {
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventToSign,
 		sdk.NewAttribute(types.EvAttrType, types.SignDataType_SIGNERS.String()),
-		sdk.NewAttribute(types.EvAttrData, string(newSigners.SignersBytes))))
+		sdk.NewAttribute(types.EvAttrData, string(newSigners.SignersBytes)),
+		sdk.NewAttribute(sdk.AttributeKeyAction, types.EventToSign),
+	))
 }

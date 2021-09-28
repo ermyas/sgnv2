@@ -65,7 +65,9 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 
 		// must set to non-zero before return
 		var sendStatus types.XferStatus
-		defer SetEvSendStatus(kv, ev.TransferId, sendStatus)
+		defer func() {
+			SetEvSendStatus(kv, ev.TransferId, sendStatus)
+		}()
 
 		src := &ChainIdTokenAddr{
 			ChId:      onchev.Chainid,
@@ -125,6 +127,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			types.EventToSign,
 			sdk.NewAttribute(types.EvAttrType, types.SignDataType_RELAY.String()),
 			sdk.NewAttribute(types.EvAttrData, string(relayRaw)),
+			sdk.NewAttribute(sdk.AttributeKeyAction, types.EventToSign),
 		))
 		sendStatus = types.XferStatus_OK_TO_RELAY
 	case types.CbrEventRelay:
