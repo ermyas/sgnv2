@@ -3,7 +3,9 @@ package types
 import (
 	"time"
 
+	"github.com/celer-network/sgn-v2/eth"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
@@ -38,4 +40,10 @@ type GovKeeper interface {
 	RemoveFromActiveProposalQueue(ctx sdk.Context, proposalID uint64, endTime time.Time)
 	GetDepositParams(ctx sdk.Context) govtypes.DepositParams
 	GetVotingParams(ctx sdk.Context) govtypes.VotingParams
+}
+
+// StakingKeeper expected staking keeper (noalias)
+type StakingKeeper interface {
+	Validator(sdk.Context, eth.Addr) stakingtypes.ValidatorI                  // get a particular validator by operator address
+	ValidatorByConsAddr(sdk.Context, sdk.ConsAddress) stakingtypes.ValidatorI // get a particular validator by consensus address
 }

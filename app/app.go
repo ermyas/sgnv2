@@ -257,7 +257,8 @@ func NewSgnApp(
 		&stakingKeeper, authtypes.FeeCollectorName, app.BlockedAddrs(),
 	)
 	app.FarmingKeeper = farmingkeeper.NewKeeper(
-		appCodec, keys[farmingtypes.StoreKey], app.AccountKeeper, app.BankKeeper,
+		appCodec, keys[farmingtypes.StoreKey], app.GetSubspace(farmingtypes.ModuleName), app.AccountKeeper, app.BankKeeper,
+		&stakingKeeper,
 	)
 	app.CbridgeKeeper = cbridgekeeper.NewKeeper(
 		appCodec,
@@ -537,6 +538,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 
 	paramsKeeper.Subspace(minttypes.ModuleName)
 	paramsKeeper.Subspace(distrtypes.ModuleName)
+	paramsKeeper.Subspace(farmingtypes.ModuleName)
 	paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable())
 	paramsKeeper.Subspace(slashtypes.ModuleName).WithKeyTable(slashtypes.ParamKeyTable())
 	paramsKeeper.Subspace(stakingtypes.ModuleName).WithKeyTable(stakingkeeper.ParamKeyTable())

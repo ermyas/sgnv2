@@ -5,6 +5,7 @@ import (
 )
 
 const (
+	QueryParams           = "params"
 	QueryPool             = "pool"
 	QueryPools            = "pools"
 	QueryEarnings         = "earnings"

@@ -12,13 +12,13 @@ func HandleAddPoolProposal(ctx sdk.Context, k Keeper, p *types.AddPoolProposal) 
 	if err := k.CheckAddPoolProposal(ctx, p); err != nil {
 		return err
 	}
-	// 1. Create stake token if not exist
+	// 1. Create stake token if not existent
 	stakeToken := p.StakeToken
 	found := k.HasERC20Token(ctx, stakeToken.ChainId, stakeToken.Symbol)
 	if !found {
 		k.SetERC20Token(ctx, stakeToken)
 	}
-	// 2. Create reward tokens if not exist
+	// 2. Create reward tokens if not existent
 	for _, rewardToken := range p.RewardTokens {
 		found = k.HasERC20Token(ctx, rewardToken.ChainId, rewardToken.Symbol)
 		if !found {
@@ -47,6 +47,8 @@ func HandleAddPoolProposal(ctx sdk.Context, k Keeper, p *types.AddPoolProposal) 
 	pool :=
 		types.NewFarmingPool(
 			p.PoolName,
+			p.StakeToken,
+			p.RewardTokens,
 			totalStakedAmount,
 			rewardTokenInfos,
 			totalAccumulatedRewards,

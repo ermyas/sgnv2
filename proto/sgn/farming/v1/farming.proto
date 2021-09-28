@@ -5,22 +5,43 @@ option go_package = "github.com/celer-network/sgn-v2/x/farming/types";
 option (gogoproto.equal_all) = true;
 
 import "gogoproto/gogo.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 import "cosmos/base/v1beta1/coin.proto";
+
+// Params defines the set of params for the farming module.
+message Params {
+  option (gogoproto.goproto_stringer) = false;
+
+  // claim_cooldown defines the minimal time between two reward claim requests
+  google.protobuf.Duration claim_cooldown = 1
+      [(gogoproto.nullable) = false, (gogoproto.stdduration) = true, (gogoproto.moretags) = "yaml:\"claim_cooldown\""];
+}
 
 // ERC20Token describes an ERC20 token on a specific EVM-compatible chain
 message ERC20Token {
+  // chain_id defines the EVM chain ID
   uint64 chain_id = 1 [(gogoproto.moretags) = "yaml:\"chain_id\""];
+  // symbol defines the ERC20 token symbol
   string symbol = 2 [(gogoproto.moretags) = "yaml:\"symbol\""];
+  // address defines the token contract address
   string address = 3 [(gogoproto.moretags) = "yaml:\"address\""];
 }
 
 // FarmingPool represents a pool that rewards liquidity providers with tokens
 message FarmingPool {
+  // name defines the name of the farming pool
   string name = 1;
+  // stake_token defines the accepted token as stake
   ERC20Token stake_token = 2 [(gogoproto.moretags) = "yaml:\"stake_token\"", (gogoproto.nullable) = false];
-  cosmos.base.v1beta1.DecCoin total_staked_amount = 3 [(gogoproto.moretags) = "yaml:\"total_staked_amount\"", (gogoproto.nullable) = false];
-  repeated RewardTokenInfo reward_token_infos = 4 [(gogoproto.moretags) = "yaml:\"reward_token_infos\"", (gogoproto.nullable) = false];
-  repeated cosmos.base.v1beta1.DecCoin total_accumulated_rewards = 5 [
+  // reward_tokens defines the provided reward tokens
+  repeated ERC20Token reward_tokens = 3 [(gogoproto.moretags) = "yaml:\"reward_tokens\"", (gogoproto.nullable) = false];
+  // total_staked_amount defines the total staked amount
+  cosmos.base.v1beta1.DecCoin total_staked_amount = 4 [(gogoproto.moretags) = "yaml:\"total_staked_amount\"", (gogoproto.nullable) = false];
+  // reward_token_infos defines the details for each reward token
+  repeated RewardTokenInfo reward_token_infos = 5 [(gogoproto.moretags) = "yaml:\"reward_token_infos\"", (gogoproto.nullable) = false];
+  // total_accumulated_rewards defines the total accumulated rewards
+  repeated cosmos.base.v1beta1.DecCoin total_accumulated_rewards = 6 [
     (gogoproto.moretags) = "yaml:\"total_accumulated_rewards\"",
     (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.DecCoins",
     (gogoproto.nullable) = false
@@ -77,11 +98,53 @@ message PoolCurrentRewards {
 message Earnings {
   int64 target_block_height = 1 [(gogoproto.moretags) = "yaml:\"target_block_height\""];
   cosmos.base.v1beta1.DecCoin staked_amount = 2 [(gogoproto.moretags) = "yaml:\"staked_amount\"", (gogoproto.nullable) = false];
-  repeated cosmos.base.v1beta1.DecCoin reward_amount = 3 [
-    (gogoproto.moretags) = "yaml:\"reward_amount\"",
+  repeated cosmos.base.v1beta1.DecCoin reward_amounts = 3 [
+    (gogoproto.moretags) = "yaml:\"reward_amounts\"",
     (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.DecCoins",
     (gogoproto.nullable) = false
   ];
+}
+
+// Signature is the structure representing an Ethereum ECDSA signature.
+message Signature {
+  // signer defines the Ethereum address of the signer.
+  string signer = 1 [(gogoproto.moretags) = "yaml:\"signer\""];
+
+  // sig_bytes defines the signature bytes.
+  bytes sig_bytes = 2 [(gogoproto.moretags) = "yaml:\"sig_bytes\""];
+}
+
+// RewardClaimDetails describes the reward to be claimed on the EVM chain.
+message RewardClaimDetails {
+  // chain_id defines the EVM chain ID for the claim.
+  uint64 chain_id = 1;
+
+  // reward_amount defines the cumulative reward tokens claimed.
+  repeated cosmos.base.v1beta1.DecCoin cumulative_reward_amounts = 2 [
+    (gogoproto.moretags) = "yaml:\"cumulative_reward_amounts\"",
+    (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.DecCoins",
+    (gogoproto.nullable) = false
+  ];
+
+  // reward_proto_bytes defines the serialized reward protobuf to be submitted on the EVM chain.
+  bytes reward_proto_bytes = 3 [(gogoproto.moretags) = "yaml:\"reward_proto_bytes\""];
+
+  // signatures defines the signatures to be verified on the EVM chain.
+  repeated Signature signatures = 4 [(gogoproto.moretags) = "yaml:\"signatures\"", (gogoproto.nullable) = false];
+}
+
+// RewardClaimInfo describes the reward claim metadata and details for a recipient.
+message RewardClaimInfo {
+  // recipient defines the Ethereum address of the reward recipient.
+  string recipient = 1;
+
+  // last_claim_time defines the last time a reward claim was signed by the validators.
+  google.protobuf.Timestamp last_claim_time = 2
+      [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"last_claim_time\""];
+
+  // reward_claim_details_list defines the list of reward claim details
+  repeated RewardClaimDetails reward_claim_details_list = 3
+      [(gogoproto.moretags) = "yaml:\"reward_claim_details_list\"", (gogoproto.nullable) = false];
 }
 
 // RewardAdjustmentInput describes the input to add / adjust a reward token in a pool

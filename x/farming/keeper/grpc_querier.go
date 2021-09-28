@@ -13,6 +13,15 @@ import (
 
 var _ types.QueryServer = Keeper{}
 
+// Params queries params of distribution module
+func (k Keeper) Params(c context.Context, req *types.QueryParamsRequest) (*types.QueryParamsResponse, error) {
+	ctx := sdk.UnwrapSDKContext(c)
+	var params types.Params
+	k.paramSpace.GetParamSet(ctx, &params)
+
+	return &types.QueryParamsResponse{Params: params}, nil
+}
+
 // Pools queries the current state of all the pools.
 func (k Keeper) Pools(c context.Context, req *types.QueryPoolsRequest) (*types.QueryPoolsResponse, error) {
 	if req == nil {
@@ -139,6 +148,17 @@ func (k Keeper) NumPools(c context.Context, req *types.QueryNumPoolsRequest) (*t
 }
 
 func (k Keeper) RewardClaimInfo(c context.Context, req *types.QueryRewardClaimInfoRequest) (*types.QueryRewardClaimInfoResponse, error) {
-	// TODO
-	return nil, nil
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	if req.Address == "" {
+		return nil, status.Error(codes.InvalidArgument, "empty address")
+	}
+	ctx := sdk.UnwrapSDKContext(c)
+
+	info, found := k.GetRewardClaimInfo(ctx, eth.Hex2Addr(req.Address))
+	if !found {
+		return nil, status.Errorf(codes.NotFound, "reward claim info not found")
+	}
+	return &types.QueryRewardClaimInfoResponse{RewardClaimInfo: info}, nil
 }

@@ -6,12 +6,14 @@ import (
 
 // NewGenesisState creates a new GenesisState object
 func NewGenesisState(
+	params Params,
 	pools FarmingPools,
 	stakeInfos []StakeInfo,
 	historicalRewards []PoolHistoricalRewardsRecord,
 	currentRewards []PoolCurrentRewardsRecord,
 ) *GenesisState {
 	return &GenesisState{
+		Params:                params,
 		Pools:                 pools,
 		StakeInfos:            stakeInfos,
 		PoolHistoricalRewards: historicalRewards,
@@ -22,6 +24,7 @@ func NewGenesisState(
 // DefaultGenesisState - default GenesisState used by Cosmos Hub
 func DefaultGenesisState() *GenesisState {
 	return &GenesisState{
+		Params:                DefaultParams(),
 		Pools:                 FarmingPools{},
 		StakeInfos:            []StakeInfo{},
 		PoolHistoricalRewards: []PoolHistoricalRewardsRecord{},
@@ -29,8 +32,12 @@ func DefaultGenesisState() *GenesisState {
 	}
 }
 
-// ValidateGenesis validates the farm genesis parameters
+// ValidateGenesis validates the farming genesis parameters
 func ValidateGenesis(data GenesisState) error {
+	if err := data.Params.Validate(); err != nil {
+		return err
+	}
+
 	if len(data.Pools) != len(data.PoolCurrentRewards) {
 		return fmt.Errorf("count of pools(%d) is not equal to that of current rewards(%d)",
 			len(data.Pools), len(data.PoolCurrentRewards))

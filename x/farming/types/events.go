@@ -8,6 +8,7 @@ const (
 	EventTypeStake        = "stake"
 	EventTypeUnstake      = "unstake"
 	EventTypeClaim        = "claim"
+	EventTypeClaimAll     = "claim_all"
 
 	AttributeKeyAddress              = "address"
 	AttributeKeyPool                 = "pool"

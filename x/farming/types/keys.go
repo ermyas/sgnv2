@@ -36,8 +36,8 @@ var (
 	AddressToPoolPrefix         = []byte{0x03}
 	PoolHistoricalRewardsPrefix = []byte{0x04}
 	PoolCurrentRewardsPrefix    = []byte{0x05}
-
-	ERC20TokenPrefix = []byte{0x06}
+	RewardClaimInfoPrefix       = []byte{0x06}
+	ERC20TokenPrefix            = []byte{0x07}
 )
 
 const (
@@ -78,9 +78,18 @@ func GetPoolCurrentRewardsKey(poolName string) []byte {
 	return append(PoolCurrentRewardsPrefix, []byte(poolName)...)
 }
 
+// GetRewardClaimInfoKey gets reward claim info key from an Ethereum address
+func GetRewardClaimInfoKey(addr eth.Addr) []byte {
+	return append(RewardClaimInfoPrefix, addr.Bytes()...)
+}
+
 // GetERC20TokenKey gets the key for an ERC-20 token
 func GetERC20TokenKey(chainId uint64, symbol string) []byte {
+	return append(ERC20TokenPrefix, append(getChainIdBytes(chainId), []byte(symbol)...)...)
+}
+
+func getChainIdBytes(chainId uint64) []byte {
 	chainIdBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(chainIdBytes, chainId)
-	return append(ERC20TokenPrefix, append(chainIdBytes, []byte(symbol)...)...)
+	return chainIdBytes
 }

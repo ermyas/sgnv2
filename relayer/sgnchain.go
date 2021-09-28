@@ -6,7 +6,9 @@ import (
 	"strconv"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	slashcli "github.com/celer-network/sgn-v2/x/slash/client/cli"
 	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -145,4 +147,42 @@ func (r *Relayer) monitorCbrMsgResp() {
 	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, cbrtypes.EventMsgResp, func(e abci.Event) {
 		// EvAttrMsgType is MsgInitWithdrawResp or MsgSignAgainResp
 	})
+}
+
+func (r *Relayer) monitorSgnFarmingClaimAllEvent() {
+	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, farmingtypes.EventTypeClaimAll, func(e abci.Event) {
+		if !r.isBonded() {
+			return
+		}
+		event := sdk.StringifyEvent(e)
+		r.handleFarmingClaimEvent(event.Attributes[1].Value)
+	})
+}
+
+func (r *Relayer) handleFarmingClaimEvent(addr string) {
+	queryClient := farmingtypes.NewQueryClient(r.Transactor.CliCtx)
+	rewardClaimInfo, err := queryClient.RewardClaimInfo(
+		context.Background(),
+		&farmingtypes.QueryRewardClaimInfoRequest{
+			Address: addr,
+		},
+	)
+	if err != nil {
+		log.Errorf("Query RewardClaimInfo err %s", err)
+		return
+	}
+	var signatureDetailsList []farmingtypes.SignatureDetails
+	for _, details := range rewardClaimInfo.RewardClaimInfo.RewardClaimDetailsList {
+		sig, err := r.EthClient.SignEthMessage(details.RewardProtoBytes)
+		if err != nil {
+			log.Errorln("SignEthMessage err", err)
+			return
+		}
+		signatureDetailsList = append(signatureDetailsList, farmingtypes.SignatureDetails{
+			ChainId:   details.ChainId,
+			Signature: sig,
+		})
+	}
+	msg := farmingtypes.NewMsgSignRewards(eth.Hex2Addr(addr), r.Transactor.Key.GetAddress(), signatureDetailsList)
+	r.Transactor.AddTxMsg(msg)
 }

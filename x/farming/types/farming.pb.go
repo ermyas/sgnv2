@@ -4,20 +4,26 @@
 package types
 
 import (
+	bytes "bytes"
 	fmt "fmt"
 	github_com_cosmos_cosmos_sdk_types "github.com/cosmos/cosmos-sdk/types"
 	types "github.com/cosmos/cosmos-sdk/types"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
+	github_com_gogo_protobuf_types "github.com/gogo/protobuf/types"
+	_ "google.golang.org/protobuf/types/known/durationpb"
+	_ "google.golang.org/protobuf/types/known/timestamppb"
 	io "io"
 	math "math"
 	math_bits "math/bits"
+	time "time"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
+var _ = time.Kitchen
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
@@ -25,10 +31,58 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+// Params defines the set of params for the farming module.
+type Params struct {
+	// claim_cooldown defines the minimal time between two reward claim requests
+	ClaimCooldown time.Duration `protobuf:"bytes,1,opt,name=claim_cooldown,json=claimCooldown,proto3,stdduration" json:"claim_cooldown" yaml:"claim_cooldown"`
+}
+
+func (m *Params) Reset()      { *m = Params{} }
+func (*Params) ProtoMessage() {}
+func (*Params) Descriptor() ([]byte, []int) {
+	return fileDescriptor_159299d9ca2b2f07, []int{0}
+}
+func (m *Params) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Params) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_Params.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *Params) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Params.Merge(m, src)
+}
+func (m *Params) XXX_Size() int {
+	return m.Size()
+}
+func (m *Params) XXX_DiscardUnknown() {
+	xxx_messageInfo_Params.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Params proto.InternalMessageInfo
+
+func (m *Params) GetClaimCooldown() time.Duration {
+	if m != nil {
+		return m.ClaimCooldown
+	}
+	return 0
+}
+
 // ERC20Token describes an ERC20 token on a specific EVM-compatible chain
 type ERC20Token struct {
+	// chain_id defines the EVM chain ID
 	ChainId uint64 `protobuf:"varint,1,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty" yaml:"chain_id"`
-	Symbol  string `protobuf:"bytes,2,opt,name=symbol,proto3" json:"symbol,omitempty" yaml:"symbol"`
+	// symbol defines the ERC20 token symbol
+	Symbol string `protobuf:"bytes,2,opt,name=symbol,proto3" json:"symbol,omitempty" yaml:"symbol"`
+	// address defines the token contract address
 	Address string `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty" yaml:"address"`
 }
 
@@ -36,7 +90,7 @@ func (m *ERC20Token) Reset()         { *m = ERC20Token{} }
 func (m *ERC20Token) String() string { return proto.CompactTextString(m) }
 func (*ERC20Token) ProtoMessage()    {}
 func (*ERC20Token) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{0}
+	return fileDescriptor_159299d9ca2b2f07, []int{1}
 }
 func (m *ERC20Token) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -88,18 +142,25 @@ func (m *ERC20Token) GetAddress() string {
 
 // FarmingPool represents a pool that rewards liquidity providers with tokens
 type FarmingPool struct {
-	Name                    string                                      `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	StakeToken              ERC20Token                                  `protobuf:"bytes,2,opt,name=stake_token,json=stakeToken,proto3" json:"stake_token" yaml:"stake_token"`
-	TotalStakedAmount       types.DecCoin                               `protobuf:"bytes,3,opt,name=total_staked_amount,json=totalStakedAmount,proto3" json:"total_staked_amount" yaml:"total_staked_amount"`
-	RewardTokenInfos        []RewardTokenInfo                           `protobuf:"bytes,4,rep,name=reward_token_infos,json=rewardTokenInfos,proto3" json:"reward_token_infos" yaml:"reward_token_infos"`
-	TotalAccumulatedRewards github_com_cosmos_cosmos_sdk_types.DecCoins `protobuf:"bytes,5,rep,name=total_accumulated_rewards,json=totalAccumulatedRewards,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.DecCoins" json:"total_accumulated_rewards" yaml:"total_accumulated_rewards"`
+	// name defines the name of the farming pool
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// stake_token defines the accepted token as stake
+	StakeToken ERC20Token `protobuf:"bytes,2,opt,name=stake_token,json=stakeToken,proto3" json:"stake_token" yaml:"stake_token"`
+	// reward_tokens defines the provided reward tokens
+	RewardTokens []ERC20Token `protobuf:"bytes,3,rep,name=reward_tokens,json=rewardTokens,proto3" json:"reward_tokens" yaml:"reward_tokens"`
+	// total_staked_amount defines the total staked amount
+	TotalStakedAmount types.DecCoin `protobuf:"bytes,4,opt,name=total_staked_amount,json=totalStakedAmount,proto3" json:"total_staked_amount" yaml:"total_staked_amount"`
+	// reward_token_infos defines the details for each reward token
+	RewardTokenInfos []RewardTokenInfo `protobuf:"bytes,5,rep,name=reward_token_infos,json=rewardTokenInfos,proto3" json:"reward_token_infos" yaml:"reward_token_infos"`
+	// total_accumulated_rewards defines the total accumulated rewards
+	TotalAccumulatedRewards github_com_cosmos_cosmos_sdk_types.DecCoins `protobuf:"bytes,6,rep,name=total_accumulated_rewards,json=totalAccumulatedRewards,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.DecCoins" json:"total_accumulated_rewards" yaml:"total_accumulated_rewards"`
 }
 
 func (m *FarmingPool) Reset()         { *m = FarmingPool{} }
 func (m *FarmingPool) String() string { return proto.CompactTextString(m) }
 func (*FarmingPool) ProtoMessage()    {}
 func (*FarmingPool) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{1}
+	return fileDescriptor_159299d9ca2b2f07, []int{2}
 }
 func (m *FarmingPool) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -142,6 +203,13 @@ func (m *FarmingPool) GetStakeToken() ERC20Token {
 	return ERC20Token{}
 }
 
+func (m *FarmingPool) GetRewardTokens() []ERC20Token {
+	if m != nil {
+		return m.RewardTokens
+	}
+	return nil
+}
+
 func (m *FarmingPool) GetTotalStakedAmount() types.DecCoin {
 	if m != nil {
 		return m.TotalStakedAmount
@@ -172,7 +240,7 @@ func (m *NumPools) Reset()         { *m = NumPools{} }
 func (m *NumPools) String() string { return proto.CompactTextString(m) }
 func (*NumPools) ProtoMessage()    {}
 func (*NumPools) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{2}
+	return fileDescriptor_159299d9ca2b2f07, []int{3}
 }
 func (m *NumPools) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -219,7 +287,7 @@ func (m *RewardTokenInfo) Reset()         { *m = RewardTokenInfo{} }
 func (m *RewardTokenInfo) String() string { return proto.CompactTextString(m) }
 func (*RewardTokenInfo) ProtoMessage()    {}
 func (*RewardTokenInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{3}
+	return fileDescriptor_159299d9ca2b2f07, []int{4}
 }
 func (m *RewardTokenInfo) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -275,7 +343,7 @@ func (m *StakeInfo) Reset()         { *m = StakeInfo{} }
 func (m *StakeInfo) String() string { return proto.CompactTextString(m) }
 func (*StakeInfo) ProtoMessage()    {}
 func (*StakeInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{4}
+	return fileDescriptor_159299d9ca2b2f07, []int{5}
 }
 func (m *StakeInfo) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -349,7 +417,7 @@ func (m *PoolHistoricalRewards) Reset()         { *m = PoolHistoricalRewards{} }
 func (m *PoolHistoricalRewards) String() string { return proto.CompactTextString(m) }
 func (*PoolHistoricalRewards) ProtoMessage()    {}
 func (*PoolHistoricalRewards) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{5}
+	return fileDescriptor_159299d9ca2b2f07, []int{6}
 }
 func (m *PoolHistoricalRewards) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -403,7 +471,7 @@ func (m *PoolCurrentRewards) Reset()         { *m = PoolCurrentRewards{} }
 func (m *PoolCurrentRewards) String() string { return proto.CompactTextString(m) }
 func (*PoolCurrentRewards) ProtoMessage()    {}
 func (*PoolCurrentRewards) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{6}
+	return fileDescriptor_159299d9ca2b2f07, []int{7}
 }
 func (m *PoolCurrentRewards) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -457,14 +525,14 @@ func (m *PoolCurrentRewards) GetRewards() github_com_cosmos_cosmos_sdk_types.Dec
 type Earnings struct {
 	TargetBlockHeight int64                                       `protobuf:"varint,1,opt,name=target_block_height,json=targetBlockHeight,proto3" json:"target_block_height,omitempty" yaml:"target_block_height"`
 	StakedAmount      types.DecCoin                               `protobuf:"bytes,2,opt,name=staked_amount,json=stakedAmount,proto3" json:"staked_amount" yaml:"staked_amount"`
-	RewardAmount      github_com_cosmos_cosmos_sdk_types.DecCoins `protobuf:"bytes,3,rep,name=reward_amount,json=rewardAmount,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.DecCoins" json:"reward_amount" yaml:"reward_amount"`
+	RewardAmounts     github_com_cosmos_cosmos_sdk_types.DecCoins `protobuf:"bytes,3,rep,name=reward_amounts,json=rewardAmounts,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.DecCoins" json:"reward_amounts" yaml:"reward_amounts"`
 }
 
 func (m *Earnings) Reset()         { *m = Earnings{} }
 func (m *Earnings) String() string { return proto.CompactTextString(m) }
 func (*Earnings) ProtoMessage()    {}
 func (*Earnings) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{7}
+	return fileDescriptor_159299d9ca2b2f07, []int{8}
 }
 func (m *Earnings) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -507,9 +575,201 @@ func (m *Earnings) GetStakedAmount() types.DecCoin {
 	return types.DecCoin{}
 }
 
-func (m *Earnings) GetRewardAmount() github_com_cosmos_cosmos_sdk_types.DecCoins {
+func (m *Earnings) GetRewardAmounts() github_com_cosmos_cosmos_sdk_types.DecCoins {
 	if m != nil {
-		return m.RewardAmount
+		return m.RewardAmounts
+	}
+	return nil
+}
+
+// Signature is the structure representing an Ethereum ECDSA signature.
+type Signature struct {
+	// signer defines the Ethereum address of the signer.
+	Signer string `protobuf:"bytes,1,opt,name=signer,proto3" json:"signer,omitempty" yaml:"signer"`
+	// sig_bytes defines the signature bytes.
+	SigBytes []byte `protobuf:"bytes,2,opt,name=sig_bytes,json=sigBytes,proto3" json:"sig_bytes,omitempty" yaml:"sig_bytes"`
+}
+
+func (m *Signature) Reset()         { *m = Signature{} }
+func (m *Signature) String() string { return proto.CompactTextString(m) }
+func (*Signature) ProtoMessage()    {}
+func (*Signature) Descriptor() ([]byte, []int) {
+	return fileDescriptor_159299d9ca2b2f07, []int{9}
+}
+func (m *Signature) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *Signature) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_Signature.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *Signature) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Signature.Merge(m, src)
+}
+func (m *Signature) XXX_Size() int {
+	return m.Size()
+}
+func (m *Signature) XXX_DiscardUnknown() {
+	xxx_messageInfo_Signature.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Signature proto.InternalMessageInfo
+
+func (m *Signature) GetSigner() string {
+	if m != nil {
+		return m.Signer
+	}
+	return ""
+}
+
+func (m *Signature) GetSigBytes() []byte {
+	if m != nil {
+		return m.SigBytes
+	}
+	return nil
+}
+
+// RewardClaimDetails describes the reward to be claimed on the EVM chain.
+type RewardClaimDetails struct {
+	// chain_id defines the EVM chain ID for the claim.
+	ChainId uint64 `protobuf:"varint,1,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
+	// reward_amount defines the cumulative reward tokens claimed.
+	CumulativeRewardAmounts github_com_cosmos_cosmos_sdk_types.DecCoins `protobuf:"bytes,2,rep,name=cumulative_reward_amounts,json=cumulativeRewardAmounts,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.DecCoins" json:"cumulative_reward_amounts" yaml:"cumulative_reward_amounts"`
+	// reward_proto_bytes defines the serialized reward protobuf to be submitted on the EVM chain.
+	RewardProtoBytes []byte `protobuf:"bytes,3,opt,name=reward_proto_bytes,json=rewardProtoBytes,proto3" json:"reward_proto_bytes,omitempty" yaml:"reward_proto_bytes"`
+	// signatures defines the signatures to be verified on the EVM chain.
+	Signatures []Signature `protobuf:"bytes,4,rep,name=signatures,proto3" json:"signatures" yaml:"signatures"`
+}
+
+func (m *RewardClaimDetails) Reset()         { *m = RewardClaimDetails{} }
+func (m *RewardClaimDetails) String() string { return proto.CompactTextString(m) }
+func (*RewardClaimDetails) ProtoMessage()    {}
+func (*RewardClaimDetails) Descriptor() ([]byte, []int) {
+	return fileDescriptor_159299d9ca2b2f07, []int{10}
+}
+func (m *RewardClaimDetails) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RewardClaimDetails) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_RewardClaimDetails.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *RewardClaimDetails) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RewardClaimDetails.Merge(m, src)
+}
+func (m *RewardClaimDetails) XXX_Size() int {
+	return m.Size()
+}
+func (m *RewardClaimDetails) XXX_DiscardUnknown() {
+	xxx_messageInfo_RewardClaimDetails.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RewardClaimDetails proto.InternalMessageInfo
+
+func (m *RewardClaimDetails) GetChainId() uint64 {
+	if m != nil {
+		return m.ChainId
+	}
+	return 0
+}
+
+func (m *RewardClaimDetails) GetCumulativeRewardAmounts() github_com_cosmos_cosmos_sdk_types.DecCoins {
+	if m != nil {
+		return m.CumulativeRewardAmounts
+	}
+	return nil
+}
+
+func (m *RewardClaimDetails) GetRewardProtoBytes() []byte {
+	if m != nil {
+		return m.RewardProtoBytes
+	}
+	return nil
+}
+
+func (m *RewardClaimDetails) GetSignatures() []Signature {
+	if m != nil {
+		return m.Signatures
+	}
+	return nil
+}
+
+// RewardClaimInfo describes the reward claim metadata and details for a recipient.
+type RewardClaimInfo struct {
+	// recipient defines the Ethereum address of the reward recipient.
+	Recipient string `protobuf:"bytes,1,opt,name=recipient,proto3" json:"recipient,omitempty"`
+	// last_claim_time defines the last time a reward claim was signed by the validators.
+	LastClaimTime time.Time `protobuf:"bytes,2,opt,name=last_claim_time,json=lastClaimTime,proto3,stdtime" json:"last_claim_time" yaml:"last_claim_time"`
+	// reward_claim_details_list defines the list of reward claim details
+	RewardClaimDetailsList []RewardClaimDetails `protobuf:"bytes,3,rep,name=reward_claim_details_list,json=rewardClaimDetailsList,proto3" json:"reward_claim_details_list" yaml:"reward_claim_details_list"`
+}
+
+func (m *RewardClaimInfo) Reset()         { *m = RewardClaimInfo{} }
+func (m *RewardClaimInfo) String() string { return proto.CompactTextString(m) }
+func (*RewardClaimInfo) ProtoMessage()    {}
+func (*RewardClaimInfo) Descriptor() ([]byte, []int) {
+	return fileDescriptor_159299d9ca2b2f07, []int{11}
+}
+func (m *RewardClaimInfo) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RewardClaimInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_RewardClaimInfo.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *RewardClaimInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RewardClaimInfo.Merge(m, src)
+}
+func (m *RewardClaimInfo) XXX_Size() int {
+	return m.Size()
+}
+func (m *RewardClaimInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_RewardClaimInfo.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RewardClaimInfo proto.InternalMessageInfo
+
+func (m *RewardClaimInfo) GetRecipient() string {
+	if m != nil {
+		return m.Recipient
+	}
+	return ""
+}
+
+func (m *RewardClaimInfo) GetLastClaimTime() time.Time {
+	if m != nil {
+		return m.LastClaimTime
+	}
+	return time.Time{}
+}
+
+func (m *RewardClaimInfo) GetRewardClaimDetailsList() []RewardClaimDetails {
+	if m != nil {
+		return m.RewardClaimDetailsList
 	}
 	return nil
 }
@@ -525,7 +785,7 @@ func (m *RewardAdjustmentInput) Reset()         { *m = RewardAdjustmentInput{} }
 func (m *RewardAdjustmentInput) String() string { return proto.CompactTextString(m) }
 func (*RewardAdjustmentInput) ProtoMessage()    {}
 func (*RewardAdjustmentInput) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{8}
+	return fileDescriptor_159299d9ca2b2f07, []int{12}
 }
 func (m *RewardAdjustmentInput) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -582,7 +842,7 @@ type AddPoolProposal struct {
 func (m *AddPoolProposal) Reset()      { *m = AddPoolProposal{} }
 func (*AddPoolProposal) ProtoMessage() {}
 func (*AddPoolProposal) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{9}
+	return fileDescriptor_159299d9ca2b2f07, []int{13}
 }
 func (m *AddPoolProposal) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -626,7 +886,7 @@ func (m *AddPoolProposalWithDeposit) Reset()         { *m = AddPoolProposalWithD
 func (m *AddPoolProposalWithDeposit) String() string { return proto.CompactTextString(m) }
 func (*AddPoolProposalWithDeposit) ProtoMessage()    {}
 func (*AddPoolProposalWithDeposit) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{10}
+	return fileDescriptor_159299d9ca2b2f07, []int{14}
 }
 func (m *AddPoolProposalWithDeposit) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -666,7 +926,7 @@ type AdjustRewardProposal struct {
 func (m *AdjustRewardProposal) Reset()      { *m = AdjustRewardProposal{} }
 func (*AdjustRewardProposal) ProtoMessage() {}
 func (*AdjustRewardProposal) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{11}
+	return fileDescriptor_159299d9ca2b2f07, []int{15}
 }
 func (m *AdjustRewardProposal) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -708,7 +968,7 @@ func (m *AdjustRewardProposalWithDeposit) Reset()         { *m = AdjustRewardPro
 func (m *AdjustRewardProposalWithDeposit) String() string { return proto.CompactTextString(m) }
 func (*AdjustRewardProposalWithDeposit) ProtoMessage()    {}
 func (*AdjustRewardProposalWithDeposit) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{12}
+	return fileDescriptor_159299d9ca2b2f07, []int{16}
 }
 func (m *AdjustRewardProposalWithDeposit) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -747,7 +1007,7 @@ type RemovePoolProposal struct {
 func (m *RemovePoolProposal) Reset()      { *m = RemovePoolProposal{} }
 func (*RemovePoolProposal) ProtoMessage() {}
 func (*RemovePoolProposal) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{13}
+	return fileDescriptor_159299d9ca2b2f07, []int{17}
 }
 func (m *RemovePoolProposal) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -788,7 +1048,7 @@ func (m *RemovePoolProposalWithDeposit) Reset()         { *m = RemovePoolProposa
 func (m *RemovePoolProposalWithDeposit) String() string { return proto.CompactTextString(m) }
 func (*RemovePoolProposalWithDeposit) ProtoMessage()    {}
 func (*RemovePoolProposalWithDeposit) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{14}
+	return fileDescriptor_159299d9ca2b2f07, []int{18}
 }
 func (m *RemovePoolProposalWithDeposit) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -827,7 +1087,7 @@ type AddTokensProposal struct {
 func (m *AddTokensProposal) Reset()      { *m = AddTokensProposal{} }
 func (*AddTokensProposal) ProtoMessage() {}
 func (*AddTokensProposal) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{15}
+	return fileDescriptor_159299d9ca2b2f07, []int{19}
 }
 func (m *AddTokensProposal) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -868,7 +1128,7 @@ func (m *AddTokensProposalWithDeposit) Reset()         { *m = AddTokensProposalW
 func (m *AddTokensProposalWithDeposit) String() string { return proto.CompactTextString(m) }
 func (*AddTokensProposalWithDeposit) ProtoMessage()    {}
 func (*AddTokensProposalWithDeposit) Descriptor() ([]byte, []int) {
-	return fileDescriptor_159299d9ca2b2f07, []int{16}
+	return fileDescriptor_159299d9ca2b2f07, []int{20}
 }
 func (m *AddTokensProposalWithDeposit) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -898,6 +1158,7 @@ func (m *AddTokensProposalWithDeposit) XXX_DiscardUnknown() {
 var xxx_messageInfo_AddTokensProposalWithDeposit proto.InternalMessageInfo
 
 func init() {
+	proto.RegisterType((*Params)(nil), "sgn.farming.v1.Params")
 	proto.RegisterType((*ERC20Token)(nil), "sgn.farming.v1.ERC20Token")
 	proto.RegisterType((*FarmingPool)(nil), "sgn.farming.v1.FarmingPool")
 	proto.RegisterType((*NumPools)(nil), "sgn.farming.v1.NumPools")
@@ -906,6 +1167,9 @@ func init() {
 	proto.RegisterType((*PoolHistoricalRewards)(nil), "sgn.farming.v1.PoolHistoricalRewards")
 	proto.RegisterType((*PoolCurrentRewards)(nil), "sgn.farming.v1.PoolCurrentRewards")
 	proto.RegisterType((*Earnings)(nil), "sgn.farming.v1.Earnings")
+	proto.RegisterType((*Signature)(nil), "sgn.farming.v1.Signature")
+	proto.RegisterType((*RewardClaimDetails)(nil), "sgn.farming.v1.RewardClaimDetails")
+	proto.RegisterType((*RewardClaimInfo)(nil), "sgn.farming.v1.RewardClaimInfo")
 	proto.RegisterType((*RewardAdjustmentInput)(nil), "sgn.farming.v1.RewardAdjustmentInput")
 	proto.RegisterType((*AddPoolProposal)(nil), "sgn.farming.v1.AddPoolProposal")
 	proto.RegisterType((*AddPoolProposalWithDeposit)(nil), "sgn.farming.v1.AddPoolProposalWithDeposit")
@@ -920,100 +1184,144 @@ func init() {
 func init() { proto.RegisterFile("sgn/farming/v1/farming.proto", fileDescriptor_159299d9ca2b2f07) }
 
 var fileDescriptor_159299d9ca2b2f07 = []byte{
-	// 1451 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x58, 0xcd, 0x6f, 0x1b, 0x45,
-	0x1b, 0xf7, 0xda, 0xce, 0xd7, 0x93, 0xef, 0x49, 0xdc, 0x38, 0x6e, 0xea, 0xcd, 0x3b, 0x6f, 0xdf,
-	0x7e, 0xe8, 0xa5, 0x36, 0x09, 0x17, 0x94, 0x13, 0x71, 0xda, 0xaa, 0x51, 0x45, 0x15, 0x4d, 0x0b,
-	0x95, 0x10, 0x68, 0xb5, 0xf1, 0x4e, 0x9c, 0x25, 0xf6, 0x8e, 0xb5, 0x33, 0x4e, 0xc8, 0x01, 0x71,
-	0xe0, 0x40, 0x05, 0x12, 0x42, 0x95, 0x90, 0x38, 0x56, 0x9c, 0x10, 0x9c, 0x38, 0xf1, 0x0f, 0x70,
-	0xe8, 0x01, 0xa1, 0x72, 0x43, 0x1c, 0x0c, 0x4a, 0x25, 0xc4, 0x01, 0x2e, 0xbe, 0x71, 0x43, 0x3b,
-	0x33, 0x6b, 0xaf, 0x37, 0x6e, 0xb0, 0xab, 0xaa, 0x8a, 0x10, 0x27, 0xef, 0x3e, 0xcf, 0x33, 0xcf,
-	0x3c, 0xf3, 0xfb, 0x3d, 0x1f, 0xe3, 0x85, 0x25, 0x5e, 0xf1, 0x8a, 0x3b, 0xb6, 0x5f, 0x73, 0xbd,
-	0x4a, 0x71, 0x7f, 0x25, 0x7c, 0x2c, 0xd4, 0x7d, 0x26, 0x18, 0x9a, 0xe2, 0x15, 0xaf, 0x10, 0x8a,
-	0xf6, 0x57, 0x72, 0xf3, 0x15, 0x56, 0x61, 0x52, 0x55, 0x0c, 0x9e, 0x94, 0x55, 0x2e, 0x5f, 0x66,
-	0xbc, 0xc6, 0x78, 0x71, 0xdb, 0xe6, 0xb4, 0xb8, 0xbf, 0xb2, 0x4d, 0x85, 0xbd, 0x52, 0x2c, 0x33,
-	0xd7, 0x53, 0x7a, 0xfc, 0xa9, 0x01, 0x70, 0x8d, 0x6c, 0xac, 0xbe, 0x78, 0x87, 0xed, 0x51, 0x0f,
-	0x15, 0x60, 0xb4, 0xbc, 0x6b, 0xbb, 0x9e, 0xe5, 0x3a, 0x59, 0x63, 0xd9, 0xb8, 0x94, 0x2e, 0xcd,
-	0xb5, 0x9a, 0xe6, 0xf4, 0xa1, 0x5d, 0xab, 0xae, 0xe1, 0x50, 0x83, 0xc9, 0x88, 0x7c, 0xdc, 0x74,
-	0xd0, 0x65, 0x18, 0xe6, 0x87, 0xb5, 0x6d, 0x56, 0xcd, 0x26, 0x97, 0x8d, 0x4b, 0x63, 0xa5, 0xd9,
-	0x56, 0xd3, 0x9c, 0x54, 0xd6, 0x4a, 0x8e, 0x89, 0x36, 0x40, 0x2f, 0xc0, 0x88, 0xed, 0x38, 0x3e,
-	0xe5, 0x3c, 0x9b, 0x92, 0xb6, 0xa8, 0xd5, 0x34, 0xa7, 0x94, 0xad, 0x56, 0x60, 0x12, 0x9a, 0xe0,
-	0xfb, 0x69, 0x18, 0xbf, 0xae, 0x0e, 0xb7, 0xc5, 0x58, 0x15, 0x21, 0x48, 0x7b, 0x76, 0x8d, 0xca,
-	0xa0, 0xc6, 0x88, 0x7c, 0x46, 0x77, 0x61, 0x9c, 0x0b, 0x7b, 0x8f, 0x5a, 0x22, 0x88, 0x5d, 0x46,
-	0x30, 0xbe, 0x9a, 0x2b, 0x74, 0xe3, 0x52, 0xe8, 0x9c, 0xae, 0x94, 0x7b, 0xd8, 0x34, 0x13, 0xad,
-	0xa6, 0x89, 0x74, 0x84, 0x9d, 0xc5, 0x98, 0x80, 0x7c, 0x53, 0x28, 0xd4, 0x61, 0x4e, 0x30, 0x61,
-	0x57, 0x2d, 0x29, 0x73, 0x2c, 0xbb, 0xc6, 0x1a, 0x9e, 0x90, 0x61, 0x8f, 0xaf, 0x2e, 0x15, 0x14,
-	0xa4, 0x85, 0x00, 0xd2, 0x82, 0x86, 0xb4, 0x70, 0x95, 0x96, 0x37, 0x98, 0xeb, 0x95, 0xb0, 0xde,
-	0x22, 0xa7, 0xb6, 0xe8, 0xe1, 0x06, 0x93, 0x59, 0x29, 0xbd, 0x2d, 0x85, 0xeb, 0x52, 0x86, 0xea,
-	0x80, 0x7c, 0x7a, 0x60, 0xfb, 0x8e, 0x0a, 0xc7, 0x72, 0xbd, 0x1d, 0xc6, 0xb3, 0xe9, 0xe5, 0xd4,
-	0xa5, 0xf1, 0x55, 0x33, 0x7e, 0x22, 0x22, 0x2d, 0x65, 0xa8, 0x9b, 0xde, 0x0e, 0x2b, 0xfd, 0x47,
-	0xef, 0xb9, 0xa8, 0xf6, 0x3c, 0xee, 0x08, 0x93, 0x19, 0xbf, 0x7b, 0x0d, 0x47, 0x5f, 0x1b, 0xb0,
-	0xa8, 0xa2, 0xb3, 0xcb, 0xe5, 0x46, 0xad, 0x51, 0xb5, 0x05, 0x75, 0x2c, 0x65, 0xc6, 0xb3, 0x43,
-	0x72, 0xe7, 0x93, 0x8f, 0x7a, 0x57, 0x6f, 0xbb, 0x1c, 0x3d, 0x6a, 0x0f, 0x67, 0xf8, 0xcb, 0x9f,
-	0xcd, 0xff, 0x57, 0x5c, 0xb1, 0xdb, 0xd8, 0x2e, 0x94, 0x59, 0xad, 0xa8, 0x33, 0x52, 0xfd, 0x5c,
-	0xe1, 0xce, 0x5e, 0x51, 0x1c, 0xd6, 0x29, 0x0f, 0xfd, 0x72, 0xb2, 0x20, 0x5d, 0xad, 0x77, 0x3c,
-	0x11, 0xed, 0xe8, 0x22, 0x8c, 0xde, 0x6a, 0xd4, 0x82, 0x7c, 0xe0, 0xe8, 0x2c, 0x8c, 0x79, 0x8d,
-	0x9a, 0x55, 0x0f, 0x5e, 0x54, 0xaa, 0x92, 0x51, 0x4f, 0x2b, 0xf1, 0xaf, 0x49, 0x98, 0x8e, 0xa1,
-	0x84, 0x76, 0x61, 0xc6, 0xa7, 0x35, 0xdb, 0xf5, 0x5c, 0xaf, 0x12, 0x32, 0x6a, 0xf4, 0xc1, 0xa8,
-	0xa9, 0x8f, 0xb9, 0x10, 0xa2, 0xdb, 0xed, 0x03, 0x93, 0xe9, 0xb6, 0x48, 0x93, 0x69, 0xc1, 0xa2,
-	0xe6, 0x80, 0x0b, 0xdb, 0x17, 0xd6, 0x76, 0x95, 0x95, 0xf7, 0xac, 0x5d, 0xea, 0x56, 0x76, 0x85,
-	0xcc, 0xd2, 0x54, 0xe9, 0x7c, 0x07, 0xb7, 0x27, 0x9a, 0x62, 0x72, 0x46, 0xe9, 0x6e, 0x07, 0xaa,
-	0x52, 0xa0, 0xb9, 0x21, 0x15, 0xe8, 0x03, 0x03, 0x16, 0xf4, 0x32, 0x15, 0x84, 0x55, 0xa7, 0xbe,
-	0x5a, 0xab, 0x6b, 0x6b, 0x2b, 0x08, 0xfa, 0xa7, 0xa6, 0x79, 0xa1, 0x3f, 0xdc, 0x5b, 0x4d, 0x33,
-	0xdf, 0x15, 0x4d, 0xdc, 0x2d, 0x26, 0xf3, 0x4a, 0xa3, 0x8e, 0xb8, 0x45, 0x7d, 0x19, 0x0f, 0xfe,
-	0x21, 0x09, 0x63, 0x32, 0x91, 0x25, 0xc4, 0xaf, 0xc0, 0x94, 0x4c, 0x75, 0xdf, 0x0a, 0x2b, 0x5d,
-	0x96, 0x6b, 0x69, 0xb1, 0xd5, 0x34, 0x33, 0x91, 0x9a, 0x6b, 0xeb, 0x31, 0x99, 0x54, 0x82, 0x75,
-	0xf5, 0x8e, 0x56, 0x60, 0x2c, 0x60, 0xd4, 0x92, 0xb5, 0xae, 0x5a, 0xca, 0x7c, 0xab, 0x69, 0xce,
-	0xa8, 0xc5, 0x6d, 0x15, 0x26, 0xa3, 0xc1, 0xf3, 0xad, 0xa0, 0x0b, 0xac, 0xc1, 0xf0, 0x00, 0xf5,
-	0x99, 0x0e, 0x80, 0x21, 0x7a, 0x05, 0xba, 0x09, 0xa8, 0x07, 0x45, 0x69, 0x49, 0xd1, 0xb9, 0x4e,
-	0x45, 0xf5, 0xe2, 0x66, 0x86, 0xc7, 0x59, 0xb9, 0x1e, 0x24, 0xd8, 0x0e, 0xf5, 0xa9, 0x57, 0xa6,
-	0x01, 0x72, 0x2e, 0x73, 0xb2, 0x43, 0xb2, 0x87, 0x9e, 0x8d, 0xa6, 0x4f, 0xb7, 0x85, 0x4c, 0x1f,
-	0x2d, 0xda, 0x52, 0x92, 0x0f, 0x93, 0x90, 0x09, 0xd2, 0xf8, 0x86, 0xcb, 0x05, 0xf3, 0xdd, 0xb2,
-	0x5d, 0xd5, 0xf9, 0x8f, 0xbe, 0x32, 0x60, 0x41, 0x17, 0x85, 0xbb, 0x4f, 0x75, 0x7d, 0x59, 0xbe,
-	0x2d, 0x5c, 0x96, 0x35, 0xfa, 0xa8, 0xd8, 0xd7, 0x74, 0x2a, 0x6b, 0xae, 0x9f, 0xe0, 0x6a, 0xe0,
-	0x7a, 0xcd, 0x74, 0x1c, 0xa9, 0x48, 0x49, 0xe0, 0x06, 0x6d, 0x40, 0xe7, 0x68, 0x56, 0x59, 0x32,
-	0x14, 0x30, 0x3a, 0x59, 0xca, 0xb5, 0x9a, 0xe6, 0x99, 0x38, 0x1c, 0x65, 0x55, 0x4c, 0x53, 0x6d,
-	0xc9, 0x86, 0x14, 0x7c, 0x94, 0x04, 0x14, 0x80, 0xb1, 0xd1, 0xf0, 0x7d, 0xea, 0x89, 0x10, 0x89,
-	0xde, 0xc4, 0x19, 0x4f, 0x47, 0xdc, 0x65, 0x18, 0xd6, 0x74, 0x25, 0x25, 0x5d, 0x91, 0x21, 0x16,
-	0x92, 0xa4, 0x0d, 0xd0, 0xbb, 0x30, 0x12, 0xb6, 0xc8, 0x54, 0x1f, 0x80, 0x5f, 0xd3, 0x80, 0x4f,
-	0x45, 0x8b, 0x6b, 0xf0, 0x86, 0x18, 0xee, 0x89, 0xbf, 0x4b, 0xc2, 0xe8, 0x35, 0xdb, 0x0f, 0x7a,
-	0x0d, 0x47, 0xb7, 0x60, 0x4e, 0xd8, 0x7e, 0x85, 0xf6, 0x04, 0x21, 0x1f, 0x99, 0x41, 0xc7, 0x8d,
-	0x82, 0x19, 0x24, 0xa5, 0x51, 0x18, 0x2c, 0x98, 0xec, 0x9e, 0x77, 0xc9, 0x3e, 0xea, 0x69, 0x49,
-	0x9f, 0x70, 0x3e, 0x52, 0xde, 0x9d, 0x49, 0x37, 0xc1, 0xa3, 0x43, 0xee, 0x63, 0x03, 0x26, 0xbb,
-	0xfa, 0x4b, 0x5f, 0x18, 0xde, 0xec, 0xde, 0xa1, 0xcb, 0xc1, 0xc0, 0x48, 0x4e, 0x44, 0xbb, 0x18,
-	0x3e, 0x4a, 0x42, 0x46, 0x65, 0xd4, 0xba, 0xf3, 0x76, 0x83, 0x8b, 0x1a, 0xf5, 0xc4, 0xa6, 0x57,
-	0x6f, 0x08, 0xf4, 0x3a, 0x80, 0xed, 0x38, 0x83, 0x8c, 0x89, 0x45, 0x1d, 0xe6, 0x6c, 0xfb, 0x46,
-	0xd3, 0x46, 0x61, 0xcc, 0x76, 0x42, 0x08, 0xde, 0x84, 0x6c, 0x8f, 0x7e, 0xef, 0xd0, 0xaa, 0x7d,
-	0xa8, 0x27, 0xc3, 0x7f, 0x5b, 0x4d, 0xd3, 0x7c, 0xe2, 0x64, 0x90, 0x96, 0x98, 0x64, 0xe2, 0x83,
-	0xe1, 0x6a, 0x20, 0x47, 0xf7, 0x0d, 0x38, 0xeb, 0xd1, 0x03, 0xeb, 0xe4, 0xd9, 0x70, 0x67, 0xe0,
-	0xd9, 0x80, 0x55, 0x3c, 0x27, 0xb8, 0xc6, 0x64, 0xc1, 0xa3, 0x07, 0xa4, 0xd7, 0x88, 0xf8, 0x23,
-	0x05, 0xd3, 0xeb, 0x8e, 0x13, 0x14, 0xf1, 0x96, 0xcf, 0xea, 0x8c, 0xdb, 0x55, 0x74, 0x01, 0x86,
-	0x84, 0x2b, 0xaa, 0xfa, 0x3a, 0x57, 0x9a, 0x69, 0x35, 0xcd, 0x09, 0x9d, 0xac, 0x81, 0x18, 0x13,
-	0xa5, 0x46, 0x2f, 0xc3, 0xb8, 0x43, 0x79, 0xd9, 0x77, 0xeb, 0xc2, 0x65, 0x9e, 0x1e, 0x08, 0x67,
-	0x3a, 0x37, 0xb8, 0x88, 0x12, 0x93, 0xa8, 0x69, 0xf7, 0x20, 0x49, 0xf5, 0x35, 0x48, 0x62, 0xd7,
-	0xc9, 0xf4, 0x33, 0xbb, 0x4e, 0xbe, 0xd5, 0x4e, 0x7b, 0xa9, 0x0c, 0x6f, 0x57, 0x27, 0xb9, 0x5e,
-	0xea, 0x99, 0xf4, 0x6a, 0x39, 0x0e, 0xb3, 0x58, 0x9a, 0x72, 0xf4, 0x1e, 0x64, 0x5c, 0xcf, 0x15,
-	0xae, 0x5d, 0x0d, 0xd9, 0x71, 0x83, 0x1c, 0xe6, 0xd9, 0x61, 0xb9, 0xcd, 0xff, 0x7a, 0x5f, 0x1f,
-	0x63, 0x19, 0x5f, 0x3a, 0xaf, 0x77, 0x5c, 0x52, 0x3b, 0xf6, 0xf4, 0x88, 0xc9, 0x9c, 0x96, 0x2b,
-	0x1f, 0x72, 0x25, 0x5f, 0x9b, 0xb8, 0xf7, 0xc0, 0x4c, 0x7c, 0xf6, 0xc0, 0x4c, 0xfc, 0xf6, 0xc0,
-	0x4c, 0xe0, 0xcf, 0xd3, 0x90, 0x8b, 0xf1, 0x7d, 0xd7, 0x15, 0xbb, 0x57, 0x69, 0x9d, 0x71, 0x57,
-	0xfc, 0x4b, 0xfd, 0x3f, 0x89, 0xfa, 0xe0, 0x4f, 0x9d, 0xa3, 0x88, 0xcd, 0x8e, 0xc4, 0xff, 0xd4,
-	0x69, 0x05, 0x26, 0xa1, 0xc9, 0xda, 0xa8, 0x4e, 0x14, 0x03, 0x7f, 0x9b, 0x84, 0x79, 0x15, 0x86,
-	0x72, 0x77, 0xba, 0x3b, 0xc3, 0x3d, 0xa3, 0xdd, 0xb6, 0xed, 0x36, 0x76, 0x21, 0xd4, 0xe9, 0x41,
-	0xa0, 0xbe, 0xa8, 0xa1, 0xee, 0xee, 0xf0, 0xc7, 0x9c, 0xb6, 0xaf, 0xfe, 0xb1, 0xf5, 0xf1, 0x5a,
-	0xfb, 0x33, 0x09, 0x66, 0x2f, 0x18, 0x4f, 0x7d, 0xc1, 0x9d, 0x1e, 0x44, 0xa3, 0x29, 0x3c, 0x34,
-	0x48, 0x0a, 0x7f, 0x63, 0x00, 0x22, 0xb4, 0xc6, 0xf6, 0xe9, 0xa9, 0x1f, 0x6d, 0xb1, 0xac, 0xf9,
-	0xdd, 0x80, 0x73, 0xc7, 0x23, 0x3f, 0xf5, 0x39, 0x13, 0x21, 0x2a, 0x3d, 0x08, 0x51, 0xdf, 0x1b,
-	0x30, 0xbb, 0xee, 0xe8, 0x96, 0xf9, 0x1c, 0x79, 0xda, 0x84, 0x61, 0xdd, 0xf4, 0x53, 0x7f, 0xdb,
-	0xf4, 0x33, 0x3a, 0x8b, 0x27, 0xc3, 0x6f, 0x29, 0xaa, 0xdb, 0x6b, 0x07, 0x31, 0xfe, 0xde, 0x4f,
-	0xc2, 0xd2, 0xb1, 0x03, 0x3d, 0x5f, 0xfa, 0x9e, 0xdd, 0xd9, 0x9e, 0x96, 0xd6, 0xd2, 0xab, 0x5f,
-	0x1c, 0xe5, 0x8d, 0x87, 0x47, 0x79, 0xe3, 0xd1, 0x51, 0xde, 0xf8, 0xe5, 0x28, 0x6f, 0x7c, 0xf2,
-	0x38, 0x9f, 0x78, 0xf4, 0x38, 0x9f, 0xf8, 0xf1, 0x71, 0x3e, 0xf1, 0x46, 0x31, 0x7a, 0xb9, 0xa5,
-	0x55, 0xea, 0x5f, 0xf1, 0xa8, 0x38, 0x60, 0xfe, 0x5e, 0x91, 0x57, 0xbc, 0x2b, 0xfb, 0xab, 0xc5,
-	0x77, 0xda, 0x5f, 0x56, 0xe5, 0x4d, 0x77, 0x7b, 0x58, 0x7e, 0x0f, 0x7d, 0xe9, 0xaf, 0x00, 0x00,
-	0x00, 0xff, 0xff, 0x6f, 0x97, 0x9f, 0x11, 0x75, 0x15, 0x00, 0x00,
+	// 1771 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x59, 0xcd, 0x6f, 0x23, 0x49,
+	0x15, 0x4f, 0xdb, 0xce, 0x87, 0x2b, 0x71, 0x92, 0xa9, 0x49, 0x26, 0x76, 0x26, 0xe3, 0x1e, 0x8a,
+	0x65, 0x77, 0x56, 0xec, 0xd8, 0x24, 0x5c, 0x50, 0x4e, 0xc4, 0xc9, 0xac, 0x36, 0x62, 0x19, 0x45,
+	0x35, 0x81, 0x91, 0x10, 0xa8, 0x55, 0xee, 0xae, 0x74, 0x8a, 0xf4, 0x87, 0xd5, 0x55, 0x4e, 0xc8,
+	0x01, 0x71, 0x40, 0x82, 0x15, 0x5c, 0x16, 0x24, 0xa4, 0x3d, 0x2e, 0x9c, 0x10, 0x9c, 0x38, 0xf1,
+	0x0f, 0x70, 0xd8, 0x13, 0x2c, 0x37, 0xc4, 0xc1, 0x8b, 0x32, 0x12, 0xe2, 0x00, 0x07, 0x7c, 0xe3,
+	0x86, 0xea, 0xa3, 0xed, 0x76, 0xc7, 0x19, 0xec, 0xd5, 0xb2, 0x8a, 0x10, 0xa7, 0x54, 0xbf, 0x57,
+	0xf5, 0xea, 0xd5, 0xfb, 0xbd, 0xf7, 0xea, 0x57, 0x0e, 0xd8, 0xe2, 0x7e, 0xd4, 0x3c, 0x21, 0x49,
+	0xc8, 0x22, 0xbf, 0x79, 0xbe, 0x9d, 0x0e, 0x1b, 0x9d, 0x24, 0x16, 0x31, 0x5c, 0xe6, 0x7e, 0xd4,
+	0x48, 0x45, 0xe7, 0xdb, 0x9b, 0x6b, 0x7e, 0xec, 0xc7, 0x4a, 0xd5, 0x94, 0x23, 0x3d, 0x6b, 0xb3,
+	0xee, 0xc7, 0xb1, 0x1f, 0xd0, 0xa6, 0xfa, 0x6a, 0x77, 0x4f, 0x9a, 0x5e, 0x37, 0x21, 0x82, 0xc5,
+	0x91, 0xd1, 0xdb, 0x79, 0xbd, 0x60, 0x21, 0xe5, 0x82, 0x84, 0x9d, 0xd4, 0x80, 0x1b, 0xf3, 0x30,
+	0xe6, 0xcd, 0x36, 0xe1, 0xb4, 0x79, 0xbe, 0xdd, 0xa6, 0x82, 0x6c, 0x37, 0xdd, 0x98, 0x19, 0x03,
+	0x88, 0x83, 0xb9, 0x23, 0x92, 0x90, 0x90, 0x43, 0x17, 0x2c, 0xbb, 0x01, 0x61, 0xa1, 0xe3, 0xc6,
+	0x71, 0xe0, 0xc5, 0x17, 0x51, 0xd5, 0x7a, 0x68, 0x3d, 0x5a, 0xdc, 0xa9, 0x35, 0xf4, 0x1e, 0x8d,
+	0x74, 0x8f, 0xc6, 0x81, 0xf1, 0xa1, 0xf5, 0x99, 0x0f, 0x7a, 0xf6, 0x4c, 0xbf, 0x67, 0xaf, 0x5f,
+	0x92, 0x30, 0xd8, 0x45, 0xa3, 0xcb, 0xd1, 0x7b, 0x1f, 0xd9, 0x16, 0xae, 0x28, 0xe1, 0xbe, 0x91,
+	0xed, 0x96, 0xde, 0x7b, 0xdf, 0x9e, 0x41, 0x3f, 0xb3, 0x00, 0x78, 0x82, 0xf7, 0x77, 0xbe, 0x70,
+	0x1c, 0x9f, 0xd1, 0x08, 0x36, 0xc0, 0x82, 0x7b, 0x4a, 0x58, 0xe4, 0x30, 0x4f, 0xed, 0x59, 0x6a,
+	0xdd, 0xed, 0xf7, 0xec, 0x15, 0x63, 0xd4, 0x68, 0x10, 0x9e, 0x57, 0xc3, 0x43, 0x0f, 0xbe, 0x0e,
+	0xe6, 0xf8, 0x65, 0xd8, 0x8e, 0x83, 0x6a, 0xe1, 0xa1, 0xf5, 0xa8, 0xdc, 0xba, 0xd3, 0xef, 0xd9,
+	0x15, 0x3d, 0x5b, 0xcb, 0x11, 0x36, 0x13, 0xe0, 0x1b, 0x60, 0x9e, 0x78, 0x5e, 0x42, 0x39, 0xaf,
+	0x16, 0xd5, 0x5c, 0xd8, 0xef, 0xd9, 0xcb, 0x7a, 0xae, 0x51, 0x20, 0x9c, 0x4e, 0x41, 0xff, 0x2c,
+	0x81, 0xc5, 0x37, 0x35, 0x24, 0x47, 0x71, 0x1c, 0x40, 0x08, 0x4a, 0x11, 0x09, 0xa9, 0x72, 0xaa,
+	0x8c, 0xd5, 0x18, 0x3e, 0x07, 0x8b, 0x5c, 0x90, 0x33, 0xea, 0x08, 0xe9, 0xbb, 0xf2, 0x60, 0x71,
+	0x67, 0xb3, 0x31, 0x8a, 0x66, 0x63, 0x78, 0xba, 0xd6, 0xa6, 0x09, 0x12, 0x34, 0x1e, 0x0e, 0x17,
+	0x23, 0x0c, 0xd4, 0x97, 0x8e, 0xc2, 0xb7, 0x40, 0x25, 0xa1, 0x17, 0x24, 0xf1, 0xb4, 0x52, 0x3a,
+	0x5c, 0xfc, 0x0f, 0xa6, 0xb7, 0x8c, 0xe9, 0x35, 0x6d, 0x7a, 0x64, 0x39, 0xc2, 0x4b, 0xfa, 0x5b,
+	0x4d, 0xe5, 0xb0, 0x03, 0xee, 0x8a, 0x58, 0x90, 0xc0, 0x51, 0x5b, 0x7a, 0x0e, 0x09, 0xe3, 0x6e,
+	0x24, 0xaa, 0x25, 0xe5, 0xff, 0x56, 0x43, 0xa7, 0x49, 0x43, 0xa6, 0x49, 0xc3, 0xa4, 0x49, 0xe3,
+	0x80, 0xba, 0xfb, 0x31, 0x8b, 0x5a, 0xc8, 0x6c, 0xb3, 0xa9, 0xb7, 0x19, 0x63, 0x06, 0xe1, 0x3b,
+	0x4a, 0xfa, 0x4c, 0x09, 0xf7, 0x94, 0x0c, 0x76, 0x00, 0xcc, 0x7a, 0xe4, 0xb0, 0xe8, 0x24, 0xe6,
+	0xd5, 0x59, 0x75, 0x2a, 0x3b, 0x7f, 0x2a, 0x3c, 0xf4, 0xf5, 0x30, 0x3a, 0x89, 0x07, 0xa9, 0x55,
+	0xbb, 0x7e, 0x34, 0x6d, 0x08, 0xe1, 0xd5, 0x64, 0x74, 0x0d, 0x87, 0xbf, 0xb1, 0x40, 0x4d, 0x7b,
+	0x47, 0x5c, 0xb7, 0x1b, 0x76, 0x03, 0x22, 0xa8, 0xe7, 0xe8, 0x69, 0xbc, 0x3a, 0xa7, 0x76, 0x7e,
+	0xf9, 0x51, 0x9f, 0x9b, 0x6d, 0x1f, 0x66, 0x8f, 0x3a, 0xc6, 0x18, 0xfa, 0xd5, 0x47, 0xf6, 0xe7,
+	0x7d, 0x26, 0x4e, 0xbb, 0xed, 0x86, 0x1b, 0x87, 0x4d, 0x53, 0x65, 0xfa, 0xcf, 0x63, 0xee, 0x9d,
+	0x35, 0xc5, 0x65, 0x87, 0xf2, 0xd4, 0x2e, 0xc7, 0x1b, 0xca, 0xd4, 0xde, 0xd0, 0x12, 0x36, 0x86,
+	0x5e, 0x03, 0x0b, 0x4f, 0xbb, 0xa1, 0x4c, 0x37, 0x0e, 0xef, 0x83, 0x72, 0xd4, 0x0d, 0x9d, 0x8e,
+	0xfc, 0xd0, 0x95, 0x80, 0x17, 0x22, 0xa3, 0x44, 0x7f, 0x2d, 0x80, 0x95, 0x5c, 0x94, 0xe0, 0x29,
+	0x58, 0x4d, 0x68, 0x48, 0x58, 0xc4, 0x22, 0x3f, 0x45, 0xd4, 0x9a, 0x00, 0x51, 0xdb, 0x1c, 0x73,
+	0x23, 0x8d, 0xee, 0xa8, 0x0d, 0x84, 0x57, 0x06, 0x22, 0x03, 0xa6, 0x03, 0x6a, 0x06, 0x03, 0x2e,
+	0x48, 0x22, 0x9c, 0x76, 0x10, 0xbb, 0x67, 0xce, 0x29, 0x65, 0xfe, 0xa9, 0x50, 0x45, 0x50, 0x6c,
+	0xbd, 0x32, 0x8c, 0xdb, 0x8d, 0x53, 0x11, 0xbe, 0xa7, 0x75, 0xcf, 0xa4, 0xaa, 0x25, 0x35, 0x6f,
+	0x29, 0x05, 0xfc, 0xa1, 0x05, 0x36, 0xcc, 0x32, 0xed, 0x84, 0xd3, 0xa1, 0x89, 0x5e, 0x6b, 0x4a,
+	0xf7, 0x48, 0x3a, 0xfd, 0xe7, 0x9e, 0xfd, 0xea, 0x64, 0x71, 0xef, 0xf7, 0xec, 0xfa, 0x88, 0x37,
+	0x79, 0xb3, 0x08, 0xaf, 0x69, 0x8d, 0x3e, 0xe2, 0x11, 0x4d, 0x94, 0x3f, 0xe8, 0x8f, 0x05, 0x50,
+	0x56, 0x89, 0xac, 0x42, 0xfc, 0x65, 0xb0, 0xac, 0x52, 0x3d, 0x71, 0xd2, 0x46, 0xa2, 0xba, 0x41,
+	0xab, 0x36, 0xec, 0x7b, 0xa3, 0x7a, 0x84, 0x2b, 0x5a, 0xb0, 0xa7, 0xbf, 0xe1, 0x36, 0x28, 0x4b,
+	0x44, 0x1d, 0xd5, 0x4a, 0x74, 0xc7, 0x5a, 0xeb, 0xf7, 0xec, 0x55, 0xbd, 0x78, 0xa0, 0x42, 0x78,
+	0x41, 0x8e, 0x9f, 0xca, 0x26, 0xb3, 0x0b, 0xe6, 0x0c, 0x9a, 0xc5, 0x09, 0xd0, 0x2c, 0xc9, 0xc0,
+	0x60, 0xb3, 0x02, 0x7e, 0x05, 0xc0, 0x31, 0x10, 0x95, 0x14, 0x44, 0x0f, 0x86, 0x15, 0x35, 0x0e,
+	0x9b, 0x55, 0x9e, 0x47, 0xe5, 0x4d, 0x99, 0x60, 0x27, 0x34, 0xa1, 0x91, 0x4b, 0x65, 0xe4, 0x58,
+	0xec, 0x55, 0x67, 0x55, 0x8b, 0xbe, 0x9f, 0x4d, 0x9f, 0xd1, 0x19, 0x2a, 0x7d, 0x8c, 0xe8, 0x48,
+	0x4b, 0x7e, 0x54, 0x00, 0xeb, 0x32, 0x8d, 0xdf, 0x62, 0x5c, 0xc4, 0x09, 0x73, 0x49, 0x60, 0xf2,
+	0x1f, 0xfe, 0xda, 0x02, 0x1b, 0xa6, 0x28, 0xd8, 0x39, 0x35, 0xf5, 0xe5, 0xa8, 0x0b, 0xa6, 0x6a,
+	0x4d, 0x50, 0xb1, 0x5f, 0x33, 0xa9, 0x6c, 0xb0, 0xbe, 0xc1, 0xd4, 0xd4, 0xf5, 0xba, 0x3e, 0x34,
+	0xa4, 0x3d, 0xc5, 0xd2, 0x0c, 0xdc, 0x07, 0xc3, 0xa3, 0x39, 0xae, 0x42, 0x48, 0x22, 0x5a, 0x69,
+	0x6d, 0xf6, 0x7b, 0xf6, 0xbd, 0x7c, 0x38, 0x5c, 0x5d, 0x4c, 0xcb, 0x03, 0xc9, 0xbe, 0x12, 0xfc,
+	0xb8, 0x00, 0xa0, 0x0c, 0xc6, 0x7e, 0x37, 0x49, 0x68, 0x24, 0xd2, 0x48, 0x8c, 0x07, 0xce, 0xfa,
+	0x78, 0xc0, 0xbd, 0x0e, 0xe6, 0x0c, 0x5c, 0x05, 0x05, 0x57, 0xe6, 0x8e, 0x4c, 0x41, 0x32, 0x13,
+	0xe0, 0x77, 0xc1, 0x7c, 0xda, 0x22, 0x8b, 0x13, 0x04, 0xfc, 0x89, 0x09, 0xf8, 0x72, 0xb6, 0xb8,
+	0xa6, 0x6f, 0x88, 0xe9, 0x9e, 0xe8, 0x0f, 0x05, 0xb0, 0xf0, 0x84, 0x24, 0xb2, 0xd7, 0x70, 0xf8,
+	0x14, 0xdc, 0x15, 0x24, 0xf1, 0xe9, 0xd8, 0x20, 0xd4, 0x33, 0x77, 0xd0, 0xf5, 0x49, 0xf2, 0x0e,
+	0x52, 0xd2, 0x6c, 0x18, 0x1c, 0x50, 0x19, 0xbd, 0xef, 0x0a, 0x13, 0xd4, 0x53, 0xee, 0x5a, 0xcd,
+	0xdd, 0x74, 0x4b, 0x3c, 0x7b, 0xc9, 0xfd, 0xc4, 0x02, 0xcb, 0x23, 0xfd, 0x65, 0xb2, 0x20, 0xbe,
+	0x3d, 0xca, 0x9c, 0x46, 0x2d, 0x4c, 0x1d, 0xcb, 0x4a, 0xb6, 0x8f, 0x71, 0xc4, 0x40, 0xf9, 0x19,
+	0xf3, 0x23, 0x22, 0xba, 0x09, 0x55, 0x64, 0x89, 0xf9, 0x11, 0x4d, 0x4c, 0xdf, 0xca, 0x92, 0x25,
+	0x25, 0x97, 0x64, 0x49, 0x0d, 0x64, 0xa3, 0xe2, 0xcc, 0x77, 0xda, 0x97, 0x82, 0x72, 0x15, 0xa8,
+	0xa5, 0x6c, 0xa3, 0x1a, 0xa8, 0x10, 0x5e, 0xe0, 0xcc, 0x6f, 0xa9, 0xe1, 0x0f, 0x8a, 0x00, 0xea,
+	0xfc, 0xdd, 0x97, 0x3c, 0xef, 0x80, 0x0a, 0xc2, 0x02, 0x0e, 0x6b, 0x79, 0x46, 0x37, 0x24, 0x6f,
+	0xf2, 0x8e, 0xbe, 0x5e, 0xa4, 0x69, 0xec, 0x0a, 0xd3, 0xdf, 0xd1, 0x37, 0x1a, 0x9b, 0xfe, 0x8e,
+	0xce, 0xd7, 0xbc, 0x09, 0xa8, 0xac, 0x4c, 0x63, 0x5a, 0x71, 0x60, 0x13, 0xa1, 0xa2, 0x8a, 0xd0,
+	0x83, 0x6b, 0x24, 0x25, 0x33, 0x67, 0x40, 0x52, 0x8e, 0xa4, 0x4c, 0x85, 0x0c, 0x1e, 0x03, 0xc0,
+	0x53, 0x74, 0x78, 0xb5, 0xa4, 0x0e, 0x5c, 0xcb, 0xd3, 0xa1, 0x01, 0x7e, 0xad, 0x9a, 0x39, 0xed,
+	0x9d, 0x21, 0x66, 0x7a, 0xa9, 0x64, 0x8f, 0xc3, 0x8f, 0x9f, 0x0f, 0xd8, 0x81, 0x02, 0x42, 0x5d,
+	0x5d, 0x5b, 0xa0, 0x9c, 0x50, 0x97, 0x75, 0x18, 0x35, 0xb4, 0xa0, 0x8c, 0x87, 0x02, 0x78, 0x02,
+	0x56, 0x02, 0xc2, 0x85, 0xa3, 0x59, 0xbb, 0x7c, 0x37, 0x0c, 0xc8, 0x6c, 0x9e, 0xf0, 0x1f, 0xa7,
+	0x8f, 0x8a, 0x01, 0x15, 0x34, 0xad, 0x2e, 0x67, 0x00, 0xbd, 0xab, 0x28, 0xbf, 0x94, 0x2a, 0x2f,
+	0xe4, 0x3a, 0x79, 0xb1, 0xa7, 0xd4, 0x41, 0xcf, 0xf4, 0x74, 0x92, 0x38, 0x01, 0xe3, 0xc2, 0x14,
+	0x0b, 0x1a, 0x4f, 0x07, 0xb3, 0x39, 0xd5, 0x7a, 0x34, 0x0a, 0xfb, 0x8d, 0x26, 0x07, 0x14, 0x23,
+	0xbb, 0xfa, 0x6d, 0xa9, 0xb8, 0x2a, 0x80, 0x75, 0x03, 0xac, 0xf7, 0xed, 0x2e, 0x17, 0x21, 0x8d,
+	0xc4, 0x61, 0xd4, 0xe9, 0x0a, 0xf8, 0x75, 0x00, 0x88, 0xe7, 0x4d, 0xc3, 0xa0, 0x72, 0xb0, 0x0c,
+	0x57, 0x23, 0x5c, 0x26, 0x5e, 0xda, 0x1d, 0xbe, 0x09, 0xaa, 0x63, 0xa8, 0x90, 0x47, 0x03, 0x72,
+	0x69, 0x48, 0xd3, 0x67, 0xfb, 0x3d, 0xdb, 0xbe, 0x91, 0x34, 0xa9, 0x99, 0x08, 0xaf, 0xe7, 0x39,
+	0xd3, 0x81, 0x94, 0xc3, 0x9f, 0x5a, 0xe0, 0x7e, 0x44, 0x2f, 0x9c, 0x97, 0xd3, 0xa6, 0xe3, 0xa9,
+	0x69, 0x13, 0xd2, 0xfe, 0xbc, 0xc4, 0x34, 0xc2, 0x1b, 0x11, 0xbd, 0xc0, 0xe3, 0xd8, 0xd3, 0x3f,
+	0x8a, 0x60, 0x65, 0xcf, 0xf3, 0xe4, 0xfd, 0x76, 0x94, 0xc4, 0x9d, 0x98, 0x93, 0x00, 0xbe, 0x0a,
+	0x66, 0x05, 0x13, 0x81, 0x79, 0x48, 0xb5, 0x56, 0xfb, 0x3d, 0x7b, 0xc9, 0xf4, 0x71, 0x29, 0x46,
+	0x58, 0xab, 0xe1, 0x97, 0xc0, 0xa2, 0x47, 0xb9, 0x9b, 0xb0, 0x8e, 0x7c, 0x5e, 0x1a, 0xae, 0x74,
+	0x6f, 0xf8, 0x76, 0xca, 0x28, 0x11, 0xce, 0x4e, 0x1d, 0xe5, 0x58, 0xc5, 0x89, 0x38, 0x56, 0xee,
+	0x21, 0x57, 0xfa, 0xef, 0x3d, 0xe4, 0x66, 0x3f, 0xd1, 0x87, 0xdc, 0xf7, 0xc0, 0x3a, 0x8b, 0x98,
+	0x60, 0x24, 0x48, 0xd1, 0x61, 0x32, 0x87, 0xd3, 0xf7, 0xcd, 0xe7, 0xc6, 0x97, 0x52, 0x2e, 0xe3,
+	0x5b, 0xaf, 0x98, 0x1d, 0xb7, 0xf4, 0x8e, 0x63, 0x2d, 0x22, 0x7c, 0xd7, 0xc8, 0xb5, 0x0d, 0xb5,
+	0x92, 0xef, 0x2e, 0xbd, 0xf3, 0xbe, 0x3d, 0x23, 0xdf, 0xf1, 0x7f, 0x93, 0x6f, 0xf9, 0x5f, 0x94,
+	0xc0, 0x66, 0x0e, 0xef, 0xe7, 0x4c, 0x9c, 0x1e, 0xd0, 0x4e, 0xcc, 0x99, 0xf8, 0x3f, 0xf4, 0xff,
+	0x4b, 0xd0, 0xc3, 0x37, 0xc0, 0xbc, 0xa7, 0x81, 0xad, 0xce, 0xe7, 0x7f, 0x4e, 0x31, 0x0a, 0x84,
+	0xd3, 0x29, 0xbb, 0x0b, 0x26, 0x51, 0x2c, 0xf4, 0xbb, 0x02, 0x58, 0xd3, 0x6e, 0xe0, 0xf4, 0x3a,
+	0xbc, 0xc5, 0x9d, 0xe1, 0x1d, 0x6b, 0xd0, 0xb6, 0xc9, 0x20, 0x76, 0x69, 0xa8, 0x4b, 0xd3, 0x84,
+	0xfa, 0x35, 0x13, 0xea, 0xd1, 0x0e, 0x7f, 0xcd, 0xe8, 0xe0, 0xca, 0xca, 0xad, 0xcf, 0xd7, 0xda,
+	0xbf, 0x0a, 0xc0, 0x1e, 0x17, 0xc6, 0x5b, 0x5f, 0x70, 0xb7, 0x27, 0xa2, 0xd9, 0x14, 0x9e, 0x9d,
+	0x26, 0x85, 0x7f, 0x6b, 0x49, 0xa6, 0x1b, 0xc6, 0xe7, 0xf4, 0xd6, 0x5f, 0x6d, 0xb9, 0xac, 0xf9,
+	0xbb, 0x05, 0x1e, 0x5c, 0xf7, 0xfc, 0xd6, 0xe7, 0x4c, 0x06, 0xa8, 0xd2, 0x34, 0x40, 0xfd, 0xde,
+	0x02, 0x77, 0xf6, 0x3c, 0xd3, 0x32, 0x3f, 0x45, 0x9c, 0x0e, 0xc1, 0xdc, 0xc4, 0x3f, 0xdc, 0xae,
+	0x9b, 0x2c, 0xae, 0xa4, 0x3f, 0x33, 0xea, 0x6e, 0x6f, 0x0c, 0xe4, 0xf0, 0xfb, 0x7e, 0x01, 0x6c,
+	0x5d, 0x3b, 0xd0, 0xa7, 0x0b, 0xdf, 0x27, 0x77, 0xb6, 0x8f, 0x0b, 0x6b, 0xeb, 0xab, 0xbf, 0xbc,
+	0xaa, 0x5b, 0x1f, 0x5c, 0xd5, 0xad, 0x0f, 0xaf, 0xea, 0xd6, 0x5f, 0xae, 0xea, 0xd6, 0xbb, 0x2f,
+	0xea, 0x33, 0x1f, 0xbe, 0xa8, 0xcf, 0xfc, 0xe9, 0x45, 0x7d, 0xe6, 0x1b, 0xcd, 0x2c, 0xb9, 0xa5,
+	0x01, 0x4d, 0x1e, 0x47, 0x54, 0x5c, 0xc4, 0xc9, 0x59, 0x93, 0xfb, 0xd1, 0xe3, 0xf3, 0x9d, 0xe6,
+	0x77, 0x06, 0xff, 0x89, 0x51, 0x4c, 0xb7, 0x3d, 0xa7, 0x1e, 0x37, 0x5f, 0xfc, 0x77, 0x00, 0x00,
+	0x00, 0xff, 0xff, 0x46, 0x7e, 0x60, 0x6c, 0xa5, 0x19, 0x00, 0x00,
 }
 
+func (this *Params) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Params)
+	if !ok {
+		that2, ok := that.(Params)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.ClaimCooldown != that1.ClaimCooldown {
+		return false
+	}
+	return true
+}
 func (this *ERC20Token) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
@@ -1068,6 +1376,14 @@ func (this *FarmingPool) Equal(that interface{}) bool {
 	}
 	if !this.StakeToken.Equal(&that1.StakeToken) {
 		return false
+	}
+	if len(this.RewardTokens) != len(that1.RewardTokens) {
+		return false
+	}
+	for i := range this.RewardTokens {
+		if !this.RewardTokens[i].Equal(&that1.RewardTokens[i]) {
+			return false
+		}
 	}
 	if !this.TotalStakedAmount.Equal(&that1.TotalStakedAmount) {
 		return false
@@ -1272,11 +1588,116 @@ func (this *Earnings) Equal(that interface{}) bool {
 	if !this.StakedAmount.Equal(&that1.StakedAmount) {
 		return false
 	}
-	if len(this.RewardAmount) != len(that1.RewardAmount) {
+	if len(this.RewardAmounts) != len(that1.RewardAmounts) {
 		return false
 	}
-	for i := range this.RewardAmount {
-		if !this.RewardAmount[i].Equal(&that1.RewardAmount[i]) {
+	for i := range this.RewardAmounts {
+		if !this.RewardAmounts[i].Equal(&that1.RewardAmounts[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *Signature) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Signature)
+	if !ok {
+		that2, ok := that.(Signature)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Signer != that1.Signer {
+		return false
+	}
+	if !bytes.Equal(this.SigBytes, that1.SigBytes) {
+		return false
+	}
+	return true
+}
+func (this *RewardClaimDetails) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RewardClaimDetails)
+	if !ok {
+		that2, ok := that.(RewardClaimDetails)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.ChainId != that1.ChainId {
+		return false
+	}
+	if len(this.CumulativeRewardAmounts) != len(that1.CumulativeRewardAmounts) {
+		return false
+	}
+	for i := range this.CumulativeRewardAmounts {
+		if !this.CumulativeRewardAmounts[i].Equal(&that1.CumulativeRewardAmounts[i]) {
+			return false
+		}
+	}
+	if !bytes.Equal(this.RewardProtoBytes, that1.RewardProtoBytes) {
+		return false
+	}
+	if len(this.Signatures) != len(that1.Signatures) {
+		return false
+	}
+	for i := range this.Signatures {
+		if !this.Signatures[i].Equal(&that1.Signatures[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *RewardClaimInfo) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RewardClaimInfo)
+	if !ok {
+		that2, ok := that.(RewardClaimInfo)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Recipient != that1.Recipient {
+		return false
+	}
+	if !this.LastClaimTime.Equal(that1.LastClaimTime) {
+		return false
+	}
+	if len(this.RewardClaimDetailsList) != len(that1.RewardClaimDetailsList) {
+		return false
+	}
+	for i := range this.RewardClaimDetailsList {
+		if !this.RewardClaimDetailsList[i].Equal(&that1.RewardClaimDetailsList[i]) {
 			return false
 		}
 	}
@@ -1476,6 +1897,37 @@ func (this *AddTokensProposalWithDeposit) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (m *Params) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Params) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Params) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	n1, err1 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.ClaimCooldown, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.ClaimCooldown):])
+	if err1 != nil {
+		return 0, err1
+	}
+	i -= n1
+	i = encodeVarintFarming(dAtA, i, uint64(n1))
+	i--
+	dAtA[i] = 0xa
+	return len(dAtA) - i, nil
+}
+
 func (m *ERC20Token) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1549,7 +2001,7 @@ func (m *FarmingPool) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 				i = encodeVarintFarming(dAtA, i, uint64(size))
 			}
 			i--
-			dAtA[i] = 0x2a
+			dAtA[i] = 0x32
 		}
 	}
 	if len(m.RewardTokenInfos) > 0 {
@@ -1563,7 +2015,7 @@ func (m *FarmingPool) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 				i = encodeVarintFarming(dAtA, i, uint64(size))
 			}
 			i--
-			dAtA[i] = 0x22
+			dAtA[i] = 0x2a
 		}
 	}
 	{
@@ -1575,7 +2027,21 @@ func (m *FarmingPool) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintFarming(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0x1a
+	dAtA[i] = 0x22
+	if len(m.RewardTokens) > 0 {
+		for iNdEx := len(m.RewardTokens) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.RewardTokens[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintFarming(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
 	{
 		size, err := m.StakeToken.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -1838,10 +2304,10 @@ func (m *Earnings) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.RewardAmount) > 0 {
-		for iNdEx := len(m.RewardAmount) - 1; iNdEx >= 0; iNdEx-- {
+	if len(m.RewardAmounts) > 0 {
+		for iNdEx := len(m.RewardAmounts) - 1; iNdEx >= 0; iNdEx-- {
 			{
-				size, err := m.RewardAmount[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				size, err := m.RewardAmounts[iNdEx].MarshalToSizedBuffer(dAtA[:i])
 				if err != nil {
 					return 0, err
 				}
@@ -1866,6 +2332,158 @@ func (m *Earnings) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintFarming(dAtA, i, uint64(m.TargetBlockHeight))
 		i--
 		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Signature) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Signature) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Signature) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.SigBytes) > 0 {
+		i -= len(m.SigBytes)
+		copy(dAtA[i:], m.SigBytes)
+		i = encodeVarintFarming(dAtA, i, uint64(len(m.SigBytes)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Signer) > 0 {
+		i -= len(m.Signer)
+		copy(dAtA[i:], m.Signer)
+		i = encodeVarintFarming(dAtA, i, uint64(len(m.Signer)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RewardClaimDetails) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RewardClaimDetails) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RewardClaimDetails) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Signatures) > 0 {
+		for iNdEx := len(m.Signatures) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Signatures[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintFarming(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.RewardProtoBytes) > 0 {
+		i -= len(m.RewardProtoBytes)
+		copy(dAtA[i:], m.RewardProtoBytes)
+		i = encodeVarintFarming(dAtA, i, uint64(len(m.RewardProtoBytes)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.CumulativeRewardAmounts) > 0 {
+		for iNdEx := len(m.CumulativeRewardAmounts) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.CumulativeRewardAmounts[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintFarming(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.ChainId != 0 {
+		i = encodeVarintFarming(dAtA, i, uint64(m.ChainId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RewardClaimInfo) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RewardClaimInfo) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RewardClaimInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.RewardClaimDetailsList) > 0 {
+		for iNdEx := len(m.RewardClaimDetailsList) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.RewardClaimDetailsList[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintFarming(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	n7, err7 := github_com_gogo_protobuf_types.StdTimeMarshalTo(m.LastClaimTime, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdTime(m.LastClaimTime):])
+	if err7 != nil {
+		return 0, err7
+	}
+	i -= n7
+	i = encodeVarintFarming(dAtA, i, uint64(n7))
+	i--
+	dAtA[i] = 0x12
+	if len(m.Recipient) > 0 {
+		i -= len(m.Recipient)
+		copy(dAtA[i:], m.Recipient)
+		i = encodeVarintFarming(dAtA, i, uint64(len(m.Recipient)))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -2427,6 +3045,17 @@ func encodeVarintFarming(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
+func (m *Params) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = github_com_gogo_protobuf_types.SizeOfStdDuration(m.ClaimCooldown)
+	n += 1 + l + sovFarming(uint64(l))
+	return n
+}
+
 func (m *ERC20Token) Size() (n int) {
 	if m == nil {
 		return 0
@@ -2459,6 +3088,12 @@ func (m *FarmingPool) Size() (n int) {
 	}
 	l = m.StakeToken.Size()
 	n += 1 + l + sovFarming(uint64(l))
+	if len(m.RewardTokens) > 0 {
+		for _, e := range m.RewardTokens {
+			l = e.Size()
+			n += 1 + l + sovFarming(uint64(l))
+		}
+	}
 	l = m.TotalStakedAmount.Size()
 	n += 1 + l + sovFarming(uint64(l))
 	if len(m.RewardTokenInfos) > 0 {
@@ -2579,8 +3214,74 @@ func (m *Earnings) Size() (n int) {
 	}
 	l = m.StakedAmount.Size()
 	n += 1 + l + sovFarming(uint64(l))
-	if len(m.RewardAmount) > 0 {
-		for _, e := range m.RewardAmount {
+	if len(m.RewardAmounts) > 0 {
+		for _, e := range m.RewardAmounts {
+			l = e.Size()
+			n += 1 + l + sovFarming(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *Signature) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Signer)
+	if l > 0 {
+		n += 1 + l + sovFarming(uint64(l))
+	}
+	l = len(m.SigBytes)
+	if l > 0 {
+		n += 1 + l + sovFarming(uint64(l))
+	}
+	return n
+}
+
+func (m *RewardClaimDetails) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ChainId != 0 {
+		n += 1 + sovFarming(uint64(m.ChainId))
+	}
+	if len(m.CumulativeRewardAmounts) > 0 {
+		for _, e := range m.CumulativeRewardAmounts {
+			l = e.Size()
+			n += 1 + l + sovFarming(uint64(l))
+		}
+	}
+	l = len(m.RewardProtoBytes)
+	if l > 0 {
+		n += 1 + l + sovFarming(uint64(l))
+	}
+	if len(m.Signatures) > 0 {
+		for _, e := range m.Signatures {
+			l = e.Size()
+			n += 1 + l + sovFarming(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *RewardClaimInfo) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Recipient)
+	if l > 0 {
+		n += 1 + l + sovFarming(uint64(l))
+	}
+	l = github_com_gogo_protobuf_types.SizeOfStdTime(m.LastClaimTime)
+	n += 1 + l + sovFarming(uint64(l))
+	if len(m.RewardClaimDetailsList) > 0 {
+		for _, e := range m.RewardClaimDetailsList {
 			l = e.Size()
 			n += 1 + l + sovFarming(uint64(l))
 		}
@@ -2838,6 +3539,89 @@ func sovFarming(x uint64) (n int) {
 func sozFarming(x uint64) (n int) {
 	return sovFarming(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
+func (m *Params) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowFarming
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Params: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Params: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClaimCooldown", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowFarming
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthFarming
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthFarming
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := github_com_gogo_protobuf_types.StdDurationUnmarshal(&m.ClaimCooldown, dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFarming(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthFarming
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *ERC20Token) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3067,6 +3851,40 @@ func (m *FarmingPool) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RewardTokens", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowFarming
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthFarming
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthFarming
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RewardTokens = append(m.RewardTokens, ERC20Token{})
+			if err := m.RewardTokens[len(m.RewardTokens)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TotalStakedAmount", wireType)
 			}
 			var msglen int
@@ -3098,7 +3916,7 @@ func (m *FarmingPool) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 4:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RewardTokenInfos", wireType)
 			}
@@ -3132,7 +3950,7 @@ func (m *FarmingPool) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 5:
+		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TotalAccumulatedRewards", wireType)
 			}
@@ -3885,7 +4703,7 @@ func (m *Earnings) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RewardAmount", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field RewardAmounts", wireType)
 			}
 			var msglen int
 			for shift := uint(0); ; shift += 7 {
@@ -3912,8 +4730,444 @@ func (m *Earnings) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.RewardAmount = append(m.RewardAmount, types.DecCoin{})
-			if err := m.RewardAmount[len(m.RewardAmount)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			m.RewardAmounts = append(m.RewardAmounts, types.DecCoin{})
+			if err := m.RewardAmounts[len(m.RewardAmounts)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFarming(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthFarming
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Signature) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowFarming
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Signature: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Signature: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signer", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowFarming
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthFarming
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthFarming
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Signer = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SigBytes", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowFarming
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthFarming
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthFarming
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SigBytes = append(m.SigBytes[:0], dAtA[iNdEx:postIndex]...)
+			if m.SigBytes == nil {
+				m.SigBytes = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFarming(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthFarming
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *RewardClaimDetails) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowFarming
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RewardClaimDetails: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RewardClaimDetails: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChainId", wireType)
+			}
+			m.ChainId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowFarming
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ChainId |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CumulativeRewardAmounts", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowFarming
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthFarming
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthFarming
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.CumulativeRewardAmounts = append(m.CumulativeRewardAmounts, types.DecCoin{})
+			if err := m.CumulativeRewardAmounts[len(m.CumulativeRewardAmounts)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RewardProtoBytes", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowFarming
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthFarming
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthFarming
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RewardProtoBytes = append(m.RewardProtoBytes[:0], dAtA[iNdEx:postIndex]...)
+			if m.RewardProtoBytes == nil {
+				m.RewardProtoBytes = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signatures", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowFarming
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthFarming
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthFarming
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Signatures = append(m.Signatures, Signature{})
+			if err := m.Signatures[len(m.Signatures)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFarming(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthFarming
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *RewardClaimInfo) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowFarming
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RewardClaimInfo: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RewardClaimInfo: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Recipient", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowFarming
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthFarming
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthFarming
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Recipient = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastClaimTime", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowFarming
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthFarming
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthFarming
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := github_com_gogo_protobuf_types.StdTimeUnmarshal(&m.LastClaimTime, dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RewardClaimDetailsList", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowFarming
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthFarming
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthFarming
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RewardClaimDetailsList = append(m.RewardClaimDetailsList, RewardClaimDetails{})
+			if err := m.RewardClaimDetailsList[len(m.RewardClaimDetailsList)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

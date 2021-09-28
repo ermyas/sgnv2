@@ -11,6 +11,7 @@ const (
 
 	TypeMsgClaimRewards    = "claim_rewards"
 	TypeMsgClaimAllRewards = "claim_all_rewards"
+	TypeMsgSignRewards     = "sign_rewards"
 )
 
 // Verify interface at compile time
@@ -70,7 +71,7 @@ func (m MsgClaimAllRewards) Route() string {
 }
 
 func (m MsgClaimAllRewards) Type() string {
-	return TypeMsgClaimRewards
+	return TypeMsgClaimAllRewards
 }
 
 func (m MsgClaimAllRewards) ValidateBasic() error {
@@ -89,6 +90,49 @@ func (m MsgClaimAllRewards) GetSignBytes() []byte {
 }
 
 func (m MsgClaimAllRewards) GetSigners() []sdk.AccAddress {
+	senderAddr, err := sdk.AccAddressFromBech32(m.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{senderAddr}
+}
+
+func NewMsgSignRewards(
+	address eth.Addr, sender sdk.AccAddress, signatureDetailsList []SignatureDetails) *MsgSignRewards {
+	return &MsgSignRewards{
+		Address:              eth.Addr2Hex(address),
+		Sender:               sender.String(),
+		SignatureDetailsList: signatureDetailsList,
+	}
+}
+
+func (m MsgSignRewards) Route() string {
+	return RouterKey
+}
+
+func (m MsgSignRewards) Type() string {
+	return TypeMsgSignRewards
+}
+
+func (m MsgSignRewards) ValidateBasic() error {
+	if m.Address == "" {
+		return WrapErrInvalidAddress("")
+	}
+	if m.Sender == "" {
+		return WrapErrInvalidAddress("")
+	}
+	if len(m.SignatureDetailsList) == 0 {
+		return WrapErrInvalidSig("")
+	}
+	return nil
+}
+
+func (m MsgSignRewards) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(&m)
+	return sdk.MustSortJSON(bz)
+}
+
+func (m MsgSignRewards) GetSigners() []sdk.AccAddress {
 	senderAddr, err := sdk.AccAddressFromBech32(m.Sender)
 	if err != nil {
 		panic(err)

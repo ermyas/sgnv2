@@ -9,12 +9,16 @@ import (
 // NewFarmingPool creates a new instance of FarmingPool
 func NewFarmingPool(
 	name string,
+	stakeToken ERC20Token,
+	rewardTokens []ERC20Token,
 	totalStakedAmount sdk.DecCoin,
 	rewardTokenInfos RewardTokenInfos,
 	totalAccumulatedRewards sdk.DecCoins,
 ) FarmingPool {
 	return FarmingPool{
 		Name:                    name,
+		StakeToken:              stakeToken,
+		RewardTokens:            rewardTokens,
 		TotalStakedAmount:       totalStakedAmount,
 		RewardTokenInfos:        rewardTokenInfos,
 		TotalAccumulatedRewards: totalAccumulatedRewards,

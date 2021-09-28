@@ -5,6 +5,7 @@ option go_package = "github.com/celer-network/sgn-v2/x/farming/types";
 option (gogoproto.equal_all) = true;
 
 import "gogoproto/gogo.proto";
+import "sgn/farming/v1/farming.proto";
 
 // Msg defines the farming Msg service.
 service Msg {
@@ -13,6 +14,9 @@ service Msg {
 
   // ClaimAllRewards defines a method to claim the farming rewards from all the staked pools.
   rpc ClaimAllRewards(MsgClaimAllRewards) returns (MsgClaimAllRewardsResponse);
+
+  // SignRewards defines a method for validators to co-sign a reward claim.
+  rpc SignRewards(MsgSignRewards) returns (MsgSignRewardsResponse);
 }
 
 // MsgClaimRewards claims the farming rewards from a single pool for an account.
@@ -44,3 +48,29 @@ message MsgClaimAllRewards {
 
 // MsgClaimRewardsResponse defines the Msg/ClaimRewards response type.
 message MsgClaimAllRewardsResponse {}
+
+// SignatureDetails defines the details of a signature.
+message SignatureDetails {
+  // chain_id defines the EVM chain ID of the RewardProtoBytes.
+  uint64 chain_id = 1 [(gogoproto.moretags) = "yaml:\"chain_id\""];
+  // signature defines the signature bytes.
+  bytes signature = 2;
+}
+
+// MsgSignRewards signs a reward claim.
+message MsgSignRewards {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // address defines the Ethereum account address claiming the rewards.
+  string address = 1;
+  // sender defines the SGN account sending the signing Msg.
+  string sender = 2;
+  // signature_details_list defines the list of signature details.
+  repeated SignatureDetails signature_details_list = 3
+      [(gogoproto.moretags) = "yaml:\"signature_details_list\"", (gogoproto.nullable) = false];
+  ;
+}
+
+// MsgSignRewardsResponse defines the Msg/SignRewards response type.
+message MsgSignRewardsResponse {}

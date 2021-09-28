@@ -41,17 +41,20 @@ message GenesisState {
   option (gogoproto.equal) = false;
   option (gogoproto.goproto_getters) = false;
 
+  // params defines all the parameters of the module.
+  Params params = 1 [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"params\""];
+
   // pools defines the farming pools at genesis.
-  repeated FarmingPool pools = 1 [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"pools\""];
+  repeated FarmingPool pools = 2 [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"pools\""];
 
   // stake_infos defines the stake infos at genesis.
-  repeated StakeInfo stake_infos = 2 [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"stake_infos\""];
+  repeated StakeInfo stake_infos = 3 [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"stake_infos\""];
 
   // pool_historical_rewards defines the historical rewards of all pools at genesis.
-  repeated PoolHistoricalRewardsRecord pool_historical_rewards = 3
+  repeated PoolHistoricalRewardsRecord pool_historical_rewards = 4
       [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"pool_historical_rewards\""];
 
   // pool_current_rewards defines the current rewards of all pools at genesis.
-  repeated PoolCurrentRewardsRecord pool_current_rewards = 4
+  repeated PoolCurrentRewardsRecord pool_current_rewards = 5
       [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"pool_current_rewards\""];
 }

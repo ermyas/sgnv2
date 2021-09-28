@@ -6,29 +6,45 @@ import (
 	"github.com/celer-network/sgn-v2/x/farming/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
 // Keeper of the farm store
 type Keeper struct {
-	storeKey   sdk.StoreKey
-	cdc        codec.BinaryCodec
-	authKeeper types.AccountKeeper
-	bankKeeper types.BankKeeper
+	storeKey      sdk.StoreKey
+	cdc           codec.BinaryCodec
+	paramSpace    paramtypes.Subspace
+	authKeeper    types.AccountKeeper
+	bankKeeper    types.BankKeeper
+	stakingKeeper types.StakingKeeper
 }
 
 // NewKeeper creates a farm keeper
 func NewKeeper(
 	cdc codec.BinaryCodec,
 	key sdk.StoreKey,
-	authKeeper types.AccountKeeper,
-	bankKeeper types.BankKeeper,
+	paramSpace paramtypes.Subspace,
+	ak types.AccountKeeper,
+	bk types.BankKeeper,
+	sk types.StakingKeeper,
 ) Keeper {
+	// ensure farming module account is set
+	if addr := ak.GetModuleAddress(types.ModuleName); addr == nil {
+		panic(fmt.Sprintf("%s module account has not been set", types.ModuleName))
+	}
+
+	// set KeyTable if it has not already been set
+	if !paramSpace.HasKeyTable() {
+		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
+	}
+
 	return Keeper{
-		cdc:        cdc,
-		storeKey:   key,
-		authKeeper: authKeeper,
-		bankKeeper: bankKeeper,
+		cdc:           cdc,
+		storeKey:      key,
+		authKeeper:    ak,
+		bankKeeper:    bk,
+		stakingKeeper: sk,
 	}
 }
 

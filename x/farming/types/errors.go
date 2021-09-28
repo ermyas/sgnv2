@@ -1,6 +1,8 @@
 package types
 
 import (
+	"time"
+
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
@@ -24,6 +26,9 @@ var (
 	ErrSendCoinsFromModuleToAccountFailed = sdkerrors.Register(ModuleName, 617, "send coins from module to account failed")
 	ErrMintCoinsFailed                    = sdkerrors.Register(ModuleName, 618, "mint coins failed")
 	ErrBurnCoinsFailed                    = sdkerrors.Register(ModuleName, 619, "burn coins failed")
+	ErrInvalidSig                         = sdkerrors.Register(ModuleName, 620, "invalid signature")
+	ErrClaimCooldownNotPassed             = sdkerrors.Register(ModuleName, 621, "claim cooldown not passed")
+	ErrNoClaimInfoFound                   = sdkerrors.Register(ModuleName, 622, "no claim info found")
 )
 
 // WrapErrInvalidInput returns an error when an input parameter is invalid
@@ -72,18 +77,18 @@ func WrapErrInvalidDenom(expectedDenom string, actualDenom string) error {
 }
 
 // WrapErrSendCoinsFromAccountToModuleFailed returns an error when sending from account to module failed
-func WrapErrSendCoinsFromAccountToModuleFailed(content string) error {
-	return sdkerrors.Wrapf(ErrSendCoinsFromAccountToModuleFailed, "send coins from account to module failed: %s", content)
+func WrapErrSendCoinsFromAccountToModuleFailed(msg string) error {
+	return sdkerrors.Wrapf(ErrSendCoinsFromAccountToModuleFailed, "send coins from account to module failed: %s", msg)
 }
 
 // WrapErrUnknownFarmingMsgType returns an error when the message type is unknown
-func WrapErrUnknownFarmingMsgType(content string) error {
-	return sdkerrors.Wrapf(ErrUnknownFarmingMsgType, "unknown farming msg type: %s", content)
+func WrapErrUnknownFarmingMsgType(msg string) error {
+	return sdkerrors.Wrapf(ErrUnknownFarmingMsgType, "unknown farming msg type: %s", msg)
 }
 
 // WrapErrUnknownFarmingMsgType returns an error when the query type is unknown
-func WrapErrUnknownFarmingQueryType(content string) error {
-	return sdkerrors.Wrapf(ErrUnknownFarmingMsgType, "unknown farming query type: %s", content)
+func WrapErrUnknownFarmingQueryType(msg string) error {
+	return sdkerrors.Wrapf(ErrUnknownFarmingMsgType, "unknown farming query type: %s", msg)
 }
 
 // WrapErrInvalidInputAmount returns an error when an input amount is invalid
@@ -107,16 +112,31 @@ func WrapErrPoolNameLength(poolName string, got, max int) error {
 }
 
 // WrapErrSendCoinsFromModuleToAccountFailed returns an error when sending from module to account failed
-func WrapErrSendCoinsFromModuleToAccountFailed(content string) error {
-	return sdkerrors.Wrapf(ErrSendCoinsFromModuleToAccountFailed, "send coins from module to account failed: %s", content)
+func WrapErrSendCoinsFromModuleToAccountFailed(msg string) error {
+	return sdkerrors.Wrapf(ErrSendCoinsFromModuleToAccountFailed, "send coins from module to account failed: %s", msg)
 }
 
 // WrapErrMintCoinsFailed returns an error when minting coins failed
-func WrapErrMintCoinsFailed(content string) error {
-	return sdkerrors.Wrapf(ErrMintCoinsFailed, "mint coins failed: %s", content)
+func WrapErrMintCoinsFailed(msg string) error {
+	return sdkerrors.Wrapf(ErrMintCoinsFailed, "mint coins failed: %s", msg)
 }
 
 // WrapErrBurnCoinsFailed returns an error when burning coins failed
-func WrapErrBurnCoinsFailed(content string) error {
-	return sdkerrors.Wrapf(ErrBurnCoinsFailed, "burn coins failed: %s", content)
+func WrapErrBurnCoinsFailed(msg string) error {
+	return sdkerrors.Wrapf(ErrBurnCoinsFailed, "burn coins failed: %s", msg)
+}
+
+// WrapErrInvalidSig returns an error when a signature is invalid
+func WrapErrInvalidSig(msg string) error {
+	return sdkerrors.Wrapf(ErrInvalidSig, "invalid sig: %s", msg)
+}
+
+// WrapErrClaimCooldownNotPassed returns an error if the claim cooldown has not passed
+func WrapErrClaimCooldownNotPassed(lastClaimTime time.Time) error {
+	return sdkerrors.Wrapf(ErrClaimCooldownNotPassed, "last claim time: %s", lastClaimTime)
+}
+
+// WrapErrNoClaimInfoFound returns an error if no claim info is found for an address
+func WrapErrNoClaimInfoFound(addr string) error {
+	return sdkerrors.Wrapf(ErrNoClaimInfoFound, "no claim info found for: %s", addr)
 }

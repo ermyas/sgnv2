@@ -21,6 +21,9 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			res, err := msgServer.ClaimAllRewards(sdk.WrapSDKContext(ctx), msg)
 			return sdk.WrapServiceResult(ctx, res, err)
 		// TODO: MsgClaimRewards
+		case *types.MsgSignRewards:
+			res, err := msgServer.SignRewards(sdk.WrapSDKContext(ctx), msg)
+			return sdk.WrapServiceResult(ctx, res, err)
 		default:
 			errMsg := fmt.Sprintf("unrecognized %s message type: %T", types.ModuleName, msg)
 			return nil, types.WrapErrUnknownFarmingMsgType(errMsg)
