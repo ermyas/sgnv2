@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	ethproto "github.com/celer-network/sgn-v2/proto/eth"
 	"github.com/celer-network/sgn-v2/x/farming/types"
@@ -137,14 +138,23 @@ func (k msgServer) claimOnePool(
 			}
 		}
 	}
-	// 6.2. Add the amounts from this claim to CumulativeRewardAmounts
-	for _, reward := range rewards {
-		chainId, _, parseErr := ParseERC20TokenDenom(reward.Denom)
+	// 6.2. Update CumulativeRewardAmounts
+	derivedRewardAccount := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, addr)
+	for _, rewardTokenInfo := range pool.RewardTokenInfos {
+		denom := rewardTokenInfo.RemainingAmount.Denom
+		cumulativeReward := k.bankKeeper.GetBalance(ctx, derivedRewardAccount, denom)
+		chainId, _, parseErr := ParseERC20TokenDenom(denom)
 		if parseErr != nil {
 			return parseErr
 		}
-		detail := chainIdToDetails[chainId]
-		detail.CumulativeRewardAmounts = detail.CumulativeRewardAmounts.Add(reward)
+		details := chainIdToDetails[chainId]
+		cumulativeRewardAmount := cumulativeReward.Amount
+		existing := sdk.NewDecCoinFromDec(denom, details.CumulativeRewardAmounts.AmountOf(denom))
+		updated := sdk.NewDecCoin(denom, cumulativeRewardAmount)
+		if !existing.Amount.Equal(updated.Amount) {
+			details.CumulativeRewardAmounts =
+				details.CumulativeRewardAmounts.Sub(sdk.NewDecCoins(existing)).Add(updated)
+		}
 	}
 	// 6.3. Update TokenAddresses and CumulativeRewardAmounts, Reconstruct RewardProtoBytes
 	for chainId, details := range chainIdToDetails {
