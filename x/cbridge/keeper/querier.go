@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -88,7 +89,7 @@ func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, le
 	}
 
 	mca := k.GetCbrConfig(ctx)
-	chainTokens := make(map[uint64]*types.Assets)
+	chainTokens := make(map[string]*types.Assets)
 	for _, a := range mca.Assets {
 		occ, ok := mccMap[a.ChainId]
 		if !ok {
@@ -96,12 +97,13 @@ func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, le
 			return nil, fmt.Errorf("chain with Id %d is not configured", a.ChainId)
 		}
 
-		assets, ok := chainTokens[a.ChainId]
+		chid := strconv.FormatUint(a.ChainId, 10)
+		assets, ok := chainTokens[chid]
 		if !ok {
 			assets = &types.Assets{
 				Assets: make([]*types.AssetPerChain, 0),
 			}
-			chainTokens[a.ChainId] = assets
+			chainTokens[chid] = assets
 		}
 		assets.Assets = append(assets.Assets, &types.AssetPerChain{
 			Token: &types.Token{

@@ -15,6 +15,7 @@ import (
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	github_com_cosmos_cosmos_sdk_types "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/lthibault/jitterbug"
 	"github.com/spf13/viper"
@@ -272,7 +273,8 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 	if transferId != "" {
 		// refund transfer
 		seqNum, err := gs.initWithdraw(&types.MsgInitWithdraw{
-			XferId: common.Hex2Bytes(transferId),
+			XferId:  common.Hex2Bytes(transferId),
+			Creator: gs.tr.Key.GetAddress().String(),
 		})
 		if err != nil {
 			return &webapi.WithdrawLiquidityResponse{
@@ -308,14 +310,13 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				},
 			}, nil
 		}
-		creator := common.Hex2Addr(request.GetCreator()).String()
 		lp := common.Hex2Addr(request.GetReceiverAddr()).String()
 		seqNum, err := gs.initWithdraw(&types.MsgInitWithdraw{
 			Chainid: chainId,
 			LpAddr:  common.Hex2Bytes(lp),
 			Token:   common.Hex2Bytes(tokenAddr),
 			Amount:  common.Hex2Bytes(amt),
-			Creator: creator,
+			Creator: gs.tr.Key.GetAddress().String(),
 		})
 		err = dal.DB.UpsertLP(lp, token.Token.Symbol, token.Token.Address, amt, "", chainId, uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
 		if err != nil {
@@ -482,6 +483,11 @@ func (gs *GatewayService) LPHistory(ctx context.Context, request *webapi.LPHisto
 }
 
 func NewGatewayService(dbUrl string) (*GatewayService, error) {
+	config := sdk.GetConfig()
+	config.SetBech32PrefixForAccount(common.Bech32PrefixAccAddr, common.Bech32PrefixAccPub)
+	config.SetBech32PrefixForValidator(common.Bech32PrefixValAddr, common.Bech32PrefixValPub)
+	config.SetBech32PrefixForConsensusNode(common.Bech32PrefixConsAddr, common.Bech32PrefixConsPub)
+	config.Seal()
 	// Make a private config copy.
 	_db, err := dal.NewDAL("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", dbUrl), 10)
 	if err != nil {
@@ -490,12 +496,13 @@ func NewGatewayService(dbUrl string) (*GatewayService, error) {
 	dal.DB = _db
 	gateway := &GatewayService{}
 
-	gateway.f = fee.NewTokenPriceCache()
 	return gateway, nil
 }
 
 // StartTokenPricePolling starts a loop with the given interval and 3s stdev for polling price
 func (gs *GatewayService) StartChainTokenPolling(interval time.Duration) {
+	gs.pollChainToken() // make sure run at least once before return
+	polledInside := false
 	go func() {
 		ticker := jitterbug.New(
 			interval,
@@ -503,30 +510,41 @@ func (gs *GatewayService) StartChainTokenPolling(interval time.Duration) {
 		)
 		defer ticker.Stop()
 		for ; true; <-ticker.C {
-			resp, err := cli.ChainTokensConfig(gs.tr.CliCtx, nil)
-			if err != nil {
-				log.Errorln("failed to load basic token info:", err)
+			if polledInside {
+				gs.pollChainToken()
 			}
-			chainTokens := resp.GetChainTokens()
-			for chainId, assets := range chainTokens {
-				for _, asset := range assets.Assets {
-					token := asset.GetToken()
-					_, found := gs.f.Prices[token.Symbol]
-					if !found {
-						gs.f.Prices[token.Symbol], err = gs.f.GetUsdPrice(token.Symbol)
-						if err != nil {
-							log.Error("get price error", err)
-						}
-					}
-					dbErr := dal.DB.UpsertTokenBaseInfo(token.GetSymbol(), token.GetAddress(), asset.GetContractAddr(), asset.GetMaxAmt(), chainId, uint64(token.GetDecimal()))
-					if dbErr != nil {
-						log.Errorln("failed to write token:", err)
-					}
-				}
-			}
-
+			polledInside = true
 		}
 	}()
+}
+
+func (gs *GatewayService) pollChainToken() {
+	resp, err := cli.ChainTokensConfig(gs.tr.CliCtx, &types.ChainTokensConfigRequest{})
+	if err != nil {
+		log.Errorln("we will use mocked chain tokens failed to load basic token info:", err)
+	}
+	chainTokens := resp.GetChainTokens()
+	for chainIdStr, assets := range chainTokens {
+		chainId, convErr := strconv.Atoi(chainIdStr)
+		if convErr != nil {
+			log.Errorf("error chain id found:%s", chainIdStr)
+			continue
+		}
+		for _, asset := range assets.Assets {
+			token := asset.GetToken()
+			//_, found := gs.f.Prices[token.Symbol]
+			//if !found {
+			//	gs.f.Prices[token.Symbol], err = gs.f.GetUsdPrice(token.Symbol)
+			//	if err != nil {
+			//		log.Error("get price error", err)
+			//	}
+			//}
+			dbErr := dal.DB.UpsertTokenBaseInfo(token.GetSymbol(), token.GetAddress(), asset.GetContractAddr(), asset.GetMaxAmt(), uint64(chainId), uint64(token.GetDecimal()))
+			if dbErr != nil {
+				log.Errorf("failed to write token: %v", err)
+			}
+		}
+	}
 }
 
 func (gs *GatewayService) UpdateLpStatusInHistory(lpHistory []*dal.LP) {

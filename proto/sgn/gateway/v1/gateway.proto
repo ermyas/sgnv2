@@ -193,8 +193,6 @@ message WithdrawLiquidityRequest {
     string amount = 3;
     string token_addr = 4;
     uint64 chain_id = 5;
-
-    string creator = 6; // check with junda what it is
 }
 
 message WithdrawLiquidityResponse {

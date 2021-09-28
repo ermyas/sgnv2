@@ -2,6 +2,7 @@ package dal
 
 import (
 	"fmt"
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/goutils/sqldb"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -10,7 +11,7 @@ import (
 func (d *DAL) UpsertTokenBaseInfo(symbol, addr, contract, maxAmt string, chainId, decimal uint64) error {
 	q := `INSERT INTO token (symbol, address, chain_id, decimal, max_amt, contract)
                 VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (symbol, chain_id) DO UPDATE
-	SET decimal = $4, addr = $2, contract=$5, max_amt=$6`
+	SET decimal = $4, address = $2, contract=$5, max_amt=$6`
 	res, err := d.Exec(q, symbol, addr, chainId, decimal, contract, maxAmt)
 	return sqldb.ChkExec(res, err, 1, "UpsertTokenBaseInfo")
 }
@@ -103,7 +104,7 @@ func (d *DAL) GetChainTokenList() (map[uint64]*webapi.ChainTokenInfo, error) {
 
 	resp := make(map[uint64]*webapi.ChainTokenInfo)
 	for rows.Next() {
-		err = rows.Scan(&symbol, &chainId, &addr, &decimal, &name, &icon, &amt, contract)
+		err = rows.Scan(&symbol, &chainId, &addr, &decimal, &name, &icon, &amt, &contract)
 		if err != nil {
 			return nil, err
 		}
@@ -130,13 +131,14 @@ func (d *DAL) GetChainTokenList() (map[uint64]*webapi.ChainTokenInfo, error) {
 
 func (d *DAL) GetChainInfo(ids []uint64) ([]*webapi.Chain, error) {
 	inClause := sqldb.InClause("id", len(ids), 1)
-	q := fmt.Sprintf(`SELECT id, name, icon, max_amt, contract FROM chain where %s`, inClause)
+	q := fmt.Sprintf(`SELECT id, name, icon FROM chain where %s`, inClause)
 	var params []interface{}
 	for _, v := range ids {
 		params = append(params, v)
 	}
 	rows, err := d.Query(q, params...)
 	if err != nil {
+		log.Error("db error:", err)
 		return nil, err
 	}
 	defer closeRows(rows)

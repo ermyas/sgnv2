@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/celer-network/sgn-v2/gateway/fee"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/rs/cors"
@@ -22,11 +23,6 @@ var (
 )
 
 func InitGateway() {
-	rooDir := os.Args[1]
-	if rooDir == "" {
-		log.Fatal("rooDir is needed")
-		return
-	}
 	flag.Parse()
 	log.Infof("Starting gateway at rest:%d, grpc:%d", *port, *rpcPort)
 
@@ -36,14 +32,21 @@ func InitGateway() {
 		return
 	}
 	defer gs.Close()
+	log.Infof(" gateway svc started")
 
-	err = gs.initTransactor(rooDir)
+	sgnRootDir := os.ExpandEnv("$HOME/.sgnd")
+	err = gs.initTransactor(sgnRootDir)
 	if err != nil {
 		log.Fatalf("fail to init transactor in gateway server, err:%v", err)
 		return
 	}
 
 	gs.StartChainTokenPolling(10 * time.Second)
+	log.Infof("chain token cached")
+
+	gs.f = fee.NewTokenPriceCache(gs.tr)
+	log.Infof(" token price cached")
+
 	// start a rpc server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *rpcPort))
 	if err != nil {
@@ -70,6 +73,7 @@ func InitGateway() {
 		AllowCredentials: true,
 	}).Handler(gwmux)
 
+	log.Infof("gateway started successfully")
 	startListenAndServeByPort(*port, handler)
 }
 

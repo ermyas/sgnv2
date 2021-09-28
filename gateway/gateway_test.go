@@ -1,11 +1,13 @@
 package gateway
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/gateway/fee"
+	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"io"
+	"math/big"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -102,19 +104,53 @@ func checkStatus(t *testing.T, status int, dest int) {
 	}
 }
 
-func TestDb(t *testing.T) {
-	_, err := NewGatewayService(stSvr)
+func newTestSvc(t *testing.T) *GatewayService {
+	gs, err := NewGatewayService(stSvr)
+	sgnRootDir := os.ExpandEnv("$HOME/.sgnd")
+	err = gs.initTransactor(sgnRootDir)
 	if err != nil {
-		t.Errorf("fail to init service, err:%v", err)
+		t.Errorf("fail to init transactor in gateway server, err:%v", err)
+		return nil
+	}
+	gs.StartChainTokenPolling(10 * time.Second)
+	gs.f = fee.NewTokenPriceCache(gs.tr)
+	return gs
+}
+
+func TestToken(t *testing.T) {
+	svc := newTestSvc(t)
+	if svc == nil {
+		t.Errorf("fail to init service")
 		return
 	}
-	transferId := "123"
-	//err = DB.InsertTransfer(transferId, "0x0000000", "USDT", 1, 2)
+	configs, err := svc.GetTransferConfigs(nil, nil)
 	errIsNil(t, err)
-	addr, token, srcChainId, dstChainId, status, found, err := dal.DB.GetTransfer(transferId)
-	errIsNil(t, err)
-	if !found {
-		t.Error("transfer not found")
+	t.Log(json.Marshal(configs))
+	//transferId := "123"
+	//err = dal.DB.InsertTransfer(transferId, "0x0000000", "USDT", 1, 2)
+	//errIsNil(t, err)
+	//addr, token, srcChainId, dstChainId, status, found, err := dal.DB.GetTransfer(transferId)
+	//errIsNil(t, err)
+	//if !found {
+	//	t.Error("transfer not found")
+	//}
+	//log.Infof("transfer info: addr:%s, token:%s, src_chain_id:%d, dst_chain_id:%d, status:%d", addr, token, srcChainId, dstChainId, status)
+}
+
+func TestTokenAndFee(t *testing.T) {
+	svc := newTestSvc(t)
+	if svc == nil {
+		t.Errorf("fail to init service")
+		return
 	}
-	log.Infof("transfer info: addr:%s, token:%s, src_chain_id:%d, dst_chain_id:%d, status:%d", addr, token, srcChainId, dstChainId, status)
+	token := &types.Token{
+		Symbol:  "USDT",
+		Address: "3efc487eef37187483d8f7dbe5f8781f2af4b5c5",
+		Decimal: 6,
+	}
+	tokenUsdPrice := svc.f.GetUsdVolume(token, big.NewInt(2500))
+	t.Log("DAI eth prize:", tokenUsdPrice)
+	configs, err := svc.GetTransferConfigs(nil, nil)
+	errIsNil(t, err)
+	t.Logf("configs:%s", configs)
 }

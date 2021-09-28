@@ -29,7 +29,7 @@ message ChainTokensConfigRequest {
 }
 
 message ChainTokensConfigResponse {
-    map<uint64, Assets> chain_tokens = 2; //map<chain_id, Assets>
+    map<string, Assets> chain_tokens = 2; //map<chain_id, Assets>, chain_id is a numeric string
 }
 
 message Assets {
@@ -37,7 +37,7 @@ message Assets {
 }
 message AssetPerChain {
     Token token = 1;
-    string max_amt = 2;
+    string max_amt = 2; // numeric string, amt with decimal
     string contract_addr = 3;
 }
 
@@ -45,7 +45,7 @@ message GetFeeRequest {
     uint64 src_chain_id = 1;
     uint64 dst_chain_id = 2;
     string src_token_addr = 3;
-    string amt = 4; //on_src_chain
+    string amt = 4; //on_src_chain, numeric string with decimal
 }
 
 message GetFeeResponse {
@@ -55,11 +55,11 @@ message GetFeeResponse {
 }
 
 message QueryTransferStatusRequest {
-    repeated string transfer_id = 1;
+    repeated string transfer_id = 1; //hex string
 }
 
 message QueryTransferStatusResponse {
-    map<string, TransferHistoryStatus> status = 2; //map<transfer_id, status>
+    map<string, TransferHistoryStatus> status = 2; //map<transfer_id, status>, transfer_id is hex string
 }
 
 message LiquidityDetail {
@@ -97,7 +97,7 @@ message QueryLiquidityStatusResponse {
 }
 
 message Token {
-    string symbol = 1;
+    string symbol = 1; // upper case symbol
     string address = 2;
     int32 decimal = 3;
 }
