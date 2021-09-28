@@ -74,7 +74,7 @@ func cbridgeTest(t *testing.T) {
 	xferAmt := big.NewInt(1e10)
 	err = tc.CbrClient1.Approve(xferAmt)
 	tc.ChkErr(err, "client1 approve")
-	_, err = tc.CbrClient1.Send(xferAmt, tc.ValEthAddrs[0], tc.Geth2ChainID, 1)
+	xferId, err := tc.CbrClient1.Send(xferAmt, tc.ValEthAddrs[0], tc.Geth2ChainID, 1)
 	tc.ChkErr(err, "client1 send")
-	//tc.CheckXfer(transactor, xferId[:])
+	tc.CheckXfer(transactor, xferId[:])
 }

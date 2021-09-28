@@ -76,7 +76,7 @@ func (ls *LatestSigners) GetSortedSigsBytes() [][]byte {
 	if ls != nil {
 		sigs := make([][]byte, len(ls.SortedSigs))
 		for i := range ls.SortedSigs {
-			sigs = append(sigs, ls.SortedSigs[i].Sig)
+			sigs[i] = ls.SortedSigs[i].Sig
 		}
 		return sigs
 	}

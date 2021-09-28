@@ -147,10 +147,9 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 	srcAmt, _ := big.NewInt(0).SetString(params.Amt, 10)
 	destAmt := k.CalcEqualOnDestChain(src, dest, srcAmt)
 	feeAmt := CalcFee(ctx.KVStore(k.storeKey), src, dest, destAmt)
-	userGet := new(big.Int).Sub(destAmt, feeAmt)
 
 	resp := types.GetFeeResponse{
-		EqValueTokenAmt: userGet.String(),
+		EqValueTokenAmt: destAmt.String(),
 		Fee:             feeAmt.String(),
 		Decimal:         uint64(destToken.Decimal),
 	}
@@ -172,7 +171,7 @@ func queryTransferStatus(ctx sdk.Context, req abci.RequestQuery, k Keeper, legac
 	status := make(map[string]types.TransferHistoryStatus)
 
 	for _, xferId := range params.TransferId {
-		xferStatus := GetEvSendStatus(ctx.KVStore(k.storeKey), eth.Bytes2Hash([]byte(xferId)))
+		xferStatus := GetEvSendStatus(ctx.KVStore(k.storeKey), eth.Bytes2Hash(common.Hex2Bytes(xferId)))
 		switch xferStatus {
 		case types.XferStatus_UNKNOWN:
 			status[xferId] = types.TransferHistoryStatus_TRANSFER_UNKNOWN

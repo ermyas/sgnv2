@@ -239,25 +239,26 @@ func CheckXfer(transactor *transactor.Transactor, xferId []byte) {
 	var resp *cbrtypes.QueryTransferStatusResponse
 	var err error
 	var prevXferStatus cbrtypes.TransferHistoryStatus
+	xferIdStr := common.Bytes2Hex(xferId)
 	for retry := 0; retry < RetryLimit*2; retry++ {
 		resp, err = bridgecli.QueryTransferStatus(transactor.CliCtx, &cbrtypes.QueryTransferStatusRequest{
-			TransferId: []string{string(xferId)},
+			TransferId: []string{xferIdStr},
 		})
 		if err != nil {
 			log.Debugln("retry due to err:", err)
 		}
-		curStatus, ok := resp.Status[string(xferId)]
+		curStatus, ok := resp.Status[xferIdStr]
 		if ok && curStatus != prevXferStatus {
-			log.Info("xfer status changed from %s to %s", prevXferStatus.String(), curStatus.String())
+			log.Infof("xfer status changed from %s to %s", prevXferStatus.String(), curStatus.String())
 			prevXferStatus = curStatus
 		}
-		if err == nil && resp.Status[string(xferId)] == cbrtypes.TransferHistoryStatus_TRANSFER_COMPLETED {
+		if err == nil && resp.Status[xferIdStr] == cbrtypes.TransferHistoryStatus_TRANSFER_COMPLETED {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
 	ChkErr(err, "failed to QueryTransferStatus")
-	if resp.Status[string(xferId)] != cbrtypes.TransferHistoryStatus_TRANSFER_COMPLETED {
+	if resp.Status[xferIdStr] != cbrtypes.TransferHistoryStatus_TRANSFER_COMPLETED {
 		log.Fatalln("incorrect status")
 	}
 }
