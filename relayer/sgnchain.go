@@ -109,7 +109,6 @@ func (r *Relayer) monitorCbrToSign() {
 			return
 		}
 		event := sdk.StringifyEvent(e)
-		log.Infoln("tosign event:", event)
 		// sign data first
 		data := []byte(event.Attributes[1].Value)
 		sig, _ := r.EthClient.SignEthMessage(data)
@@ -138,7 +137,6 @@ func (r *Relayer) monitorCbrToSign() {
 			msg.Datatype = cbrtypes.SignDataType_SIGNERS
 			r.setCbrSsUpdating()
 		}
-		log.Infof("add msg %+v", msg)
 		r.Transactor.AddTxMsg(msg)
 	})
 }

@@ -2,7 +2,6 @@ package common
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"strings"
@@ -316,21 +315,13 @@ func (c *CbrClient) AddLiq(amt *big.Int) error {
 	return err
 }
 
-func (c *CbrClient) Send(amt *big.Int, receiver eth.Addr, dstChainId, nonce uint64) ([32]byte, error) {
+func (c *CbrClient) Send(amt *big.Int, receiver eth.Addr, dstChainId, nonce uint64) error {
 	tx, err := c.CbrContract.Send(c.Auth, receiver, c.USDTAddr, amt, dstChainId, nonce, 10000) //1% slippage
 	if err != nil {
-		return eth.ZeroCid, err
+		return err
 	}
-	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
-	if err != nil {
-		return eth.ZeroCid, err
-	}
-	sendLog := receipt.Logs[len(receipt.Logs)-1] // last log is Send event
-	sendEv, err := c.CbrContract.ParseSend(*sendLog)
-	if err != nil {
-		return eth.ZeroCid, fmt.Errorf("parse log %+v err: %w", sendLog, err)
-	}
-	return sendEv.TransferId, nil
+	_, err = ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
+	return err
 }
 
 func (c *CbrClient) SetInitSigners(amts []*big.Int) error {

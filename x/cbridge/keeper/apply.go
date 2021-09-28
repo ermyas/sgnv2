@@ -44,7 +44,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		SetEvLiqAdd(kv, onchev.Chainid, ev.Seqnum)
 		newliq := ChangeLiquidity(kv, onchev.Chainid, ev.Token, ev.Provider, ev.Amount)
 
-		log.Infoln("Applied LP add_liquidity", "LQKey", types.LiqMapKey(onchev.Chainid, ev.Token, ev.Provider), "NewAmt", newliq.String())
+		k.Logger(ctx).Info("Applied LP add_liquidity", "LQKey", types.LiqMapKey(onchev.Chainid, ev.Token, ev.Provider), "NewAmt", newliq.String())
 		return true, nil
 	case types.CbrEventSend:
 		ev, err := cbrContract.ParseSend(*elog)
@@ -65,9 +65,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 
 		// must set to non-zero before return
 		var sendStatus types.XferStatus
-		defer func() {
-			SetEvSendStatus(kv, ev.TransferId, sendStatus)
-		}()
+		defer SetEvSendStatus(kv, ev.TransferId, sendStatus)
 
 		src := &ChainIdTokenAddr{
 			ChId:      onchev.Chainid,
