@@ -1,6 +1,7 @@
 package dal
 
 import (
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/goutils/sqldb"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"time"
@@ -88,9 +89,10 @@ type Transfer struct {
 }
 
 func (d *DAL) PaginateTransferList(sender string, end time.Time, size uint64) ([]*Transfer, int, time.Time, error) {
-	q := "SELECT transfer_id, create_time, status, src_chain_id,dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt FROM transfer WHERE sender = $1 and create_time < $3 order by create_time desc limit $2"
+	q := "SELECT transfer_id, create_time, status, src_chain_id,dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt FROM transfer WHERE usr_addr = $1 and create_time < $3 order by create_time desc limit $2"
 	rows, err := d.Query(q, sender, size, end)
 	if err != nil {
+		log.Errorf("db error:%v", err)
 		return nil, 0, time.Unix(0, 0), err
 	}
 	defer closeRows(rows)
@@ -101,7 +103,7 @@ func (d *DAL) PaginateTransferList(sender string, end time.Time, size uint64) ([
 	var ct time.Time
 	minTime := now()
 	for rows.Next() {
-		err = rows.Scan(&transferId, &transferId, &ct, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt)
+		err = rows.Scan(&transferId, &ct, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt)
 		if err != nil {
 			return nil, 0, time.Unix(0, 0), err
 		}

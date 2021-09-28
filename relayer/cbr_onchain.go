@@ -71,12 +71,15 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
 		}
-		err = dal.UpdateTransferStatus(common.Hash(ev.TransferId).String(), uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE))
+		err = GatewayOnSend(common.Hash(ev.TransferId).String())
 		if err != nil {
-			log.Errorln("UpdateTransfer err:", err)
+			log.Errorln("GatewayOnSend err:", err)
 		}
 		return false
 	})
+}
+func GatewayOnSend(transferId string) error {
+	return dal.UpdateTransferStatus(transferId, uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE))
 }
 
 func (c *CbrOneChain) monRelay(blk *big.Int) {
@@ -97,12 +100,15 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
 		}
-		err = dal.TransferCompleted(common.Hash(ev.TransferId).String(), eLog.TxHash.String())
+		err = GatewayOnRelay(common.Hash(ev.TransferId).String(), eLog.TxHash.String())
 		if err != nil {
 			log.Errorln("UpdateTransfer err:", err)
 		}
 		return false
 	})
+}
+func GatewayOnRelay(transferId, txHash string) error {
+	return dal.TransferCompleted(transferId, txHash)
 }
 
 func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
@@ -124,24 +130,20 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
 		}
-		newContext, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		chainId, err := c.ChainID(newContext)
-		if err != nil {
-			log.Errorln("get chain id err:", err)
+		token, chainId, found := c.getTokenFromDB(ev.Token.String())
+		if !found {
 			return false
 		}
-		token, found, err := dal.GetTokenByAddr(ev.Token.String(), chainId.Uint64())
-		if err != nil || !found {
-			return false
-		}
-		err = dal.UpsertLP(ev.Provider.String(), token.Token.Symbol, token.Token.Address, ev.Amount.String(), eLog.TxHash.String(), chainId.Uint64(), uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_ADD), ev.Seqnum)
+		err = GatewayOnLiqAdd(ev.Provider.String(), token.Token.Symbol, token.Token.Address, ev.Amount.String(), eLog.TxHash.String(), chainId, types.LPHistoryStatus_LP_WAITING_FOR_SGN, webapi.LPType_LP_TYPE_ADD, ev.Seqnum)
 		if err != nil {
 			log.Errorln("UpsertLP db err:", err)
 			return false
 		}
 		return false
 	})
+}
+func GatewayOnLiqAdd(lpAddr, token, tokenAddr, amt, txHash string, chainId uint64, status types.LPHistoryStatus, lpType webapi.LPType, seqNum uint64) error {
+	return dal.UpsertLP(lpAddr, token, tokenAddr, amt, txHash, chainId, uint64(status), uint64(lpType), seqNum)
 }
 
 func (c *CbrOneChain) monWithdraw(blk *big.Int) {
@@ -162,23 +164,26 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
 		}
-		transferId, found, err := dal.GetTransferBySeqNum(ev.Seqnum)
-		if err != nil {
-			return false
-		}
-		if found {
-			dbErr := dal.UpdateTransferStatus(transferId, uint64(types.TransferHistoryStatus_TRANSFER_REFUNDED))
-			if dbErr != nil {
-				log.Errorln("db when UpdateTransferStatus to TRANSFER_REFUNDED err:", err)
-			}
-		} else {
-			dbErr := dal.UpdateLPStatus(ev.Seqnum, uint64(types.LPHistoryStatus_LP_COMPLETED))
-			if dbErr != nil {
-				log.Errorln("db when UpdateLPStatus to LP_COMPLETED err:", err)
-			}
-		}
+		GatewayOnLiqWithdraw(ev.Seqnum)
 		return false
 	})
+}
+func GatewayOnLiqWithdraw(seqNum uint64) {
+	transferId, found, err := dal.GetTransferBySeqNum(seqNum)
+	if err != nil {
+		log.Errorln("error when get transfer by seq num:", err)
+	}
+	if found {
+		dbErr := dal.UpdateTransferStatus(transferId, uint64(types.TransferHistoryStatus_TRANSFER_REFUNDED))
+		if dbErr != nil {
+			log.Errorln("db when UpdateTransferStatus to TRANSFER_REFUNDED err:", err)
+		}
+	} else {
+		dbErr := dal.UpdateLPStatus(seqNum, uint64(types.LPHistoryStatus_LP_COMPLETED))
+		if dbErr != nil {
+			log.Errorln("db when UpdateLPStatus to LP_COMPLETED err:", err)
+		}
+	}
 }
 
 func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
@@ -298,4 +303,19 @@ func (c *CbrOneChain) UpdateSigners(newss, curss []byte, sigs [][]byte) error {
 
 	log.Infoln("UpdateSigners tx submitted", tx.Hash().Hex())
 	return nil
+}
+
+func (c *CbrOneChain) getTokenFromDB(tokenAddr string) (*webapi.TokenInfo, uint64, bool) {
+	newContext, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	chainId, err := c.ChainID(newContext)
+	if err != nil {
+		log.Errorln("get chain id err:", err)
+		return nil, 0, false
+	}
+	token, found, err := dal.GetTokenByAddr(tokenAddr, chainId.Uint64())
+	if err != nil || !found {
+		return nil, 0, false
+	}
+	return token, chainId.Uint64(), true
 }

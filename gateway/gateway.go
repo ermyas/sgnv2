@@ -10,7 +10,6 @@ import (
 	"github.com/rs/cors"
 	"net"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/celer-network/goutils/log"
@@ -34,8 +33,7 @@ func InitGateway() {
 	defer gs.Close()
 	log.Infof(" gateway svc started")
 
-	sgnRootDir := os.ExpandEnv("$HOME/.sgnd")
-	err = gs.initTransactor(sgnRootDir)
+	err = gs.initTransactor()
 	if err != nil {
 		log.Fatalf("fail to init transactor in gateway server, err:%v", err)
 		return

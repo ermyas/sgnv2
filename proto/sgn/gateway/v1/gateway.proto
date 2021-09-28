@@ -143,7 +143,7 @@ message EstimateAmtResponse {
     uint32 slippage_tolerance = 5; // slippage * 1M, eg. 0.5% is 5000
 }
 
-enum MarkTransferTypeRequest {
+enum TransferType {
     TRANSFER_TYPE_UNKNOWN = 0;
     TRANSFER_TYPE_SEND = 1;
     TRANSFER_TYPE_REFUND = 2;
@@ -155,7 +155,7 @@ message MarkTransferRequest {
     TransferInfo dst_min_received_info = 4;
     string addr = 5;
     string src_tx_hash = 6;
-    MarkTransferTypeRequest type = 7;
+    TransferType type = 7;
     uint64 withdraw_seq_num = 8;
 }
 

@@ -2,7 +2,6 @@ package dal
 
 import (
 	"fmt"
-	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/goutils/sqldb"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -131,14 +130,13 @@ func (d *DAL) GetChainTokenList() (map[uint64]*webapi.ChainTokenInfo, error) {
 
 func (d *DAL) GetChainInfo(ids []uint64) ([]*webapi.Chain, error) {
 	inClause := sqldb.InClause("id", len(ids), 1)
-	q := fmt.Sprintf(`SELECT id, name, icon FROM chain where %s`, inClause)
+	q := fmt.Sprintf(`SELECT id, name, icon FROM chain WHERE %s`, inClause)
 	var params []interface{}
 	for _, v := range ids {
 		params = append(params, v)
 	}
 	rows, err := d.Query(q, params...)
 	if err != nil {
-		log.Error("db error:", err)
 		return nil, err
 	}
 	defer closeRows(rows)
@@ -160,6 +158,13 @@ func (d *DAL) GetChainInfo(ids []uint64) ([]*webapi.Chain, error) {
 		tps = append(tps, tp)
 	}
 	return tps, nil
+}
+func (d *DAL) UpsertChainInfo(id uint64, name, icon, url string) error {
+	q := `INSERT INTO chain (id, name, icon, tx_url)
+                VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE
+	SET name=$2, icon=$3, tx_url=$4`
+	res, err := d.Exec(q, id, name, icon, url)
+	return sqldb.ChkExec(res, err, 1, "UpsertChainInfo")
 }
 
 func (d *DAL) GetChain(id uint64) (*webapi.Chain, string, bool, error) {

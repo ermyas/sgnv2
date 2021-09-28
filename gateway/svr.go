@@ -9,7 +9,6 @@ import (
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/fee"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
-	"github.com/celer-network/sgn-v2/relayer"
 	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -17,9 +16,11 @@ import (
 	github_com_cosmos_cosmos_sdk_types "github.com/cosmos/cosmos-sdk/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/lthibault/jitterbug"
 	"github.com/spf13/viper"
 	"math/big"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -40,6 +41,7 @@ type GatewayConfig struct {
 type GatewayService struct {
 	f  *fee.TokenPriceCache
 	tr *transactor.Transactor
+	ec map[uint64]*ethclient.Client
 }
 
 func (gs *GatewayService) SetAdvancedInfo(ctx context.Context, request *webapi.SetAdvancedInfoRequest) (*webapi.SetAdvancedInfoResponse, error) {
@@ -138,7 +140,7 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 		EqValueTokenAmt:   eqValueTokenAmt,
 		BridgeRate:        float32(bridgeRate),
 		Fee:               feeAmt,
-		SlippageTolerance: uint32(slippage),
+		SlippageTolerance: slippage,
 	}, nil
 }
 
@@ -151,7 +153,7 @@ func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.Mark
 	txHash := request.GetSrcTxHash()
 	txType := request.GetType()
 	withdrawSeqNum := request.GetWithdrawSeqNum()
-	if txType == webapi.MarkTransferTypeRequest_TRANSFER_TYPE_SEND {
+	if txType == webapi.TransferType_TRANSFER_TYPE_SEND {
 		err := dal.DB.MarkTransferSend(transferId, dstTransferId, addr.String(), sendInfo.GetToken().GetSymbol(),
 			sendInfo.GetAmount(), receivedInfo.GetAmount(), txHash, sendInfo.GetChain().GetId(),
 			receivedInfo.GetChain().GetId(), gs.f.GetUsdVolume(sendInfo.GetToken(), common.Str2BigInt(sendInfo.GetAmount())))
@@ -163,7 +165,7 @@ func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.Mark
 				},
 			}, nil
 		}
-	} else if txType == webapi.MarkTransferTypeRequest_TRANSFER_TYPE_REFUND {
+	} else if txType == webapi.TransferType_TRANSFER_TYPE_REFUND {
 		err := dal.DB.MarkTransferRefund(transferId, txHash, withdrawSeqNum)
 		if err != nil {
 			return &webapi.MarkTransferResponse{
@@ -347,8 +349,17 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 	seqNum := request.SeqNum
 	chainId, txHash, status, found, err := dal.DB.GetLPInfo(seqNum)
 	if found && err == nil && status == uint64(types.LPHistoryStatus_LP_SUBMITTING) && txHash != "" {
-		var ctx context.Context
-		receipt, recErr := relayer.CbrMgrInstance[chainId].TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))
+		ec := gs.ec[chainId]
+		if ec == nil {
+			gs.initTransactor()
+			ec = gs.ec[chainId]
+		}
+		if ec == nil {
+			log.Errorf("no ethClient found for chain:%d", chainId)
+			return nil, fmt.Errorf("no ethClient found for chain:%d", chainId)
+		}
+
+		receipt, recErr := ec.TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))
 		if recErr == nil && receipt.Status != ethtypes.ReceiptStatusSuccessful {
 			log.Warnf("find transfer failed, chain_id %d, hash:%s", chainId, txHash)
 			dbErr := dal.DB.UpdateLPStatus(seqNum, uint64(types.LPHistoryStatus_LP_FAILED))
@@ -356,6 +367,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 				log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", chainId, txHash)
 			}
 		}
+
 	}
 
 	resp, _ := cli.QueryWithdrawLiquidityStatus(gs.tr.CliCtx, &types.QueryWithdrawLiquidityStatusRequest{
@@ -383,7 +395,7 @@ func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.T
 	if err != nil {
 		return &webapi.TransferHistoryResponse{}, nil
 	}
-	err = gs.UpdateTransferStatusInHistory(transferList)
+	err = gs.updateTransferStatusInHistory(ctx, transferList)
 	if err != nil {
 		log.Warnf("update transfer status failed for user:%s, error:%v", addr, err)
 	}
@@ -561,7 +573,7 @@ func (gs *GatewayService) UpdateLpStatusInHistory(lpHistory []*dal.LP) {
 	}
 }
 
-func (gs *GatewayService) UpdateTransferStatusInHistory(transferList []*dal.Transfer) error {
+func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, transferList []*dal.Transfer) error {
 	var transferIds []string
 	for _, transfer := range transferList {
 		transferIds = append(transferIds, transfer.TransferId)
@@ -580,8 +592,16 @@ func (gs *GatewayService) UpdateTransferStatusInHistory(transferList []*dal.Tran
 		srcChainId := transfer.SrcChainId
 		txHash := transfer.SrcTxHash
 		if status == types.TransferHistoryStatus_TRANSFER_SUBMITTING {
-			var ctx context.Context
-			receipt, recErr := relayer.CbrMgrInstance[srcChainId].TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))
+			ec := gs.ec[srcChainId]
+			if ec == nil {
+				gs.initTransactor()
+				ec = gs.ec[srcChainId]
+			}
+			if ec == nil {
+				log.Errorf("no ethClient found for chain:%d", srcChainId)
+				return fmt.Errorf("no ethClient found for chain:%d", srcChainId)
+			}
+			receipt, recErr := ec.TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))
 			if recErr == nil && receipt.Status != ethtypes.ReceiptStatusSuccessful {
 				log.Warnf("find transfer failed, chain_id %d, hash:%s", srcChainId, txHash)
 				dbErr := dal.DB.UpdateTransferStatus(transferId, uint64(types.TransferHistoryStatus_TRANSFER_FAILED))
@@ -612,7 +632,8 @@ func (gs *GatewayService) UpdateTransferStatusInHistory(transferList []*dal.Tran
 	return nil
 }
 
-func (gs *GatewayService) initTransactor(rootDir string) error {
+func (gs *GatewayService) initTransactor() error {
+	rootDir := os.ExpandEnv("$HOME/.sgnd")
 	configFilePath := filepath.Join(rootDir, "config", "sgn.toml")
 	viper.SetConfigFile(configFilePath)
 	if err := viper.ReadInConfig(); err != nil {
@@ -635,6 +656,20 @@ func (gs *GatewayService) initTransactor(rootDir string) error {
 	}
 	tr.Run()
 	gs.tr = tr
+
+	var mcc []*common.OneChainConfig
+	err = viper.UnmarshalKey(common.FlagMultiChain, &mcc)
+	if err != nil {
+		return fmt.Errorf("failed to new mcc: %w", err)
+	}
+	e := make(map[uint64]*ethclient.Client)
+	for _, m := range mcc {
+		ec, ecErr := ethclient.Dial(m.Gateway)
+		if ecErr == nil {
+			e[m.ChainID] = ec
+		}
+	}
+	gs.ec = e
 
 	return nil
 }
