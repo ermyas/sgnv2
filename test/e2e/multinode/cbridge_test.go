@@ -41,7 +41,6 @@ func TestCbridge(t *testing.T) {
 func cbridgeTest(t *testing.T) {
 	log.Infoln("===================================================================")
 	log.Infoln("======================== Test cbridge ===========================")
-
 	setupCbridge()
 
 	transactor := tc.NewTestTransactor(
@@ -51,6 +50,12 @@ func cbridgeTest(t *testing.T) {
 		tc.ValSgnAddrStrs[0],
 		tc.SgnPassphrase,
 	)
+
+	log.Infoln("================== Setup validators and bridge signers ======================")
+	amts := []*big.Int{big.NewInt(3e18)}
+	SetupValidators(transactor, amts)
+	tc.CbrClient1.SetInitSigners(amts)
+	tc.CbrClient2.SetInitSigners(amts)
 
 	log.Infoln("======================== Add liquidity on chain 1 ===========================")
 	addAmt := big.NewInt(5 * 1e10)

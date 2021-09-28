@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -159,9 +160,11 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		chainSigners := &types.ChainSigners{
 			ChainId:      onchev.Chainid,
 			SignersBytes: ev.CurSigners,
+			CurrSigners:  &types.SortedSigners{},
 		}
 		chainSigners.CurrSigners.Unmarshal(ev.CurSigners)
 		k.SetChainSigners(ctx, chainSigners)
+		log.Infoln("Apply chainSigners:", chainSigners.String())
 	}
 	return true, nil
 }

@@ -16,6 +16,14 @@ func (m *XferRelay) GetSortedSigsBytes() [][]byte {
 	return nil
 }
 
+func (m *XferRelay) SignersStr() string {
+	var signers string
+	for _, s := range m.SortedSigs {
+		signers += fmt.Sprintf("%x ", s.Addr)
+	}
+	return fmt.Sprintf("signers: < %s>", signers)
+}
+
 // basic check of config
 func (c *CbrConfig) Validate() error {
 	if c.LpFee > 100 {
@@ -61,4 +69,12 @@ func (cp *ChainPair) Validate() error {
 		return fmt.Errorf("weight1 %d >= 200", cp.Weight1)
 	}
 	return nil
+}
+
+func (r *RelayOnChain) String() string {
+	if r == nil {
+		return ""
+	}
+	return fmt.Sprintf("sender %x, receiver %x, token %x, amount %s, src_chain_id %d, dst_chain_id %d, src_xfer_id %x",
+		r.Sender, r.Receiver, r.Token, big.NewInt(0).SetBytes(r.Amount), r.SrcChainId, r.DstChainId, r.SrcTransferId)
 }

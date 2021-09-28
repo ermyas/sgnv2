@@ -10,11 +10,13 @@ import (
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/gogo/protobuf/proto"
 )
 
 func SetEthBaseKs(prefix string) {
@@ -318,6 +320,25 @@ func (c *CbrClient) Send(amt *big.Int, receiver eth.Addr, dstChainId, nonce uint
 	if err != nil {
 		return err
 	}
+	_, err = ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
+	return err
+}
+
+func (c *CbrClient) SetInitSigners(amts []*big.Int) error {
+	var signers []*cbrtypes.AddrAmt
+	for i, amt := range amts {
+		signers = append(signers, &cbrtypes.AddrAmt{
+			Addr: ValSignerAddrs[i].Bytes(),
+			Amt:  amt.Bytes(),
+		})
+	}
+	ss, err := proto.Marshal(&cbrtypes.SortedSigners{
+		Signers: signers,
+	})
+	if err != nil {
+		return err
+	}
+	tx, err := c.CbrContract.SetInitSigners(c.Auth, ss)
 	_, err = ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
 	return err
 }

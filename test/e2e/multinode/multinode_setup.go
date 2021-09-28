@@ -17,7 +17,6 @@ import (
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/gogo/protobuf/proto"
 	"github.com/spf13/viper"
 )
 
@@ -194,11 +193,9 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridgeTest 
 		tc.ChkErr(err, "Failed to write genesis")
 	}
 
-	amt1 := big.NewInt(3e18)
-	amts := []*big.Int{amt1}
 	if cbridgeTest {
 		DeployUsdtForBridge()
-		DeployBridgeContract(amts)
+		DeployBridgeContract()
 	}
 
 	// Update global viper
@@ -221,17 +218,6 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridgeTest 
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	tc.ChkErr(err, "Failed to make localnet-up-nodes")
-
-	if cbridgeTest {
-		transactor := tc.NewTestTransactor(
-			tc.SgnHomes[0],
-			tc.SgnChainID,
-			tc.SgnNodeURI,
-			tc.ValSgnAddrStrs[0],
-			tc.SgnPassphrase,
-		)
-		SetupValidators(transactor, amts)
-	}
 }
 
 func SetupValidators(transactor *transactor.Transactor, amts []*big.Int) {
@@ -302,17 +288,9 @@ func DeployUsdtForBridge() {
 	}
 }
 
-func DeployBridgeContract(amts []*big.Int) {
-	signers := make([]*cbrtypes.AddrAmt, 0)
-	signers = append(signers, &cbrtypes.AddrAmt{
-		Addr: []byte(eth.Addr2Hex(tc.ValSignerAddrs[0])),
-		Amt:  amts[0].Bytes(),
-	})
-	ss, _ := proto.Marshal(&cbrtypes.SortedSigners{
-		Signers: signers,
-	})
-	tc.CbrClient1.CbrAddr, tc.CbrClient1.CbrContract = tc.DeployBridgeContract(tc.CbrClient1.Ec, tc.CbrClient1.Auth, ss)
-	tc.CbrClient2.CbrAddr, tc.CbrClient2.CbrContract = tc.DeployBridgeContract(tc.CbrClient2.Ec, tc.CbrClient2.Auth, ss)
+func DeployBridgeContract() {
+	tc.CbrClient1.CbrAddr, tc.CbrClient1.CbrContract = tc.DeployBridgeContract(tc.CbrClient1.Ec, tc.CbrClient1.Auth, nil)
+	tc.CbrClient2.CbrAddr, tc.CbrClient2.CbrContract = tc.DeployBridgeContract(tc.CbrClient2.Ec, tc.CbrClient2.Auth, nil)
 
 	for i := 0; i < len(tc.ValEthKs); i++ {
 		configPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/sgn.toml", i)

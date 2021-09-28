@@ -3,6 +3,7 @@ package relayer
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"sort"
 	"time"
 
@@ -13,11 +14,9 @@ import (
 	"github.com/celer-network/sgn-v2/x/staking/types"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
-	mapset "github.com/deckarep/golang-set"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/gogo/protobuf/proto"
 )
 
 const (
@@ -84,35 +83,30 @@ func (r *Relayer) processCbridgeQueue() {
 }
 
 func (r *Relayer) submitRelay(relayEvent RelayEvent) {
-	log.Infoln("Process relay ", string(relayEvent.XferId))
+	logmsg := fmt.Sprintf("Process relay %x", relayEvent.XferId)
 
 	relay, err := cbrcli.QueryRelay(r.Transactor.CliCtx, relayEvent.XferId)
 	if err != nil {
-		log.Errorln("QuerySlash err", err)
+		log.Errorf("%s. QueryRelay err: %s", logmsg, err)
 		return
 	}
 
 	relayOnChain := new(cbrtypes.RelayOnChain)
 	err = relayOnChain.Unmarshal(relay.Relay)
 	if err != nil {
-		log.Errorln("Unmarshal relay.Relay err", err)
+		log.Errorf("%s. Unmarshal relay.Relay err %s", logmsg, err)
 		return
 	}
 
-	signedValidators := mapset.NewSet()
-	for _, sig := range relay.SortedSigs {
-		signedValidators.Add(string(sig.Addr))
-	}
-	pass, allValidators := r.validateSigs(signedValidators)
+	curss := r.cbrMgr[relayOnChain.DstChainId].curss
+	pass := r.validateCbrSigs(relay.SortedSigs, curss.signers)
 	if !pass {
-		log.Debugf("relay %s does not have enough sigs", relayEvent.XferId)
+		log.Debugf("%s. Not have enough sigs", logmsg)
 		r.requeueRelay(relayEvent)
 		return
 	}
-
-	currss, _ := proto.Marshal(GetSortedSigners(allValidators))
-
-	err = r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, currss, relay.GetSortedSigsBytes())
+	log.Infof("%s with signers %s", logmsg, relay.SignersStr())
+	err = r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, curss.bytes, relay.GetSortedSigsBytes())
 	if err != nil {
 		r.requeueRelay(relayEvent)
 		log.Errorln("relay err", err)

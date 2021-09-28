@@ -72,7 +72,7 @@ func (r *Relayer) submitSlash(slashEvent SlashEvent) {
 	for _, sig := range slash.Sigs {
 		signedValidators.Add(sig.Signer)
 	}
-	pass, _ := r.validateSigs(signedValidators)
+	pass := r.validateSigs(signedValidators)
 	if !pass {
 		log.Debugf("Slash %d does not have enough sigs", slashEvent.Nonce)
 		r.requeueSlash(slashEvent)

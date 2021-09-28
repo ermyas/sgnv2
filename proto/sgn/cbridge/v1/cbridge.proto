@@ -58,6 +58,8 @@ message OnChainEvent {
 // same proto used by solidity, serialized bytes are signed by sgn nodes then submit onchain to relay function
 // x/cbridge will emit tendermint event, relayer monitor and send msg w/ its signature
 message RelayOnChain {
+  option (gogoproto.goproto_stringer) = false;
+
   bytes sender = 1;
   bytes receiver = 2;
   bytes token = 3;

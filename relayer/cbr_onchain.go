@@ -50,7 +50,7 @@ func (c *CbrOneChain) startMon() {
 	smallDelay()
 	c.monWithdraw(blkNum)
 	smallDelay()
-	c.monNewSigners(blkNum)
+	c.monSignersUpdated(blkNum)
 }
 
 func (c *CbrOneChain) monSend(blk *big.Int) {
@@ -181,7 +181,7 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 	})
 }
 
-func (c *CbrOneChain) monNewSigners(blk *big.Int) {
+func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 	cfg := &monitor.Config{
 		EventName:  CbrEventSignersUpdated,
 		Contract:   c.contract,
@@ -190,16 +190,18 @@ func (c *CbrOneChain) monNewSigners(blk *big.Int) {
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.contract.ParseSignersUpdated(eLog)
 		if err != nil {
-			log.Errorln("monNewSigners: cannot parse event:", err)
+			log.Errorln("monSignersUpdated: cannot parse event:", err)
 			return false
 		}
-		log.Infof("NewSigners event: %+v", ev)
+		logmsg := fmt.Sprintf("Catch event SignersUpdated: tx hash: %x, blknum: %d, signers %x",
+			eLog.TxHash, eLog.BlockNumber, ev.CurSigners)
 		err = c.saveEvent(CbrEventSignersUpdated, eLog)
 		if err != nil {
-			log.Errorln("saveEvent err:", err)
+			log.Errorf("%s, saveEvent err: %s", logmsg, err)
 			return true // ask to recreate to process event again
 		}
 		c.curss.setSigners(ev.CurSigners)
+		log.Infoln(logmsg, c.curss.signers.String())
 		return false
 	})
 }

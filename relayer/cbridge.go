@@ -132,13 +132,16 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 			Bridge:  cbr,
 			Address: eth.Hex2Addr(cfg.CBridge),
 		},
-		db:    dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID))),
-		curss: &curSs{},
+		db: dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID))),
+		curss: &curSs{
+			signers: &cbrtypes.SortedSigners{},
+		},
 	}
 	chainSigners, err := cbrcli.QueryChainSigners(cliCtx, cfg.ChainID)
 	if err != nil {
-		log.Warnln("failed to get chain signers", err)
+		log.Warnf("failed to get chain %d signers: %s", cfg.ChainID, err)
 	} else {
+		log.Infoln("Set chain signers:", chainSigners.String())
 		ret.curss.setSigners(chainSigners.GetSignersBytes())
 	}
 	ret.startMon()
