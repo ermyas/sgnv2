@@ -48,7 +48,7 @@
           "address": "sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe",
           "coins": [
             {
-              "denom": "stake",
+              "denom": "CELR/stake",
               "amount": "100"
             }
           ]
@@ -56,7 +56,7 @@
       ],
       "supply": [
         {
-          "denom": "stake",
+          "denom": "CELR/stake",
           "amount": "100"
         }
       ],
@@ -187,7 +187,7 @@
         "annual_provisions": "30000000000000000000000000.000000000000000000"
       },
       "params": {
-        "mint_denom": "reward-celr",
+        "mint_denom": "CELR/reward",
         "blocks_per_year": "6311520"
       }
     },

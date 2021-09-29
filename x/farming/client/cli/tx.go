@@ -7,6 +7,7 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/farming/types"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -111,7 +112,7 @@ Where proposal.json contains:
    }
  ]
 }
-`, version.AppName, sdk.DefaultBondDenom,
+`, version.AppName, stakingtypes.StakeDenom,
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx, err := client.GetClientTxContext(cmd)

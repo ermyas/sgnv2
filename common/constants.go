@@ -27,4 +27,6 @@ const (
 	//
 	// NOTE: In the SDK, the default value is 255.
 	MaxAddrLen = 20
+
+	CelrDenom = "CELR"
 )

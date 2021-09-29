@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/address"
@@ -18,6 +19,8 @@ const (
 
 	// RouterKey is the msg router key for the staking module
 	RouterKey = ModuleName
+
+	StakeDenom = common.CelrDenom + "/stake"
 )
 
 var (

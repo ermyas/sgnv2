@@ -7,12 +7,13 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/celer-network/sgn-v2/common"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 const (
-	RewardDenom = "reward-celr"
+	RewardDenom = common.CelrDenom + "/reward"
 )
 
 // Parameter store keys
