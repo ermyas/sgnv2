@@ -52,6 +52,21 @@ type GatewayService struct {
 	ec map[uint64]*ethclient.Client
 }
 
+func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi.GetTransferStatusRequest) (*webapi.GetTransferStatusResponse, error) {
+	_, _, _, _, status, found, err := dal.DB.GetTransfer(request.GetTransferId())
+	if !found || err != nil {
+		return &webapi.GetTransferStatusResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "transfer not found",
+			},
+		}, nil
+	}
+	return &webapi.GetTransferStatusResponse{
+		Status: types.TransferHistoryStatus(status),
+	}, nil
+}
+
 func (gs *GatewayService) SetAdvancedInfo(ctx context.Context, request *webapi.SetAdvancedInfoRequest) (*webapi.SetAdvancedInfoResponse, error) {
 	addr := common.Hex2Addr(request.GetAddr()).String()
 	err := dal.DB.UpsertSlippageSetting(addr, request.GetSlippageTolerance())
@@ -79,7 +94,7 @@ func (gs *GatewayService) GetTransferConfigs(ctx context.Context, request *webap
 			ChainToken: nil,
 		}, nil
 	}
-	var chainIds []uint64
+	var chainIds []uint32
 	for key := range chainTokenList {
 		chainIds = append(chainIds, key)
 	}
@@ -106,8 +121,8 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 	srcChainId := request.GetSrcChainId()
 	dstChainId := request.GetDstChainId()
 	tokenSymbol := request.GetTokenSymbol()
-	srcToken, found1, err1 := dal.DB.GetTokenBySymbol(tokenSymbol, srcChainId)
-	dstToken, found2, err2 := dal.DB.GetTokenBySymbol(tokenSymbol, dstChainId)
+	srcToken, found1, err1 := dal.DB.GetTokenBySymbol(tokenSymbol, uint64(srcChainId))
+	dstToken, found2, err2 := dal.DB.GetTokenBySymbol(tokenSymbol, uint64(dstChainId))
 	if err1 != nil || !found1 || err2 != nil || !found2 {
 		return &webapi.EstimateAmtResponse{
 			Err: &webapi.ErrMsg{
@@ -122,8 +137,8 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 		slippage = 0
 	}
 	feeInfo, err := cli.GetFee(gs.tr.CliCtx, &types.GetFeeRequest{
-		SrcChainId:   srcChainId,
-		DstChainId:   dstChainId,
+		SrcChainId:   uint64(srcChainId),
+		DstChainId:   uint64(dstChainId),
 		SrcTokenAddr: srcToken.Token.GetAddress(),
 		Amt:          amt,
 	})
@@ -163,8 +178,8 @@ func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.Mark
 	withdrawSeqNum := request.GetWithdrawSeqNum()
 	if txType == webapi.TransferType_TRANSFER_TYPE_SEND {
 		err := dal.DB.MarkTransferSend(transferId, dstTransferId, addr.String(), sendInfo.GetToken().GetSymbol(),
-			sendInfo.GetAmount(), receivedInfo.GetAmount(), txHash, sendInfo.GetChain().GetId(),
-			receivedInfo.GetChain().GetId(), gs.f.GetUsdVolume(sendInfo.GetToken(), common.Str2BigInt(sendInfo.GetAmount())))
+			sendInfo.GetAmount(), receivedInfo.GetAmount(), txHash, uint64(sendInfo.GetChain().GetId()),
+			uint64(receivedInfo.GetChain().GetId()), gs.f.GetUsdVolume(sendInfo.GetToken(), common.Str2BigInt(sendInfo.GetAmount())))
 		if err != nil {
 			return &webapi.MarkTransferResponse{
 				Err: &webapi.ErrMsg{
@@ -214,7 +229,11 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 		usrLiquidity := detail.GetUsrLiquidity()
 		chain, _, found, err := dal.DB.GetChain(chainId)
 		if !found || err != nil {
-			continue
+			chain = &webapi.Chain{
+				Id:   uint32(chainId),
+				Name: "UNKNOWN CHAIN",
+				Icon: "",
+			}
 		}
 		token, found, err := dal.DB.GetTokenByAddr(tokenWithAddr.GetAddress(), chainId)
 		if !found || err != nil {
@@ -255,7 +274,7 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 	addr := common.Hex2Addr(request.GetLpAddr()).String()
 	seqNum := request.GetSeqNum()
 	tokenAddr := common.Hex2Addr(request.GetTokenAddr()).String()
-	token, found, err := dal.DB.GetTokenByAddr(tokenAddr, chainId)
+	token, found, err := dal.DB.GetTokenByAddr(tokenAddr, uint64(chainId))
 	if !found || err != nil {
 		return &webapi.MarkLiquidityResponse{
 			Err: &webapi.ErrMsg{
@@ -265,8 +284,8 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 		}, nil
 	}
 	txHash := request.GetTxHash()
-	err = dal.DB.UpsertLP(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, chainId, uint64(types.LPHistoryStatus_LP_SUBMITTING), uint64(lpType), seqNum)
-	if err != nil {
+	err = dal.DB.UpsertLP(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, uint64(chainId), uint64(types.LPHistoryStatus_LP_SUBMITTING), uint64(lpType), seqNum)
+	if err == nil {
 		return &webapi.MarkLiquidityResponse{}, nil
 	} else {
 		return &webapi.MarkLiquidityResponse{
@@ -311,7 +330,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 		amt := request.GetAmount()
 		chainId := request.GetChainId()
 		tokenAddr := common.Hex2Addr(request.GetTokenAddr()).String()
-		token, found, err := dal.DB.GetTokenByAddr(tokenAddr, chainId)
+		token, found, err := dal.DB.GetTokenByAddr(tokenAddr, uint64(chainId))
 		if !found || err != nil {
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
@@ -322,13 +341,13 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 		}
 		lp := common.Hex2Addr(request.GetReceiverAddr()).String()
 		seqNum, err := gs.initWithdraw(&types.MsgInitWithdraw{
-			Chainid: chainId,
+			Chainid: uint64(chainId),
 			LpAddr:  common.Hex2Bytes(lp),
 			Token:   common.Hex2Bytes(tokenAddr),
 			Amount:  common.Hex2Bytes(amt),
 			Creator: gs.tr.Key.GetAddress().String(),
 		})
-		err = dal.DB.UpsertLP(lp, token.Token.Symbol, token.Token.Address, amt, "", chainId, uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
+		err = dal.DB.UpsertLP(lp, token.Token.Symbol, token.Token.Address, amt, "", uint64(chainId), uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
 		if err != nil {
 			_ = dal.DB.UpdateLPStatus(seqNum, uint64(types.LPHistoryStatus_LP_FAILED))
 			return &webapi.WithdrawLiquidityResponse{
@@ -378,15 +397,20 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 
 	}
 
-	resp, _ := cli.QueryWithdrawLiquidityStatus(gs.tr.CliCtx, &types.QueryWithdrawLiquidityStatusRequest{
+	resp, err := cli.QueryWithdrawLiquidityStatus(gs.tr.CliCtx, &types.QueryWithdrawLiquidityStatusRequest{
 		SeqNum: seqNum,
 	})
-	if resp.GetStatus() == types.LPHistoryStatus_LP_WAITING_FOR_LP {
+	if resp == nil || err != nil {
+		return &types.QueryLiquidityStatusResponse{
+			Status: types.LPHistoryStatus(status),
+			Detail: nil,
+		}, err
+	} else if resp.GetStatus() == types.LPHistoryStatus_LP_WAITING_FOR_LP {
 		_ = dal.DB.UpdateLPStatus(seqNum, uint64(types.LPHistoryStatus_LP_WAITING_FOR_LP))
+	} else {
+		resp.Status = types.LPHistoryStatus(status)
 	}
-	return &types.QueryLiquidityStatusResponse{
-		Status: resp.GetStatus(),
-	}, nil
+	return resp, nil
 }
 
 func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.TransferHistoryRequest) (*webapi.TransferHistoryResponse, error) {
@@ -413,6 +437,20 @@ func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.T
 		dstChain, dstChainUrl, dstFound, err2 := dal.DB.GetChain(transfer.SrcChainId)
 		if !srcFound || !dstFound || err1 != nil || err2 != nil {
 			continue
+		}
+		if !srcFound {
+			srcChain = &webapi.Chain{
+				Id:   uint32(transfer.SrcChainId),
+				Name: "UNKNOWN NAME",
+				Icon: "",
+			}
+		}
+		if !dstFound {
+			dstChain = &webapi.Chain{
+				Id:   uint32(transfer.DstChainId),
+				Name: "UNKNOWN NAME",
+				Icon: "",
+			}
 		}
 		srcToken, srcFound, err1 := dal.DB.GetTokenBySymbol(transfer.TokenSymbol, transfer.SrcChainId)
 		dstToken, dstFound, err2 := dal.DB.GetTokenBySymbol(transfer.TokenSymbol, transfer.DstChainId)
@@ -466,17 +504,27 @@ func (gs *GatewayService) LPHistory(ctx context.Context, request *webapi.LPHisto
 	}
 	lpHistory, currentPageSize, next, err := dal.DB.PaginateLpHistory(addr, endTime, request.GetPageSize())
 	if err != nil {
+		log.Error("db error", err)
 		return &webapi.LPHistoryResponse{}, nil
 	}
-	gs.UpdateLpStatusInHistory(lpHistory)
+	gs.updateLpStatusInHistory(lpHistory)
 	var lps []*webapi.LPHistory
 	for _, lp := range lpHistory {
 		chain, chainUrl, found, lpErr := dal.DB.GetChain(lp.ChainId)
-		if !found || lpErr != nil {
+		if lpErr != nil {
+			log.Errorf("chain not found: %d", lp.ChainId)
 			continue
+		}
+		if !found {
+			chain = &webapi.Chain{
+				Id:   uint32(lp.ChainId),
+				Name: "UNKNOWN NAME",
+				Icon: "",
+			}
 		}
 		token, found, lpErr := dal.DB.GetTokenBySymbol(lp.TokenSymbol, lp.ChainId)
 		if !found || lpErr != nil {
+			log.Errorf("token not found for token: %s, on chain: %d", lp.TokenSymbol, lp.ChainId)
 			continue
 		}
 		txLink := ""
@@ -555,14 +603,7 @@ func (gs *GatewayService) pollChainToken() {
 		}
 		for _, asset := range assets.Assets {
 			token := asset.GetToken()
-			//_, found := gs.f.Prices[token.Symbol]
-			//if !found {
-			//	gs.f.Prices[token.Symbol], err = gs.f.GetUsdPrice(token.Symbol)
-			//	if err != nil {
-			//		log.Error("get price error", err)
-			//	}
-			//}
-			dbErr := dal.DB.UpsertTokenBaseInfo(token.GetSymbol(), token.GetAddress(), asset.GetContractAddr(), asset.GetMaxAmt(), uint64(chainId), uint64(token.GetDecimal()))
+			dbErr := dal.DB.UpsertTokenBaseInfo(token.GetSymbol(), common.Hex2Addr(token.GetAddress()).String(), common.Hex2Addr(asset.GetContractAddr()).String(), asset.GetMaxAmt(), uint64(chainId), uint64(token.GetDecimal()))
 			if dbErr != nil {
 				log.Errorf("failed to write token: %v", err)
 			}
@@ -570,13 +611,14 @@ func (gs *GatewayService) pollChainToken() {
 	}
 }
 
-func (gs *GatewayService) UpdateLpStatusInHistory(lpHistory []*dal.LP) {
+func (gs *GatewayService) updateLpStatusInHistory(lpHistory []*dal.LP) {
 	for _, lp := range lpHistory {
 		if lp.Status == types.LPHistoryStatus_LP_SUBMITTING || lp.Status == types.LPHistoryStatus_LP_WAITING_FOR_SGN {
 			resp, err := gs.QueryLiquidityStatus(nil, &webapi.QueryLiquidityStatusRequest{
 				SeqNum: lp.SeqNum,
 			})
 			if err != nil {
+				log.Warn("updateLpStatusInHistory error", err)
 				continue
 			}
 			lp.Status = resp.GetStatus()
@@ -622,9 +664,6 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 			}
 		}
 
-		if err != nil {
-			return err
-		}
 		if status == types.TransferHistoryStatus_TRANSFER_FAILED ||
 			status == types.TransferHistoryStatus_TRANSFER_COMPLETED ||
 			status == types.TransferHistoryStatus_TRANSFER_REFUNDED {

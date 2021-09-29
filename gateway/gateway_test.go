@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/fee"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
@@ -114,6 +115,12 @@ func checkTransferStatus(t *testing.T, status types.TransferHistoryStatus, dest 
 	}
 }
 
+func checkLpStatus(t *testing.T, status types.LPHistoryStatus, dest types.LPHistoryStatus) {
+	if status != dest {
+		t.Errorf("invalid status, current is:%d,  expect: %d", status, dest)
+	}
+}
+
 func newTestSvc(t *testing.T) *GatewayService {
 	gs, err := NewGatewayService(stSvr)
 	err = gs.initTransactor()
@@ -155,14 +162,17 @@ func TestTokenAndFee(t *testing.T) {
 	t.Logf("configs:%s", configs)
 }
 
+func mockChian() {
+	dal.DB.UpsertChainInfo(883, "chain1", "test1", "url1")
+	dal.DB.UpsertChainInfo(884, "chain2", "test2", "url2")
+}
 func TestTransfer(t *testing.T) {
 	svc := newTestSvc(t)
 	if svc == nil {
 		t.Errorf("fail to init service")
 		return
 	}
-	dal.DB.UpsertChainInfo(883, "chain1", "test1", "url1")
-	dal.DB.UpsertChainInfo(884, "chain2", "test2", "url2")
+	mockChian()
 
 	configs, err := svc.GetTransferConfigs(nil, nil)
 	errIsNil(t, err)
@@ -249,11 +259,130 @@ func TestTransfer(t *testing.T) {
 	checkTransferStatus(t, history.History[0].GetStatus(), types.TransferHistoryStatus_TRANSFER_COMPLETED)
 }
 
-func TestLP(t *testing.T) {
+func TestLPAdd(t *testing.T) {
 	svc := newTestSvc(t)
 	if svc == nil {
 		t.Errorf("fail to init service")
 		return
 	}
-	// todo
+	mockChian()
+	configs, err := svc.GetTransferConfigs(nil, nil)
+	errIsNil(t, err)
+	errMsgIsNil(t, configs.Err)
+	token := configs.GetChainToken()[883].Token[0]
+	// add
+	addr := "0x25846D545a60A029E5C83f0FB96e41b408528e9E"
+	amt := "1000"
+	tokenAddr := common.Hex2Addr(token.Token.Address).String()
+	chainId := 883
+	txHash := "111"
+	seqNum := uint64(1)
+	markLiquidityResponse, err := svc.MarkLiquidity(nil, &webapi.MarkLiquidityRequest{
+		LpAddr:    addr,
+		Amt:       amt,
+		TokenAddr: tokenAddr,
+		ChainId:   uint32(chainId),
+		SeqNum:    seqNum,
+		TxHash:    txHash,
+		Type:      webapi.LPType_LP_TYPE_ADD,
+	})
+	errIsNil(t, err)
+	errMsgIsNil(t, markLiquidityResponse.Err)
+	lpHistory, err := svc.LPHistory(nil, &webapi.LPHistoryRequest{
+		NextPageToken: "",
+		PageSize:      10,
+		Addr:          addr,
+	})
+	errIsNil(t, err)
+	errMsgIsNil(t, lpHistory.Err)
+	checkLpStatus(t, lpHistory.History[0].Status, types.LPHistoryStatus_LP_SUBMITTING)
+
+	// onchain status
+	relayer.GatewayOnLiqAdd(addr, token.Token.Symbol, tokenAddr, amt, txHash, uint64(chainId), seqNum)
+	liquidityStatus, err := svc.QueryLiquidityStatus(nil, &webapi.QueryLiquidityStatusRequest{SeqNum: seqNum}) //polling
+
+	errIsNil(t, err)
+	checkLpStatus(t, liquidityStatus.Status, types.LPHistoryStatus_LP_WAITING_FOR_SGN)
+
+	// skip complete check without on chain sgn running
+}
+
+func TestLPWithdraw(t *testing.T) {
+	svc := newTestSvc(t)
+	if svc == nil {
+		t.Errorf("fail to init service")
+		return
+	}
+	mockChian()
+	configs, err := svc.GetTransferConfigs(nil, nil)
+	errIsNil(t, err)
+	errMsgIsNil(t, configs.Err)
+	token := configs.GetChainToken()[883].Token[0]
+	// add
+	addr := "0x25846D545a60A029E5C83f0FB96e41b408528e9E"
+	amt := "1000"
+	tokenAddr := common.Hex2Addr(token.Token.Address).String()
+	chainId := 883
+	txHash := "111"
+
+	withdrawLiquidityResponse, err := svc.WithdrawLiquidity(nil, &webapi.WithdrawLiquidityRequest{
+		TransferId:   "",
+		ReceiverAddr: addr,
+		Amount:       amt,
+		TokenAddr:    tokenAddr,
+		ChainId:      uint32(chainId),
+	})
+	errIsNil(t, err)
+	errMsgIsNil(t, withdrawLiquidityResponse.Err)
+	seqNum := uint64(1)
+	lpHistory, err := svc.LPHistory(nil, &webapi.LPHistoryRequest{
+		NextPageToken: "",
+		PageSize:      10,
+		Addr:          addr,
+	})
+	errIsNil(t, err)
+	errMsgIsNil(t, lpHistory.Err)
+	checkLpStatus(t, lpHistory.History[0].Status, types.LPHistoryStatus_LP_WAITING_FOR_SGN)
+
+	////polling can not used for testing
+	//var status types.LPHistoryStatus
+	//for i := 1; i < 10 && status != types.LPHistoryStatus_LP_WAITING_FOR_LP; i++ {
+	//	t.Log("polling ", i)
+	//	liquidityStatus, err := svc.QueryLiquidityStatus(nil, &webapi.QueryLiquidityStatusRequest{SeqNum: seqNum}) //polling
+	//	errIsNil(t, err)
+	//	status = liquidityStatus.Status
+	//	time.Sleep(1 * time.Second)
+	//}
+	//checkLpStatus(t, status, types.LPHistoryStatus_LP_WAITING_FOR_LP)
+
+	markLiquidityResponse, err := svc.MarkLiquidity(nil, &webapi.MarkLiquidityRequest{
+		LpAddr:    addr,
+		Amt:       amt,
+		TokenAddr: tokenAddr,
+		ChainId:   uint32(chainId),
+		SeqNum:    seqNum,
+		TxHash:    txHash,
+		Type:      webapi.LPType_LP_TYPE_REMOVE,
+	})
+	errIsNil(t, err)
+	errMsgIsNil(t, markLiquidityResponse.Err)
+	lpHistory, err = svc.LPHistory(nil, &webapi.LPHistoryRequest{
+		NextPageToken: "",
+		PageSize:      10,
+		Addr:          addr,
+	})
+	errIsNil(t, err)
+	errMsgIsNil(t, lpHistory.Err)
+	checkLpStatus(t, lpHistory.History[0].Status, types.LPHistoryStatus_LP_SUBMITTING)
+
+	// onchain status
+	relayer.GatewayOnLiqWithdraw(seqNum)
+	lpHistory, err = svc.LPHistory(nil, &webapi.LPHistoryRequest{
+		NextPageToken: "",
+		PageSize:      10,
+		Addr:          addr,
+	})
+	errIsNil(t, err)
+	errMsgIsNil(t, lpHistory.Err)
+	checkLpStatus(t, lpHistory.History[0].Status, types.LPHistoryStatus_LP_COMPLETED)
 }

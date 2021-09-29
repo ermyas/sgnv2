@@ -9,8 +9,6 @@ import (
 	"github.com/celer-network/goutils/eth/monitor"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/gateway/webapi"
-	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
@@ -121,7 +119,7 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 		if !found {
 			return false
 		}
-		err = GatewayOnLiqAdd(ev.Provider.String(), token.Token.Symbol, token.Token.Address, ev.Amount.String(), eLog.TxHash.String(), chainId, types.LPHistoryStatus_LP_WAITING_FOR_SGN, webapi.LPType_LP_TYPE_ADD, ev.Seqnum)
+		err = GatewayOnLiqAdd(ev.Provider.String(), token.Token.Symbol, token.Token.Address, ev.Amount.String(), eLog.TxHash.String(), chainId, ev.Seqnum)
 		if err != nil {
 			log.Errorln("UpsertLP db err:", err)
 			return false

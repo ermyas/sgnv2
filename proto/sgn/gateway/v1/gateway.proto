@@ -38,6 +38,13 @@ service Web {
     };
     }
 
+    rpc GetTransferStatus (GetTransferStatusRequest) returns (GetTransferStatusResponse) {
+        option (google.api.http) = {
+      post: "/v1/getTransferStatus"
+      body: "*"
+    };
+    }
+
     //LP
     // get LP table info
     rpc GetLPInfoList (GetLPInfoListRequest) returns (GetLPInfoListResponse) {
@@ -84,7 +91,7 @@ service Web {
 }
 
 message Chain {
-    uint64 id = 1;
+    uint32 id = 1;
     string name = 2;
     string icon = 3;
 }
@@ -116,6 +123,14 @@ message SetAdvancedInfoResponse {
     ErrMsg err = 1;
 }
 
+message GetTransferStatusRequest {
+    string transfer_id = 1;
+}
+
+message GetTransferStatusResponse {
+    ErrMsg err = 1;
+    cbridge.v1.TransferHistoryStatus status = 2;
+}
 
 message GetTransferConfigsRequest {
 
@@ -124,12 +139,12 @@ message GetTransferConfigsRequest {
 message GetTransferConfigsResponse {
     ErrMsg err = 1;
     repeated Chain chains = 2;
-    map<uint64, ChainTokenInfo> chain_token = 3; //map<chain_id, ChainTokenInfo>
+    map<uint32, ChainTokenInfo> chain_token = 3; //map<chain_id, ChainTokenInfo>
 }
 
 message EstimateAmtRequest {
-    uint64 src_chain_id = 1;
-    uint64 dst_chain_id = 2;
+    uint32 src_chain_id = 1;
+    uint32 dst_chain_id = 2;
     string token_symbol = 3;
     string amt = 4;
     string usr_addr = 5;
@@ -192,7 +207,7 @@ message WithdrawLiquidityRequest {
     string receiver_addr = 2;
     string amount = 3;
     string token_addr = 4;
-    uint64 chain_id = 5;
+    uint32 chain_id = 5;
 }
 
 message WithdrawLiquidityResponse {
@@ -204,7 +219,7 @@ message MarkLiquidityRequest {
     string lp_addr = 1;
     string amt = 2;
     string token_addr = 3;
-    uint64 chain_id = 4;
+    uint32 chain_id = 4;
     uint64 seq_num = 5;
     string tx_hash = 6;
     LPType type = 7;

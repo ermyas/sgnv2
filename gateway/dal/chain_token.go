@@ -8,10 +8,10 @@ import (
 )
 
 func (d *DAL) UpsertTokenBaseInfo(symbol, addr, contract, maxAmt string, chainId, decimal uint64) error {
-	q := `INSERT INTO token (symbol, address, chain_id, decimal, max_amt, contract)
-                VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (symbol, chain_id) DO UPDATE
-	SET decimal = $4, address = $2, contract=$5, max_amt=$6`
-	res, err := d.Exec(q, symbol, addr, chainId, decimal, contract, maxAmt)
+	q := `INSERT INTO token (symbol, address, chain_id, decimal, max_amt, contract, update_time)
+                VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (symbol, chain_id) DO UPDATE
+	SET decimal = $4, address = $2, contract=$5, max_amt=$6, update_time=$7`
+	res, err := d.Exec(q, symbol, addr, chainId, decimal, contract, maxAmt, now())
 	return sqldb.ChkExec(res, err, 1, "UpsertTokenBaseInfo")
 }
 
@@ -66,7 +66,7 @@ func (d *DAL) GetTokenByAddr(addr string, chainId uint64) (*webapi.TokenInfo, bo
 	var symbol string
 	var decimal uint64
 	var name, icon, contract, amt string
-	q := `SELECT symbol, decimal, name, icon, max_amt, contract FROM token WHERE addr = $1 AND chain_id=$2`
+	q := `SELECT symbol, decimal, name, icon, max_amt, contract FROM token WHERE address = $1 AND chain_id=$2`
 	err := d.QueryRow(q, addr, chainId).Scan(&symbol, &decimal, &name, &icon, &amt, &contract)
 	found, err := sqldb.ChkQueryRow(err)
 	return &webapi.TokenInfo{
@@ -89,7 +89,7 @@ func (d *DAL) UpsertChain(id uint64, name, icon string) error {
 	return sqldb.ChkExec(res, err, 1, "UpsertChain")
 }
 
-func (d *DAL) GetChainTokenList() (map[uint64]*webapi.ChainTokenInfo, error) {
+func (d *DAL) GetChainTokenList() (map[uint32]*webapi.ChainTokenInfo, error) {
 	q := `SELECT symbol, chain_id, address, decimal, name, icon, max_amt, contract FROM token`
 	rows, err := d.Query(q)
 	if err != nil {
@@ -98,10 +98,10 @@ func (d *DAL) GetChainTokenList() (map[uint64]*webapi.ChainTokenInfo, error) {
 	defer closeRows(rows)
 
 	var symbol, addr string
-	var chainId, decimal uint64
+	var chainId, decimal uint32
 	var name, icon, contract, amt string
 
-	resp := make(map[uint64]*webapi.ChainTokenInfo)
+	resp := make(map[uint32]*webapi.ChainTokenInfo)
 	for rows.Next() {
 		err = rows.Scan(&symbol, &chainId, &addr, &decimal, &name, &icon, &amt, &contract)
 		if err != nil {
@@ -128,7 +128,7 @@ func (d *DAL) GetChainTokenList() (map[uint64]*webapi.ChainTokenInfo, error) {
 	return resp, nil
 }
 
-func (d *DAL) GetChainInfo(ids []uint64) ([]*webapi.Chain, error) {
+func (d *DAL) GetChainInfo(ids []uint32) ([]*webapi.Chain, error) {
 	inClause := sqldb.InClause("id", len(ids), 1)
 	q := fmt.Sprintf(`SELECT id, name, icon FROM chain WHERE %s`, inClause)
 	var params []interface{}
@@ -141,7 +141,7 @@ func (d *DAL) GetChainInfo(ids []uint64) ([]*webapi.Chain, error) {
 	}
 	defer closeRows(rows)
 
-	var id uint64
+	var id uint32
 	var name, icon string
 
 	var tps []*webapi.Chain
@@ -173,7 +173,7 @@ func (d *DAL) GetChain(id uint64) (*webapi.Chain, string, bool, error) {
 	err := d.QueryRow(q, id).Scan(&name, &icon, &url)
 	found, err := sqldb.ChkQueryRow(err)
 	return &webapi.Chain{
-		Id:   id,
+		Id:   uint32(id),
 		Name: name,
 		Icon: icon,
 	}, url, found, err

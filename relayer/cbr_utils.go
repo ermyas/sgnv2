@@ -103,9 +103,9 @@ func GatewayOnRelay(transferId, txHash string) error {
 	return dal.TransferCompleted(transferId, txHash)
 }
 
-func GatewayOnLiqAdd(
-	lpAddr, token, tokenAddr, amt, txHash string, chainId uint64,
-	status cbrtypes.LPHistoryStatus, lpType webapi.LPType, seqNum uint64) error {
+func GatewayOnLiqAdd(lpAddr, token, tokenAddr, amt, txHash string, chainId uint64, seqNum uint64) error {
+	status := cbrtypes.LPHistoryStatus_LP_WAITING_FOR_SGN
+	lpType := webapi.LPType_LP_TYPE_ADD
 	return dal.UpsertLP(lpAddr, token, tokenAddr, amt, txHash, chainId, uint64(status), uint64(lpType), seqNum)
 }
 
