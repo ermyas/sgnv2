@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	ethutils "github.com/celer-network/goutils/eth"
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -62,6 +63,7 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 		token := eth.Bytes2Addr(req.Token)
 		amt := new(big.Int).SetBytes(req.Amount)
 		balance := GetLPBalance(kv, req.Chainid, token, lpAddr)
+		log.Infoln("x/cbr lp withdraw", req.Chainid, eth.Addr2Hex(token), eth.Addr2Hex(lpAddr), amt.String(), "balance:", balance.String())
 		if balance.Cmp(amt) < 0 {
 			// balance not enough, return error
 			resp.Errmsg = &types.ErrMsg{
@@ -70,7 +72,7 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 			}
 			return nil, fmt.Errorf("lp balance %s < %s", balance, amt)
 		}
-		ChangeLiquidity(kv, req.Chainid, token, lpAddr, new(big.Int).Neg(amt)) // remove amt from lp map
+		k.Keeper.ChangeLiquidity(sdkCtx, kv, req.Chainid, token, lpAddr, new(big.Int).Neg(amt)) // remove amt from lp map
 		wdOnchain = &types.WithdrawOnchain{
 			Chainid:  req.Chainid,
 			Receiver: req.LpAddr,

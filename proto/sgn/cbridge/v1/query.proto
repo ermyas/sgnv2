@@ -1,6 +1,8 @@
 syntax = "proto3";
 package sgn.cbridge.v1;
 
+import "sgn/cbridge/v1/cbridge.proto";
+
 option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
 
 // Query defines the gRPC querier service.
@@ -93,7 +95,8 @@ message QueryWithdrawLiquidityStatusRequest {
 }
 
 message QueryLiquidityStatusResponse {
-    LPHistoryStatus status = 2;
+    LPHistoryStatus status = 1;
+    WithdrawDetail detail = 2;
 }
 
 message Token {

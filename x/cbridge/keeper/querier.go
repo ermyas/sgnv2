@@ -289,6 +289,7 @@ func queryWithdrawLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keep
 
 	resp := types.QueryLiquidityStatusResponse{
 		Status: status,
+		Detail: wd,
 	}
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, resp)
 	if err != nil {

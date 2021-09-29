@@ -42,9 +42,9 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			return false, fmt.Errorf("already applied liq add event: chainid %d seq %d", onchev.Chainid, ev.Seqnum)
 		}
 		SetEvLiqAdd(kv, onchev.Chainid, ev.Seqnum)
-		newliq := ChangeLiquidity(kv, onchev.Chainid, ev.Token, ev.Provider, ev.Amount)
+		bal := k.ChangeLiquidity(ctx, kv, onchev.Chainid, ev.Token, ev.Provider, ev.Amount)
 
-		k.Logger(ctx).Info("Applied LP add_liquidity", "LQKey", types.LiqMapKey(onchev.Chainid, ev.Token, ev.Provider), "NewAmt", newliq.String())
+		log.Infoln("x/cbr applied addLiquidity", onchev.Chainid, eth.Addr2Hex(ev.Token), eth.Addr2Hex(ev.Provider), "Balance:", bal.String())
 		return true, nil
 	case types.CbrEventSend:
 		ev, err := cbrContract.ParseSend(*elog)
@@ -108,7 +108,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 
 		// pick LPs, minus each's destChain liquidity, add src liquidity
 		randNum := new(big.Int).SetBytes(ev.TransferId[28:]).Uint64() // last 4B of xfer id
-		PickLPsAndAdjustLiquidity(kv, src, dest, ev.Amount, destAmount, feeAmt, randNum)
+		k.PickLPsAndAdjustLiquidity(ctx, kv, src, dest, ev.Amount, destAmount, feeAmt, randNum)
 
 		relayOnchain := &types.RelayOnChain{
 			Sender:        ev.Sender[:],

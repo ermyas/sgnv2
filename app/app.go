@@ -263,9 +263,9 @@ func NewSgnApp(
 	app.CbridgeKeeper = cbridgekeeper.NewKeeper(
 		appCodec,
 		keys[cbridgetypes.StoreKey],
-		keys[cbridgetypes.MemStoreKey],
 		app.GetSubspace(cbridgetypes.ModuleName),
 		stakingKeeper,
+		app.FarmingKeeper,
 	)
 	app.SyncKeeper = synckeeper.NewKeeper(
 		appCodec, keys[synctypes.StoreKey], stakingKeeper, app.GetSubspace(synctypes.ModuleName), app.CbridgeKeeper,

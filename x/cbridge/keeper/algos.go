@@ -27,7 +27,7 @@ type AddrHexAmtInt struct {
 // pick LPs, minus each's destChain liquidity and add srcChain liq
 // for each lp, try to use all he has, if enough, we are good, if not, we move on to next LP
 // fee and add liq on src are calculated based on ratio this LP contributed into destAmount
-func PickLPsAndAdjustLiquidity(kv sdk.KVStore, src, dest *ChainIdTokenAddr, srcAmount, destAmount, fee *big.Int, randN uint64) {
+func (k Keeper) PickLPsAndAdjustLiquidity(ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdTokenAddr, srcAmount, destAmount, fee *big.Int, randN uint64) {
 	lpFeePerc := new(big.Int).SetBytes(kv.Get(types.CfgKeyFeePerc))
 	totalLpFee := new(big.Int).Mul(fee, lpFeePerc)
 	totalLpFee.Div(totalLpFee, big.NewInt(100))
@@ -66,13 +66,13 @@ func PickLPsAndAdjustLiquidity(kv sdk.KVStore, src, dest *ChainIdTokenAddr, srcA
 		earnedFee := new(big.Int).Mul(used, totalLpFee)
 		earnedFee.Div(earnedFee, destAmount)
 		// on dest chain, minus used, plus earnedfee
-		ChangeLiquidity(kv, dest.ChId, dest.TokenAddr, lpAddr, new(big.Int).Sub(earnedFee, used))
+		k.ChangeLiquidity(ctx, kv, dest.ChId, dest.TokenAddr, lpAddr, new(big.Int).Sub(earnedFee, used))
 		AddLPFee(kv, dest.ChId, dest.TokenAddr, lpAddr, earnedFee)
 		// add LP liquidity on src chain, toadd = srcAmt * used/destAmt
 		addOnSrc := new(big.Int).Mul(used, srcAmount)
 		addOnSrc.Div(addOnSrc, destAmount)
 		if addOnSrc.Sign() == 1 {
-			ChangeLiquidity(kv, src.ChId, src.TokenAddr, lpAddr, addOnSrc)
+			k.ChangeLiquidity(ctx, kv, src.ChId, src.TokenAddr, lpAddr, addOnSrc)
 		}
 	}
 	if toAllocate.Sign() == 1 {

@@ -3,6 +3,7 @@ package multinode
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/celer-network/goutils/log"
 	tc "github.com/celer-network/sgn-v2/test/common"
@@ -77,4 +78,19 @@ func cbridgeTest(t *testing.T) {
 	xferId, err := tc.CbrClient1.Send(xferAmt, tc.ValEthAddrs[0], tc.Geth2ChainID, 1)
 	tc.ChkErr(err, "client1 send")
 	tc.CheckXfer(transactor, xferId[:])
+
+	log.Infoln("======================== LP withdraw liquidity ===========================")
+	chainId := uint64(883)
+	wdSeq, err := tc.CbrClient1.StartWithdraw(transactor, chainId, big.NewInt(1e10))
+	tc.ChkErr(err, "client1 start withdraw")
+	log.Info("withdraw seqnum: ", wdSeq)
+	// now sleep and get stuff to send onchain
+	time.Sleep(time.Second * 10)
+	detail, err := tc.CbrClient1.GetWithdrawDetail(transactor, wdSeq)
+	tc.ChkErr(err, "client1 get withdrawdetail")
+	curss, err := tc.CbrClient1.GetCurSortedSigners(transactor, chainId)
+	tc.ChkErr(err, "client1 GetCurSortedSigners")
+	err = tc.CbrClient1.OnchainWithdraw(detail, curss)
+	tc.ChkErr(err, "client1 onchain withdraw")
+	// todo: more cases, eg. lp2 withdraw from chain1 after xfer
 }

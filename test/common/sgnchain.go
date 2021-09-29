@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"sort"
 	"testing"
 	"time"
@@ -261,4 +262,41 @@ func CheckXfer(transactor *transactor.Transactor, xferId []byte) {
 	if resp.Status[xferIdStr] != cbrtypes.TransferHistoryStatus_TRANSFER_COMPLETED {
 		log.Fatalln("incorrect status")
 	}
+}
+
+// call initwithdraw and return withdraw seqnum
+func (c *CbrClient) StartWithdraw(transactor *transactor.Transactor, chid uint64, amt *big.Int) (uint64, error) {
+	resp, err := bridgecli.InitWithdraw(transactor, &cbrtypes.MsgInitWithdraw{
+		Chainid: chid,
+		LpAddr:  c.Auth.From[:],
+		Token:   c.USDTAddr[:],
+		Amount:  amt.Bytes(),
+		Creator: transactor.Key.GetAddress().String(),
+	})
+	if err != nil {
+		return 0, err
+	}
+	if resp.Errmsg != nil {
+		return 0, errors.New(resp.Errmsg.String())
+	}
+	return resp.Seqnum, nil
+}
+
+func (c *CbrClient) GetWithdrawDetail(transactor *transactor.Transactor, wdseq uint64) (*cbrtypes.WithdrawDetail, error) {
+	resp, err := bridgecli.QueryWithdrawLiquidityStatus(transactor.CliCtx, &cbrtypes.QueryWithdrawLiquidityStatusRequest{
+		SeqNum: wdseq,
+	})
+	if err != nil {
+		return nil, err
+	}
+	log.Infoln("wdseq", wdseq, "status:", resp.Status)
+	return resp.Detail, err
+}
+
+func (c *CbrClient) GetCurSortedSigners(transactor *transactor.Transactor, chid uint64) ([]byte, error) {
+	signers, err := bridgecli.QueryChainSigners(transactor.CliCtx, chid)
+	if err != nil {
+		return nil, err
+	}
+	return signers.SignersBytes, nil
 }

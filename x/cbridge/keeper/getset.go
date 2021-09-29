@@ -15,7 +15,8 @@ import (
 
 // add delta to liq map, also update per lp info for query, if delta is negative, means deduct
 // return updated value
-func ChangeLiquidity(kv sdk.KVStore, chid uint64, token, lp eth.Addr, delta *big.Int) *big.Int {
+// also need to call farm stake/unstake, so we have to keep k and ctx
+func (k Keeper) ChangeLiquidity(ctx sdk.Context, kv sdk.KVStore, chid uint64, token, lp eth.Addr, delta *big.Int) *big.Int {
 	lqKey := types.LiqMapKey(chid, token, lp)
 	value := kv.Get(lqKey)
 	had := new(big.Int).SetBytes(value)
@@ -24,7 +25,14 @@ func ChangeLiquidity(kv sdk.KVStore, chid uint64, token, lp eth.Addr, delta *big
 		panic(string(lqKey) + " negative liquidity: " + had.String())
 	}
 	kv.Set(lqKey, []byte(had.Bytes()))
-	// todo: add to per lp info for query
+	/*
+		sym := GetAssetSymbol(kv, &ChainIdTokenAddr{chid, token})
+		if delta.Sign() == 1 {
+			k.FarmStake(ctx, sym, chid, lp, delta)
+		} else if delta.Sign() == -1 {
+			k.FarmUnStake(ctx, sym, chid, lp, delta)
+		}
+	*/
 	return had
 }
 

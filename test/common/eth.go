@@ -351,3 +351,12 @@ func (c *CbrClient) SetInitSigners(amts []*big.Int) error {
 	_, err = ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
 	return err
 }
+
+func (c *CbrClient) OnchainWithdraw(wdDetail *cbrtypes.WithdrawDetail, curss []byte) error {
+	tx, err := c.CbrContract.Withdraw(c.Auth, wdDetail.WdOnchain, curss, wdDetail.GetSortedSigsBytes())
+	if err != nil {
+		return err
+	}
+	_, err = ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
+	return err
+}

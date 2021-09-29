@@ -146,14 +146,6 @@ func (r *Relayer) monitorCbrToSign() {
 	})
 }
 
-// todo: zhihua/aric save MsgInitWithdrawResp or MsgSignAgainResp by req_id
-// so gateway can know the result
-func (r *Relayer) monitorCbrMsgResp() {
-	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, cbrtypes.EventMsgResp, func(e abci.Event) {
-		// EvAttrMsgType is MsgInitWithdrawResp or MsgSignAgainResp
-	})
-}
-
 func (r *Relayer) monitorSgnFarmingClaimAllEvent() {
 	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, farmingtypes.EventTypeClaimAll, func(e abci.Event) {
 		if !r.isBonded() {

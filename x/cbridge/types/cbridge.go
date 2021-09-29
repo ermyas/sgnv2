@@ -16,6 +16,17 @@ func (m *XferRelay) GetSortedSigsBytes() [][]byte {
 	return nil
 }
 
+func (m *WithdrawDetail) GetSortedSigsBytes() [][]byte {
+	if m != nil {
+		sigs := make([][]byte, len(m.SortedSigs))
+		for i := range m.SortedSigs {
+			sigs[i] = m.SortedSigs[i].Sig
+		}
+		return sigs
+	}
+	return nil
+}
+
 func (m *XferRelay) SignersStr() string {
 	var signers string
 	for _, s := range m.SortedSigs {
