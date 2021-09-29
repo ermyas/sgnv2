@@ -4,24 +4,39 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/celer-network/sgn-v2/gateway/fee"
-	"github.com/celer-network/sgn-v2/gateway/webapi"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"github.com/rs/cors"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/celer-network/sgn-v2/gateway/fee"
+	"github.com/celer-network/sgn-v2/gateway/webapi"
+	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/rs/cors"
 
 	"github.com/celer-network/goutils/log"
 	"google.golang.org/grpc"
 )
 
 var (
-	port    = flag.Int("port", 8080, "Listening port")
+	port    = flag.Int("port", 8081, "Listening port")
 	rpcPort = flag.Int("rpc", 10000, "Listening port for rpc")
 )
 
-func InitGateway() {
+func InitGateway(
+	_homeDir string,
+	_legacyAmino *codec.LegacyAmino,
+	_cdc codec.Codec,
+	_interfaceRegistry codectypes.InterfaceRegistry,
+	_selfStart bool) {
+
+	rootDir = _homeDir
+	legacyAmino = _legacyAmino
+	cdc = _cdc
+	interfaceRegistry = _interfaceRegistry
+	selfStart = _selfStart
+
 	flag.Parse()
 	log.Infof("Starting gateway at rest:%d, grpc:%d", *port, *rpcPort)
 

@@ -10,6 +10,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	appparams "github.com/celer-network/sgn-v2/app/params"
 	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/gateway"
 	"github.com/celer-network/sgn-v2/relayer"
 	"github.com/celer-network/sgn-v2/x/cbridge"
 	cbridgekeeper "github.com/celer-network/sgn-v2/x/cbridge/keeper"
@@ -130,9 +131,8 @@ type SgnApp struct {
 	invCheckPeriod uint
 
 	// keys to access the substores
-	keys    map[string]*sdk.KVStoreKey
-	tKeys   map[string]*sdk.TransientStoreKey
-	memKeys map[string]*sdk.MemoryStoreKey
+	keys  map[string]*sdk.KVStoreKey
+	tKeys map[string]*sdk.TransientStoreKey
 
 	// keepers
 	AccountKeeper authkeeper.AccountKeeper
@@ -403,6 +403,16 @@ func NewSgnApp(
 
 	// Piggy-back starting the relayer
 	go app.startRelayer(db, tmCfg, homePath)
+
+	if viper.GetBool(common.FlagToStartGateway) {
+		log.Infoln("starting gateway...")
+		go gateway.InitGateway(
+			homePath,
+			app.legacyAmino,
+			app.appCodec,
+			app.interfaceRegistry,
+			false)
+	}
 
 	return app
 }

@@ -1,7 +1,13 @@
 package main
 
-import "github.com/celer-network/sgn-v2/gateway"
+import (
+	"os"
+
+	"github.com/celer-network/sgn-v2/app"
+	"github.com/celer-network/sgn-v2/gateway"
+)
 
 func main() {
-	gateway.InitGateway()
+	encodingConfig := app.MakeEncodingConfig()
+	gateway.InitGateway(os.ExpandEnv("$HOME/.sgnd"), encodingConfig.Amino, encodingConfig.Codec, encodingConfig.InterfaceRegistry, true)
 }

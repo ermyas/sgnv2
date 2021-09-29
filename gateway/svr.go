@@ -3,8 +3,12 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"math/big"
+	"path/filepath"
+	"strconv"
+	"time"
+
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/app"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/fee"
@@ -13,17 +17,21 @@ import (
 	"github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
-	github_com_cosmos_cosmos_sdk_types "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/lthibault/jitterbug"
 	"github.com/spf13/viper"
-	"math/big"
-	"os"
-	"path/filepath"
-	"strconv"
-	"time"
+)
+
+var (
+	selfStart         bool
+	rootDir           string
+	legacyAmino       *codec.LegacyAmino
+	cdc               codec.Codec
+	interfaceRegistry codectypes.InterfaceRegistry
 )
 
 // Close the database DAL.
@@ -495,16 +503,19 @@ func (gs *GatewayService) LPHistory(ctx context.Context, request *webapi.LPHisto
 }
 
 func NewGatewayService(dbUrl string) (*GatewayService, error) {
-	config := sdk.GetConfig()
-	config.SetBech32PrefixForAccount(common.Bech32PrefixAccAddr, common.Bech32PrefixAccPub)
-	config.SetBech32PrefixForValidator(common.Bech32PrefixValAddr, common.Bech32PrefixValPub)
-	config.SetBech32PrefixForConsensusNode(common.Bech32PrefixConsAddr, common.Bech32PrefixConsPub)
-	config.Seal()
+	if selfStart {
+		config := sdk.GetConfig()
+		config.SetBech32PrefixForAccount(common.Bech32PrefixAccAddr, common.Bech32PrefixAccPub)
+		config.SetBech32PrefixForValidator(common.Bech32PrefixValAddr, common.Bech32PrefixValPub)
+		config.SetBech32PrefixForConsensusNode(common.Bech32PrefixConsAddr, common.Bech32PrefixConsPub)
+		config.Seal()
+	}
 	// Make a private config copy.
 	_db, err := dal.NewDAL("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", dbUrl), 10)
 	if err != nil {
 		return nil, err
 	}
+
 	dal.DB = _db
 	gateway := &GatewayService{}
 
@@ -633,23 +644,23 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 }
 
 func (gs *GatewayService) initTransactor() error {
-	rootDir := os.ExpandEnv("$HOME/.sgnd")
-	configFilePath := filepath.Join(rootDir, "config", "sgn.toml")
-	viper.SetConfigFile(configFilePath)
-	if err := viper.ReadInConfig(); err != nil {
-		return fmt.Errorf("failed to read in SGN configuration: %w", err)
+	if selfStart {
+		configFilePath := filepath.Join(rootDir, "config", "sgn.toml")
+		viper.SetConfigFile(configFilePath)
+		if err := viper.ReadInConfig(); err != nil {
+			return fmt.Errorf("failed to read in SGN configuration: %w", err)
+		}
 	}
 
-	encodingConfig := app.MakeEncodingConfig()
 	tr, err := transactor.NewTransactor(
 		rootDir,
 		viper.GetString(common.FlagSgnChainId),
 		viper.GetString(common.FlagSgnNodeURI),
 		viper.GetString(common.FlagSgnValidatorAccount),
 		viper.GetString(common.FlagSgnPassphrase),
-		encodingConfig.Amino,
-		encodingConfig.Codec,
-		encodingConfig.InterfaceRegistry,
+		legacyAmino,
+		cdc,
+		interfaceRegistry,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to new transactor: %w", err)
@@ -750,7 +761,7 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 		token := pool.GetStakeToken()
 
 		totalStakedAmount := pool.TotalStakedAmount
-		var totalReward github_com_cosmos_cosmos_sdk_types.Dec
+		var totalReward sdk.Dec
 		for _, reward := range pool.GetRewardTokenInfos() {
 			totalReward = totalReward.Add(reward.RewardAmountPerBlock)
 		}

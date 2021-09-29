@@ -41,6 +41,8 @@ const (
 	FlagLogLevel = "log.level"
 	FlagLogColor = "log.color"
 
+	FlagToStartGateway = "gateway.start_gateway"
+
 	FlagMultiChain = "multichain" // array of toml tables, each table represents one chain, see common/multichain.go for details
 )
 

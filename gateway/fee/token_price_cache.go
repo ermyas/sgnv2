@@ -3,12 +3,6 @@ package fee
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/transactor"
-	"github.com/celer-network/sgn-v2/x/cbridge/client/cli"
-	"github.com/celer-network/sgn-v2/x/cbridge/types"
-	"github.com/lthibault/jitterbug"
-	"gopkg.in/resty.v1"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -16,6 +10,13 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/transactor"
+	"github.com/celer-network/sgn-v2/x/cbridge/client/cli"
+	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	"github.com/lthibault/jitterbug"
+	"gopkg.in/resty.v1"
 )
 
 const priceApiUrl = "https://api.coingecko.com/api/v3/simple/price"
@@ -173,9 +174,13 @@ func (t *TokenPriceCache) cacheTokenData() error {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	file, err := ioutil.ReadFile(dir + "/fee/token_info.json")
 	if err != nil {
-		log.Fatal(err)
+		file, err = ioutil.ReadFile(dir + "/gateway/fee/token_info.json") //try another way
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	err = json.Unmarshal(file, &tokens)
 	if err != nil {
