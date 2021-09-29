@@ -56,6 +56,13 @@ func (k Keeper) SetDelegationShares(
 ) {
 	store := ctx.KVStore(k.storeKey)
 	value := store.Get(types.GetDelegationKey(delAddr, valAddr))
+	if k.Validator(ctx, valAddr) == nil {
+		// The delegation happened before we have seen the validator. Add a placeholder for distribution.
+		k.SetValidator(ctx, &types.Validator{
+			EthAddress:      eth.Addr2Hex(valAddr),
+			DelegatorShares: shares,
+		})
+	}
 	// call the appropriate hook if present
 	if value == nil {
 		// New delegation

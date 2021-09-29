@@ -206,7 +206,7 @@ func (k Keeper) GetUpdatedValidators(ctx sdk.Context) (validators types.Validato
 	return validators
 }
 
-// get the list of temdermint abci.ValidatorUpdate
+// get the list of Tendermint abci.ValidatorUpdate
 func (k Keeper) TmValidatorUpdates(ctx sdk.Context) (updates []abci.ValidatorUpdate) {
 	powerReduction := k.PowerReduction(ctx)
 	updatedVals := k.GetUpdatedValidators(ctx)

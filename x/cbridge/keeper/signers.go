@@ -41,8 +41,8 @@ func (k Keeper) SetLatestSigners(ctx sdk.Context, s *types.LatestSigners) {
 func (k Keeper) UpdateLatestSigners(ctx sdk.Context, force bool) {
 	latestSigners, found := k.GetLatestSigners(ctx)
 	if found && !force {
-		duraion := k.GetSignerUpdateDuraion(ctx)
-		if latestSigners.GetUpdateTime().Add(duraion).Before(ctx.BlockHeader().Time) {
+		duration := k.GetSignerUpdateDuration(ctx)
+		if latestSigners.GetUpdateTime().Add(duration).Before(ctx.BlockHeader().Time) {
 			return
 		}
 	}

@@ -29,7 +29,7 @@ const (
 	DisputeTimeout   = 100
 
 	RetryPeriod = 300 * time.Millisecond
-	RetryLimit  = 100
+	RetryLimit  = 200
 )
 
 var (
