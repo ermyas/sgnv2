@@ -47,9 +47,7 @@ func (k *Keeper) SetHooks(sh types.StakingHooks) *Keeper {
 	if k.hooks != nil {
 		panic("cannot set validator hooks twice")
 	}
-
 	k.hooks = sh
-
 	return k
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	"sync"
 	"time"
 
 	ethutils "github.com/celer-network/goutils/eth"
@@ -48,13 +49,13 @@ func (c *cbrContract) GetABI() string {
 	return eth.BridgeABI
 }
 
-type curSs struct {
+type sortedSigners struct {
 	signers *cbrtypes.SortedSigners
 	bytes   []byte
 	updated bool
 }
 
-func (s *curSs) setSigners(bytes []byte) {
+func (s *sortedSigners) setSigners(bytes []byte) {
 	s.bytes = bytes
 	s.signers.Unmarshal(bytes)
 }
@@ -66,7 +67,8 @@ type CbrOneChain struct {
 	mon      *monitor.Service
 	contract *cbrContract
 	db       *dbm.PrefixDB // cbr-xxx xxx is chainid
-	curss    *curSs
+	curss    *sortedSigners
+	lock     sync.RWMutex
 }
 
 // key is chainid
@@ -133,7 +135,7 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 			Address: eth.Hex2Addr(cfg.CBridge),
 		},
 		db: dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID))),
-		curss: &curSs{
+		curss: &sortedSigners{
 			signers: &cbrtypes.SortedSigners{},
 		},
 	}
@@ -142,7 +144,7 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 		log.Warnf("failed to get chain %d signers: %s", cfg.ChainID, err)
 	} else {
 		log.Infoln("Set chain signers:", chainSigners.String())
-		ret.curss.setSigners(chainSigners.GetSignersBytes())
+		ret.setCurss(chainSigners.GetSignersBytes())
 	}
 	ret.startMon()
 	return ret

@@ -1,8 +1,6 @@
 package relayer
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"sort"
 	"time"
@@ -15,7 +13,6 @@ import (
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -98,8 +95,8 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 		return
 	}
 
-	curss := r.cbrMgr[relayOnChain.DstChainId].curss
-	pass := r.validateCbrSigs(relay.SortedSigs, curss.signers)
+	curss := r.cbrMgr[relayOnChain.DstChainId].getCurss()
+	pass := validateCbrSigs(relay.SortedSigs, curss.signers)
 	if !pass {
 		log.Debugf("%s. Not have enough sigs", logmsg)
 		r.requeueRelay(relayEvent)
@@ -150,9 +147,11 @@ func (c *CbrOneChain) pullEvents(chid uint64) []*synctypes.ProposeUpdate {
 	var ret []*synctypes.ProposeUpdate
 	// 1st loop over event names, then go over iter
 	for _, evn := range evNames {
+		c.lock.RLock()
 		iter, err := c.db.Iterator([]byte(evn), storetypes.PrefixEndBytes([]byte(evn)))
 		if err != nil {
 			log.Errorln("chainID:", chid, evn, "iter err:", err)
+			c.lock.RUnlock()
 			continue
 		}
 		for ; iter.Valid(); iter.Next() {
@@ -170,77 +169,9 @@ func (c *CbrOneChain) pullEvents(chid uint64) []*synctypes.ProposeUpdate {
 			})
 		}
 		iter.Close()
+		c.lock.RUnlock()
 	}
 	return ret
-}
-
-// to be called by r.verifyUpdate
-// decode event and check if I also have event in db
-// TODO: query x/cbridge to make sure event not processed
-// data is marshaled OnChainEvent, see above line 53
-func (r *Relayer) verifyCbrEventUpdate(data []byte) (done, approve bool) {
-	onchev := new(cbrtypes.OnChainEvent)
-	err := onchev.Unmarshal(data)
-	if err != nil {
-		log.Errorf("failed to unmarshal %x to onchain event msg", data)
-		return true, false
-	}
-	elog := new(ethtypes.Log)
-	err = json.Unmarshal(onchev.Elog, elog)
-	if err != nil {
-		log.Errorf("failed to unmarshal %x to eth Log", onchev.Elog)
-		return true, false
-	}
-
-	// delete my local db event so this event won't be picked again when I become syncer
-	defer r.cbrMgr[onchev.Chainid].delEvent(onchev.Evtype, elog.BlockNumber, uint64(elog.Index))
-
-	// now we directly verify this event onchain
-	// why we have to do onchain check instead of local db only: our local db could
-	// be behind so we can't differentiate not yet see event vs. faked event
-	// only onchain query can give us 100% certainty
-	// we have 2 ways: getTransactionReceipt or getLogs
-	retry, err := r.cbrMgr[onchev.Chainid].CheckEvent(onchev.Evtype, elog)
-	if err != nil {
-		if retry {
-			return false, false // onchain error, so don't vote
-		} else {
-			return true, false
-		}
-
-	}
-	// event is the same as onchain, now move on to per event logic
-	// eg. query x/cbridge if this event has already been handled
-	// but if we only query applied state, we may still vote again?
-	// unless we can query x/cbridge w/ state plus pending?
-	// TODO: query x/cbridge
-
-	// now per event logic
-	switch onchev.Evtype {
-	case CbrEventLiqAdd:
-		// if chid-seq already processed, return true, false
-		return true, true
-	case CbrEventSend:
-		// if transferid is waiting for vote status, return true, true
-		// otherwise, true, false
-		return true, true
-	case CbrEventRelay:
-		// this event means syncer already submitted relay tx onchain
-		return true, true
-	case CbrEventSignersUpdated:
-		ev, err := r.cbrMgr[onchev.Chainid].contract.ParseSignersUpdated(*elog)
-		if err != nil {
-			return true, false
-		}
-		storedChainSigners, err := cbrcli.QueryChainSigners(r.Transactor.CliCtx, onchev.Chainid)
-		if err == nil {
-			if bytes.Compare(storedChainSigners.GetSignersBytes(), ev.CurSigners) == 0 {
-				return true, false
-			}
-		}
-		return true, true
-	}
-	return true, false
 }
 
 func (r *Relayer) updateSigners(latestSs *cbrtypes.LatestSigners) {
@@ -259,7 +190,7 @@ func (r *Relayer) updateSigners(latestSs *cbrtypes.LatestSigners) {
 		// TODO: fine-grainded per chain updated flag
 		updated = false
 
-		if !r.validateCbrSigs(latestSs.SortedSigs, c.curss.signers) {
+		if !validateCbrSigs(latestSs.SortedSigs, c.curss.signers) {
 			log.Infof("chain %d signers not enough yet", chainId)
 			continue
 		}

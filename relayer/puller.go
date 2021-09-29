@@ -19,6 +19,7 @@ func (r *Relayer) processPullerQueue() {
 	iterator, err := r.db.Iterator(PullerKeyPrefix, storetypes.PrefixEndBytes(PullerKeyPrefix))
 	if err != nil {
 		log.Errorln("Create db iterator err", err)
+		r.lock.RUnlock()
 		return
 	}
 	for ; iterator.Valid(); iterator.Next() {

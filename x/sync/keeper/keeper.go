@@ -2,7 +2,7 @@ package keeper
 
 import (
 	cbrkeeper "github.com/celer-network/sgn-v2/x/cbridge/keeper"
-	stakingkeeper "github.com/celer-network/sgn-v2/x/staking/keeper"
+	"github.com/celer-network/sgn-v2/x/sync/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdk_bank "github.com/cosmos/cosmos-sdk/x/bank/keeper"
@@ -15,7 +15,7 @@ type Keeper struct {
 	storeKey      sdk.StoreKey      // Unexposed key to access store from sdk.Context
 	paramstore    sdk_params.Subspace
 	bankKeeper    sdk_bank.Keeper
-	stakingKeeper stakingkeeper.Keeper
+	stakingKeeper types.StakingKeeper
 	cbrKeeper     cbrkeeper.Keeper
 }
 
@@ -23,7 +23,7 @@ type Keeper struct {
 func NewKeeper(
 	cdc codec.BinaryCodec,
 	storeKey sdk.StoreKey,
-	stakingKeeper stakingkeeper.Keeper,
+	stakingKeeper types.StakingKeeper,
 	paramstore sdk_params.Subspace,
 	cbr cbrkeeper.Keeper,
 ) Keeper {

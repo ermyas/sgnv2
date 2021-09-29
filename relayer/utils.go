@@ -6,7 +6,6 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
-	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	mapset "github.com/deckarep/golang-set"
@@ -119,42 +118,4 @@ func (r *Relayer) validateSigs(signedValidators mapset.Set) (pass bool) {
 	}
 	quorumStake := totalStake.MulRaw(2).QuoRaw(3)
 	return votingStake.GT(quorumStake)
-}
-
-func (r *Relayer) validateCbrSigs(sigs []*cbrtypes.AddrSig, curss *cbrtypes.SortedSigners) bool {
-	if len(curss.GetSigners()) == 0 {
-		return false
-	}
-	totalPower := big.NewInt(0)
-	cursMap := make(map[eth.Addr]*cbrtypes.AddrAmt)
-	for _, s := range curss.GetSigners() {
-		power := big.NewInt(0).SetBytes(s.Amt)
-		totalPower.Add(totalPower, power)
-		cursMap[eth.Bytes2Addr(s.Addr)] = s
-	}
-
-	signedPower := big.NewInt(0)
-	i := 0
-	for _, s := range sigs {
-		if addrAmt, ok := cursMap[eth.Bytes2Addr(s.Addr)]; ok {
-			power := big.NewInt(0).SetBytes(addrAmt.Amt)
-			signedPower.Add(signedPower, power)
-			sigs[i] = s
-			i++
-		}
-	}
-	// truncate sigs not in the current signers set
-	for j := i; j < len(sigs); j++ {
-		sigs[j] = nil
-	}
-	sigs = sigs[:i]
-
-	quorumStake := big.NewInt(0).Mul(totalPower, big.NewInt(2))
-	quorumStake = quorumStake.Quo(quorumStake, big.NewInt(3))
-
-	if signedPower.Cmp(quorumStake) > 0 {
-		return true
-	}
-
-	return false
 }

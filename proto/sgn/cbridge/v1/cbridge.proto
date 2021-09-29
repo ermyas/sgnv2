@@ -71,6 +71,8 @@ message RelayOnChain {
 
 // data when call withdraw onchain
 message WithdrawOnchain {
+  option (gogoproto.goproto_stringer) = false;
+
   uint64 chainid = 1;
   uint64 seqnum = 2; // global unique across chains, assigned by sgn
   bytes receiver = 3;

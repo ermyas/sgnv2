@@ -89,3 +89,11 @@ func (r *RelayOnChain) String() string {
 	return fmt.Sprintf("sender %x, receiver %x, token %x, amount %s, src_chain_id %d, dst_chain_id %d, src_xfer_id %x",
 		r.Sender, r.Receiver, r.Token, big.NewInt(0).SetBytes(r.Amount), r.SrcChainId, r.DstChainId, r.SrcTransferId)
 }
+
+func (w *WithdrawOnchain) String() string {
+	if w == nil {
+		return ""
+	}
+	return fmt.Sprintf("chainid %d, seqnum %d, receiver %x, token %x, amount %d",
+		w.Chainid, w.Seqnum, w.Receiver, w.Token, big.NewInt(0).SetBytes(w.Amount))
+}

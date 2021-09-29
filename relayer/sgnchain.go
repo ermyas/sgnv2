@@ -106,41 +106,55 @@ func (r *Relayer) handleSlash(slashEvent SlashEvent) {
 
 func (r *Relayer) monitorCbrToSign() {
 	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, EventCbridge, func(e abci.Event) {
-		log.Infoln("monitorCbrToSign, eventType: ", e.Type)
 		if e.Type != cbrtypes.EventToSign {
 			return
 		}
+		log.Infoln("monitorCbrToSign, eventType: ", e.Type)
 		if !r.isBonded() {
 			return
 		}
 		event := sdk.StringifyEvent(e)
 		// sign data first
 		data := []byte(event.Attributes[1].Value)
-		sig, _ := r.EthClient.SignEthMessage(data)
+		sig, err := r.EthClient.SignEthMessage(data)
+		if err != nil {
+			log.Error(err)
+			return
+		}
 		msg := &cbrtypes.MsgSendMySig{
 			Data:    data,
 			MySig:   sig,
 			Creator: r.Transactor.Key.GetAddress().String(),
 		}
+		logmsg := fmt.Sprintf("Sign cBridge data %s", event.Attributes[0])
 		switch event.Attributes[0].Value {
 		case cbrtypes.SignDataType_RELAY.String():
 			msg.Datatype = cbrtypes.SignDataType_RELAY
 			relay := new(cbrtypes.RelayOnChain)
-			err := relay.Unmarshal(data)
+			err = relay.Unmarshal(data)
 			if err != nil {
-				log.Errorln("failed to unmarshal XrefRelay", err)
+				log.Errorf("%s, failed to unmarshal XrefRelay: %s", logmsg, err)
 				return
 			}
 			relayEvent := NewRelayEvent(relay.SrcTransferId)
 			err = r.dbSet(GetCbrXferKey(relayEvent.XferId), relayEvent.MustMarshal())
 			if err != nil {
-				log.Errorln("db Set err", err)
+				log.Errorf("%s, db Set err: %s", logmsg, err)
 			}
+			log.Infof("%s: %s", logmsg, relay.String())
 		case cbrtypes.SignDataType_WITHDRAW.String():
 			msg.Datatype = cbrtypes.SignDataType_WITHDRAW
+			log.Infof("%s", logmsg)
 		case cbrtypes.SignDataType_SIGNERS.String():
 			msg.Datatype = cbrtypes.SignDataType_SIGNERS
-			r.setCbrSsUpdating()
+			//r.setCbrSsUpdating()
+			ss := new(cbrtypes.SortedSigners)
+			err = ss.Unmarshal(data)
+			if err != nil {
+				log.Errorf("%s, failed to unmarshal sorted signers: %s", logmsg, err)
+				return
+			}
+			log.Infof("%s: %s", logmsg, ss.String())
 		}
 		r.Transactor.AddTxMsg(msg)
 	})

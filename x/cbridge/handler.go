@@ -24,6 +24,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		case *types.MsgSendMySig:
 			res, err := msgServer.SendMySig(sdk.WrapSDKContext(ctx), msg)
 			return sdk.WrapServiceResult(ctx, res, err)
+
 		case *types.MsgSignAgain:
 			res, err := msgServer.SignAgain(sdk.WrapSDKContext(ctx), msg)
 			return sdk.WrapServiceResult(ctx, res, err)

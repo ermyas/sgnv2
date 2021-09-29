@@ -3,18 +3,12 @@ package keeper
 import (
 	"github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdk_params "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 // Default parameter namespace
 const (
 	DefaultParamspace = types.ModuleName
 )
-
-// ParamTable for validator module
-func ParamKeyTable() sdk_params.KeyTable {
-	return sdk_params.NewKeyTable().RegisterParamSet(&types.Params{})
-}
 
 // SyncerDuration - syncer duration
 func (k Keeper) SyncerDuration(ctx sdk.Context) (res uint64) {

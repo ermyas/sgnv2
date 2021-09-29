@@ -1,25 +1,18 @@
 package relayer
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
 
-	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/eth"
-	"github.com/celer-network/sgn-v2/gateway/dal"
-	"github.com/celer-network/sgn-v2/gateway/webapi"
-	"github.com/celer-network/sgn-v2/x/cbridge/types"
-
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/eth/monitor"
 	"github.com/celer-network/goutils/log"
-
+	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/gateway/webapi"
+	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 const (
@@ -78,9 +71,6 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 		return false
 	})
 }
-func GatewayOnSend(transferId string) error {
-	return dal.UpdateTransferStatus(transferId, uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE))
-}
 
 func (c *CbrOneChain) monRelay(blk *big.Int) {
 	cfg := &monitor.Config{
@@ -106,9 +96,6 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 		}
 		return false
 	})
-}
-func GatewayOnRelay(transferId, txHash string) error {
-	return dal.TransferCompleted(transferId, txHash)
 }
 
 func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
@@ -142,9 +129,6 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 		return false
 	})
 }
-func GatewayOnLiqAdd(lpAddr, token, tokenAddr, amt, txHash string, chainId uint64, status types.LPHistoryStatus, lpType webapi.LPType, seqNum uint64) error {
-	return dal.UpsertLP(lpAddr, token, tokenAddr, amt, txHash, chainId, uint64(status), uint64(lpType), seqNum)
-}
 
 func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 	cfg := &monitor.Config{
@@ -168,23 +152,6 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 		return false
 	})
 }
-func GatewayOnLiqWithdraw(seqNum uint64) {
-	transferId, found, err := dal.GetTransferBySeqNum(seqNum)
-	if err != nil {
-		log.Errorln("error when get transfer by seq num:", err)
-	}
-	if found {
-		dbErr := dal.UpdateTransferStatus(transferId, uint64(types.TransferHistoryStatus_TRANSFER_REFUNDED))
-		if dbErr != nil {
-			log.Errorln("db when UpdateTransferStatus to TRANSFER_REFUNDED err:", err)
-		}
-	} else {
-		dbErr := dal.UpdateLPStatus(seqNum, uint64(types.LPHistoryStatus_LP_COMPLETED))
-		if dbErr != nil {
-			log.Errorln("db when UpdateLPStatus to LP_COMPLETED err:", err)
-		}
-	}
-}
 
 func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 	cfg := &monitor.Config{
@@ -205,48 +172,10 @@ func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 			log.Errorf("%s, saveEvent err: %s", logmsg, err)
 			return true // ask to recreate to process event again
 		}
-		c.curss.setSigners(ev.CurSigners)
-		log.Infoln(logmsg, c.curss.signers.String())
+		c.setCurss(ev.CurSigners)
+		log.Infoln(logmsg, c.getCurss().signers.String())
 		return false
 	})
-}
-
-// each event's key is name-blkNum-index, value is json marshaled elog
-func (c *CbrOneChain) saveEvent(name string, elog ethtypes.Log) error {
-	key := fmt.Sprintf("%s-%d-%d", name, elog.BlockNumber, elog.Index)
-	val, _ := json.Marshal(elog)
-	return c.db.Set([]byte(key), val)
-}
-
-func (c *CbrOneChain) delEvent(name string, blknum, idx uint64) error {
-	return c.db.Delete([]byte(fmt.Sprintf("%s-%d-%d", name, blknum, idx)))
-}
-
-// query chain to verify event is the same, return err if mismatch
-// TODO: impl logic
-func (c *CbrOneChain) CheckEvent(evtype string, tocheck *ethtypes.Log) (retry bool, err error) {
-	switch evtype {
-	case CbrEventLiqAdd:
-		return false, nil
-	case CbrEventSend:
-		return false, nil
-	case CbrEventRelay:
-		return false, nil
-	case CbrEventSignersUpdated:
-		ev, err := c.contract.ParseSignersUpdated(*tocheck)
-		if err != nil {
-			return false, err
-		}
-		ssHash, err := c.contract.SsHash(&bind.CallOpts{})
-		if err != nil {
-			return true, err
-		}
-		if eth.Bytes2Hash(crypto.Keccak256(ev.CurSigners)) != ssHash {
-			return false, fmt.Errorf("ssHash not match onchain value")
-		}
-		return false, nil
-	}
-	return false, fmt.Errorf("invalid event type %s", evtype)
 }
 
 // send relay tx onchain to cbridge contract, no wait mine
@@ -303,19 +232,4 @@ func (c *CbrOneChain) UpdateSigners(newss, curss []byte, sigs [][]byte) error {
 
 	log.Infoln("UpdateSigners tx submitted", tx.Hash().Hex())
 	return nil
-}
-
-func (c *CbrOneChain) getTokenFromDB(tokenAddr string) (*webapi.TokenInfo, uint64, bool) {
-	newContext, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	chainId, err := c.ChainID(newContext)
-	if err != nil {
-		log.Errorln("get chain id err:", err)
-		return nil, 0, false
-	}
-	token, found, err := dal.GetTokenByAddr(tokenAddr, chainId.Uint64())
-	if err != nil || !found {
-		return nil, 0, false
-	}
-	return token, chainId.Uint64(), true
 }

@@ -20,6 +20,10 @@ var (
 
 var _ sdk_params.ParamSet = (*Params)(nil)
 
+func ParamKeyTable() sdk_params.KeyTable {
+	return sdk_params.NewKeyTable().RegisterParamSet(&Params{})
+}
+
 func NewParams(votingPeriod uint64, tallyThreshold sdk.Dec) Params {
 	return Params{votingPeriod, tallyThreshold}
 }

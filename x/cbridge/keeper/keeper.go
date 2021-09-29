@@ -4,15 +4,13 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/tendermint/tendermint/libs/log"
-
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	farmingkeeper "github.com/celer-network/sgn-v2/x/farming/keeper"
-	stakingkeeper "github.com/celer-network/sgn-v2/x/staking/keeper"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	params "github.com/cosmos/cosmos-sdk/x/params/types"
+	"github.com/tendermint/tendermint/libs/log"
 	// this line is used by starport scaffolding # ibc/keeper/import
 )
 
@@ -20,7 +18,7 @@ type Keeper struct {
 	cdc           codec.BinaryCodec
 	storeKey      sdk.StoreKey
 	paramstore    params.Subspace
-	stakingKeeper stakingkeeper.Keeper
+	stakingKeeper types.StakingKeeper
 	farmingKeeper farmingkeeper.Keeper
 	// this line is used by starport scaffolding # ibc/keeper/attribute
 }
@@ -29,7 +27,7 @@ func NewKeeper(
 	cdc codec.BinaryCodec,
 	storeKey sdk.StoreKey,
 	params params.Subspace,
-	stakingKeeper stakingkeeper.Keeper,
+	stakingKeeper types.StakingKeeper,
 	farmingKeeper farmingkeeper.Keeper) Keeper {
 	return Keeper{
 		cdc:           cdc,

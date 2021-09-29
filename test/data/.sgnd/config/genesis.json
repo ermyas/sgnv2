@@ -63,6 +63,9 @@
       "denom_metadata": []
     },
     "cbridge": {
+      "params": {
+        "signer_update_duration": "86400s"
+      },
       "config": {
         "lp_fee": 80,
         "assets": [
@@ -165,7 +168,7 @@
             "@type": "/cosmos.crypto.ed25519.PubKey",
             "key": "UradGKLBv+ASty5KxSP1sPaQRe9SO0EvZmzzXrpxUTg="
           },
-          "status": "BOND_STATUS_BONDED",
+          "status": "Bonded",
           "tokens": "1000000000000",
           "delegator_shares": "1000000000000",
           "commission_rate": "0",

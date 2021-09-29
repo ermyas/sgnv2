@@ -23,6 +23,10 @@ var (
 
 var _ sdk_params.ParamSet = (*Params)(nil)
 
+func ParamKeyTable() sdk_params.KeyTable {
+	return sdk_params.NewKeyTable().RegisterParamSet(&Params{})
+}
+
 // NewParams creates a new Params instance
 func NewParams(syncerDuration, epochLength uint64) Params {
 

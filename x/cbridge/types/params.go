@@ -4,7 +4,7 @@ import (
 	"fmt"
 	time "time"
 
-	sdk_params "github.com/cosmos/cosmos-sdk/x/params/types"
+	params "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 const (
@@ -15,7 +15,11 @@ var (
 	KeySignerUpdateDuration = []byte("SignerUpdateDuration")
 )
 
-var _ sdk_params.ParamSet = (*Params)(nil)
+var _ params.ParamSet = (*Params)(nil)
+
+func ParamKeyTable() params.KeyTable {
+	return params.NewKeyTable().RegisterParamSet(&Params{})
+}
 
 // NewParams creates a new Params instance
 func NewParams(signerUpdateDuration time.Duration) Params {
@@ -25,9 +29,9 @@ func NewParams(signerUpdateDuration time.Duration) Params {
 }
 
 // Implements params.ParamSet
-func (p *Params) ParamSetPairs() sdk_params.ParamSetPairs {
-	return sdk_params.ParamSetPairs{
-		sdk_params.NewParamSetPair(KeySignerUpdateDuration, p.GetSignerUpdateDuration(), validateSignerUpdateDuration),
+func (p *Params) ParamSetPairs() params.ParamSetPairs {
+	return params.ParamSetPairs{
+		params.NewParamSetPair(KeySignerUpdateDuration, p.GetSignerUpdateDuration(), validateSignerUpdateDuration),
 	}
 }
 

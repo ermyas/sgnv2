@@ -48,7 +48,9 @@ func (k Keeper) UpdateLatestSigners(ctx sdk.Context, force bool) {
 	}
 
 	vals := k.stakingKeeper.GetBondedValidators(ctx)
-	newSigners := &types.LatestSigners{}
+	newSigners := &types.LatestSigners{
+		Signers: &types.SortedSigners{},
+	}
 	for _, v := range vals {
 		signer := &types.AddrAmt{
 			Addr: v.GetEthAddr().Bytes(),

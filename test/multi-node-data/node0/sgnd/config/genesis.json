@@ -63,6 +63,9 @@
       "denom_metadata": []
     },
     "cbridge": {
+      "params": {
+        "signer_update_duration": "86400s"
+      },
       "config": {
         "lp_fee": 80,
         "assets": [
@@ -117,11 +120,11 @@
       "votes": [],
       "proposals": [],
       "deposit_params": {
-        "min_deposit": "10000000",
-        "max_deposit_period": "172800s"
+        "min_deposit": "1000",
+        "max_deposit_period": "120s"
       },
       "voting_params": {
-        "voting_period": "172800s"
+        "voting_period": "120s"
       },
       "tally_params": {
         "quorum": "0.334000000000000000",
@@ -165,7 +168,7 @@
             "@type": "/cosmos.crypto.ed25519.PubKey",
             "key": "UradGKLBv+ASty5KxSP1sPaQRe9SO0EvZmzzXrpxUTg="
           },
-          "status": "BOND_STATUS_BONDED",
+          "status": "Bonded",
           "tokens": "1000000000000",
           "delegator_shares": "1000000000000",
           "commission_rate": "0",

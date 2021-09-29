@@ -105,13 +105,6 @@ func DeploySgnStakingContracts(contractParams *ContractParams) *types.Transactio
 	return tx
 }
 
-// func DeployBridgeContract() *types.Transaction {
-// 	bridgeContractAddr, _, _, err := eth.DeployBridge(EtherBaseAuth, EthClient, ss)
-// 	ChkErr(err, "failed to deploy sgn contract")
-// 	Contracts.Sgn, err = eth.NewSgnContract(bridgeContractAddr, EthClient)
-// 	ChkErr(err, "failed to set sgn contract")
-// }
-
 func DeployCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "deploy",

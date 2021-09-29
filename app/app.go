@@ -265,11 +265,11 @@ func NewSgnApp(
 		appCodec,
 		keys[cbridgetypes.StoreKey],
 		app.GetSubspace(cbridgetypes.ModuleName),
-		stakingKeeper,
+		&stakingKeeper,
 		app.FarmingKeeper,
 	)
 	app.SyncKeeper = synckeeper.NewKeeper(
-		appCodec, keys[synctypes.StoreKey], stakingKeeper, app.GetSubspace(synctypes.ModuleName), app.CbridgeKeeper,
+		appCodec, keys[synctypes.StoreKey], &stakingKeeper, app.GetSubspace(synctypes.ModuleName), app.CbridgeKeeper,
 	)
 
 	govRouter := govtypes.NewRouter()
@@ -288,7 +288,7 @@ func NewSgnApp(
 	// register the staking hooks
 	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
 	app.StakingKeeper = *stakingKeeper.SetHooks(
-		stakingtypes.NewMultiStakingHooks(app.DistrKeeper.Hooks(), app.CbridgeKeeper.Hooks()),
+		stakingtypes.NewMultiStakingHooks( /*app.DistrKeeper.Hooks(),*/ app.CbridgeKeeper.Hooks()),
 	)
 	app.SlashKeeper = slashkeeper.NewKeeper(
 		keys[slashtypes.StoreKey],
@@ -537,14 +537,15 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 
 	paramsKeeper.Subspace(authtypes.ModuleName)
 	paramsKeeper.Subspace(banktypes.ModuleName)
-
 	paramsKeeper.Subspace(minttypes.ModuleName)
-	paramsKeeper.Subspace(distrtypes.ModuleName)
-	paramsKeeper.Subspace(farmingtypes.ModuleName)
+
+	paramsKeeper.Subspace(distrtypes.ModuleName).WithKeyTable(distrtypes.ParamKeyTable())
+	paramsKeeper.Subspace(farmingtypes.ModuleName).WithKeyTable(farmingtypes.ParamKeyTable())
 	paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable())
 	paramsKeeper.Subspace(slashtypes.ModuleName).WithKeyTable(slashtypes.ParamKeyTable())
-	paramsKeeper.Subspace(stakingtypes.ModuleName).WithKeyTable(stakingkeeper.ParamKeyTable())
-	paramsKeeper.Subspace(synctypes.ModuleName).WithKeyTable(synckeeper.ParamKeyTable())
+	paramsKeeper.Subspace(stakingtypes.ModuleName).WithKeyTable(stakingtypes.ParamKeyTable())
+	paramsKeeper.Subspace(synctypes.ModuleName).WithKeyTable(synctypes.ParamKeyTable())
+	paramsKeeper.Subspace(cbridgetypes.ModuleName).WithKeyTable(cbridgetypes.ParamKeyTable())
 
 	return paramsKeeper
 }

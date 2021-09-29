@@ -12,14 +12,10 @@ import "cosmos_proto/cosmos.proto";
 enum BondStatus {
   option (gogoproto.goproto_enum_prefix) = false;
 
-  // UNSPECIFIED defines an invalid validator status.
-  BOND_STATUS_UNSPECIFIED = 0 [(gogoproto.enumvalue_customname) = "Unspecified"];
-  // UNBONDED defines a validator that is not bonded.
-  BOND_STATUS_UNBONDED = 1 [(gogoproto.enumvalue_customname) = "Unbonded"];
-  // UNBONDING defines a validator that is unbonding.
-  BOND_STATUS_UNBONDING = 2 [(gogoproto.enumvalue_customname) = "Unbonding"];
-  // BONDED defines a validator that is bonded.
-  BOND_STATUS_BONDED = 3 [(gogoproto.enumvalue_customname) = "Bonded"];
+  Unspecified = 0; // invalid status
+  Unbonded = 1;
+  Unbonding = 2;
+  Bonded = 3;
 }
 
 message Validator {

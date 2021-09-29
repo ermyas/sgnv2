@@ -30,6 +30,8 @@ const (
 	txRetryDelay    = 1 * time.Second
 	maxSignRetry    = 10
 	signRetryDelay  = 100 * time.Millisecond
+	maxSeqRetry     = 5
+	seqRetryDelay   = 500 * time.Millisecond
 	maxGasRetry     = 5
 )
 
@@ -190,7 +192,8 @@ func (t *Transactor) SendTxMsgsWaitMined(msgs []sdk.Msg) (*sdk.TxResponse, error
 			logEntry.TxHash = txResponse.TxHash
 		}
 		if err != nil {
-			if strings.Contains(err.Error(), "account sequence mismatch") && retryNum < maxGasRetry {
+			if strings.Contains(err.Error(), "account sequence mismatch") && retryNum < maxSeqRetry {
+				time.Sleep(seqRetryDelay)
 				retryNum++
 				continue
 			}
