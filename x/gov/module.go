@@ -3,11 +3,13 @@ package gov
 // DONTCOVER
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	"github.com/celer-network/sgn-v2/x/gov/client"
 	"github.com/celer-network/sgn-v2/x/gov/client/cli"
+	"github.com/celer-network/sgn-v2/x/gov/client/rest"
 	"github.com/celer-network/sgn-v2/x/gov/keeper"
 	"github.com/celer-network/sgn-v2/x/gov/types"
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
@@ -66,21 +68,27 @@ func (AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, config sdkclient.TxEn
 
 // RegisterRESTRoutes registers the REST routes for the gov module.
 func (a AppModuleBasic) RegisterRESTRoutes(clientCtx sdkclient.Context, rtr *mux.Router) {
+	proposalRESTHandlers := make([]rest.ProposalRESTHandler, 0, len(a.proposalHandlers))
+	for _, proposalHandler := range a.proposalHandlers {
+		proposalRESTHandlers = append(proposalRESTHandlers, proposalHandler.RESTHandler(clientCtx))
+	}
+
+	rest.RegisterHandlers(clientCtx, rtr, proposalRESTHandlers)
 }
 
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the gov module.
 func (a AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx sdkclient.Context, mux *runtime.ServeMux) {
+	types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(clientCtx))
 }
 
 // GetTxCmd returns the root tx command for the gov module.
 func (a AppModuleBasic) GetTxCmd() *cobra.Command {
-
 	proposalCLIHandlers := make([]*cobra.Command, 0, len(a.proposalHandlers))
 	for _, proposalHandler := range a.proposalHandlers {
 		proposalCLIHandlers = append(proposalCLIHandlers, proposalHandler.CLIHandler())
 	}
 
-	return cli.GetTxCmd(proposalCLIHandlers)
+	return cli.NewTxCmd(proposalCLIHandlers)
 }
 
 // GetQueryCmd returns the root query command for the gov module.
@@ -134,11 +142,13 @@ func (AppModule) QuerierRoute() string {
 
 // LegacyQuerierHandler returns no sdk.Querier.
 func (am AppModule) LegacyQuerierHandler(legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
-	return keeper.NewQuerier(am.keeper, legacyQuerierCdc)
+	return keeper.NewLegacyQuerier(am.keeper, legacyQuerierCdc)
 }
 
 // RegisterServices registers module services.
 func (am AppModule) RegisterServices(cfg module.Configurator) {
+	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(am.keeper))
+	types.RegisterQueryServer(cfg.QueryServer(), am.keeper)
 }
 
 // InitGenesis performs genesis initialization for the gov module. It returns

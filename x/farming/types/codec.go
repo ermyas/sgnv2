@@ -12,12 +12,12 @@ import (
 // RegisterLegacyAminoCodec registers the necessary x/farming interfaces and concrete types
 // on the provided LegacyAmino codec. These types are used for Amino JSON serialization.
 func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
-	cdc.RegisterConcrete(&MsgClaimRewards{}, "sgn-v2/farming/MsgClaimRewards", nil)
-	cdc.RegisterConcrete(&MsgClaimAllRewards{}, "sgn-v2/farming/MsgClaimAllRewards", nil)
-	cdc.RegisterConcrete(&AddPoolProposal{}, "sgn-v2/farming/AddPoolProposal", nil)
-	cdc.RegisterConcrete(&RemovePoolProposal{}, "sgn-v2/farming/RemovePoolProposal", nil)
-	cdc.RegisterConcrete(&AdjustRewardProposal{}, "sgn-v2/farming/AdjustRewardProposal", nil)
-	cdc.RegisterConcrete(&AddTokensProposal{}, "sgn-v2/farming/AddTokensProposal", nil)
+	cdc.RegisterConcrete(&MsgClaimRewards{}, "sgn-v2/MsgClaimRewards", nil)
+	cdc.RegisterConcrete(&MsgClaimAllRewards{}, "sgn-v2/MsgClaimAllRewards", nil)
+	cdc.RegisterConcrete(&AddPoolProposal{}, "sgn-v2/AddPoolProposal", nil)
+	cdc.RegisterConcrete(&RemovePoolProposal{}, "sgn-v2/RemovePoolProposal", nil)
+	cdc.RegisterConcrete(&AdjustRewardProposal{}, "sgn-v2/AdjustRewardProposal", nil)
+	cdc.RegisterConcrete(&AddTokensProposal{}, "sgn-v2/AddTokensProposal", nil)
 }
 
 func RegisterInterfaces(registry types.InterfaceRegistry) {

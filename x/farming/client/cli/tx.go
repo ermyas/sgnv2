@@ -74,7 +74,7 @@ func GetCmdSubmitAddPoolProposal() *cobra.Command {
 The proposal details must be supplied via a JSON file.
 
 Example:
-$ %s tx gov submit-proposal add-pool <path/to/proposal.json> --from=<key_or_address>
+$ %s gov submit-proposal add-pool <path/to/proposal.json> --from=<key_or_address>
 
 Where proposal.json contains:
 
@@ -84,7 +84,7 @@ Where proposal.json contains:
  "pool_name": "cbridge-1-DAI",
  "stake_token": {
    "chain_id": 1,
-   "symbol": "DAI",
+   "symbol": "CB-DAI",
    "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
  },
  "reward_tokens": [

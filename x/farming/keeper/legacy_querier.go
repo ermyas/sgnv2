@@ -14,7 +14,7 @@ const (
 	defaultPoolsDisplayedNum = 20
 )
 
-// NewLegacyQuerier creates a new querier for farming clients.
+// NewLegacyQuerier creates a new legacy querier for farming clients.
 func NewLegacyQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 	return func(ctx sdk.Context, path []string, req abci.RequestQuery) ([]byte, error) {
 		switch path[0] {

@@ -17,16 +17,21 @@ func (keeper Keeper) GetDeposit(ctx sdk.Context, proposalID uint64, depositorAdd
 		return deposit, false
 	}
 
-	keeper.cdc.MustUnmarshalLengthPrefixed(bz, &deposit)
+	keeper.cdc.MustUnmarshal(bz, &deposit)
+
 	return deposit, true
 }
 
 // SetDeposit sets a Deposit to the gov store
 func (keeper Keeper) SetDeposit(ctx sdk.Context, deposit types.Deposit) {
 	store := ctx.KVStore(keeper.storeKey)
-	bz := keeper.cdc.MustMarshalLengthPrefixed(&deposit)
-	acc, _ := sdk.AccAddressFromBech32(deposit.Depositor)
-	store.Set(types.DepositKey(deposit.ProposalId, acc), bz)
+	bz := keeper.cdc.MustMarshal(&deposit)
+	depositor, err := sdk.AccAddressFromBech32(deposit.Depositor)
+	if err != nil {
+		panic(err)
+	}
+
+	store.Set(types.DepositKey(deposit.ProposalId, depositor), bz)
 }
 
 // GetAllDeposits returns all the deposits from the store
@@ -53,9 +58,11 @@ func (keeper Keeper) IterateAllDeposits(ctx sdk.Context, cb func(deposit types.D
 	iterator := sdk.KVStorePrefixIterator(store, types.DepositsKeyPrefix)
 
 	defer iterator.Close()
+
 	for ; iterator.Valid(); iterator.Next() {
 		var deposit types.Deposit
-		keeper.cdc.MustUnmarshalLengthPrefixed(iterator.Value(), &deposit)
+
+		keeper.cdc.MustUnmarshal(iterator.Value(), &deposit)
 
 		if cb(deposit) {
 			break
@@ -69,9 +76,11 @@ func (keeper Keeper) IterateDeposits(ctx sdk.Context, proposalID uint64, cb func
 	iterator := sdk.KVStorePrefixIterator(store, types.DepositsKey(proposalID))
 
 	defer iterator.Close()
+
 	for ; iterator.Valid(); iterator.Next() {
 		var deposit types.Deposit
-		keeper.cdc.MustUnmarshalLengthPrefixed(iterator.Value(), &deposit)
+
+		keeper.cdc.MustUnmarshal(iterator.Value(), &deposit)
 
 		if cb(deposit) {
 			break
@@ -87,14 +96,14 @@ func (keeper Keeper) GetAccTotalDeposit(ctx sdk.Context, depositorAddr sdk.AccAd
 		return accTotalDeposit, false
 	}
 
-	keeper.cdc.MustUnmarshalLengthPrefixed(bz, &accTotalDeposit)
+	keeper.cdc.MustUnmarshal(bz, &accTotalDeposit)
 	return accTotalDeposit, true
 }
 
 // SetAccTotalDeposit sets a AccTotalDeposit to the gov store
 func (keeper Keeper) SetAccTotalDeposit(ctx sdk.Context, depositorAddr sdk.AccAddress, accTotalDeposit types.AccTotalDeposit) {
 	store := ctx.KVStore(keeper.storeKey)
-	bz := keeper.cdc.MustMarshalLengthPrefixed(&accTotalDeposit)
+	bz := keeper.cdc.MustMarshal(&accTotalDeposit)
 	store.Set(types.DepositorKey(depositorAddr), bz)
 }
 
@@ -143,7 +152,7 @@ func (keeper Keeper) AddDeposit(ctx sdk.Context, proposalID uint64, depositorAdd
 	// Check if deposit has provided sufficient total funds to transition the proposal into the voting period
 	activatedVotingPeriod := false
 	if proposal.Status == types.StatusDepositPeriod && proposal.TotalDeposit.GTE(keeper.GetDepositParams(ctx).MinDeposit) {
-		keeper.activateVotingPeriod(ctx, proposal)
+		keeper.ActivateVotingPeriod(ctx, proposal)
 		activatedVotingPeriod = true
 	}
 

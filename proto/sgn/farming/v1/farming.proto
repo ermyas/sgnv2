@@ -183,11 +183,16 @@ message AddPoolProposalWithDeposit {
 
   string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
   string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
-  string pool_name = 3 [(gogoproto.moretags) = "yaml:\"pool_name\""];
-  ERC20Token stake_token = 4 [(gogoproto.moretags) = "yaml:\"stake_token\"", (gogoproto.nullable) = false];
-  repeated ERC20Token reward_tokens = 5 [(gogoproto.moretags) = "yaml:\"reward_tokens\"", (gogoproto.nullable) = false];
-  repeated RewardAdjustmentInput initial_reward_inputs = 6
-      [(gogoproto.moretags) = "yaml:\"initial_reward_inputs\"", (gogoproto.nullable) = false];
+  string pool_name = 3 [(gogoproto.moretags) = "yaml:\"pool_name\"", (gogoproto.jsontag) = "pool_name,omitempty"];
+  ERC20Token stake_token = 4
+      [(gogoproto.moretags) = "yaml:\"stake_token\"", (gogoproto.jsontag) = "stake_token,omitempty", (gogoproto.nullable) = false];
+  repeated ERC20Token reward_tokens = 5
+      [(gogoproto.moretags) = "yaml:\"reward_tokens\"", (gogoproto.jsontag) = "reward_tokens,omitempty", (gogoproto.nullable) = false];
+  repeated RewardAdjustmentInput initial_reward_inputs = 6 [
+    (gogoproto.moretags) = "yaml:\"initial_reward_inputs\"",
+    (gogoproto.jsontag) = "initial_reward_inputs,omitempty",
+    (gogoproto.nullable) = false
+  ];
   string deposit = 7 [(gogoproto.moretags) = "yaml:\"deposit\""];
 }
 

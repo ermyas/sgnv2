@@ -83,7 +83,7 @@
       "delegator_starting_infos": [],
       "validator_slash_events": []
     },
-    "govern": {
+    "gov": {
       "starting_proposal_id": "1",
       "deposits": [],
       "votes": [],

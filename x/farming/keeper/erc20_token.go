@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	ERC20DenomSeparator = "@"
+	ERC20DenomSeparator = "/" // NOTE: Cosmos SDK only accepts "/" or "-"
 )
 
 func (k Keeper) SetERC20Token(ctx sdk.Context, token types.ERC20Token) {

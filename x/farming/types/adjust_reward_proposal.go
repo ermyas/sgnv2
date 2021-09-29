@@ -18,7 +18,7 @@ var _ govtypes.Content = &AdjustRewardProposal{}
 
 func init() {
 	govtypes.RegisterProposalType(ProposalTypeAdjustReward)
-	govtypes.RegisterProposalTypeCodec(AdjustRewardProposal{}, "sgn-v2/farming/AdjustRewardProposal")
+	govtypes.RegisterProposalTypeCodec(AdjustRewardProposal{}, "sgn-v2/AdjustRewardProposal")
 }
 
 // NewAdjustRewardProposal creates a new instance of AdjustRewardProposal

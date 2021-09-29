@@ -13,7 +13,8 @@ func NewAddPoolProposalHandler(k keeper.Keeper) govtypes.Handler {
 	return func(ctx sdk.Context, content govtypes.Content) (err error) {
 		switch c := content.(type) {
 		case *types.AddPoolProposal:
-			return keeper.HandleAddPoolProposal(ctx, k, c)
+			err = keeper.HandleAddPoolProposal(ctx, k, c)
+			return err
 		default:
 			return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized farming proposal content type: %T", c)
 		}

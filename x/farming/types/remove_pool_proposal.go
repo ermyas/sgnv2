@@ -18,7 +18,7 @@ var _ govtypes.Content = &RemovePoolProposal{}
 
 func init() {
 	govtypes.RegisterProposalType(ProposalTypeRemovePool)
-	govtypes.RegisterProposalTypeCodec(RemovePoolProposal{}, "sgn-v2/farming/RemovePoolProposal")
+	govtypes.RegisterProposalTypeCodec(RemovePoolProposal{}, "sgn-v2/RemovePoolProposal")
 }
 
 // NewRemovePoolProposal creates a new instance of RemovePoolProposal

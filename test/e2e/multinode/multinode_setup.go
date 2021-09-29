@@ -185,9 +185,9 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridgeTest 
 		err = genesisViper.ReadInConfig()
 		tc.ChkErr(err, "Failed to read genesis")
 		if manual {
-			genesisViper.Set("app_state.govern.voting_params.voting_period", "120s")
+			genesisViper.Set("app_state.gov.voting_params.voting_period", "120s")
 		} else {
-			genesisViper.Set("app_state.govern.voting_params.voting_period", "10s")
+			genesisViper.Set("app_state.gov.voting_params.voting_period", "10s")
 		}
 		err = genesisViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write genesis")

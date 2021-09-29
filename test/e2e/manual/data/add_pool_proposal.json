@@ -1,0 +1,28 @@
+{
+  "title": "add a farming pool",
+  "description": "add a CBridge farming pool for DAI on Ethereum",
+  "pool_name": "cbridge-1-DAI",
+  "stake_token": {
+    "chain_id": 1,
+    "symbol": "CB-DAI",
+    "address": "0x6b175474e89094c44da98b954eedeac495271d0f"
+  },
+  "reward_tokens": [
+    {
+      "chain_id": 1,
+      "symbol": "CELR",
+      "address": "0x4f9254c83eb525f9fcf346490bbb3ed28a81c667"
+    }
+  ],
+  "initial_reward_inputs": [
+    {
+      "add_amount": {
+        "denom": "CELR/1",
+        "amount": "100000000000000000000000"
+      },
+      "reward_start_block_delay": 0,
+      "new_reward_amount_per_block": "100000000000000000"
+    }
+  ],
+  "deposit": "10000000stake"
+}

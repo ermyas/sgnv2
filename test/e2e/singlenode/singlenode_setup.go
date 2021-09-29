@@ -113,7 +113,7 @@ func startSgnChain(rootDir, testName string) (*os.Process, error) {
 	genesisViper.SetConfigFile(genesisPath)
 	err := genesisViper.ReadInConfig()
 	tc.ChkErr(err, "Failed to read genesis")
-	genesisViper.Set("app_state.govern.voting_params.voting_period", "10s")
+	genesisViper.Set("app_state.gov.voting_params.voting_period", "10s")
 	err = genesisViper.WriteConfig()
 	tc.ChkErr(err, "Failed to write genesis")
 

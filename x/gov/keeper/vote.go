@@ -62,15 +62,18 @@ func (keeper Keeper) GetVote(ctx sdk.Context, proposalID uint64, voterAddr sdk.A
 		return vote, false
 	}
 
-	keeper.cdc.MustUnmarshalLengthPrefixed(bz, &vote)
+	keeper.cdc.MustUnmarshal(bz, &vote)
 	return vote, true
 }
 
 // SetVote sets a Vote to the gov store
 func (keeper Keeper) SetVote(ctx sdk.Context, vote types.Vote) {
 	store := ctx.KVStore(keeper.storeKey)
-	bz := keeper.cdc.MustMarshalLengthPrefixed(&vote)
-	acc, _ := sdk.AccAddressFromBech32(vote.Voter)
+	bz := keeper.cdc.MustMarshal(&vote)
+	acc, err := sdk.AccAddressFromBech32(vote.Voter)
+	if err != nil {
+		panic(err)
+	}
 	store.Set(types.VoteKey(vote.ProposalId, acc), bz)
 }
 
@@ -82,7 +85,7 @@ func (keeper Keeper) IterateAllVotes(ctx sdk.Context, cb func(vote types.Vote) (
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var vote types.Vote
-		keeper.cdc.MustUnmarshalLengthPrefixed(iterator.Value(), &vote)
+		keeper.cdc.MustUnmarshal(iterator.Value(), &vote)
 
 		if cb(vote) {
 			break
@@ -98,7 +101,7 @@ func (keeper Keeper) IterateVotes(ctx sdk.Context, proposalID uint64, cb func(vo
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var vote types.Vote
-		keeper.cdc.MustUnmarshalLengthPrefixed(iterator.Value(), &vote)
+		keeper.cdc.MustUnmarshal(iterator.Value(), &vote)
 
 		if cb(vote) {
 			break
@@ -110,4 +113,13 @@ func (keeper Keeper) IterateVotes(ctx sdk.Context, proposalID uint64, cb func(vo
 func (keeper Keeper) deleteVote(ctx sdk.Context, proposalID uint64, voterAddr sdk.AccAddress) {
 	store := ctx.KVStore(keeper.storeKey)
 	store.Delete(types.VoteKey(proposalID, voterAddr))
+}
+
+// populateLegacyOption adds graceful fallback of deprecated `Option` field, in case
+// there's only 1 VoteOption.
+func populateLegacyOption(vote *types.Vote) {
+	// TODO: Restore?
+	// if len(vote.Options) == 1 && vote.Options[0].Weight.Equal(sdk.MustNewDecFromStr("1.0")) {
+	// 	vote.Option = vote.Options[0].Option //nolint
+	// }
 }

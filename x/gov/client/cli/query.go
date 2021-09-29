@@ -110,26 +110,63 @@ $ %s query gov proposals --page=2 --limit=100
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			bechDepositorAddr := viper.GetString(flagDepositor)
-			bechVoterAddr := viper.GetString(flagVoter)
-			strProposalStatus := viper.GetString(flagStatus)
-			page := viper.GetInt(flags.FlagPage)
-			limit := viper.GetInt(flags.FlagLimit)
+			bechDepositorAddr, _ := cmd.Flags().GetString(flagDepositor)
+			bechVoterAddr, _ := cmd.Flags().GetString(flagVoter)
+			strProposalStatus, _ := cmd.Flags().GetString(flagStatus)
 
-			cliCtx, err := client.GetClientQueryContext(cmd)
+			var proposalStatus types.ProposalStatus
+
+			if len(bechDepositorAddr) != 0 {
+				_, err := sdk.AccAddressFromBech32(bechDepositorAddr)
+				if err != nil {
+					return err
+				}
+			}
+
+			if len(bechVoterAddr) != 0 {
+				_, err := sdk.AccAddressFromBech32(bechVoterAddr)
+				if err != nil {
+					return err
+				}
+			}
+
+			if len(strProposalStatus) != 0 {
+				proposalStatus1, err := types.ProposalStatusFromString(gcutils.NormalizeProposalStatus(strProposalStatus))
+				proposalStatus = proposalStatus1
+				if err != nil {
+					return err
+				}
+			}
+
+			clientCtx, err := client.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
 			}
-			matchingProposals, err := QueryProposals(cliCtx, queryRoute, page, limit, bechDepositorAddr, bechVoterAddr, strProposalStatus)
+			queryClient := types.NewQueryClient(clientCtx)
+
+			pageReq, err := client.ReadPageRequest(cmd.Flags())
 			if err != nil {
 				return err
 			}
 
-			if len(matchingProposals) == 0 {
-				return fmt.Errorf("no matching proposals found")
+			res, err := queryClient.Proposals(
+				cmd.Context(),
+				&types.QueryProposalsRequest{
+					ProposalStatus: proposalStatus,
+					Voter:          bechVoterAddr,
+					Depositor:      bechDepositorAddr,
+					Pagination:     pageReq,
+				},
+			)
+			if err != nil {
+				return err
 			}
 
-			return cliCtx.PrintString(string(cliCtx.LegacyAmino.MustMarshal(matchingProposals))) // nolint:errcheck
+			if len(res.GetProposals()) == 0 {
+				return fmt.Errorf("no proposals found")
+			}
+
+			return clientCtx.PrintProto(res)
 		},
 	}
 
@@ -140,55 +177,6 @@ $ %s query gov proposals --page=2 --limit=100
 	cmd.Flags().String(flagStatus, "", "(optional) filter proposals by proposal status, status: deposit_period/voting_period/passed/rejected")
 
 	return cmd
-}
-
-func QueryProposals(cliCtx client.Context, queryRoute string, page, limit int, bechDepositorAddr, bechVoterAddr, strProposalStatus string) (matchingProposals types.Proposals, err error) {
-	cdc := cliCtx.LegacyAmino
-	var depositorAddr sdk.AccAddress
-	var voterAddr sdk.AccAddress
-	var proposalStatus types.ProposalStatus
-
-	params := types.NewQueryProposalsParams(page, limit, proposalStatus, voterAddr, depositorAddr)
-
-	if len(bechDepositorAddr) != 0 {
-		depositorAddr, err2 := sdk.AccAddressFromBech32(bechDepositorAddr)
-		if err2 != nil {
-			err = err2
-			return
-		}
-		params.Depositor = depositorAddr
-	}
-
-	if len(bechVoterAddr) != 0 {
-		voterAddr, err2 := sdk.AccAddressFromBech32(bechVoterAddr)
-		if err2 != nil {
-			err = err2
-			return
-		}
-		params.Voter = voterAddr
-	}
-
-	if len(strProposalStatus) != 0 {
-		proposalStatus, err2 := types.ProposalStatusFromString(gcutils.NormalizeProposalStatus(strProposalStatus))
-		if err2 != nil {
-			err = err2
-			return
-		}
-		params.ProposalStatus = proposalStatus
-	}
-
-	bz, err := cdc.MarshalJSON(params)
-	if err != nil {
-		return
-	}
-
-	res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/proposals", queryRoute), bz)
-	if err != nil {
-		return
-	}
-
-	err = cdc.UnmarshalJSON(res, &matchingProposals)
-	return
 }
 
 // Command to Get a Proposal Information
