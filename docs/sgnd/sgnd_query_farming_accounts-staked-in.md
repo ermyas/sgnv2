@@ -7,7 +7,7 @@ query the addresses of accounts staked in a pool
 Query all the addresses of accounts that have staked tokens in a specific pool.
 
 Example:
-$ <appd> query farming accounts-staked-in cbridge-1-DAI
+$ <appd> query farming accounts-staked-in cbridge-CB-DAI/1
 
 ```
 sgnd query farming accounts-staked-in [pool-name] [flags]

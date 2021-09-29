@@ -25,14 +25,14 @@ func (k Keeper) ChangeLiquidity(ctx sdk.Context, kv sdk.KVStore, chid uint64, to
 		panic(string(lqKey) + " negative liquidity: " + had.String())
 	}
 	kv.Set(lqKey, []byte(had.Bytes()))
-	/*
-		sym := GetAssetSymbol(kv, &ChainIdTokenAddr{chid, token})
-		if delta.Sign() == 1 {
-			k.FarmStake(ctx, sym, chid, lp, delta)
-		} else if delta.Sign() == -1 {
-			k.FarmUnStake(ctx, sym, chid, lp, delta)
-		}
-	*/
+
+	sym := GetAssetSymbol(kv, &ChainIdTokenAddr{chid, token})
+	if delta.Sign() == 1 {
+		k.FarmStake(ctx, sym, chid, lp, delta)
+	} else if delta.Sign() == -1 {
+		k.FarmUnstake(ctx, sym, chid, lp, new(big.Int).Neg(delta))
+	}
+
 	return had
 }
 

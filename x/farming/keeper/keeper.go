@@ -41,6 +41,7 @@ func NewKeeper(
 
 	return Keeper{
 		cdc:           cdc,
+		paramSpace:    paramSpace,
 		storeKey:      key,
 		authKeeper:    ak,
 		bankKeeper:    bk,

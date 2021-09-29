@@ -69,7 +69,7 @@ func GetCmdQueryPool() *cobra.Command {
 			fmt.Sprintf(`Query details about the reward token, the staked balance and the reward amount per block.
 
 Example:
-$ %s query farming pool cbridge-1-DAI
+$ %s query farming pool cbridge-CB-DAI/1
 `,
 				version.AppName,
 			),
@@ -139,7 +139,7 @@ func GetCmdQueryEarnings() *cobra.Command {
 			fmt.Sprintf(`Query available rewards for an address.
 
 Example:
-$ %s query farming earnings cbridge-1-DAI 0xab5801a7d398351b8be11c439e05c5b3259aec9b
+$ %s query farming earnings cbridge-CB-DAI/1 0xab5801a7d398351b8be11c439e05c5b3259aec9b
 `,
 				version.AppName,
 			),
@@ -244,7 +244,7 @@ func GetCmdQueryAccountsStakedIn() *cobra.Command {
 			fmt.Sprintf(`Query all the addresses of accounts that have staked tokens in a specific pool.
 
 Example:
-$ %s query farming accounts-staked-in cbridge-1-DAI
+$ %s query farming accounts-staked-in cbridge-CB-DAI/1
 `,
 				version.AppName,
 			),

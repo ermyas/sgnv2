@@ -15,6 +15,7 @@ import (
 	tc "github.com/celer-network/sgn-v2/test/common"
 	"github.com/celer-network/sgn-v2/transactor"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/viper"
@@ -196,6 +197,7 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridgeTest 
 	if cbridgeTest {
 		DeployUsdtForBridge()
 		DeployBridgeContract()
+		CreateFarmingPools()
 	}
 
 	// Update global viper
@@ -304,6 +306,48 @@ func DeployBridgeContract() {
 		configFileViper.Set("multichain", multichains)
 		err = configFileViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")
+	}
+}
+
+func CreateFarmingPools() {
+	log.Infoln("Creating farming pools in genesis")
+	for i := 0; i < len(tc.ValEthKs); i++ {
+		genesisPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/genesis.json", i)
+		genesisViper := viper.New()
+		genesisViper.SetConfigFile(genesisPath)
+		err := genesisViper.ReadInConfig()
+		tc.ChkErr(err, "Failed to read genesis")
+		// TODO: Extract constants
+		genesisViper.Set("app_state.farming.params.claim_cooldown", "1s")
+		var pools farmingtypes.FarmingPools
+		pool := farmingtypes.NewFarmingPool(
+			"cbridge-CB-USDT/883",
+			farmingtypes.ERC20Token{
+				ChainId: 883,
+				Symbol:  "CB-USDT",
+				Address: eth.Addr2Hex(tc.CbrClient1.USDTAddr),
+			},
+			[]farmingtypes.ERC20Token{
+				{
+					ChainId: 883,
+					Symbol:  "CELR",
+					Address: eth.Addr2Hex(tc.CelrAddr),
+				},
+			},
+			sdk.NewDecCoin("CB-USDT/883", sdk.ZeroInt()),
+			[]farmingtypes.RewardTokenInfo{
+				{
+					RemainingAmount:        sdk.NewDecCoin("CELR/883", sdk.NewInt(10000).Mul(sdk.NewInt(1e18))),
+					RewardStartBlockHeight: 1,
+					RewardAmountPerBlock:   sdk.NewDec(10),
+				},
+			},
+			sdk.NewDecCoins(sdk.NewDecCoin("CELR/883", sdk.ZeroInt())),
+		)
+		pools = append(pools, pool)
+		genesisViper.Set("app_state.farming.pools", pools)
+		err = genesisViper.WriteConfig()
+		tc.ChkErr(err, "Failed to write genesis")
 	}
 }
 

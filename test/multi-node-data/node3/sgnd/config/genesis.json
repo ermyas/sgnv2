@@ -97,6 +97,43 @@
         ]
       }
     },
+    "farming": {
+      "params": {
+        "claim_cooldown": "1s"
+      },
+      "pools": [
+        {
+          "name": "cbridge-USDT/883",
+          "stake_token": {
+            "chain_id": 883,
+            "symbol": "CB-USDT",
+            "address": "daa38d17ff77ae7c26a4afc0bea9c7156ed7af27"
+          },
+          "reward_tokens": [
+            {
+              "chain_id": 883,
+              "symbol": "CELR",
+              "address": "58712219a4bdbb0e581dcaf6f5c4c2b2d2f42158"
+            }
+          ],
+          "total_staked_amount": {
+            "denom": "CB-USDT/883",
+            "amount": "0.000000000000000000"
+          },
+          "reward_token_infos": [
+            {
+              "remaining_amount": {
+                "denom": "CELR/883",
+                "amount": "10000000000000000000000.000000000000000000"
+              },
+              "reward_start_block_height": 1,
+              "reward_amount_per_block": "10.000000000000000000"
+            }
+          ],
+          "total_accumulated_rewards": []
+        }
+      ]
+    },
     "distribution": {
       "params": {
         "community_tax": "0.000000000000000000",

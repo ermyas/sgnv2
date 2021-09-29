@@ -7,7 +7,7 @@ query the current rewards of an account
 Query available rewards for an address.
 
 Example:
-$ <appd> query farming earnings cbridge-1-DAI 0xab5801a7d398351b8be11c439e05c5b3259aec9b
+$ <appd> query farming earnings cbridge-CB-DAI/1 0xab5801a7d398351b8be11c439e05c5b3259aec9b
 
 ```
 sgnd query farming earnings [pool-name] [address] [flags]

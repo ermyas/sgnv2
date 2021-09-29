@@ -106,14 +106,18 @@ var (
 
 	// module account permissions
 	maccPerms = map[string][]string{
-		minttypes.ModuleName:       {authtypes.Minter},
-		authtypes.FeeCollectorName: nil,
-		distrtypes.ModuleName:      nil,
-		farming.ModuleName:         nil,
+		minttypes.ModuleName:            {authtypes.Minter},
+		authtypes.FeeCollectorName:      nil,
+		distrtypes.ModuleName:           nil,
+		farming.ModuleName:              {authtypes.Minter}, // Needed for mint-then-stake
+		farming.RewardModuleAccountName: {authtypes.Minter}, // Needed for mint-then-stake
 	}
 
 	// module accounts that are allowed to receive tokens
-	allowedReceivingModAcc = map[string]bool{}
+	allowedReceivingModAcc = map[string]bool{
+		farming.ModuleName:              true,
+		farming.RewardModuleAccountName: true,
+	}
 )
 
 // Verify app interface at compile time

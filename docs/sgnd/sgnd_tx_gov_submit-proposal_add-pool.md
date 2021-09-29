@@ -15,7 +15,7 @@ Where proposal.json contains:
 {
  "title": "add a farming pool",
  "description": "add a CBridge farming pool for DAI on Ethereum",
- "pool_name": "cbridge-1-DAI",
+ "pool_name": "cbridge-CB-DAI/1",
  "stake_token": {
    "chain_id": 1,
    "symbol": "CB-DAI",
@@ -31,7 +31,7 @@ Where proposal.json contains:
  "initial_reward_inputs": [
    {
      "add_amount": {
-       "denom": "CELR@1",
+       "denom": "CELR/1",
        "amount": "100000000000000000000000"
 	 },
      "reward_start_block_delay": 8640,

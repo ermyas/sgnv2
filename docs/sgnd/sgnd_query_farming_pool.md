@@ -7,7 +7,7 @@ query a pool
 Query details about the reward token, the staked balance and the reward amount per block.
 
 Example:
-$ <appd> query farming pool cbridge-1-DAI
+$ <appd> query farming pool cbridge-CB-DAI/1
 
 ```
 sgnd query farming pool [pool-name] [flags]

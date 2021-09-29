@@ -6,7 +6,6 @@ import (
 
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
-	farmingkeeper "github.com/celer-network/sgn-v2/x/farming/keeper"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	params "github.com/cosmos/cosmos-sdk/x/params/types"
@@ -19,7 +18,7 @@ type Keeper struct {
 	storeKey      sdk.StoreKey
 	paramstore    params.Subspace
 	stakingKeeper types.StakingKeeper
-	farmingKeeper farmingkeeper.Keeper
+	farmingKeeper types.FarmingKeeper
 	// this line is used by starport scaffolding # ibc/keeper/attribute
 }
 
@@ -28,7 +27,7 @@ func NewKeeper(
 	storeKey sdk.StoreKey,
 	params params.Subspace,
 	stakingKeeper types.StakingKeeper,
-	farmingKeeper farmingkeeper.Keeper) Keeper {
+	farmingKeeper types.FarmingKeeper) Keeper {
 	return Keeper{
 		cdc:           cdc,
 		storeKey:      storeKey,
@@ -43,9 +42,25 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 }
 
 func (k Keeper) FarmStake(ctx sdk.Context, sym string, chid uint64, lpAddr eth.Addr, delta *big.Int) error {
-	return k.farmingKeeper.Stake(ctx, fmt.Sprintf("%s-%d", sym, chid), lpAddr, sdk.NewCoin(sym, sdk.NewIntFromBigInt(delta)), true)
+	poolName, denom := derivePoolNameAndDenom(sym, chid)
+	if k.farmingKeeper.HasFarmingPool(ctx, poolName) {
+		return k.farmingKeeper.Stake(
+			ctx, poolName, lpAddr, sdk.NewCoin(denom, sdk.NewIntFromBigInt(delta)), true)
+	}
+	return nil
 }
 
-func (k Keeper) FarmUnStake(ctx sdk.Context, sym string, chid uint64, lpAddr eth.Addr, delta *big.Int) error {
-	return k.farmingKeeper.Unstake(ctx, fmt.Sprintf("%s-%d", sym, chid), lpAddr, sdk.NewCoin(sym, sdk.NewIntFromBigInt(delta)), true)
+func (k Keeper) FarmUnstake(ctx sdk.Context, sym string, chid uint64, lpAddr eth.Addr, delta *big.Int) error {
+	poolName, denom := derivePoolNameAndDenom(sym, chid)
+	if k.farmingKeeper.HasFarmingPool(ctx, poolName) {
+		return k.farmingKeeper.Unstake(
+			ctx, poolName, lpAddr, sdk.NewCoin(denom, sdk.NewIntFromBigInt(delta)), true)
+	}
+	return nil
+}
+
+func derivePoolNameAndDenom(symbol string, chainId uint64) (poolName string, denom string) {
+	denom = fmt.Sprintf("CB-%s/%d", symbol, chainId)
+	poolName = fmt.Sprintf("%s-CB-%s", types.ModuleName, denom)
+	return poolName, denom
 }

@@ -14,8 +14,12 @@ message Params {
   option (gogoproto.goproto_stringer) = false;
 
   // claim_cooldown defines the minimal time between two reward claim requests
-  google.protobuf.Duration claim_cooldown = 1
-      [(gogoproto.nullable) = false, (gogoproto.stdduration) = true, (gogoproto.moretags) = "yaml:\"claim_cooldown\""];
+  google.protobuf.Duration claim_cooldown = 1 [
+    (gogoproto.nullable) = false,
+    (gogoproto.stdduration) = true,
+    (gogoproto.jsontag) = "claim_cooldown,omitempty",
+    (gogoproto.moretags) = "yaml:\"claim_cooldown\""
+  ];
 }
 
 // ERC20Token describes an ERC20 token on a specific EVM-compatible chain
