@@ -1,0 +1,30 @@
+[[multichain]]
+chainID = 3
+name = "ropsten"
+gateway = "https://ropsten.infura.io/v3/c58bb2a63c1a466abb6d7b5e0b7b6828"
+blkinterval = 15
+blkdelay = 5
+maxblkdelta = 5000
+cbridge = "0x04Dd87EDDBE958C8f405e9c641693fAB94D562D1"
+ksfile = "./test/keys/vsigner0.json"
+kspass = ""
+
+[[multichain]]
+chainID = 5
+name = "goerli"
+gateway = "https://goerli.infura.io/v3/c58bb2a63c1a466abb6d7b5e0b7b6828"
+blkinterval = 15
+blkdelay = 5
+maxblkdelta = 5000
+cbridge = "0xC8CAf3c1D76D264B6D5d511d883B58b3874eAFa0"
+ksfile = "./test/keys/vsigner0.json"
+kspass = ""
+
+[eth.contract_address]
+celr = "0x5D3c0F4cA5EE99f8E8F59Ff9A5fAb04F6a7e007f"
+staking = "0x9B36f165baB9ebe611d491180418d8De4b8f3a1f"
+sgn = "0x9Bb46D5100d2Db4608112026951c9C965b233f4D"
+staking_reward = "0xf5C6825015280CdfD0b56903F9F8B5A2233476F5"
+farming_rewards = "0x7d43AABC515C356145049227CeE54B608342c0ad"
+viewer = "0x5471ea8f739dd37E9B81Be9c5c77754D8AA953E4"
+govern = "0x265B25e22bcd7f10a5bD6E6410F10537Cc7567e8"
