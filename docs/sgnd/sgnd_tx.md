@@ -24,7 +24,8 @@ sgnd tx [flags]
 * [sgnd tx decode](sgnd_tx_decode.md)	 - Decode a binary encoded transaction string
 * [sgnd tx distribution](sgnd_tx_distribution.md)	 - Distribution transactions subcommands
 * [sgnd tx encode](sgnd_tx_encode.md)	 - Encode transactions generated offline
-* [sgnd tx govern](sgnd_tx_govern.md)	 - Governance transactions subcommands
+* [sgnd tx farming](sgnd_tx_farming.md)	 - farming transactions subcommands
+* [sgnd tx gov](sgnd_tx_gov.md)	 - Governance transactions subcommands
 * [sgnd tx multisign](sgnd_tx_multisign.md)	 - Generate multisig signatures for transactions generated offline
 * [sgnd tx multisign-batch](sgnd_tx_multisign-batch.md)	 - Assemble multisig transactions in batch from batch signatures
 * [sgnd tx sign](sgnd_tx_sign.md)	 - Sign a transaction generated offline

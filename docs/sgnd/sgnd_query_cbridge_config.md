@@ -1,16 +1,16 @@
-## sgnd query cbridge params
+## sgnd query cbridge config
 
-Query the current staking parameters information
+Query the current cbridge config
 
 ```
-sgnd query cbridge params [flags]
+sgnd query cbridge config [flags]
 ```
 
 ### Options
 
 ```
       --height int   Use a specific height to query state at (this can error if the node is pruning state)
-  -h, --help         help for params
+  -h, --help         help for config
 ```
 
 ### Options inherited from parent commands

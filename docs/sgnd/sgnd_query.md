@@ -22,7 +22,8 @@ sgnd query [flags]
 * [sgnd query block](sgnd_query_block.md)	 - Get verified data for a the block at given height
 * [sgnd query cbridge](sgnd_query_cbridge.md)	 - Querying commands for the cbridge module
 * [sgnd query distribution](sgnd_query_distribution.md)	 - Querying commands for the distribution module
-* [sgnd query govern](sgnd_query_govern.md)	 - Querying commands for the governance module
+* [sgnd query farming](sgnd_query_farming.md)	 - Querying commands for the farming module
+* [sgnd query gov](sgnd_query_gov.md)	 - Querying commands for the governance module
 * [sgnd query mint](sgnd_query_mint.md)	 - Querying commands for the minting module
 * [sgnd query params](sgnd_query_params.md)	 - Querying commands for the params module
 * [sgnd query slash](sgnd_query_slash.md)	 - Querying commands for the slash module
