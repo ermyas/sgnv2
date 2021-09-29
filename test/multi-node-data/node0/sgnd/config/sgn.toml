@@ -47,7 +47,6 @@ blkinterval = 1
 blkdelay = 1
 maxblkdelta = 5000
 cbridge = "0x"
-maxamt = "10000000000000000000000"
 ksfile = "./keys/vsigner0.json"
 kspass = ""
 
@@ -59,6 +58,5 @@ blkinterval = 1
 blkdelay = 1
 maxblkdelta = 5000
 cbridge = "0x"
-maxamt = "10000000000000000000000"
 ksfile = "./keys/vsigner0.json"
 kspass = ""

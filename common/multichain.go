@@ -7,7 +7,6 @@ type OneChainConfig struct {
 	BlkInterval, BlkDelay, MaxBlkDelta uint64
 	// cbridge contract address, w/ 0x prefix
 	CBridge        string
-	MaxAmt         string
 	KsFile, KsPass string
 }
 

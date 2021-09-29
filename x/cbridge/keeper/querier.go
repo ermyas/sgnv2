@@ -111,7 +111,7 @@ func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, le
 				Address: a.Addr,
 				Decimal: int32(a.Decimal),
 			},
-			MaxAmt:       occ.MaxAmt,
+			MaxAmt:       a.MaxAmt.String(),
 			ContractAddr: occ.CBridge,
 		})
 	}
