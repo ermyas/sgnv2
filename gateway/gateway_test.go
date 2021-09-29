@@ -10,6 +10,8 @@ import (
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/relayer"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"io"
 	"math/big"
 	"math/rand"
@@ -27,11 +29,20 @@ const (
 	stSchema = "dal/schema.sql"
 )
 
+func setGlobal() {
+	rootDir = os.ExpandEnv("$HOME/.sgnd")
+	legacyAmino = codec.NewLegacyAmino()
+	interfaceRegistry = codectypes.NewInterfaceRegistry()
+	cdc = codec.NewProtoCodec(interfaceRegistry)
+	selfStart = true
+}
+
 // TestMain is used to setup/teardown a temporary CockroachDB instance
 // and run all the unit tests in between.
 func TestMain(m *testing.M) {
 	flag.Parse()
 	rand.Seed(time.Now().Unix())
+	setGlobal()
 
 	if err := setup(); err != nil {
 		fmt.Println("cannot setup DB:", err)
@@ -211,8 +222,7 @@ func TestTransfer(t *testing.T) {
 	t.Log("min received amt:", dstAmt)
 
 	markTransferResponse, err := svc.MarkTransfer(nil, &webapi.MarkTransferRequest{
-		TransferId:    transferId,
-		DstTransferId: "2",
+		TransferId: transferId,
 		SrcSendInfo: &webapi.TransferInfo{
 			Chain:  chains[0],
 			Token:  chainToken1.GetToken()[0].Token,
@@ -248,7 +258,98 @@ func TestTransfer(t *testing.T) {
 	})
 	errIsNil(t, err)
 	checkTransferStatus(t, history.History[0].GetStatus(), types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE)
-	err = relayer.GatewayOnRelay(transferId, srcTxHash)
+	err = relayer.GatewayOnRelay(transferId, srcTxHash, "2", string(rune(dstAmt)))
+	errIsNil(t, err)
+	history, err = svc.TransferHistory(nil, &webapi.TransferHistoryRequest{
+		NextPageToken: "",
+		PageSize:      10,
+		Addr:          usrAddr,
+	})
+	errIsNil(t, err)
+	checkTransferStatus(t, history.History[0].GetStatus(), types.TransferHistoryStatus_TRANSFER_COMPLETED)
+}
+func TestTransferRefund(t *testing.T) {
+	svc := newTestSvc(t)
+	if svc == nil {
+		t.Errorf("fail to init service")
+		return
+	}
+	mockChian()
+
+	configs, err := svc.GetTransferConfigs(nil, nil)
+	errIsNil(t, err)
+	errMsgIsNil(t, configs.Err)
+	chainTokens := configs.GetChainToken()
+	chains := configs.GetChains()
+	chain1 := chains[0].GetId()
+	chain2 := chains[1].GetId()
+	chainToken1 := chainTokens[chain1]
+	chainToken2 := chainTokens[chain2]
+
+	srcAmt := "10000"
+	usrAddr := "0x25846D545a60A029E5C83f0FB96e41b408528e9E"
+	srcTxHash := "111111111"
+	transferId := "1"
+
+	tlrsResp, err := svc.SetAdvancedInfo(nil, &webapi.SetAdvancedInfoRequest{
+		Addr:              "0x25846D545a60A029E5C83f0FB96e41b408528e9E",
+		SlippageTolerance: 200,
+	})
+	errIsNil(t, err)
+	errMsgIsNil(t, tlrsResp.Err)
+	estimateAmt, err := svc.EstimateAmt(nil, &webapi.EstimateAmtRequest{
+		SrcChainId:  chain1,
+		DstChainId:  chain2,
+		TokenSymbol: chainToken1.Token[0].Token.Symbol,
+		Amt:         srcAmt,
+		UsrAddr:     usrAddr,
+	})
+	errIsNil(t, err)
+	errMsgIsNil(t, estimateAmt.Err)
+	t.Log("estimate amt:", estimateAmt)
+	dstAmt, _ := strconv.Atoi(estimateAmt.EqValueTokenAmt)
+	fee, _ := strconv.Atoi(estimateAmt.GetFee())
+	dstAmt = int(float64(dstAmt)*(1-float64(estimateAmt.SlippageTolerance)/10000.0)) - fee
+	t.Log("min received amt:", dstAmt)
+
+	markTransferResponse, err := svc.MarkTransfer(nil, &webapi.MarkTransferRequest{
+		TransferId: transferId,
+		SrcSendInfo: &webapi.TransferInfo{
+			Chain:  chains[0],
+			Token:  chainToken1.GetToken()[0].Token,
+			Amount: srcAmt,
+		},
+		DstMinReceivedInfo: &webapi.TransferInfo{
+			Chain:  chains[1],
+			Token:  chainToken2.GetToken()[0].Token,
+			Amount: fmt.Sprint(dstAmt),
+		},
+		Addr:      usrAddr,
+		SrcTxHash: srcTxHash,
+		Type:      webapi.TransferType_TRANSFER_TYPE_SEND,
+	})
+	errIsNil(t, err)
+	errMsgIsNil(t, markTransferResponse.Err)
+
+	history, err := svc.TransferHistory(nil, &webapi.TransferHistoryRequest{
+		NextPageToken: "",
+		PageSize:      10,
+		Addr:          usrAddr,
+	})
+	errIsNil(t, err)
+	errMsgIsNil(t, history.Err)
+	checkTransferStatus(t, history.History[0].GetStatus(), types.TransferHistoryStatus_TRANSFER_SUBMITTING)
+
+	err = relayer.GatewayOnSend(transferId)
+	errIsNil(t, err)
+	history, err = svc.TransferHistory(nil, &webapi.TransferHistoryRequest{
+		NextPageToken: "",
+		PageSize:      10,
+		Addr:          usrAddr,
+	})
+	errIsNil(t, err)
+	checkTransferStatus(t, history.History[0].GetStatus(), types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE)
+	err = relayer.GatewayOnRelay(transferId, srcTxHash, "2", string(rune(dstAmt)))
 	errIsNil(t, err)
 	history, err = svc.TransferHistory(nil, &webapi.TransferHistoryRequest{
 		NextPageToken: "",

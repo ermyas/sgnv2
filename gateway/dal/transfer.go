@@ -37,11 +37,11 @@ func (d *DAL) CheckTransferStatusNotIn(transferId string, statusList []uint64) b
 	return true
 }
 
-func (d *DAL) MarkTransferSend(transferId, dstTransferId, usrAddr, tokenSymbol, amt, receivedAmt, txHash string, srcChainId, dsChainId uint64, volume float64) error {
+func (d *DAL) MarkTransferSend(transferId, usrAddr, tokenSymbol, amt, receivedAmt, txHash string, srcChainId, dsChainId uint64, volume float64) error {
 	status := uint64(types.TransferHistoryStatus_TRANSFER_SUBMITTING)
-	q := `INSERT INTO transfer (transfer_id, dst_transfer_id, usr_addr, token_symbol, amt, received_amt, src_chain_id, dst_chain_id, status, volume, create_time, update_time, src_tx_hash)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
-	res, err := d.Exec(q, transferId, dstTransferId, usrAddr, tokenSymbol, amt, receivedAmt, srcChainId, dsChainId, status, volume, now(), now(), txHash)
+	q := `INSERT INTO transfer (transfer_id, usr_addr, token_symbol, amt, received_amt, src_chain_id, dst_chain_id, status, volume, create_time, update_time, src_tx_hash)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
+	res, err := d.Exec(q, transferId, usrAddr, tokenSymbol, amt, receivedAmt, srcChainId, dsChainId, status, volume, now(), now(), txHash)
 	return sqldb.ChkExec(res, err, 1, "MarkTransferSend")
 }
 
@@ -139,10 +139,10 @@ func (d *DAL) GetTransferBySeqNum(seqNum uint64) (string, bool, error) {
 	found, err := sqldb.ChkQueryRow(err)
 	return transferId, found, err
 }
-func (d *DAL) TransferCompleted(transferId, txHash string) error {
+func (d *DAL) TransferCompleted(transferId, txHash, dstTransferId, receivedAmt string) error {
 	status := uint64(types.TransferHistoryStatus_TRANSFER_COMPLETED)
-	q := `UPDATE transfer SET dst_tx_hash=$2, status=$3, update_time=$4 WHERE transfer_id=$1`
-	res, err := d.Exec(q, transferId, txHash, status, now())
+	q := `UPDATE transfer SET dst_tx_hash=$2, status=$3, update_time=$4, dst_transfer_id=$5, received_amt=$6 WHERE transfer_id=$1`
+	res, err := d.Exec(q, transferId, txHash, status, now(), dstTransferId, receivedAmt)
 	return sqldb.ChkExec(res, err, 1, "TransferCompleted")
 }
 

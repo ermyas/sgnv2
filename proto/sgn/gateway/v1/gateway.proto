@@ -165,13 +165,12 @@ enum TransferType {
 }
 message MarkTransferRequest {
     string transfer_id = 1;
-    string dst_transfer_id = 2;
-    TransferInfo src_send_info = 3;
-    TransferInfo dst_min_received_info = 4;
-    string addr = 5;
-    string src_tx_hash = 6;
-    TransferType type = 7;
-    uint64 withdraw_seq_num = 8;
+    TransferInfo src_send_info = 2;
+    TransferInfo dst_min_received_info = 3;
+    string addr = 4;
+    string src_tx_hash = 5;
+    TransferType type = 6;
+    uint64 withdraw_seq_num = 7;
 }
 
 message MarkTransferResponse {

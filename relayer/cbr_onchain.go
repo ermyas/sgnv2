@@ -88,7 +88,7 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
 		}
-		err = GatewayOnRelay(common.Hash(ev.TransferId).String(), eLog.TxHash.String())
+		err = GatewayOnRelay(common.Hash(ev.SrcTransferId).String(), eLog.TxHash.String(), common.Hash(ev.TransferId).String(), ev.Amount.String())
 		if err != nil {
 			log.Errorln("UpdateTransfer err:", err)
 		}

@@ -99,8 +99,8 @@ func GatewayOnSend(transferId string) error {
 	return dal.UpdateTransferStatus(transferId, uint64(cbrtypes.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE))
 }
 
-func GatewayOnRelay(transferId, txHash string) error {
-	return dal.TransferCompleted(transferId, txHash)
+func GatewayOnRelay(transferId, txHash, dstTransferId, amt string) error {
+	return dal.TransferCompleted(transferId, txHash, dstTransferId, amt)
 }
 
 func GatewayOnLiqAdd(lpAddr, token, tokenAddr, amt, txHash string, chainId uint64, seqNum uint64) error {

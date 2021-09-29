@@ -19,11 +19,11 @@ func UpdateTransferStatus(transferId string, status uint64) error {
 }
 
 // TransferCompleted update api
-func TransferCompleted(transferId, txHash string) error {
+func TransferCompleted(transferId, txHash, dstTransferId, amt string) error {
 	if DB == nil {
 		return nil
 	} else {
-		return DB.TransferCompleted(transferId, txHash)
+		return DB.TransferCompleted(transferId, txHash, dstTransferId, amt)
 	}
 }
 

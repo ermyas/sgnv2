@@ -134,7 +134,7 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 	addr := common.Hex2Addr(request.GetUsrAddr()).String()
 	slippage, found, err := dal.DB.GetSlippageSetting(addr)
 	if err != nil || !found {
-		slippage = 0
+		slippage = 5000
 	}
 	feeInfo, err := cli.GetFee(gs.tr.CliCtx, &types.GetFeeRequest{
 		SrcChainId:   uint64(srcChainId),
@@ -172,12 +172,11 @@ func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.Mark
 	addr := common.Hex2Addr(request.GetAddr())
 	sendInfo := request.GetSrcSendInfo()
 	receivedInfo := request.GetDstMinReceivedInfo()
-	dstTransferId := request.GetDstTransferId()
 	txHash := request.GetSrcTxHash()
 	txType := request.GetType()
 	withdrawSeqNum := request.GetWithdrawSeqNum()
 	if txType == webapi.TransferType_TRANSFER_TYPE_SEND {
-		err := dal.DB.MarkTransferSend(transferId, dstTransferId, addr.String(), sendInfo.GetToken().GetSymbol(),
+		err := dal.DB.MarkTransferSend(transferId, addr.String(), sendInfo.GetToken().GetSymbol(),
 			sendInfo.GetAmount(), receivedInfo.GetAmount(), txHash, uint64(sendInfo.GetChain().GetId()),
 			uint64(receivedInfo.GetChain().GetId()), gs.f.GetUsdVolume(sendInfo.GetToken(), common.Str2BigInt(sendInfo.GetAmount())))
 		if err != nil {
