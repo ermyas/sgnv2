@@ -7,6 +7,9 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	tc "github.com/celer-network/sgn-v2/test/common"
+	bridgecli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func setupCbridge() {
@@ -56,9 +59,15 @@ func cbridgeTest(t *testing.T) {
 	tc.CbrClient1.SetInitSigners(amts)
 	tc.CbrClient2.SetInitSigners(amts)
 
+	log.Infoln("======================== Query chain tokens ===========================")
+	resp, err := bridgecli.ChainTokensConfig(transactor.CliCtx, &cbrtypes.ChainTokensConfigRequest{})
+	tc.ChkErr(err, "cli Query")
+	assert.True(t, len(resp.ChainTokens) > 0)
+	log.Infoln("resp: ", resp.String())
+
 	log.Infoln("======================== Add liquidity on chain 1 ===========================")
 	addAmt := big.NewInt(5 * 1e10)
-	err := tc.CbrClient1.Approve(addAmt)
+	err = tc.CbrClient1.Approve(addAmt)
 	tc.ChkErr(err, "client1 approve")
 	err = tc.CbrClient1.AddLiq(addAmt)
 	tc.ChkErr(err, "client1 addliq")
