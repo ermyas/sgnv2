@@ -48,8 +48,8 @@ func (k Keeper) GetCbrConfig(ctx sdk.Context) types.CbrConfig {
 
 	iter2 := sdk.KVStorePrefixIterator(kv, []byte("cfg-chpair-"))
 	defer iter2.Close()
-	for ; iter.Valid(); iter.Next() {
-		pairRaw := iter.Value()
+	for ; iter2.Valid(); iter2.Next() {
+		pairRaw := iter2.Value()
 		pair := new(types.ChainPair)
 		pair.Unmarshal(pairRaw)
 		cbrConfig.ChainPairs = append(cbrConfig.ChainPairs, pair)
