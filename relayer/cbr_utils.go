@@ -110,7 +110,7 @@ func GatewayOnLiqAdd(lpAddr, token, tokenAddr, amt, txHash string, chainId uint6
 }
 
 func GatewayOnLiqWithdraw(seqNum uint64) {
-	transferId, found, err := dal.GetTransferBySeqNum(seqNum)
+	transferId, found, err := dal.GetTransferByRefundSeqNum(seqNum)
 	if err != nil {
 		log.Errorln("error when get transfer by seq num:", err)
 	}

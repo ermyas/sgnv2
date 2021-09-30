@@ -45,12 +45,12 @@ func UpsertLP(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, stat
 	}
 }
 
-// GetTransferBySeqNum query api
-func GetTransferBySeqNum(seqNum uint64) (string, bool, error) {
+// GetTransferByRefundSeqNum query api
+func GetTransferByRefundSeqNum(seqNum uint64) (string, bool, error) {
 	if DB == nil {
 		return "", false, noDBErrorForQuery()
 	} else {
-		return DB.GetTransferBySeqNum(seqNum)
+		return DB.GetTransferByRefundSeqNum(seqNum)
 	}
 }
 

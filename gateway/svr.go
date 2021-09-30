@@ -206,10 +206,20 @@ func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.Mark
 
 func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.GetLPInfoListRequest) (*webapi.GetLPInfoListResponse, error) {
 	userAddr := common.Hex2Addr(request.GetAddr()).String()
-	chainTokens, err := dal.DB.GetAllLpChainToken(userAddr)
-	if err != nil || len(chainTokens) == 0 {
+	chainTokenInfos, err := dal.DB.GetChainTokenList()
+	if err != nil || len(chainTokenInfos) == 0 {
 		return &webapi.GetLPInfoListResponse{}, nil
 	}
+	var chainTokens []*types.ChainTokenAddrPair
+	for chainId, tokens := range chainTokenInfos {
+		for _, tokenInfo := range tokens.Token {
+			chainTokens = append(chainTokens, &types.ChainTokenAddrPair{
+				ChainId:   uint64(chainId),
+				TokenAddr: tokenInfo.GetToken().Address,
+			})
+		}
+	}
+
 	var lps []*webapi.LPInfo
 	detailList, err := cbrcli.QueryLiquidityDetailList(gs.tr.CliCtx, &cbrtypes.LiquidityDetailListRequest{
 		LpAddr:     userAddr,
@@ -234,8 +244,10 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 		chainInfo[token.Token.Symbol] = detail
 		userDetailMap[chainId] = chainInfo
 	}
-	for chainId, chainDetail := range farmingApyMap {
-		for tokenSymbol := range chainDetail {
+	for chainId32, chainToken := range chainTokenInfos {
+		chainId := uint64(chainId32)
+		for _, token := range chainToken.Token {
+			tokenSymbol := token.Token.Symbol
 			totalLiquidity := "0"
 			usrLpFeeEarning := "0"
 			usrLiquidity := "0"
@@ -253,10 +265,6 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 					Name: "UNKNOWN CHAIN",
 					Icon: "",
 				}
-			}
-			token, found, err := dal.DB.GetTokenBySymbol(tokenSymbol, chainId)
-			if !found || err != nil {
-				continue
 			}
 
 			data := data24h[chainId][tokenSymbol]
@@ -423,15 +431,20 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 	resp, err := cbrcli.QueryWithdrawLiquidityStatus(gs.tr.CliCtx, &cbrtypes.QueryWithdrawLiquidityStatusRequest{
 		SeqNum: seqNum,
 	})
+
+	curss, err := cbrcli.QueryChainSigners(gs.tr.CliCtx, chainId)
 	if resp == nil || err != nil {
-		return &cbrtypes.QueryLiquidityStatusResponse{
-			Status: cbrtypes.LPHistoryStatus(status),
-			Detail: nil,
+		return &types.QueryLiquidityStatusResponse{
+			Status:  types.LPHistoryStatus(status),
+			Detail:  nil,
+			Signers: nil,
 		}, err
-	} else if resp.GetStatus() == cbrtypes.LPHistoryStatus_LP_WAITING_FOR_LP {
-		_ = dal.DB.UpdateLPStatus(seqNum, uint64(cbrtypes.LPHistoryStatus_LP_WAITING_FOR_LP))
+	} else if resp.GetStatus() == types.LPHistoryStatus_LP_WAITING_FOR_LP {
+		_ = dal.DB.UpdateLPStatus(seqNum, uint64(types.LPHistoryStatus_LP_WAITING_FOR_LP))
+		resp.Signers = curss.GetSignersBytes()
 	} else {
-		resp.Status = cbrtypes.LPHistoryStatus(status)
+		resp.Status = types.LPHistoryStatus(status)
+		resp.Signers = curss.GetSignersBytes()
 	}
 	return resp, nil
 }

@@ -82,13 +82,6 @@ func (d *DAL) GetTokenByAddr(addr string, chainId uint64) (*webapi.TokenInfo, bo
 	}, found, err
 }
 
-func (d *DAL) UpsertChain(id uint64, name, icon string) error {
-	q := `INSERT INTO chain (name, icon)
-               VALUES ($2, $3) WHERE id=$1`
-	res, err := d.Exec(q, id, name, icon)
-	return sqldb.ChkExec(res, err, 1, "UpsertChain")
-}
-
 func (d *DAL) GetChainTokenList() (map[uint32]*webapi.ChainTokenInfo, error) {
 	q := `SELECT symbol, chain_id, address, decimal, name, icon, max_amt, contract FROM token`
 	rows, err := d.Query(q)
