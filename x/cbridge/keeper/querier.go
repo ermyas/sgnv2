@@ -89,6 +89,9 @@ func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, le
 	}
 
 	mca := k.GetCbrConfig(ctx)
+	if len(mca.Assets) == 0 {
+		log.Warnln("no chain assets configured yet!")
+	}
 	chainTokens := make(map[string]*types.Assets)
 	for _, a := range mca.Assets {
 		occ, ok := mccMap[a.ChainId]

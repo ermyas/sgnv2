@@ -25,7 +25,10 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 
-	cmd.AddCommand(common.GetCommands(GetCmdQueryConfig())...)
+	cmd.AddCommand(
+		GetCmdQueryConfig(),
+		GetCmdChainTokensConfig(),
+	)
 	// this line is used by starport scaffolding # 1
 
 	return cmd
@@ -50,6 +53,28 @@ func GetCmdQueryConfig() *cobra.Command {
 			}
 
 			return cliCtx.PrintObjectLegacy(params)
+		},
+	}
+}
+
+func GetCmdChainTokensConfig() *cobra.Command {
+	return &cobra.Command{
+		Use:   "chaintokens",
+		Args:  cobra.NoArgs,
+		Short: "Query the chain tokens",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			resp, err := ChainTokensConfig(cliCtx, &types.ChainTokensConfigRequest{})
+			if err != nil {
+				log.Errorln("query error", err)
+				return err
+			}
+
+			return cliCtx.PrintObjectLegacy(resp)
 		},
 	}
 }
