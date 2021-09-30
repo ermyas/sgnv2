@@ -113,7 +113,7 @@ func cbridgeTest(t *testing.T) {
 	tc.ChkErr(err, "client1 start withdraw")
 	log.Info("withdraw seqnum: ", wdSeq)
 	// now sleep and get stuff to send onchain
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 20)
 	detail, err := tc.GetWithdrawDetail(transactor, wdSeq)
 	tc.ChkErr(err, "client1 get withdrawdetail")
 	curss, err := tc.GetCurSortedSigners(transactor, chainId)
@@ -121,6 +121,18 @@ func cbridgeTest(t *testing.T) {
 	err = tc.CbrClient1.OnchainWithdraw(detail, curss)
 	tc.ChkErr(err, "client1 onchain withdraw")
 	// todo: more cases, eg. lp2 withdraw from chain1 after xfer
+
+	log.Infoln("======================== LP claim farming reward on-chain ===========================")
+	err = tc.StartClaimAll(transactor, eth.Addr2Hex(tc.CbrClient1.Auth.From))
+	tc.ChkErr(err, "client1 start claim all")
+	// now sleep and get stuff to send onchain
+	time.Sleep(time.Second * 20)
+	info, err := tc.GetRewardClaimInfo(transactor, eth.Addr2Hex(tc.CbrClient1.Auth.From))
+	tc.ChkErr(err, "client1 get reward info")
+	assert.Len(t, info.RewardClaimDetailsList, 1, "must have 1 RewardClaimDetails")
+	assert.Len(t, info.RewardClaimDetailsList[0].Signatures, 1, "node0 should sign")
+	err = tc.CbrClient1.OnchainClaimRewards(&info.RewardClaimDetailsList[0])
+	tc.ChkErr(err, "client1 onchain claim rewards")
 }
 
 func cbrSignersTest(t *testing.T) {
@@ -145,9 +157,9 @@ func cbrSignersTest(t *testing.T) {
 	tc.CheckChainSigners(t, transactor, tc.Geth2ChainID)
 
 	log.Infoln("================== Add validators ======================")
-	tc.AddValdiator(t, transactor, 0, big.NewInt(3e18), eth.CommissionRate(0.03))
-	tc.AddValdiator(t, transactor, 1, big.NewInt(2e18), eth.CommissionRate(0.02))
-	tc.AddValdiator(t, transactor, 2, big.NewInt(4e18), eth.CommissionRate(0.01))
+	tc.AddValidator(t, transactor, 0, big.NewInt(3e18), eth.CommissionRate(0.03))
+	tc.AddValidator(t, transactor, 1, big.NewInt(2e18), eth.CommissionRate(0.02))
+	tc.AddValidator(t, transactor, 2, big.NewInt(4e18), eth.CommissionRate(0.01))
 	tc.Sleep(5)
 	tc.CheckChainSigners(t, transactor, tc.ChainID)
 	tc.CheckChainSigners(t, transactor, tc.Geth2ChainID)

@@ -15,7 +15,7 @@ Where proposal.json contains:
 {
  "title": "add a farming pool",
  "description": "add a CBridge farming pool for DAI on Ethereum",
- "pool_name": "cbridge-CB-DAI/1",
+ "pool_name": "cbridge-DAI/1",
  "stake_token": {
    "chain_id": 1,
    "symbol": "CB-DAI",

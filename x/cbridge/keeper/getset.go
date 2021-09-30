@@ -28,9 +28,15 @@ func (k Keeper) ChangeLiquidity(ctx sdk.Context, kv sdk.KVStore, chid uint64, to
 
 	sym := GetAssetSymbol(kv, &ChainIdTokenAddr{chid, token})
 	if delta.Sign() == 1 {
-		k.FarmStake(ctx, sym, chid, lp, delta)
+		err := k.FarmStake(ctx, sym, chid, lp, delta)
+		if err != nil {
+			panic("Failed to stake" + err.Error())
+		}
 	} else if delta.Sign() == -1 {
-		k.FarmUnstake(ctx, sym, chid, lp, new(big.Int).Neg(delta))
+		err := k.FarmUnstake(ctx, sym, chid, lp, new(big.Int).Neg(delta))
+		if err != nil {
+			panic("Failed to unstake" + err.Error())
+		}
 	}
 
 	return had

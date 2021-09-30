@@ -7,7 +7,7 @@ query the stake info of an account on a pool
 Query the stake info of an account in a specific pool.
 
 Example:
-$ <appd> query farming stake-info cbridge-1-DAI 0xab5801a7d398351b8be11c439e05c5b3259aec9b
+$ <appd> query farming stake-info cbridge-DAI/1 0xab5801a7d398351b8be11c439e05c5b3259aec9b
 
 ```
 sgnd query farming stake-info [pool-name] [address] [flags]

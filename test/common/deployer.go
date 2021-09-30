@@ -95,6 +95,26 @@ func DeploySgnStakingContracts(contractParams *ContractParams) *types.Transactio
 	ChkErr(err, "failed to set gov contract")
 	EtherBaseAuth.GasLimit = 0
 
+	// Contribute to reward pools
+	amt := NewBigInt(1, 25)
+	celrContract, err := eth.NewErc20(contractParams.CelrAddr, EthClient)
+	ChkErr(err, "failed to instantiate CELR contract")
+	approveTx, err := celrContract.Approve(EtherBaseAuth, Contracts.StakingReward.Address, amt)
+	ChkErr(err, "failed to approve erc20 to StakingReward")
+	WaitMinedWithChk(context.Background(), EthClient, approveTx, BlockDelay, PollingInterval, "approve erc20")
+	allowance, _ := celrContract.Allowance(&bind.CallOpts{}, EtherBaseAuth.From, Contracts.StakingReward.Address)
+	log.Infoln("allowance to StakingReward", allowance.String())
+	_, err = Contracts.StakingReward.ContributeToRewardPool(EtherBaseAuth, amt)
+	ChkErr(err, "failed to call StakingReward.ContributeToRewardPool")
+
+	approveTx, err = celrContract.Approve(EtherBaseAuth, Contracts.FarmingRewards.Address, amt)
+	ChkErr(err, "failed to approve erc20 to FarmingRewards")
+	WaitMinedWithChk(context.Background(), EthClient, approveTx, BlockDelay, PollingInterval, "approve erc20")
+	allowance, _ = celrContract.Allowance(&bind.CallOpts{}, EtherBaseAuth.From, Contracts.FarmingRewards.Address)
+	log.Infoln("allowance to FarmingRewards", allowance.String())
+	_, err = Contracts.FarmingRewards.ContributeToRewardPool(EtherBaseAuth, contractParams.CelrAddr, amt)
+	ChkErr(err, "failed to call FarmingRewards.ContributeToRewardPool")
+
 	log.Infoln("Staking address:", stakingContractAddr.String())
 	log.Infoln("SGN address:", sgnContractAddr.String())
 	log.Infoln("StakingReward address:", stakingRewardContractAddr.String())

@@ -52,9 +52,22 @@
               "amount": "100"
             }
           ]
+        },
+        {
+          "address": "sgn1pv57eakq9tvsrnu7grw69tk8z2vgyfuvynxy9y",
+          "coins": [
+            {
+              "denom": "CELR/883",
+              "amount": "10000000000000000000000"
+            }
+          ]
         }
       ],
       "supply": [
+        {
+          "denom": "CELR/883",
+          "amount": "10000000000000000000000"
+        },
         {
           "denom": "CELR/stake",
           "amount": "100"
@@ -101,6 +114,24 @@
       "params": {
         "claim_cooldown": "1s"
       },
+      "pool_current_rewards": [
+        {
+          "pool_name": "cbridge-USDT/883",
+          "rewards": {
+            "period": 1,
+            "rewards": []
+          }
+        }
+      ],
+      "pool_historical_rewards": [
+        {
+          "pool_name": "cbridge-USDT/883",
+          "rewards": {
+            "cumulative_reward_ratio": [],
+            "reference_count": 1
+          }
+        }
+      ],
       "pools": [
         {
           "name": "cbridge-USDT/883",

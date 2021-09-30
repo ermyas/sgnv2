@@ -15,6 +15,20 @@ func (k Keeper) InitGenesis(ctx sdk.Context, data types.GenesisState) {
 	var moduleAccHoldings sdk.DecCoins
 
 	for _, pool := range data.Pools {
+		// Create stake token if not existent
+		stakeToken := pool.StakeToken
+		found := k.HasERC20Token(ctx, stakeToken.ChainId, stakeToken.Symbol)
+		if !found {
+			k.SetERC20Token(ctx, stakeToken)
+		}
+		// Create reward tokens if not existent
+		for _, rewardToken := range pool.RewardTokens {
+			found = k.HasERC20Token(ctx, rewardToken.ChainId, rewardToken.Symbol)
+			if !found {
+				k.SetERC20Token(ctx, rewardToken)
+			}
+		}
+
 		moduleAccHoldings = moduleAccHoldings.Add(sdk.DecCoins{pool.TotalStakedAmount}...)
 		rewardModuleAccHoldings = rewardModuleAccHoldings.Add(pool.TotalAccumulatedRewards...)
 		k.SetFarmingPool(ctx, pool)

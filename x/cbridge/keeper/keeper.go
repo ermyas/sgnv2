@@ -10,7 +10,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	params "github.com/cosmos/cosmos-sdk/x/params/types"
 	"github.com/tendermint/tendermint/libs/log"
-	// this line is used by starport scaffolding # ibc/keeper/import
 )
 
 type Keeper struct {
@@ -19,7 +18,6 @@ type Keeper struct {
 	paramstore    params.Subspace
 	stakingKeeper types.StakingKeeper
 	farmingKeeper types.FarmingKeeper
-	// this line is used by starport scaffolding # ibc/keeper/attribute
 }
 
 func NewKeeper(
@@ -61,6 +59,6 @@ func (k Keeper) FarmUnstake(ctx sdk.Context, sym string, chid uint64, lpAddr eth
 
 func derivePoolNameAndDenom(symbol string, chainId uint64) (poolName string, denom string) {
 	denom = fmt.Sprintf("CB-%s/%d", symbol, chainId)
-	poolName = fmt.Sprintf("%s-CB-%s", types.ModuleName, denom)
+	poolName = fmt.Sprintf("%s-%s/%d", types.ModuleName, symbol, chainId)
 	return poolName, denom
 }

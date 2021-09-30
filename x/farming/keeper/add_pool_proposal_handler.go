@@ -35,14 +35,17 @@ func HandleAddPoolProposal(ctx sdk.Context, k Keeper, p *types.AddPoolProposal) 
 	var rewardTokenInfos types.RewardTokenInfos
 	var totalAccumulatedRewards sdk.DecCoins
 	for _, initialRewardInput := range p.InitialRewardInputs {
+		truncatedAddAmount, _ := initialRewardInput.AddAmount.TruncateDecimal()
+		// Mint reward
+		k.bankKeeper.MintCoins(ctx, types.RewardModuleAccountName, sdk.NewCoins(truncatedAddAmount))
 		rewardTokenInfo := types.RewardTokenInfo{
-			RemainingAmount:        initialRewardInput.AddAmount,
+			RemainingAmount:        sdk.NewDecCoinFromCoin(truncatedAddAmount),
 			RewardStartBlockHeight: ctx.BlockHeight() + initialRewardInput.RewardStartBlockDelay,
 			RewardAmountPerBlock:   initialRewardInput.NewRewardAmountPerBlock,
 		}
 		rewardTokenInfos = append(rewardTokenInfos, rewardTokenInfo)
 		totalAccumulatedRewards =
-			append(totalAccumulatedRewards, sdk.NewDecCoin(initialRewardInput.AddAmount.Denom, sdk.ZeroInt()))
+			append(totalAccumulatedRewards, sdk.NewDecCoin(truncatedAddAmount.Denom, sdk.ZeroInt()))
 	}
 	pool :=
 		types.NewFarmingPool(

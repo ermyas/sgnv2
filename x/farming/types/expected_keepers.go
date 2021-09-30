@@ -44,6 +44,6 @@ type GovKeeper interface {
 
 // StakingKeeper expected staking keeper (noalias)
 type StakingKeeper interface {
-	Validator(sdk.Context, eth.Addr) stakingtypes.ValidatorI                  // get a particular validator by operator address
-	ValidatorByConsAddr(sdk.Context, sdk.ConsAddress) stakingtypes.ValidatorI // get a particular validator by consensus address
+	Validator(sdk.Context, eth.Addr) stakingtypes.ValidatorI
+	GetValidatorBySgnAddr(sdk.Context, sdk.AccAddress) (stakingtypes.ValidatorI, bool)
 }

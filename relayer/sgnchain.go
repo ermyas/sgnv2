@@ -13,6 +13,7 @@ import (
 	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
+	"github.com/tendermint/tendermint/libs/pubsub/query"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/rpc/client/http"
@@ -20,8 +21,9 @@ import (
 )
 
 var (
-	EventSlash   = fmt.Sprintf("%s.%s='%s'", slashingtypes.EventTypeSlash, sdk.AttributeKeyAction, slashtypes.ActionSlash)
-	EventCbridge = fmt.Sprintf("%s.%s='%s'", cbrtypes.EventToSign, sdk.AttributeKeyAction, cbrtypes.EventToSign)
+	EventSlash           = fmt.Sprintf("%s.%s='%s'", slashingtypes.EventTypeSlash, sdk.AttributeKeyAction, slashtypes.ActionSlash)
+	EventCbridge         = fmt.Sprintf("%s.%s='%s'", cbrtypes.EventToSign, sdk.AttributeKeyAction, cbrtypes.EventToSign)
+	EventFarmingClaimAll = query.MustParse(fmt.Sprintf("tm.event='Tx' AND %s.%s EXISTS", farmingtypes.EventTypeClaimAll, farmingtypes.AttributeKeyAddress)).String()
 )
 
 func MonitorTendermintEvent(nodeURI, eventTag string, handleEvent func(event abci.Event)) {
@@ -161,12 +163,15 @@ func (r *Relayer) monitorCbrToSign() {
 }
 
 func (r *Relayer) monitorSgnFarmingClaimAllEvent() {
-	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, farmingtypes.EventTypeClaimAll, func(e abci.Event) {
+	MonitorTendermintEvent(r.Transactor.CliCtx.NodeURI, EventFarmingClaimAll, func(e abci.Event) {
+		if e.Type != farmingtypes.EventTypeClaimAll {
+			return
+		}
 		if !r.isBonded() {
 			return
 		}
 		event := sdk.StringifyEvent(e)
-		r.handleFarmingClaimEvent(event.Attributes[1].Value)
+		r.handleFarmingClaimEvent(event.Attributes[0].Value)
 	})
 }
 

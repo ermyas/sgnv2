@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/celer-network/sgn-v2/eth"
+	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/farming/types"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
@@ -64,6 +65,28 @@ $ %s tx farming claim-all 0xab5801a7d398351b8be11c439e05c5b3259aec9b --from myke
 	return cmd
 }
 
+func ClaimAllRewards(t *transactor.Transactor, req *types.MsgClaimAllRewards) (resp *types.MsgClaimAllRewardsResponse, err error) {
+	txResponse, err := t.SendTxMsgsWaitMined([]sdk.Msg{req})
+	if err != nil {
+		return
+	}
+
+	for _, log := range txResponse.Logs {
+		for _, e := range log.Events {
+			if e.Type == types.EventTypeClaimAll {
+				resp = new(types.MsgClaimAllRewardsResponse)
+				break
+			}
+		}
+
+		if resp != nil {
+			break
+		}
+	}
+
+	return
+}
+
 // GetCmdSubmitAddPoolProposal implements a command handler for submitting an AddPoolProposal
 func GetCmdSubmitAddPoolProposal() *cobra.Command {
 	return &cobra.Command{
@@ -82,7 +105,7 @@ Where proposal.json contains:
 {
  "title": "add a farming pool",
  "description": "add a CBridge farming pool for DAI on Ethereum",
- "pool_name": "cbridge-CB-DAI/1",
+ "pool_name": "cbridge-DAI/1",
  "stake_token": {
    "chain_id": 1,
    "symbol": "CB-DAI",

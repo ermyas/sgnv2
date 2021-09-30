@@ -39,6 +39,11 @@ func (k msgServer) ClaimRewards(goCtx context.Context, msg *types.MsgClaimReward
 		return nil, err
 	}
 
+	err = k.accumulateRewards(ctx, addr, claimInfo)
+	if err != nil {
+		return nil, err
+	}
+
 	// Emit claim event
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeClaim,
@@ -65,6 +70,11 @@ func (k msgServer) ClaimAllRewards(
 		if claimErr != nil {
 			return nil, claimErr
 		}
+	}
+
+	err = k.accumulateRewards(ctx, addr, claimInfo)
+	if err != nil {
+		return nil, err
 	}
 
 	// Emit claim_all event to trigger validators signing
@@ -119,35 +129,35 @@ func (k msgServer) claimOnePool(
 	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Sub(rewards)
 	k.SetFarmingPool(ctx, updatedPool)
 
-	// 6. Update RewardClaimInfo
-	// 6.1. Collect chainIds and RewardClaimDetails, create details if not existent
-	chainIds := make(map[uint64]bool)
-	for _, rewardToken := range pool.RewardTokens {
-		chainIds[rewardToken.ChainId] = true
-	}
+	return nil
+}
+
+// accumulateRewards updates RewardClaimInfo
+func (k msgServer) accumulateRewards(ctx sdk.Context, addr eth.Addr, claimInfo *types.RewardClaimInfo) error {
+	// 1. Collect chainIds
 	chainIdToDetails := make(map[uint64]*types.RewardClaimDetails)
 	for _, detail := range claimInfo.RewardClaimDetailsList {
 		chainIdToDetails[detail.ChainId] = &detail
 	}
-	for chainId := range chainIds {
-		_, found := chainIdToDetails[chainId]
-		if !found {
-			chainIdToDetails[chainId] = &types.RewardClaimDetails{
-				ChainId:                 chainId,
-				CumulativeRewardAmounts: sdk.NewDecCoins(),
-			}
-		}
-	}
-	// 6.2. Update CumulativeRewardAmounts
+	// 2. Update CumulativeRewardAmounts
 	derivedRewardAccount := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, addr)
-	for _, rewardTokenInfo := range pool.RewardTokenInfos {
-		denom := rewardTokenInfo.RemainingAmount.Denom
+	rewards := k.bankKeeper.GetAllBalances(ctx, derivedRewardAccount)
+	for _, reward := range rewards {
+		denom := reward.Denom
 		cumulativeReward := k.bankKeeper.GetBalance(ctx, derivedRewardAccount, denom)
 		chainId, _, parseErr := ParseERC20TokenDenom(denom)
 		if parseErr != nil {
 			return parseErr
 		}
-		details := chainIdToDetails[chainId]
+		details, found := chainIdToDetails[chainId]
+		if !found {
+			// Create details if not existent
+			details = &types.RewardClaimDetails{
+				ChainId:                 chainId,
+				CumulativeRewardAmounts: sdk.NewDecCoins(),
+			}
+			chainIdToDetails[chainId] = details
+		}
 		cumulativeRewardAmount := cumulativeReward.Amount
 		existing := sdk.NewDecCoinFromDec(denom, details.CumulativeRewardAmounts.AmountOf(denom))
 		updated := sdk.NewDecCoin(denom, cumulativeRewardAmount)
@@ -156,7 +166,7 @@ func (k msgServer) claimOnePool(
 				details.CumulativeRewardAmounts.Sub(sdk.NewDecCoins(existing)).Add(updated)
 		}
 	}
-	// 6.3. Update TokenAddresses and CumulativeRewardAmounts, Reconstruct RewardProtoBytes
+	// 3. Update TokenAddresses and CumulativeRewardAmounts, Reconstruct RewardProtoBytes
 	for chainId, details := range chainIdToDetails {
 		var tokenAddresses [][]byte
 		var cumulativeRewardAmounts [][]byte
@@ -186,13 +196,12 @@ func (k msgServer) claimOnePool(
 		details.RewardProtoBytes = rewardProtoBytes
 	}
 
-	// 6.3. Append RewardClaimDetails and set RewardClaimInfo
+	// 4. Append RewardClaimDetails and set RewardClaimInfo
 	// TODO: 1. Avoid copying 2. Sort by ascending chain IDs?
 	for _, details := range chainIdToDetails {
 		claimInfo.RewardClaimDetailsList = append(claimInfo.RewardClaimDetailsList, *details)
 	}
 	k.SetRewardClaimInfo(ctx, *claimInfo)
-
 	return nil
 }
 
@@ -200,9 +209,16 @@ func (k msgServer) SignRewards(
 	goCtx context.Context, msg *types.MsgSignRewards) (*types.MsgSignRewardsResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
-	validator := k.stakingKeeper.ValidatorByConsAddr(ctx, sdk.ConsAddress(msg.Sender))
+	senderAcct, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		return nil, types.WrapErrInvalidAddress(msg.Sender)
+	}
+	validator, found := k.stakingKeeper.GetValidatorBySgnAddr(ctx, senderAcct)
+	if !found {
+		return nil, fmt.Errorf("sender is not a validator")
+	}
 	if !validator.IsBonded() {
-		return nil, fmt.Errorf("validator not bonded")
+		return nil, fmt.Errorf("validator is not bonded")
 	}
 
 	claimInfo, found := k.GetRewardClaimInfo(ctx, eth.Hex2Addr(msg.Address))
@@ -214,8 +230,9 @@ func (k msgServer) SignRewards(
 	}
 
 	chainIdToRewardClaimDetails := make(map[uint64]*types.RewardClaimDetails)
-	for _, detail := range claimInfo.RewardClaimDetailsList {
-		chainIdToRewardClaimDetails[detail.ChainId] = &detail
+	for i := 0; i < len(claimInfo.RewardClaimDetailsList); i++ {
+		detail := &claimInfo.RewardClaimDetailsList[i]
+		chainIdToRewardClaimDetails[detail.ChainId] = detail
 	}
 	for _, signatureDetails := range msg.SignatureDetailsList {
 		addSigErr := chainIdToRewardClaimDetails[signatureDetails.ChainId].AddSig(

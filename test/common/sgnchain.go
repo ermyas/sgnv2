@@ -16,6 +16,8 @@ import (
 	"github.com/celer-network/sgn-v2/transactor"
 	bridgecli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	farmingcli "github.com/celer-network/sgn-v2/x/farming/client/cli"
+	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	govcli "github.com/celer-network/sgn-v2/x/gov/client/cli"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	slashcli "github.com/celer-network/sgn-v2/x/slash/client/cli"
@@ -63,7 +65,7 @@ func NewTestTransactor(sgnHomeDir, sgnChainID, sgnNodeURI, sgnValAcct, sgnPassph
 	return tr
 }
 
-func AddValdiator(
+func AddValidator(
 	t *testing.T, transactor *transactor.Transactor, valIndex int, amt *big.Int, commissionRate uint64) {
 	log.Infoln("Adding validator", ValEthAddrs[valIndex].Hex())
 	err := InitializeValidator(
@@ -85,7 +87,7 @@ func AddValdiator(
 func SetupValidators(t *testing.T, transactor *transactor.Transactor, amts []*big.Int) {
 	for i := 0; i < len(amts); i++ {
 		log.Infoln("Adding validator", i, ValEthAddrs[i].Hex())
-		AddValdiator(t, transactor, i, amts[i], eth.CommissionRate(0.02))
+		AddValidator(t, transactor, i, amts[i], eth.CommissionRate(0.02))
 	}
 }
 
@@ -360,4 +362,17 @@ func (c *CbrClient) StartWithdraw(transactor *transactor.Transactor, chid uint64
 		return 0, errors.New(resp.Errmsg.String())
 	}
 	return resp.Seqnum, nil
+}
+
+// call claim-all
+func StartClaimAll(transactor *transactor.Transactor, addr string) error {
+	_, err := farmingcli.ClaimAllRewards(transactor, &farmingtypes.MsgClaimAllRewards{
+		Address: addr,
+		Sender:  transactor.Key.GetAddress().String(),
+	})
+	return err
+}
+
+func GetRewardClaimInfo(transactor *transactor.Transactor, addr string) (*farmingtypes.RewardClaimInfo, error) {
+	return farmingcli.QueryRewardClaimInfo(context.Background(), transactor.CliCtx, addr)
 }

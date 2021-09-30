@@ -49,7 +49,7 @@ func (k Keeper) CalculateAmountEarnedBetween(ctx sdk.Context, pool types.Farming
 }
 
 func (k Keeper) WithdrawRewards(
-	ctx sdk.Context, poolName string, totalValueLocked sdk.DecCoin, earnedTokens sdk.DecCoins, addr eth.Addr,
+	ctx sdk.Context, poolName string, totalStakedAmount sdk.DecCoin, earnedTokens sdk.DecCoins, addr eth.Addr,
 ) (sdk.DecCoins, error) {
 	// 0. Check existence of stake info
 	stakeInfo, found := k.GetStakeInfo(ctx, addr, poolName)
@@ -58,7 +58,7 @@ func (k Keeper) WithdrawRewards(
 	}
 
 	// 1. End current period and calculate rewards
-	endingPeriod := k.IncrementPoolPeriod(ctx, poolName, totalValueLocked, earnedTokens)
+	endingPeriod := k.IncrementPoolPeriod(ctx, poolName, totalStakedAmount, earnedTokens)
 	rewards := k.calculateRewards(ctx, poolName, addr, endingPeriod, stakeInfo)
 
 	// 2. Transfer rewards to user account
@@ -80,17 +80,17 @@ func (k Keeper) WithdrawRewards(
 
 // IncrementPoolPeriod increments pool period, returning the period just ended
 func (k Keeper) IncrementPoolPeriod(
-	ctx sdk.Context, poolName string, totalValueLocked sdk.DecCoin, earnedTokens sdk.DecCoins,
+	ctx sdk.Context, poolName string, totalStakedAmount sdk.DecCoin, earnedTokens sdk.DecCoins,
 ) uint64 {
 	// 1. Fetch current period rewards
 	rewards := k.GetPoolCurrentRewards(ctx, poolName)
 	// 2. Calculate current reward ratio
 	rewards.Rewards = rewards.Rewards.Add(earnedTokens...)
 	var currentRatio sdk.DecCoins
-	if totalValueLocked.IsZero() {
+	if totalStakedAmount.IsZero() {
 		currentRatio = sdk.DecCoins{}
 	} else {
-		currentRatio = rewards.Rewards.QuoDecTruncate(totalValueLocked.Amount)
+		currentRatio = rewards.Rewards.QuoDecTruncate(totalStakedAmount.Amount)
 	}
 
 	// 3.1. Get the previous pool historical rewards

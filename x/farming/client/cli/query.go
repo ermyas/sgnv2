@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -69,7 +70,7 @@ func GetCmdQueryPool() *cobra.Command {
 			fmt.Sprintf(`Query details about the reward token, the staked balance and the reward amount per block.
 
 Example:
-$ %s query farming pool cbridge-CB-DAI/1
+$ %s query farming pool cbridge-DAI/1
 `,
 				version.AppName,
 			),
@@ -139,7 +140,7 @@ func GetCmdQueryEarnings() *cobra.Command {
 			fmt.Sprintf(`Query available rewards for an address.
 
 Example:
-$ %s query farming earnings cbridge-CB-DAI/1 0xab5801a7d398351b8be11c439e05c5b3259aec9b
+$ %s query farming earnings cbridge-DAI/1 0xab5801a7d398351b8be11c439e05c5b3259aec9b
 `,
 				version.AppName,
 			),
@@ -244,7 +245,7 @@ func GetCmdQueryAccountsStakedIn() *cobra.Command {
 			fmt.Sprintf(`Query all the addresses of accounts that have staked tokens in a specific pool.
 
 Example:
-$ %s query farming accounts-staked-in cbridge-CB-DAI/1
+$ %s query farming accounts-staked-in cbridge-DAI/1
 `,
 				version.AppName,
 			),
@@ -279,7 +280,7 @@ func GetCmdQueryStakeInfo() *cobra.Command {
 			fmt.Sprintf(`Query the stake info of an account in a specific pool.
 
 Example:
-$ %s query farming stake-info cbridge-1-DAI 0xab5801a7d398351b8be11c439e05c5b3259aec9b
+$ %s query farming stake-info cbridge-DAI/1 0xab5801a7d398351b8be11c439e05c5b3259aec9b
 `,
 				version.AppName,
 			),
@@ -304,4 +305,52 @@ $ %s query farming stake-info cbridge-1-DAI 0xab5801a7d398351b8be11c439e05c5b325
 	}
 	flags.AddQueryFlagsToCmd(cmd)
 	return cmd
+}
+
+// GetCmdQueryRewardClaimInfo gets the reward claim info of an account
+func GetCmdQueryRewardClaimInfo() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "reward-claim-info [address]",
+		Short: "query the stake info of an account on a pool",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query the reward claim info of an account.
+
+Example:
+$ %s query farming reward-claim-info 0xab5801a7d398351b8be11c439e05c5b3259aec9b
+`,
+				version.AppName,
+			),
+		),
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			queryClient := types.NewQueryClient(cliCtx)
+			res, err := queryClient.RewardClaimInfo(
+				cmd.Context(),
+				&types.QueryRewardClaimInfoRequest{Address: args[0]},
+			)
+			if err != nil {
+				return err
+			}
+			return cliCtx.PrintProto(&res.RewardClaimInfo)
+		},
+	}
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
+}
+
+func QueryRewardClaimInfo(goCtx context.Context, cliCtx client.Context, addr string) (*types.RewardClaimInfo, error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	res, err := queryClient.RewardClaimInfo(
+		goCtx,
+		&types.QueryRewardClaimInfoRequest{Address: addr},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &res.RewardClaimInfo, nil
 }

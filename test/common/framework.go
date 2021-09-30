@@ -41,9 +41,10 @@ type CbrClient struct {
 	Ec   *ethclient.Client
 	Auth *bind.TransactOpts
 	// contract addr
-	CbrAddr, USDTAddr eth.Addr
-	CbrContract       *eth.BridgeContract
-	USDTContract      *eth.Erc20
+	CbrAddr, USDTAddr      eth.Addr
+	CbrContract            *eth.BridgeContract
+	USDTContract           *eth.Erc20
+	FarmingRewardsContract *eth.FarmingRewardsContract
 }
 
 type ContractParams struct {

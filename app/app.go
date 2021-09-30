@@ -106,11 +106,13 @@ var (
 
 	// module account permissions
 	maccPerms = map[string][]string{
-		minttypes.ModuleName:            {authtypes.Minter},
-		authtypes.FeeCollectorName:      nil,
-		distrtypes.ModuleName:           nil,
-		farming.ModuleName:              {authtypes.Minter}, // Needed for mint-then-stake
-		farming.RewardModuleAccountName: {authtypes.Minter}, // Needed for mint-then-stake
+		minttypes.ModuleName:       {authtypes.Minter},
+		authtypes.FeeCollectorName: nil,
+		distrtypes.ModuleName:      nil,
+		// Needed for mint-then-stake & unstake-then-burn
+		farming.ModuleName: {authtypes.Minter, authtypes.Burner},
+		// Needed for rewards
+		farming.RewardModuleAccountName: {authtypes.Minter},
 	}
 
 	// module accounts that are allowed to receive tokens

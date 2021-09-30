@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	"sort"
 	"strings"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -354,6 +356,22 @@ func (c *CbrClient) SetInitSigners(amts []*big.Int) error {
 
 func (c *CbrClient) OnchainWithdraw(wdDetail *cbrtypes.WithdrawDetail, curss []byte) error {
 	tx, err := c.CbrContract.Withdraw(c.Auth, wdDetail.WdOnchain, curss, wdDetail.GetSortedSigsBytes())
+	if err != nil {
+		return err
+	}
+	_, err = ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
+	return err
+}
+
+func (c *CbrClient) OnchainClaimRewards(details *farmingtypes.RewardClaimDetails) error {
+	sort.Slice(details.Signatures, func(i int, j int) bool {
+		return details.Signatures[i].Signer < details.Signatures[j].Signer
+	})
+	var sigs [][]byte
+	for _, signature := range details.Signatures {
+		sigs = append(sigs, signature.SigBytes)
+	}
+	tx, err := c.FarmingRewardsContract.ClaimRewards(c.Auth, details.RewardProtoBytes, nil, sigs)
 	if err != nil {
 		return err
 	}

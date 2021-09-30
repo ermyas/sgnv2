@@ -14,8 +14,11 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	"github.com/celer-network/sgn-v2/x/farming/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/spf13/viper"
 )
 
@@ -286,6 +289,9 @@ func DeployBridgeContract() {
 }
 
 func CreateFarmingPools() {
+	tc.CbrClient1.FarmingRewardsContract = tc.Contracts.FarmingRewards
+	tc.CbrClient2.FarmingRewardsContract = tc.Contracts.FarmingRewards
+
 	log.Infoln("Creating farming pools in genesis")
 	for i := 0; i < len(tc.ValEthKs); i++ {
 		genesisPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/genesis.json", i)
@@ -293,11 +299,16 @@ func CreateFarmingPools() {
 		genesisViper.SetConfigFile(genesisPath)
 		err := genesisViper.ReadInConfig()
 		tc.ChkErr(err, "Failed to read genesis")
+
 		// TODO: Extract constants
+		// Set claim_cooldown
 		genesisViper.Set("app_state.farming.params.claim_cooldown", "1s")
+
+		// Add a pool
+		poolName := "cbridge-USDT/883"
 		var pools farmingtypes.FarmingPools
 		pool := farmingtypes.NewFarmingPool(
-			"cbridge-CB-USDT/883",
+			poolName,
 			farmingtypes.ERC20Token{
 				ChainId: 883,
 				Symbol:  "CB-USDT",
@@ -322,6 +333,42 @@ func CreateFarmingPools() {
 		)
 		pools = append(pools, pool)
 		genesisViper.Set("app_state.farming.pools", pools)
+
+		// Set initial reward records
+		poolHistoricalRewardsRecord := farmingtypes.PoolHistoricalRewardsRecord{
+			PoolName: poolName,
+			Period:   0,
+			Rewards:  farmingtypes.NewPoolHistoricalRewards(sdk.DecCoins{}, 1),
+		}
+		poolCurrentRewardsRecord := farmingtypes.PoolCurrentRewardsRecord{
+			PoolName: poolName,
+			Rewards:  types.NewPoolCurrentRewards(0, 1, sdk.DecCoins{}),
+		}
+		genesisViper.Set(
+			"app_state.farming.pool_historical_rewards",
+			[]farmingtypes.PoolHistoricalRewardsRecord{poolHistoricalRewardsRecord})
+		genesisViper.Set(
+			"app_state.farming.pool_current_rewards",
+			[]farmingtypes.PoolCurrentRewardsRecord{poolCurrentRewardsRecord})
+
+		// Fund reward module account
+		rewardCoins := sdk.NewCoins(sdk.NewCoin("CELR/883", sdk.NewInt(10000).Mul(sdk.NewInt(1e18))))
+		var balances []banktypes.Balance
+		jsonByte, _ := json.Marshal(genesisViper.Get("app_state.bank.balances"))
+		json.Unmarshal(jsonByte, &balances)
+		balances = append(balances, banktypes.Balance{
+			Address: authtypes.NewModuleAddress(farmingtypes.RewardModuleAccountName).String(),
+			Coins:   rewardCoins,
+		})
+		genesisViper.Set("app_state.bank.balances", balances)
+
+		// Change genesis supply
+		var supply sdk.Coins
+		jsonByte, _ = json.Marshal(genesisViper.Get("app_state.bank.supply"))
+		json.Unmarshal(jsonByte, &supply)
+		supply = supply.Add(rewardCoins...)
+		genesisViper.Set("app_state.bank.supply", supply)
+
 		err = genesisViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write genesis")
 	}
