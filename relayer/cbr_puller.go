@@ -2,14 +2,12 @@ package relayer
 
 import (
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
-	"github.com/celer-network/sgn-v2/x/staking/types"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -108,22 +106,6 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 		r.requeueRelay(relayEvent)
 		log.Errorln("relay err", err)
 		return
-	}
-}
-
-func GetSortedSigners(validators types.Validators) *cbrtypes.SortedSigners {
-	signers := make([]*cbrtypes.AddrAmt, 0)
-	for _, v := range validators {
-		signers = append(signers, &cbrtypes.AddrAmt{
-			Addr: []byte(eth.Addr2Hex(v.GetSignerAddr())),
-			Amt:  v.BondedTokens().BigInt().Bytes(),
-		})
-	}
-	sort.Slice(signers, func(i, j int) bool {
-		return string(signers[i].Addr) < string(signers[j].Addr)
-	})
-	return &cbrtypes.SortedSigners{
-		Signers: signers,
 	}
 }
 

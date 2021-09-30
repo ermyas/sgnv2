@@ -61,7 +61,7 @@ func slashTest(t *testing.T) {
 	amt1 := big.NewInt(8e18)
 	amt2 := big.NewInt(1e18)
 	amts := []*big.Int{amt1, amt2}
-	SetupValidators(transactor, amts)
+	tc.SetupValidators(t, transactor, amts)
 
 	prev, _ := tc.Contracts.Staking.Validators(&bind.CallOpts{}, tc.ValEthAddrs[1])
 
@@ -100,7 +100,7 @@ func disableSlashTest(t *testing.T) {
 	amt1 := big.NewInt(8e18)
 	amt2 := big.NewInt(1e18)
 	amts := []*big.Int{amt1, amt2}
-	SetupValidators(transactor, amts)
+	tc.SetupValidators(t, transactor, amts)
 
 	paramChanges := []govtypes.ParamChange{govtypes.NewParamChange("slash", "EnableSlash", "false")}
 	content := govtypes.NewParameterProposal("Slash Param Change", "Update EnableSlash", paramChanges)
@@ -141,7 +141,7 @@ func expireSlashTest(t *testing.T) {
 	amt1 := big.NewInt(8e18)
 	amt2 := big.NewInt(1e18)
 	amts := []*big.Int{amt1, amt2}
-	SetupValidators(transactor, amts)
+	tc.SetupValidators(t, transactor, amts)
 
 	prevBalance, _ := tc.CelrContract.BalanceOf(&bind.CallOpts{}, tc.ValEthAddrs[0])
 

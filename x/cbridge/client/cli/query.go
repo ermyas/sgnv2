@@ -3,15 +3,11 @@ package cli
 import (
 	"fmt"
 
-	// "strings"
-
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/spf13/cobra"
-	// "github.com/cosmos/cosmos-sdk/client/flags"
-	// sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // GetQueryCmd returns the cli query commands for this module
@@ -68,7 +64,7 @@ func GetCmdChainTokensConfig() *cobra.Command {
 				return err
 			}
 
-			resp, err := ChainTokensConfig(cliCtx, &types.ChainTokensConfigRequest{})
+			resp, err := QueryChainTokensConfig(cliCtx, &types.ChainTokensConfigRequest{})
 			if err != nil {
 				log.Errorln("query error", err)
 				return err
@@ -107,7 +103,7 @@ func QueryRelay(cliCtx client.Context, xrefId []byte) (relay types.XferRelay, er
 	return
 }
 
-func ChainTokensConfig(cliCtx client.Context, request *types.ChainTokensConfigRequest) (resp *types.ChainTokensConfigResponse, err error) {
+func QueryChainTokensConfig(cliCtx client.Context, request *types.ChainTokensConfigRequest) (resp *types.ChainTokensConfigResponse, err error) {
 	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryChainTokensConfig)
 	res, err := common.RobustQuery(cliCtx, route)
 	if err != nil {
@@ -118,7 +114,7 @@ func ChainTokensConfig(cliCtx client.Context, request *types.ChainTokensConfigRe
 	return
 }
 
-func GetFee(cliCtx client.Context, request *types.GetFeeRequest) (resp *types.GetFeeResponse, err error) {
+func QueryFee(cliCtx client.Context, request *types.GetFeeRequest) (resp *types.GetFeeResponse, err error) {
 	data, err := cliCtx.LegacyAmino.MarshalJSON(request)
 	if err != nil {
 		return
@@ -150,7 +146,7 @@ func QueryTransferStatus(cliCtx client.Context, request *types.QueryTransferStat
 	return
 }
 
-func LiquidityDetailList(cliCtx client.Context, request *types.LiquidityDetailListRequest) (resp *types.LiquidityDetailListResponse, err error) {
+func QueryLiquidityDetailList(cliCtx client.Context, request *types.LiquidityDetailListRequest) (resp *types.LiquidityDetailListResponse, err error) {
 	data, err := cliCtx.LegacyAmino.MarshalJSON(request)
 	if err != nil {
 		return

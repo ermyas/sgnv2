@@ -14,8 +14,9 @@ import (
 	"github.com/celer-network/sgn-v2/gateway/fee"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/transactor"
-	"github.com/celer-network/sgn-v2/x/cbridge/client/cli"
+	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -63,7 +64,7 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 		}, nil
 	}
 	return &webapi.GetTransferStatusResponse{
-		Status: types.TransferHistoryStatus(status),
+		Status: cbrtypes.TransferHistoryStatus(status),
 	}, nil
 }
 
@@ -136,7 +137,7 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 	if err != nil || !found {
 		slippage = 5000
 	}
-	feeInfo, err := cli.GetFee(gs.tr.CliCtx, &types.GetFeeRequest{
+	feeInfo, err := cbrcli.QueryFee(gs.tr.CliCtx, &cbrtypes.GetFeeRequest{
 		SrcChainId:   uint64(srcChainId),
 		DstChainId:   uint64(dstChainId),
 		SrcTokenAddr: srcToken.Token.GetAddress(),
@@ -210,7 +211,7 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 		return &webapi.GetLPInfoListResponse{}, nil
 	}
 	var lps []*webapi.LPInfo
-	detailList, err := cli.LiquidityDetailList(gs.tr.CliCtx, &types.LiquidityDetailListRequest{
+	detailList, err := cbrcli.QueryLiquidityDetailList(gs.tr.CliCtx, &cbrtypes.LiquidityDetailListRequest{
 		LpAddr:     userAddr,
 		ChainToken: chainTokens,
 	})
@@ -303,7 +304,7 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 		}, nil
 	}
 	txHash := request.GetTxHash()
-	err = dal.DB.UpsertLP(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, uint64(chainId), uint64(types.LPHistoryStatus_LP_SUBMITTING), uint64(lpType), seqNum)
+	err = dal.DB.UpsertLP(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, uint64(chainId), uint64(cbrtypes.LPHistoryStatus_LP_SUBMITTING), uint64(lpType), seqNum)
 	if err == nil {
 		return &webapi.MarkLiquidityResponse{}, nil
 	} else {
@@ -320,7 +321,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 	transferId := request.GetTransferId()
 	if transferId != "" {
 		// refund transfer
-		seqNum, err := gs.initWithdraw(&types.MsgInitWithdraw{
+		seqNum, err := gs.initWithdraw(&cbrtypes.MsgInitWithdraw{
 			XferId:  common.Hex2Bytes(transferId),
 			Creator: gs.tr.Key.GetAddress().String(),
 		})
@@ -359,16 +360,16 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			}, nil
 		}
 		lp := common.Hex2Addr(request.GetReceiverAddr()).String()
-		seqNum, err := gs.initWithdraw(&types.MsgInitWithdraw{
+		seqNum, err := gs.initWithdraw(&cbrtypes.MsgInitWithdraw{
 			Chainid: uint64(chainId),
 			LpAddr:  common.Hex2Bytes(lp),
 			Token:   common.Hex2Bytes(tokenAddr),
 			Amount:  common.Hex2Bytes(amt),
 			Creator: gs.tr.Key.GetAddress().String(),
 		})
-		err = dal.DB.UpsertLP(lp, token.Token.Symbol, token.Token.Address, amt, "", uint64(chainId), uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
+		err = dal.DB.UpsertLP(lp, token.Token.Symbol, token.Token.Address, amt, "", uint64(chainId), uint64(cbrtypes.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
 		if err != nil {
-			_ = dal.DB.UpdateLPStatus(seqNum, uint64(types.LPHistoryStatus_LP_FAILED))
+			_ = dal.DB.UpdateLPStatus(seqNum, uint64(cbrtypes.LPHistoryStatus_LP_FAILED))
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -382,8 +383,8 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 	}
 }
 
-func (gs *GatewayService) initWithdraw(req *types.MsgInitWithdraw) (uint64, error) {
-	resp, err := cli.InitWithdraw(gs.tr, req)
+func (gs *GatewayService) initWithdraw(req *cbrtypes.MsgInitWithdraw) (uint64, error) {
+	resp, err := cbrcli.InitWithdraw(gs.tr, req)
 	if resp == nil {
 		return 0, fmt.Errorf("can not init withdraw, resp is empty")
 	}
@@ -397,7 +398,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 	lpType := uint64(request.GetType())
 	addr := request.GetLpAddr()
 	txHash, status, found, err := dal.DB.GetLPInfo(seqNum, lpType, chainId, addr)
-	if found && err == nil && status == uint64(types.LPHistoryStatus_LP_SUBMITTING) && txHash != "" {
+	if found && err == nil && status == uint64(cbrtypes.LPHistoryStatus_LP_SUBMITTING) && txHash != "" {
 		ec := gs.ec[chainId]
 		if ec == nil {
 			gs.initTransactor()
@@ -411,7 +412,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 		receipt, recErr := ec.TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))
 		if recErr == nil && receipt.Status != ethtypes.ReceiptStatusSuccessful {
 			log.Warnf("find transfer failed, chain_id %d, hash:%s", chainId, txHash)
-			dbErr := dal.DB.UpdateLPStatus(seqNum, uint64(types.LPHistoryStatus_LP_FAILED))
+			dbErr := dal.DB.UpdateLPStatus(seqNum, uint64(cbrtypes.LPHistoryStatus_LP_FAILED))
 			if dbErr != nil {
 				log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", chainId, txHash)
 			}
@@ -419,18 +420,18 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 
 	}
 
-	resp, err := cli.QueryWithdrawLiquidityStatus(gs.tr.CliCtx, &types.QueryWithdrawLiquidityStatusRequest{
+	resp, err := cbrcli.QueryWithdrawLiquidityStatus(gs.tr.CliCtx, &cbrtypes.QueryWithdrawLiquidityStatusRequest{
 		SeqNum: seqNum,
 	})
 	if resp == nil || err != nil {
-		return &types.QueryLiquidityStatusResponse{
-			Status: types.LPHistoryStatus(status),
+		return &cbrtypes.QueryLiquidityStatusResponse{
+			Status: cbrtypes.LPHistoryStatus(status),
 			Detail: nil,
 		}, err
-	} else if resp.GetStatus() == types.LPHistoryStatus_LP_WAITING_FOR_LP {
-		_ = dal.DB.UpdateLPStatus(seqNum, uint64(types.LPHistoryStatus_LP_WAITING_FOR_LP))
+	} else if resp.GetStatus() == cbrtypes.LPHistoryStatus_LP_WAITING_FOR_LP {
+		_ = dal.DB.UpdateLPStatus(seqNum, uint64(cbrtypes.LPHistoryStatus_LP_WAITING_FOR_LP))
 	} else {
-		resp.Status = types.LPHistoryStatus(status)
+		resp.Status = cbrtypes.LPHistoryStatus(status)
 	}
 	return resp, nil
 }
@@ -612,7 +613,7 @@ func (gs *GatewayService) StartChainTokenPolling(interval time.Duration) {
 }
 
 func (gs *GatewayService) pollChainToken() {
-	resp, err := cli.ChainTokensConfig(gs.tr.CliCtx, &types.ChainTokensConfigRequest{})
+	resp, err := cbrcli.QueryChainTokensConfig(gs.tr.CliCtx, &cbrtypes.ChainTokensConfigRequest{})
 	if err != nil {
 		log.Errorln("we will use mocked chain tokens failed to load basic token info:", err)
 	}
@@ -635,7 +636,7 @@ func (gs *GatewayService) pollChainToken() {
 
 func (gs *GatewayService) updateLpStatusInHistory(lpHistory []*dal.LP) {
 	for _, lp := range lpHistory {
-		if lp.Status == types.LPHistoryStatus_LP_SUBMITTING || lp.Status == types.LPHistoryStatus_LP_WAITING_FOR_SGN {
+		if lp.Status == cbrtypes.LPHistoryStatus_LP_SUBMITTING || lp.Status == cbrtypes.LPHistoryStatus_LP_WAITING_FOR_SGN {
 			resp, err := gs.QueryLiquidityStatus(nil, &webapi.QueryLiquidityStatusRequest{
 				SeqNum:  lp.SeqNum,
 				LpAddr:  lp.Addr,
@@ -656,7 +657,7 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 	for _, transfer := range transferList {
 		transferIds = append(transferIds, transfer.TransferId)
 	}
-	transferMap, err := cli.QueryTransferStatus(gs.tr.CliCtx, &types.QueryTransferStatusRequest{
+	transferMap, err := cbrcli.QueryTransferStatus(gs.tr.CliCtx, &cbrtypes.QueryTransferStatusRequest{
 		TransferId: transferIds,
 	})
 	if err != nil {
@@ -669,7 +670,7 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 		status := transfer.Status
 		srcChainId := transfer.SrcChainId
 		txHash := transfer.SrcTxHash
-		if status == types.TransferHistoryStatus_TRANSFER_SUBMITTING {
+		if status == cbrtypes.TransferHistoryStatus_TRANSFER_SUBMITTING {
 			ec := gs.ec[srcChainId]
 			if ec == nil {
 				gs.initTransactor()
@@ -682,21 +683,21 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 			receipt, recErr := ec.TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))
 			if recErr == nil && receipt.Status != ethtypes.ReceiptStatusSuccessful {
 				log.Warnf("find transfer failed, chain_id %d, hash:%s", srcChainId, txHash)
-				dbErr := dal.DB.UpdateTransferStatus(transferId, uint64(types.TransferHistoryStatus_TRANSFER_FAILED))
+				dbErr := dal.DB.UpdateTransferStatus(transferId, uint64(cbrtypes.TransferHistoryStatus_TRANSFER_FAILED))
 				if dbErr != nil {
 					log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", srcChainId, txHash)
 				}
 			}
 		}
 
-		if status == types.TransferHistoryStatus_TRANSFER_FAILED ||
-			status == types.TransferHistoryStatus_TRANSFER_COMPLETED ||
-			status == types.TransferHistoryStatus_TRANSFER_REFUNDED {
+		if status == cbrtypes.TransferHistoryStatus_TRANSFER_FAILED ||
+			status == cbrtypes.TransferHistoryStatus_TRANSFER_COMPLETED ||
+			status == cbrtypes.TransferHistoryStatus_TRANSFER_REFUNDED {
 			continue
 		}
-		if transferStatusMap[transferId] == types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED ||
-			transferStatusMap[transferId] == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND ||
-			transferStatusMap[transferId] == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED {
+		if transferStatusMap[transferId] == cbrtypes.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED ||
+			transferStatusMap[transferId] == cbrtypes.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND ||
+			transferStatusMap[transferId] == cbrtypes.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED {
 			dbErr := dal.DB.UpdateTransferStatus(transferId, uint64(transferStatusMap[transferId]))
 			if dbErr != nil {
 				log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", srcChainId, txHash)
@@ -753,7 +754,7 @@ func (gs *GatewayService) initTransactor() error {
 type txData struct {
 	volume   float64
 	fee      *big.Int
-	dstToken *types.Token
+	dstToken *cbrtypes.Token
 }
 
 func (gs *GatewayService) get24hTx() map[uint64]map[string]*txData {

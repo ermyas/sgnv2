@@ -169,44 +169,54 @@ func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*typ
 
 // send my sig for data, so it can be later submitted onchain
 func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*types.MsgSendMySigResp, error) {
+	logmsg := fmt.Sprintf("Handle MsgSendMySig type %s", msg.Datatype.String())
 	if msg == nil {
-		return nil, fmt.Errorf("sendMySig could not be nil")
+		return nil, fmt.Errorf("%s, nil msg", logmsg)
 	}
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	kv := sdkCtx.KVStore(k.storeKey)
 
 	// check basics like sig, creator
-	senderAcct, _ := sdk.AccAddressFromBech32(msg.Creator)
+	senderAcct, err := sdk.AccAddressFromBech32(msg.Creator)
+	if err != nil {
+		return nil, fmt.Errorf("%s err %w", logmsg, err)
+	}
+	logmsg = fmt.Sprintf("%s, sender %s", logmsg, senderAcct.String())
+
 	validator, found := k.stakingKeeper.GetValidatorBySgnAddr(sdkCtx, senderAcct)
 	if !found {
-		return nil, fmt.Errorf("sender is not a validator")
+		return nil, fmt.Errorf("%s, sender is not a validator", logmsg)
 	}
 	if !validator.IsBonded() {
-		return nil, fmt.Errorf("validator is not bonded")
+		return nil, fmt.Errorf("%s, validator is not bonded", logmsg)
 	}
 
 	// validate sig
 	signer, err := ethutils.RecoverSigner(msg.Data, msg.MySig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s err %w", logmsg, err)
 	}
 	if signer != validator.GetSignerAddr() {
 		err = fmt.Errorf("mismatch signer address %s %s", signer, validator.GetSignerAddr())
-		return nil, err
+		return nil, fmt.Errorf("%s err %w", logmsg, err)
 	}
+	logmsg = fmt.Sprintf("%s, signer %x", logmsg, signer)
+
 	ret := &types.MsgSendMySigResp{}
 	if msg.Datatype == types.SignDataType_RELAY {
 		relay := new(types.RelayOnChain)
 		err := relay.Unmarshal(msg.Data)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s err %w", logmsg, err)
 		}
 
 		// add sig
 		xferId := eth.Bytes2Hash(relay.SrcTransferId)
+		logmsg = fmt.Sprintf("%s, xferId %x", logmsg, xferId)
+
 		xferRelay := GetXferRelay(kv, xferId, k.cdc)
 		if xferRelay == nil {
-			return nil, fmt.Errorf("xfer %x not found", xferId)
+			return nil, fmt.Errorf("%s xfer not found", logmsg)
 		}
 		// SortedSigs will be modified in place
 		xferRelay.SortedSigs = UpdateSortedSigs(xferRelay.SortedSigs, &types.AddrSig{
@@ -219,11 +229,13 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 		onchain := new(types.WithdrawOnchain)
 		err := onchain.Unmarshal(msg.Data)
 		if err != nil {
-			return nil, fmt.Errorf("unmarshal %x to WithdrawOnchain fail %w", msg.Data, err)
+			return nil, fmt.Errorf("%s, unmarshal %x to WithdrawOnchain fail %w", logmsg, msg.Data, err)
 		}
+		logmsg = fmt.Sprintf("%s, seqnum %d", logmsg, onchain.Seqnum)
+
 		wdDetail := GetWithdrawDetail(kv, onchain.Seqnum)
 		if wdDetail == nil {
-			return nil, fmt.Errorf("withdraw seq %d not found", onchain.Seqnum)
+			return nil, fmt.Errorf("%s, withdraw seq not found", logmsg)
 		}
 		wdDetail.SortedSigs = UpdateSortedSigs(wdDetail.SortedSigs, &types.AddrSig{
 			Addr: signer[:],
@@ -233,17 +245,19 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 	} else if msg.Datatype == types.SignDataType_SIGNERS {
 		latestSigners, found := k.GetLatestSigners(sdkCtx)
 		if !found {
-			return nil, fmt.Errorf("latest signers not found")
+			return nil, fmt.Errorf("%s, latest signers not found", logmsg)
 		}
 		if bytes.Compare(latestSigners.GetSignersBytes(), msg.Data) != 0 {
-			return nil, fmt.Errorf("signed latest signers not match stored data")
+			return nil, fmt.Errorf("%s, signed latest signers not match stored data", logmsg)
 		}
 		latestSigners.SortedSigs = UpdateSortedSigs(latestSigners.SortedSigs, &types.AddrSig{
-			Addr: signer[:],
+			Addr: signer.Bytes(),
 			Sig:  msg.MySig,
 		})
+		logmsg = fmt.Sprintf("%s, latestSigners %s", logmsg, latestSigners.String())
 		k.SetLatestSigners(sdkCtx, &latestSigners)
 	}
+	log.Info(logmsg)
 	return ret, nil
 }
 

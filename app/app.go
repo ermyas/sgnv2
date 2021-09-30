@@ -14,7 +14,7 @@ import (
 	"github.com/celer-network/sgn-v2/relayer"
 	"github.com/celer-network/sgn-v2/x/cbridge"
 	cbridgekeeper "github.com/celer-network/sgn-v2/x/cbridge/keeper"
-	cbridgetypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	distr "github.com/celer-network/sgn-v2/x/distribution"
 	distrkeeper "github.com/celer-network/sgn-v2/x/distribution/keeper"
 	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
@@ -219,7 +219,7 @@ func NewSgnApp(
 		paramstypes.StoreKey, upgradetypes.StoreKey,
 		minttypes.StoreKey, distrtypes.StoreKey, farmingtypes.StoreKey,
 		govtypes.StoreKey, slashtypes.StoreKey, synctypes.StoreKey, stakingtypes.StoreKey,
-		cbridgetypes.MemStoreKey, cbridgetypes.StoreKey,
+		cbrtypes.MemStoreKey, cbrtypes.StoreKey,
 	)
 	tKeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 
@@ -267,8 +267,8 @@ func NewSgnApp(
 	)
 	app.CbridgeKeeper = cbridgekeeper.NewKeeper(
 		appCodec,
-		keys[cbridgetypes.StoreKey],
-		app.GetSubspace(cbridgetypes.ModuleName),
+		keys[cbrtypes.StoreKey],
+		app.GetSubspace(cbrtypes.ModuleName),
 		&stakingKeeper,
 		app.FarmingKeeper,
 	)
@@ -280,7 +280,7 @@ func NewSgnApp(
 	govRouter.AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
 		AddRoute(proposal.RouterKey, gov.NewParamChangeProposalHandler(app.ParamsKeeper)).
 		AddRoute(upgradetypes.RouterKey, gov.NewUpgradeProposalHandler(app.UpgradeKeeper)).
-		AddRoute(cbridgetypes.RouterKey, gov.NewCbrProposalHandler(app.CbridgeKeeper)).
+		AddRoute(cbrtypes.RouterKey, gov.NewCbrProposalHandler(app.CbridgeKeeper)).
 		AddRoute(farmingtypes.RouterKey, farming.NewAddPoolProposalHandler(app.FarmingKeeper))
 	app.GovKeeper = govkeeper.NewKeeper(
 		appCodec,
@@ -352,7 +352,7 @@ func NewSgnApp(
 		govtypes.ModuleName,
 		slashtypes.ModuleName,
 		synctypes.ModuleName,
-		cbridgetypes.ModuleName,
+		cbrtypes.ModuleName,
 	)
 
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter(), legacyAmino)
@@ -559,7 +559,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(slashtypes.ModuleName).WithKeyTable(slashtypes.ParamKeyTable())
 	paramsKeeper.Subspace(stakingtypes.ModuleName).WithKeyTable(stakingtypes.ParamKeyTable())
 	paramsKeeper.Subspace(synctypes.ModuleName).WithKeyTable(synctypes.ParamKeyTable())
-	paramsKeeper.Subspace(cbridgetypes.ModuleName).WithKeyTable(cbridgetypes.ParamKeyTable())
+	paramsKeeper.Subspace(cbrtypes.ModuleName).WithKeyTable(cbrtypes.ParamKeyTable())
 
 	return paramsKeeper
 }

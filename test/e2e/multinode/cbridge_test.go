@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
-	bridgecli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
+	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -36,6 +37,7 @@ func setupCbridge() {
 func TestCbridge(t *testing.T) {
 	t.Run("e2e-cbridge", func(t *testing.T) {
 		t.Run("cbridgeTest", cbridgeTest)
+		//t.Run("cbrSignersTest", cbrSignersTest)
 	})
 }
 
@@ -55,12 +57,12 @@ func cbridgeTest(t *testing.T) {
 
 	log.Infoln("================== Setup validators and bridge signers ======================")
 	amts := []*big.Int{big.NewInt(3e18)}
-	SetupValidators(transactor, amts)
+	tc.SetupValidators(t, transactor, amts)
 	tc.CbrClient1.SetInitSigners(amts)
 	tc.CbrClient2.SetInitSigners(amts)
 
 	log.Infoln("======================== Query chain tokens ===========================")
-	resp, err := bridgecli.ChainTokensConfig(transactor.CliCtx, &cbrtypes.ChainTokensConfigRequest{})
+	resp, err := cbrcli.QueryChainTokensConfig(transactor.CliCtx, &cbrtypes.ChainTokensConfigRequest{})
 	tc.ChkErr(err, "cli Query")
 	assert.True(t, len(resp.ChainTokens) > 0)
 	log.Infoln("resp: ", resp.String())
@@ -95,11 +97,42 @@ func cbridgeTest(t *testing.T) {
 	log.Info("withdraw seqnum: ", wdSeq)
 	// now sleep and get stuff to send onchain
 	time.Sleep(time.Second * 10)
-	detail, err := tc.CbrClient1.GetWithdrawDetail(transactor, wdSeq)
+	detail, err := tc.GetWithdrawDetail(transactor, wdSeq)
 	tc.ChkErr(err, "client1 get withdrawdetail")
-	curss, err := tc.CbrClient1.GetCurSortedSigners(transactor, chainId)
+	curss, err := tc.GetCurSortedSigners(transactor, chainId)
 	tc.ChkErr(err, "client1 GetCurSortedSigners")
 	err = tc.CbrClient1.OnchainWithdraw(detail, curss)
 	tc.ChkErr(err, "client1 onchain withdraw")
 	// todo: more cases, eg. lp2 withdraw from chain1 after xfer
+}
+
+func cbrSignersTest(t *testing.T) {
+	log.Infoln("===================================================================")
+	log.Infoln("======================== Test cBridge signers ===========================")
+	setupCbridge()
+
+	transactor := tc.NewTestTransactor(
+		tc.SgnHomes[0],
+		tc.SgnChainID,
+		tc.SgnNodeURI,
+		tc.ValSgnAddrStrs[0],
+		tc.SgnPassphrase,
+	)
+
+	log.Infoln("================== Init bridge signers ======================")
+	initSignerPowers := []*big.Int{big.NewInt(1e18)}
+	tc.CbrClient1.SetInitSigners(initSignerPowers)
+	tc.CbrClient2.SetInitSigners(initSignerPowers)
+	tc.Sleep(5)
+	tc.CheckChainSigners(t, transactor, tc.ChainID)
+	tc.CheckChainSigners(t, transactor, tc.Geth2ChainID)
+
+	log.Infoln("================== Add validators ======================")
+	tc.AddValdiator(t, transactor, 0, big.NewInt(3e18), eth.CommissionRate(0.03))
+	tc.AddValdiator(t, transactor, 1, big.NewInt(2e18), eth.CommissionRate(0.02))
+	tc.AddValdiator(t, transactor, 2, big.NewInt(4e18), eth.CommissionRate(0.01))
+	tc.Sleep(5)
+	tc.CheckChainSigners(t, transactor, tc.ChainID)
+	tc.CheckChainSigners(t, transactor, tc.Geth2ChainID)
+	tc.CheckLatestSigners(t, transactor)
 }

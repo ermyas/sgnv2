@@ -109,7 +109,7 @@ func (r *Relayer) monitorCbrToSign() {
 		if e.Type != cbrtypes.EventToSign {
 			return
 		}
-		log.Infoln("monitorCbrToSign, eventType: ", e.Type)
+		log.Infoln("monitorCbrToSign, eventType:", e.Type)
 		if !r.isBonded() {
 			return
 		}

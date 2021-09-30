@@ -53,7 +53,7 @@ func (k Keeper) UpdateLatestSigners(ctx sdk.Context, force bool) {
 	}
 	for _, v := range vals {
 		signer := &types.AddrAmt{
-			Addr: v.GetEthAddr().Bytes(),
+			Addr: v.GetSignerAddr().Bytes(),
 			Amt:  v.Tokens.BigInt().Bytes(),
 		}
 		newSigners.Signers.Signers = append(newSigners.Signers.Signers, signer)

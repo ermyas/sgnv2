@@ -113,7 +113,7 @@ func (t *TokenPriceCache) GetTokenPrice(token *types.Token, chainToken *types.To
 }
 
 func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
-	resp, err := cli.ChainTokensConfig(tr.CliCtx, &types.ChainTokensConfigRequest{})
+	resp, err := cli.QueryChainTokensConfig(tr.CliCtx, &types.ChainTokensConfigRequest{})
 	if err != nil {
 		log.Errorln("we will use mocked chain tokens failed to load basic token info:", err)
 	}

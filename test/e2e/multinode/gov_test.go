@@ -74,7 +74,7 @@ func sgnchainGovTest(t *testing.T) {
 	amt2 := big.NewInt(2e18)
 	amt3 := big.NewInt(2e18)
 	amts := []*big.Int{amt1, amt2, amt3}
-	SetupValidators(transactor0, amts)
+	tc.SetupValidators(t, transactor0, amts)
 
 	log.Info("======================== Test change epochlength rejected due to small quorum ===========================")
 	paramChanges := []govtypes.ParamChange{govtypes.NewParamChange("staking", "EpochLength", "\"2\"")}

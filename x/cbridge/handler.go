@@ -3,6 +3,7 @@ package cbridge
 import (
 	"fmt"
 
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/x/cbridge/keeper"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -19,18 +20,28 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		switch msg := msg.(type) {
 		case *types.MsgInitWithdraw:
 			res, err := msgServer.InitWithdraw(sdk.WrapSDKContext(ctx), msg)
+			if err != nil {
+				log.Error(err)
+			}
 			return sdk.WrapServiceResult(ctx, res, err)
 
 		case *types.MsgSendMySig:
 			res, err := msgServer.SendMySig(sdk.WrapSDKContext(ctx), msg)
+			if err != nil {
+				log.Error(err)
+			}
 			return sdk.WrapServiceResult(ctx, res, err)
 
 		case *types.MsgSignAgain:
 			res, err := msgServer.SignAgain(sdk.WrapSDKContext(ctx), msg)
+			if err != nil {
+				log.Error(err)
+			}
 			return sdk.WrapServiceResult(ctx, res, err)
 
 		default:
 			errMsg := fmt.Sprintf("unrecognized %s message type: %T", types.ModuleName, msg)
+			log.Error(errMsg)
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
 		}
 	}

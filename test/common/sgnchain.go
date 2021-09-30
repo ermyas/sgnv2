@@ -12,6 +12,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/app"
 	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/transactor"
 	bridgecli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -19,8 +20,8 @@ import (
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	slashcli "github.com/celer-network/sgn-v2/x/slash/client/cli"
 	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
-	"github.com/celer-network/sgn-v2/x/staking/client/cli"
-	"github.com/celer-network/sgn-v2/x/staking/types"
+	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -62,11 +63,37 @@ func NewTestTransactor(sgnHomeDir, sgnChainID, sgnNodeURI, sgnValAcct, sgnPassph
 	return tr
 }
 
-func CheckValidator(t *testing.T, transactor *transactor.Transactor, expVal *types.Validator) {
-	var validator *types.Validator
+func AddValdiator(
+	t *testing.T, transactor *transactor.Transactor, valIndex int, amt *big.Int, commissionRate uint64) {
+	log.Infoln("Adding validator", ValEthAddrs[valIndex].Hex())
+	err := InitializeValidator(
+		ValAuths[valIndex], ValSignerAddrs[valIndex], ValSgnAddrs[valIndex], amt, commissionRate)
+	ChkErr(err, "failed to initialize validator")
+	Sleep(5)
+	expVal := &stakingtypes.Validator{
+		EthAddress:      eth.Addr2Hex(ValEthAddrs[valIndex]),
+		EthSigner:       eth.Addr2Hex(ValSignerAddrs[valIndex]),
+		Status:          eth.Bonded,
+		SgnAddress:      ValSgnAddrs[valIndex].String(),
+		Tokens:          sdk.NewIntFromBigInt(amt),
+		DelegatorShares: sdk.NewIntFromBigInt(amt),
+		CommissionRate:  sdk.NewDecWithPrec(int64(commissionRate), 4),
+	}
+	CheckValidator(t, transactor, expVal)
+}
+
+func SetupValidators(t *testing.T, transactor *transactor.Transactor, amts []*big.Int) {
+	for i := 0; i < len(amts); i++ {
+		log.Infoln("Adding validator", i, ValEthAddrs[i].Hex())
+		AddValdiator(t, transactor, i, amts[i], eth.CommissionRate(0.02))
+	}
+}
+
+func CheckValidator(t *testing.T, transactor *transactor.Transactor, expVal *stakingtypes.Validator) {
+	var validator *stakingtypes.Validator
 	var err error
 	for retry := 0; retry < RetryLimit; retry++ {
-		validator, err = cli.QueryValidator(transactor.CliCtx, expVal.EthAddress)
+		validator, err = stakingcli.QueryValidator(transactor.CliCtx, expVal.EthAddress)
 		if err != nil {
 			log.Debugln("retry due to err:", err)
 		}
@@ -82,18 +109,18 @@ func CheckValidator(t *testing.T, transactor *transactor.Transactor, expVal *typ
 }
 
 // called after CheckValidator
-func CheckValidatorBySgnAddr(t *testing.T, transactor *transactor.Transactor, expVal *types.Validator) {
-	validator, err := cli.QueryValidatorBySgnAddr(transactor.CliCtx, expVal.SgnAddress)
+func CheckValidatorBySgnAddr(t *testing.T, transactor *transactor.Transactor, expVal *stakingtypes.Validator) {
+	validator, err := stakingcli.QueryValidatorBySgnAddr(transactor.CliCtx, expVal.SgnAddress)
 	require.NoError(t, err, "failed to QueryValidatorBySgnAddr", err)
 	msg := fmt.Sprintf("Expected validator:\n %s\n Actual validator:\n %s\n", expVal.String(), validator.String())
 	assert.True(t, sameValidators(validator, expVal), msg)
 }
 
-func CheckValidators(transactor *transactor.Transactor, expVals types.Validators) {
-	var validators types.Validators
+func CheckValidators(transactor *transactor.Transactor, expVals stakingtypes.Validators) {
+	var validators stakingtypes.Validators
 	var err error
 	for retry := 0; retry < RetryLimit; retry++ {
-		validators, err = cli.QueryValidators(transactor.CliCtx)
+		validators, err = stakingcli.QueryValidators(transactor.CliCtx)
 		if err != nil {
 			log.Debugln("retry due to err:", err)
 		}
@@ -110,11 +137,11 @@ func CheckValidators(transactor *transactor.Transactor, expVals types.Validators
 	}
 }
 
-func CheckDelegation(t *testing.T, transactor *transactor.Transactor, expDel *types.Delegation) {
-	var delegation *types.Delegation
+func CheckDelegation(t *testing.T, transactor *transactor.Transactor, expDel *stakingtypes.Delegation) {
+	var delegation *stakingtypes.Delegation
 	var err error
 	for retry := 0; retry < RetryLimit; retry++ {
-		delegation, err = cli.QueryDelegation(transactor.CliCtx, expDel.ValidatorAddress, expDel.DelegatorAddress)
+		delegation, err = stakingcli.QueryDelegation(transactor.CliCtx, expDel.ValidatorAddress, expDel.DelegatorAddress)
 		if err == nil && sameDelegations(delegation, expDel) {
 			break
 		}
@@ -133,7 +160,7 @@ func PrintTendermintValidators(t *testing.T, transactor *transactor.Transactor) 
 	log.Infof("tendermint validators:\n%s", res)
 }
 
-func sameEachValidators(vs []types.Validator, exps []types.Validator) bool {
+func sameEachValidators(vs []stakingtypes.Validator, exps []stakingtypes.Validator) bool {
 	same := len(vs) == len(exps)
 	if same {
 		sort.SliceStable(vs, func(i, j int) bool {
@@ -154,7 +181,7 @@ func sameEachValidators(vs []types.Validator, exps []types.Validator) bool {
 }
 
 // TODO: check pubkey, transactors, and description
-func sameValidators(v *types.Validator, exp *types.Validator) bool {
+func sameValidators(v *stakingtypes.Validator, exp *stakingtypes.Validator) bool {
 	return v.GetEthAddress() == exp.GetEthAddress() &&
 		v.EthSigner == exp.EthSigner &&
 		v.GetStatus() == exp.GetStatus() &&
@@ -164,7 +191,7 @@ func sameValidators(v *types.Validator, exp *types.Validator) bool {
 		v.CommissionRate.Equal(exp.CommissionRate)
 }
 
-func sameDelegations(d *types.Delegation, exp *types.Delegation) bool {
+func sameDelegations(d *stakingtypes.Delegation, exp *stakingtypes.Delegation) bool {
 	return d.GetValidatorAddr() == exp.GetValidatorAddr() &&
 		d.GetDelegatorAddr() == exp.GetDelegatorAddr() &&
 		d.Shares.Equal(exp.Shares)
@@ -264,6 +291,59 @@ func CheckXfer(transactor *transactor.Transactor, xferId []byte) {
 	}
 }
 
+func CheckChainSigners(t *testing.T, transactor *transactor.Transactor, chainId uint64) {
+	var err error
+	var signers *cbrtypes.ChainSigners
+	for retry := 0; retry < RetryLimit; retry++ {
+		signers, err = bridgecli.QueryChainSigners(transactor.CliCtx, chainId)
+		if err != nil {
+			log.Debugln("retry due to err:", err)
+		}
+		if err == nil && signers != nil {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to ChainSigners")
+	log.Infof("Query sgn and get chain %d signers: %s", chainId, signers.String())
+}
+
+func CheckLatestSigners(t *testing.T, transactor *transactor.Transactor) {
+	var err error
+	var signers *cbrtypes.LatestSigners
+	for retry := 0; retry < RetryLimit; retry++ {
+		signers, err = bridgecli.QueryLatestSigners(transactor.CliCtx)
+		if err != nil {
+			log.Debugln("retry due to err:", err)
+		}
+		if err == nil && signers != nil {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to LatestSigners")
+	log.Infof("Query sgn and get latest signers: %s", signers.String())
+}
+
+func GetWithdrawDetail(transactor *transactor.Transactor, wdseq uint64) (*cbrtypes.WithdrawDetail, error) {
+	resp, err := bridgecli.QueryWithdrawLiquidityStatus(transactor.CliCtx, &cbrtypes.QueryWithdrawLiquidityStatusRequest{
+		SeqNum: wdseq,
+	})
+	if err != nil {
+		return nil, err
+	}
+	log.Infoln("wdseq", wdseq, "status:", resp.Status)
+	return resp.Detail, err
+}
+
+func GetCurSortedSigners(transactor *transactor.Transactor, chid uint64) ([]byte, error) {
+	signers, err := bridgecli.QueryChainSigners(transactor.CliCtx, chid)
+	if err != nil {
+		return nil, err
+	}
+	return signers.SignersBytes, nil
+}
+
 // call initwithdraw and return withdraw seqnum
 func (c *CbrClient) StartWithdraw(transactor *transactor.Transactor, chid uint64, amt *big.Int) (uint64, error) {
 	resp, err := bridgecli.InitWithdraw(transactor, &cbrtypes.MsgInitWithdraw{
@@ -280,23 +360,4 @@ func (c *CbrClient) StartWithdraw(transactor *transactor.Transactor, chid uint64
 		return 0, errors.New(resp.Errmsg.String())
 	}
 	return resp.Seqnum, nil
-}
-
-func (c *CbrClient) GetWithdrawDetail(transactor *transactor.Transactor, wdseq uint64) (*cbrtypes.WithdrawDetail, error) {
-	resp, err := bridgecli.QueryWithdrawLiquidityStatus(transactor.CliCtx, &cbrtypes.QueryWithdrawLiquidityStatusRequest{
-		SeqNum: wdseq,
-	})
-	if err != nil {
-		return nil, err
-	}
-	log.Infoln("wdseq", wdseq, "status:", resp.Status)
-	return resp.Detail, err
-}
-
-func (c *CbrClient) GetCurSortedSigners(transactor *transactor.Transactor, chid uint64) ([]byte, error) {
-	signers, err := bridgecli.QueryChainSigners(transactor.CliCtx, chid)
-	if err != nil {
-		return nil, err
-	}
-	return signers.SignersBytes, nil
 }
