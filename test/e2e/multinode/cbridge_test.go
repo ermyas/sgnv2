@@ -61,11 +61,28 @@ func cbridgeTest(t *testing.T) {
 	tc.CbrClient1.SetInitSigners(amts)
 	tc.CbrClient2.SetInitSigners(amts)
 
-	log.Infoln("======================== Query chain tokens ===========================")
+	log.Infoln("======================== Query ===========================")
 	resp, err := cbrcli.QueryChainTokensConfig(transactor.CliCtx, &cbrtypes.ChainTokensConfigRequest{})
 	tc.ChkErr(err, "cli Query")
 	assert.True(t, len(resp.ChainTokens) > 0)
-	log.Infoln("resp: ", resp.String())
+	log.Infoln("QueryChainTokensConfig resp: ", resp.String())
+
+	chainTokens := make([]*cbrtypes.ChainTokenAddrPair, 0)
+	chainTokens = append(chainTokens, &cbrtypes.ChainTokenAddrPair{
+		ChainId:   tc.ChainID,
+		TokenAddr: tc.CbrClient1.USDTAddr.Hex(),
+	})
+	chainTokens = append(chainTokens, &cbrtypes.ChainTokenAddrPair{
+		ChainId:   tc.Geth2ChainID,
+		TokenAddr: tc.CbrClient2.USDTAddr.Hex(),
+	})
+	resp2, err := cbrcli.QueryLiquidityDetailList(transactor.CliCtx, &cbrtypes.LiquidityDetailListRequest{
+		LpAddr:     "0x58b529F9084D7eAA598EB3477Fe36064C5B7bbC1",
+		ChainToken: chainTokens,
+	})
+	tc.ChkErr(err, "cli Query")
+	assert.True(t, len(resp2.LiquidityDetail) > 0)
+	log.Infoln("QueryLiquidityDetailList resp: ", resp2.String())
 
 	log.Infoln("======================== Add liquidity on chain 1 ===========================")
 	addAmt := big.NewInt(5 * 1e10)

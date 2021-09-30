@@ -121,9 +121,9 @@ func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, le
 	resp := types.ChainTokensConfigResponse{
 		ChainTokens: chainTokens,
 	}
-	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, resp)
+	res, err := k.cdc.Marshal(&resp)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+		return nil, err
 	}
 
 	return res, nil
@@ -156,9 +156,9 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 		Fee:             feeAmt.String(),
 		Decimal:         uint64(destToken.Decimal),
 	}
-	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, resp)
+	res, err := k.cdc.Marshal(&resp)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+		return nil, err
 	}
 
 	return res, nil
@@ -199,9 +199,9 @@ func queryTransferStatus(ctx sdk.Context, req abci.RequestQuery, k Keeper, legac
 	resp := types.QueryTransferStatusResponse{
 		Status: status,
 	}
-	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, resp)
+	res, err := k.cdc.Marshal(&resp)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+		return nil, err
 	}
 
 	return res, nil
@@ -237,9 +237,9 @@ func queryLiquidityDetailList(ctx sdk.Context, req abci.RequestQuery, k Keeper, 
 	resp := types.LiquidityDetailListResponse{
 		LiquidityDetail: ldList,
 	}
-	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, resp)
+	res, err := k.cdc.Marshal(&resp)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+		return nil, err
 	}
 
 	return res, nil
@@ -262,9 +262,9 @@ func queryAddLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keeper, l
 	resp := types.QueryLiquidityStatusResponse{
 		Status: status,
 	}
-	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, resp)
+	res, err := k.cdc.Marshal(&resp)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+		return nil, err
 	}
 
 	return res, nil
@@ -294,9 +294,9 @@ func queryWithdrawLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keep
 		Status: status,
 		Detail: wd,
 	}
-	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, resp)
+	res, err := k.cdc.Marshal(&resp)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+		return nil, err
 	}
 
 	return res, nil

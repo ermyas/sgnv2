@@ -110,7 +110,8 @@ func QueryChainTokensConfig(cliCtx client.Context, request *types.ChainTokensCon
 		return
 	}
 
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &resp)
+	resp = new(types.ChainTokensConfigResponse)
+	err = cliCtx.Codec.Unmarshal(res, resp)
 	return
 }
 
@@ -126,7 +127,8 @@ func QueryFee(cliCtx client.Context, request *types.GetFeeRequest) (resp *types.
 		return
 	}
 
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &resp)
+	resp = new(types.GetFeeResponse)
+	err = cliCtx.Codec.Unmarshal(res, resp)
 	return
 }
 
@@ -142,7 +144,8 @@ func QueryTransferStatus(cliCtx client.Context, request *types.QueryTransferStat
 		return
 	}
 
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &resp)
+	resp = new(types.QueryTransferStatusResponse)
+	err = cliCtx.Codec.Unmarshal(res, resp)
 	return
 }
 
@@ -158,7 +161,8 @@ func QueryLiquidityDetailList(cliCtx client.Context, request *types.LiquidityDet
 		return
 	}
 
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &resp)
+	resp = new(types.LiquidityDetailListResponse)
+	err = cliCtx.Codec.Unmarshal(res, resp)
 	return
 }
 
@@ -174,7 +178,8 @@ func QueryAddLiquidityStatus(cliCtx client.Context, request *types.QueryAddLiqui
 		return
 	}
 
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &resp)
+	resp = new(types.QueryLiquidityStatusResponse)
+	err = cliCtx.Codec.Unmarshal(res, resp)
 	return
 }
 
@@ -190,7 +195,8 @@ func QueryWithdrawLiquidityStatus(cliCtx client.Context, request *types.QueryWit
 		return
 	}
 
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &resp)
+	resp = new(types.QueryLiquidityStatusResponse)
+	err = cliCtx.Codec.Unmarshal(res, resp)
 	return
 }
 
