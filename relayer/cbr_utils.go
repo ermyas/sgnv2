@@ -117,12 +117,12 @@ func GatewayOnLiqWithdraw(seqNum uint64) {
 	if found {
 		dbErr := dal.UpdateTransferStatus(transferId, uint64(cbrtypes.TransferHistoryStatus_TRANSFER_REFUNDED))
 		if dbErr != nil {
-			log.Errorln("db when UpdateTransferStatus to TRANSFER_REFUNDED err:", err)
+			log.Errorln("db when UpdateTransferStatus to TRANSFER_REFUNDED err:", dbErr)
 		}
 	} else {
 		dbErr := dal.UpdateLPStatus(seqNum, uint64(cbrtypes.LPHistoryStatus_LP_COMPLETED))
 		if dbErr != nil {
-			log.Errorln("db when UpdateLPStatus to LP_COMPLETED err:", err)
+			log.Errorln("db when UpdateLPStatus to LP_COMPLETED err:", dbErr)
 		}
 	}
 }

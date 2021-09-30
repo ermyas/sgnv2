@@ -22,13 +22,13 @@ func (d *DAL) UpdateLPStatus(seqNum, status uint64) error {
 	return sqldb.ChkExec(res, err, 1, "UpdateLPStatus")
 }
 
-func (d *DAL) GetLPInfo(seqNum uint64) (uint64, string, uint64, bool, error) {
-	var chainId, status uint64
+func (d *DAL) GetLPInfo(seqNum, lpType, chainId uint64, lpAddr string) (string, uint64, bool, error) {
+	var status uint64
 	var txHash string
-	q := `SELECT chain_id, tx_hash, status FROM lp WHERE seq_num = $1`
-	err := d.QueryRow(q, seqNum).Scan(&chainId, &txHash, &status)
+	q := `SELECT chain_id, tx_hash, status FROM lp WHERE seq_num = $1 and chain_id = $2 and usr_addr = $3 and lp_type = $4`
+	err := d.QueryRow(q, seqNum, chainId, lpAddr, lpType).Scan(&chainId, &txHash, &status)
 	found, err := sqldb.ChkQueryRow(err)
-	return chainId, txHash, status, found, err
+	return txHash, status, found, err
 }
 
 func (d *DAL) GetAllLpChainToken(usr string) ([]*types.ChainTokenAddrPair, error) {
@@ -67,10 +67,11 @@ type LP struct {
 	Status      types.LPHistoryStatus
 	LpType      webapi.LPType
 	SeqNum      uint64
+	Addr        string
 }
 
 func (d *DAL) PaginateLpHistory(sender string, end time.Time, size uint64) ([]*LP, int, time.Time, error) {
-	q := "SELECT chain_id, token_symbol, amt, tx_hash, create_time, status, lp_type, seq_num FROM lp WHERE usr_addr = $1 and create_time < $3 order by create_time desc limit $2"
+	q := "SELECT chain_id, token_symbol, amt, tx_hash, create_time, status, lp_type, seq_num, usr_addr FROM lp WHERE usr_addr = $1 and create_time < $3 order by create_time desc limit $2"
 	rows, err := d.Query(q, sender, size, end)
 	if err != nil {
 		return nil, 0, time.Unix(0, 0), err
@@ -78,12 +79,12 @@ func (d *DAL) PaginateLpHistory(sender string, end time.Time, size uint64) ([]*L
 	defer closeRows(rows)
 
 	var tps []*LP
-	var txHash, tokenSymbol, amt string
+	var txHash, tokenSymbol, amt, addr string
 	var chainId, status, lpType, seqnum uint64
 	var ct time.Time
 	minTime := now()
 	for rows.Next() {
-		err = rows.Scan(&chainId, &tokenSymbol, &amt, &txHash, &ct, &status, &lpType, &seqnum)
+		err = rows.Scan(&chainId, &tokenSymbol, &amt, &txHash, &ct, &status, &lpType, &seqnum, &addr)
 		if err != nil {
 			return nil, 0, time.Unix(0, 0), err
 		}
@@ -97,6 +98,7 @@ func (d *DAL) PaginateLpHistory(sender string, end time.Time, size uint64) ([]*L
 			Status:      types.LPHistoryStatus(status),
 			LpType:      webapi.LPType(lpType),
 			SeqNum:      seqnum,
+			Addr:        addr,
 		}
 		if minTime.After(ct) {
 			minTime = ct

@@ -163,7 +163,7 @@ func (d *DAL) MarkTransferRequestingRefund(transferId string, withdrawSeqNum uin
 	if !d.CheckTransferStatusNotIn(transferId, statusList) {
 		return nil
 	}
-	q := `UPDATE transfer SET status=$3, update_time=$4, refund_seq_num=$5 WHERE transfer_id=$1`
+	q := `UPDATE transfer SET status=$2, update_time=$3, refund_seq_num=$4 WHERE transfer_id=$1`
 	res, err := d.Exec(q, transferId, status, now(), withdrawSeqNum)
 	return sqldb.ChkExec(res, err, 1, "MarkTransferRefund")
 }

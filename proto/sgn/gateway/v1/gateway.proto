@@ -230,6 +230,9 @@ message MarkLiquidityResponse {
 
 message QueryLiquidityStatusRequest {
     uint64 seq_num = 1;
+    string lp_addr = 2;
+    uint32 chain_id = 3;
+    LPType type = 4;
 }
 
 enum LPType {

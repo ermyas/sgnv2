@@ -297,20 +297,8 @@ func TestTransferRefund(t *testing.T) {
 	})
 	errIsNil(t, err)
 	errMsgIsNil(t, tlrsResp.Err)
-	estimateAmt, err := svc.EstimateAmt(nil, &webapi.EstimateAmtRequest{
-		SrcChainId:  chain1,
-		DstChainId:  chain2,
-		TokenSymbol: chainToken1.Token[0].Token.Symbol,
-		Amt:         srcAmt,
-		UsrAddr:     usrAddr,
-	})
-	errIsNil(t, err)
-	errMsgIsNil(t, estimateAmt.Err)
-	t.Log("estimate amt:", estimateAmt)
-	dstAmt, _ := strconv.Atoi(estimateAmt.EqValueTokenAmt)
-	fee, _ := strconv.Atoi(estimateAmt.GetFee())
-	dstAmt = int(float64(dstAmt)*(1-float64(estimateAmt.SlippageTolerance)/10000.0)) - fee
-	t.Log("min received amt:", dstAmt)
+
+	seqNum := uint64(1)
 
 	markTransferResponse, err := svc.MarkTransfer(nil, &webapi.MarkTransferRequest{
 		TransferId: transferId,
@@ -322,7 +310,7 @@ func TestTransferRefund(t *testing.T) {
 		DstMinReceivedInfo: &webapi.TransferInfo{
 			Chain:  chains[1],
 			Token:  chainToken2.GetToken()[0].Token,
-			Amount: fmt.Sprint(dstAmt),
+			Amount: srcAmt,
 		},
 		Addr:      usrAddr,
 		SrcTxHash: srcTxHash,
@@ -331,33 +319,50 @@ func TestTransferRefund(t *testing.T) {
 	errIsNil(t, err)
 	errMsgIsNil(t, markTransferResponse.Err)
 
-	history, err := svc.TransferHistory(nil, &webapi.TransferHistoryRequest{
-		NextPageToken: "",
-		PageSize:      10,
-		Addr:          usrAddr,
-	})
+	//withdraw directly first
+	err = dal.DB.MarkTransferRequestingRefund(transferId, seqNum)
 	errIsNil(t, err)
-	errMsgIsNil(t, history.Err)
-	checkTransferStatus(t, history.History[0].GetStatus(), types.TransferHistoryStatus_TRANSFER_SUBMITTING)
+	statusRsp, err := svc.GetTransferStatus(nil, &webapi.GetTransferStatusRequest{TransferId: transferId})
+	errIsNil(t, err)
+	errMsgIsNil(t, statusRsp.Err)
+	checkTransferStatus(t, statusRsp.GetStatus(), types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND)
 
-	err = relayer.GatewayOnSend(transferId)
-	errIsNil(t, err)
-	history, err = svc.TransferHistory(nil, &webapi.TransferHistoryRequest{
-		NextPageToken: "",
-		PageSize:      10,
-		Addr:          usrAddr,
+	/**
+	...
+	update history: get types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED from sgn
+	...
+	*/
+
+	markTransferResponse, err = svc.MarkTransfer(nil, &webapi.MarkTransferRequest{
+		TransferId: transferId,
+		SrcSendInfo: &webapi.TransferInfo{
+			Chain:  chains[0],
+			Token:  chainToken1.GetToken()[0].Token,
+			Amount: srcAmt,
+		},
+		DstMinReceivedInfo: &webapi.TransferInfo{
+			Chain:  chains[1],
+			Token:  chainToken2.GetToken()[0].Token,
+			Amount: srcAmt,
+		},
+		Addr:           usrAddr,
+		SrcTxHash:      srcTxHash,
+		Type:           webapi.TransferType_TRANSFER_TYPE_REFUND,
+		WithdrawSeqNum: seqNum,
 	})
 	errIsNil(t, err)
-	checkTransferStatus(t, history.History[0].GetStatus(), types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE)
-	err = relayer.GatewayOnRelay(transferId, srcTxHash, "2", string(rune(dstAmt)))
+	errMsgIsNil(t, markTransferResponse.Err)
+
+	statusRsp, err = svc.GetTransferStatus(nil, &webapi.GetTransferStatusRequest{TransferId: transferId})
 	errIsNil(t, err)
-	history, err = svc.TransferHistory(nil, &webapi.TransferHistoryRequest{
-		NextPageToken: "",
-		PageSize:      10,
-		Addr:          usrAddr,
-	})
+	errMsgIsNil(t, statusRsp.Err)
+	checkTransferStatus(t, statusRsp.GetStatus(), types.TransferHistoryStatus_TRANSFER_CONFIRMING_YOUR_REFUND)
+
+	relayer.GatewayOnLiqWithdraw(seqNum)
+	statusRsp, err = svc.GetTransferStatus(nil, &webapi.GetTransferStatusRequest{TransferId: transferId})
 	errIsNil(t, err)
-	checkTransferStatus(t, history.History[0].GetStatus(), types.TransferHistoryStatus_TRANSFER_COMPLETED)
+	errMsgIsNil(t, statusRsp.Err)
+	checkTransferStatus(t, statusRsp.GetStatus(), types.TransferHistoryStatus_TRANSFER_REFUNDED)
 }
 
 func TestLPAdd(t *testing.T) {
@@ -400,7 +405,12 @@ func TestLPAdd(t *testing.T) {
 
 	// onchain status
 	relayer.GatewayOnLiqAdd(addr, token.Token.Symbol, tokenAddr, amt, txHash, uint64(chainId), seqNum)
-	liquidityStatus, err := svc.QueryLiquidityStatus(nil, &webapi.QueryLiquidityStatusRequest{SeqNum: seqNum}) //polling
+	liquidityStatus, err := svc.QueryLiquidityStatus(nil, &webapi.QueryLiquidityStatusRequest{
+		SeqNum:  seqNum,
+		LpAddr:  addr,
+		ChainId: uint32(chainId),
+		Type:    webapi.LPType_LP_TYPE_ADD,
+	}) //polling
 
 	errIsNil(t, err)
 	checkLpStatus(t, liquidityStatus.Status, types.LPHistoryStatus_LP_WAITING_FOR_SGN)
@@ -486,4 +496,18 @@ func TestLPWithdraw(t *testing.T) {
 	errIsNil(t, err)
 	errMsgIsNil(t, lpHistory.Err)
 	checkLpStatus(t, lpHistory.History[0].Status, types.LPHistoryStatus_LP_COMPLETED)
+}
+
+func TestLPList(t *testing.T) {
+	svc := newTestSvc(t)
+	if svc == nil {
+		t.Errorf("fail to init service")
+		return
+	}
+	mockChian()
+	addr := "0x25846D545a60A029E5C83f0FB96e41b408528e9E"
+	list, err := svc.GetLPInfoList(nil, &webapi.GetLPInfoListRequest{Addr: addr})
+	errIsNil(t, err)
+	errMsgIsNil(t, list.Err)
+	t.Log(list)
 }
