@@ -60,3 +60,23 @@ func GetAddressFromKeystore(ksBytes []byte) (string, error) {
 func CommissionRate(rate float64) uint64 {
 	return uint64(rate * CommissionRateBase)
 }
+
+func (r *BridgeRelay) String() string {
+	return fmt.Sprintf("transferId %x, sender %x, receiver %x, token %x, amount %s, srcChainId %d, srcTransferId %x",
+		r.TransferId, r.Sender, r.Receiver, r.Token, r.Amount, r.SrcChainId, r.SrcTransferId)
+}
+
+func (s *BridgeSend) String() string {
+	return fmt.Sprintf("transferId %x, sender %x, receiver %x, token %x, amount %s, dstChainId %d, nonce %d, maxSlippage %d",
+		s.TransferId, s.Sender, s.Receiver, s.Token, s.Amount, s.DstChainId, s.Nonce, s.MaxSlippage)
+}
+
+func (l *BridgeLiquidityAdded) String() string {
+	return fmt.Sprintf("seqNum %d, provider %x, token %x, amount %s", l.Seqnum, l.Provider, l.Token, l.Amount)
+}
+
+func (w *BridgeWithdrawDone) String() string {
+	return fmt.Sprintf("withdrawId %x, seqNum %d, receiver %x, token %x, amount %s",
+		w.WithdrawId, w.Seqnum, w.Receiver, w.Token, w.Amount)
+
+}

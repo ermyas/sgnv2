@@ -32,6 +32,9 @@ var _ types.MsgServer = msgServer{}
 
 // validate withdraw request, update kv then emit to sign event. if req is invalid, return error
 func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw) (*types.MsgInitWithdrawResp, error) {
+	if req == nil {
+		return nil, fmt.Errorf("nil request")
+	}
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	kv := sdkCtx.KVStore(k.storeKey)
 	// todo: do we need to check creator sig? or it doesn't matter anyway
@@ -58,12 +61,14 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 			}
 			return nil, fmt.Errorf("xfer %x already has withdraw seqnum %d, use SignAgain", xferId, wdOnchain.Seqnum)
 		}
+		log.Infof("x/cbr handle refund xferId %x, reqId %d, creator %s, wdOnChain %s",
+			xferId, req.ReqId, req.Creator, wdOnchain.String())
 	} else { // LP withdraw liquidity
 		lpAddr := eth.Bytes2Addr(req.LpAddr)
 		token := eth.Bytes2Addr(req.Token)
 		amt := new(big.Int).SetBytes(req.Amount)
 		balance := GetLPBalance(kv, req.Chainid, token, lpAddr)
-		log.Infoln("x/cbr lp withdraw", req.Chainid, eth.Addr2Hex(token), eth.Addr2Hex(lpAddr), amt.String(), "balance:", balance.String())
+		log.Infof("x/cbr handle lp withdraw: %s, lp balance %s", req.String()[9:], balance)
 		if balance.Cmp(amt) < 0 {
 			// balance not enough, return error
 			resp.Errmsg = &types.ErrMsg{
@@ -125,6 +130,9 @@ func emitSignAgainResp(sdkCtx sdk.Context, resp *types.MsgSignAgainResp) {
 // they are still valid. we should also deny if withdraw already
 // completed
 func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*types.MsgSignAgainResp, error) {
+	if req == nil {
+		return nil, fmt.Errorf("nil request")
+	}
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	kv := sdkCtx.KVStore(k.storeKey)
 	// resp.errmsg is nil if accepted
@@ -169,7 +177,10 @@ func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*typ
 
 // send my sig for data, so it can be later submitted onchain
 func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*types.MsgSendMySigResp, error) {
-	logmsg := fmt.Sprintf("Handle MsgSendMySig type %s", msg.Datatype.String())
+	if msg == nil {
+		return nil, fmt.Errorf("nil msg")
+	}
+	logmsg := fmt.Sprintf("x/cbr handle MsgSendMySig type %s", msg.Datatype.String())
 	if msg == nil {
 		return nil, fmt.Errorf("%s, nil msg", logmsg)
 	}
@@ -181,7 +192,7 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 	if err != nil {
 		return nil, fmt.Errorf("%s err %w", logmsg, err)
 	}
-	logmsg = fmt.Sprintf("%s, sender %s", logmsg, senderAcct.String())
+	logmsg = fmt.Sprintf("%s, creator %s", logmsg, senderAcct.String())
 
 	validator, found := k.stakingKeeper.GetValidatorBySgnAddr(sdkCtx, senderAcct)
 	if !found {

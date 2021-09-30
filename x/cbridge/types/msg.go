@@ -1,6 +1,9 @@
 package types
 
 import (
+	"fmt"
+	"math/big"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -40,6 +43,14 @@ func (msg *MsgInitWithdraw) ValidateBasic() error {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid creator address (%s)", err)
 	}
 	return nil
+}
+
+func (msg *MsgInitWithdraw) String() string {
+	if msg == nil {
+		return "nil"
+	}
+	return fmt.Sprintf("xferId %x, chainId %d, lpAddr %x, token %x, amount %s, reqId %d, creator %s",
+		msg.XferId, msg.Chainid, msg.LpAddr, msg.Token, big.NewInt(0).SetBytes(msg.Amount), msg.ReqId, msg.Creator)
 }
 
 func NewMsgSendMySig(creator string, dataType SignDataType, data []byte, mySig []byte) *MsgSendMySig {

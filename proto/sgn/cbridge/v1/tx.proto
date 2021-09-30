@@ -1,6 +1,7 @@
 syntax = "proto3";
 package sgn.cbridge.v1;
 
+import "gogoproto/gogo.proto";
 import "sgn/cbridge/v1/cbridge.proto";
 
 option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
@@ -37,6 +38,8 @@ message MsgSendMySig {
 message MsgSendMySigResp {}
 
 message MsgInitWithdraw {
+    option (gogoproto.goproto_stringer) = false;
+
     bytes xfer_id = 1; // if set, user refund src transfer id
     // lp withdraw, only set if xfer_id is nil
     uint64 chainid = 2;

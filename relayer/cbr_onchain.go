@@ -56,7 +56,7 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 			log.Errorln("monSend: cannot parse event:", err)
 			return false
 		}
-		log.Infof("Send event: %+v", ev)
+		log.Infof("Catch event Send: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
 		err = c.saveEvent(CbrEventSend, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
@@ -83,7 +83,7 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 			log.Errorln("monRelay: cannot parse event:", err)
 			return false
 		}
-		log.Infof("Relay event: %+v", ev)
+		log.Infof("Catch event Relay: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
 		err = c.saveEvent(CbrEventRelay, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
@@ -109,7 +109,7 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 			log.Errorln("monLiqAdd: cannot parse event:", err)
 			return false
 		}
-		log.Infof("LiqAdd event: %+v", ev)
+		log.Infof("Catch event LiqAdd: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
 
 		err = c.saveEvent(CbrEventLiqAdd, eLog)
 		if err != nil {
@@ -141,7 +141,7 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 			log.Errorln("monWithdraw: cannot parse event:", err)
 			return false
 		}
-		log.Infof("Withdraw event: %+v", ev)
+		log.Infof("Catch event WithdrawDone: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
 		err = c.saveEvent(CbrEventWithdraw, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)

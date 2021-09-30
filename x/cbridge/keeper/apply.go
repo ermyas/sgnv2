@@ -54,6 +54,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		if HasEvSend(kv, ev.TransferId) {
 			return false, fmt.Errorf("already applied send event. chainid %d xferId %x", onchev.Chainid, ev.TransferId)
 		}
+		log.Infoln("x/cbr apply send", ev.String())
 		// in case of bad_xxx, save info for later user refund, NO seqnum yet as it'll be set
 		// when user calls InitWithdraw
 		wdOnchain := &types.WithdrawOnchain{
@@ -136,6 +137,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		if err != nil {
 			return false, err
 		}
+		log.Infoln("x/cbr apply relay", ev.String())
 		SetEvSendStatus(kv, ev.SrcTransferId, types.XferStatus_SUCCESS)
 		// only set value when apply event, relay xferid -> src xferid only for debugging
 		SetEvRelay(kv, ev.TransferId, ev.SrcTransferId)
@@ -144,6 +146,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		if err != nil {
 			return false, err
 		}
+		log.Infoln("x/cbr apply withdrawDone", ev.String())
 		wdDetail := GetWithdrawDetail(kv, ev.Seqnum)
 		if wdDetail == nil {
 			// what to do if not found?
@@ -167,7 +170,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		}
 		chainSigners.CurrSigners.Unmarshal(ev.CurSigners)
 		k.SetChainSigners(ctx, chainSigners)
-		log.Infoln("Apply chainSigners:", chainSigners.String())
+		log.Infoln("x/cbr applied chainSigners:", chainSigners.String())
 	}
 	return true, nil
 }
