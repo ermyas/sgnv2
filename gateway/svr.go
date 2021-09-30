@@ -176,6 +176,7 @@ func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.Mark
 	txHash := request.GetSrcTxHash()
 	txType := request.GetType()
 	withdrawSeqNum := request.GetWithdrawSeqNum()
+	log.Infof("transferId in mark api: %s, bytes:%+v", transferId, common.Hex2Bytes(transferId))
 	if txType == webapi.TransferType_TRANSFER_TYPE_SEND {
 		err := dal.DB.MarkTransferSend(transferId, addr.String(), sendInfo.GetToken().GetSymbol(),
 			sendInfo.GetAmount(), receivedInfo.GetAmount(), txHash, uint64(sendInfo.GetChain().GetId()),
@@ -205,7 +206,7 @@ func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.Mark
 }
 
 func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.GetLPInfoListRequest) (*webapi.GetLPInfoListResponse, error) {
-	userAddr := common.Hex2Addr(request.GetAddr()).String()
+	//userAddr := common.Hex2Addr(request.GetAddr()).String()
 	chainTokenInfos, err := dal.DB.GetChainTokenList()
 	if err != nil || len(chainTokenInfos) == 0 {
 		return &webapi.GetLPInfoListResponse{}, nil
@@ -221,42 +222,42 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	}
 
 	var lps []*webapi.LPInfo
-	detailList, err := cbrcli.QueryLiquidityDetailList(gs.tr.CliCtx, &cbrtypes.LiquidityDetailListRequest{
-		LpAddr:     userAddr,
-		ChainToken: chainTokens,
-	})
-	if err != nil || detailList == nil || len(detailList.GetLiquidityDetail()) == 0 {
-		return &webapi.GetLPInfoListResponse{}, nil
-	}
-	stakingMap := gs.getUserStaking(ctx, userAddr)
-	farmingApyMap := gs.getFarmingApy(ctx)
-	data24h := gs.get24hTx()
-	userDetailMap := make(map[uint64]map[string]*types.LiquidityDetail)
-	for _, detail := range detailList.GetLiquidityDetail() {
-		chainId := detail.GetChainId()
-		tokenWithAddr := detail.GetToken() // only has addr field
-		token, found, err := dal.DB.GetTokenByAddr(tokenWithAddr.GetAddress(), chainId)
-		if !found || err != nil {
-			continue
-		}
-		detail.Token = token.Token
-		chainInfo := make(map[string]*types.LiquidityDetail)
-		chainInfo[token.Token.Symbol] = detail
-		userDetailMap[chainId] = chainInfo
-	}
+	//detailList, err := cbrcli.QueryLiquidityDetailList(gs.tr.CliCtx, &cbrtypes.LiquidityDetailListRequest{
+	//	LpAddr:     userAddr,
+	//	ChainToken: chainTokens,
+	//})
+	//if err != nil || detailList == nil || len(detailList.GetLiquidityDetail()) == 0 {
+	//	return &webapi.GetLPInfoListResponse{}, nil
+	//}
+	//stakingMap := gs.getUserStaking(ctx, userAddr)
+	//farmingApyMap := gs.getFarmingApy(ctx)
+	//data24h := gs.get24hTx()
+	//userDetailMap := make(map[uint64]map[string]*types.LiquidityDetail)
+	//for _, detail := range detailList.GetLiquidityDetail() {
+	//	chainId := detail.GetChainId()
+	//	tokenWithAddr := detail.GetToken() // only has addr field
+	//	token, found, err := dal.DB.GetTokenByAddr(tokenWithAddr.GetAddress(), chainId)
+	//	if !found || err != nil {
+	//		continue
+	//	}
+	//	detail.Token = token.Token
+	//	chainInfo := make(map[string]*types.LiquidityDetail)
+	//	chainInfo[token.Token.Symbol] = detail
+	//	userDetailMap[chainId] = chainInfo
+	//}
 	for chainId32, chainToken := range chainTokenInfos {
 		chainId := uint64(chainId32)
 		for _, token := range chainToken.Token {
-			tokenSymbol := token.Token.Symbol
+			//tokenSymbol := token.Token.Symbol
 			totalLiquidity := "0"
 			usrLpFeeEarning := "0"
 			usrLiquidity := "0"
-			detail, found := userDetailMap[chainId][tokenSymbol]
-			if found {
-				totalLiquidity = detail.GetTotalLiquidity()
-				usrLpFeeEarning = detail.GetUsrLpFeeEarning()
-				usrLiquidity = detail.GetUsrLiquidity()
-			}
+			//detail, found := userDetailMap[chainId][tokenSymbol]
+			//if found {
+			//	totalLiquidity = detail.GetTotalLiquidity()
+			//	usrLpFeeEarning = detail.GetUsrLpFeeEarning()
+			//	usrLiquidity = detail.GetUsrLiquidity()
+			//}
 
 			chain, _, found, err := dal.DB.GetChain(chainId)
 			if !found || err != nil {
@@ -267,24 +268,24 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 				}
 			}
 
-			data := data24h[chainId][tokenSymbol]
+			//data := data24h[chainId][tokenSymbol]
 			lpFeeEarningApy := 0.0
 			volume24h := 0.0
-			if data != nil {
-				lpFeeEarningApy, _ = new(big.Float).Quo(new(big.Float).SetInt(data.fee), new(big.Float).SetInt(common.Str2BigInt(totalLiquidity))).Float64()
-				volume24h = data.volume
-			}
+			//if data != nil {
+			//	lpFeeEarningApy, _ = new(big.Float).Quo(new(big.Float).SetInt(data.fee), new(big.Float).SetInt(common.Str2BigInt(totalLiquidity))).Float64()
+			//	volume24h = data.volume
+			//}
 			lp := &webapi.LPInfo{
 				Chain:                chain,
 				Token:                token,
 				Liquidity:            gs.f.GetUsdVolume(token.Token, common.Str2BigInt(usrLiquidity)),
-				HasFarmingSessions:   stakingMap[chainId][token.Token.GetSymbol()] > 0,
+				HasFarmingSessions:   false, //[chainId][token.Token.GetSymbol()] > 0,
 				LpFeeEarning:         gs.f.GetUsdVolume(token.Token, common.Str2BigInt(usrLpFeeEarning)),
 				FarmingRewardEarning: 0, // // todo enrich 0 data from farming @aric
 				Volume_24H:           volume24h,
 				TotalLiquidity:       gs.f.GetUsdVolume(token.Token, common.Str2BigInt(totalLiquidity)),
 				LpFeeEarningApy:      lpFeeEarningApy,
-				FarmingApy:           farmingApyMap[chainId][token.Token.GetSymbol()],
+				FarmingApy:           0, //farmingApyMap[chainId][token.Token.GetSymbol()],
 			}
 			lps = append(lps, lp)
 		}

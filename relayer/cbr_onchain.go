@@ -62,6 +62,7 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
 		}
+		log.Infof("transferId in Send event: %s", common.Hash(ev.TransferId).String())
 		err = GatewayOnSend(common.Hash(ev.TransferId).String())
 		if err != nil {
 			log.Errorln("GatewayOnSend err:", err)
