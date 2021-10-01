@@ -47,5 +47,5 @@ var updateSignersCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(updateSignersCmd)
 	updateSignersCmd.Flags().StringVarP(&signerks, "signer", "s", "", "path to signer ks json")
-	updateSignersCmd.Flags().StringVarP(&signerpw, "signerpw", "pw", "", "password to signer ks json")
+	updateSignersCmd.Flags().StringVarP(&signerpw, "signerpw", "p", "", "password to signer ks json")
 }
