@@ -1,0 +1,13 @@
+[ropsten]
+chainid = 3
+gateway = "https://ropsten.infura.io/v3/c58bb2a63c1a466abb6d7b5e0b7b6828"
+cbridge = "0x04Dd87EDDBE958C8f405e9c641693fAB94D562D1"
+USDT = "0x7Df0C9680B7493Cd41332176559B8E2bA7c2A355"
+WETH = "0xc778417E063141139Fce010982780140Aa0cD5Ab"
+
+[goerli]
+chainid = 5
+gateway = "https://goerli.infura.io/v3/c58bb2a63c1a466abb6d7b5e0b7b6828"
+cbridge = "0xC8CAf3c1D76D264B6D5d511d883B58b3874eAFa0"
+USDT = "0xf4B2cbc3bA04c478F0dC824f4806aC39982Dce73"
+WETH = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"
