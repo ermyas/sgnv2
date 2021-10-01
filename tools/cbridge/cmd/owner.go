@@ -19,10 +19,12 @@ import (
 func init() {
 	rootCmd.AddCommand(ownerCmd)
 	// owner sub cmds
-	ownerCmd.AddCommand(initSignerCmd)
-	ownerCmd.AddCommand(wrapCmd)
-	ownerCmd.AddCommand(minSendCmd)
-	ownerCmd.AddCommand(minSlipCmd)
+	ownerCmd.AddCommand(
+		initSignerCmd,
+		wrapCmd,
+		minSendCmd,
+		minSlipCmd,
+	)
 }
 
 var cbrContract *eth.Bridge // set in PersistentPreRun

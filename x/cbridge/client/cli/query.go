@@ -2,9 +2,11 @@ package cli
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/spf13/cobra"
@@ -24,10 +26,46 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 	cmd.AddCommand(
 		GetCmdQueryConfig(),
 		GetCmdChainTokensConfig(),
+		qRelayCmd,
 	)
 	// this line is used by starport scaffolding # 1
 
 	return cmd
+}
+
+// relay and sigs about this xfer
+var qRelayCmd = &cobra.Command{
+	Use:   "relay",
+	Args:  cobra.ExactArgs(1),
+	Short: "Query relay for xfer id",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cliCtx, _ := client.GetClientQueryContext(cmd)
+		xfid := eth.Hex2Bytes(args[0])
+
+		resp, err := QueryRelay(cliCtx, xfid)
+		if err != nil {
+			log.Errorln("query error", err)
+			return err
+		}
+		return cliCtx.PrintObjectLegacy(resp)
+	},
+}
+
+var qSignersCmd = &cobra.Command{
+	Use:   "signers",
+	Args:  cobra.ExactArgs(1),
+	Short: "Query signers for chainid",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cliCtx, _ := client.GetClientQueryContext(cmd)
+		chid, _ := strconv.Atoi(args[0])
+
+		resp, err := QueryChainSigners(cliCtx, uint64(chid))
+		if err != nil {
+			log.Errorln("query error", err)
+			return err
+		}
+		return cliCtx.PrintObjectLegacy(resp)
+	},
 }
 
 // GetCmdQueryConfig implements the params query command.

@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"io/ioutil"
 	"log"
 	"math/big"
@@ -14,6 +15,8 @@ import (
 
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -89,6 +92,28 @@ func kspath2auth(kspath string, chainid *big.Int) (*bind.TransactOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	kss := string(ksjson)
-	return bind.NewTransactorWithChainID(strings.NewReader(kss), "", chainid)
+	return bind.NewTransactorWithChainID(strings.NewReader(string(ksjson)), "", chainid)
+}
+
+type Signer struct {
+	key *ecdsa.PrivateKey
+}
+
+// return sig
+func (s *Signer) SignData(data []byte) []byte {
+	hash := crypto.Keccak256([]byte("\x19Ethereum Signed Message:\n32"), crypto.Keccak256(data))
+	sig, _ := crypto.Sign(hash, s.key)
+	if sig[64] <= 1 {
+		// Use 27/28 for v to be compatible with openzeppelin ECDSA lib
+		sig[64] = sig[64] + 27
+	}
+	return sig
+}
+
+func kspath2signer(kspath, pwd string) *Signer {
+	ksjson, _ := ioutil.ReadFile(kspath)
+	key, _ := keystore.DecryptKey(ksjson, pwd)
+	return &Signer{
+		key: key.PrivateKey,
+	}
 }
