@@ -113,6 +113,7 @@ func (r *Relayer) monitorCbrToSign() {
 		}
 		log.Infoln("monitorCbrToSign, eventType:", e.Type)
 		if !r.isBonded() {
+			log.Infof("Addr %s is not bonded!", r.Transactor.Key.GetAddress().String())
 			return
 		}
 		event := sdk.StringifyEvent(e)
