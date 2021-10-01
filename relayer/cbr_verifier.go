@@ -62,13 +62,13 @@ func (r *Relayer) verifyCbrEventUpdate(data []byte) (done, approve bool) {
 // TODO: impl logic
 func (c *CbrOneChain) checkEventOnChain(evtype string, eLog *ethtypes.Log) (retry bool, err error) {
 	switch evtype {
-	case CbrEventLiqAdd:
+	case cbrtypes.CbrEventLiqAdd:
 		return false, nil
-	case CbrEventSend:
+	case cbrtypes.CbrEventSend:
 		return false, nil
-	case CbrEventRelay:
+	case cbrtypes.CbrEventRelay:
 		return false, nil
-	case CbrEventSignersUpdated:
+	case cbrtypes.CbrEventSignersUpdated:
 		ev, err := c.contract.ParseSignersUpdated(*eLog)
 		if err != nil {
 			return false, err
@@ -89,17 +89,17 @@ func (c *CbrOneChain) checkEventInStore(
 	evtype string, chainId uint64, eLog *ethtypes.Log, cliCtx client.Context) (done, approve bool) {
 
 	switch evtype {
-	case CbrEventLiqAdd:
+	case cbrtypes.CbrEventLiqAdd:
 		// if chid-seq already processed, return true, false
 		return true, true
-	case CbrEventSend:
+	case cbrtypes.CbrEventSend:
 		// if transferid is waiting for vote status, return true, true
 		// otherwise, true, false
 		return true, true
-	case CbrEventRelay:
+	case cbrtypes.CbrEventRelay:
 		// this event means syncer already submitted relay tx onchain
 		return true, true
-	case CbrEventSignersUpdated:
+	case cbrtypes.CbrEventSignersUpdated:
 		ev, err := c.contract.ParseSignersUpdated(*eLog)
 		if err != nil {
 			return true, false

@@ -100,10 +100,10 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 		XferId:      req.XferId, // nil if not user refund
 	})
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
-		types.EventToSign,
-		sdk.NewAttribute(types.EvAttrType, types.SignDataType_WITHDRAW.String()),
-		sdk.NewAttribute(types.EvAttrData, string(wdOnChainRaw)),
-		sdk.NewAttribute(sdk.AttributeKeyAction, types.EventToSign),
+		types.EventTypeDataToSign,
+		sdk.NewAttribute(types.AttributeKeyType, types.SignDataType_WITHDRAW.String()),
+		sdk.NewAttribute(types.AttributeKeyData, string(wdOnChainRaw)),
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 	))
 	return resp, nil
 }
@@ -112,17 +112,17 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 func emitWdResp(sdkCtx sdk.Context, wdresp *types.MsgInitWithdrawResp) {
 	raw, _ := wdresp.Marshal()
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
-		types.EventMsgResp,
-		sdk.NewAttribute(types.EvAttrMsgType, "MsgInitWithdrawResp"),
-		sdk.NewAttribute(types.EvAttrResp, string(raw))))
+		types.EventTypeMsgResp,
+		sdk.NewAttribute(types.AttributeKeyMsgType, "MsgInitWithdrawResp"),
+		sdk.NewAttribute(types.AttributeKeyResp, string(raw))))
 }
 
 func emitSignAgainResp(sdkCtx sdk.Context, resp *types.MsgSignAgainResp) {
 	raw, _ := resp.Marshal()
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
-		types.EventMsgResp,
-		sdk.NewAttribute(types.EvAttrMsgType, "MsgSignAgainResp"),
-		sdk.NewAttribute(types.EvAttrResp, string(raw))))
+		types.EventTypeMsgResp,
+		sdk.NewAttribute(types.AttributeKeyMsgType, "MsgSignAgainResp"),
+		sdk.NewAttribute(types.AttributeKeyResp, string(raw))))
 }
 
 // user can request to sign a previous withdraw again
@@ -167,10 +167,10 @@ func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*typ
 	wdDetail.LastReqTime = now
 	SaveWithdrawDetail(kv, req.Seqnum, wdDetail)
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
-		types.EventToSign,
-		sdk.NewAttribute(types.EvAttrType, types.SignDataType_WITHDRAW.String()),
-		sdk.NewAttribute(types.EvAttrData, string(wdDetail.WdOnchain)),
-		sdk.NewAttribute(sdk.AttributeKeyAction, types.EventToSign),
+		types.EventTypeDataToSign,
+		sdk.NewAttribute(types.AttributeKeyType, types.SignDataType_WITHDRAW.String()),
+		sdk.NewAttribute(types.AttributeKeyData, string(wdDetail.WdOnchain)),
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 	))
 	return nil, nil
 }

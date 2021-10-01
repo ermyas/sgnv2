@@ -1,6 +1,11 @@
 package types
 
 const (
-	AttributeKeyNonce = "nonce"
-	ActionSlash       = "slash"
+	EventTypeSlash = "slash"
+
+	AttributeKeyNonce  = "nonce"
+	AttributeKeyReason = "reason"
+
+	AttributeValueDoubleSign       = "double_sign"
+	AttributeValueMissingSignature = "missing_signature"
 )

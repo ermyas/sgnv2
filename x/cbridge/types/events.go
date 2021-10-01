@@ -14,13 +14,14 @@ const (
 
 const (
 	// emit cosmos event for nodes to monitor and send sig back
-	EventToSign = ModuleName + "ToSign"
+	EventTypeDataToSign = "data_to_sign"
+
 	// event attr for data type, value is relay or withdraw
-	EvAttrType = "DataType"
-	EvAttrData = "Data" // raw msg to be signed
+	AttributeKeyType = "data_type"
+	AttributeKeyData = "data" // raw msg to be signed
 
 	// due to async nature, we have to use event to tell caller the msg grpc response
-	EventMsgResp  = ModuleName + "MsgResp"
-	EvAttrMsgType = "MsgType" // string of MsgInitWithdrawResp or MsgSignAgainResp
-	EvAttrResp    = "Resp"    // value is serlized bytes of MsgInitWithdrawResp or MsgSignAgainResp
+	EventTypeMsgResp    = "msg_resp"
+	AttributeKeyMsgType = "msg_type" // string of MsgInitWithdrawResp or MsgSignAgainResp
+	AttributeKeyResp    = "resp"     // value is serlized bytes of MsgInitWithdrawResp or MsgSignAgainResp
 )

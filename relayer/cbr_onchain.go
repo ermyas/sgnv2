@@ -9,22 +9,18 @@ import (
 	"github.com/celer-network/goutils/eth/monitor"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
-const (
-	// event names
-	CbrEventSend  = "Send"
-	CbrEventRelay = "Relay"
-	// from pool.sol
-	CbrEventLiqAdd   = "LiquidityAdded"
-	CbrEventWithdraw = "WithdrawDone" // could be LP or user
-	// from signers.sol
-	CbrEventSignersUpdated = "SignersUpdated"
-)
-
-var evNames = []string{CbrEventSend, CbrEventRelay, CbrEventLiqAdd, CbrEventWithdraw, CbrEventSignersUpdated}
+var evNames = []string{
+	cbrtypes.CbrEventSend,
+	cbrtypes.CbrEventRelay,
+	cbrtypes.CbrEventLiqAdd,
+	cbrtypes.CbrEventWithdraw,
+	cbrtypes.CbrEventSignersUpdated,
+}
 
 // funcs for monitor cbridge events
 func (c *CbrOneChain) startMon() {
@@ -46,7 +42,7 @@ func (c *CbrOneChain) startMon() {
 
 func (c *CbrOneChain) monSend(blk *big.Int) {
 	cfg := &monitor.Config{
-		EventName:  CbrEventSend,
+		EventName:  cbrtypes.CbrEventSend,
 		Contract:   c.contract,
 		StartBlock: blk,
 	}
@@ -58,7 +54,7 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 		// log.Infof("Catch event Send: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
-		err = c.saveEvent(CbrEventSend, eLog)
+		err = c.saveEvent(cbrtypes.CbrEventSend, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
@@ -74,7 +70,7 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 
 func (c *CbrOneChain) monRelay(blk *big.Int) {
 	cfg := &monitor.Config{
-		EventName:  CbrEventRelay,
+		EventName:  cbrtypes.CbrEventRelay,
 		Contract:   c.contract,
 		StartBlock: blk,
 	}
@@ -86,7 +82,7 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 		// log.Infof("Catch event Relay: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
-		err = c.saveEvent(CbrEventRelay, eLog)
+		err = c.saveEvent(cbrtypes.CbrEventRelay, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
@@ -101,7 +97,7 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 
 func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 	cfg := &monitor.Config{
-		EventName:  CbrEventLiqAdd,
+		EventName:  cbrtypes.CbrEventLiqAdd,
 		Contract:   c.contract,
 		StartBlock: blk,
 	}
@@ -114,7 +110,7 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 		// log.Infof("Catch event LiqAdd: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
 
-		err = c.saveEvent(CbrEventLiqAdd, eLog)
+		err = c.saveEvent(cbrtypes.CbrEventLiqAdd, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
@@ -135,7 +131,7 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 
 func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 	cfg := &monitor.Config{
-		EventName:  CbrEventWithdraw,
+		EventName:  cbrtypes.CbrEventWithdraw,
 		Contract:   c.contract,
 		StartBlock: blk,
 	}
@@ -147,7 +143,7 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 		// log.Infof("Catch event WithdrawDone: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
-		err = c.saveEvent(CbrEventWithdraw, eLog)
+		err = c.saveEvent(cbrtypes.CbrEventWithdraw, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
@@ -159,7 +155,7 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 
 func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 	cfg := &monitor.Config{
-		EventName:  CbrEventSignersUpdated,
+		EventName:  cbrtypes.CbrEventSignersUpdated,
 		Contract:   c.contract,
 		StartBlock: blk,
 	}
@@ -171,7 +167,7 @@ func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 		}
 		logmsg := fmt.Sprintf("Catch event SignersUpdated: tx hash: %x, blknum: %d, signers %x",
 			eLog.TxHash, eLog.BlockNumber, ev.CurSigners)
-		err = c.saveEvent(CbrEventSignersUpdated, eLog)
+		err = c.saveEvent(cbrtypes.CbrEventSignersUpdated, eLog)
 		if err != nil {
 			log.Errorf("%s, saveEvent err: %s", logmsg, err)
 			return true // ask to recreate to process event again

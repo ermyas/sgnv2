@@ -39,7 +39,7 @@ func InitWithdraw(t *transactor.Transactor, req *types.MsgInitWithdraw) (resp *t
 
 	for _, log := range txResponse.Logs {
 		for _, e := range log.Events {
-			if e.Type == types.EventMsgResp && e.Attributes[0].Value == "MsgInitWithdrawResp" {
+			if e.Type == types.EventTypeMsgResp && e.Attributes[0].Value == "MsgInitWithdrawResp" {
 				resp = new(types.MsgInitWithdrawResp)
 				resp.Unmarshal([]byte(e.Attributes[1].Value))
 				break
@@ -62,7 +62,7 @@ func SignAgain(t *transactor.Transactor, req *types.MsgSignAgain) (resp *types.M
 
 	for _, log := range txResponse.Logs {
 		for _, e := range log.Events {
-			if e.Type == types.EventMsgResp && e.Attributes[0].Value == "MsgSignAgainResp" {
+			if e.Type == types.EventTypeMsgResp && e.Attributes[0].Value == "MsgSignAgainResp" {
 				resp = new(types.MsgSignAgainResp)
 				resp.Unmarshal([]byte(e.Attributes[1].Value))
 				break

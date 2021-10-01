@@ -43,7 +43,7 @@ func (k Keeper) HandleDoubleSign(ctx sdk.Context, addr crypto.Address, blkTime t
 	}
 
 	log.Infof("Confirmed double sign from %s", consAddr)
-	k.Slash(ctx, slashingtypes.AttributeValueDoubleSign, validator, k.SlashFactorDoubleSign(ctx), []types.AcctAmtPair{}, blkTime) //collector and syncer reward will be done in next version
+	k.Slash(ctx, types.AttributeValueDoubleSign, validator, k.SlashFactorDoubleSign(ctx), []types.AcctAmtPair{}, blkTime) //collector and syncer reward will be done in next version
 }
 
 // HandleValidatorSignature handles a validator signature, must be called once per validator per block.
@@ -105,7 +105,7 @@ func (k Keeper) HandleValidatorSignature(ctx sdk.Context, addr crypto.Address, s
 		signInfo.MissedBlocksCounter = 0
 		signInfo.IndexOffset = 0
 		k.ClearValidatorMissedBlockBitArray(ctx, consAddr)
-		k.Slash(ctx, slashingtypes.AttributeValueMissingSignature, validator, k.SlashFactorDowntime(ctx), []types.AcctAmtPair{}, blkTime) //collector and syncer reward will be done in next version
+		k.Slash(ctx, types.AttributeValueMissingSignature, validator, k.SlashFactorDowntime(ctx), []types.AcctAmtPair{}, blkTime) //collector and syncer reward will be done in next version
 	}
 
 	k.SetValidatorSigningInfo(ctx, signInfo)
@@ -135,10 +135,9 @@ func (k Keeper) Slash(ctx sdk.Context, reason string, failedValidator stakingtyp
 
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
-				slashingtypes.EventTypeSlash,
-				sdk.NewAttribute(sdk.AttributeKeyAction, types.ActionSlash),
+				types.EventTypeSlash,
 				sdk.NewAttribute(types.AttributeKeyNonce, sdk.NewUint(slash.Nonce).String()),
-				sdk.NewAttribute(slashingtypes.AttributeKeyReason, reason),
+				sdk.NewAttribute(types.AttributeKeyReason, reason),
 			),
 		)
 

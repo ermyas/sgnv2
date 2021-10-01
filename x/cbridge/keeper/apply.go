@@ -127,10 +127,10 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			Relay: relayRaw,
 		}, k.cdc)
 		ctx.EventManager().EmitEvent(sdk.NewEvent(
-			types.EventToSign,
-			sdk.NewAttribute(types.EvAttrType, types.SignDataType_RELAY.String()),
-			sdk.NewAttribute(types.EvAttrData, string(relayRaw)),
-			sdk.NewAttribute(sdk.AttributeKeyAction, types.EventToSign),
+			types.EventTypeDataToSign,
+			sdk.NewAttribute(types.AttributeKeyType, types.SignDataType_RELAY.String()),
+			sdk.NewAttribute(types.AttributeKeyData, string(relayRaw)),
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 		))
 		sendStatus = types.XferStatus_OK_TO_RELAY
 	case types.CbrEventRelay:
