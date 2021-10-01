@@ -17,6 +17,7 @@ func OpsCommand() *cobra.Command {
 
 	cmd.AddCommand(
 		InitValidatorCommand(),
+		BondValidatorCommand(),
 		DelegateCommand(),
 		UndelegateCommand(),
 		CompleteUndelegateCommand(),
