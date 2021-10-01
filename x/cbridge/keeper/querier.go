@@ -148,8 +148,9 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 		TokenAddr: destTokenAddr,
 	}
 	srcAmt, _ := big.NewInt(0).SetString(params.Amt, 10)
-	destAmt := k.CalcEqualOnDestChain(src, dest, srcAmt)
-	feeAmt := CalcFee(ctx.KVStore(k.storeKey), src, dest, destAmt)
+	kv := ctx.KVStore(k.storeKey)
+	destAmt := CalcEqualOnDestChain(kv, src, dest, srcAmt)
+	feeAmt := CalcFee(kv, src, dest, destAmt)
 
 	resp := types.GetFeeResponse{
 		EqValueTokenAmt: destAmt.String(),

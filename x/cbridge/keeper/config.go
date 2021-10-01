@@ -1,12 +1,17 @@
 package keeper
 
 import (
+	"errors"
 	"math/big"
 	"strings"
 
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+)
+
+var (
+	ErrNoChainPair = errors.New("chain pair not found")
 )
 
 // We don't use paramstore at all as the configs are complicated
@@ -91,4 +96,36 @@ func GetFeePerc(kv sdk.KVStore, srcChid, destChid uint64) uint32 {
 		pair.Unmarshal(raw)
 		return pair.Fee2To1
 	}
+}
+
+// chain pair A, src weight as m, dst weight n = 2 - m
+// if src,dest not found, return error
+func GetAMN(kv sdk.KVStore, srcChid, destChid uint64) (float64, float64, float64, error) {
+	pair := new(types.ChainPair)
+	var A, m, n float64
+	if srcChid < destChid {
+		raw := kv.Get(types.CfgKeyChainPair(srcChid, destChid))
+		if len(raw) == 0 {
+			return 0, 0, 0, ErrNoChainPair
+		}
+		pair.Unmarshal(raw)
+		m = float64(pair.Weight1) / 100
+		n = 2 - m
+	} else {
+		// dest is ch1, src is ch2
+		raw := kv.Get(types.CfgKeyChainPair(destChid, srcChid))
+		if len(raw) == 0 {
+			return 0, 0, 0, ErrNoChainPair
+		}
+		pair.Unmarshal(raw)
+		// dest weight n is weight1
+		n = float64(pair.Weight1) / 100
+		m = 2 - n
+	}
+	if pair.ConstA == 0 {
+		A = 100 // default 100
+	} else {
+		A = float64(pair.ConstA)
+	}
+	return A, m, n, nil
 }

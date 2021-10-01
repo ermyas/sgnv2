@@ -61,6 +61,26 @@ func CommissionRate(rate float64) uint64 {
 	return uint64(rate * CommissionRateBase)
 }
 
+// return human friendly string for logging
+func (ev *BridgeSend) PrettyLog(srcChid uint64) string {
+	// max slippage uint is float * 1e6 so percentage needs to divide by 1e4
+	return fmt.Sprintf("send-%x src: %d-%x dstchid: %d sender: %x receiver: %x amt: %s maxslip: %f%%", ev.TransferId, srcChid, ev.Token, ev.DstChainId, ev.Sender, ev.Receiver, ev.Amount, float64(ev.MaxSlippage)/10000)
+}
+
+// onchid is the chainid this event happen
+func (ev *BridgeLiquidityAdded) PrettyLog(onchid uint64) string {
+	return fmt.Sprintf("liqadd-%d-%d token: %x lp: %x amt: %s", onchid, ev.Seqnum, ev.Token, ev.Provider, ev.Amount)
+}
+
+func (ev *BridgeWithdrawDone) PrettyLog(onchid uint64) string {
+	return fmt.Sprintf("withdraw-%d chid: %d token: %x receiver: %x amt: %s", ev.Seqnum, onchid, ev.Token, ev.Receiver, ev.Amount)
+}
+
+// relay-%x is src transfer id!!! so we can easily correlate with send log
+func (ev *BridgeRelay) PrettyLog(onchid uint64) string {
+	return fmt.Sprintf("relay-%x srcchid: %d dst: %d-%x sender: %x receiver: %x amt: %s thisXferId: %x", ev.SrcTransferId, ev.SrcChainId, onchid, ev.Token, ev.Sender, ev.Receiver, ev.Amount, ev.TransferId)
+}
+
 func (r *BridgeRelay) String() string {
 	return fmt.Sprintf("transferId %x, sender %x, receiver %x, token %x, amount %s, srcChainId %d, srcTransferId %x",
 		r.TransferId, r.Sender, r.Receiver, r.Token, r.Amount, r.SrcChainId, r.SrcTransferId)

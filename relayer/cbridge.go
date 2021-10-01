@@ -1,6 +1,7 @@
 package relayer
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -69,6 +70,9 @@ type CbrOneChain struct {
 	db       *dbm.PrefixDB // cbr-xxx xxx is chainid
 	curss    *sortedSigners
 	lock     sync.RWMutex
+
+	// not required for flow but make log chain id easy
+	chainid uint64
 }
 
 // key is chainid
@@ -102,6 +106,13 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 	ec, err := ethclient.Dial(cfg.Gateway)
 	if err != nil {
 		log.Fatalln("dial", cfg.Gateway, "err:", err)
+	}
+	chid, err := ec.ChainID(context.Background())
+	if err != nil {
+		log.Fatalln("get chainid err:", err)
+	}
+	if chid.Uint64() != cfg.ChainID {
+		log.Fatalf("chainid mismatch! cfg has %d but onchain has %d", cfg.ChainID, chid.Uint64())
 	}
 	wsvc := watcher.NewWatchService(ec, wdal, cfg.BlkInterval, cfg.MaxBlkDelta)
 	mon := monitor.NewService(wsvc, cfg.BlkDelay, true)
@@ -138,6 +149,7 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 		curss: &sortedSigners{
 			signers: &cbrtypes.SortedSigners{},
 		},
+		chainid: cfg.ChainID,
 	}
 	chainSigners, err := cbrcli.QueryChainSigners(cliCtx, cfg.ChainID)
 	if err != nil {

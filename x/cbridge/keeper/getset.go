@@ -78,6 +78,7 @@ func GetEvSendStatus(kv sdk.KVStore, xferId [32]byte) types.XferStatus {
 	return types.XferStatus(val[0])
 }
 
+// get total liquidity of chid, token
 func GetLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr) *big.Int {
 	iter := sdk.KVStorePrefixIterator(kv, []byte(fmt.Sprintf("lm-%d-%s-", chaddr.ChId, eth.Addr2Hex(chaddr.TokenAddr))))
 	defer iter.Close()
@@ -208,3 +209,13 @@ func AddSgnFee(kv sdk.KVStore, chid uint64, token eth.Addr, delta *big.Int) *big
 	kv.Set(feeKey, had.Bytes())
 	return had
 }
+
+// sum liquidity of src and dest token, if 0, return 1 (could be 0.01 if we want more accuracy)
+// return x, y, newx as float64
+/*
+func GetXY(kv sdk.KVStore, src, dest *ChainIdTokenAddr, srcDelta *big.Int) (float64, float64, float64) {
+	srcLiqSum := GetLiq(kv, src)
+	destLiqSum := GetLiq(kv, dest)
+	// div by decimal
+}
+*/

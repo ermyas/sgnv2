@@ -41,10 +41,11 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			// already processed, return error
 			return false, fmt.Errorf("already applied liq add event: chainid %d seq %d", onchev.Chainid, ev.Seqnum)
 		}
+		// note we don't check if config has this chid,token so in case someone addLiq *before* sgn supports it, it'll
+		// be accounted correctly (but can't be used for transfer as that requires asset info)
 		SetEvLiqAdd(kv, onchev.Chainid, ev.Seqnum)
 		bal := k.ChangeLiquidity(ctx, kv, onchev.Chainid, ev.Token, ev.Provider, ev.Amount)
-
-		log.Infoln("x/cbr applied addLiquidity", onchev.Chainid, eth.Addr2Hex(ev.Token), eth.Addr2Hex(ev.Provider), "Balance:", bal.String())
+		log.Infoln("x/cbr applied:", ev.PrettyLog(onchev.Chainid), "balance:", bal.String())
 		return true, nil
 	case types.CbrEventSend:
 		ev, err := cbrContract.ParseSend(*elog)
@@ -67,6 +68,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		// must set to non-zero before return
 		var sendStatus types.XferStatus
 		defer func() {
+			log.Infoln("x/cbr applied:", ev.PrettyLog(onchev.Chainid), "status:", sendStatus.String())
 			SetEvSendStatus(kv, ev.TransferId, sendStatus)
 		}()
 
@@ -82,7 +84,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			TokenAddr: destTokenAddr,
 		}
 		// now we need to decide if this send can be completed by sgn, eg. has enough liquidity on dest chain etc
-		destAmount := k.CalcEqualOnDestChain(src, dest, ev.Amount)
+		destAmount := CalcEqualOnDestChain(kv, src, dest, ev.Amount)
 		if destAmount.Sign() == 0 { // avoid div by 0
 			// define another enum?
 			sendStatus = types.XferStatus_BAD_LIQUIDITY
@@ -141,6 +143,8 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		SetEvSendStatus(kv, ev.SrcTransferId, types.XferStatus_SUCCESS)
 		// only set value when apply event, relay xferid -> src xferid only for debugging
 		SetEvRelay(kv, ev.TransferId, ev.SrcTransferId)
+		// relay-%x %x is srcTransferId
+		log.Infoln("x/cbr applied:", ev.PrettyLog(onchev.Chainid))
 	case types.CbrEventWithdraw:
 		ev, err := cbrContract.ParseWithdrawDone(*elog)
 		if err != nil {
@@ -158,6 +162,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			// this is a refund so we set xfer status to refund_done
 			SetEvSendStatus(kv, eth.Bytes2Hash(wdDetail.XferId), types.XferStatus_REFUND_DONE)
 		}
+		log.Infoln("x/cbr applied:", ev.PrettyLog(onchev.Chainid))
 	case types.CbrEventSignersUpdated:
 		ev, err := cbrContract.ParseSignersUpdated(*elog)
 		if err != nil {

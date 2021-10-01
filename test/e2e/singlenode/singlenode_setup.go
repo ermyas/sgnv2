@@ -70,6 +70,11 @@ func updateSgnConfig() {
 	configFileViper.Set(common.FlagEthContractGovern, tc.Contracts.Govern.Address.Hex())
 	configFileViper.Set(common.FlagEthSignerKeystore, keystore)
 	configFileViper.Set(common.FlagEthValidatorAddress, eth.Addr2Hex(tc.ValEthAddrs[0]))
+
+	// delete 884 as single node only has one geth
+	multichains := configFileViper.Get(common.FlagMultiChain).([]interface{})
+	configFileViper.Set(common.FlagMultiChain, multichains[0:1])
+
 	err = configFileViper.WriteConfig()
 	tc.ChkErr(err, "failed to write config")
 	// Update global viper

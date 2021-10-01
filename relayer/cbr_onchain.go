@@ -56,7 +56,8 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 			log.Errorln("monSend: cannot parse event:", err)
 			return false
 		}
-		log.Infof("Catch event Send: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
+		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+		// log.Infof("Catch event Send: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
 		err = c.saveEvent(CbrEventSend, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
@@ -83,7 +84,8 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 			log.Errorln("monRelay: cannot parse event:", err)
 			return false
 		}
-		log.Infof("Catch event Relay: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
+		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+		// log.Infof("Catch event Relay: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
 		err = c.saveEvent(CbrEventRelay, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
@@ -109,13 +111,15 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 			log.Errorln("monLiqAdd: cannot parse event:", err)
 			return false
 		}
-		log.Infof("Catch event LiqAdd: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
+		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+		// log.Infof("Catch event LiqAdd: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
 
 		err = c.saveEvent(CbrEventLiqAdd, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
 		}
+		// todo: use cbr query to get symbol to avoid query db, as we already have all other info
 		token, chainId, found := c.getTokenFromDB(ev.Token.String())
 		if !found {
 			return false
@@ -141,7 +145,8 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 			log.Errorln("monWithdraw: cannot parse event:", err)
 			return false
 		}
-		log.Infof("Catch event WithdrawDone: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
+		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+		// log.Infof("Catch event WithdrawDone: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
 		err = c.saveEvent(CbrEventWithdraw, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)

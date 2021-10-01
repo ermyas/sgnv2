@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 
@@ -15,8 +16,32 @@ import (
 // given src chain token amount, calculate how much token on dest chain
 // worth the same. pre-fee
 // note if decimals are different, extra careful
-func (k Keeper) CalcEqualOnDestChain(src, dest *ChainIdTokenAddr, srcAmount *big.Int) *big.Int {
+func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenAddr, srcAmount *big.Int) *big.Int {
+	ret := new(big.Int)
+	if srcAmount.Sign() <= 0 {
+		return ret
+	}
 	return new(big.Int).Set(srcAmount)
+	/*
+		// A,m,n are from chain pair config
+		A, m, n, err := GetAMN(kv, src.ChId, dest.ChId)
+		if err != nil {
+			return ret // 0 if not found chain pair
+		}
+
+		// x and y are sum of liquidity, divided by corresponding decimal to get int only
+		// what if not even 1? or we use big.Float?
+		x, y, newx := GetXY(kv, src, dest, srcAmount)
+
+		D := solveD(A, x, y, m, n)
+		newy := loopCalcNewY(A, D, newx, y, m, n)
+
+		if newy >= y {
+			// not possible
+			return ret
+		}
+		(y - newy) * ydecimal
+	*/
 }
 
 type AddrHexAmtInt struct {
@@ -109,4 +134,60 @@ func CalcFee(kv sdk.KVStore, src, dest *ChainIdTokenAddr, total *big.Int) *big.I
 		return maxFee
 	}
 	return feeAmt
+}
+
+/* solveD is faster and provides accurate answer
+// f(D) = \frac{D^3}{4x_i^{w_i}x_j^{w_j}}+(4A-1)D-4A(x_i+x_j)
+//      = D^3 + (4A-1){4x_i^{w_i}x_j^{w_j}}D - 4A(x_i+x_j){4x_i^{w_i}x_j^{w_j}} = 0
+func loopCalcD(A, x, y, m, n float64) float64 {
+	D := x + y
+	for i := 0; i < 100; i++ {
+		Dprev := D
+		xtimesy := 4 * math.Pow(x, m) * math.Pow(y, n)
+		fD := math.Pow(D, 3) + (4*A-1)*(xtimesy)*D - 4*A*(x+y)*xtimesy
+		fDprime := 3*math.Pow(D, 2) + 4*(A-1)*(xtimesy)
+		D = D - fD/fDprime
+		if math.Abs(D-Dprev) < 0.01 {
+			return D
+		}
+	}
+	return D
+}
+*/
+
+// we can solve D directly, p = (4A-1){4x_i^{w_i}x_j^{w_j}}
+// q = - 4A(x_i+x_j){4x_i^{w_i}x_j^{w_j}}
+func solveD(A, x, y, m, n float64) float64 {
+	xtimesy := 4 * math.Pow(x, m) * math.Pow(y, n)
+	p := (4*A - 1) * xtimesy
+	q := -4 * A * (x + y) * xtimesy
+	pqrt := math.Sqrt(math.Pow(q/2, 2) + math.Pow(p/3, 3))
+	return math.Cbrt(pqrt-q/2) + math.Cbrt(-pqrt-q/2)
+}
+
+// given D and new xi, calculate xj, prev xj - new xj is equal amount
+// y is xj for simpler code, m is weight i, n is weight j
+// f(y) = 4Ay^(wj+1) + (4AX+D-4AD)y^wj - D^3/4(x^wi)
+func loopCalcNewY(A, D, x, y, m, n float64) float64 {
+	ret := y
+	for i := 0; i < 100; i++ {
+		retPrev := ret
+		yPowN := math.Pow(ret, n)
+		A4 := 4 * A
+		fy := A4*yPowN*ret + (A4*x-A4*D+D)*yPowN - math.Pow(D, 3)/(4*math.Pow(x, m))
+		fyprime := (n+1)*A4*yPowN + n*(A4*x-A4*D+D)*math.Pow(ret, n-1)
+		ret = ret - fy/fyprime
+		if math.Abs(ret-retPrev) < 0.01 {
+			return ret
+		}
+	}
+	return ret
+}
+
+func invarLeft(A, D, x, y float64) float64 {
+	return 4*A*(x+y) + D
+}
+
+func invarRight(A, D, x, y, m, n float64) float64 {
+	return 4*A*D + math.Pow(D, 3)/(4*math.Pow(x, m)*math.Pow(y, n))
 }
