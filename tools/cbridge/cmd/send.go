@@ -17,7 +17,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var waitOpts = []ethutil.TxOption{ethutil.WithPollingInterval(time.Second * 5), ethutil.WithBlockDelay(1)}
+var (
+	waitOpts = []ethutil.TxOption{ethutil.WithPollingInterval(time.Second * 5), ethutil.WithBlockDelay(1)}
+	// set max_uint = 2**256-1
+	// "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+	MaxUint256 = new(big.Int).SetBytes(eth.Hex2Bytes(strings.Repeat("ff", 32)))
+)
 
 const maxSlip = 50000 // todo: use flag
 
@@ -44,7 +49,7 @@ var sendCmd = &cobra.Command{
 		allowed, _ := erc20.Allowance(nil, auth.From, cbrAddr)
 		if allowed.Cmp(amt) == -1 {
 			log.Println(allowed, "<", amt, "need to approve first")
-			tx, err := erc20.Approve(auth, cbrAddr, amt)
+			tx, err := erc20.Approve(auth, cbrAddr, MaxUint256)
 			if err != nil {
 				log.Fatalln("approve err:", err)
 			}
