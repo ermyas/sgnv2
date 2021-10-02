@@ -10,15 +10,15 @@ validator_address = ""
 poll_interval = 1
 
 [eth.check_interval]
-confirm_param_proposal = 2
 
 [eth.contract_address]
 celr = ""
 staking = ""
-sgn = ""
-reward = ""
-viewer = ""
+staking_reward = ""
 govern = ""
+sgn = ""
+viewer = ""
+farming_rewards = ""
 
 [log]
 color = true
@@ -32,12 +32,13 @@ gas_adjustment = 1.5
 keyring_backend = "file"
 node_uri = "tcp://localhost:26657"
 passphrase = "12341234"
-timeout_commit = 2
 transactors = ["sgn1qehw7sn3u3nhnjeqk8kjccj263rq5fv002l5fk"]
 validator_account = "sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe"
 
 [sgnd.check_interval]
-slash_queue = 2
+slash = 2
+cbridge = 2
+verifier = 1
 
 [[multichain]]
 chainID = 883
@@ -46,9 +47,7 @@ gateway = "http://127.0.0.1:8545"
 blkinterval = 1
 blkdelay = 1
 maxblkdelta = 5000
-cbridge = "0x"
-ksfile = "./test/keys/vsigner0.json"
-kspass = ""
+cbridge = ""
 
 [[multichain]]
 chainID = 884
@@ -57,6 +56,4 @@ gateway = "http://127.0.0.1:8547"
 blkinterval = 1
 blkdelay = 1
 maxblkdelta = 5000
-cbridge = "0x"
-ksfile = "./test/keys/vsigner0.json"
-kspass = ""
+cbridge = ""

@@ -3,15 +3,18 @@ package relayer
 import (
 	"encoding/json"
 	"math/big"
+	"time"
 
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	slashcli "github.com/celer-network/sgn-v2/x/slash/client/cli"
 	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	mapset "github.com/deckarep/golang-set"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -19,32 +22,38 @@ const (
 )
 
 func (r *Relayer) processSlashQueue() {
-	if !r.isSyncer() {
-		return
-	}
+	interval := time.Duration(viper.GetUint64(common.FlagSgnCheckIntervalSlash)) * time.Second
+	log.Infoln("start process slashing queue, interval:", interval)
+	for {
+		time.Sleep(interval)
 
-	var keys, vals [][]byte
-	r.lock.RLock()
-	iterator, err := r.db.Iterator(SlashKeyPrefix, storetypes.PrefixEndBytes(SlashKeyPrefix))
-	if err != nil {
-		log.Errorln("Create db iterator err", err)
-		return
-	}
-	for ; iterator.Valid(); iterator.Next() {
-		keys = append(keys, iterator.Key())
-		vals = append(vals, iterator.Value())
-	}
-	iterator.Close()
-	r.lock.RUnlock()
-
-	for i, key := range keys {
-		event := NewSlashEventFromBytes(vals[i])
-		err = r.dbDelete(key)
-		if err != nil {
-			log.Errorln("db Delete err", err)
+		if !r.isSyncer() {
 			continue
 		}
-		r.submitSlash(event)
+
+		var keys, vals [][]byte
+		r.lock.RLock()
+		iterator, err := r.db.Iterator(SlashKeyPrefix, storetypes.PrefixEndBytes(SlashKeyPrefix))
+		if err != nil {
+			log.Errorln("Create db iterator err", err)
+			continue
+		}
+		for ; iterator.Valid(); iterator.Next() {
+			keys = append(keys, iterator.Key())
+			vals = append(vals, iterator.Value())
+		}
+		iterator.Close()
+		r.lock.RUnlock()
+
+		for i, key := range keys {
+			event := NewSlashEventFromBytes(vals[i])
+			err = r.dbDelete(key)
+			if err != nil {
+				log.Errorln("db Delete err", err)
+				continue
+			}
+			r.submitSlash(event)
+		}
 	}
 }
 

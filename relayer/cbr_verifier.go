@@ -162,6 +162,7 @@ func (c *CbrOneChain) verifySigners(eLog *ethtypes.Log, cliCtx client.Context, l
 		log.Errorf("%s. curss hash %x not match onchain values: %x", logmsg, curssHash, ssHash)
 		return true, false
 	}
+	c.setCurss(ev.CurSigners)
 
 	log.Infof("%s, success", logmsg)
 	return true, true

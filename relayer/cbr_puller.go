@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -12,6 +13,7 @@ import (
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -20,8 +22,10 @@ const (
 
 // sleep, check if syncer, if yes, go over cbr dbs to send tx
 func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
+	interval := time.Duration(viper.GetUint64(common.FlagSgnCheckIntervalCbridge)) * time.Second
+	log.Infoln("start process cbridge queue, interval:", interval)
 	for {
-		time.Sleep(15 * time.Second)
+		time.Sleep(interval)
 		if !r.isSyncer() {
 			continue
 		}
@@ -40,6 +44,7 @@ func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
 		}
 
 		r.processCbridgeQueue()
+
 		if r.isCbrSsUpdating() {
 			latestSs, err := cbrcli.QueryLatestSigners(r.Transactor.CliCtx)
 			if err != nil {
@@ -57,6 +62,7 @@ func (r *Relayer) processCbridgeQueue() {
 	iterator, err := r.db.Iterator(CbrXferKeyPrefix, storetypes.PrefixEndBytes(CbrXferKeyPrefix))
 	if err != nil {
 		log.Errorln("Create db iterator err", err)
+		r.lock.RUnlock()
 		return
 	}
 	for ; iterator.Valid(); iterator.Next() {
@@ -100,6 +106,7 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 		r.requeueRelay(relayEvent)
 		return
 	}
+	// TODO: check if relay already sent on chain
 	log.Infof("%s with signers %s", logmsg, relay.SignersStr())
 	err = r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, curss.bytes, relay.GetSortedSigsBytes())
 	if err != nil {
@@ -129,29 +136,42 @@ func (c *CbrOneChain) pullEvents(chid uint64) []*synctypes.ProposeUpdate {
 	var ret []*synctypes.ProposeUpdate
 	// 1st loop over event names, then go over iter
 	for _, evn := range evNames {
+		var keys, vals [][]byte
 		c.lock.RLock()
-		iter, err := c.db.Iterator([]byte(evn), storetypes.PrefixEndBytes([]byte(evn)))
+		iterator, err := c.db.Iterator([]byte(evn), storetypes.PrefixEndBytes([]byte(evn)))
 		if err != nil {
-			log.Errorln("chainID:", chid, evn, "iter err:", err)
+			log.Errorln("Create db iterator err", err)
 			c.lock.RUnlock()
 			continue
 		}
-		for ; iter.Valid(); iter.Next() {
+		for ; iterator.Valid(); iterator.Next() {
+			keys = append(keys, iterator.Key())
+			vals = append(vals, iterator.Value())
+		}
+		iterator.Close()
+		c.lock.RUnlock()
+
+		for i, key := range keys {
+			err = c.db.Delete(key) // TODO: lock protection?
+			if err != nil {
+				log.Errorln("db Delete err", err)
+				continue
+			}
 			onchev := &cbrtypes.OnChainEvent{
 				Chainid: chid,
 				Evtype:  evn,
-				Elog:    iter.Value(),
+				Elog:    vals[i],
 			}
 			data, _ := onchev.Marshal()
-			ret = append(ret, &synctypes.ProposeUpdate{
-				Type:       synctypes.DataType_CbrOnchainEvent,
-				ChainId:    chid,
-				ChainBlock: 0, // why do we need this in ProposeUpdate?
-				Data:       data,
-			})
+			ret = append(ret,
+				&synctypes.ProposeUpdate{
+					Type:       synctypes.DataType_CbrOnchainEvent,
+					ChainId:    chid,
+					ChainBlock: 0, // why do we need this in ProposeUpdate?
+					Data:       data,
+				},
+			)
 		}
-		iter.Close()
-		c.lock.RUnlock()
 	}
 	return ret
 }

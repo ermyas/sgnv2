@@ -190,7 +190,9 @@ func NewSgnApp(
 	// TODO: Check if these can be set by config template and remove.
 	viper.SetDefault(common.FlagEthPollInterval, 15)
 	viper.SetDefault(common.FlagEthBlockDelay, 5)
-	viper.SetDefault(common.FlagSgnCheckIntervalSlashQueue, 60)
+	viper.SetDefault(common.FlagSgnCheckIntervalSlash, 60)
+	viper.SetDefault(common.FlagSgnCheckIntervalCbridge, 15)
+	viper.SetDefault(common.FlagSgnCheckIntervalVerifier, 15)
 
 	err := common.SetupUserPassword()
 	if err != nil {

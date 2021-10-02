@@ -32,11 +32,12 @@ const (
 	FlagSgnChainId          = "sgnd.chain_id"
 	FlagSgnNodeURI          = "sgnd.node_uri"
 	FlagSgnBaseGasPrice     = "sgnd.base_gas_price"
-	FlagSgnTimeoutCommit    = "sgnd.timeout_commit"
 	FlagSgnKeyringBackend   = "sgnd.keyring_backend"
 	FlagSgnGasAdjustment    = "sgnd.gas_adjustment"
 
-	FlagSgnCheckIntervalSlashQueue = "sgnd.check_interval.slash_queue"
+	FlagSgnCheckIntervalSlash    = "sgnd.check_interval.slash"
+	FlagSgnCheckIntervalCbridge  = "sgnd.check_interval.cbridge"
+	FlagSgnCheckIntervalVerifier = "sgnd.check_interval.verifier"
 
 	FlagLogLevel = "log.level"
 	FlagLogColor = "log.color"

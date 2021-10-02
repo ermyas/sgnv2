@@ -3,8 +3,10 @@ package relayer
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	validatorcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
@@ -12,48 +14,54 @@ import (
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/spf13/viper"
 )
 
 func (r *Relayer) verifyPendingUpdates() {
-	v, _ := validatorcli.QueryValidator(r.Transactor.CliCtx, r.Operator.ValAddr.Hex())
-	if v == nil || v.Status != stakingtypes.Bonded {
-		log.Traceln("skip verifying pending updates as I am not a bonded validator")
-		return
-	}
-	pendingUpdates, err := synccli.QueryPendingUpdates(r.Transactor.CliCtx)
-	if err != nil {
-		log.Errorln("Query pending updates error:", err)
-		return
-	}
-
-	msgs := synctypes.MsgVoteUpdates{
-		Votes:  make([]*synctypes.VoteUpdate, 0),
-		Sender: r.Transactor.Key.GetAddress().String(),
-	}
-	for _, update := range pendingUpdates {
-		_, err = r.verifiedUpdates.Get(strconv.Itoa(int(update.Id)))
-		if err == nil {
+	interval := time.Duration(viper.GetUint64(common.FlagSgnCheckIntervalVerifier)) * time.Second
+	log.Infoln("start verify pending updates, interval:", interval)
+	for {
+		time.Sleep(interval)
+		v, err := validatorcli.QueryValidator(r.Transactor.CliCtx, r.Operator.ValAddr.Hex())
+		if err != nil || v.Status != stakingtypes.Bonded {
+			log.Traceln("skip verifying pending updates as I am not a bonded validator")
+			continue
+		}
+		pendingUpdates, err := synccli.QueryPendingUpdates(r.Transactor.CliCtx)
+		if err != nil {
+			log.Errorln("Query pending updates error:", err)
 			continue
 		}
 
-		done, approve := r.verifyUpdate(update)
-		if done {
-			err = r.verifiedUpdates.Set(strconv.Itoa(int(update.Id)), []byte{})
-			if err != nil {
-				log.Errorln("verifiedUpdates Set err", err)
+		msgs := synctypes.MsgVoteUpdates{
+			Votes:  make([]*synctypes.VoteUpdate, 0),
+			Sender: r.Transactor.Key.GetAddress().String(),
+		}
+		for _, update := range pendingUpdates {
+			_, err = r.verifiedUpdates.Get(strconv.Itoa(int(update.Id)))
+			if err == nil {
 				continue
 			}
-			if approve {
-				msgs.Votes = append(msgs.Votes, &synctypes.VoteUpdate{
-					Id:     update.Id,
-					Option: synctypes.VoteOption_Yes,
-				})
+
+			done, approve := r.verifyUpdate(update)
+			if done {
+				err = r.verifiedUpdates.Set(strconv.Itoa(int(update.Id)), []byte{})
+				if err != nil {
+					log.Errorln("verifiedUpdates Set err", err)
+					continue
+				}
+				if approve {
+					msgs.Votes = append(msgs.Votes, &synctypes.VoteUpdate{
+						Id:     update.Id,
+						Option: synctypes.VoteOption_Yes,
+					})
+				}
 			}
 		}
-	}
 
-	if len(msgs.Votes) > 0 {
-		r.Transactor.AddTxMsg(&msgs)
+		if len(msgs.Votes) > 0 {
+			r.Transactor.AddTxMsg(&msgs)
+		}
 	}
 }
 

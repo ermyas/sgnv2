@@ -58,6 +58,7 @@ type sortedSigners struct {
 
 func (s *sortedSigners) setSigners(bytes []byte) {
 	s.bytes = bytes
+	s.signers = new(cbrtypes.SortedSigners)
 	s.signers.Unmarshal(bytes)
 }
 
@@ -109,7 +110,7 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 	}
 	chid, err := ec.ChainID(context.Background())
 	if err != nil {
-		log.Fatalln("get chainid err:", err)
+		log.Fatalf("get chainid %d err: %s", cfg.ChainID, err)
 	}
 	if chid.Uint64() != cfg.ChainID {
 		log.Fatalf("chainid mismatch! cfg has %d but onchain has %d", cfg.ChainID, chid.Uint64())
@@ -122,13 +123,13 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 		log.Fatalln("cbridge contract at", cfg.CBridge, "err:", err)
 	}
 
-	ksBytes, err := ioutil.ReadFile(cfg.KsFile)
+	ksBytes, err := ioutil.ReadFile(viper.GetString(common.FlagEthSignerKeystore))
 	if err != nil {
 		log.Fatalln("ReadFile err:", err)
 	}
 	transactor, err := ethutils.NewTransactor(
 		string(ksBytes),
-		cfg.KsPass,
+		viper.GetString(common.FlagEthSignerPassphrase),
 		ec,
 		big.NewInt(int64(cfg.ChainID)),
 		ethutils.WithBlockDelay(cfg.BlkDelay),
@@ -155,7 +156,7 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 	if err != nil {
 		log.Warnf("failed to get chain %d signers: %s", cfg.ChainID, err)
 	} else {
-		log.Infoln("Set chain signers:", chainSigners.String())
+		log.Infof("Set chain %d signers %s:", cfg.ChainID, chainSigners.String())
 		ret.setCurss(chainSigners.GetSignersBytes())
 	}
 	ret.startMon()

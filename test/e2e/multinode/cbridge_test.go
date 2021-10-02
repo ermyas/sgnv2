@@ -65,7 +65,7 @@ func cbridgeTest(t *testing.T) {
 	resp, err := cbrcli.QueryChainTokensConfig(transactor.CliCtx, &cbrtypes.ChainTokensConfigRequest{})
 	tc.ChkErr(err, "cli Query")
 	assert.True(t, len(resp.ChainTokens) > 0)
-	log.Infoln("QueryChainTokensConfig resp: ", resp.String())
+	log.Infoln("QueryChainTokensConfig resp:", resp.String())
 
 	chainTokens := make([]*cbrtypes.ChainTokenAddrPair, 0)
 	chainTokens = append(chainTokens, &cbrtypes.ChainTokenAddrPair{
@@ -82,7 +82,7 @@ func cbridgeTest(t *testing.T) {
 	})
 	tc.ChkErr(err, "cli Query")
 	assert.True(t, len(resp2.LiquidityDetail) > 0)
-	log.Infoln("QueryLiquidityDetailList resp: ", resp2.String())
+	log.Infoln("QueryLiquidityDetailList resp:", resp2.String())
 
 	log.Infoln("======================== Add liquidity on chain 1 ===========================")
 	addAmt := big.NewInt(5 * 1e10)
@@ -113,7 +113,7 @@ func cbridgeTest(t *testing.T) {
 	tc.ChkErr(err, "client1 start withdraw")
 	log.Info("withdraw seqnum: ", wdSeq)
 	// now sleep and get stuff to send onchain
-	time.Sleep(time.Second * 20)
+	time.Sleep(time.Second * 10)
 	detail, err := tc.GetWithdrawDetail(transactor, wdSeq)
 	tc.ChkErr(err, "client1 get withdrawdetail")
 	curss, err := tc.GetCurSortedSigners(transactor, chainId)
@@ -126,7 +126,7 @@ func cbridgeTest(t *testing.T) {
 	err = tc.StartClaimAll(transactor, eth.Addr2Hex(tc.CbrClient1.Auth.From))
 	tc.ChkErr(err, "client1 start claim all")
 	// now sleep and get stuff to send onchain
-	time.Sleep(time.Second * 20)
+	time.Sleep(time.Second * 10)
 	info, err := tc.GetRewardClaimInfo(transactor, eth.Addr2Hex(tc.CbrClient1.Auth.From))
 	tc.ChkErr(err, "client1 get reward info")
 	assert.Len(t, info.RewardClaimDetailsList, 1, "must have 1 RewardClaimDetails")

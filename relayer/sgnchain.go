@@ -61,7 +61,7 @@ func MonitorTendermintEvent(nodeURI, eventQuery string, handleEvent func(event a
 	}
 }
 
-func (r *Relayer) monitorSgnchainSlash() {
+func (r *Relayer) monitorSgnSlash() {
 	MonitorTendermintEvent(
 		r.Transactor.CliCtx.NodeURI,
 		EventQuerySlash,
@@ -105,7 +105,7 @@ func (r *Relayer) monitorSgnchainSlash() {
 		})
 }
 
-func (r *Relayer) monitorCbrToSign() {
+func (r *Relayer) monitorSgnCbrDataToSign() {
 	MonitorTendermintEvent(
 		r.Transactor.CliCtx.NodeURI,
 		EventQueryCbridge,

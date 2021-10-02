@@ -84,42 +84,14 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 	r.monitorEthValidatorStatusUpdate()
 	r.monitorEthDelegationUpdate()
 
-	go r.monitorSgnchainSlash()
-	go r.monitorCbrToSign()
+	go r.monitorSgnSlash()
+	go r.monitorSgnCbrDataToSign()
 	go r.monitorSgnFarmingClaimAllEvent()
 
-	go r.processQueues()
+	go r.processPullerQueue()
+	go r.processSlashQueue()
+	go r.verifyPendingUpdates()
 
 	r.cbrMgr = NewCbridgeMgr(db, r.Transactor.CliCtx) // do we need to save mgr somewhere?
 	go r.doCbridge(r.cbrMgr)
-}
-
-func (r *Relayer) processQueues() {
-	pullerInterval := time.Duration(viper.GetUint64(common.FlagEthPollInterval)) * time.Second
-	slashInterval := time.Duration(viper.GetUint64(common.FlagSgnCheckIntervalSlashQueue)) * time.Second
-	log.Infof("Queue process interval: puller %s, slash %s", pullerInterval, slashInterval)
-
-	pullerTicker := time.NewTicker(pullerInterval)
-	slashTicker := time.NewTicker(slashInterval)
-	defer func() {
-		pullerTicker.Stop()
-		slashTicker.Stop()
-	}()
-
-	blkNum := r.getCurrentBlockNumber().Uint64()
-	for {
-		select {
-		case <-pullerTicker.C:
-			newblk := r.getCurrentBlockNumber().Uint64()
-			if blkNum == newblk {
-				continue
-			}
-			blkNum = newblk
-			r.processPullerQueue()
-			r.verifyPendingUpdates()
-
-		case <-slashTicker.C:
-			r.processSlashQueue()
-		}
-	}
 }

@@ -120,7 +120,7 @@ func SetupMainchain2ForBridge() {
 	tc.SetupEthClient2()
 }
 
-func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridgeTest bool) {
+func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridge bool) {
 	log.Infoln("Deploy Staking and SGN contracts")
 	if contractParams == nil {
 		contractParams = &tc.ContractParams{
@@ -178,6 +178,9 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridgeTest 
 		configFileViper.Set(common.FlagEthContractViewer, tc.Contracts.Viewer.Address.Hex())
 		configFileViper.Set(common.FlagEthContractGovern, tc.Contracts.Govern.Address.Hex())
 		configFileViper.Set(common.FlagEthValidatorAddress, tc.ValEthAddrs[i].Hex())
+		if !cbridge {
+			configFileViper.Set(common.FlagMultiChain, []string{})
+		}
 		err = configFileViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")
 
@@ -191,11 +194,15 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridgeTest 
 		} else {
 			genesisViper.Set("app_state.gov.voting_params.voting_period", "10s")
 		}
+		if !cbridge {
+			genesisViper.Set("app_state.cbridge.config.assets", []string{})
+			genesisViper.Set("app_state.cbridge.config.chain_pairs", []string{})
+		}
 		err = genesisViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write genesis")
 	}
 
-	if cbridgeTest {
+	if cbridge {
 		DeployUsdtForBridge()
 		DeployBridgeContract()
 		CreateFarmingPools()
@@ -280,8 +287,8 @@ func DeployBridgeContract() {
 		err := configFileViper.ReadInConfig()
 		tc.ChkErr(err, "Failed to read config")
 		multichains := configFileViper.Get("multichain").([]interface{})
-		multichains[0].(map[string]interface{})["cbridge"] = eth.Addr2Hex(tc.CbrClient1.CbrAddr)
-		multichains[1].(map[string]interface{})["cbridge"] = eth.Addr2Hex(tc.CbrClient2.CbrAddr)
+		multichains[0].(map[string]interface{})["cbridge"] = tc.CbrClient1.CbrAddr.Hex()
+		multichains[1].(map[string]interface{})["cbridge"] = tc.CbrClient2.CbrAddr.Hex()
 		configFileViper.Set("multichain", multichains)
 		err = configFileViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")
