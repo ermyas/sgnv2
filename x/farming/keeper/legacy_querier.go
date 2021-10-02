@@ -172,7 +172,7 @@ func queryAccountsStakedIn(ctx sdk.Context, req abci.RequestQuery, k Keeper, leg
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 
-	addrList := k.getAccountsStakedIn(ctx, params.PoolName)
+	addrList := k.GetAccountsStakedIn(ctx, params.PoolName)
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, addrList)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())

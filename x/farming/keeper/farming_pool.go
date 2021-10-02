@@ -45,8 +45,8 @@ func (k Keeper) GetFarmingPoolNamesForAccount(ctx sdk.Context, addr eth.Addr) (p
 	return
 }
 
-// getAccountsStakedIn gets all addresses of accounts that have staked coins in a pool
-func (k Keeper) getAccountsStakedIn(ctx sdk.Context, poolName string) (stakerAddrList types.AddrList) {
+// GetAccountsStakedIn gets all addresses of accounts that have staked coins in a pool
+func (k Keeper) GetAccountsStakedIn(ctx sdk.Context, poolName string) (stakerAddrList types.AddrList) {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, append(types.PoolToAddressPrefix, []byte(poolName)...))
 	defer iterator.Close()

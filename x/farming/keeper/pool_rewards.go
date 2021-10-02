@@ -21,7 +21,6 @@ func (k Keeper) SetPoolHistoricalRewards(
 ) {
 	store := ctx.KVStore(k.storeKey)
 	store.Set(types.GetPoolHistoricalRewardsKey(poolName, period), k.cdc.MustMarshal(&rewards))
-	return
 }
 
 // DeletePoolHistoricalReward deletes a historical reward
@@ -54,7 +53,6 @@ func (k Keeper) GetPoolCurrentRewards(ctx sdk.Context, poolName string) (period 
 func (k Keeper) SetPoolCurrentRewards(ctx sdk.Context, poolName string, rewards types.PoolCurrentRewards) {
 	store := ctx.KVStore(k.storeKey)
 	store.Set(types.GetPoolCurrentRewardsKey(poolName), k.cdc.MustMarshal(&rewards))
-	return
 }
 
 // delete current rewards for a pool

@@ -129,7 +129,7 @@ func (k Keeper) AccountsStakedIn(c context.Context, req *types.QueryAccountsStak
 	}
 	ctx := sdk.UnwrapSDKContext(c)
 
-	addrList := k.getAccountsStakedIn(ctx, req.PoolName)
+	addrList := k.GetAccountsStakedIn(ctx, req.PoolName)
 	var addrs []string
 	for _, addr := range addrList {
 		addrs = append(addrs, eth.Addr2Hex(addr))
