@@ -306,7 +306,7 @@ func CheckChainSigners(t *testing.T, transactor *transactor.Transactor, chainId 
 		}
 		time.Sleep(RetryPeriod)
 	}
-	ChkErr(err, "failed to ChainSigners")
+	ChkErr(err, "failed to QueryChainSigners")
 	log.Infof("Query sgn and get chain %d signers: %s", chainId, signers.String())
 }
 
@@ -323,7 +323,7 @@ func CheckLatestSigners(t *testing.T, transactor *transactor.Transactor) {
 		}
 		time.Sleep(RetryPeriod)
 	}
-	ChkErr(err, "failed to LatestSigners")
+	ChkErr(err, "failed to QueryLatestSigners")
 	log.Infof("Query sgn and get latest signers: %s", signers.String())
 }
 

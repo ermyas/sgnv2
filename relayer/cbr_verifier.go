@@ -9,6 +9,7 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -18,12 +19,11 @@ import (
 // to be called by r.verifyUpdate
 // decode event and check if I also have event in db
 // TODO: query x/cbridge to make sure event not processed
-// data is marshaled OnChainEvent, see above line 53
-func (r *Relayer) verifyCbrEventUpdate(data []byte) (done, approve bool) {
+func (r *Relayer) verifyCbrEventUpdate(update *synctypes.PendingUpdate) (done, approve bool) {
 	onchev := new(cbrtypes.OnChainEvent)
-	err := onchev.Unmarshal(data)
+	err := onchev.Unmarshal(update.Data)
 	if err != nil {
-		log.Errorf("failed to unmarshal %x to onchain event msg", data)
+		log.Errorf("failed to unmarshal %x to onchain event msg", update.Data)
 		return true, false
 	}
 	elog := new(ethtypes.Log)
@@ -36,81 +36,133 @@ func (r *Relayer) verifyCbrEventUpdate(data []byte) (done, approve bool) {
 	// delete my local db event so this event won't be picked again when I become syncer
 	defer r.cbrMgr[onchev.Chainid].delEvent(onchev.Evtype, elog.BlockNumber, uint64(elog.Index))
 
-	// now we directly verify this event onchain
-	// why we have to do onchain check instead of local db only: our local db could
-	// be behind so we can't differentiate not yet see event vs. faked event
-	// only onchain query can give us 100% certainty
-	// we have 2 ways: getTransactionReceipt or getLogs
-	retry, err := r.cbrMgr[onchev.Chainid].checkEventOnChain(onchev.Evtype, elog)
+	logmsg := fmt.Sprintf("verify update %d cbr chain %d type %s", update.Id, onchev.Chainid, onchev.Evtype)
+	switch onchev.Evtype {
+	case cbrtypes.CbrEventLiqAdd:
+		return r.cbrMgr[onchev.Chainid].verifyLiqAdd(elog, r.Transactor.CliCtx, logmsg)
+
+	case cbrtypes.CbrEventSend:
+		return r.cbrMgr[onchev.Chainid].verifySend(elog, r.Transactor.CliCtx, logmsg)
+
+	case cbrtypes.CbrEventRelay:
+		return r.cbrMgr[onchev.Chainid].verifyRelay(elog, r.Transactor.CliCtx, logmsg)
+
+	case cbrtypes.CbrEventWithdraw:
+		return r.cbrMgr[onchev.Chainid].verifyWithdraw(elog, r.Transactor.CliCtx, logmsg)
+
+	case cbrtypes.CbrEventSignersUpdated:
+		return r.cbrMgr[onchev.Chainid].verifySigners(elog, r.Transactor.CliCtx, logmsg)
+
+	default:
+		log.Errorf("%s. invalid type", logmsg)
+		return true, false
+	}
+}
+
+func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, logmsg string) (done, approve bool) {
+	// parse event
+	ev, err := c.contract.ParseLiquidityAdded(*eLog)
 	if err != nil {
-		if retry {
-			return false, false // onchain error, so don't vote
-		} else {
-			return true, false
-		}
-
+		log.Errorf("%s. parse eLog error %s", logmsg, err)
+		return true, false
 	}
-	// event is the same as onchain, now move on to per event logic
-	// eg. query x/cbridge if this event has already been handled
-	// but if we only query applied state, we may still vote again?
-	// unless we can query x/cbridge w/ state plus pending?
-	// TODO: query x/cbridge
-	return r.cbrMgr[onchev.Chainid].checkEventInStore(onchev.Evtype, onchev.Chainid, elog, r.Transactor.CliCtx)
+	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+
+	// check in store
+
+	// check on chain
+
+	log.Infof("%s, success", logmsg)
+	return true, true
 }
 
-// query chain to verify event is the same, return err if mismatch
-// TODO: impl logic
-func (c *CbrOneChain) checkEventOnChain(evtype string, eLog *ethtypes.Log) (retry bool, err error) {
-	switch evtype {
-	case cbrtypes.CbrEventLiqAdd:
-		return false, nil
-	case cbrtypes.CbrEventSend:
-		return false, nil
-	case cbrtypes.CbrEventRelay:
-		return false, nil
-	case cbrtypes.CbrEventSignersUpdated:
-		ev, err := c.contract.ParseSignersUpdated(*eLog)
-		if err != nil {
-			return false, err
-		}
-		ssHash, err := c.contract.SsHash(&bind.CallOpts{})
-		if err != nil {
-			return true, err
-		}
-		if eth.Bytes2Hash(crypto.Keccak256(ev.CurSigners)) != ssHash {
-			return false, fmt.Errorf("ssHash not match onchain value")
-		}
-		return false, nil
+func (c *CbrOneChain) verifySend(eLog *ethtypes.Log, cliCtx client.Context, logmsg string) (done, approve bool) {
+	// parse event
+	ev, err := c.contract.ParseSend(*eLog)
+	if err != nil {
+		log.Errorf("%s. parse eLog error %s", logmsg, err)
+		return true, false
 	}
-	return false, fmt.Errorf("invalid event type %s", evtype)
+	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+
+	// check in store
+
+	// check on chain
+
+	log.Infof("%s, success", logmsg)
+	return true, true
 }
 
-func (c *CbrOneChain) checkEventInStore(
-	evtype string, chainId uint64, eLog *ethtypes.Log, cliCtx client.Context) (done, approve bool) {
+func (c *CbrOneChain) verifyRelay(eLog *ethtypes.Log, cliCtx client.Context, logmsg string) (done, approve bool) {
+	// parse event
+	ev, err := c.contract.ParseRelay(*eLog)
+	if err != nil {
+		log.Errorf("%s. parse eLog error %s", logmsg, err)
+		return true, false
+	}
+	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
 
-	switch evtype {
-	case cbrtypes.CbrEventLiqAdd:
-		// if chid-seq already processed, return true, false
-		return true, true
-	case cbrtypes.CbrEventSend:
-		// if transferid is waiting for vote status, return true, true
-		// otherwise, true, false
-		return true, true
-	case cbrtypes.CbrEventRelay:
-		// this event means syncer already submitted relay tx onchain
-		return true, true
-	case cbrtypes.CbrEventSignersUpdated:
-		ev, err := c.contract.ParseSignersUpdated(*eLog)
-		if err != nil {
+	// check in store
+
+	// check on chain
+
+	log.Infof("%s, success", logmsg)
+	return true, true
+}
+
+func (c *CbrOneChain) verifyWithdraw(eLog *ethtypes.Log, cliCtx client.Context, logmsg string) (done, approve bool) {
+	// parse event
+	ev, err := c.contract.ParseWithdrawDone(*eLog)
+	if err != nil {
+		log.Errorf("%s. parse eLog error %s", logmsg, err)
+		return true, false
+	}
+	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+
+	// check in store
+
+	// check on chain
+
+	log.Infof("%s, success", logmsg)
+	return true, true
+}
+
+func (c *CbrOneChain) verifySigners(eLog *ethtypes.Log, cliCtx client.Context, logmsg string) (done, approve bool) {
+	// parse event
+	ev, err := c.contract.ParseSignersUpdated(*eLog)
+	if err != nil {
+		log.Errorf("%s. parse eLog error %s", logmsg, err)
+		return true, false
+	}
+	signers := new(cbrtypes.SortedSigners)
+	err = signers.Unmarshal(ev.CurSigners)
+	if err != nil {
+		log.Errorf("%s. unmarshal signers error %s", logmsg, err)
+		return true, false
+	}
+	logmsg = fmt.Sprintf("%s. %s", logmsg, signers.String())
+
+	// check in store
+	storedChainSigners, err := cbrcli.QueryChainSigners(cliCtx, c.chainid)
+	if err == nil {
+		if bytes.Compare(storedChainSigners.GetSignersBytes(), ev.CurSigners) == 0 {
+			log.Infof("%s. already updated", logmsg)
 			return true, false
 		}
-		storedChainSigners, err := cbrcli.QueryChainSigners(cliCtx, chainId)
-		if err == nil {
-			if bytes.Compare(storedChainSigners.GetSignersBytes(), ev.CurSigners) == 0 {
-				return true, false
-			}
-		}
-		return true, true
 	}
-	return true, false
+
+	// check on chain
+	ssHash, err := c.contract.SsHash(&bind.CallOpts{})
+	if err != nil {
+		log.Errorf("%s. query ssHash err: %s", logmsg, err)
+		return false, false
+	}
+	curssHash := eth.Bytes2Hash(crypto.Keccak256(ev.CurSigners))
+	if curssHash != ssHash {
+		log.Errorf("%s. curss hash %x not match onchain values: %x", logmsg, curssHash, ssHash)
+		return true, false
+	}
+
+	log.Infof("%s, success", logmsg)
+	return true, true
 }

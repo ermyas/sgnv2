@@ -96,20 +96,32 @@ func validateCbrSigs(sigs []*cbrtypes.AddrSig, curss *cbrtypes.SortedSigners) bo
 }
 
 func GatewayOnSend(transferId string) error {
+	if dal.DB == nil {
+		return nil
+	}
 	return dal.UpdateTransferStatus(transferId, uint64(cbrtypes.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE))
 }
 
 func GatewayOnRelay(transferId, txHash, dstTransferId, amt string) error {
+	if dal.DB == nil {
+		return nil
+	}
 	return dal.TransferCompleted(transferId, txHash, dstTransferId, amt)
 }
 
 func GatewayOnLiqAdd(lpAddr, token, tokenAddr, amt, txHash string, chainId uint64, seqNum uint64) error {
+	if dal.DB == nil {
+		return nil
+	}
 	status := cbrtypes.LPHistoryStatus_LP_WAITING_FOR_SGN
 	lpType := webapi.LPType_LP_TYPE_ADD
 	return dal.UpsertLP(lpAddr, token, tokenAddr, amt, txHash, chainId, uint64(status), uint64(lpType), seqNum)
 }
 
 func GatewayOnLiqWithdraw(seqNum uint64) {
+	if dal.DB == nil {
+		return
+	}
 	transferId, found, err := dal.GetTransferByRefundSeqNum(seqNum)
 	if err != nil {
 		log.Errorln("error when get transfer by seq num:", err)

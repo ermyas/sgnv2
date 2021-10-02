@@ -1,7 +1,6 @@
 package relayer
 
 import (
-	"fmt"
 	"math/big"
 	"time"
 
@@ -53,7 +52,7 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		// log.Infof("Catch event Send: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
+
 		err = c.saveEvent(cbrtypes.CbrEventSend, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
@@ -81,7 +80,6 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		// log.Infof("Catch event Relay: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
 		err = c.saveEvent(cbrtypes.CbrEventRelay, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
@@ -108,7 +106,6 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		// log.Infof("Catch event LiqAdd: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
 
 		err = c.saveEvent(cbrtypes.CbrEventLiqAdd, eLog)
 		if err != nil {
@@ -142,7 +139,7 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		// log.Infof("Catch event WithdrawDone: %s, tx hash: %x, blknum: %d", ev.String(), eLog.TxHash, eLog.BlockNumber)
+
 		err = c.saveEvent(cbrtypes.CbrEventWithdraw, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
@@ -165,15 +162,14 @@ func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 			log.Errorln("monSignersUpdated: cannot parse event:", err)
 			return false
 		}
-		logmsg := fmt.Sprintf("Catch event SignersUpdated: tx hash: %x, blknum: %d, signers %x",
-			eLog.TxHash, eLog.BlockNumber, ev.CurSigners)
+		c.setCurss(ev.CurSigners)
+		log.Infof("MonEv: signersUpdated-%d signers: %s tx: %s", c.chainid, c.getCurss().signers.String(), eLog.TxHash)
+
 		err = c.saveEvent(cbrtypes.CbrEventSignersUpdated, eLog)
 		if err != nil {
-			log.Errorf("%s, saveEvent err: %s", logmsg, err)
+			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
 		}
-		c.setCurss(ev.CurSigners)
-		log.Infoln(logmsg, c.getCurss().signers.String())
 		return false
 	})
 }

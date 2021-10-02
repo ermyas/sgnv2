@@ -86,7 +86,7 @@ func GetCmdQueryConfig() *cobra.Command {
 				return err
 			}
 
-			return cliCtx.PrintObjectLegacy(params)
+			return cliCtx.PrintProto(&params)
 		},
 	}
 }
@@ -108,7 +108,7 @@ func GetCmdChainTokensConfig() *cobra.Command {
 				return err
 			}
 
-			return cliCtx.PrintObjectLegacy(resp)
+			return cliCtx.PrintProto(resp)
 		},
 	}
 }

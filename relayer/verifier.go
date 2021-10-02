@@ -68,7 +68,7 @@ func (r *Relayer) verifyUpdate(update *synctypes.PendingUpdate) (done, approve b
 	case synctypes.DataType_DelegatorShares:
 		return r.verifyDelegatorShares(update)
 	case synctypes.DataType_CbrOnchainEvent:
-		return r.verifyCbrEventUpdate(update.Data)
+		return r.verifyCbrEventUpdate(update)
 	default:
 		return false, false
 	}
