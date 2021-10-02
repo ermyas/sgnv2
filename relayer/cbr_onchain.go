@@ -201,31 +201,3 @@ func (c *CbrOneChain) SendRelay(relay, curss []byte, sigs [][]byte) error {
 	log.Infoln("Relay tx submitted", tx.Hash().Hex())
 	return nil
 }
-
-// send updateSigners tx onchain to cbridge contract, no wait mine
-func (c *CbrOneChain) UpdateSigners(newss, curss []byte, sigs [][]byte) error {
-	tx, err := c.Transactor.Transact(
-		&ethutils.TransactionStateHandler{
-			OnMined: func(receipt *ethtypes.Receipt) {
-				if receipt.Status == ethtypes.ReceiptStatusSuccessful {
-					log.Infof("UpdateSigners transaction %x succeeded", receipt.TxHash)
-				} else {
-					log.Errorf("UpdateSigners transaction %x failed", receipt.TxHash)
-				}
-			},
-			OnError: func(tx *ethtypes.Transaction, err error) {
-				log.Errorf("UpdateSigners transaction %x err: %s", tx.Hash(), err)
-			},
-		},
-		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
-			return c.contract.UpdateSigners(opts, newss, curss, sigs)
-		},
-	)
-
-	if err != nil {
-		return err
-	}
-
-	log.Infoln("UpdateSigners tx submitted", tx.Hash().Hex())
-	return nil
-}

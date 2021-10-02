@@ -1,6 +1,7 @@
 package common
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -27,6 +28,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -293,7 +295,7 @@ func CheckXfer(transactor *transactor.Transactor, xferId []byte) {
 	}
 }
 
-func CheckChainSigners(t *testing.T, transactor *transactor.Transactor, chainId uint64) {
+func CheckChainSigners(t *testing.T, transactor *transactor.Transactor, chainId uint64, expSigners *cbrtypes.SortedSigners) {
 	var err error
 	var signers *cbrtypes.ChainSigners
 	for retry := 0; retry < RetryLimit; retry++ {
@@ -301,16 +303,17 @@ func CheckChainSigners(t *testing.T, transactor *transactor.Transactor, chainId 
 		if err != nil {
 			log.Debugln("retry due to err:", err)
 		}
-		if err == nil && signers != nil {
+		if err == nil && signers != nil && sameSortedSigenrs(signers.GetCurrSigners(), expSigners) {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
 	ChkErr(err, "failed to QueryChainSigners")
 	log.Infof("Query sgn and get chain %d signers: %s", chainId, signers.String())
+	assert.True(t, sameSortedSigenrs(signers.GetCurrSigners(), expSigners), "expected signers should be: "+expSigners.String())
 }
 
-func CheckLatestSigners(t *testing.T, transactor *transactor.Transactor) {
+func CheckLatestSigners(t *testing.T, transactor *transactor.Transactor, expSigners *cbrtypes.SortedSigners) {
 	var err error
 	var signers *cbrtypes.LatestSigners
 	for retry := 0; retry < RetryLimit; retry++ {
@@ -318,13 +321,20 @@ func CheckLatestSigners(t *testing.T, transactor *transactor.Transactor) {
 		if err != nil {
 			log.Debugln("retry due to err:", err)
 		}
-		if err == nil && signers != nil {
+		if err == nil && signers != nil && sameSortedSigenrs(signers.GetSigners(), expSigners) {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
 	ChkErr(err, "failed to QueryLatestSigners")
 	log.Infof("Query sgn and get latest signers: %s", signers.String())
+	assert.True(t, sameSortedSigenrs(signers.GetSigners(), expSigners), "expected signers should be: "+expSigners.String())
+}
+
+func sameSortedSigenrs(ss1, ss2 *cbrtypes.SortedSigners) bool {
+	b1, _ := proto.Marshal(ss1)
+	b2, _ := proto.Marshal(ss2)
+	return bytes.Compare(b1, b2) == 0
 }
 
 func GetWithdrawDetail(transactor *transactor.Transactor, wdseq uint64) (*cbrtypes.WithdrawDetail, error) {

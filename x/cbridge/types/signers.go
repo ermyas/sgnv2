@@ -62,7 +62,7 @@ func UnmarshalChainSigners(cdc codec.BinaryCodec, value []byte) (s ChainSigners,
 
 func (ls *LatestSigners) String() string {
 	var sigs string
-	for _, s := range ls.SortedSigs {
+	for _, s := range ls.GetSortedSigs() {
 		sigs += fmt.Sprintf("%x ", s.Addr)
 	}
 	return fmt.Sprintf("signers: %s, sigs from: < %s>, update time: %s", ls.Signers.String(), sigs, ls.UpdateTime)
@@ -75,8 +75,8 @@ func (ls *LatestSigners) GenerateSignersBytes() {
 func (ls *LatestSigners) GetSortedSigsBytes() [][]byte {
 	if ls != nil {
 		sigs := make([][]byte, len(ls.SortedSigs))
-		for i := range ls.SortedSigs {
-			sigs[i] = ls.SortedSigs[i].Sig
+		for i, s := range ls.GetSortedSigs() {
+			sigs[i] = s.Sig
 		}
 		return sigs
 	}

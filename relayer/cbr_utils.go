@@ -57,42 +57,33 @@ func (c *CbrOneChain) getTokenFromDB(tokenAddr string) (*webapi.TokenInfo, uint6
 	return token, chainId.Uint64(), true
 }
 
-func validateCbrSigs(sigs []*cbrtypes.AddrSig, curss *cbrtypes.SortedSigners) bool {
+func validateCbrSigs(sortedSigs []*cbrtypes.AddrSig, curss *cbrtypes.SortedSigners) (pass bool, sigsBytes [][]byte) {
 	if len(curss.GetSigners()) == 0 {
-		return false
+		return false, nil
 	}
 	totalPower := big.NewInt(0)
-	cursMap := make(map[eth.Addr]*cbrtypes.AddrAmt)
+	curssMap := make(map[eth.Addr]*cbrtypes.AddrAmt)
 	for _, s := range curss.GetSigners() {
 		power := big.NewInt(0).SetBytes(s.Amt)
 		totalPower.Add(totalPower, power)
-		cursMap[eth.Bytes2Addr(s.Addr)] = s
+		curssMap[eth.Bytes2Addr(s.Addr)] = s
 	}
-
-	signedPower := big.NewInt(0)
-	i := 0
-	for _, s := range sigs {
-		if addrAmt, ok := cursMap[eth.Bytes2Addr(s.Addr)]; ok {
-			power := big.NewInt(0).SetBytes(addrAmt.Amt)
-			signedPower.Add(signedPower, power)
-			sigs[i] = s
-			i++
-		}
-	}
-	// truncate sigs not in the current signers set
-	for j := i; j < len(sigs); j++ {
-		sigs[j] = nil
-	}
-	sigs = sigs[:i]
-
 	quorumStake := big.NewInt(0).Mul(totalPower, big.NewInt(2))
 	quorumStake = quorumStake.Quo(quorumStake, big.NewInt(3))
 
-	if signedPower.Cmp(quorumStake) > 0 {
-		return true
+	signedPower := big.NewInt(0)
+	for _, s := range sortedSigs {
+		if addrAmt, ok := curssMap[eth.Bytes2Addr(s.Addr)]; ok {
+			power := big.NewInt(0).SetBytes(addrAmt.Amt)
+			signedPower.Add(signedPower, power)
+			sigsBytes = append(sigsBytes, s.Sig)
+			if signedPower.Cmp(quorumStake) > 0 {
+				return true, sigsBytes
+			}
+		}
 	}
 
-	return false
+	return false, nil
 }
 
 func GatewayOnSend(transferId string) error {

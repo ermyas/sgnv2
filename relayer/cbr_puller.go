@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
@@ -12,12 +13,14 @@ import (
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/viper"
 )
 
 const (
 	maxRelayRetry = 5
+	maxSigRetry   = 10
 )
 
 // sleep, check if syncer, if yes, go over cbr dbs to send tx
@@ -46,12 +49,7 @@ func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
 		r.processCbridgeQueue()
 
 		if r.isCbrSsUpdating() {
-			latestSs, err := cbrcli.QueryLatestSigners(r.Transactor.CliCtx)
-			if err != nil {
-				log.Errorln("failed to get latest signers", err)
-				continue
-			}
-			r.updateSigners(latestSs)
+			r.updateSigners()
 		}
 	}
 }
@@ -100,7 +98,7 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 	}
 
 	curss := r.cbrMgr[relayOnChain.DstChainId].getCurss()
-	pass := validateCbrSigs(relay.SortedSigs, curss.signers)
+	pass, sigsBytes := validateCbrSigs(relay.SortedSigs, curss.signers)
 	if !pass {
 		log.Debugf("%s. Not have enough sigs %s, curss %s", logmsg, relay.SignersStr(), curss.signers.String())
 		r.requeueRelay(relayEvent)
@@ -108,7 +106,7 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 	}
 	// TODO: check if relay already sent on chain
 	log.Infof("%s with signers %s", logmsg, relay.SignersStr())
-	err = r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, curss.bytes, relay.GetSortedSigsBytes())
+	err = r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, curss.bytes, sigsBytes)
 	if err != nil {
 		r.requeueRelay(relayEvent)
 		log.Errorln("relay err", err)
@@ -176,32 +174,71 @@ func (c *CbrOneChain) pullEvents(chid uint64) []*synctypes.ProposeUpdate {
 	return ret
 }
 
-func (r *Relayer) updateSigners(latestSs *cbrtypes.LatestSigners) {
-	updated := true
+func (r *Relayer) updateSigners() {
+	latestSigners, err := cbrcli.QueryLatestSigners(r.Transactor.CliCtx)
+	if err != nil {
+		log.Errorln("failed to get latest signers", err)
+		return
+	}
+	sgnBlkTime := viper.GetDuration(common.FlagConsensusTimeoutCommit)
+
+	log.Infoln("update latest signers to", latestSigners.String())
 	for chainId, c := range r.cbrMgr {
 		ssHash, err := c.contract.SsHash(&bind.CallOpts{})
 		if err != nil {
 			log.Errorln("failed to get sshash", chainId, err)
-			updated = false
 			continue
 		}
-		if eth.Bytes2Hash(crypto.Keccak256(latestSs.GetSignersBytes())) == ssHash {
-			log.Debugf("signers for chain %d already updated", chainId)
+		if eth.Bytes2Hash(crypto.Keccak256(latestSigners.GetSignersBytes())) == ssHash {
+			log.Debugf("chain %d signers already updated", chainId)
 			continue
 		}
-		// TODO: fine-grainded per chain updated flag
-		updated = false
+		if eth.Bytes2Hash(crypto.Keccak256(c.getCurss().bytes)) != ssHash {
+			log.Warnf("chain %d local curss not match onchain value", chainId)
+			continue
+		}
+		var pass bool
+		var sigsBytes [][]byte
+		retry := 0
+		for !pass && retry < maxSigRetry {
+			pass, sigsBytes = validateCbrSigs(latestSigners.GetSortedSigs(), c.getCurss().signers)
+			if pass {
+				break
+			}
+			time.Sleep(sgnBlkTime)
+			latestSigners, err = cbrcli.QueryLatestSigners(r.Transactor.CliCtx)
+			if err != nil {
+				log.Errorln("failed to get latest signers", err)
+			}
+			retry++
+		}
+		if !pass {
+			log.Errorf("chain %d signers not enough yet", chainId)
+			continue
+		}
 
-		if !validateCbrSigs(latestSs.SortedSigs, c.curss.signers) {
-			log.Infof("chain %d signers not enough yet", chainId)
+		tx, err := c.Transactor.Transact(
+			&ethutils.TransactionStateHandler{
+				OnMined: func(receipt *ethtypes.Receipt) {
+					if receipt.Status == ethtypes.ReceiptStatusSuccessful {
+						log.Infof("chain %d UpdateSigners transaction %x succeeded", chainId, receipt.TxHash)
+					} else {
+						log.Errorf("chain %d UpdateSigners transaction %x failed", chainId, receipt.TxHash)
+					}
+				},
+				OnError: func(tx *ethtypes.Transaction, err error) {
+					log.Errorf("chain %d UpdateSigners transaction %x err: %s", chainId, tx.Hash(), err)
+				},
+			},
+			func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+				return c.contract.UpdateSigners(opts, latestSigners.GetSignersBytes(), c.curss.bytes, sigsBytes)
+			},
+		)
+		if err != nil {
+			log.Errorf("chain %d update sigenr err %s", chainId, err)
 			continue
 		}
-		err = c.UpdateSigners(latestSs.SignersBytes, c.curss.bytes, latestSs.GetSortedSigsBytes())
-		if err != nil {
-			log.Error(err)
-		}
+		log.Infof("chain %d UpdateSigners tx %x submitted", chainId, tx.Hash())
 	}
-	if updated {
-		r.setCbrSsUpdated()
-	}
+	r.setCbrSsUpdated()
 }

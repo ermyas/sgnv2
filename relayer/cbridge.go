@@ -53,7 +53,6 @@ func (c *cbrContract) GetABI() string {
 type sortedSigners struct {
 	signers *cbrtypes.SortedSigners
 	bytes   []byte
-	updated bool
 }
 
 func (s *sortedSigners) setSigners(bytes []byte) {

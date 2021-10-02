@@ -94,10 +94,14 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 			// TODO: Maybe use proper AppConfig and avoid global viper
 			rootViper := serverCtx.Viper
 			rootDir := rootViper.GetString(flags.FlagHome)
-			configFilePath := filepath.Join(rootDir, "config", "sgn.toml")
-			viper.SetConfigFile(configFilePath)
-
+			cfgFile := filepath.Join(rootDir, "config", "config.toml")
+			viper.SetConfigFile(cfgFile)
 			if err := viper.ReadInConfig(); err != nil {
+				return fmt.Errorf("failed to read in tendermint configuration: %w", err)
+			}
+			sgnCfgFile := filepath.Join(rootDir, "config", "sgn.toml")
+			viper.SetConfigFile(sgnCfgFile)
+			if err := viper.MergeInConfig(); err != nil {
 				return fmt.Errorf("failed to read in SGN configuration: %w", err)
 			}
 

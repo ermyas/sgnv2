@@ -140,6 +140,8 @@ func cbrSignersTest(t *testing.T) {
 	log.Infoln("======================== Test cBridge signers ===========================")
 	setupCbridge()
 
+	chainId1, chainId2 := tc.ChainID, tc.Geth2ChainID
+
 	transactor := tc.NewTestTransactor(
 		tc.SgnHomes[0],
 		tc.SgnChainID,
@@ -153,15 +155,34 @@ func cbrSignersTest(t *testing.T) {
 	tc.CbrClient1.SetInitSigners(initSignerPowers)
 	tc.CbrClient2.SetInitSigners(initSignerPowers)
 	tc.Sleep(5)
-	tc.CheckChainSigners(t, transactor, tc.ChainID)
-	tc.CheckChainSigners(t, transactor, tc.Geth2ChainID)
+	expSigners := genSortedSigners(initSignerPowers)
+	tc.CheckChainSigners(t, transactor, chainId1, expSigners)
+	tc.CheckChainSigners(t, transactor, chainId2, expSigners)
 
 	log.Infoln("================== Add validators ======================")
 	tc.AddValidator(t, transactor, 0, big.NewInt(3e18), eth.CommissionRate(0.03))
+
 	tc.AddValidator(t, transactor, 1, big.NewInt(2e18), eth.CommissionRate(0.02))
+	expSigners = genSortedSigners([]*big.Int{big.NewInt(3e18), big.NewInt(2e18)})
+	tc.CheckLatestSigners(t, transactor, expSigners)
+	tc.CheckChainSigners(t, transactor, chainId1, expSigners)
+	tc.CheckChainSigners(t, transactor, chainId2, expSigners)
+
 	tc.AddValidator(t, transactor, 2, big.NewInt(4e18), eth.CommissionRate(0.01))
-	tc.Sleep(5)
-	tc.CheckChainSigners(t, transactor, tc.ChainID)
-	tc.CheckChainSigners(t, transactor, tc.Geth2ChainID)
-	tc.CheckLatestSigners(t, transactor)
+	expSigners = genSortedSigners([]*big.Int{big.NewInt(3e18), big.NewInt(2e18), big.NewInt(4e18)})
+	tc.CheckLatestSigners(t, transactor, expSigners)
+	tc.CheckChainSigners(t, transactor, chainId1, expSigners)
+	tc.CheckChainSigners(t, transactor, chainId2, expSigners)
+}
+
+func genSortedSigners(amts []*big.Int) *cbrtypes.SortedSigners {
+	ss := new(cbrtypes.SortedSigners)
+	for i, amt := range amts {
+		ss.Signers = append(ss.Signers,
+			&cbrtypes.AddrAmt{
+				Addr: tc.ValSignerAddrs[i].Bytes(),
+				Amt:  amt.Bytes(),
+			})
+	}
+	return ss
 }

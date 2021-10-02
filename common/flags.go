@@ -39,6 +39,8 @@ const (
 	FlagSgnCheckIntervalCbridge  = "sgnd.check_interval.cbridge"
 	FlagSgnCheckIntervalVerifier = "sgnd.check_interval.verifier"
 
+	FlagConsensusTimeoutCommit = "consensus.timeout_commit"
+
 	FlagLogLevel = "log.level"
 	FlagLogColor = "log.color"
 

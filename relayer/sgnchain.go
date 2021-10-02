@@ -113,7 +113,6 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 			if e.Type != cbrtypes.EventTypeDataToSign {
 				return
 			}
-			log.Infoln("monitorCbrToSign, eventType:", e.Type)
 			if !r.isBonded() {
 				return
 			}
@@ -151,7 +150,7 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 				log.Infof("%s", logmsg)
 			case cbrtypes.SignDataType_SIGNERS.String():
 				msg.Datatype = cbrtypes.SignDataType_SIGNERS
-				//r.setCbrSsUpdating()
+				r.setCbrSsUpdating()
 				ss := new(cbrtypes.SortedSigners)
 				err = ss.Unmarshal(data)
 				if err != nil {
