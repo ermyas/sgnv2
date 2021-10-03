@@ -407,6 +407,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 	lpType := uint64(request.GetType())
 	addr := request.GetLpAddr()
 	txHash, status, found, err := dal.DB.GetLPInfo(seqNum, lpType, chainId, addr)
+	sgnTriggered := false
 	if found && err == nil && status == uint64(cbrtypes.LPHistoryStatus_LP_SUBMITTING) && txHash != "" {
 		ec := gs.ec[chainId]
 		if ec == nil {
@@ -424,11 +425,26 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 			dbErr := dal.DB.UpdateLPStatus(seqNum, uint64(cbrtypes.LPHistoryStatus_LP_FAILED))
 			if dbErr != nil {
 				log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", chainId, txHash)
+			} else {
+				status = uint64(cbrtypes.LPHistoryStatus_LP_FAILED)
 			}
 		}
 
 	}
 
+	if found && lpType == uint64(webapi.LPType_LP_TYPE_ADD) && status != uint64(cbrtypes.LPHistoryStatus_LP_SUBMITTING) {
+		sgnTriggered = true
+	}
+	if found && lpType == uint64(webapi.LPType_LP_TYPE_REMOVE) && status != uint64(cbrtypes.LPHistoryStatus_LP_WAITING_FOR_SGN) {
+		sgnTriggered = true
+	}
+	if !sgnTriggered {
+		return &types.QueryLiquidityStatusResponse{
+			Status:  types.LPHistoryStatus(status),
+			Detail:  nil,
+			Signers: nil,
+		}, err
+	}
 	resp, err := cbrcli.QueryWithdrawLiquidityStatus(gs.tr.CliCtx, &cbrtypes.QueryWithdrawLiquidityStatusRequest{
 		SeqNum: seqNum,
 	})
@@ -439,7 +455,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 			Status:  types.LPHistoryStatus(status),
 			Detail:  nil,
 			Signers: nil,
-		}, err
+		}, nil
 	} else if resp.GetStatus() == types.LPHistoryStatus_LP_WAITING_FOR_LP {
 		_ = dal.DB.UpdateLPStatus(seqNum, uint64(types.LPHistoryStatus_LP_WAITING_FOR_LP))
 		resp.Signers = curss.GetSignersBytes()
