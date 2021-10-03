@@ -55,14 +55,12 @@ type GatewayService struct {
 
 func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi.GetTransferStatusRequest) (*webapi.GetTransferStatusResponse, error) {
 	transfer, found, err := dal.DB.GetTransfer(request.GetTransferId())
-	log.Infof("GetTransferStatus current transfer:%+v", transfer)
 	if found && err == nil {
 		var transfers []*dal.Transfer
 		transfers = append(transfers, transfer)
 		err = gs.updateTransferStatusInHistory(ctx, transfers)
 		transfer, found, err = dal.DB.GetTransfer(request.GetTransferId())
 	}
-	log.Infof("GetTransferStatus updated transfer:%+v", transfer)
 	if !found || err != nil {
 		return &webapi.GetTransferStatusResponse{
 			Err: &webapi.ErrMsg{
@@ -298,7 +296,6 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 			lps = append(lps, lp)
 		}
 	}
-
 	return &webapi.GetLPInfoListResponse{
 		LpInfo: lps,
 	}, nil
@@ -337,7 +334,6 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 
 func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi.WithdrawLiquidityRequest) (*webapi.WithdrawLiquidityResponse, error) {
 	transferId := request.GetTransferId()
-	log.Infof("WithdrawLiquidity api called, transferId:%s", transferId)
 	if transferId != "" {
 		// refund transfer
 		seqNum, err := gs.initWithdraw(&cbrtypes.MsgInitWithdraw{
@@ -386,6 +382,15 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			Amount:  common.Hex2Bytes(amt),
 			Creator: gs.tr.Key.GetAddress().String(),
 		})
+		if err != nil {
+			_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(cbrtypes.LPHistoryStatus_LP_FAILED))
+			return &webapi.WithdrawLiquidityResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  err.Error(),
+				},
+			}, nil
+		}
 		err = dal.DB.UpsertLP(lp, token.Token.Symbol, token.Token.Address, amt, "", uint64(chainId), uint64(cbrtypes.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
 		if err != nil {
 			_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(cbrtypes.LPHistoryStatus_LP_FAILED))
@@ -405,7 +410,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 func (gs *GatewayService) initWithdraw(req *cbrtypes.MsgInitWithdraw) (uint64, error) {
 	resp, err := cbrcli.InitWithdraw(gs.tr, req)
 	if resp == nil {
-		return 0, fmt.Errorf("can not init withdraw, resp is empty")
+		return 0, err
 	}
 	return resp.GetSeqnum(), err
 }
@@ -415,7 +420,6 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 	chainId := uint64(request.GetChainId())
 	lpType := uint64(request.GetType())
 	addr := request.GetLpAddr()
-	log.Debugf("query liquidity status, request: %+v", request)
 	txHash, status, found, err := dal.DB.GetLPInfo(seqNum, lpType, chainId, addr)
 	if found && err == nil && status == uint64(cbrtypes.LPHistoryStatus_LP_SUBMITTING) && txHash != "" {
 		ec := gs.ec[chainId]
@@ -714,7 +718,6 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 	}
 	transferStatusMap := transferMap.Status
 
-	log.Debugf("transferMap: %+v", transferMap)
 	for _, transfer := range transferList {
 		transferId := transfer.TransferId
 		status := transfer.Status
@@ -876,10 +879,8 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 	}
 	farmingPools := make(map[uint64]map[string]float64) // map<chain_id, map<token_symbol, FarmingPool>>
 	for _, pool := range res.GetPools() {
-
 		farmingPool := make(map[string]float64)
 		token := pool.GetStakeToken()
-
 		totalStakedAmount := pool.TotalStakedAmount
 		if totalStakedAmount.Amount.Equal(sdk.ZeroDec()) {
 			log.Debugf("farming totalStakedAmount is 0 on chain:%d, token: %s", token.GetChainId(), token.GetSymbol())
