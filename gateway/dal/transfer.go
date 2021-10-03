@@ -7,13 +7,25 @@ import (
 	"time"
 )
 
-func (d *DAL) GetTransfer(transferId string) (string, string, uint64, uint64, uint64, bool, error) {
-	var usrAddr, tokenSymbol string
-	var srcChainId, dsChainId, status uint64
-	q := `SELECT usr_addr, token_symbol, src_chain_id, dst_chain_id,status FROM transfer WHERE transfer_id = $1`
-	err := d.QueryRow(q, transferId).Scan(&usrAddr, &tokenSymbol, &srcChainId, &dsChainId, &status)
+func (d *DAL) GetTransfer(transferId string) (*Transfer, bool, error) {
+	q := `SELECT create_time, status, src_chain_id,dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt FROM transfer WHERE transfer_id = $1`
+	var srcTxHash, dstTxHash, tokenSymbol, srcAmt, dstAmt string
+	var srcChainId, status, dstChainId uint64
+	var ct time.Time
+	err := d.QueryRow(q, transferId).Scan(&ct, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt)
 	found, err := sqldb.ChkQueryRow(err)
-	return usrAddr, tokenSymbol, srcChainId, dsChainId, status, found, err
+	return &Transfer{
+		TransferId:  transferId,
+		SrcChainId:  srcChainId,
+		DstChainId:  dstChainId,
+		CT:          ct,
+		SrcTxHash:   srcTxHash,
+		DstTxHash:   dstTxHash,
+		Status:      types.TransferHistoryStatus(int32(status)),
+		TokenSymbol: tokenSymbol,
+		SrcAmt:      srcAmt,
+		DstAmt:      dstAmt,
+	}, found, err
 }
 
 func (d *DAL) CheckTransferStatusNotIn(transferId string, statusList []uint64) bool {
