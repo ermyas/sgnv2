@@ -129,7 +129,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		ctx.EventManager().EmitEvent(sdk.NewEvent(
 			types.EventTypeDataToSign,
 			sdk.NewAttribute(types.AttributeKeyType, types.SignDataType_RELAY.String()),
-			sdk.NewAttribute(types.AttributeKeyData, string(relayRaw)),
+			sdk.NewAttribute(types.AttributeKeyData, eth.Bytes2Hex(relayRaw)),
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 		))
 		sendStatus = types.XferStatus_OK_TO_RELAY

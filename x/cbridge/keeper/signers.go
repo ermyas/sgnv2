@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -61,7 +62,7 @@ func (k Keeper) UpdateLatestSigners(ctx sdk.Context, force bool) {
 	newSigners.Signers.Sort()
 	newSigners.GenerateSignersBytes()
 
-	if bytes.Compare(latestSigners.GetSignersBytes(), newSigners.SignersBytes) == 0 {
+	if bytes.Equal(latestSigners.GetSignersBytes(), newSigners.SignersBytes) {
 		return
 	}
 
@@ -71,7 +72,7 @@ func (k Keeper) UpdateLatestSigners(ctx sdk.Context, force bool) {
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeDataToSign,
 		sdk.NewAttribute(types.AttributeKeyType, types.SignDataType_SIGNERS.String()),
-		sdk.NewAttribute(types.AttributeKeyData, string(newSigners.SignersBytes)),
+		sdk.NewAttribute(types.AttributeKeyData, eth.Bytes2Hex(newSigners.SignersBytes)),
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 	))
 }

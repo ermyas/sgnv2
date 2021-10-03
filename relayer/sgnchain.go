@@ -12,19 +12,21 @@ import (
 	slashcli "github.com/celer-network/sgn-v2/x/slash/client/cli"
 	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/pubsub/query"
+	tmquery "github.com/tendermint/tendermint/libs/pubsub/query"
 	"github.com/tendermint/tendermint/rpc/client/http"
 	tm "github.com/tendermint/tendermint/types"
 )
 
 var (
-	EventQuerySlash           = query.MustParse(fmt.Sprintf("tm.event='NewBlock' AND %s.%s EXISTS", slashtypes.EventTypeSlash, slashtypes.AttributeKeyNonce)).String()
-	EventQueryCbridge         = query.MustParse(fmt.Sprintf("%s.%s='%s'", cbrtypes.EventTypeDataToSign, sdk.AttributeKeyModule, cbrtypes.ModuleName)).String()
-	EventQueryFarmingClaimAll = query.MustParse(fmt.Sprintf("tm.event='Tx' AND %s.%s EXISTS", farmingtypes.EventTypeClaimAll, farmingtypes.AttributeKeyAddress)).String()
+	EventQuerySlash = tmquery.MustParse(
+		fmt.Sprintf("tm.event='NewBlock' AND %s.%s EXISTS", slashtypes.EventTypeSlash, slashtypes.AttributeKeyNonce)).String()
+	EventQueryCbridge = tmquery.MustParse(
+		fmt.Sprintf("%s.%s='%s'", cbrtypes.EventTypeDataToSign, sdk.AttributeKeyModule, cbrtypes.ModuleName)).String()
+	EventQueryFarmingClaimAll = tmquery.MustParse(
+		fmt.Sprintf("tm.event='Tx' AND %s.%s EXISTS", farmingtypes.EventTypeClaimAll, farmingtypes.AttributeKeyAddress)).String()
 )
 
-func MonitorTendermintEvent(nodeURI, eventQuery string, handleEvent func(event abci.Event)) {
+func MonitorTendermintEvent(nodeURI, eventQuery string, handleEvents func(events map[string][]string)) {
 	client, err := http.New(nodeURI, "/websocket")
 	if err != nil {
 		log.Errorln("Fail to start create http client", err)
@@ -45,19 +47,7 @@ func MonitorTendermintEvent(nodeURI, eventQuery string, handleEvent func(event a
 	}
 
 	for e := range txs {
-		switch data := e.Data.(type) {
-		case tm.EventDataNewBlock:
-			for _, event := range data.ResultBeginBlock.Events {
-				handleEvent(event)
-			}
-			for _, event := range data.ResultEndBlock.Events {
-				handleEvent(event)
-			}
-		case tm.EventDataTx:
-			for _, event := range data.TxResult.Result.Events {
-				handleEvent(event)
-			}
-		}
+		handleEvents(e.Events)
 	}
 }
 
@@ -65,43 +55,40 @@ func (r *Relayer) monitorSgnSlash() {
 	MonitorTendermintEvent(
 		r.Transactor.CliCtx.NodeURI,
 		EventQuerySlash,
-		func(e abci.Event) {
-			if e.Type != slashtypes.EventTypeSlash {
-				return
-			}
+		func(events map[string][]string) {
 			if !r.isBonded() {
 				return
 			}
+			for _, nonceStr := range events[fmt.Sprintf("%s.%s", slashtypes.EventTypeSlash, slashtypes.AttributeKeyNonce)] {
+				nonce, err :=
+					strconv.ParseUint(nonceStr, 10, 64)
+				if err != nil {
+					log.Errorln("Parse slash nonce error", err)
+					return
+				}
 
-			event := sdk.StringifyEvent(e)
-			nonce, err := strconv.ParseUint(event.Attributes[0].Value, 10, 64)
-			if err != nil {
-				log.Errorln("Parse slash nonce error", err)
-				return
+				slashEvent := NewSlashEvent(nonce)
+				slash, err := slashcli.QuerySlash(r.Transactor.CliCtx, slashtypes.StoreKey, slashEvent.Nonce)
+				if err != nil {
+					log.Errorf("Query slash %d err %s", slashEvent.Nonce, err)
+					return
+				}
+				log.Infof("New slash to %s, reason %s, nonce %d", slash.Validator, slash.Reason, slashEvent.Nonce)
+
+				sig, err := r.EthClient.SignEthMessage(slash.EthSlashBytes)
+				if err != nil {
+					log.Errorln("SignEthMessage err", err)
+					return
+				}
+
+				msg := slashtypes.NewMsgSignSlash(slashEvent.Nonce, sig, r.Transactor.Key.GetAddress())
+				r.Transactor.AddTxMsg(&msg)
+
+				err = r.dbSet(GetSlashKey(slashEvent.Nonce), slashEvent.MustMarshal())
+				if err != nil {
+					log.Errorln("db Set err", err)
+				}
 			}
-
-			slashEvent := NewSlashEvent(nonce)
-			slash, err := slashcli.QuerySlash(r.Transactor.CliCtx, slashtypes.StoreKey, slashEvent.Nonce)
-			if err != nil {
-				log.Errorf("Query slash %d err %s", slashEvent.Nonce, err)
-				return
-			}
-			log.Infof("New slash to %s, reason %s, nonce %d", slash.Validator, slash.Reason, slashEvent.Nonce)
-
-			sig, err := r.EthClient.SignEthMessage(slash.EthSlashBytes)
-			if err != nil {
-				log.Errorln("SignEthMessage err", err)
-				return
-			}
-
-			msg := slashtypes.NewMsgSignSlash(slashEvent.Nonce, sig, r.Transactor.Key.GetAddress())
-			r.Transactor.AddTxMsg(&msg)
-
-			err = r.dbSet(GetSlashKey(slashEvent.Nonce), slashEvent.MustMarshal())
-			if err != nil {
-				log.Errorln("db Set err", err)
-			}
-
 		})
 }
 
@@ -109,57 +96,61 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 	MonitorTendermintEvent(
 		r.Transactor.CliCtx.NodeURI,
 		EventQueryCbridge,
-		func(e abci.Event) {
-			if e.Type != cbrtypes.EventTypeDataToSign {
-				return
-			}
+		func(events map[string][]string) {
 			if !r.isBonded() {
 				return
 			}
-			event := sdk.StringifyEvent(e)
-			// sign data first
-			data := []byte(event.Attributes[1].Value)
-			sig, err := r.EthClient.SignEthMessage(data)
-			if err != nil {
-				log.Error(err)
+			tmEventType := events["tm.event"][0]
+			if tmEventType != tm.EventTx && tmEventType != tm.EventNewBlock {
 				return
 			}
-			msg := &cbrtypes.MsgSendMySig{
-				Data:    data,
-				MySig:   sig,
-				Creator: r.Transactor.Key.GetAddress().String(),
-			}
-			logmsg := fmt.Sprintf("Sign cBridge data %s", event.Attributes[0])
-			switch event.Attributes[0].Value {
-			case cbrtypes.SignDataType_RELAY.String():
-				msg.Datatype = cbrtypes.SignDataType_RELAY
-				relay := new(cbrtypes.RelayOnChain)
-				err = relay.Unmarshal(data)
+			sigTypes := events[fmt.Sprintf("%s.%s", cbrtypes.EventTypeDataToSign, cbrtypes.AttributeKeyType)]
+			dataArr := events[fmt.Sprintf("%s.%s", cbrtypes.EventTypeDataToSign, cbrtypes.AttributeKeyData)]
+			for i, sigType := range sigTypes {
+				data := eth.Hex2Bytes(dataArr[i])
+				// sign data first
+				sig, err := r.EthClient.SignEthMessage(data)
 				if err != nil {
-					log.Errorf("%s, failed to unmarshal XrefRelay: %s", logmsg, err)
+					log.Error(err)
 					return
 				}
-				relayEvent := NewRelayEvent(relay.SrcTransferId)
-				err = r.dbSet(GetCbrXferKey(relayEvent.XferId), relayEvent.MustMarshal())
-				if err != nil {
-					log.Errorf("%s, db Set err: %s", logmsg, err)
+				msg := &cbrtypes.MsgSendMySig{
+					Data:    data,
+					MySig:   sig,
+					Creator: r.Transactor.Key.GetAddress().String(),
 				}
-				log.Infof("%s: %s", logmsg, relay.String())
-			case cbrtypes.SignDataType_WITHDRAW.String():
-				msg.Datatype = cbrtypes.SignDataType_WITHDRAW
-				log.Infof("%s", logmsg)
-			case cbrtypes.SignDataType_SIGNERS.String():
-				msg.Datatype = cbrtypes.SignDataType_SIGNERS
-				r.setCbrSsUpdating()
-				ss := new(cbrtypes.SortedSigners)
-				err = ss.Unmarshal(data)
-				if err != nil {
-					log.Errorf("%s, failed to unmarshal sorted signers: %s", logmsg, err)
-					return
+				logmsg := fmt.Sprintf("Sign cBridge data, sigType: %s", sigType)
+				switch sigType {
+				case cbrtypes.SignDataType_RELAY.String():
+					msg.Datatype = cbrtypes.SignDataType_RELAY
+					relay := new(cbrtypes.RelayOnChain)
+					err = relay.Unmarshal(data)
+					if err != nil {
+						log.Errorf("%s, failed to unmarshal XrefRelay: %s", logmsg, err)
+						return
+					}
+					relayEvent := NewRelayEvent(relay.SrcTransferId)
+					err = r.dbSet(GetCbrXferKey(relayEvent.XferId), relayEvent.MustMarshal())
+					if err != nil {
+						log.Errorf("%s, db Set err: %s", logmsg, err)
+					}
+					log.Infof("%s: %s", logmsg, relay.String())
+				case cbrtypes.SignDataType_WITHDRAW.String():
+					msg.Datatype = cbrtypes.SignDataType_WITHDRAW
+					log.Infof("%s", logmsg)
+				case cbrtypes.SignDataType_SIGNERS.String():
+					msg.Datatype = cbrtypes.SignDataType_SIGNERS
+					r.setCbrSsUpdating()
+					ss := new(cbrtypes.SortedSigners)
+					err = ss.Unmarshal(data)
+					if err != nil {
+						log.Errorf("%s, failed to unmarshal sorted signers: %s", logmsg, err)
+						return
+					}
+					log.Infof("%s: %s", logmsg, ss.String())
 				}
-				log.Infof("%s: %s", logmsg, ss.String())
+				r.Transactor.AddTxMsg(msg)
 			}
-			r.Transactor.AddTxMsg(msg)
 		})
 }
 
@@ -167,39 +158,36 @@ func (r *Relayer) monitorSgnFarmingClaimAllEvent() {
 	MonitorTendermintEvent(
 		r.Transactor.CliCtx.NodeURI,
 		EventQueryFarmingClaimAll,
-		func(e abci.Event) {
-			if e.Type != farmingtypes.EventTypeClaimAll {
-				return
-			}
+		func(events map[string][]string) {
 			if !r.isBonded() {
 				return
 			}
-			event := sdk.StringifyEvent(e)
-			addr := event.Attributes[0].Value
-			queryClient := farmingtypes.NewQueryClient(r.Transactor.CliCtx)
-			rewardClaimInfo, err := queryClient.RewardClaimInfo(
-				context.Background(),
-				&farmingtypes.QueryRewardClaimInfoRequest{
-					Address: addr,
-				},
-			)
-			if err != nil {
-				log.Errorf("Query RewardClaimInfo err %s", err)
-				return
-			}
-			var signatureDetailsList []farmingtypes.SignatureDetails
-			for _, details := range rewardClaimInfo.RewardClaimInfo.RewardClaimDetailsList {
-				sig, err := r.EthClient.SignEthMessage(details.RewardProtoBytes)
+			for _, addr := range events[fmt.Sprintf("%s.%s", farmingtypes.EventTypeClaimAll, farmingtypes.AttributeKeyAddress)] {
+				queryClient := farmingtypes.NewQueryClient(r.Transactor.CliCtx)
+				rewardClaimInfo, err := queryClient.RewardClaimInfo(
+					context.Background(),
+					&farmingtypes.QueryRewardClaimInfoRequest{
+						Address: addr,
+					},
+				)
 				if err != nil {
-					log.Errorln("SignEthMessage err", err)
+					log.Errorf("Query RewardClaimInfo err %s", err)
 					return
 				}
-				signatureDetailsList = append(signatureDetailsList, farmingtypes.SignatureDetails{
-					ChainId:   details.ChainId,
-					Signature: sig,
-				})
+				var signatureDetailsList []farmingtypes.SignatureDetails
+				for _, details := range rewardClaimInfo.RewardClaimInfo.RewardClaimDetailsList {
+					sig, err := r.EthClient.SignEthMessage(details.RewardProtoBytes)
+					if err != nil {
+						log.Errorln("SignEthMessage err", err)
+						return
+					}
+					signatureDetailsList = append(signatureDetailsList, farmingtypes.SignatureDetails{
+						ChainId:   details.ChainId,
+						Signature: sig,
+					})
+				}
+				msg := farmingtypes.NewMsgSignRewards(eth.Hex2Addr(addr), r.Transactor.Key.GetAddress(), signatureDetailsList)
+				r.Transactor.AddTxMsg(msg)
 			}
-			msg := farmingtypes.NewMsgSignRewards(eth.Hex2Addr(addr), r.Transactor.Key.GetAddress(), signatureDetailsList)
-			r.Transactor.AddTxMsg(msg)
 		})
 }
