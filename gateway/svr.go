@@ -724,9 +724,14 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 
 func (gs *GatewayService) initTransactor() error {
 	if selfStart {
+		cbrCfgFile := filepath.Join(rootDir, "config", "cbridge.toml")
+		viper.SetConfigFile(cbrCfgFile)
+		if err := viper.ReadInConfig(); err != nil {
+			return fmt.Errorf("failed to read in cbridge configuration: %w", err)
+		}
 		configFilePath := filepath.Join(rootDir, "config", "sgn.toml")
 		viper.SetConfigFile(configFilePath)
-		if err := viper.ReadInConfig(); err != nil {
+		if err := viper.MergeInConfig(); err != nil {
 			return fmt.Errorf("failed to read in SGN configuration: %w", err)
 		}
 	}

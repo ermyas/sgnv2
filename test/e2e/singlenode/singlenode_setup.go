@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func setupNewSgnEnv(contractParams *tc.ContractParams, testName string) []tc.Killable {
+func setupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool) []tc.Killable {
 	if contractParams == nil {
 		contractParams = &tc.ContractParams{
 			CelrAddr:              tc.CelrAddr,
@@ -33,25 +33,26 @@ func setupNewSgnEnv(contractParams *tc.ContractParams, testName string) []tc.Kil
 	tx := tc.DeploySgnStakingContracts(contractParams)
 	tc.WaitMinedWithChk(context.Background(), tc.EthClient, tx, tc.BlockDelay, tc.PollingInterval, "DeploySgnStakingContracts")
 
-	updateSgnConfig()
-
-	sgnProc, err := startSgnChain("", testName)
+	updateSgnConfig(cbridge)
+	sgnProc, err := startSgnChain()
 	tc.ChkErr(err, "start sgnchain")
 
 	killable := []tc.Killable{sgnProc}
-	// if contractParams.StartGateway {
-	// 	gatewayProc, err := StartGateway("", testName)
-	// 	tc.ChkErr(err, "start gateway")
-	// 	killable = append(killable, gatewayProc)
-	// }
 
 	return killable
 }
 
-func updateSgnConfig() {
-	log.Infoln("Updating sgn.toml")
+func updateSgnConfig(cbridge bool) {
+	log.Infoln("Updating configs")
 
-	configFilePath := "../../data/.sgnd/config/sgn.toml"
+	cmd := exec.Command("make", "update-test-data")
+	// set cmd.Dir under repo root path
+	cmd.Dir, _ = filepath.Abs("../../..")
+	if err := cmd.Run(); err != nil {
+		tc.ChkErr(err, "Failed to run \"make update-test-data\"")
+	}
+
+	configFilePath := os.ExpandEnv("$HOME/.sgnd/config/sgn.toml")
 	configFileViper := viper.New()
 	configFileViper.SetConfigFile(configFilePath)
 	err := configFileViper.ReadInConfig()
@@ -59,7 +60,6 @@ func updateSgnConfig() {
 
 	keystore, err := filepath.Abs("../../keys/vsigner0.json")
 	tc.ChkErr(err, "get keystore path")
-
 	configFileViper.Set(common.FlagEthGateway, tc.LocalGeth)
 	configFileViper.Set(common.FlagEthContractCelr, tc.CelrAddr.Hex())
 	configFileViper.Set(common.FlagEthContractStaking, tc.Contracts.Staking.Address.Hex())
@@ -70,59 +70,41 @@ func updateSgnConfig() {
 	configFileViper.Set(common.FlagEthContractGovern, tc.Contracts.Govern.Address.Hex())
 	configFileViper.Set(common.FlagEthSignerKeystore, keystore)
 	configFileViper.Set(common.FlagEthValidatorAddress, eth.Addr2Hex(tc.ValEthAddrs[0]))
-
-	// delete 884 as single node only has one geth
-	multichains := configFileViper.Get(common.FlagMultiChain).([]interface{})
-	configFileViper.Set(common.FlagMultiChain, multichains[0:1])
-
 	err = configFileViper.WriteConfig()
 	tc.ChkErr(err, "failed to write config")
 	// Update global viper
 	viper.SetConfigFile(configFilePath)
 	err = viper.ReadInConfig()
 	tc.ChkErr(err, "failed to read config")
-}
 
-func installSgnd() error {
-	cmd := exec.Command("make", "install")
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "WITH_CLEVELDB=yes")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	// set cmd.Dir under repo root path
-	cmd.Dir, _ = filepath.Abs("../../..")
-	err := cmd.Run()
-	if err != nil {
-		return err
-	}
-
-	cmd = exec.Command("cp", "./test/data/.sgnd/config/sgn_template.toml", "./test/data/.sgnd/config/sgn.toml")
-	// set cmd.Dir under repo root path
-	cmd.Dir, _ = filepath.Abs("../../..")
-	return cmd.Run()
-}
-
-// startSgnChain starts SGN chain with the data in test/data
-func startSgnChain(rootDir, testName string) (*os.Process, error) {
-	cmd := exec.Command("make", "update-test-data")
-	// set cmd.Dir under repo root path
-	cmd.Dir, _ = filepath.Abs("../../..")
-	if err := cmd.Run(); err != nil {
-		log.Errorln("Failed to run \"make update-test-data\": ", err)
-		return nil, err
+	if !cbridge {
+		cbrCfgPath := os.ExpandEnv("$HOME/.sgnd/config/cbridge.toml")
+		cbrViper := viper.New()
+		cbrViper.SetConfigFile(cbrCfgPath)
+		err = cbrViper.ReadInConfig()
+		tc.ChkErr(err, "Failed to read config")
+		cbrViper.Set(common.FlagMultiChain, []string{})
+		err = cbrViper.WriteConfig()
+		tc.ChkErr(err, "Failed to write config")
 	}
 
 	genesisPath := os.ExpandEnv("$HOME/.sgnd/config/genesis.json")
 	genesisViper := viper.New()
 	genesisViper.SetConfigFile(genesisPath)
-	err := genesisViper.ReadInConfig()
+	err = genesisViper.ReadInConfig()
 	tc.ChkErr(err, "Failed to read genesis")
 	genesisViper.Set("app_state.gov.voting_params.voting_period", "10s")
+	if !cbridge {
+		genesisViper.Set("app_state.cbridge.config.assets", []string{})
+		genesisViper.Set("app_state.cbridge.config.chain_pairs", []string{})
+	}
 	err = genesisViper.WriteConfig()
 	tc.ChkErr(err, "Failed to write genesis")
+}
 
-	cmd = exec.Command("sgnd", "start")
+// startSgnChain starts SGN chain with the data in test/data
+func startSgnChain() (*os.Process, error) {
+	cmd := exec.Command("sgnd", "start")
 	cmd.Dir, _ = filepath.Abs("../../..")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -135,18 +117,17 @@ func startSgnChain(rootDir, testName string) (*os.Process, error) {
 	return cmd.Process, nil
 }
 
-// func StartGateway(rootDir, testName string) (*os.Process, error) {
-// 	cmd := exec.Command("sgnd", "gateway")
-// 	cmd.Dir, _ = filepath.Abs("../../..")
-// 	cmd.Stdout = os.Stdout
-// 	cmd.Stderr = os.Stderr
-// 	if err := cmd.Start(); err != nil {
-// 		return nil, err
-// 	}
+func installSgnd() error {
+	cmd := exec.Command("make", "install")
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "WITH_CLEVELDB=yes")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-// 	log.Infoln("gateway pid:", cmd.Process.Pid)
-// 	return cmd.Process, nil
-// }
+	// set cmd.Dir under repo root path
+	cmd.Dir, _ = filepath.Abs("../../..")
+	return cmd.Run()
+}
 
 // start process to handle eth rpc, and fund etherbase and server account
 func startMainchain(outRootDir string) (*os.Process, error) {

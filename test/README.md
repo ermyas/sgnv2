@@ -38,7 +38,7 @@ node(0-3): docker-volumes/nodeN/sgnd/app.log & docker-volumes/nodeN/sgnd/tenderm
 
 ## Generating genesis.json for tests
 
-The passphrase for the test keyring should be set in [sgn_template.toml](data/.sgnd/config/sgn_template.toml).
+The passphrase for the test keyring should be set in [sgn.toml](data/.sgnd/config/sgn.toml).
 
 From the project root directory, run:
 

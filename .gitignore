@@ -24,7 +24,6 @@ protoc/
 .DS_Store
 
 # SGN files
-test/data/.sgnd/config/sgn.toml
 docker-volumes
 test/e2e/manual/data/node*
 tools/cbridge/cbridge

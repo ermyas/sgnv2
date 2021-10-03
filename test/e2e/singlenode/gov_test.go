@@ -19,7 +19,7 @@ import (
 )
 
 func setupGov() []tc.Killable {
-	res := setupNewSgnEnv(nil, "gov change parameter")
+	res := setupNewSgnEnv(nil, false)
 	tc.SleepWithLog(10, "sgn syncing")
 
 	return res

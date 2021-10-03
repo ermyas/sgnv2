@@ -99,6 +99,11 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 			if err := viper.ReadInConfig(); err != nil {
 				return fmt.Errorf("failed to read in tendermint configuration: %w", err)
 			}
+			cbrCfgFile := filepath.Join(rootDir, "config", "cbridge.toml")
+			viper.SetConfigFile(cbrCfgFile)
+			if err := viper.MergeInConfig(); err != nil {
+				return fmt.Errorf("failed to read in cbridge configuration: %w", err)
+			}
 			sgnCfgFile := filepath.Join(rootDir, "config", "sgn.toml")
 			viper.SetConfigFile(sgnCfgFile)
 			if err := viper.MergeInConfig(); err != nil {

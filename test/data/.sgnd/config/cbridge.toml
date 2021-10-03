@@ -1,0 +1,19 @@
+# multichain configs
+
+[[multichain]]
+chainID = 883
+name = "test1"
+gateway = "http://192.168.10.1:8545"
+blkinterval = 1
+blkdelay = 1
+maxblkdelta = 5000
+cbridge = ""
+
+[[multichain]]
+chainID = 884
+name = "test2"
+gateway = "http://192.168.10.6:8545"
+blkinterval = 1
+blkdelay = 1
+maxblkdelta = 5000
+cbridge = ""

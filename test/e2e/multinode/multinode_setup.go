@@ -178,11 +178,19 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridge bool
 		configFileViper.Set(common.FlagEthContractViewer, tc.Contracts.Viewer.Address.Hex())
 		configFileViper.Set(common.FlagEthContractGovern, tc.Contracts.Govern.Address.Hex())
 		configFileViper.Set(common.FlagEthValidatorAddress, tc.ValEthAddrs[i].Hex())
-		if !cbridge {
-			configFileViper.Set(common.FlagMultiChain, []string{})
-		}
 		err = configFileViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")
+
+		if !cbridge {
+			cbrCfgPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/cbridge.toml", i)
+			cbrViper := viper.New()
+			cbrViper.SetConfigFile(cbrCfgPath)
+			err = cbrViper.ReadInConfig()
+			tc.ChkErr(err, "Failed to read config")
+			cbrViper.Set(common.FlagMultiChain, []string{})
+			err = cbrViper.WriteConfig()
+			tc.ChkErr(err, "Failed to write config")
+		}
 
 		genesisPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/genesis.json", i)
 		genesisViper := viper.New()
@@ -213,13 +221,6 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridge bool
 	viper.SetConfigFile(node0ConfigPath)
 	err = viper.ReadInConfig()
 	tc.ChkErr(err, "Failed to read config")
-	viper.Set(common.FlagEthContractCelr, tc.CelrAddr.Hex())
-	viper.Set(common.FlagEthContractStaking, tc.Contracts.Staking.Address.Hex())
-	viper.Set(common.FlagEthContractSgn, tc.Contracts.Sgn.Address.Hex())
-	viper.Set(common.FlagEthContractStakingReward, tc.Contracts.StakingReward.Address.Hex())
-	viper.Set(common.FlagEthContractFarmingRewards, tc.Contracts.FarmingRewards.Address.Hex())
-	viper.Set(common.FlagEthContractViewer, tc.Contracts.Viewer.Address.Hex())
-	viper.Set(common.FlagEthContractGovern, tc.Contracts.Govern.Address.Hex())
 
 	log.Infoln("make localnet-up-nodes")
 	cmd = exec.Command("make", "localnet-up-nodes")
@@ -281,16 +282,16 @@ func DeployBridgeContract() {
 	tc.CbrClient2.CbrAddr, tc.CbrClient2.CbrContract = tc.DeployBridgeContract(tc.CbrClient2.Ec, tc.CbrClient2.Auth, nil)
 
 	for i := 0; i < len(tc.ValEthKs); i++ {
-		configPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/sgn.toml", i)
-		configFileViper := viper.New()
-		configFileViper.SetConfigFile(configPath)
-		err := configFileViper.ReadInConfig()
+		cbrCfgPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/cbridge.toml", i)
+		cbrViper := viper.New()
+		cbrViper.SetConfigFile(cbrCfgPath)
+		err := cbrViper.ReadInConfig()
 		tc.ChkErr(err, "Failed to read config")
-		multichains := configFileViper.Get("multichain").([]interface{})
+		multichains := cbrViper.Get("multichain").([]interface{})
 		multichains[0].(map[string]interface{})["cbridge"] = tc.CbrClient1.CbrAddr.Hex()
 		multichains[1].(map[string]interface{})["cbridge"] = tc.CbrClient2.CbrAddr.Hex()
-		configFileViper.Set("multichain", multichains)
-		err = configFileViper.WriteConfig()
+		cbrViper.Set("multichain", multichains)
+		err = cbrViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")
 	}
 }

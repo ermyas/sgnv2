@@ -15,7 +15,7 @@ import (
 )
 
 func setupStaking() []tc.Killable {
-	res := setupNewSgnEnv(nil, "staking")
+	res := setupNewSgnEnv(nil, false)
 	tc.SleepWithLog(10, "sgn being ready")
 
 	return res
