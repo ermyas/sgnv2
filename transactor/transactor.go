@@ -30,7 +30,7 @@ const (
 	txRetryDelay    = 1 * time.Second
 	maxSignRetry    = 10
 	signRetryDelay  = 100 * time.Millisecond
-	maxSeqRetry     = 5
+	maxSeqRetry     = 10
 	seqRetryDelay   = 1 * time.Second
 	maxGasRetry     = 5
 )

@@ -286,9 +286,16 @@ func queryWithdrawLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keep
 	}
 
 	if wd.Completed {
-		status = types.LPHistoryStatus_LP_WAITING_FOR_LP
+		status = types.LPHistoryStatus_LP_COMPLETED
 	} else {
-		status = types.LPHistoryStatus_LP_WAITING_FOR_SGN
+		wdOnchain := new(types.WithdrawOnchain)
+		wdOnchain.Unmarshal(wd.WdOnchain)
+		chainSigners, _ := k.GetChainSigners(ctx, wdOnchain.Chainid)
+		if validateCbrSigs(wd.GetSortedSigs(), chainSigners.CurrSigners) {
+			status = types.LPHistoryStatus_LP_WAITING_FOR_LP
+		} else {
+			status = types.LPHistoryStatus_LP_WAITING_FOR_SGN
+		}
 	}
 
 	resp := types.QueryLiquidityStatusResponse{
@@ -334,4 +341,32 @@ func queryLatestSigners(
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 	return res, nil
+}
+
+func validateCbrSigs(sortedSigs []*types.AddrSig, curss *types.SortedSigners) (pass bool) {
+	if len(curss.GetSigners()) == 0 {
+		return false
+	}
+	totalPower := big.NewInt(0)
+	curssMap := make(map[eth.Addr]*types.AddrAmt)
+	for _, s := range curss.GetSigners() {
+		power := big.NewInt(0).SetBytes(s.Amt)
+		totalPower.Add(totalPower, power)
+		curssMap[eth.Bytes2Addr(s.Addr)] = s
+	}
+	quorumStake := big.NewInt(0).Mul(totalPower, big.NewInt(2))
+	quorumStake = quorumStake.Quo(quorumStake, big.NewInt(3))
+
+	signedPower := big.NewInt(0)
+	for _, s := range sortedSigs {
+		if addrAmt, ok := curssMap[eth.Bytes2Addr(s.Addr)]; ok {
+			power := big.NewInt(0).SetBytes(addrAmt.Amt)
+			signedPower.Add(signedPower, power)
+			if signedPower.Cmp(quorumStake) > 0 {
+				return true
+			}
+		}
+	}
+
+	return false
 }
