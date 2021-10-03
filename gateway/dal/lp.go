@@ -1,6 +1,7 @@
 package dal
 
 import (
+	"github.com/celer-network/goutils/log"
 	"time"
 
 	"github.com/celer-network/goutils/sqldb"
@@ -16,9 +17,22 @@ func (d *DAL) UpsertLP(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chai
 	return sqldb.ChkExec(res, err, 1, "UpsertLP")
 }
 
-func (d *DAL) UpdateLPStatus(seqNum, status uint64) error {
-	q := `UPDATE lp SET status=$2, update_time=$3 WHERE seq_num=$1`
-	res, err := d.Exec(q, seqNum, status, now())
+func (d *DAL) UpdateLPStatus(seqNum, lpType, chainId uint64, lpAddr string, status uint64) error {
+	q := `UPDATE lp SET status=$5, update_time=$6 WHERE seq_num = $1 and chain_id = $2 and usr_addr = $3 and lp_type = $4`
+	res, err := d.Exec(q, seqNum, chainId, lpAddr, lpType, status, now())
+	if err != nil {
+		log.Errorf("UpdateLPStatus error:%+v", err)
+	}
+	return sqldb.ChkExec(res, err, 1, "UpdateLPStatusForAdd")
+}
+
+func (d *DAL) UpdateLPStatusForWithdraw(seqNum, status uint64) error {
+	lpType := uint64(webapi.LPType_LP_TYPE_REMOVE)
+	q := `UPDATE lp SET status=$3, update_time=$4 WHERE seq_num=$1 and lp_type=$2`
+	res, err := d.Exec(q, seqNum, lpType, status, now())
+	if err != nil {
+		log.Errorf("UpdateLPStatusForWithdraw error:%+v", err)
+	}
 	return sqldb.ChkExec(res, err, 1, "UpdateLPStatus")
 }
 

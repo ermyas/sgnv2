@@ -388,7 +388,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 		})
 		err = dal.DB.UpsertLP(lp, token.Token.Symbol, token.Token.Address, amt, "", uint64(chainId), uint64(cbrtypes.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
 		if err != nil {
-			_ = dal.DB.UpdateLPStatus(seqNum, uint64(cbrtypes.LPHistoryStatus_LP_FAILED))
+			_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(cbrtypes.LPHistoryStatus_LP_FAILED))
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -415,6 +415,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 	chainId := uint64(request.GetChainId())
 	lpType := uint64(request.GetType())
 	addr := request.GetLpAddr()
+	log.Debugf("query liquidity status, request: %+v", request)
 	txHash, status, found, err := dal.DB.GetLPInfo(seqNum, lpType, chainId, addr)
 	if found && err == nil && status == uint64(cbrtypes.LPHistoryStatus_LP_SUBMITTING) && txHash != "" {
 		ec := gs.ec[chainId]
@@ -430,43 +431,47 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 		receipt, recErr := ec.TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))
 		if recErr == nil && receipt.Status != ethtypes.ReceiptStatusSuccessful {
 			log.Warnf("find transfer failed, chain_id %d, hash:%s", chainId, txHash)
-			dbErr := dal.DB.UpdateLPStatus(seqNum, uint64(cbrtypes.LPHistoryStatus_LP_FAILED))
+			dbErr := dal.DB.UpdateLPStatus(seqNum, lpType, chainId, addr, uint64(cbrtypes.LPHistoryStatus_LP_FAILED))
 			if dbErr != nil {
 				log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", chainId, txHash)
 			} else {
 				status = uint64(cbrtypes.LPHistoryStatus_LP_FAILED)
 			}
 		}
-
 	}
 
-	// add type return directly
-	if found && lpType == uint64(webapi.LPType_LP_TYPE_ADD) {
-		return &types.QueryLiquidityStatusResponse{
+	if found && lpType == uint64(webapi.LPType_LP_TYPE_ADD) { // add type
+		if status == uint64(cbrtypes.LPHistoryStatus_LP_WAITING_FOR_SGN) {
+			resp, err2 := cbrcli.QueryAddLiquidityStatus(gs.tr.CliCtx, &cbrtypes.QueryAddLiquidityStatusRequest{
+				ChainId: chainId,
+				SeqNum:  seqNum,
+			})
+			log.Debugf("query status for add, resp chainId:%d, seqNum:%d, resp:%+v, err:%+v", chainId, seqNum, resp, err)
+			if resp != nil && err2 == nil {
+				_ = dal.DB.UpdateLPStatus(seqNum, lpType, chainId, addr, uint64(resp.Status))
+				return resp, nil
+			}
+		}
+	} else if found && lpType == uint64(webapi.LPType_LP_TYPE_REMOVE) { // withdraw type
+		resp := &types.QueryLiquidityStatusResponse{
 			Status:  types.LPHistoryStatus(status),
 			Detail:  nil,
 			Signers: nil,
-		}, nil
-	}
-
-	// withdraw type, query sgn
-	if found && lpType == uint64(webapi.LPType_LP_TYPE_REMOVE) && status == uint64(cbrtypes.LPHistoryStatus_LP_WAITING_FOR_SGN) {
-		resp, err := cbrcli.QueryWithdrawLiquidityStatus(gs.tr.CliCtx, &cbrtypes.QueryWithdrawLiquidityStatusRequest{
-			SeqNum: seqNum,
-		})
-
-		curss, err := cbrcli.QueryChainSigners(gs.tr.CliCtx, chainId)
-		if resp == nil || err != nil {
-			return &types.QueryLiquidityStatusResponse{
-				Status:  types.LPHistoryStatus(status),
-				Detail:  nil,
-				Signers: nil,
-			}, nil
-		} else if resp.GetStatus() == types.LPHistoryStatus_LP_WAITING_FOR_LP {
-			_ = dal.DB.UpdateLPStatus(seqNum, uint64(types.LPHistoryStatus_LP_WAITING_FOR_LP))
-			resp.Signers = curss.GetSignersBytes()
+		}
+		if status == uint64(cbrtypes.LPHistoryStatus_LP_WAITING_FOR_SGN) {
+			newUpdate, err2 := cbrcli.QueryWithdrawLiquidityStatus(gs.tr.CliCtx, &cbrtypes.QueryWithdrawLiquidityStatusRequest{
+				SeqNum: seqNum,
+			})
+			log.Debugf("query status for withdraw, resp seqNum:%d, resp:%+v, err:%+v", seqNum, newUpdate, err2)
+			if newUpdate != nil && err2 == nil {
+				_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(resp.Status))
+				return resp, nil
+			}
+		}
+		curss, signErr := cbrcli.QueryChainSigners(gs.tr.CliCtx, chainId)
+		if signErr != nil {
+			log.Warnf("QueryChainSigners error:%+v", signErr)
 		} else {
-			resp.Status = types.LPHistoryStatus(status)
 			resp.Signers = curss.GetSignersBytes()
 		}
 		return resp, nil
@@ -709,8 +714,7 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 	}
 	transferStatusMap := transferMap.Status
 
-	// debug level log acturally, remove it after debug finished
-	log.Infof("transferMap: %+v", transferMap)
+	log.Debugf("transferMap: %+v", transferMap)
 	for _, transfer := range transferList {
 		transferId := transfer.TransferId
 		status := transfer.Status
@@ -877,12 +881,18 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 		token := pool.GetStakeToken()
 
 		totalStakedAmount := pool.TotalStakedAmount
-		var totalReward sdk.Dec
-		for _, reward := range pool.GetRewardTokenInfos() {
-			totalReward = totalReward.Add(reward.RewardAmountPerBlock)
+		if totalStakedAmount.Amount.Equal(sdk.ZeroDec()) {
+			log.Debugf("farming totalStakedAmount is 0 on chain:%d, token: %s", token.GetChainId(), token.GetSymbol())
+			farmingPool[token.GetSymbol()] = 0.0
+		} else {
+			totalReward := sdk.ZeroDec()
+			for _, reward := range pool.GetRewardTokenInfos() {
+				totalReward = totalReward.Add(reward.RewardAmountPerBlock)
+			}
+
+			apy, _ := totalReward.Quo(totalStakedAmount.Amount).Float64()
+			farmingPool[token.GetSymbol()] = apy
 		}
-		apy, _ := totalReward.Quo(totalStakedAmount.Amount).Float64()
-		farmingPool[token.GetSymbol()] = apy
 		farmingPools[token.GetChainId()] = farmingPool
 	}
 	return farmingPools

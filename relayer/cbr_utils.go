@@ -123,7 +123,7 @@ func GatewayOnLiqWithdraw(seqNum uint64) {
 			log.Errorln("db when UpdateTransferStatus to TRANSFER_REFUNDED err:", dbErr)
 		}
 	} else {
-		dbErr := dal.UpdateLPStatus(seqNum, uint64(cbrtypes.LPHistoryStatus_LP_COMPLETED))
+		dbErr := dal.UpdateLPStatusForWithdraw(seqNum, uint64(cbrtypes.LPHistoryStatus_LP_COMPLETED))
 		if dbErr != nil {
 			log.Errorln("db when UpdateLPStatus to LP_COMPLETED err:", dbErr)
 		}

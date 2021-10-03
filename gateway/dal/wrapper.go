@@ -54,12 +54,12 @@ func GetTransferByRefundSeqNum(seqNum uint64) (string, bool, error) {
 	}
 }
 
-// UpdateLPStatus update api
-func UpdateLPStatus(seqNum, status uint64) error {
+// UpdateLPStatusForWithdraw update api
+func UpdateLPStatusForWithdraw(seqNum, status uint64) error {
 	if DB == nil {
 		return nil
 	} else {
-		return DB.UpdateLPStatus(seqNum, status)
+		return DB.UpdateLPStatusForWithdraw(seqNum, status)
 	}
 }
 
