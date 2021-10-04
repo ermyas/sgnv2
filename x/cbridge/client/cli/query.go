@@ -2,7 +2,9 @@ package cli
 
 import (
 	"fmt"
+	"math/big"
 	"strconv"
+	"strings"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -29,6 +31,7 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 		GetCmdQueryRelay(),
 		GetCmdQueryChainSigners(),
 		GetCmdQueryLatestSigners(),
+		qDebugAnyCmd,
 	)
 	// this line is used by starport scaffolding # 1
 
@@ -105,6 +108,66 @@ func GetCmdQueryLatestSigners() *cobra.Command {
 	}
 }
 
+// it's by design this doesn't have pkg level func so it can only be called via cmd line
+var qDebugAnyCmd = &cobra.Command{
+	Use:   "getany",
+	Args:  cobra.ExactArgs(1),
+	Short: "Query any kv value for given full key",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cliCtx, _ := client.GetClientQueryContext(cmd)
+		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDebugAny)
+		key := args[0]
+		res, err := common.RobustQueryWithData(cliCtx, route, []byte(key))
+		if err != nil {
+			log.Errorln("query err:", err)
+			return err
+		}
+		if len(res) == 0 {
+			return cliCtx.PrintString("nil value")
+		}
+		// now switch on key prefix to decode and print properly
+		switch {
+		// big.Int Bytes
+		case pre(key, "lm"), pre(key, "evliqadd"), pre(key, "withdrawSeqNum"), pre(key, "lpfee"), pre(key, "sgnfee"), pre(key, "cfg-feeperc"):
+			return cliCtx.PrintString(new(big.Int).SetBytes(res).String())
+		case pre(key, "evsend"):
+			return cliCtx.PrintString(types.XferStatus(res[0]).String())
+		case pre(key, "evrelay"):
+			// val is src transfer id
+			return cliCtx.PrintString(eth.Bytes2Hex(res))
+		case pre(key, "xferRelay"):
+			pbmsg := new(types.XferRelay)
+			pbmsg.Unmarshal(res)
+			return cliCtx.PrintString(common.PbToJSONHexBytes(pbmsg))
+		case pre(key, "xferRefund"):
+			pbmsg := new(types.WithdrawOnchain)
+			pbmsg.Unmarshal(res)
+			return cliCtx.PrintString(common.PbToJSONHexBytes(pbmsg))
+		case pre(key, "wdDetail"):
+			pbmsg := new(types.WithdrawDetail)
+			pbmsg.Unmarshal(res)
+			return cliCtx.PrintString(common.PbToJSONHexBytes(pbmsg))
+		case pre(key, "cfg-ch2sym"):
+			return cliCtx.PrintString(string(res))
+		case pre(key, "cfg-sym2info"):
+			pbmsg := new(types.ChainAsset)
+			pbmsg.Unmarshal(res)
+			return cliCtx.PrintString(common.PbToJSONHexBytes(pbmsg))
+		case pre(key, "cfg-chpair"):
+			pbmsg := new(types.ChainPair)
+			pbmsg.Unmarshal(res)
+			return cliCtx.PrintString(common.PbToJSONHexBytes(pbmsg))
+		default:
+			return cliCtx.PrintString(eth.Bytes2Hex(res))
+		}
+	},
+}
+
+func pre(a, pre string) bool {
+	return strings.HasPrefix(a, pre)
+}
+
+// GetCmdQueryConfig implements the params query command.
 func GetCmdQueryConfig() *cobra.Command {
 	return &cobra.Command{
 		Use:   "config",

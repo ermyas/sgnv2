@@ -40,10 +40,18 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 			return queryChainSigners(ctx, req, k, legacyQuerierCdc)
 		case types.QueryLatestSigners:
 			return queryLatestSigners(ctx, k, legacyQuerierCdc)
+		case types.QueryDebugAny:
+			return queryDebugAny(ctx, req, k)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "Unknown cbridge query endpoint")
 		}
 	}
+}
+
+// req.data is key, return value raw, expect caller to decode properly
+func queryDebugAny(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
+	kv := ctx.KVStore(k.storeKey)
+	return kv.Get(req.Data), nil
 }
 
 func queryParams(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {

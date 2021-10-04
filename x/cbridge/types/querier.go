@@ -11,6 +11,7 @@ const (
 	QueryWithdrawLiquidityStatus = "withdraw-liquidity-status"
 	QueryChainSigners            = "chain-signers"
 	QueryLatestSigners           = "latest-signers"
+	QueryDebugAny                = "debug-anykey"
 )
 
 func NewQueryRelayParams(xrefId []byte) *QueryRelayParams {
