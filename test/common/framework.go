@@ -16,35 +16,37 @@ var (
 	ChainID      = uint64(883)
 	Geth2ChainID = uint64(884)
 
-	EthClient      *ethclient.Client
-	EthClient2     *ethclient.Client
-	EtherBaseAuth  *bind.TransactOpts
-	EtherBaseAuth2 *bind.TransactOpts
-	ValAuths       []*bind.TransactOpts
-	SignerAuths    []*bind.TransactOpts
-	DelAuths       []*bind.TransactOpts
+	EthClient     *ethclient.Client
+	EtherBaseAuth *bind.TransactOpts
+	ValAuths      []*bind.TransactOpts
+	SignerAuths   []*bind.TransactOpts
+	DelAuths      []*bind.TransactOpts
 
 	Contracts    *eth.Contracts
 	CelrAddr     eth.Addr
 	CelrContract *eth.Erc20
 
-	Client0 *TestEthClient
-	Client1 *TestEthClient
-
 	ValSgnAddrs []sdk.AccAddress
 
-	// one client for one chain, has cbr addr and usdt addr
-	CbrClient1, CbrClient2 *CbrClient
+	CbrChain1, CbrChain2 *CbrChain
 )
 
-type CbrClient struct {
-	Ec   *ethclient.Client
-	Auth *bind.TransactOpts
+type CbrChain struct {
+	ChainId uint64
+	Ec      *ethclient.Client
+	Auth    *bind.TransactOpts // etherbase auth
+	Users   []*TestEthClient
 	// contract addr
 	CbrAddr, USDTAddr      eth.Addr
 	CbrContract            *eth.BridgeContract
 	USDTContract           *eth.Erc20
 	FarmingRewardsContract *eth.FarmingRewardsContract
+}
+
+type TestEthClient struct {
+	Address eth.Addr
+	Auth    *bind.TransactOpts
+	Signer  ethutils.Signer
 }
 
 type ContractParams struct {
@@ -61,12 +63,6 @@ type ContractParams struct {
 
 	// TODO: Remove from here
 	StartGateway bool
-}
-
-type TestEthClient struct {
-	Address eth.Addr
-	Auth    *bind.TransactOpts
-	Signer  ethutils.Signer
 }
 
 // Killable is object that has Kill() func

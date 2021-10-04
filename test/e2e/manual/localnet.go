@@ -57,8 +57,8 @@ func main() {
 		multinode.SetupNewSgnEnv(p, true, *cbr)
 		if *cbr {
 			amts := []*big.Int{big.NewInt(1e18)}
-			tc.CbrClient1.SetInitSigners(amts)
-			tc.CbrClient2.SetInitSigners(amts)
+			tc.CbrChain1.SetInitSigners(amts)
+			tc.CbrChain2.SetInitSigners(amts)
 		}
 
 		log.Infoln("install sgnd in host machine")

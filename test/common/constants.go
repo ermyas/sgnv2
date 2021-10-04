@@ -96,10 +96,12 @@ var (
 	ClientEthKs = [...]string{
 		"../../keys/cethks0.json",
 		"../../keys/cethks1.json",
+		"../../keys/cethks2.json",
 	}
 	ClientEthAddrs = [...]eth.Addr{
 		eth.Hex2Addr("c06fdd796e140aee53de5111607e8ded93ebdca3"),
 		eth.Hex2Addr("c1699e89639adda8f39faefc0fc294ee5c3b462d"),
+		eth.Hex2Addr("c22c304660d5f1d2a7a459ceefc0c2cb30f5cfe4"),
 	}
 
 	// used by local manual tests

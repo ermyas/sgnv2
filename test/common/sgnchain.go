@@ -15,7 +15,7 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/transactor"
-	bridgecli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
+	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	farmingcli "github.com/celer-network/sgn-v2/x/farming/client/cli"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
@@ -249,7 +249,7 @@ func CheckAddLiquidityStatus(transactor *transactor.Transactor, chainId, seqNum 
 	var resp *cbrtypes.QueryLiquidityStatusResponse
 	var err error
 	for retry := 0; retry < RetryLimit*2; retry++ {
-		resp, err = bridgecli.QueryAddLiquidityStatus(transactor.CliCtx, &cbrtypes.QueryAddLiquidityStatusRequest{
+		resp, err = cbrcli.QueryAddLiquidityStatus(transactor.CliCtx, &cbrtypes.QueryAddLiquidityStatusRequest{
 			ChainId: chainId,
 			SeqNum:  seqNum,
 		})
@@ -273,7 +273,7 @@ func CheckXfer(transactor *transactor.Transactor, xferId []byte) {
 	var prevXferStatus cbrtypes.TransferHistoryStatus
 	xferIdStr := common.Bytes2Hex(xferId)
 	for retry := 0; retry < RetryLimit*2; retry++ {
-		resp, err = bridgecli.QueryTransferStatus(transactor.CliCtx, &cbrtypes.QueryTransferStatusRequest{
+		resp, err = cbrcli.QueryTransferStatus(transactor.CliCtx, &cbrtypes.QueryTransferStatusRequest{
 			TransferId: []string{xferIdStr},
 		})
 		if err != nil {
@@ -299,7 +299,7 @@ func CheckChainSigners(t *testing.T, transactor *transactor.Transactor, chainId 
 	var err error
 	var signers *cbrtypes.ChainSigners
 	for retry := 0; retry < RetryLimit; retry++ {
-		signers, err = bridgecli.QueryChainSigners(transactor.CliCtx, chainId)
+		signers, err = cbrcli.QueryChainSigners(transactor.CliCtx, chainId)
 		if err != nil {
 			log.Debugln("retry due to err:", err)
 		}
@@ -317,7 +317,7 @@ func CheckLatestSigners(t *testing.T, transactor *transactor.Transactor, expSign
 	var err error
 	var signers *cbrtypes.LatestSigners
 	for retry := 0; retry < RetryLimit; retry++ {
-		signers, err = bridgecli.QueryLatestSigners(transactor.CliCtx)
+		signers, err = cbrcli.QueryLatestSigners(transactor.CliCtx)
 		if err != nil {
 			log.Debugln("retry due to err:", err)
 		}
@@ -338,7 +338,7 @@ func sameSortedSigenrs(ss1, ss2 *cbrtypes.SortedSigners) bool {
 }
 
 func GetWithdrawDetail(transactor *transactor.Transactor, wdseq uint64) (*cbrtypes.WithdrawDetail, error) {
-	resp, err := bridgecli.QueryWithdrawLiquidityStatus(transactor.CliCtx, &cbrtypes.QueryWithdrawLiquidityStatusRequest{
+	resp, err := cbrcli.QueryWithdrawLiquidityStatus(transactor.CliCtx, &cbrtypes.QueryWithdrawLiquidityStatusRequest{
 		SeqNum: wdseq,
 	})
 	if err != nil {
@@ -349,29 +349,11 @@ func GetWithdrawDetail(transactor *transactor.Transactor, wdseq uint64) (*cbrtyp
 }
 
 func GetCurSortedSigners(transactor *transactor.Transactor, chid uint64) ([]byte, error) {
-	signers, err := bridgecli.QueryChainSigners(transactor.CliCtx, chid)
+	signers, err := cbrcli.QueryChainSigners(transactor.CliCtx, chid)
 	if err != nil {
 		return nil, err
 	}
 	return signers.SignersBytes, nil
-}
-
-// call initwithdraw and return withdraw seqnum
-func (c *CbrClient) StartWithdraw(transactor *transactor.Transactor, chid uint64, amt *big.Int) (uint64, error) {
-	resp, err := bridgecli.InitWithdraw(transactor, &cbrtypes.MsgInitWithdraw{
-		Chainid: chid,
-		LpAddr:  c.Auth.From[:],
-		Token:   c.USDTAddr[:],
-		Amount:  amt.Bytes(),
-		Creator: transactor.Key.GetAddress().String(),
-	})
-	if err != nil {
-		return 0, err
-	}
-	if resp.Errmsg != nil {
-		return 0, errors.New(resp.Errmsg.String())
-	}
-	return resp.Seqnum, nil
 }
 
 // call claim-all

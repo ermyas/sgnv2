@@ -62,6 +62,7 @@ func SetupMainchain() {
 		tc.DelEthAddrs[3],
 		tc.ClientEthAddrs[0],
 		tc.ClientEthAddrs[1],
+		tc.ClientEthAddrs[2],
 	}
 	log.Infoln("fund each test addr 100 ETH")
 	err := tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20), tc.LocalGeth, int64(tc.ChainID))
@@ -97,27 +98,20 @@ func SetupMainchain2ForBridge() {
 
 	// set up mainchain: deploy contracts, fund addrs, etc
 	addrs := []eth.Addr{
-		tc.ValEthAddrs[0],
-		tc.ValEthAddrs[1],
-		tc.ValEthAddrs[2],
-		tc.ValEthAddrs[3],
 		tc.ValSignerAddrs[0],
 		tc.ValSignerAddrs[1],
 		tc.ValSignerAddrs[2],
 		tc.ValSignerAddrs[3],
-		tc.DelEthAddrs[0],
-		tc.DelEthAddrs[1],
-		tc.DelEthAddrs[2],
-		tc.DelEthAddrs[3],
 		tc.ClientEthAddrs[0],
 		tc.ClientEthAddrs[1],
+		tc.ClientEthAddrs[2],
 	}
 	log.Infoln("fund each test addr 100 ETH")
 	err := tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20), tc.LocalGeth2, int64(tc.Geth2ChainID))
 	tc.ChkErr(err, "fund each test addr 100 ETH")
 
 	log.Infoln("set up mainchain2")
-	tc.SetupEthClient2()
+	tc.InitCbrChainConfigs()
 }
 
 func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridge bool) {
@@ -232,31 +226,20 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridge bool
 }
 
 func DeployUsdtForBridge() {
+
+	tc.CbrChain1.USDTAddr, tc.CbrChain1.USDTContract = tc.DeployERC20Contract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, "USDT", "USDT", 6)
+	tc.CbrChain2.USDTAddr, tc.CbrChain2.USDTContract = tc.DeployERC20Contract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, "USDT", "USDT", 6)
+
+	// fund usdt to each user
 	addrs := []eth.Addr{
-		tc.ValEthAddrs[0],
-		tc.ValEthAddrs[1],
-		tc.ValEthAddrs[2],
-		tc.ValEthAddrs[3],
-		tc.ValSignerAddrs[0],
-		tc.ValSignerAddrs[1],
-		tc.ValSignerAddrs[2],
-		tc.ValSignerAddrs[3],
-		tc.DelEthAddrs[0],
-		tc.DelEthAddrs[1],
-		tc.DelEthAddrs[2],
-		tc.DelEthAddrs[3],
 		tc.ClientEthAddrs[0],
 		tc.ClientEthAddrs[1],
+		tc.ClientEthAddrs[2],
 	}
-
-	tc.CbrClient1.USDTAddr, tc.CbrClient1.USDTContract = tc.DeployERC20Contract(tc.CbrClient1.Ec, tc.CbrClient1.Auth, "USDT", "USDT", 6)
-	tc.CbrClient2.USDTAddr, tc.CbrClient2.USDTContract = tc.DeployERC20Contract(tc.CbrClient2.Ec, tc.CbrClient2.Auth, "USDT", "USDT", 6)
-
-	// fund usdt to each eth account
 	log.Infoln("fund each test addr 10 million usdt on each chain")
-	err := tc.FundAddrsErc20(tc.CbrClient1.USDTAddr, addrs, tc.NewBigInt(1, 13), tc.CbrClient1.Ec, tc.CbrClient1.Auth)
+	err := tc.FundAddrsErc20(tc.CbrChain1.USDTAddr, addrs, tc.NewBigInt(1, 13), tc.CbrChain1.Ec, tc.CbrChain1.Auth)
 	tc.ChkErr(err, "fund each test addr 10 million usdt on chain 1")
-	err = tc.FundAddrsErc20(tc.CbrClient2.USDTAddr, addrs, tc.NewBigInt(1, 13), tc.CbrClient2.Ec, tc.CbrClient2.Auth)
+	err = tc.FundAddrsErc20(tc.CbrChain2.USDTAddr, addrs, tc.NewBigInt(1, 13), tc.CbrChain2.Ec, tc.CbrChain2.Auth)
 	tc.ChkErr(err, "fund each test addr 10 million usdt on chain 2")
 
 	log.Infoln("Updating config files of SGN nodes")
@@ -269,8 +252,8 @@ func DeployUsdtForBridge() {
 		cbrConfig := new(cbrtypes.CbrConfig)
 		jsonByte, _ := json.Marshal(genesisViper.Get("app_state.cbridge.config"))
 		json.Unmarshal(jsonByte, cbrConfig)
-		cbrConfig.Assets[0].Addr = eth.Addr2Hex(tc.CbrClient1.USDTAddr)
-		cbrConfig.Assets[1].Addr = eth.Addr2Hex(tc.CbrClient2.USDTAddr)
+		cbrConfig.Assets[0].Addr = eth.Addr2Hex(tc.CbrChain1.USDTAddr)
+		cbrConfig.Assets[1].Addr = eth.Addr2Hex(tc.CbrChain2.USDTAddr)
 		genesisViper.Set("app_state.cbridge.config", cbrConfig)
 		err = genesisViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write genesis")
@@ -278,8 +261,8 @@ func DeployUsdtForBridge() {
 }
 
 func DeployBridgeContract() {
-	tc.CbrClient1.CbrAddr, tc.CbrClient1.CbrContract = tc.DeployBridgeContract(tc.CbrClient1.Ec, tc.CbrClient1.Auth, nil)
-	tc.CbrClient2.CbrAddr, tc.CbrClient2.CbrContract = tc.DeployBridgeContract(tc.CbrClient2.Ec, tc.CbrClient2.Auth, nil)
+	tc.CbrChain1.CbrAddr, tc.CbrChain1.CbrContract = tc.DeployBridgeContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, nil)
+	tc.CbrChain2.CbrAddr, tc.CbrChain2.CbrContract = tc.DeployBridgeContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, nil)
 
 	for i := 0; i < len(tc.ValEthKs); i++ {
 		cbrCfgPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/cbridge.toml", i)
@@ -288,8 +271,8 @@ func DeployBridgeContract() {
 		err := cbrViper.ReadInConfig()
 		tc.ChkErr(err, "Failed to read config")
 		multichains := cbrViper.Get("multichain").([]interface{})
-		multichains[0].(map[string]interface{})["cbridge"] = tc.CbrClient1.CbrAddr.Hex()
-		multichains[1].(map[string]interface{})["cbridge"] = tc.CbrClient2.CbrAddr.Hex()
+		multichains[0].(map[string]interface{})["cbridge"] = tc.CbrChain1.CbrAddr.Hex()
+		multichains[1].(map[string]interface{})["cbridge"] = tc.CbrChain2.CbrAddr.Hex()
 		cbrViper.Set("multichain", multichains)
 		err = cbrViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")
@@ -297,8 +280,8 @@ func DeployBridgeContract() {
 }
 
 func CreateFarmingPools() {
-	tc.CbrClient1.FarmingRewardsContract = tc.Contracts.FarmingRewards
-	tc.CbrClient2.FarmingRewardsContract = tc.Contracts.FarmingRewards
+	tc.CbrChain1.FarmingRewardsContract = tc.Contracts.FarmingRewards
+	tc.CbrChain2.FarmingRewardsContract = tc.Contracts.FarmingRewards
 
 	log.Infoln("Creating farming pools in genesis")
 	for i := 0; i < len(tc.ValEthKs); i++ {
@@ -320,7 +303,7 @@ func CreateFarmingPools() {
 			farmingtypes.ERC20Token{
 				ChainId: 883,
 				Symbol:  "CB-USDT",
-				Address: eth.Addr2Hex(tc.CbrClient1.USDTAddr),
+				Address: eth.Addr2Hex(tc.CbrChain1.USDTAddr),
 			},
 			[]farmingtypes.ERC20Token{
 				{

@@ -2,24 +2,18 @@ package common
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"math/big"
-	"sort"
 	"strings"
-	"time"
 
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
-	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
-	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/gogo/protobuf/proto"
 )
 
 func SetEthBaseKs(prefix string) {
@@ -62,41 +56,10 @@ func SetupEthClients() {
 		}
 		DelAuths = append(DelAuths, auth)
 	}
-
-	Client0, err = SetupTestEthClient(ClientEthKs[0])
-	if err != nil {
-		log.Fatal(err)
-	}
-	Client1, err = SetupTestEthClient(ClientEthKs[1])
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	CbrClient1 = &CbrClient{
-		Ec:   EthClient,
-		Auth: EtherBaseAuth,
-	}
 }
 
-func SetupEthClient2() {
-	rpcClient, err := rpc.Dial(LocalGeth2)
-	if err != nil {
-		log.Fatal(err)
-	}
-	EthClient2 = ethclient.NewClient(rpcClient)
-	_, EtherBaseAuth2, err = GetAuth(etherBaseKs, int64(Geth2ChainID))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	CbrClient2 = &CbrClient{
-		Ec:   EthClient2,
-		Auth: EtherBaseAuth2,
-	}
-}
-
-func SetupTestEthClient(ksfile string) (*TestEthClient, error) {
-	addr, auth, err := GetAuth(ksfile, int64(ChainID))
+func SetupTestEthClient(ksfile string, chainId uint64) (*TestEthClient, error) {
+	addr, auth, err := GetAuth(ksfile, int64(chainId))
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +71,7 @@ func SetupTestEthClient(ksfile string) (*TestEthClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	testClient.Signer, err = ethutils.NewSignerFromKeystore(string(ksBytes), "", big.NewInt(int64(ChainID)))
+	testClient.Signer, err = ethutils.NewSignerFromKeystore(string(ksBytes), "", big.NewInt(int64(chainId)))
 	if err != nil {
 		return nil, err
 	}
@@ -297,84 +260,4 @@ func prepareEtherBaseClient(gatewayAddr string, chainId int64) (
 		return nil, nil, nil, eth.Addr{}, err
 	}
 	return conn, auth, context.Background(), etherBaseAddr, nil
-}
-
-// call usdt contract approve for cbr addr
-func (c *CbrClient) Approve(amt *big.Int) error {
-	tx, err := c.USDTContract.Approve(c.Auth, c.CbrAddr, amt)
-	if err != nil {
-		return err
-	}
-	_, err = ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
-	return err
-}
-
-func (c *CbrClient) AddLiq(amt *big.Int) error {
-	tx, err := c.CbrContract.AddLiquidity(c.Auth, c.USDTAddr, amt)
-	if err != nil {
-		return err
-	}
-	_, err = ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
-	return err
-}
-
-func (c *CbrClient) Send(amt *big.Int, receiver eth.Addr, dstChainId, nonce uint64) ([32]byte, error) {
-	tx, err := c.CbrContract.Send(c.Auth, receiver, c.USDTAddr, amt, dstChainId, nonce, 10000) //1% slippage
-	if err != nil {
-		return eth.ZeroCid, err
-	}
-	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
-	if err != nil {
-		return eth.ZeroCid, err
-	}
-	sendLog := receipt.Logs[len(receipt.Logs)-1] // last log is Send event
-	sendEv, err := c.CbrContract.ParseSend(*sendLog)
-	if err != nil {
-		return eth.ZeroCid, fmt.Errorf("parse log %+v err: %w", sendLog, err)
-	}
-	return sendEv.TransferId, nil
-}
-
-func (c *CbrClient) SetInitSigners(amts []*big.Int) error {
-	var signers []*cbrtypes.AddrAmt
-	for i, amt := range amts {
-		signers = append(signers, &cbrtypes.AddrAmt{
-			Addr: ValSignerAddrs[i].Bytes(),
-			Amt:  amt.Bytes(),
-		})
-	}
-	ss, err := proto.Marshal(&cbrtypes.SortedSigners{
-		Signers: signers,
-	})
-	if err != nil {
-		return err
-	}
-	tx, err := c.CbrContract.SetInitSigners(c.Auth, ss)
-	_, err = ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
-	return err
-}
-
-func (c *CbrClient) OnchainWithdraw(wdDetail *cbrtypes.WithdrawDetail, curss []byte) error {
-	tx, err := c.CbrContract.Withdraw(c.Auth, wdDetail.WdOnchain, curss, wdDetail.GetSortedSigsBytes())
-	if err != nil {
-		return err
-	}
-	_, err = ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
-	return err
-}
-
-func (c *CbrClient) OnchainClaimRewards(details *farmingtypes.RewardClaimDetails) error {
-	sort.Slice(details.Signatures, func(i int, j int) bool {
-		return details.Signatures[i].Signer < details.Signatures[j].Signer
-	})
-	var sigs [][]byte
-	for _, signature := range details.Signatures {
-		sigs = append(sigs, signature.SigBytes)
-	}
-	tx, err := c.FarmingRewardsContract.ClaimRewards(c.Auth, details.RewardProtoBytes, nil, sigs)
-	if err != nil {
-		return err
-	}
-	_, err = ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
-	return err
 }
