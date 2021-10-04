@@ -37,10 +37,9 @@ type CbrChain struct {
 	Auth    *bind.TransactOpts // etherbase auth
 	Users   []*TestEthClient
 	// contract addr
-	CbrAddr, USDTAddr      eth.Addr
-	CbrContract            *eth.BridgeContract
-	USDTContract           *eth.Erc20
-	FarmingRewardsContract *eth.FarmingRewardsContract
+	CbrAddr, USDTAddr eth.Addr
+	CbrContract       *eth.BridgeContract
+	USDTContract      *eth.Erc20
 }
 
 type TestEthClient struct {

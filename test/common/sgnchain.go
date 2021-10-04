@@ -1,7 +1,6 @@
 package common
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -15,10 +14,6 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/transactor"
-	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
-	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
-	farmingcli "github.com/celer-network/sgn-v2/x/farming/client/cli"
-	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	govcli "github.com/celer-network/sgn-v2/x/gov/client/cli"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	slashcli "github.com/celer-network/sgn-v2/x/slash/client/cli"
@@ -28,7 +23,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -98,9 +92,6 @@ func CheckValidator(t *testing.T, transactor *transactor.Transactor, expVal *sta
 	var err error
 	for retry := 0; retry < RetryLimit; retry++ {
 		validator, err = stakingcli.QueryValidator(transactor.CliCtx, expVal.EthAddress)
-		if err != nil {
-			log.Debugln("retry due to err:", err)
-		}
 		if err == nil && sameValidators(validator, expVal) {
 			break
 		}
@@ -108,7 +99,7 @@ func CheckValidator(t *testing.T, transactor *transactor.Transactor, expVal *sta
 	}
 	require.NoError(t, err, "failed to QueryValidator", err)
 	log.Infof("Query sgn and get validator: %s", validator.String())
-	msg := fmt.Sprintf("Expected validator:\n %s\n Actual validator:\n %s\n", expVal.String(), validator.String())
+	msg := fmt.Sprintf("Expected validator:\n %s\n Actual validator:\n %s\n", expVal, validator)
 	assert.True(t, sameValidators(validator, expVal), msg)
 }
 
@@ -116,7 +107,7 @@ func CheckValidator(t *testing.T, transactor *transactor.Transactor, expVal *sta
 func CheckValidatorBySgnAddr(t *testing.T, transactor *transactor.Transactor, expVal *stakingtypes.Validator) {
 	validator, err := stakingcli.QueryValidatorBySgnAddr(transactor.CliCtx, expVal.SgnAddress)
 	require.NoError(t, err, "failed to QueryValidatorBySgnAddr", err)
-	msg := fmt.Sprintf("Expected validator:\n %s\n Actual validator:\n %s\n", expVal.String(), validator.String())
+	msg := fmt.Sprintf("Expected validator:\n %s\n Actual validator:\n %s\n", expVal, validator)
 	assert.True(t, sameValidators(validator, expVal), msg)
 }
 
@@ -125,9 +116,6 @@ func CheckValidators(transactor *transactor.Transactor, expVals stakingtypes.Val
 	var err error
 	for retry := 0; retry < RetryLimit; retry++ {
 		validators, err = stakingcli.QueryValidators(transactor.CliCtx)
-		if err != nil {
-			log.Debugln("retry due to err:", err)
-		}
 		if err == nil && sameEachValidators(validators, expVals) {
 			break
 		}
@@ -135,9 +123,8 @@ func CheckValidators(transactor *transactor.Transactor, expVals stakingtypes.Val
 	}
 	ChkErr(err, "failed to QueryValidators")
 	log.Infof("Query sgn and get validators: %s", validators.String())
-	msg := fmt.Sprintf("Expected validators:\n %s\n Actual validators:\n %s\n", expVals.String(), validators.String())
 	if !sameEachValidators(validators, expVals) {
-		log.Fatalln(msg)
+		log.Fatalf("Expected validators:\n %s\n Actual validators:\n %s\n", expVals, validators)
 	}
 }
 
@@ -243,128 +230,4 @@ func QuerySlash(cliCtx client.Context, nonce uint64, sigCount int) (slash slasht
 	}
 
 	return
-}
-
-func CheckAddLiquidityStatus(transactor *transactor.Transactor, chainId, seqNum uint64) {
-	var resp *cbrtypes.QueryLiquidityStatusResponse
-	var err error
-	for retry := 0; retry < RetryLimit*2; retry++ {
-		resp, err = cbrcli.QueryAddLiquidityStatus(transactor.CliCtx, &cbrtypes.QueryAddLiquidityStatusRequest{
-			ChainId: chainId,
-			SeqNum:  seqNum,
-		})
-		if err != nil {
-			log.Debugln("retry due to err:", err)
-		}
-		if err == nil && resp.Status == cbrtypes.LPHistoryStatus_LP_COMPLETED {
-			break
-		}
-		time.Sleep(RetryPeriod)
-	}
-	ChkErr(err, "failed to QueryAddLiquidityStatus")
-	if resp.Status != cbrtypes.LPHistoryStatus_LP_COMPLETED {
-		log.Fatalln("incorrect status")
-	}
-}
-
-func CheckXfer(transactor *transactor.Transactor, xferId []byte) {
-	var resp *cbrtypes.QueryTransferStatusResponse
-	var err error
-	var prevXferStatus cbrtypes.TransferHistoryStatus
-	xferIdStr := common.Bytes2Hex(xferId)
-	for retry := 0; retry < RetryLimit*2; retry++ {
-		resp, err = cbrcli.QueryTransferStatus(transactor.CliCtx, &cbrtypes.QueryTransferStatusRequest{
-			TransferId: []string{xferIdStr},
-		})
-		if err != nil {
-			log.Debugln("retry due to err:", err)
-		}
-		curStatus, ok := resp.Status[xferIdStr]
-		if ok && curStatus != prevXferStatus {
-			log.Infof("xfer status changed from %s to %s", prevXferStatus.String(), curStatus.String())
-			prevXferStatus = curStatus
-		}
-		if err == nil && resp.Status[xferIdStr] == cbrtypes.TransferHistoryStatus_TRANSFER_COMPLETED {
-			break
-		}
-		time.Sleep(RetryPeriod)
-	}
-	ChkErr(err, "failed to QueryTransferStatus")
-	if resp.Status[xferIdStr] != cbrtypes.TransferHistoryStatus_TRANSFER_COMPLETED {
-		log.Fatalln("incorrect status")
-	}
-}
-
-func CheckChainSigners(t *testing.T, transactor *transactor.Transactor, chainId uint64, expSigners *cbrtypes.SortedSigners) {
-	var err error
-	var signers *cbrtypes.ChainSigners
-	for retry := 0; retry < RetryLimit; retry++ {
-		signers, err = cbrcli.QueryChainSigners(transactor.CliCtx, chainId)
-		if err != nil {
-			log.Debugln("retry due to err:", err)
-		}
-		if err == nil && signers != nil && sameSortedSigenrs(signers.GetCurrSigners(), expSigners) {
-			break
-		}
-		time.Sleep(RetryPeriod)
-	}
-	ChkErr(err, "failed to QueryChainSigners")
-	log.Infof("Query sgn and get chain %d signers: %s", chainId, signers.String())
-	assert.True(t, sameSortedSigenrs(signers.GetCurrSigners(), expSigners), "expected signers should be: "+expSigners.String())
-}
-
-func CheckLatestSigners(t *testing.T, transactor *transactor.Transactor, expSigners *cbrtypes.SortedSigners) {
-	var err error
-	var signers *cbrtypes.LatestSigners
-	for retry := 0; retry < RetryLimit; retry++ {
-		signers, err = cbrcli.QueryLatestSigners(transactor.CliCtx)
-		if err != nil {
-			log.Debugln("retry due to err:", err)
-		}
-		if err == nil && signers != nil && sameSortedSigenrs(signers.GetSigners(), expSigners) {
-			break
-		}
-		time.Sleep(RetryPeriod)
-	}
-	ChkErr(err, "failed to QueryLatestSigners")
-	log.Infof("Query sgn and get latest signers: %s", signers.String())
-	assert.True(t, sameSortedSigenrs(signers.GetSigners(), expSigners), "expected signers should be: "+expSigners.String())
-}
-
-func sameSortedSigenrs(ss1, ss2 *cbrtypes.SortedSigners) bool {
-	b1, _ := proto.Marshal(ss1)
-	b2, _ := proto.Marshal(ss2)
-	return bytes.Compare(b1, b2) == 0
-}
-
-func GetWithdrawDetail(transactor *transactor.Transactor, wdseq uint64) (*cbrtypes.WithdrawDetail, error) {
-	resp, err := cbrcli.QueryWithdrawLiquidityStatus(transactor.CliCtx, &cbrtypes.QueryWithdrawLiquidityStatusRequest{
-		SeqNum: wdseq,
-	})
-	if err != nil {
-		return nil, err
-	}
-	log.Infoln("wdseq", wdseq, "status:", resp.Status)
-	return resp.Detail, err
-}
-
-func GetCurSortedSigners(transactor *transactor.Transactor, chid uint64) ([]byte, error) {
-	signers, err := cbrcli.QueryChainSigners(transactor.CliCtx, chid)
-	if err != nil {
-		return nil, err
-	}
-	return signers.SignersBytes, nil
-}
-
-// call claim-all
-func StartClaimAll(transactor *transactor.Transactor, addr string) error {
-	_, err := farmingcli.ClaimAllRewards(transactor, &farmingtypes.MsgClaimAllRewards{
-		Address: addr,
-		Sender:  transactor.Key.GetAddress().String(),
-	})
-	return err
-}
-
-func GetRewardClaimInfo(transactor *transactor.Transactor, addr string) (*farmingtypes.RewardClaimInfo, error) {
-	return farmingcli.QueryRewardClaimInfo(context.Background(), transactor.CliCtx, addr)
 }

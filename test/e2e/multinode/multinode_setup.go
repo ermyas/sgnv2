@@ -63,6 +63,7 @@ func SetupMainchain() {
 		tc.ClientEthAddrs[0],
 		tc.ClientEthAddrs[1],
 		tc.ClientEthAddrs[2],
+		tc.ClientEthAddrs[3],
 	}
 	log.Infoln("fund each test addr 100 ETH")
 	err := tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20), tc.LocalGeth, int64(tc.ChainID))
@@ -105,6 +106,7 @@ func SetupMainchain2ForBridge() {
 		tc.ClientEthAddrs[0],
 		tc.ClientEthAddrs[1],
 		tc.ClientEthAddrs[2],
+		tc.ClientEthAddrs[3],
 	}
 	log.Infoln("fund each test addr 100 ETH")
 	err := tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20), tc.LocalGeth2, int64(tc.Geth2ChainID))
@@ -235,6 +237,7 @@ func DeployUsdtForBridge() {
 		tc.ClientEthAddrs[0],
 		tc.ClientEthAddrs[1],
 		tc.ClientEthAddrs[2],
+		tc.ClientEthAddrs[3],
 	}
 	log.Infoln("fund each test addr 10 million usdt on each chain")
 	err := tc.FundAddrsErc20(tc.CbrChain1.USDTAddr, addrs, tc.NewBigInt(1, 13), tc.CbrChain1.Ec, tc.CbrChain1.Auth)
@@ -280,9 +283,6 @@ func DeployBridgeContract() {
 }
 
 func CreateFarmingPools() {
-	tc.CbrChain1.FarmingRewardsContract = tc.Contracts.FarmingRewards
-	tc.CbrChain2.FarmingRewardsContract = tc.Contracts.FarmingRewards
-
 	log.Infoln("Creating farming pools in genesis")
 	for i := 0; i < len(tc.ValEthKs); i++ {
 		genesisPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/genesis.json", i)

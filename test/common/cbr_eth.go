@@ -2,7 +2,6 @@ package common
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -11,8 +10,6 @@ import (
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
-	"github.com/celer-network/sgn-v2/transactor"
-	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -105,50 +102,14 @@ func (c *CbrChain) SendAny(fromUid, toUid uint64, amt *big.Int, dstChainId, nonc
 	return sendEv.TransferId, nil
 }
 
-// call initwithdraw and return withdraw seqnum
-func (c *CbrChain) StartWithdraw(transactor *transactor.Transactor, uid uint64, amt *big.Int) (uint64, error) {
-	resp, err := cbrcli.InitWithdraw(transactor, &cbrtypes.MsgInitWithdraw{
-		Chainid: c.ChainId,
-		LpAddr:  c.Users[uid].Address.Bytes(),
-		Token:   c.USDTAddr.Bytes(),
-		Amount:  amt.Bytes(),
-		Creator: transactor.Key.GetAddress().String(),
-	})
-	if err != nil {
-		return 0, err
-	}
-	if resp.Errmsg != nil {
-		return 0, errors.New(resp.Errmsg.String())
-	}
-	return resp.Seqnum, nil
-}
-
-func (c *CbrChain) OnchainWithdraw(uid uint64, wdDetail *cbrtypes.WithdrawDetail, curss []byte) error {
+func (c *CbrChain) OnchainWithdraw(wdDetail *cbrtypes.WithdrawDetail, curss []byte) error {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
-	tx, err := c.CbrContract.Withdraw(c.Users[uid].Auth, wdDetail.WdOnchain, curss, wdDetail.GetSortedSigsBytes())
+	tx, err := c.CbrContract.Withdraw(c.Auth, wdDetail.WdOnchain, curss, wdDetail.GetSortedSigsBytes())
 	if err != nil {
 		return err
 	}
 	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "OnchainWithdraw")
-	return nil
-}
-
-func (c *CbrChain) OnchainClaimRewards(uid uint64, details *farmingtypes.RewardClaimDetails) error {
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
-	defer cancel()
-	sort.Slice(details.Signatures, func(i int, j int) bool {
-		return details.Signatures[i].Signer < details.Signatures[j].Signer
-	})
-	var sigs [][]byte
-	for _, signature := range details.Signatures {
-		sigs = append(sigs, signature.SigBytes)
-	}
-	tx, err := c.FarmingRewardsContract.ClaimRewards(c.Users[uid].Auth, details.RewardProtoBytes, nil, sigs)
-	if err != nil {
-		return err
-	}
-	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "OnchainClaimRewards")
 	return nil
 }
 
@@ -173,5 +134,23 @@ func (c *CbrChain) SetInitSigners(amts []*big.Int) error {
 		return err
 	}
 	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "SetInitSigners")
+	return nil
+}
+
+func OnchainClaimRewards(details *farmingtypes.RewardClaimDetails) error {
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
+	sort.Slice(details.Signatures, func(i int, j int) bool {
+		return details.Signatures[i].Signer < details.Signatures[j].Signer
+	})
+	var sigs [][]byte
+	for _, signature := range details.Signatures {
+		sigs = append(sigs, signature.SigBytes)
+	}
+	tx, err := Contracts.FarmingRewards.ClaimRewards(EtherBaseAuth, details.RewardProtoBytes, nil, sigs)
+	if err != nil {
+		return err
+	}
+	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "OnchainClaimRewards")
 	return nil
 }

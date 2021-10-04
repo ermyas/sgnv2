@@ -3,7 +3,6 @@ package multinode
 import (
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
@@ -87,51 +86,44 @@ func cbridgeTest(t *testing.T) {
 	log.Infoln("======================== Add liquidity on chain 1 ===========================")
 	addAmt := big.NewInt(5 * 1e10)
 	err = tc.CbrChain1.Approve(0, addAmt)
-	tc.ChkErr(err, "client1 approve")
+	tc.ChkErr(err, "u0 chain1 approve")
 	err = tc.CbrChain1.AddLiq(0, addAmt)
-	tc.ChkErr(err, "client1 addliq")
+	tc.ChkErr(err, "u0 chain1 addliq")
 	tc.CheckAddLiquidityStatus(transactor, tc.CbrChain1.ChainId, 1)
 
 	log.Infoln("======================== Add liquidity on chain 2 ===========================")
 	err = tc.CbrChain2.Approve(0, addAmt)
-	tc.ChkErr(err, "client2 approve")
+	tc.ChkErr(err, "u0 chain2 approve")
 	err = tc.CbrChain2.AddLiq(0, addAmt)
-	tc.ChkErr(err, "client2 addliq")
+	tc.ChkErr(err, "u0 chain2 addliq")
 	tc.CheckAddLiquidityStatus(transactor, tc.CbrChain2.ChainId, 1)
 
 	log.Infoln("======================== Xfer ===========================")
 	xferAmt := big.NewInt(1e10)
 	err = tc.CbrChain1.Approve(0, xferAmt)
-	tc.ChkErr(err, "client1 approve")
+	tc.ChkErr(err, "u0 chain1 approve")
 	xferId, err := tc.CbrChain1.Send(0, xferAmt, tc.CbrChain2.ChainId, 1)
-	tc.ChkErr(err, "client1 send")
+	tc.ChkErr(err, "u0 chain1 send")
 	tc.CheckXfer(transactor, xferId[:])
 
 	log.Infoln("======================== LP withdraw liquidity ===========================")
 	wdSeq, err := tc.CbrChain1.StartWithdraw(transactor, 0, big.NewInt(1e10))
-	tc.ChkErr(err, "client1 start withdraw")
+	tc.ChkErr(err, "u0 chain1 start withdraw")
 	log.Info("withdraw seqnum: ", wdSeq)
-	// now sleep and get stuff to send onchain
-	time.Sleep(time.Second * 10)
-	detail, err := tc.GetWithdrawDetail(transactor, wdSeq)
-	tc.ChkErr(err, "client1 get withdrawdetail")
+	detail := tc.GetWithdrawDetailWithSigs(transactor, wdSeq, 1)
 	curss, err := tc.GetCurSortedSigners(transactor, tc.CbrChain1.ChainId)
-	tc.ChkErr(err, "client1 GetCurSortedSigners")
-	err = tc.CbrChain1.OnchainWithdraw(0, detail, curss)
-	tc.ChkErr(err, "client1 onchain withdraw")
+	tc.ChkErr(err, "chain1 GetCurSortedSigners")
+	err = tc.CbrChain1.OnchainWithdraw(detail, curss)
+	tc.ChkErr(err, "chain1 onchain withdraw")
 	// todo: more cases, eg. lp2 withdraw from chain1 after xfer
 
 	log.Infoln("======================== LP claim farming reward on-chain ===========================")
-	err = tc.StartClaimAll(transactor, eth.Addr2Hex(tc.CbrChain1.Users[0].Address))
-	tc.ChkErr(err, "client1 start claim all")
+	err = tc.StartClaimFarmingRewards(transactor, 0)
+	tc.ChkErr(err, "u0 start claim all")
 	// now sleep and get stuff to send onchain
-	time.Sleep(time.Second * 10)
-	info, err := tc.GetRewardClaimInfo(transactor, eth.Addr2Hex(tc.CbrChain1.Users[0].Address))
-	tc.ChkErr(err, "client1 get reward info")
-	assert.Len(t, info.RewardClaimDetailsList, 1, "must have 1 RewardClaimDetails")
-	assert.Len(t, info.RewardClaimDetailsList[0].Signatures, 1, "node0 should sign")
-	err = tc.CbrChain1.OnchainClaimRewards(0, &info.RewardClaimDetailsList[0])
-	tc.ChkErr(err, "client1 onchain claim rewards")
+	info := tc.GetFarmingRewardClaimInfoWithSigs(transactor, 0, 1)
+	err = tc.OnchainClaimRewards(&info.RewardClaimDetailsList[0])
+	tc.ChkErr(err, "u0 onchain claim rewards")
 }
 
 func cbrSignersTest(t *testing.T) {
