@@ -16,6 +16,14 @@ func (m *XferRelay) GetSortedSigsBytes() [][]byte {
 	return nil
 }
 
+func (m *XferRelay) SignersStr() string {
+	var signers string
+	for _, s := range m.SortedSigs {
+		signers += fmt.Sprintf("%x ", s.Addr)
+	}
+	return fmt.Sprintf("signers: < %s>", signers)
+}
+
 func (m *WithdrawDetail) GetSortedSigsBytes() [][]byte {
 	if m != nil {
 		sigs := make([][]byte, len(m.SortedSigs))
@@ -25,14 +33,6 @@ func (m *WithdrawDetail) GetSortedSigsBytes() [][]byte {
 		return sigs
 	}
 	return nil
-}
-
-func (m *XferRelay) SignersStr() string {
-	var signers string
-	for _, s := range m.SortedSigs {
-		signers += fmt.Sprintf("%x ", s.Addr)
-	}
-	return fmt.Sprintf("signers: < %s>", signers)
 }
 
 // basic check of config

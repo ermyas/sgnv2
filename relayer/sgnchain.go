@@ -40,13 +40,13 @@ func MonitorTendermintEvent(nodeURI, eventQuery string, handleEvents func(events
 	}
 	defer client.Stop()
 
-	txs, err := client.Subscribe(context.Background(), "monitor", eventQuery)
+	res, err := client.Subscribe(context.Background(), "monitor", eventQuery)
 	if err != nil {
 		log.Errorln("ws client subscribe error", err)
 		return
 	}
 
-	for e := range txs {
+	for e := range res {
 		handleEvents(e.Events)
 	}
 }
@@ -60,8 +60,7 @@ func (r *Relayer) monitorSgnSlash() {
 				return
 			}
 			for _, nonceStr := range events[fmt.Sprintf("%s.%s", slashtypes.EventTypeSlash, slashtypes.AttributeKeyNonce)] {
-				nonce, err :=
-					strconv.ParseUint(nonceStr, 10, 64)
+				nonce, err := strconv.ParseUint(nonceStr, 10, 64)
 				if err != nil {
 					log.Errorln("Parse slash nonce error", err)
 					return
@@ -104,9 +103,9 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 			if tmEventType != tm.EventTx && tmEventType != tm.EventNewBlock {
 				return
 			}
-			sigTypes := events[fmt.Sprintf("%s.%s", cbrtypes.EventTypeDataToSign, cbrtypes.AttributeKeyType)]
+			dataTypes := events[fmt.Sprintf("%s.%s", cbrtypes.EventTypeDataToSign, cbrtypes.AttributeKeyType)]
 			dataArr := events[fmt.Sprintf("%s.%s", cbrtypes.EventTypeDataToSign, cbrtypes.AttributeKeyData)]
-			for i, sigType := range sigTypes {
+			for i, dataType := range dataTypes {
 				data := eth.Hex2Bytes(dataArr[i])
 				// sign data first
 				sig, err := r.EthClient.SignEthMessage(data)
@@ -119,8 +118,8 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 					MySig:   sig,
 					Creator: r.Transactor.Key.GetAddress().String(),
 				}
-				logmsg := fmt.Sprintf("Sign cBridge data, sigType: %s", sigType)
-				switch sigType {
+				logmsg := fmt.Sprintf("Sign cBridge data, dataType: %s", dataType)
+				switch dataType {
 				case cbrtypes.SignDataType_RELAY.String():
 					msg.Datatype = cbrtypes.SignDataType_RELAY
 					relay := new(cbrtypes.RelayOnChain)

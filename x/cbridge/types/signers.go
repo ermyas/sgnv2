@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"sort"
 
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/gogo/protobuf/proto"
 )
@@ -98,4 +99,34 @@ func MustUnmarshalLatestSigners(cdc codec.BinaryCodec, value []byte) LatestSigne
 func UnmarshalLatestSigners(cdc codec.BinaryCodec, value []byte) (s LatestSigners, err error) {
 	err = cdc.Unmarshal(value, &s)
 	return s, err
+}
+
+func ValidateSigs(sortedSigs []*AddrSig, curss *SortedSigners) (pass bool, sigsBytes [][]byte) {
+	if len(curss.GetSigners()) == 0 {
+		return false, nil
+	}
+	totalPower := big.NewInt(0)
+	curssMap := make(map[eth.Addr]*AddrAmt)
+	for _, s := range curss.GetSigners() {
+		power := big.NewInt(0).SetBytes(s.Amt)
+		totalPower.Add(totalPower, power)
+		curssMap[eth.Bytes2Addr(s.Addr)] = s
+	}
+	quorumStake := big.NewInt(0).Mul(totalPower, big.NewInt(2))
+	quorumStake = quorumStake.Quo(quorumStake, big.NewInt(3))
+
+	signedPower := big.NewInt(0)
+	for _, s := range sortedSigs {
+		if addrAmt, ok := curssMap[eth.Bytes2Addr(s.Addr)]; ok {
+			power := big.NewInt(0).SetBytes(addrAmt.Amt)
+			signedPower.Add(signedPower, power)
+			sigsBytes = append(sigsBytes, s.Sig)
+			if signedPower.Cmp(quorumStake) > 0 {
+				return true, sigsBytes
+			}
+			delete(curssMap, eth.Bytes2Addr(s.Addr))
+		}
+	}
+
+	return false, nil
 }

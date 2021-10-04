@@ -26,7 +26,9 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 	cmd.AddCommand(
 		GetCmdQueryConfig(),
 		GetCmdChainTokensConfig(),
-		qRelayCmd,
+		GetCmdQueryRelay(),
+		GetCmdQueryChainSigners(),
+		GetCmdQueryLatestSigners(),
 	)
 	// this line is used by starport scaffolding # 1
 
@@ -34,41 +36,75 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 }
 
 // relay and sigs about this xfer
-var qRelayCmd = &cobra.Command{
-	Use:   "relay",
-	Args:  cobra.ExactArgs(1),
-	Short: "Query relay for xfer id",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cliCtx, _ := client.GetClientQueryContext(cmd)
-		xfid := eth.Hex2Bytes(args[0])
+func GetCmdQueryRelay() *cobra.Command {
+	return &cobra.Command{
+		Use:   "relay",
+		Args:  cobra.ExactArgs(1),
+		Short: "Query relay for xfer id",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, _ := client.GetClientQueryContext(cmd)
+			xfid := eth.Hex2Bytes(args[0])
 
-		resp, err := QueryRelay(cliCtx, xfid)
-		if err != nil {
-			log.Errorln("query error", err)
-			return err
-		}
-		return cliCtx.PrintObjectLegacy(resp)
-	},
+			resp, err := QueryRelay(cliCtx, xfid)
+			if err != nil {
+				log.Errorln("query error", err)
+				return err
+			}
+			relayOnChain := new(types.RelayOnChain)
+			err = relayOnChain.Unmarshal(resp.Relay)
+			if err != nil {
+				log.Errorln("unmarshal relay error", err)
+				return err
+			}
+			fmt.Printf("Relay: %s, %s", relayOnChain.String(), resp.SignersStr())
+			return nil
+		},
+	}
 }
 
-var qSignersCmd = &cobra.Command{
-	Use:   "signers",
-	Args:  cobra.ExactArgs(1),
-	Short: "Query signers for chainid",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cliCtx, _ := client.GetClientQueryContext(cmd)
-		chid, _ := strconv.Atoi(args[0])
+func GetCmdQueryChainSigners() *cobra.Command {
+	return &cobra.Command{
+		Use:   "chain-signers",
+		Args:  cobra.ExactArgs(1),
+		Short: "Query signers for chainid",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, _ := client.GetClientQueryContext(cmd)
+			chid, _ := strconv.Atoi(args[0])
 
-		resp, err := QueryChainSigners(cliCtx, uint64(chid))
-		if err != nil {
-			log.Errorln("query error", err)
-			return err
-		}
-		return cliCtx.PrintObjectLegacy(resp)
-	},
+			resp, err := QueryChainSigners(cliCtx, uint64(chid))
+			if err != nil {
+				log.Errorln("query error", err)
+				return err
+			}
+			fmt.Println(resp.String())
+			return nil
+		},
+	}
 }
 
-// GetCmdQueryConfig implements the params query command.
+func GetCmdQueryLatestSigners() *cobra.Command {
+	return &cobra.Command{
+		Use:   "latest-signers",
+		Args:  cobra.NoArgs,
+		Short: "Query the latest signers",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			resp, err := QueryLatestSigners(cliCtx)
+			if err != nil {
+				log.Errorln("query error", err)
+				return err
+			}
+
+			fmt.Println(resp.String())
+			return nil
+		},
+	}
+}
+
 func GetCmdQueryConfig() *cobra.Command {
 	return &cobra.Command{
 		Use:   "config",

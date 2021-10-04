@@ -4,11 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -55,35 +53,6 @@ func (c *CbrOneChain) getTokenFromDB(tokenAddr string) (*webapi.TokenInfo, uint6
 		return nil, 0, false
 	}
 	return token, chainId.Uint64(), true
-}
-
-func validateCbrSigs(sortedSigs []*cbrtypes.AddrSig, curss *cbrtypes.SortedSigners) (pass bool, sigsBytes [][]byte) {
-	if len(curss.GetSigners()) == 0 {
-		return false, nil
-	}
-	totalPower := big.NewInt(0)
-	curssMap := make(map[eth.Addr]*cbrtypes.AddrAmt)
-	for _, s := range curss.GetSigners() {
-		power := big.NewInt(0).SetBytes(s.Amt)
-		totalPower.Add(totalPower, power)
-		curssMap[eth.Bytes2Addr(s.Addr)] = s
-	}
-	quorumStake := big.NewInt(0).Mul(totalPower, big.NewInt(2))
-	quorumStake = quorumStake.Quo(quorumStake, big.NewInt(3))
-
-	signedPower := big.NewInt(0)
-	for _, s := range sortedSigs {
-		if addrAmt, ok := curssMap[eth.Bytes2Addr(s.Addr)]; ok {
-			power := big.NewInt(0).SetBytes(addrAmt.Amt)
-			signedPower.Add(signedPower, power)
-			sigsBytes = append(sigsBytes, s.Sig)
-			if signedPower.Cmp(quorumStake) > 0 {
-				return true, sigsBytes
-			}
-		}
-	}
-
-	return false, nil
 }
 
 func GatewayOnSend(transferId string) error {

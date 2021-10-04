@@ -98,7 +98,7 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 	}
 
 	curss := r.cbrMgr[relayOnChain.DstChainId].getCurss()
-	pass, sigsBytes := validateCbrSigs(relay.SortedSigs, curss.signers)
+	pass, sigsBytes := cbrtypes.ValidateSigs(relay.SortedSigs, curss.signers)
 	if !pass {
 		log.Debugf("%s. Not have enough sigs %s, curss %s", logmsg, relay.SignersStr(), curss.signers.String())
 		r.requeueRelay(relayEvent)
@@ -201,7 +201,7 @@ func (r *Relayer) updateSigners() {
 		var sigsBytes [][]byte
 		retry := 0
 		for !pass && retry < maxSigRetry {
-			pass, sigsBytes = validateCbrSigs(latestSigners.GetSortedSigs(), c.getCurss().signers)
+			pass, sigsBytes = cbrtypes.ValidateSigs(latestSigners.GetSortedSigs(), c.getCurss().signers)
 			if pass {
 				break
 			}

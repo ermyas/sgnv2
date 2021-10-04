@@ -22,6 +22,7 @@ import (
 
 var (
 	start   = flag.Bool("start", false, "start local testnet")
+	cbr     = flag.Bool("cbr", false, "start with cbridge")
 	auto    = flag.Bool("auto", false, "auto-add all validators")
 	down    = flag.Bool("down", false, "shutdown local testnet")
 	up      = flag.Int("up", -1, "start a testnet node")
@@ -36,6 +37,9 @@ func main() {
 	repoRoot, _ := filepath.Abs("../../..")
 	if *start {
 		multinode.SetupMainchain()
+		if *cbr {
+			multinode.SetupMainchain2ForBridge()
+		}
 		tc.SetupSgnchain()
 
 		p := &tc.ContractParams{
@@ -50,7 +54,12 @@ func main() {
 			ValidatorBondInterval: big.NewInt(0),
 			MaxSlashFactor:        big.NewInt(1e5),
 		}
-		multinode.SetupNewSgnEnv(p, true, false)
+		multinode.SetupNewSgnEnv(p, true, *cbr)
+		if *cbr {
+			amts := []*big.Int{big.NewInt(1e18)}
+			tc.CbrClient1.SetInitSigners(amts)
+			tc.CbrClient2.SetInitSigners(amts)
+		}
 
 		log.Infoln("install sgnd in host machine")
 		cmd := exec.Command("make", "install")
