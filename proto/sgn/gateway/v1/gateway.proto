@@ -70,7 +70,7 @@ service Web {
     }
 
     // bcz it's time cost for sgn voting, so we need a polling api to check the status
-    rpc QueryLiquidityStatus (QueryLiquidityStatusRequest) returns (cbridge.v1.QueryLiquidityStatusResponse) {
+    rpc QueryLiquidityStatus (QueryLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {
         option (google.api.http) = {
       get: "/v1/queryLiquidityStatus"
     };
@@ -88,6 +88,13 @@ service Web {
       get: "/v1/lpHistory"
     };
     }
+}
+
+message QueryLiquidityStatusResponse {
+    cbridge.v1.LPHistoryStatus status = 1;
+    bytes wd_onchain = 2;
+    bytes signers = 3;
+    repeated bytes sorted_sigs = 4;
 }
 
 message Chain {

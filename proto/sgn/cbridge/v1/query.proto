@@ -97,7 +97,6 @@ message QueryWithdrawLiquidityStatusRequest {
 message QueryLiquidityStatusResponse {
     LPHistoryStatus status = 1;
     WithdrawDetail detail = 2;
-    bytes signers = 3;
 }
 
 message Token {
