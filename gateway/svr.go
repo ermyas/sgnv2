@@ -261,6 +261,7 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 		LpAddr:     userAddr,
 		ChainToken: chainTokens,
 	})
+
 	if err != nil || detailList == nil || len(detailList.GetLiquidityDetail()) == 0 {
 		return &webapi.GetLPInfoListResponse{}, nil
 	}
@@ -271,12 +272,16 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	for _, detail := range detailList.GetLiquidityDetail() {
 		chainId := detail.GetChainId()
 		tokenWithAddr := detail.GetToken() // only has addr field
-		token, found, err := dal.DB.GetTokenByAddr(tokenWithAddr.GetAddress(), chainId)
-		if !found || err != nil {
+		token, found, dbErr := dal.DB.GetTokenByAddr(tokenWithAddr.GetAddress(), chainId)
+		if !found || dbErr != nil {
+			log.Debugf("data, token not found in lp list, token addr:%s, chainId:%d", tokenWithAddr.GetAddress(), chainId)
 			continue
 		}
 		detail.Token = token.Token
-		chainInfo := make(map[string]*types.LiquidityDetail)
+		chainInfo, found := userDetailMap[chainId]
+		if !found {
+			chainInfo = make(map[string]*types.LiquidityDetail)
+		}
 		chainInfo[token.Token.Symbol] = detail
 		userDetailMap[chainId] = chainInfo
 	}
@@ -294,8 +299,8 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 				usrLiquidity = detail.GetUsrLiquidity()
 			}
 
-			chain, _, found, err := dal.DB.GetChain(chainId)
-			if !found || err != nil {
+			chain, _, found, dbErr := dal.DB.GetChain(chainId)
+			if !found || dbErr != nil {
 				chain = &webapi.Chain{
 					Id:   uint32(chainId),
 					Name: "UNKNOWN CHAIN",
@@ -408,7 +413,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			Chainid: uint64(chainId),
 			LpAddr:  common.Hex2Bytes(lp),
 			Token:   common.Hex2Bytes(tokenAddr),
-			Amount:  common.Hex2Bytes(amt),
+			Amount:  common.Str2BigInt(amt).Bytes(),
 			Creator: gs.tr.Key.GetAddress().String(),
 		})
 		if err != nil {
@@ -913,6 +918,7 @@ func (gs *GatewayService) getUserStaking(ctx context.Context, address string) ma
 			Address: address,
 		},
 	)
+	log.Debugf("farming stakingRes:%+v", stakingRes)
 	stakingPools := make(map[uint64]map[string]int) // map<chain_id, map<token_symbol, FarmingPool>>
 	if err == nil {
 		for _, pool := range stakingRes.GetPools() {

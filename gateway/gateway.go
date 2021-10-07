@@ -73,7 +73,12 @@ func InitGateway(
 		}
 	}()
 
-	gwmux := runtime.NewServeMux()
+	gwmux := runtime.NewServeMux(
+		runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.HTTPBodyMarshaler{
+			Marshaler: &runtime.JSONPb{
+				EmitDefaults: true,
+				OrigName:     true,
+			}}))
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
 	err = webapi.RegisterWebHandlerFromEndpoint(context.Background(), gwmux, fmt.Sprintf(":%d", *rpcPort), opts)
