@@ -8,23 +8,24 @@ import (
 )
 
 func (d *DAL) GetTransfer(transferId string) (*Transfer, bool, error) {
-	q := `SELECT create_time, status, src_chain_id,dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt FROM transfer WHERE transfer_id = $1`
+	q := `SELECT create_time, status, src_chain_id,dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt,refund_seq_num FROM transfer WHERE transfer_id = $1`
 	var srcTxHash, dstTxHash, tokenSymbol, srcAmt, dstAmt string
-	var srcChainId, status, dstChainId uint64
+	var srcChainId, status, dstChainId, refundSeqNum uint64
 	var ct time.Time
-	err := d.QueryRow(q, transferId).Scan(&ct, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt)
+	err := d.QueryRow(q, transferId).Scan(&ct, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum)
 	found, err := sqldb.ChkQueryRow(err)
 	return &Transfer{
-		TransferId:  transferId,
-		SrcChainId:  srcChainId,
-		DstChainId:  dstChainId,
-		CT:          ct,
-		SrcTxHash:   srcTxHash,
-		DstTxHash:   dstTxHash,
-		Status:      types.TransferHistoryStatus(int32(status)),
-		TokenSymbol: tokenSymbol,
-		SrcAmt:      srcAmt,
-		DstAmt:      dstAmt,
+		TransferId:   transferId,
+		SrcChainId:   srcChainId,
+		DstChainId:   dstChainId,
+		CT:           ct,
+		SrcTxHash:    srcTxHash,
+		DstTxHash:    dstTxHash,
+		Status:       types.TransferHistoryStatus(int32(status)),
+		TokenSymbol:  tokenSymbol,
+		SrcAmt:       srcAmt,
+		DstAmt:       dstAmt,
+		RefundSeqNum: refundSeqNum,
 	}, found, err
 }
 
@@ -87,17 +88,18 @@ func (d *DAL) UpdateTransferStatus(transferId string, status uint64) error {
 }
 
 type Transfer struct {
-	TransferId  string
-	SrcChainId  uint64
-	DstChainId  uint64
-	Status      types.TransferHistoryStatus
-	SrcTxHash   string
-	DstTxHash   string
-	SrcAmt      string
-	DstAmt      string
-	TokenSymbol string
-	CT          time.Time
-	Volume      float64
+	TransferId   string
+	SrcChainId   uint64
+	DstChainId   uint64
+	Status       types.TransferHistoryStatus
+	SrcTxHash    string
+	DstTxHash    string
+	SrcAmt       string
+	DstAmt       string
+	TokenSymbol  string
+	CT           time.Time
+	Volume       float64
+	RefundSeqNum uint64
 }
 
 func (d *DAL) PaginateTransferList(sender string, end time.Time, size uint64) ([]*Transfer, int, time.Time, error) {
@@ -158,14 +160,14 @@ func (d *DAL) TransferCompleted(transferId, txHash, dstTransferId, receivedAmt s
 	return sqldb.ChkExec(res, err, 1, "TransferCompleted")
 }
 
-func (d *DAL) MarkTransferRefund(transferId, txHash string, withdrawSeqNum uint64) error {
+func (d *DAL) MarkTransferRefund(transferId, txHash string) error {
 	status := uint64(types.TransferHistoryStatus_TRANSFER_CONFIRMING_YOUR_REFUND)
 	var statusList []uint64
 	if !d.CheckTransferStatusNotIn(transferId, statusList) {
 		return nil
 	}
-	q := `UPDATE transfer SET refund_tx=$2, status=$3, update_time=$4, refund_seq_num=$5 WHERE transfer_id=$1`
-	res, err := d.Exec(q, transferId, txHash, status, now(), withdrawSeqNum)
+	q := `UPDATE transfer SET refund_tx=$2, status=$3, update_time=$4 WHERE transfer_id=$1`
+	res, err := d.Exec(q, transferId, txHash, status, now())
 	return sqldb.ChkExec(res, err, 1, "MarkTransferRefund")
 }
 

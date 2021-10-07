@@ -91,10 +91,11 @@ service Web {
 }
 
 message QueryLiquidityStatusResponse {
-    cbridge.v1.LPHistoryStatus status = 1;
-    bytes wd_onchain = 2;
-    bytes signers = 3;
-    repeated bytes sorted_sigs = 4;
+    ErrMsg err = 1;
+    cbridge.v1.LPHistoryStatus status = 2;
+    bytes wd_onchain = 3; // for withdraw only
+    bytes signers = 4; // for withdraw only
+    repeated bytes sorted_sigs = 5; // for withdraw only
 }
 
 message Chain {
@@ -137,6 +138,9 @@ message GetTransferStatusRequest {
 message GetTransferStatusResponse {
     ErrMsg err = 1;
     cbridge.v1.TransferHistoryStatus status = 2;
+    bytes wd_onchain = 3; // for refund only
+    bytes signers = 4; // for refund only
+    repeated bytes sorted_sigs = 5; // for refund only
 }
 
 message GetTransferConfigsRequest {
@@ -177,7 +181,6 @@ message MarkTransferRequest {
     string addr = 4;
     string src_tx_hash = 5;
     TransferType type = 6;
-    uint64 withdraw_seq_num = 7;
 }
 
 message MarkTransferResponse {

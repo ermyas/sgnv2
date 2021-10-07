@@ -345,10 +345,9 @@ func TestTransferRefund(t *testing.T) {
 			Token:  chainToken2.GetToken()[0].Token,
 			Amount: srcAmt,
 		},
-		Addr:           usrAddr,
-		SrcTxHash:      srcTxHash,
-		Type:           webapi.TransferType_TRANSFER_TYPE_REFUND,
-		WithdrawSeqNum: seqNum,
+		Addr:      usrAddr,
+		SrcTxHash: srcTxHash,
+		Type:      webapi.TransferType_TRANSFER_TYPE_REFUND,
 	})
 	errIsNil(t, err)
 	errMsgIsNil(t, markTransferResponse.Err)
