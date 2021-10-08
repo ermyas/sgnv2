@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -221,7 +222,9 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridge bool
 			err = cmd.Run()
 			tc.ChkErr(err, "Failed to make localnet-start-crdb")
 
-			_db, err := sql.Open("postgres", "postgresql://root@localhost:26257/defaultdb?sslmode=disable")
+			time.Sleep(2 * time.Second) // sleep to wait for crdb fully started
+
+			_db, err := sql.Open("postgres", "postgresql://root@localhost:26257/defaultdb?sslmode=disable") // docker port maps to local port
 			tc.ChkErr(err, "Failed to connect db")
 			_db.SetMaxOpenConns(2)
 			defer _db.Close()
