@@ -55,10 +55,13 @@ func cbridgeTest(t *testing.T) {
 	)
 
 	log.Infoln("================== Setup validators and bridge signers ======================")
-	amts := []*big.Int{big.NewInt(3e18)}
+	amts := []*big.Int{big.NewInt(2e18), big.NewInt(2e18), big.NewInt(2e18)}
 	tc.SetupValidators(t, transactor, amts)
 	tc.CbrChain1.SetInitSigners(amts)
 	tc.CbrChain2.SetInitSigners(amts)
+	expSigners := genSortedSigners(amts)
+	tc.CheckChainSigners(t, transactor, tc.CbrChain1.ChainId, expSigners)
+	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
 
 	log.Infoln("======================== Query ===========================")
 	resp, err := cbrcli.QueryChainTokensConfig(transactor.CliCtx, &cbrtypes.ChainTokensConfigRequest{})
@@ -75,13 +78,13 @@ func cbridgeTest(t *testing.T) {
 		ChainId:   tc.CbrChain2.ChainId,
 		TokenAddr: tc.CbrChain2.USDTAddr.Hex(),
 	})
-	resp2, err := cbrcli.QueryLiquidityDetailList(transactor.CliCtx, &cbrtypes.LiquidityDetailListRequest{
-		LpAddr:     "0x58b529F9084D7eAA598EB3477Fe36064C5B7bbC1",
+	res, err := cbrcli.QueryLiquidityDetailList(transactor.CliCtx, &cbrtypes.LiquidityDetailListRequest{
+		LpAddr:     eth.ZeroAddrHex,
 		ChainToken: chainTokens,
 	})
 	tc.ChkErr(err, "cli Query")
-	assert.True(t, len(resp2.LiquidityDetail) > 0)
-	log.Infoln("QueryLiquidityDetailList resp:", resp2.String())
+	assert.True(t, len(res.LiquidityDetail) > 0)
+	log.Infoln("QueryLiquidityDetailList resp:", res.String())
 
 	log.Infoln("======================== Add liquidity on chain 1 ===========================")
 	addAmt := big.NewInt(5 * 1e10)
@@ -97,6 +100,12 @@ func cbridgeTest(t *testing.T) {
 	err = tc.CbrChain2.AddLiq(0, addAmt)
 	tc.ChkErr(err, "u0 chain2 addliq")
 	tc.CheckAddLiquidityStatus(transactor, tc.CbrChain2.ChainId, 1)
+	res, err = cbrcli.QueryLiquidityDetailList(transactor.CliCtx, &cbrtypes.LiquidityDetailListRequest{
+		LpAddr:     tc.ClientEthAddrs[0].Hex(),
+		ChainToken: chainTokens,
+	})
+	tc.ChkErr(err, "cli Query")
+	log.Infoln("QueryLiquidityDetailList resp:", res.String())
 
 	log.Infoln("======================== Xfer ===========================")
 	xferAmt := big.NewInt(1e10)
@@ -110,7 +119,7 @@ func cbridgeTest(t *testing.T) {
 	wdSeq, err := tc.CbrChain1.StartWithdraw(transactor, 0, big.NewInt(1e10))
 	tc.ChkErr(err, "u0 chain1 start withdraw")
 	log.Info("withdraw seqnum: ", wdSeq)
-	detail := tc.GetWithdrawDetailWithSigs(transactor, wdSeq, 1)
+	detail := tc.GetWithdrawDetailWithSigs(transactor, wdSeq, 3)
 	curss, err := tc.GetCurSortedSigners(transactor, tc.CbrChain1.ChainId)
 	tc.ChkErr(err, "chain1 GetCurSortedSigners")
 	err = tc.CbrChain1.OnchainWithdraw(detail, curss)
@@ -120,8 +129,7 @@ func cbridgeTest(t *testing.T) {
 	log.Infoln("======================== LP claim farming reward on-chain ===========================")
 	err = tc.StartClaimFarmingRewards(transactor, 0)
 	tc.ChkErr(err, "u0 start claim all")
-	// now sleep and get stuff to send onchain
-	info := tc.GetFarmingRewardClaimInfoWithSigs(transactor, 0, 1)
+	info := tc.GetFarmingRewardClaimInfoWithSigs(transactor, 0, 3)
 	err = tc.OnchainClaimRewards(&info.RewardClaimDetailsList[0])
 	tc.ChkErr(err, "u0 onchain claim rewards")
 }
