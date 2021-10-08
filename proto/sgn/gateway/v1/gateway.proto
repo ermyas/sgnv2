@@ -112,8 +112,7 @@ message TokenInfo {
     cbridge.v1.Token token = 1;
     string name = 2;
     string icon = 3;
-    string max_amt = 4; // showing in token list, max bridge amount, only for dst chain
-    string contract_addr = 5; // contract addr
+    string contract_addr = 4; // contract addr
 }
 
 message TransferInfo {

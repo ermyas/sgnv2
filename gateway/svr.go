@@ -736,7 +736,7 @@ func (gs *GatewayService) pollChainToken() {
 		}
 		for _, asset := range assets.Assets {
 			token := asset.GetToken()
-			dbErr := dal.DB.UpsertTokenBaseInfo(token.GetSymbol(), common.Hex2Addr(token.GetAddress()).String(), common.Hex2Addr(asset.GetContractAddr()).String(), asset.GetMaxAmt(), uint64(chainId), uint64(token.GetDecimal()))
+			dbErr := dal.DB.UpsertTokenBaseInfo(token.GetSymbol(), common.Hex2Addr(token.GetAddress()).String(), common.Hex2Addr(asset.GetContractAddr()).String(), uint64(chainId), uint64(token.GetDecimal()))
 			if dbErr != nil {
 				log.Errorf("failed to write token: %v", err)
 			}

@@ -39,8 +39,7 @@ message Assets {
 }
 message AssetPerChain {
     Token token = 1;
-    string max_amt = 2; // numeric string, amt with decimal
-    string contract_addr = 3;
+    string contract_addr = 2;
 }
 
 message GetFeeRequest {

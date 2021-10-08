@@ -53,7 +53,6 @@ CREATE TABLE IF NOT EXISTS token (
     address TEXT NOT NULL,
     name TEXT NOT NULL DEFAULT '',
     icon TEXT NOT NULL DEFAULT '',
-    max_amt TEXT NOT NULL,
     contract TEXT NOT NULL,
     PRIMARY KEY (symbol, chain_id)
 );
