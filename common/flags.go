@@ -45,6 +45,7 @@ const (
 	FlagLogColor = "log.color"
 
 	FlagToStartGateway = "gateway.start_gateway"
+	FlagGatewayDbUrl   = "gateway.db_url"
 
 	FlagMultiChain = "multichain" // array of toml tables, each table represents one chain, see common/multichain.go for details
 )

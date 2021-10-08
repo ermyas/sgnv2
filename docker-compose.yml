@@ -27,6 +27,7 @@ services:
     container_name: sgnnode0
     image: "celer-network/sgnnode"
     ports:
+      - "8081:8081"
       - "26656-26657:26656-26657"
     volumes:
       - ./docker-volumes/node0:/sgn-v2/env:Z
@@ -66,6 +67,15 @@ services:
     networks:
       localnet:
         ipv4_address: 192.168.10.5
+
+  crdb:
+    container_name: crdb
+    image: "celer-network/crdb"
+    ports:
+      - "26257:26257"
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.7
 
 networks:
   localnet:

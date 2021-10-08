@@ -9,5 +9,5 @@ import (
 
 func main() {
 	encodingConfig := app.MakeEncodingConfig()
-	gateway.InitGateway(os.ExpandEnv("$HOME/.sgnd"), encodingConfig.Amino, encodingConfig.Codec, encodingConfig.InterfaceRegistry, true)
+	gateway.InitGateway(os.ExpandEnv("$HOME/.sgnd"), encodingConfig.Amino, encodingConfig.Codec, encodingConfig.InterfaceRegistry, true, "127.0.0.1:26257")
 }

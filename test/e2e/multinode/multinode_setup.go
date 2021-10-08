@@ -2,8 +2,10 @@ package multinode
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"os"
 	"os/exec"
@@ -210,6 +212,34 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, manual bool, cbridge bool
 		DeployUsdtForBridge()
 		DeployBridgeContract()
 		CreateFarmingPools()
+
+		if manual {
+			cmd = exec.Command("make", "localnet-start-crdb")
+			cmd.Dir = repoRoot
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			err = cmd.Run()
+			tc.ChkErr(err, "Failed to make localnet-start-crdb")
+
+			_db, err := sql.Open("postgres", "postgresql://root@localhost:26257/defaultdb?sslmode=disable")
+			tc.ChkErr(err, "Failed to connect db")
+			_db.SetMaxOpenConns(2)
+			defer _db.Close()
+			schema, err := ioutil.ReadFile("../../../gateway/dal/schema.sql")
+			tc.ChkErr(err, "Failed to read schema.sql")
+			_, err = _db.Exec(string(schema))
+			tc.ChkErr(err, "Failed to execute schema.sql")
+
+			node0ConfigPath := "../../../docker-volumes/node0/sgnd/config/sgn.toml"
+			configFileViper := viper.New()
+			configFileViper.SetConfigFile(node0ConfigPath)
+			err = configFileViper.ReadInConfig()
+			tc.ChkErr(err, "Failed to read config")
+			configFileViper.Set(common.FlagToStartGateway, true)
+			configFileViper.Set(common.FlagGatewayDbUrl, "192.168.10.7:26257")
+			err = configFileViper.WriteConfig()
+			tc.ChkErr(err, "Failed to write config")
+		}
 	}
 
 	// Update global viper

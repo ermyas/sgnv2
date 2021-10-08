@@ -29,7 +29,8 @@ func InitGateway(
 	_legacyAmino *codec.LegacyAmino,
 	_cdc codec.Codec,
 	_interfaceRegistry codectypes.InterfaceRegistry,
-	_selfStart bool) {
+	_selfStart bool,
+	_dbUrl string) {
 
 	rootDir = _homeDir
 	legacyAmino = _legacyAmino
@@ -40,7 +41,7 @@ func InitGateway(
 	flag.Parse()
 	log.Infof("Starting gateway at rest:%d, grpc:%d", *port, *rpcPort)
 
-	gs, err := NewGatewayService("127.0.0.1:26257")
+	gs, err := NewGatewayService(_dbUrl)
 	if err != nil {
 		log.Fatalf("fail to init gateway server, err:%v", err)
 		return

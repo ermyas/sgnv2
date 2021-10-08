@@ -98,6 +98,13 @@ prepare-geth2-env:
 	mkdir -p ./docker-volumes
 	cp -r ./test/multi-node-data/geth2-env ./docker-volumes/
 
+.PHONY: localnet-start-crdb
+localnet-start-crdb:
+	DOCKER_BUILDKIT=1 docker build --tag celer-network/crdb networks/local/db
+	docker-compose stop crdb
+	docker-compose rm -f crdb
+	docker-compose up -d crdb
+
 # Run geth
 .PHONY: localnet-start-geth
 localnet-start-geth:

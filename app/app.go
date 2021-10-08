@@ -414,12 +414,17 @@ func NewSgnApp(
 
 	if viper.GetBool(common.FlagToStartGateway) {
 		log.Infoln("starting gateway...")
+		dbUrl := viper.GetString(common.FlagGatewayDbUrl)
+		if dbUrl == "" {
+			dbUrl = "127.0.0.1:26257"
+		}
 		go gateway.InitGateway(
 			homePath,
 			app.legacyAmino,
 			app.appCodec,
 			app.interfaceRegistry,
-			false)
+			false,
+			dbUrl)
 	}
 
 	return app
