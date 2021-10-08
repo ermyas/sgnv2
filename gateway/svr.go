@@ -16,6 +16,7 @@ import (
 	"github.com/celer-network/sgn-v2/transactor"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	farmingkp "github.com/celer-network/sgn-v2/x/farming/keeper"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -266,6 +267,7 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 		return &webapi.GetLPInfoListResponse{}, nil
 	}
 	stakingMap := gs.getUserStaking(ctx, userAddr)
+	farmingEarningMap := gs.getUserFarmingCumulativeEarning(ctx, userAddr)
 	farmingApyMap := gs.getFarmingApy(ctx)
 	data24h := gs.get24hTx()
 	userDetailMap := make(map[uint64]map[string]*types.LiquidityDetail)
@@ -321,7 +323,7 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 				Liquidity:            gs.f.GetUsdVolume(token.Token, common.Str2BigInt(usrLiquidity)),
 				HasFarmingSessions:   stakingMap[chainId][token.Token.GetSymbol()] > 0,
 				LpFeeEarning:         gs.f.GetUsdVolume(token.Token, common.Str2BigInt(usrLpFeeEarning)),
-				FarmingRewardEarning: 0, // // todo enrich 0 data from farming @aric
+				FarmingRewardEarning: farmingEarningMap[chainId][token.Token.GetSymbol()],
 				Volume_24H:           volume24h,
 				TotalLiquidity:       gs.f.GetUsdVolume(token.Token, common.Str2BigInt(totalLiquidity)),
 				LpFeeEarningApy:      lpFeeEarningApy,
@@ -565,7 +567,7 @@ func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.T
 	var transfers []*webapi.TransferHistory
 	for _, transfer := range transferList {
 		srcChain, srcChainUrl, srcFound, err1 := dal.DB.GetChain(transfer.SrcChainId)
-		dstChain, dstChainUrl, dstFound, err2 := dal.DB.GetChain(transfer.SrcChainId)
+		dstChain, dstChainUrl, dstFound, err2 := dal.DB.GetChain(transfer.DstChainId)
 		if !srcFound || !dstFound || err1 != nil || err2 != nil {
 			continue
 		}
@@ -929,6 +931,44 @@ func (gs *GatewayService) getUserStaking(ctx context.Context, address string) ma
 		}
 	}
 	return stakingPools
+}
+
+func (gs *GatewayService) getUserFarmingCumulativeEarning(ctx context.Context, address string) map[uint64]map[string]float64 {
+	queryClient := farmingtypes.NewQueryClient(gs.tr.CliCtx)
+	res, err := queryClient.RewardClaimInfo(
+		ctx,
+		&farmingtypes.QueryRewardClaimInfoRequest{
+			Address: address,
+		},
+	)
+	log.Debugf("farming earningRes:%+v", res)
+	earnings := make(map[uint64]map[string]float64) // map<chain_id, map<token_symbol, earning>>
+	if res == nil || err != nil {
+		return earnings
+	}
+	rewardClaimInfo := res.GetRewardClaimInfo()
+	for _, detail := range rewardClaimInfo.GetRewardClaimDetailsList() {
+		chainId := detail.GetChainId()
+		earning, found := earnings[chainId]
+		if !found {
+			earning = make(map[string]float64)
+		}
+		for _, reward := range detail.GetCumulativeRewardAmounts() {
+			_, tokenSymbol, parseErr := farmingkp.ParseERC20TokenDenom(reward.GetDenom())
+			if parseErr != nil {
+				log.Errorf("parse token denom error, denom:%s, err:%+v", reward.GetDenom(), parseErr)
+				continue
+			}
+			amt, parseErr := reward.Amount.Float64()
+			if parseErr != nil {
+				log.Errorf("parse reward amt error, amt:%s, err:%+v", reward.Amount.String(), parseErr)
+				continue
+			}
+			earning[tokenSymbol] += amt
+		}
+		earnings[chainId] = earning
+	}
+	return earnings
 }
 
 // todo cache this @aric

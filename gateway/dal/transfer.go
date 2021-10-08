@@ -212,7 +212,7 @@ func (d *DAL) GetSlippageSetting(addr string) (uint32, bool, error) {
 
 func (d *DAL) Get24hTx() ([]*Transfer, error) {
 	q := "SELECT dst_chain_id, token_symbol, volume, received_amt FROM transfer WHERE create_time > $1"
-	rows, err := d.Query(q)
+	rows, err := d.Query(q, now().Add(-24*time.Hour))
 	if err != nil {
 		return nil, err
 	}

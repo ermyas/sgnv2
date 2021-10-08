@@ -198,12 +198,10 @@ message LPInfo {
     bool has_farming_sessions = 4;
     double lp_fee_earning = 5; // in usd
     double farming_reward_earning = 6; // in usd
-    double tvl = 7; // in usd
-    double volume_24h = 8; //gateway cal this based on local db
-    double total_liquidity = 9; // current liquidity of user in usd
-    double lp_fee_rate = 10;
-    double lp_fee_earning_apy = 11;
-    double farming_apy = 12;
+    double volume_24h = 7; //gateway cal this based on local db
+    double total_liquidity = 8; // current liquidity of user in usd
+    double lp_fee_earning_apy = 9;
+    double farming_apy = 10;
 }
 message GetLPInfoListResponse {
     ErrMsg err = 1;
