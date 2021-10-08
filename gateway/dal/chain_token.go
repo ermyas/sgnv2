@@ -9,7 +9,7 @@ import (
 
 func (d *DAL) UpsertTokenBaseInfo(symbol, addr, contract string, chainId, decimal uint64) error {
 	q := `INSERT INTO token (symbol, address, chain_id, decimal, contract, update_time)
-                VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (symbol, chain_id) DO UPDATE
+                VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (symbol, chain_id) DO UPDATE
 	SET decimal = $4, address = $2, contract=$5, update_time=$6`
 	res, err := d.Exec(q, symbol, addr, chainId, decimal, contract, now())
 	return sqldb.ChkExec(res, err, 1, "UpsertTokenBaseInfo")
