@@ -29,6 +29,8 @@ services:
     ports:
       - "8081:8081"
       - "26656-26657:26656-26657"
+    extra_hosts:
+      - "api.coingecko.com:104.18.28.120"
     volumes:
       - ./docker-volumes/node0:/sgn-v2/env:Z
     networks:
