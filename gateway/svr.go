@@ -196,12 +196,21 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 	bridgeRate := 0.0
 	if srcVolume > 0.000000001 {
 		bridgeRate = dstVolume / srcVolume
+	} else {
+		return &webapi.EstimateAmtResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "amount should > 0",
+			},
+		}, nil
 	}
+	minReceiveVolume := dstVolume*(1-float64(slippage)/1e6) - gs.f.GetUsdVolume(dstToken.Token, common.Str2BigInt(feeAmt))
 	return &webapi.EstimateAmtResponse{
 		EqValueTokenAmt:   eqValueTokenAmt,
 		BridgeRate:        float32(bridgeRate),
 		Fee:               feeAmt,
 		SlippageTolerance: slippage,
+		MaxSlippage:       uint32((srcVolume - minReceiveVolume) * 1e6 / srcVolume),
 	}, nil
 }
 
