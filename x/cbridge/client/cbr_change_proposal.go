@@ -3,9 +3,13 @@ package cli
 import (
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/transactor"
+	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	govcli "github.com/celer-network/sgn-v2/x/gov/client"
+	govrest "github.com/celer-network/sgn-v2/x/gov/client/rest"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -59,9 +63,23 @@ proposal file is path to json like below
 }
 
 // parse json at fpath and return CbrProposal
-func parseJson(fpath string) *govtypes.CbrProposal {
-	ret := new(govtypes.CbrProposal)
+func parseJson(fpath string) *types.CbrProposal {
+	ret := new(types.CbrProposal)
 	raw, _ := ioutil.ReadFile(fpath)
 	json.Unmarshal(raw, ret)
 	return ret
 }
+
+// ProposalRESTHandler returns a ProposalRESTHandler that exposes the REST handler with a given sub-route.
+func CbrProposalRESTHandler(cliCtx client.Context) govrest.ProposalRESTHandler {
+	return govrest.ProposalRESTHandler{
+		SubRoute: "cbridge-change",
+		Handler:  postCbrProposalHandlerFn(cliCtx),
+	}
+}
+func postCbrProposalHandlerFn(cliCtx client.Context) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+	}
+}
+
+var CbrConfigProposalHandler = govcli.NewProposalHandler(GetCmdSubmitCbrProposal, CbrProposalRESTHandler)

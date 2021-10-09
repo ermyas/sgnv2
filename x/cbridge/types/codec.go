@@ -1,6 +1,7 @@
 package types
 
 import (
+	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -12,6 +13,7 @@ func RegisterCodec(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(&MsgInitWithdraw{}, "cbridge/InitWithdraw", nil)
 	cdc.RegisterConcrete(&MsgSendMySig{}, "cbridge/SendMySig", nil)
 	cdc.RegisterConcrete(&MsgSignAgain{}, "cbridge/SignAgain", nil)
+	cdc.RegisterConcrete(&CbrProposal{}, "cbridge/CbrProposal", nil)
 }
 
 func RegisterInterfaces(registry cdctypes.InterfaceRegistry) {
@@ -19,6 +21,10 @@ func RegisterInterfaces(registry cdctypes.InterfaceRegistry) {
 	registry.RegisterImplementations((*sdk.Msg)(nil), &MsgInitWithdraw{})
 	registry.RegisterImplementations((*sdk.Msg)(nil), &MsgSendMySig{})
 	registry.RegisterImplementations((*sdk.Msg)(nil), &MsgSignAgain{})
+	registry.RegisterImplementations(
+		(*govtypes.Content)(nil),
+		&CbrProposal{},
+	)
 
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
 }

@@ -6,7 +6,6 @@ import "cosmos_proto/cosmos.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/any.proto";
 import "google/protobuf/duration.proto";
-import "sgn/cbridge/v1/cbridge.proto";
 
 option go_package                       = "github.com/celer-network/sgn-v2/x/gov/types";
 option (gogoproto.goproto_stringer_all) = false;
@@ -32,18 +31,6 @@ message TextProposal {
 
   string title       = 1;
   string description = 2;
-}
-
-// propose new cbr config, note it must be a whole json
-message CbrProposal {
-  option (cosmos_proto.implements_interface) = "Content";
-  option (gogoproto.equal) = false;
-
-  string title       = 1;
-  string description = 2;
-  sgn.cbridge.v1.CbrConfig cbr_config = 3;
-  // deposit amount for MsgSubmitProposal
-  string deposit = 4 [(gogoproto.nullable) = false, (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int"];
 }
 
 // ParamChange defines a parameter change.

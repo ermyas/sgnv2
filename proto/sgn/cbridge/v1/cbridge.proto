@@ -45,6 +45,18 @@ message ChainPair {
   uint32 const_a = 6; // constant A in price formula, if not set, will use 100 default
 }
 
+// propose new cbr config, note it must be a whole json
+message CbrProposal {
+  option (cosmos_proto.implements_interface) = "Content";
+  option (gogoproto.equal) = false;
+
+  string title       = 1;
+  string description = 2;
+  CbrConfig cbr_config = 3;
+  // deposit amount for MsgSubmitProposal
+  string deposit = 4 [(gogoproto.nullable) = false, (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int"];
+}
+
 // ========== for sync propose
 // to be included in sync propose update, broadcast by syncer to tell others
 // an onchain event happened. for completeness we include chainid, even though

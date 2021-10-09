@@ -13,6 +13,7 @@ import (
 	"github.com/celer-network/sgn-v2/gateway"
 	"github.com/celer-network/sgn-v2/relayer"
 	"github.com/celer-network/sgn-v2/x/cbridge"
+	cbrclient "github.com/celer-network/sgn-v2/x/cbridge/client"
 	cbridgekeeper "github.com/celer-network/sgn-v2/x/cbridge/keeper"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	distr "github.com/celer-network/sgn-v2/x/distribution"
@@ -97,7 +98,7 @@ var (
 		mint.AppModuleBasic{},
 		distr.AppModuleBasic{},
 		farming.AppModuleBasic{},
-		gov.NewAppModuleBasic(govclient.ParamProposalHandler, govclient.UpgradeProposalHandler, farmingclient.AddPoolProposalHandler),
+		gov.NewAppModuleBasic(govclient.ParamProposalHandler, govclient.UpgradeProposalHandler, farmingclient.AddPoolProposalHandler, cbrclient.CbrConfigProposalHandler),
 		slash.AppModule{},
 		sync.AppModule{},
 		staking.AppModuleBasic{},
@@ -284,7 +285,7 @@ func NewSgnApp(
 	govRouter.AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
 		AddRoute(proposal.RouterKey, gov.NewParamChangeProposalHandler(app.ParamsKeeper)).
 		AddRoute(upgradetypes.RouterKey, gov.NewUpgradeProposalHandler(app.UpgradeKeeper)).
-		AddRoute(cbrtypes.RouterKey, gov.NewCbrProposalHandler(app.CbridgeKeeper)).
+		AddRoute(cbrtypes.RouterKey, cbridge.NewCbrProposalHandler(app.CbridgeKeeper)).
 		AddRoute(farmingtypes.RouterKey, farming.NewAddPoolProposalHandler(app.FarmingKeeper))
 	app.GovKeeper = govkeeper.NewKeeper(
 		appCodec,
