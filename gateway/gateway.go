@@ -79,6 +79,7 @@ func InitGateway(
 			Marshaler: &runtime.JSONPb{
 				EmitDefaults: true,
 				OrigName:     true,
+				EnumsAsInts:  true,
 			}}))
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
