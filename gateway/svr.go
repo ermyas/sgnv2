@@ -49,7 +49,7 @@ type GatewayConfig struct {
 
 type GatewayService struct {
 	f  *fee.TokenPriceCache
-	tr *transactor.Transactor
+	tp *transactor.TransactorPool
 	ec map[uint64]*ethclient.Client
 }
 
@@ -174,7 +174,8 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 	if err != nil || !found {
 		slippage = 5000
 	}
-	feeInfo, err := cbrcli.QueryFee(gs.tr.CliCtx, &types.GetFeeRequest{
+	tr := gs.tp.GetTransactor()
+	feeInfo, err := cbrcli.QueryFee(tr.CliCtx, &types.GetFeeRequest{
 		SrcChainId:   uint64(srcChainId),
 		DstChainId:   uint64(dstChainId),
 		SrcTokenAddr: srcToken.Token.GetAddress(),
@@ -267,7 +268,8 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	}
 
 	var lps []*webapi.LPInfo
-	detailList, err := cbrcli.QueryLiquidityDetailList(gs.tr.CliCtx, &types.LiquidityDetailListRequest{
+	tr := gs.tp.GetTransactor()
+	detailList, err := cbrcli.QueryLiquidityDetailList(tr.CliCtx, &types.LiquidityDetailListRequest{
 		LpAddr:     userAddr,
 		ChainToken: chainTokens,
 	})
@@ -379,11 +381,12 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 
 func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi.WithdrawLiquidityRequest) (*webapi.WithdrawLiquidityResponse, error) {
 	transferId := request.GetTransferId()
+	tr := gs.tp.GetTransactor()
 	if transferId != "" {
 		// refund transfer
 		seqNum, err := gs.initWithdraw(&types.MsgInitWithdraw{
 			XferId:  common.Hex2Bytes(transferId),
-			Creator: gs.tr.Key.GetAddress().String(),
+			Creator: tr.Key.GetAddress().String(),
 		})
 		if err != nil {
 			return &webapi.WithdrawLiquidityResponse{
@@ -425,7 +428,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			LpAddr:  common.Hex2Bytes(lp),
 			Token:   common.Hex2Bytes(tokenAddr),
 			Amount:  common.Str2BigInt(amt).Bytes(),
-			Creator: gs.tr.Key.GetAddress().String(),
+			Creator: tr.Key.GetAddress().String(),
 		})
 		if err != nil {
 			_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(types.LPHistoryStatus_LP_FAILED))
@@ -453,7 +456,8 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 }
 
 func (gs *GatewayService) initWithdraw(req *types.MsgInitWithdraw) (uint64, error) {
-	resp, err := cbrcli.InitWithdraw(gs.tr, req)
+	tr := gs.tp.GetTransactor()
+	resp, err := cbrcli.InitWithdraw(tr, req)
 	if resp == nil {
 		return 0, err
 	}
@@ -465,11 +469,12 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 	chainId := uint64(request.GetChainId())
 	lpType := uint64(request.GetType())
 	addr := request.GetLpAddr()
+	tr := gs.tp.GetTransactor()
 	txHash, status, found, err := dal.DB.GetLPInfo(seqNum, lpType, chainId, addr)
 	if found && err == nil && status == uint64(types.LPHistoryStatus_LP_SUBMITTING) && txHash != "" {
 		ec := gs.ec[chainId]
 		if ec == nil {
-			gs.initTransactor()
+			gs.initTransactors()
 			ec = gs.ec[chainId]
 		}
 		if ec == nil {
@@ -491,7 +496,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 
 	if found && lpType == uint64(webapi.LPType_LP_TYPE_ADD) { // add type
 		if status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN) {
-			resp, err2 := cbrcli.QueryAddLiquidityStatus(gs.tr.CliCtx, &types.QueryAddLiquidityStatusRequest{
+			resp, err2 := cbrcli.QueryAddLiquidityStatus(tr.CliCtx, &types.QueryAddLiquidityStatusRequest{
 				ChainId: chainId,
 				SeqNum:  seqNum,
 			})
@@ -534,7 +539,8 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 }
 
 func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64) (*types.QueryLiquidityStatusResponse, []byte, []byte, [][]byte) {
-	detail, err2 := cbrcli.QueryWithdrawLiquidityStatus(gs.tr.CliCtx, &types.QueryWithdrawLiquidityStatusRequest{
+	tr := gs.tp.GetTransactor()
+	detail, err2 := cbrcli.QueryWithdrawLiquidityStatus(tr.CliCtx, &types.QueryWithdrawLiquidityStatusRequest{
 		SeqNum: seqNum,
 	})
 	var wdOnchain []byte
@@ -546,7 +552,7 @@ func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64) (*types.QueryL
 		log.Warnf("QueryWithdrawLiquidityStatus error for detail, error%+v", err2)
 	}
 	sortedSigs = detail.GetDetail().GetSortedSigsBytes()
-	curss, signErr := cbrcli.QueryChainSigners(gs.tr.CliCtx, chainId)
+	curss, signErr := cbrcli.QueryChainSigners(tr.CliCtx, chainId)
 	if signErr != nil {
 		log.Warnf("QueryChainSigners error:%+v", signErr)
 	} else {
@@ -732,7 +738,8 @@ func (gs *GatewayService) StartChainTokenPolling(interval time.Duration) {
 }
 
 func (gs *GatewayService) pollChainToken() {
-	resp, err := cbrcli.QueryChainTokensConfig(gs.tr.CliCtx, &types.ChainTokensConfigRequest{})
+	tr := gs.tp.GetTransactor()
+	resp, err := cbrcli.QueryChainTokensConfig(tr.CliCtx, &types.ChainTokensConfigRequest{})
 	if err != nil {
 		log.Errorln("we will use mocked chain tokens failed to load basic token info:", err)
 	}
@@ -776,7 +783,8 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 	for _, transfer := range transferList {
 		transferIds = append(transferIds, transfer.TransferId)
 	}
-	transferMap, err := cbrcli.QueryTransferStatus(gs.tr.CliCtx, &types.QueryTransferStatusRequest{
+	tr := gs.tp.GetTransactor()
+	transferMap, err := cbrcli.QueryTransferStatus(tr.CliCtx, &types.QueryTransferStatusRequest{
 		TransferId: transferIds,
 	})
 	if err != nil {
@@ -793,7 +801,7 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 		if status == types.TransferHistoryStatus_TRANSFER_SUBMITTING {
 			ec := gs.ec[srcChainId]
 			if ec == nil {
-				gs.initTransactor()
+				gs.initTransactors()
 				ec = gs.ec[srcChainId]
 			}
 			if ec == nil {
@@ -835,7 +843,7 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 	return nil
 }
 
-func (gs *GatewayService) initTransactor() error {
+func (gs *GatewayService) initTransactors() error {
 	if selfStart {
 		cbrCfgFile := filepath.Join(rootDir, "config", "cbridge.toml")
 		viper.SetConfigFile(cbrCfgFile)
@@ -849,21 +857,13 @@ func (gs *GatewayService) initTransactor() error {
 		}
 	}
 
-	tr, err := transactor.NewTransactor(
-		rootDir,
-		viper.GetString(common.FlagSgnChainId),
-		viper.GetString(common.FlagSgnNodeURI),
-		viper.GetString(common.FlagSgnValidatorAccount),
-		viper.GetString(common.FlagSgnPassphrase),
-		legacyAmino,
-		cdc,
-		interfaceRegistry,
-	)
+	tp := transactor.NewTransactorPool(rootDir, viper.GetString(common.FlagSgnChainId), legacyAmino, cdc, interfaceRegistry)
+	err := tp.AddTransactors(
+		viper.GetString(common.FlagSgnNodeURI), viper.GetString(common.FlagSgnPassphrase), viper.GetStringSlice(common.FlagSgnTransactors))
 	if err != nil {
-		return fmt.Errorf("failed to new transactor: %w", err)
+		return fmt.Errorf("failed to add transactors: %w", err)
 	}
-	tr.Run()
-	gs.tr = tr
+	gs.tp = tp
 
 	var mcc []*common.OneChainConfig
 	err = viper.UnmarshalKey(common.FlagMultiChain, &mcc)
@@ -922,7 +922,8 @@ func (gs *GatewayService) get24hTx() map[uint64]map[string]*txData {
 }
 
 func (gs *GatewayService) getUserStaking(ctx context.Context, address string) map[uint64]map[string]int {
-	queryClient := farmingtypes.NewQueryClient(gs.tr.CliCtx)
+	tr := gs.tp.GetTransactor()
+	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
 	stakingRes, err := queryClient.StakedPools(
 		ctx,
 		&farmingtypes.QueryStakedPoolsRequest{
@@ -943,7 +944,8 @@ func (gs *GatewayService) getUserStaking(ctx context.Context, address string) ma
 }
 
 func (gs *GatewayService) getUserFarmingCumulativeEarning(ctx context.Context, address string) map[uint64]map[string]float64 {
-	queryClient := farmingtypes.NewQueryClient(gs.tr.CliCtx)
+	tr := gs.tp.GetTransactor()
+	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
 	res, err := queryClient.RewardClaimInfo(
 		ctx,
 		&farmingtypes.QueryRewardClaimInfoRequest{
@@ -982,7 +984,8 @@ func (gs *GatewayService) getUserFarmingCumulativeEarning(ctx context.Context, a
 
 // todo cache this @aric
 func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[string]float64 {
-	queryClient := farmingtypes.NewQueryClient(gs.tr.CliCtx)
+	tr := gs.tp.GetTransactor()
+	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
 	res, err := queryClient.Pools(
 		ctx,
 		&farmingtypes.QueryPoolsRequest{},

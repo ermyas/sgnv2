@@ -4,14 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/gateway/dal"
-	"github.com/celer-network/sgn-v2/gateway/fee"
-	"github.com/celer-network/sgn-v2/gateway/webapi"
-	"github.com/celer-network/sgn-v2/relayer"
-	"github.com/celer-network/sgn-v2/x/cbridge/types"
-	"github.com/cosmos/cosmos-sdk/codec"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"io"
 	"math/big"
 	"math/rand"
@@ -20,6 +12,17 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/gateway/fee"
+	"github.com/celer-network/sgn-v2/gateway/webapi"
+	"github.com/celer-network/sgn-v2/relayer"
+	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -109,15 +112,11 @@ func teardown() {
 }
 
 func errIsNil(t *testing.T, err error) {
-	if err != nil {
-		t.Errorf("invalid error, it must be nil: %v", err)
-	}
+	require.NoError(t, err, "expect no error")
 }
 
-func errMsgIsNil(t *testing.T, err *webapi.ErrMsg) {
-	if err != nil {
-		t.Errorf("invalid error in response, it must be nil: %v", err)
-	}
+func errMsgIsNil(t *testing.T, errMsg *webapi.ErrMsg) {
+	assert.Nil(t, errMsg, "expect nil ErrMsg")
 }
 
 func checkTransferStatus(t *testing.T, status types.TransferHistoryStatus, dest types.TransferHistoryStatus) {
@@ -134,13 +133,11 @@ func checkLpStatus(t *testing.T, status types.LPHistoryStatus, dest types.LPHist
 
 func newTestSvc(t *testing.T) *GatewayService {
 	gs, err := NewGatewayService(stSvr)
-	err = gs.initTransactor()
-	if err != nil {
-		t.Errorf("fail to init transactor in gateway server, err:%v", err)
-		return nil
-	}
+	require.NoError(t, err, "failed to initialize gateway service", err)
+	err = gs.initTransactors()
+	require.NoError(t, err, "failed to initialize gateway transactors", err)
 	gs.StartChainTokenPolling(10 * time.Second)
-	gs.f = fee.NewTokenPriceCache(gs.tr)
+	gs.f = fee.NewTokenPriceCache(gs.tp.GetTransactor())
 	return gs
 }
 

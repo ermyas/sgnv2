@@ -49,7 +49,7 @@ func InitGateway(
 	defer gs.Close()
 	log.Infof(" gateway svc started")
 
-	err = gs.initTransactor()
+	err = gs.initTransactors()
 	if err != nil {
 		log.Fatalf("fail to init transactor in gateway server, err:%v", err)
 		return
@@ -58,7 +58,7 @@ func InitGateway(
 	gs.StartChainTokenPolling(10 * time.Second)
 	log.Infof("chain token cached")
 
-	gs.f = fee.NewTokenPriceCache(gs.tr)
+	gs.f = fee.NewTokenPriceCache(gs.tp.GetTransactor())
 	log.Infof(" token price cached")
 
 	// start a rpc server

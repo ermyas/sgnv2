@@ -35,10 +35,10 @@ func (tp *TransactorPool) AddTransactor(transactor *Transactor) {
 }
 
 // Add transactors to the pool
-func (tp *TransactorPool) AddTransactors(nodeURI, passphrase string, ts []string) error {
+func (tp *TransactorPool) AddTransactors(nodeURI, passphrase string, addrs []string) error {
 	var transactors []*Transactor
-	for _, t := range ts {
-		transactor, err := NewTransactor(tp.homeDir, tp.chainID, nodeURI, t, passphrase, tp.legacyAmino, tp.cdc, tp.interfaceRegistry)
+	for _, addr := range addrs {
+		transactor, err := NewTransactor(tp.homeDir, tp.chainID, nodeURI, addr, passphrase, tp.legacyAmino, tp.cdc, tp.interfaceRegistry)
 		if err != nil {
 			return err
 		}
