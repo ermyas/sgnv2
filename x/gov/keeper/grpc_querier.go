@@ -205,7 +205,7 @@ func (q Keeper) Deposit(c context.Context, req *types.QueryDepositRequest) (*typ
 	deposit, found := q.GetDeposit(ctx, req.ProposalId, depositor)
 	if !found {
 		return nil, status.Errorf(codes.InvalidArgument,
-			"depositer: %v not found for proposal: %v", req.Depositor, req.ProposalId)
+			"depositor: %v not found for proposal: %v", req.Depositor, req.ProposalId)
 	}
 
 	return &types.QueryDepositResponse{Deposit: deposit}, nil

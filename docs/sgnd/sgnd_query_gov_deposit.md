@@ -10,7 +10,7 @@ Example:
 $ <appd> query gov deposit 1 sgn1skjwj5whet0lpe65qaq4rpq03hjxlwd96yrvvt
 
 ```
-sgnd query gov deposit [proposal-id] [depositer-addr] [flags]
+sgnd query gov deposit [proposal-id] [depositor-addr] [flags]
 ```
 
 ### Options

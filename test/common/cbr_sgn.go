@@ -69,14 +69,14 @@ func CheckChainSigners(t *testing.T, transactor *transactor.Transactor, chainId 
 	var signers *cbrtypes.ChainSigners
 	for retry := 0; retry < RetryLimit; retry++ {
 		signers, err = cbrcli.QueryChainSigners(transactor.CliCtx, chainId)
-		if err == nil && signers != nil && sameSortedSigenrs(signers.GetCurrSigners(), expSigners) {
+		if err == nil && signers != nil && sameSortedSigners(signers.GetCurrSigners(), expSigners) {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
 	ChkErr(err, "failed to QueryChainSigners")
 	log.Infof("Query sgn and get chain %d signers: %s", chainId, signers.String())
-	assert.True(t, sameSortedSigenrs(signers.GetCurrSigners(), expSigners), "expected signers should be: "+expSigners.String())
+	assert.True(t, sameSortedSigners(signers.GetCurrSigners(), expSigners), "expected signers should be: "+expSigners.String())
 }
 
 func CheckLatestSigners(t *testing.T, transactor *transactor.Transactor, expSigners *cbrtypes.SortedSigners) {
@@ -84,17 +84,17 @@ func CheckLatestSigners(t *testing.T, transactor *transactor.Transactor, expSign
 	var signers *cbrtypes.LatestSigners
 	for retry := 0; retry < RetryLimit; retry++ {
 		signers, err = cbrcli.QueryLatestSigners(transactor.CliCtx)
-		if err == nil && signers != nil && sameSortedSigenrs(signers.GetSigners(), expSigners) {
+		if err == nil && signers != nil && sameSortedSigners(signers.GetSigners(), expSigners) {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
 	ChkErr(err, "failed to QueryLatestSigners")
 	log.Infof("Query sgn and get latest signers: %s", signers.String())
-	assert.True(t, sameSortedSigenrs(signers.GetSigners(), expSigners), "expected signers should be: "+expSigners.String())
+	assert.True(t, sameSortedSigners(signers.GetSigners(), expSigners), "expected signers should be: "+expSigners.String())
 }
 
-func sameSortedSigenrs(ss1, ss2 *cbrtypes.SortedSigners) bool {
+func sameSortedSigners(ss1, ss2 *cbrtypes.SortedSigners) bool {
 	b1, _ := proto.Marshal(ss1)
 	b2, _ := proto.Marshal(ss2)
 	return bytes.Compare(b1, b2) == 0
@@ -186,7 +186,7 @@ func GetFarmingRewardClaimInfoWithSigs(
 	ChkErr(err, "failed to GetFarmingRewardClaimInfo")
 	list := info.GetRewardClaimDetailsList()
 	if len(list) != 1 {
-		log.Fatalf("GetFarmingRewardClaimInfo detals list len %d", len(list))
+		log.Fatalf("GetFarmingRewardClaimInfo details list len %d", len(list))
 	}
 	if len(list[0].Signatures) != expSigNum {
 		log.Fatalf("GetFarmingRewardClaimInfo sigs num %d, expected %d", len(list[0].Signatures), expSigNum)

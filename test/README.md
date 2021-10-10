@@ -48,7 +48,7 @@ rm -rf ~/.sgnd
 cp -a test/data/.sgnd ~/.sgnd
 rm ~/.sgnd/config/genesis.json
 sgnd init node0 --chain-id sgn-localnet-1000
-sgnd add-genesis-account $(sgnd keys show alice -a --keyring-backend file --keyring-dir ~/.sgnd) 100stake
+sgnd add-genesis-account $(sgnd keys show alice -a --keyring-backend file --keyring-dir ~/.sgnd) 100CELR/stake
 sgnd add-genesis-validator alice 1000000000000 # passphrase: 12341234
 cp ~/.sgnd/config/genesis.json test/data/.sgnd/config/genesis.json
 cp ~/.sgnd/config/genesis.json test/multi-node-data/node0/sgnd/config/genesis.json

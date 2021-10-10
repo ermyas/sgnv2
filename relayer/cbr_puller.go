@@ -235,7 +235,7 @@ func (r *Relayer) updateSigners() {
 			},
 		)
 		if err != nil {
-			log.Errorf("chain %d update sigenr err %s", chainId, err)
+			log.Errorf("chain %d update signer err %s", chainId, err)
 			continue
 		}
 		log.Infof("chain %d UpdateSigners tx %x submitted", chainId, tx.Hash())

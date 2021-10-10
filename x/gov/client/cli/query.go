@@ -325,7 +325,7 @@ $ %[1]s query gov votes 1 --page=2 --limit=100
 // GetCmdQueryDeposit implements the query proposal deposit command.
 func GetCmdQueryDeposit(queryRoute string) *cobra.Command {
 	return &cobra.Command{
-		Use:   "deposit [proposal-id] [depositer-addr]",
+		Use:   "deposit [proposal-id] [depositor-addr]",
 		Args:  cobra.ExactArgs(2),
 		Short: "Query details of a deposit",
 		Long: strings.TrimSpace(

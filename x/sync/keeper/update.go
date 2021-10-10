@@ -51,21 +51,21 @@ func (k Keeper) GetPendingUpdate(ctx sdk.Context, updateId uint64) (update *type
 	return update, true
 }
 
-func (k Keeper) GetAllPendingUpdates(ctx sdk.Context) (udpates []*types.PendingUpdate) {
+func (k Keeper) GetAllPendingUpdates(ctx sdk.Context) (updates []*types.PendingUpdate) {
 	store := ctx.KVStore(k.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, types.PendingUpdateKey)
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
 		update := types.MustUnmarshalPendingUpdate(k.cdc, iterator.Value())
-		udpates = append(udpates, &update)
+		updates = append(updates, &update)
 	}
 
-	sort.SliceStable(udpates, func(i, j int) bool {
-		return udpates[i].Id < udpates[j].Id
+	sort.SliceStable(updates, func(i, j int) bool {
+		return updates[i].Id < updates[j].Id
 	})
 
-	return udpates
+	return updates
 }
 
 func (k Keeper) SetPendingUpdate(ctx sdk.Context, update *types.PendingUpdate) {
