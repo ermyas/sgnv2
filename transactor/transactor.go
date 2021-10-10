@@ -263,7 +263,8 @@ func (t *Transactor) sendTxMsgs(msgs []sdk.Msg, gas uint64) (*sdk.TxResponse, er
 }
 
 func (t *Transactor) buildAndSignTx(msgs []sdk.Msg, gas uint64) ([]byte, error) {
-	txf, err := t.TxFactory.Prepare(t.CliCtx)
+	txf := t.TxFactory
+	txf, err := prepareFactory(t.CliCtx, txf)
 	if err != nil {
 		return nil, err
 	}
@@ -279,7 +280,7 @@ func (t *Transactor) buildAndSignTx(msgs []sdk.Msg, gas uint64) ([]byte, error) 
 		txf = txf.WithGas(adjusted)
 	}
 
-	tx, err := txf.BuildUnsignedTx(msgs...)
+	tx, err := clienttx.BuildUnsignedTx(txf, msgs...)
 	if err != nil {
 		return nil, err
 	}
@@ -329,4 +330,34 @@ func (t *Transactor) CliSendTxMsgsWaitMined(msgs []sdk.Msg) {
 	} else {
 		t.CliCtx.PrintString(err.Error())
 	}
+}
+
+// prepareFactory ensures the account defined by ctx.GetFromAddress() exists and
+// if the account number and/or the account sequence number are zero (not set),
+// they will be queried for and set on the provided Factory. A new Factory with
+// the updated fields will be returned.
+func prepareFactory(clientCtx client.Context, txf clienttx.Factory) (clienttx.Factory, error) {
+	from := clientCtx.GetFromAddress()
+
+	if err := txf.AccountRetriever().EnsureExists(clientCtx, from); err != nil {
+		return txf, err
+	}
+
+	initNum, initSeq := txf.AccountNumber(), txf.Sequence()
+	if initNum == 0 || initSeq == 0 {
+		num, seq, err := txf.AccountRetriever().GetAccountNumberSequence(clientCtx, from)
+		if err != nil {
+			return txf, err
+		}
+
+		if initNum == 0 {
+			txf = txf.WithAccountNumber(num)
+		}
+
+		if initSeq == 0 {
+			txf = txf.WithSequence(seq)
+		}
+	}
+
+	return txf, nil
 }
