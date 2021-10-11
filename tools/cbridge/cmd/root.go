@@ -65,7 +65,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "cfg", "cbridge.toml", "config file")
-	rootCmd.PersistentFlags().StringVar(&chainName, "chain", "ropsten", "ropsten, goerli etc, must be defined i config")
+	rootCmd.PersistentFlags().StringVar(&chainName, "chain", "ropsten", "ropsten, goerli etc, must be defined in config file")
 	rootCmd.PersistentFlags().StringVar(&ksPath, "ks", "", "path to ks json")
 }
 
