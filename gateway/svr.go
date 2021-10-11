@@ -58,8 +58,8 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 	var detail *types.QueryLiquidityStatusResponse
 	var wdOnchain []byte
 	var sortedSigs [][]byte
-	var signers [][]byte
-	var powers [][]byte
+	var signers []string
+	var powers []string
 	if found && err == nil {
 		var transfers []*dal.Transfer
 		transfers = append(transfers, transfer)
@@ -541,14 +541,14 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 	}, nil
 }
 
-func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64) (*types.QueryLiquidityStatusResponse, []byte, [][]byte, [][]byte, [][]byte) {
+func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64) (*types.QueryLiquidityStatusResponse, []byte, [][]byte, []string, []string) {
 	tr := gs.tp.GetTransactor()
 	detail, err2 := cbrcli.QueryWithdrawLiquidityStatus(tr.CliCtx, &types.QueryWithdrawLiquidityStatusRequest{
 		SeqNum: seqNum,
 	})
 	var wdOnchain []byte
-	var signers [][]byte
-	var powers [][]byte
+	var signers []string
+	var powers []string
 	var sortedSigs [][]byte
 	if detail != nil && err2 == nil {
 		wdOnchain = detail.GetDetail().GetWdOnchain()
@@ -562,8 +562,8 @@ func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64) (*types.QueryL
 	} else {
 		ss, ps := types.SignersToEthArrays(curss.GetSortedSigners())
 		for i, s := range ss {
-			signers = append(signers, s.Bytes())
-			powers = append(powers, ps[i].Bytes())
+			signers = append(signers, s.Hex())
+			powers = append(powers, ps[i].String())
 		}
 	}
 	return detail, wdOnchain, sortedSigs, signers, powers
