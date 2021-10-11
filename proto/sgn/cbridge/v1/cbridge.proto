@@ -93,18 +93,6 @@ message WithdrawOnchain {
   bytes amount = 5;
 }
 
-// sorted by signer address
-message SortedSigners {
-  option (gogoproto.goproto_stringer) = false;
-
-  repeated AddrAmt signers = 1;
-}
-
-message AddrAmt {
-  bytes addr = 1; // eth address, NOT hex string
-  bytes amt = 2; // big.Int.Bytes(), NO negative!
-}
-
 // ========== x/cbridge kv value types
 // for src transfer id
 // normal status flow: after sgn applied user's Send event, status is OK_TO_RELAY. then after apply Relay event
@@ -148,19 +136,25 @@ message AddrSig {
 
 // ========== bridge signers
 
+message Signer {
+  option (gogoproto.goproto_stringer) = false;
+
+  bytes addr = 1; // eth address, NOT hex string
+  bytes power = 2; // big.Int.Bytes(), NO negative!
+}
+
 message ChainSigners {
   option (gogoproto.goproto_stringer) = false;
 
   uint64 chain_id = 1;
-  SortedSigners curr_signers = 2;
-  bytes signers_bytes = 3;
+  repeated Signer sorted_signers = 2;
 }
 
 message LatestSigners {
   option (gogoproto.goproto_stringer) = false;
 
-  SortedSigners signers = 1;
-  bytes signers_bytes = 2; // serialized signers
+  repeated Signer sorted_signers = 1;
+  bytes signers_bytes = 2;
   repeated AddrSig sorted_sigs = 3;
   google.protobuf.Timestamp update_time = 4
     [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"update_time\""];

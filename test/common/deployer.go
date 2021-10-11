@@ -28,8 +28,8 @@ func DeployERC20Contract(ethClient *ethclient.Client, auth *bind.TransactOpts, n
 	return erc20Addr, erc20
 }
 
-func DeployBridgeContract(ethClient *ethclient.Client, auth *bind.TransactOpts, signers []byte) (cbrAddr eth.Addr, cbrContract *eth.BridgeContract) {
-	cbrAddr, tx, _, err := eth.DeployBridge(auth, ethClient, signers)
+func DeployBridgeContract(ethClient *ethclient.Client, auth *bind.TransactOpts) (cbrAddr eth.Addr, cbrContract *eth.BridgeContract) {
+	cbrAddr, tx, _, err := eth.DeployBridge(auth, ethClient)
 	ChkErr(err, "failed to deploy bridge contract")
 	cbrContract, err = eth.NewBridgeContract(cbrAddr, ethClient)
 	ChkErr(err, "failed to set bridge contract")

@@ -14,7 +14,6 @@ import (
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/gogo/protobuf/proto"
 )
 
 func InitCbrChainConfigs() {
@@ -102,10 +101,11 @@ func (c *CbrChain) SendAny(fromUid, toUid uint64, amt *big.Int, dstChainId, nonc
 	return sendEv.TransferId, nil
 }
 
-func (c *CbrChain) OnchainWithdraw(wdDetail *cbrtypes.WithdrawDetail, curss []byte) error {
+func (c *CbrChain) OnchainWithdraw(wdDetail *cbrtypes.WithdrawDetail, signers []*cbrtypes.Signer) error {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
-	tx, err := c.CbrContract.Withdraw(c.Auth, wdDetail.WdOnchain, curss, wdDetail.GetSortedSigsBytes())
+	addrs, powers := cbrtypes.SignersToEthArrays(signers)
+	tx, err := c.CbrContract.Withdraw(c.Auth, wdDetail.WdOnchain, wdDetail.GetSortedSigsBytes(), addrs, powers)
 	if err != nil {
 		return err
 	}
@@ -116,20 +116,11 @@ func (c *CbrChain) OnchainWithdraw(wdDetail *cbrtypes.WithdrawDetail, curss []by
 func (c *CbrChain) SetInitSigners(amts []*big.Int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
-	var signers []*cbrtypes.AddrAmt
-	for i, amt := range amts {
-		signers = append(signers, &cbrtypes.AddrAmt{
-			Addr: ValSignerAddrs[i].Bytes(),
-			Amt:  amt.Bytes(),
-		})
+	var addrs []eth.Addr
+	for i := range amts {
+		addrs = append(addrs, ValSignerAddrs[i])
 	}
-	ss, err := proto.Marshal(&cbrtypes.SortedSigners{
-		Signers: signers,
-	})
-	if err != nil {
-		return err
-	}
-	tx, err := c.CbrContract.SetInitSigners(c.Auth, ss)
+	tx, err := c.CbrContract.ResetSigners(c.Auth, addrs, amts)
 	if err != nil {
 		return err
 	}
@@ -147,7 +138,7 @@ func OnchainClaimRewards(details *farmingtypes.RewardClaimDetails) error {
 	for _, signature := range details.Signatures {
 		sigs = append(sigs, signature.SigBytes)
 	}
-	tx, err := Contracts.FarmingRewards.ClaimRewards(EtherBaseAuth, details.RewardProtoBytes, nil, sigs)
+	tx, err := Contracts.FarmingRewards.ClaimRewards(EtherBaseAuth, details.RewardProtoBytes, sigs, nil, nil)
 	if err != nil {
 		return err
 	}

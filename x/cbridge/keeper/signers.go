@@ -49,24 +49,22 @@ func (k Keeper) UpdateLatestSigners(ctx sdk.Context, force bool) {
 	}
 
 	vals := k.stakingKeeper.GetBondedValidators(ctx)
-	newSigners := &types.LatestSigners{
-		Signers: &types.SortedSigners{},
-	}
+	newSigners := &types.LatestSigners{}
 	for _, v := range vals {
-		signer := &types.AddrAmt{
-			Addr: v.GetSignerAddr().Bytes(),
-			Amt:  v.Tokens.BigInt().Bytes(),
+		signer := &types.Signer{
+			Addr:  v.GetSignerAddr().Bytes(),
+			Power: v.Tokens.BigInt().Bytes(),
 		}
-		newSigners.Signers.Signers = append(newSigners.Signers.Signers, signer)
+		newSigners.SortedSigners = append(newSigners.SortedSigners, signer)
 	}
-	newSigners.Signers.Sort()
+	newSigners.Sort()
 	newSigners.GenerateSignersBytes()
 
 	if bytes.Equal(latestSigners.GetSignersBytes(), newSigners.SignersBytes) {
 		return
 	}
 
-	log.Infoln("Update latest signers:", newSigners.Signers.String())
+	log.Infoln("Update latest signers:", newSigners.String())
 	newSigners.UpdateTime = ctx.BlockHeader().Time
 	k.SetLatestSigners(ctx, newSigners)
 	ctx.EventManager().EmitEvent(sdk.NewEvent(

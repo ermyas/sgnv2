@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -61,6 +62,17 @@ func CommissionRate(rate float64) uint64 {
 	return uint64(rate * CommissionRateBase)
 }
 
+func SignerBytes(addrs []Addr, powers []*big.Int) []byte {
+	var packed []byte
+	for _, addr := range addrs {
+		packed = append(packed, Pad32Bytes(addr.Bytes())...)
+	}
+	for _, power := range powers {
+		packed = append(packed, Pad32Bytes(power.Bytes())...)
+	}
+	return packed
+}
+
 // return human friendly string for logging
 func (ev *BridgeSend) PrettyLog(srcChid uint64) string {
 	// max slippage uint is float * 1e6 so percentage needs to divide by 1e4
@@ -81,6 +93,10 @@ func (ev *BridgeRelay) PrettyLog(onchid uint64) string {
 	return fmt.Sprintf("relay-%x srcchid: %d dst: %d-%x sender: %x receiver: %x amt: %s thisXferId: %x", ev.SrcTransferId, ev.SrcChainId, onchid, ev.Token, ev.Sender, ev.Receiver, ev.Amount, ev.TransferId)
 }
 
+func (ev *BridgeSignersUpdated) PrettyLog(onchid uint64) string {
+	return fmt.Sprintf("signersUpdated-%d: %s", onchid, ev.String())
+}
+
 func (r *BridgeRelay) String() string {
 	return fmt.Sprintf("transferId %x, sender %x, receiver %x, token %x, amount %s, srcChainId %d, srcTransferId %x",
 		r.TransferId, r.Sender, r.Receiver, r.Token, r.Amount, r.SrcChainId, r.SrcTransferId)
@@ -98,5 +114,12 @@ func (l *BridgeLiquidityAdded) String() string {
 func (w *BridgeWithdrawDone) String() string {
 	return fmt.Sprintf("withdrawId %x, seqNum %d, receiver %x, token %x, amount %s",
 		w.WithdrawId, w.Seqnum, w.Receiver, w.Token, w.Amount)
+}
 
+func (s *BridgeSignersUpdated) String() string {
+	var out string
+	for i, addr := range s.Signers {
+		out += fmt.Sprintf("<addr %x power %s> ", addr, s.Powers[i])
+	}
+	return fmt.Sprintf("< %s>", out)
 }

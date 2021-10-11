@@ -57,8 +57,9 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 	transfer, found, err := dal.DB.GetTransfer(request.GetTransferId())
 	var detail *types.QueryLiquidityStatusResponse
 	var wdOnchain []byte
-	var signers []byte
 	var sortedSigs [][]byte
+	var signers [][]byte
+	var powers [][]byte
 	if found && err == nil {
 		var transfers []*dal.Transfer
 		transfers = append(transfers, transfer)
@@ -66,7 +67,7 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 		transfer, found, err = dal.DB.GetTransfer(request.GetTransferId())
 		if found && err == nil && (transfer.Status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND || transfer.Status == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED) {
 			if transfer.RefundSeqNum > 0 {
-				detail, wdOnchain, signers, sortedSigs = gs.getWithdrawInfo(transfer.RefundSeqNum, transfer.SrcChainId)
+				detail, wdOnchain, sortedSigs, signers, powers = gs.getWithdrawInfo(transfer.RefundSeqNum, transfer.SrcChainId)
 				if detail == nil {
 					return &webapi.GetTransferStatusResponse{
 						Err: &webapi.ErrMsg{
@@ -100,8 +101,9 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 	return &webapi.GetTransferStatusResponse{
 		Status:     transfer.Status,
 		WdOnchain:  wdOnchain,
-		Signers:    signers,
 		SortedSigs: sortedSigs,
+		Signers:    signers,
+		Powers:     powers,
 	}, nil
 }
 
@@ -518,10 +520,11 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 			SortedSigs: nil,
 		}
 		if status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN) || status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_LP) {
-			detail, wdOnchain, signers, sortedSigs := gs.getWithdrawInfo(seqNum, chainId)
+			detail, wdOnchain, sortedSigs, signers, powers := gs.getWithdrawInfo(seqNum, chainId)
 			resp.WdOnchain = wdOnchain
-			resp.Signers = signers
 			resp.SortedSigs = sortedSigs
+			resp.Signers = signers
+			resp.Powers = powers
 			if status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN) && detail.GetStatus() != resp.Status {
 				_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(detail.Status))
 				resp.Status = detail.GetStatus()
@@ -538,13 +541,14 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 	}, nil
 }
 
-func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64) (*types.QueryLiquidityStatusResponse, []byte, []byte, [][]byte) {
+func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64) (*types.QueryLiquidityStatusResponse, []byte, [][]byte, [][]byte, [][]byte) {
 	tr := gs.tp.GetTransactor()
 	detail, err2 := cbrcli.QueryWithdrawLiquidityStatus(tr.CliCtx, &types.QueryWithdrawLiquidityStatusRequest{
 		SeqNum: seqNum,
 	})
 	var wdOnchain []byte
-	var signers []byte
+	var signers [][]byte
+	var powers [][]byte
 	var sortedSigs [][]byte
 	if detail != nil && err2 == nil {
 		wdOnchain = detail.GetDetail().GetWdOnchain()
@@ -556,9 +560,13 @@ func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64) (*types.QueryL
 	if signErr != nil {
 		log.Warnf("QueryChainSigners error:%+v", signErr)
 	} else {
-		signers = curss.GetSignersBytes()
+		ss, ps := types.SignersToEthArrays(curss.GetSortedSigners())
+		for i, s := range ss {
+			signers = append(signers, s.Bytes())
+			powers = append(powers, ps[i].Bytes())
+		}
 	}
-	return detail, wdOnchain, signers, sortedSigs
+	return detail, wdOnchain, sortedSigs, signers, powers
 }
 
 func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.TransferHistoryRequest) (*webapi.TransferHistoryResponse, error) {

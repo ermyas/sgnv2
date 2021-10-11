@@ -122,3 +122,16 @@ func Pad20Bytes(in []byte) []byte {
 	copy(ret[20-origLen:], in)
 	return ret
 }
+
+func Pad32Bytes(in []byte) []byte {
+	origLen := len(in)
+	if origLen == 32 {
+		return in
+	}
+	if origLen > 32 {
+		panic(fmt.Sprintf("%x len %d > 32", in, origLen))
+	}
+	ret := make([]byte, 32)
+	copy(ret[32-origLen:], in)
+	return ret
+}

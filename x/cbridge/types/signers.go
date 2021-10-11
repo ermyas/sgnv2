@@ -8,40 +8,43 @@ import (
 
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/gogo/protobuf/proto"
 )
 
-func (ss *SortedSigners) String() string {
+// ------------------------------------ Signer(s) ------------------------------------
+
+func (s *Signer) String() string {
+	return fmt.Sprintf("addr %x power %s", s.Addr, new(big.Int).SetBytes(s.Power))
+}
+
+func PrintSigners(ss []*Signer) string {
 	var out string
-	for _, s := range ss.Signers {
-		power := new(big.Int).SetBytes(s.Amt)
-		out += fmt.Sprintf("<%x, %s> ", s.Addr, power)
+	for _, s := range ss {
+		out += fmt.Sprintf("<%s> ", s.String())
 	}
 	return fmt.Sprintf("< %s>", out)
 }
 
-// Sort signers array in descending token amount order
-func (ss SortedSigners) Sort() {
-	sort.Sort(ss)
+func SignersToEthArrays(ss []*Signer) ([]eth.Addr, []*big.Int) {
+	addrs := make([]eth.Addr, len(ss))
+	powers := make([]*big.Int, len(ss))
+	for i, s := range ss {
+		addrs[i] = eth.Bytes2Addr(s.Addr)
+		powers[i] = new(big.Int).SetBytes(s.Power)
+	}
+	return addrs, powers
 }
 
-// Implements sort interface
-func (ss SortedSigners) Len() int {
-	return len(ss.Signers)
-}
-
-// Implements sort interface
-func (ss SortedSigners) Less(i, j int) bool {
-	return bytes.Compare(ss.Signers[i].Addr, ss.Signers[j].Addr) == -1
-}
-
-// Implements sort interface
-func (ss SortedSigners) Swap(i, j int) {
-	ss.Signers[i], ss.Signers[j] = ss.Signers[j], ss.Signers[i]
-}
+// ------------------------------------ ChainSigners ------------------------------------
 
 func (cs *ChainSigners) String() string {
-	return fmt.Sprintf("chainId: %d, signers: %s", cs.ChainId, cs.CurrSigners.String())
+	return fmt.Sprintf("chainId: %d, signers: %s", cs.ChainId, PrintSigners(cs.GetSortedSigners()))
+}
+
+func (ss *ChainSigners) SetByEvent(e *eth.BridgeSignersUpdated) {
+	ss.SortedSigners = make([]*Signer, len(e.Powers))
+	for i, addr := range e.Signers {
+		ss.SortedSigners[i] = &Signer{addr.Bytes(), e.Powers[i].Bytes()}
+	}
 }
 
 func MustMarshalChainSigners(cdc codec.BinaryCodec, signers *ChainSigners) []byte {
@@ -61,16 +64,23 @@ func UnmarshalChainSigners(cdc codec.BinaryCodec, value []byte) (s ChainSigners,
 	return s, err
 }
 
+// ------------------------------------ LatestSigners ------------------------------------
+
 func (ls *LatestSigners) String() string {
 	var sigs string
 	for _, s := range ls.GetSortedSigs() {
 		sigs += fmt.Sprintf("%x ", s.Addr)
 	}
-	return fmt.Sprintf("signers: %s, sigs from: < %s>, update time: %s", ls.Signers.String(), sigs, ls.UpdateTime)
+	return fmt.Sprintf("signers: %s, sigs from: < %s>, update time: %s",
+		PrintSigners(ls.GetSortedSigners()), sigs, ls.UpdateTime)
 }
 
 func (ls *LatestSigners) GenerateSignersBytes() {
-	ls.SignersBytes, _ = proto.Marshal(ls.Signers)
+	if ls == nil {
+		return
+	}
+	addrs, powers := SignersToEthArrays(ls.SortedSigners)
+	ls.SignersBytes = eth.SignerBytes(addrs, powers)
 }
 
 func (ls *LatestSigners) GetSortedSigsBytes() [][]byte {
@@ -82,6 +92,26 @@ func (ls *LatestSigners) GetSortedSigsBytes() [][]byte {
 		return sigs
 	}
 	return nil
+}
+
+// Sort signers array in ascending address order
+func (ls *LatestSigners) Sort() {
+	sort.Sort(ls)
+}
+
+// Implements sort interface
+func (ls *LatestSigners) Len() int {
+	return len(ls.SortedSigners)
+}
+
+// Implements sort interface
+func (ls *LatestSigners) Less(i, j int) bool {
+	return bytes.Compare(eth.Pad20Bytes(ls.SortedSigners[i].Addr), eth.Pad20Bytes(ls.SortedSigners[j].Addr)) == -1
+}
+
+// Implements sort interface
+func (ls *LatestSigners) Swap(i, j int) {
+	ls.SortedSigners[i], ls.SortedSigners[j] = ls.SortedSigners[j], ls.SortedSigners[i]
 }
 
 func MustMarshalLatestSigners(cdc codec.BinaryCodec, signers *LatestSigners) []byte {
@@ -101,14 +131,16 @@ func UnmarshalLatestSigners(cdc codec.BinaryCodec, value []byte) (s LatestSigner
 	return s, err
 }
 
-func ValidateSigs(sortedSigs []*AddrSig, curss *SortedSigners) (pass bool, sigsBytes [][]byte) {
-	if len(curss.GetSigners()) == 0 {
-		return false, nil
+// ------------------------------------ Utils ------------------------------------
+
+func ValidateSigQuorum(sortedSigs []*AddrSig, curss []*Signer) bool {
+	if len(curss) == 0 {
+		return false
 	}
 	totalPower := big.NewInt(0)
-	curssMap := make(map[eth.Addr]*AddrAmt)
-	for _, s := range curss.GetSigners() {
-		power := big.NewInt(0).SetBytes(s.Amt)
+	curssMap := make(map[eth.Addr]*Signer)
+	for _, s := range curss {
+		power := big.NewInt(0).SetBytes(s.Power)
 		totalPower.Add(totalPower, power)
 		curssMap[eth.Bytes2Addr(s.Addr)] = s
 	}
@@ -117,16 +149,15 @@ func ValidateSigs(sortedSigs []*AddrSig, curss *SortedSigners) (pass bool, sigsB
 
 	signedPower := big.NewInt(0)
 	for _, s := range sortedSigs {
-		if addrAmt, ok := curssMap[eth.Bytes2Addr(s.Addr)]; ok {
-			power := big.NewInt(0).SetBytes(addrAmt.Amt)
+		if signer, ok := curssMap[eth.Bytes2Addr(s.Addr)]; ok {
+			power := big.NewInt(0).SetBytes(signer.Power)
 			signedPower.Add(signedPower, power)
-			sigsBytes = append(sigsBytes, s.Sig)
 			if signedPower.Cmp(quorumStake) > 0 {
-				return true, sigsBytes
+				return true
 			}
 			delete(curssMap, eth.Bytes2Addr(s.Addr))
 		}
 	}
 
-	return false, nil
+	return false
 }

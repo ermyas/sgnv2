@@ -16,7 +16,7 @@ var deployCmd = &cobra.Command{
 	Use:   "deploy",
 	Short: "deploy cbridge contract",
 	Run: func(cmd *cobra.Command, args []string) {
-		addr, _, tx, err := eth.DeployBridge(auth, ec, nil)
+		addr, _, tx, err := eth.DeployBridge(auth, ec)
 		if err != nil {
 			log.Fatal("deploy err:", err)
 		}

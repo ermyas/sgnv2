@@ -172,13 +172,13 @@ func cbrSignersTest(t *testing.T) {
 	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
 }
 
-func genSortedSigners(amts []*big.Int) *cbrtypes.SortedSigners {
-	ss := new(cbrtypes.SortedSigners)
+func genSortedSigners(amts []*big.Int) []*cbrtypes.Signer {
+	var ss []*cbrtypes.Signer
 	for i, amt := range amts {
-		ss.Signers = append(ss.Signers,
-			&cbrtypes.AddrAmt{
-				Addr: tc.ValSignerAddrs[i].Bytes(),
-				Amt:  amt.Bytes(),
+		ss = append(ss,
+			&cbrtypes.Signer{
+				Addr:  tc.ValSignerAddrs[i].Bytes(),
+				Power: amt.Bytes(),
 			})
 	}
 	return ss

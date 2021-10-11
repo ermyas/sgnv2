@@ -98,15 +98,15 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 	}
 
 	curss := r.cbrMgr[relayOnChain.DstChainId].getCurss()
-	pass, sigsBytes := cbrtypes.ValidateSigs(relay.SortedSigs, curss.signers)
+	pass, sigsBytes := validateSigQuorum(relay.SortedSigs, curss)
 	if !pass {
-		log.Debugf("%s. Not have enough sigs %s, curss %s", logmsg, relay.SignersStr(), curss.signers.String())
+		log.Debugf("%s. Not have enough sigs %s, curss %s", logmsg, relay.SignersStr(), curss.String())
 		r.requeueRelay(relayEvent)
 		return
 	}
 	// TODO: check if relay already sent on chain
 	log.Infof("%s with signers %s", logmsg, relay.SignersStr())
-	err = r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, curss.bytes, sigsBytes)
+	err = r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, sigsBytes, curss)
 	if err != nil {
 		r.requeueRelay(relayEvent)
 		log.Errorln("relay err", err)
@@ -193,7 +193,8 @@ func (r *Relayer) updateSigners() {
 			log.Debugf("chain %d signers already updated", chainId)
 			continue
 		}
-		if eth.Bytes2Hash(crypto.Keccak256(c.getCurss().bytes)) != ssHash {
+		curss := c.getCurss()
+		if eth.Bytes2Hash(crypto.Keccak256(eth.SignerBytes(curss.addrs, curss.powers))) != ssHash {
 			log.Warnf("chain %d local curss not match onchain value", chainId)
 			continue
 		}
@@ -201,7 +202,7 @@ func (r *Relayer) updateSigners() {
 		var sigsBytes [][]byte
 		retry := 0
 		for !pass && retry < maxSigRetry {
-			pass, sigsBytes = cbrtypes.ValidateSigs(latestSigners.GetSortedSigs(), c.getCurss().signers)
+			pass, sigsBytes = validateSigQuorum(latestSigners.GetSortedSigs(), curss)
 			if pass {
 				break
 			}
@@ -231,7 +232,9 @@ func (r *Relayer) updateSigners() {
 				},
 			},
 			func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
-				return c.contract.UpdateSigners(opts, latestSigners.GetSignersBytes(), c.curss.bytes, sigsBytes)
+				newSignerAddrs, newSignerPowers := cbrtypes.SignersToEthArrays(latestSigners.GetSortedSigners())
+				return c.contract.UpdateSigners(
+					opts, newSignerAddrs, newSignerPowers, sigsBytes, curss.addrs, curss.powers)
 			},
 		)
 		if err != nil {

@@ -134,18 +134,12 @@ func (c *CbrOneChain) verifySigners(eLog *ethtypes.Log, cliCtx client.Context, l
 		log.Errorf("%s. parse eLog error %s", logmsg, err)
 		return true, false
 	}
-	signers := new(cbrtypes.SortedSigners)
-	err = signers.Unmarshal(ev.CurSigners)
-	if err != nil {
-		log.Errorf("%s. unmarshal signers error %s", logmsg, err)
-		return true, false
-	}
-	logmsg = fmt.Sprintf("%s. %s", logmsg, signers.String())
+	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
 
 	// check in store
 	storedChainSigners, err := cbrcli.QueryChainSigners(cliCtx, c.chainid)
 	if err == nil {
-		if bytes.Compare(storedChainSigners.GetSignersBytes(), ev.CurSigners) == 0 {
+		if equalSigners(storedChainSigners.GetSortedSigners(), ev) {
 			log.Infof("%s. already updated", logmsg)
 			return true, false
 		}
@@ -157,13 +151,28 @@ func (c *CbrOneChain) verifySigners(eLog *ethtypes.Log, cliCtx client.Context, l
 		log.Errorf("%s. query ssHash err: %s", logmsg, err)
 		return false, false
 	}
-	curssHash := eth.Bytes2Hash(crypto.Keccak256(ev.CurSigners))
+	curssHash := eth.Bytes2Hash(crypto.Keccak256(eth.SignerBytes(ev.Signers, ev.Powers)))
 	if curssHash != ssHash {
 		log.Errorf("%s. curss hash %x not match onchain values: %x", logmsg, curssHash, ssHash)
 		return true, false
 	}
-	c.setCurss(ev.CurSigners)
+	c.setCurssByEvent(ev)
 
 	log.Infof("%s, success", logmsg)
 	return true, true
+}
+
+func equalSigners(ss []*cbrtypes.Signer, ev *eth.BridgeSignersUpdated) bool {
+	if len(ss) != len(ev.Signers) {
+		return false
+	}
+	for i, s := range ss {
+		if !bytes.Equal(s.Addr, ev.Signers[i].Bytes()) {
+			return false
+		}
+		if !bytes.Equal(s.Power, ev.Powers[i].Bytes()) {
+			return false
+		}
+	}
+	return true
 }

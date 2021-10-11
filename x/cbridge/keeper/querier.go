@@ -298,8 +298,7 @@ func queryWithdrawLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keep
 		wdOnchain := new(types.WithdrawOnchain)
 		wdOnchain.Unmarshal(wd.WdOnchain)
 		chainSigners, _ := k.GetChainSigners(ctx, wdOnchain.Chainid)
-		pass, _ := types.ValidateSigs(wd.GetSortedSigs(), chainSigners.GetCurrSigners())
-		if pass {
+		if types.ValidateSigQuorum(wd.GetSortedSigs(), chainSigners.GetSortedSigners()) {
 			status = types.LPHistoryStatus_LP_WAITING_FOR_LP
 		} else {
 			status = types.LPHistoryStatus_LP_WAITING_FOR_SGN

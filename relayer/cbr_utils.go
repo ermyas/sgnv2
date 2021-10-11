@@ -4,22 +4,35 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
-func (c *CbrOneChain) setCurss(curssBytes []byte) {
+func (c *CbrOneChain) setCurss(ss []*cbrtypes.Signer) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	c.curss.setSigners(curssBytes)
+	c.curss.addrs, c.curss.powers = cbrtypes.SignersToEthArrays(ss)
 }
 
-func (c *CbrOneChain) getCurss() *sortedSigners {
+func (c *CbrOneChain) setCurssByEvent(e *eth.BridgeSignersUpdated) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.curss.addrs = make([]eth.Addr, len(e.Signers))
+	c.curss.powers = make([]*big.Int, len(e.Powers))
+	for i, addr := range e.Signers {
+		c.curss.addrs[i] = addr
+		c.curss.powers[i] = e.Powers[i]
+	}
+}
+
+func (c *CbrOneChain) getCurss() currentSigners {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	return c.curss
@@ -53,6 +66,34 @@ func (c *CbrOneChain) getTokenFromDB(tokenAddr string) (*webapi.TokenInfo, uint6
 		return nil, 0, false
 	}
 	return token, chainId.Uint64(), true
+}
+
+func validateSigQuorum(sortedSigs []*cbrtypes.AddrSig, curss currentSigners) (pass bool, sigsBytes [][]byte) {
+	if len(curss.addrs) == 0 {
+		return false, nil
+	}
+	totalPower := big.NewInt(0)
+	signerPowers := make(map[eth.Addr]*big.Int)
+	for i, power := range curss.powers {
+		totalPower.Add(totalPower, power)
+		signerPowers[curss.addrs[i]] = power
+	}
+	quorumStake := big.NewInt(0).Mul(totalPower, big.NewInt(2))
+	quorumStake = quorumStake.Quo(quorumStake, big.NewInt(3))
+
+	signedPower := big.NewInt(0)
+	for _, s := range sortedSigs {
+		if power, ok := signerPowers[eth.Bytes2Addr(s.Addr)]; ok {
+			signedPower.Add(signedPower, power)
+			sigsBytes = append(sigsBytes, s.Sig)
+			if signedPower.Cmp(quorumStake) > 0 {
+				return true, sigsBytes
+			}
+			delete(signerPowers, eth.Bytes2Addr(s.Addr))
+		}
+	}
+
+	return false, nil
 }
 
 func GatewayOnSend(transferId string) error {

@@ -140,13 +140,7 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 				case cbrtypes.SignDataType_SIGNERS.String():
 					msg.Datatype = cbrtypes.SignDataType_SIGNERS
 					r.setCbrSsUpdating()
-					ss := new(cbrtypes.SortedSigners)
-					err = ss.Unmarshal(data)
-					if err != nil {
-						log.Errorf("%s, failed to unmarshal sorted signers: %s", logmsg, err)
-						return
-					}
-					log.Infof("%s: %s", logmsg, ss.String())
+					log.Infof("%s", logmsg)
 				}
 				r.Transactor.AddTxMsg(msg)
 			}

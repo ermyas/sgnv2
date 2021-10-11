@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/celer-network/sgn-v2/eth"
-	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/spf13/cobra"
 )
 
@@ -26,20 +25,16 @@ var updateSignersCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ethamt := strings.Split(args[0], ",")
 		amt, _ := new(big.Int).SetString(ethamt[1], 10)
-		onesigner := &cbrtypes.AddrAmt{
-			Addr: eth.Hex2Bytes(ethamt[0]),
-			Amt:  amt.Bytes(),
-		}
-		ss := cbrtypes.SortedSigners{
-			Signers: []*cbrtypes.AddrAmt{onesigner},
-		}
-		raw, _ := ss.Marshal()
+		addr := eth.Hex2Addr(ethamt[0])
+		addrs := []eth.Addr{addr}
+		powers := []*big.Int{amt}
+		raw := eth.SignerBytes(addrs, powers)
 		signer := kspath2signer(signerks, signerpw)
 		sig := signer.SignData(raw)
 		log.Printf("raw: %x\nsig: %x", raw, sig)
 		// now try to submit onchain
 		cbrContract, _ = eth.NewBridge(eth.Hex2Addr(cfg.Cbridge), ec)
-		tx, err := cbrContract.UpdateSigners(auth, raw, raw, [][]byte{sig})
+		tx, err := cbrContract.UpdateSigners(auth, addrs, powers, [][]byte{sig}, addrs, powers)
 		chkTxErr(tx, err)
 	},
 }

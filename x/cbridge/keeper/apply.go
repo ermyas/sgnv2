@@ -169,11 +169,9 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			return false, err
 		}
 		chainSigners := &types.ChainSigners{
-			ChainId:      onchev.Chainid,
-			SignersBytes: ev.CurSigners,
-			CurrSigners:  &types.SortedSigners{},
+			ChainId: onchev.Chainid,
 		}
-		chainSigners.CurrSigners.Unmarshal(ev.CurSigners)
+		chainSigners.SetByEvent(ev)
 		k.SetChainSigners(ctx, chainSigners)
 		log.Infoln("x/cbr applied chainSigners:", chainSigners.String())
 	}

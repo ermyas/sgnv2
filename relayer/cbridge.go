@@ -16,11 +16,9 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
-	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
-
 	dbm "github.com/tendermint/tm-db"
 )
 
@@ -50,17 +48,6 @@ func (c *cbrContract) GetABI() string {
 	return eth.BridgeABI
 }
 
-type sortedSigners struct {
-	signers *cbrtypes.SortedSigners
-	bytes   []byte
-}
-
-func (s *sortedSigners) setSigners(bytes []byte) {
-	s.bytes = bytes
-	s.signers = new(cbrtypes.SortedSigners)
-	s.signers.Unmarshal(bytes)
-}
-
 // ethclient etc
 type CbrOneChain struct {
 	*ethclient.Client
@@ -68,7 +55,7 @@ type CbrOneChain struct {
 	mon      *monitor.Service
 	contract *cbrContract
 	db       *dbm.PrefixDB // cbr-xxx xxx is chainid
-	curss    *sortedSigners
+	curss    currentSigners
 	lock     sync.RWMutex
 
 	// not required for flow but make log chain id easy
@@ -145,10 +132,7 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 			Bridge:  cbr,
 			Address: eth.Hex2Addr(cfg.CBridge),
 		},
-		db: dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID))),
-		curss: &sortedSigners{
-			signers: &cbrtypes.SortedSigners{},
-		},
+		db:      dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID))),
 		chainid: cfg.ChainID,
 	}
 	chainSigners, err := cbrcli.QueryChainSigners(cliCtx, cfg.ChainID)
@@ -156,7 +140,7 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 		log.Warnf("failed to get chain %d signers: %s", cfg.ChainID, err)
 	} else {
 		log.Infof("Set chain %d signers %s:", cfg.ChainID, chainSigners.String())
-		ret.setCurss(chainSigners.GetSignersBytes())
+		ret.setCurss(chainSigners.GetSortedSigners())
 	}
 	ret.startMon()
 	return ret
@@ -208,4 +192,17 @@ func (e *RelayEvent) MustUnMarshal(input []byte) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+type currentSigners struct {
+	addrs  []eth.Addr
+	powers []*big.Int
+}
+
+func (s currentSigners) String() string {
+	var out string
+	for i, addr := range s.addrs {
+		out += fmt.Sprintf("<addr %x power %s> ", addr, s.powers[i])
+	}
+	return fmt.Sprintf("< %s>", out)
 }

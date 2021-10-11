@@ -162,8 +162,8 @@ func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 			log.Errorln("monSignersUpdated: cannot parse event:", err)
 			return false
 		}
-		c.setCurss(ev.CurSigners)
-		log.Infof("MonEv: signersUpdated-%d signers: %s tx: %s", c.chainid, c.getCurss().signers.String(), eLog.TxHash)
+		c.setCurssByEvent(ev)
+		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 
 		err = c.saveEvent(cbrtypes.CbrEventSignersUpdated, eLog)
 		if err != nil {
@@ -175,7 +175,7 @@ func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 }
 
 // send relay tx onchain to cbridge contract, no wait mine
-func (c *CbrOneChain) SendRelay(relay, curss []byte, sigs [][]byte) error {
+func (c *CbrOneChain) SendRelay(relay []byte, sigs [][]byte, curss currentSigners) error {
 	tx, err := c.Transactor.Transact(
 		&ethutils.TransactionStateHandler{
 			OnMined: func(receipt *ethtypes.Receipt) {
@@ -190,7 +190,7 @@ func (c *CbrOneChain) SendRelay(relay, curss []byte, sigs [][]byte) error {
 			},
 		},
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
-			return c.contract.Relay(opts, relay, curss, sigs)
+			return c.contract.Relay(opts, relay, sigs, curss.addrs, curss.powers)
 		},
 	)
 

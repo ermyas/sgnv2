@@ -105,7 +105,6 @@ func (k Keeper) PickLPsAndAdjustLiquidity(ctx sdk.Context, kv sdk.KVStore, src, 
 		// what to do?
 		panic(fmt.Sprintf("toAllocate still has %s", toAllocate))
 	}
-
 	return
 }
 

@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/celer-network/sgn-v2/eth"
-	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/spf13/cobra"
 )
@@ -20,7 +19,7 @@ func init() {
 	rootCmd.AddCommand(ownerCmd)
 	// owner sub cmds
 	ownerCmd.AddCommand(
-		initSignerCmd,
+		resetSignerCmd,
 		wrapCmd,
 		minSendCmd,
 		minSlipCmd,
@@ -38,22 +37,20 @@ var ownerCmd = &cobra.Command{
 	},
 }
 
-var initSignerCmd = &cobra.Command{
-	Use:   "initSigner",
-	Short: "call setInitSigners, args are sorted by eth signer1Eth,power signer2Eth,power",
+var resetSignerCmd = &cobra.Command{
+	Use:   "resetSigner",
+	Short: "call resetSigners, args are sorted by eth signer1Eth,power signer2Eth,power",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		signers := new(cbrtypes.SortedSigners)
+		var addrs []eth.Addr
+		var powers []*big.Int
 		for _, arg := range args {
 			ethamt := strings.Split(arg, ",")
 			amt, _ := new(big.Int).SetString(ethamt[1], 10)
-			signers.Signers = append(signers.Signers, &cbrtypes.AddrAmt{
-				Addr: eth.Hex2Bytes(ethamt[0]),
-				Amt:  amt.Bytes(),
-			})
+			addrs = append(addrs, eth.Hex2Addr(ethamt[0]))
+			powers = append(powers, amt)
 		}
-		raw, _ := signers.Marshal()
-		tx, err := cbrContract.SetInitSigners(auth, raw)
+		tx, err := cbrContract.ResetSigners(auth, addrs, powers)
 		chkTxErr(tx, err)
 	},
 }

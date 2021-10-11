@@ -16,7 +16,6 @@ import (
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	farmingcli "github.com/celer-network/sgn-v2/x/farming/client/cli"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
-	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,40 +63,51 @@ func CheckXfer(transactor *transactor.Transactor, xferId []byte) {
 	}
 }
 
-func CheckChainSigners(t *testing.T, transactor *transactor.Transactor, chainId uint64, expSigners *cbrtypes.SortedSigners) {
+func CheckChainSigners(t *testing.T, transactor *transactor.Transactor, chainId uint64, expSigners []*cbrtypes.Signer) {
 	var err error
 	var signers *cbrtypes.ChainSigners
 	for retry := 0; retry < RetryLimit; retry++ {
 		signers, err = cbrcli.QueryChainSigners(transactor.CliCtx, chainId)
-		if err == nil && signers != nil && sameSortedSigners(signers.GetCurrSigners(), expSigners) {
+		if err == nil && signers != nil && sameSortedSigenrs(signers.GetSortedSigners(), expSigners) {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
 	ChkErr(err, "failed to QueryChainSigners")
 	log.Infof("Query sgn and get chain %d signers: %s", chainId, signers.String())
-	assert.True(t, sameSortedSigners(signers.GetCurrSigners(), expSigners), "expected signers should be: "+expSigners.String())
+	assert.True(t, sameSortedSigenrs(signers.GetSortedSigners(), expSigners),
+		"expected signers should be: "+cbrtypes.PrintSigners(expSigners))
 }
 
-func CheckLatestSigners(t *testing.T, transactor *transactor.Transactor, expSigners *cbrtypes.SortedSigners) {
+func CheckLatestSigners(t *testing.T, transactor *transactor.Transactor, expSigners []*cbrtypes.Signer) {
 	var err error
 	var signers *cbrtypes.LatestSigners
 	for retry := 0; retry < RetryLimit; retry++ {
 		signers, err = cbrcli.QueryLatestSigners(transactor.CliCtx)
-		if err == nil && signers != nil && sameSortedSigners(signers.GetSigners(), expSigners) {
+		if err == nil && signers != nil && sameSortedSigenrs(signers.GetSortedSigners(), expSigners) {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
 	ChkErr(err, "failed to QueryLatestSigners")
 	log.Infof("Query sgn and get latest signers: %s", signers.String())
-	assert.True(t, sameSortedSigners(signers.GetSigners(), expSigners), "expected signers should be: "+expSigners.String())
+	assert.True(t, sameSortedSigenrs(signers.GetSortedSigners(), expSigners),
+		"expected signers should be: "+cbrtypes.PrintSigners(expSigners))
 }
 
-func sameSortedSigners(ss1, ss2 *cbrtypes.SortedSigners) bool {
-	b1, _ := proto.Marshal(ss1)
-	b2, _ := proto.Marshal(ss2)
-	return bytes.Compare(b1, b2) == 0
+func sameSortedSigenrs(ss1, ss2 []*cbrtypes.Signer) bool {
+	if len(ss1) != len(ss2) {
+		return false
+	}
+	for i, s1 := range ss1 {
+		if !bytes.Equal(s1.Addr, ss2[i].Addr) {
+			return false
+		}
+		if !bytes.Equal(s1.Power, ss2[i].Power) {
+			return false
+		}
+	}
+	return true
 }
 
 // call initwithdraw and return withdraw seqnum
@@ -154,12 +164,12 @@ func GetWithdrawDetail(transactor *transactor.Transactor, wdseq uint64) (*cbrtyp
 	return resp.Detail, err
 }
 
-func GetCurSortedSigners(transactor *transactor.Transactor, chid uint64) ([]byte, error) {
-	signers, err := cbrcli.QueryChainSigners(transactor.CliCtx, chid)
+func GetCurSortedSigners(transactor *transactor.Transactor, chid uint64) ([]*cbrtypes.Signer, error) {
+	cs, err := cbrcli.QueryChainSigners(transactor.CliCtx, chid)
 	if err != nil {
 		return nil, err
 	}
-	return signers.SignersBytes, nil
+	return cs.SortedSigners, nil
 }
 
 // call claim-all
