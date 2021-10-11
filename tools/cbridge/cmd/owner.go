@@ -20,6 +20,7 @@ func init() {
 	// owner sub cmds
 	ownerCmd.AddCommand(
 		resetSignerCmd,
+		notifyResetSignerCmd,
 		wrapCmd,
 		minSendCmd,
 		minSlipCmd,
@@ -51,6 +52,16 @@ var resetSignerCmd = &cobra.Command{
 			powers = append(powers, amt)
 		}
 		tx, err := cbrContract.ResetSigners(auth, addrs, powers)
+		chkTxErr(tx, err)
+	},
+}
+
+var notifyResetSignerCmd = &cobra.Command{
+	Use:   "notifyResetSigner",
+	Short: "call NotifyResetSigners",
+	Args:  cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		tx, err := cbrContract.NotifyResetSigners(auth)
 		chkTxErr(tx, err)
 	},
 }
