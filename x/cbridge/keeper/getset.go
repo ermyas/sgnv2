@@ -80,7 +80,7 @@ func GetEvSendStatus(kv sdk.KVStore, xferId [32]byte) types.XferStatus {
 
 // get total liquidity of chid, token
 func GetLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr) *big.Int {
-	iter := sdk.KVStorePrefixIterator(kv, []byte(fmt.Sprintf("lm-%d-%s-", chaddr.ChId, eth.Addr2Hex(chaddr.TokenAddr))))
+	iter := sdk.KVStorePrefixIterator(kv, []byte(fmt.Sprintf("lm-%d-%x-", chaddr.ChId, chaddr.TokenAddr)))
 	defer iter.Close()
 	totalLiq := new(big.Int)
 	for ; iter.Valid(); iter.Next() {
@@ -92,7 +92,7 @@ func GetLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr) *big.Int {
 
 func HasEnoughLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr, needed *big.Int) bool {
 	// sum over all liqmap, if larger than needed, return true
-	iter := sdk.KVStorePrefixIterator(kv, []byte(fmt.Sprintf("lm-%d-%s-", chaddr.ChId, eth.Addr2Hex(chaddr.TokenAddr))))
+	iter := sdk.KVStorePrefixIterator(kv, []byte(fmt.Sprintf("lm-%d-%x-", chaddr.ChId, chaddr.TokenAddr)))
 	defer iter.Close()
 	totalLiq := new(big.Int)
 	for ; iter.Valid(); iter.Next() {
@@ -209,13 +209,3 @@ func AddSgnFee(kv sdk.KVStore, chid uint64, token eth.Addr, delta *big.Int) *big
 	kv.Set(feeKey, had.Bytes())
 	return had
 }
-
-// sum liquidity of src and dest token, if 0, return 1 (could be 0.01 if we want more accuracy)
-// return x, y, newx as float64
-/*
-func GetXY(kv sdk.KVStore, src, dest *ChainIdTokenAddr, srcDelta *big.Int) (float64, float64, float64) {
-	srcLiqSum := GetLiq(kv, src)
-	destLiqSum := GetLiq(kv, dest)
-	// div by decimal
-}
-*/

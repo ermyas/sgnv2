@@ -58,8 +58,8 @@ type CbrOneChain struct {
 	curss    currentSigners
 	lock     sync.RWMutex
 
-	// not required for flow but make log chain id easy
-	chainid uint64
+	// chainid and blkdelay for verify/easy logging
+	chainid, blkDelay uint64
 }
 
 // key is chainid
@@ -132,8 +132,9 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 			Bridge:  cbr,
 			Address: eth.Hex2Addr(cfg.CBridge),
 		},
-		db:      dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID))),
-		chainid: cfg.ChainID,
+		db:       dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID))),
+		chainid:  cfg.ChainID,
+		blkDelay: cfg.BlkDelay,
 	}
 	chainSigners, err := cbrcli.QueryChainSigners(cliCtx, cfg.ChainID)
 	if err != nil {

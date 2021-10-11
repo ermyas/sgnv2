@@ -63,7 +63,7 @@ func GetChainSignersKey(chid uint64) []byte {
 // key for liquidity map, chainid-tokenaddr-lpaddr
 // value is big.Int.Bytes()
 func LiqMapKey(chid uint64, token, lp eth.Addr) []byte {
-	return []byte(fmt.Sprintf("lm-%d-%s-%s", chid, eth.Addr2Hex(token), eth.Addr2Hex(lp)))
+	return []byte(fmt.Sprintf("lm-%d-%x-%x", chid, token, lp))
 }
 
 // value is 0x01 to indicate has applied event
@@ -97,11 +97,11 @@ func WdDetailKey(seqnum uint64) []byte {
 
 // for chid, token, how much fee this lp has earned
 func LpFeeKey(chid uint64, token, lp eth.Addr) []byte {
-	return []byte(fmt.Sprintf("lpfee-%d-%s-%s", chid, eth.Addr2Hex(token), eth.Addr2Hex(lp)))
+	return []byte(fmt.Sprintf("lpfee-%d-%x-%x", chid, token, lp))
 }
 
 func SgnFeeKey(chid uint64, token eth.Addr) []byte {
-	return []byte(fmt.Sprintf("sgnfee-%d-%s", chid, eth.Addr2Hex(token)))
+	return []byte(fmt.Sprintf("sgnfee-%d-%x", chid, token))
 }
 
 /* ================ config kv, all governable
@@ -116,7 +116,7 @@ var (
 )
 
 func CfgKeyChain2Sym(chid uint64, addr eth.Addr) []byte {
-	return []byte(fmt.Sprintf("cfg-ch2sym-%d-%s", chid, eth.Addr2Hex(addr)))
+	return []byte(fmt.Sprintf("cfg-ch2sym-%d-%x", chid, addr))
 }
 
 func CfgKeySym2Info(sym string, chid uint64) []byte {

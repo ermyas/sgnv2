@@ -108,9 +108,11 @@ enum XferStatus {
   // can't relay flow status
   BAD_LIQUIDITY = 3; // can't complete xfer due to low dst chain liquidity or equal value dest amount is 0
   BAD_SLIPPAGE = 4; // slippage larger than user specified max
+  BAD_TOKEN = 5; // src or dest token are not supported
+
   // refund, using withdraw flow
-  REFUND_REQUESTED = 5; // user/gateway called InitWithdraw, XferRefundKey has withdraw seq num
-  REFUND_DONE = 6; // applied onchain withdrawdone event
+  REFUND_REQUESTED = 6; // user/gateway called InitWithdraw, XferRefundKey has withdraw seq num
+  REFUND_DONE = 7; // applied onchain withdrawdone event
 }
 
 // saved and updated when new sig is added

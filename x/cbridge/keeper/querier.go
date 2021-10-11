@@ -148,6 +148,7 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 		TokenAddr: eth.Hex2Addr(params.SrcTokenAddr),
 	}
 	assetSym := GetAssetSymbol(ctx.KVStore(k.storeKey), src)
+	srcToken := GetAssetInfo(ctx.KVStore(k.storeKey), assetSym, params.SrcChainId)
 	destToken := GetAssetInfo(ctx.KVStore(k.storeKey), assetSym, params.DstChainId)
 	destTokenAddr := eth.Hex2Addr(destToken.Addr)
 	dest := &ChainIdTokenAddr{
@@ -156,7 +157,13 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 	}
 	srcAmt, _ := big.NewInt(0).SetString(params.Amt, 10)
 	kv := ctx.KVStore(k.storeKey)
-	destAmt := CalcEqualOnDestChain(kv, src, dest, srcAmt)
+	destAmt := CalcEqualOnDestChain(kv, &ChainIdTokenDecimal{
+		ChainIdTokenAddr: src,
+		Decimal:          srcToken.Decimal,
+	}, &ChainIdTokenDecimal{
+		ChainIdTokenAddr: dest,
+		Decimal:          destToken.Decimal,
+	}, srcAmt)
 	feeAmt := CalcFee(kv, src, dest, destAmt)
 
 	resp := types.GetFeeResponse{

@@ -6,9 +6,14 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+)
+
+const (
+	Epsilon float64 = 0.00001 // used to replace 0 so no div by 0 error
 )
 
 // various algorithms eg. compute dest chain token
@@ -16,32 +21,41 @@ import (
 // given src chain token amount, calculate how much token on dest chain
 // worth the same. pre-fee
 // note if decimals are different, extra careful
-func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenAddr, srcAmount *big.Int) *big.Int {
+func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmount *big.Int) *big.Int {
 	ret := new(big.Int)
 	if srcAmount.Sign() <= 0 {
 		return ret
 	}
-	return new(big.Int).Set(srcAmount)
-	/*
-		// A,m,n are from chain pair config
-		A, m, n, err := GetAMN(kv, src.ChId, dest.ChId)
-		if err != nil {
-			return ret // 0 if not found chain pair
-		}
+	// A,m,n are from chain pair config
+	A, m, n, err := GetAMN(kv, src.ChId, dest.ChId)
+	if err != nil {
+		log.Errorln("GetAMN err:", err)
+		return ret // 0 if not found chain pair
+	}
+	srcLiqSum := GetLiq(kv, src.ChainIdTokenAddr)
+	x := Epsilon // if srcLiqSum is 0, use Epsilon to avoid div by 0
+	if srcLiqSum.Sign() == 1 {
+		x = amt2float(srcLiqSum, src.Decimal)
+	}
+	destLiqSum := GetLiq(kv, dest.ChainIdTokenAddr)
+	if destLiqSum.Sign() == 0 {
+		return ret // no liq on dest chain
+	}
+	y := amt2float(destLiqSum, dest.Decimal) // y can't be 0
 
-		// x and y are sum of liquidity, divided by corresponding decimal to get int only
-		// what if not even 1? or we use big.Float?
-		x, y, newx := GetXY(kv, src, dest, srcAmount)
-
-		D := solveD(A, x, y, m, n)
-		newy := loopCalcNewY(A, D, newx, y, m, n)
-
-		if newy >= y {
-			// not possible
-			return ret
-		}
-		(y - newy) * ydecimal
-	*/
+	D := solveD(A, x, y, m, n)
+	newx := x + amt2float(srcAmount, src.Decimal)
+	newy := loopCalcNewY(A, D, newx, y, m, n)
+	log.Debugln("chpair:", src.ChId, dest.ChId, "A:", A, "m:", m, "n:", n, "x:", x, "y:", y, "D:", D, "newx:", newx, "newy:", newy)
+	if newy >= y {
+		// not possible
+		log.Errorf("newy %f > y %f", newy, y)
+		return ret
+	}
+	retFloat := big.NewFloat(y - newy)
+	retFloat.Mul(retFloat, big.NewFloat(math.Pow10(int(dest.Decimal))))
+	retFloat.Int(ret) // set int in ret, accuracy doesn't matter
+	return ret
 }
 
 type AddrHexAmtInt struct {
@@ -61,15 +75,18 @@ func (k Keeper) PickLPsAndAdjustLiquidity(ctx sdk.Context, kv sdk.KVStore, src, 
 		AddSgnFee(kv, dest.ChId, dest.TokenAddr, sgnFee)
 	}
 
-	// get all LPs for dest chain
-	iter := sdk.KVStorePrefixIterator(kv, []byte(fmt.Sprintf("lm-%d-%s-", dest.ChId, eth.Addr2Hex(dest.TokenAddr))))
+	// get all LPs that has non-zero liquidity for dest chain
+	iter := sdk.KVStorePrefixIterator(kv, []byte(fmt.Sprintf("lm-%d-%x-", dest.ChId, dest.TokenAddr)))
 	defer iter.Close()
 	var allLPs []*AddrHexAmtInt
 	for ; iter.Valid(); iter.Next() {
-		allLPs = append(allLPs, &AddrHexAmtInt{
-			AddrHex: getAddr(iter.Key()),
-			AmtInt:  new(big.Int).SetBytes(iter.Value()),
-		})
+		amt := new(big.Int).SetBytes(iter.Value())
+		if amt.Sign() == 1 {
+			allLPs = append(allLPs, &AddrHexAmtInt{
+				AddrHex: getAddr(iter.Key()),
+				AmtInt:  amt,
+			})
+		}
 	}
 	lpCnt := len(allLPs)
 	firstLPIdx := int(randN) % lpCnt           // first LP index
@@ -135,24 +152,7 @@ func CalcFee(kv sdk.KVStore, src, dest *ChainIdTokenAddr, total *big.Int) *big.I
 	return feeAmt
 }
 
-/* solveD is faster and provides accurate answer
-// f(D) = \frac{D^3}{4x_i^{w_i}x_j^{w_j}}+(4A-1)D-4A(x_i+x_j)
-//      = D^3 + (4A-1){4x_i^{w_i}x_j^{w_j}}D - 4A(x_i+x_j){4x_i^{w_i}x_j^{w_j}} = 0
-func loopCalcD(A, x, y, m, n float64) float64 {
-	D := x + y
-	for i := 0; i < 100; i++ {
-		Dprev := D
-		xtimesy := 4 * math.Pow(x, m) * math.Pow(y, n)
-		fD := math.Pow(D, 3) + (4*A-1)*(xtimesy)*D - 4*A*(x+y)*xtimesy
-		fDprime := 3*math.Pow(D, 2) + 4*(A-1)*(xtimesy)
-		D = D - fD/fDprime
-		if math.Abs(D-Dprev) < 0.01 {
-			return D
-		}
-	}
-	return D
-}
-*/
+// ========== below impl price formula
 
 // we can solve D directly, p = (4A-1){4x_i^{w_i}x_j^{w_j}}
 // q = - 4A(x_i+x_j){4x_i^{w_i}x_j^{w_j}}
@@ -189,4 +189,19 @@ func invarLeft(A, D, x, y float64) float64 {
 
 func invarRight(A, D, x, y, m, n float64) float64 {
 	return 4*A*D + math.Pow(D, 3)/(4*math.Pow(x, m)*math.Pow(y, n))
+}
+
+// divide amt by 10**(decimal), panic if result < math.SmallestNonzeroFloat64
+// only return 0 if amt is 0
+func amt2float(amt *big.Int, decimal uint32) float64 {
+	if amt.Sign() == 0 {
+		return 0
+	}
+	ret := new(big.Float).SetInt(amt)
+	ret.Quo(ret, big.NewFloat(math.Pow10(int(decimal))))
+	result, accuracy := ret.Float64()
+	if accuracy != 0 {
+		panic("accuracy is " + accuracy.String())
+	}
+	return result
 }
