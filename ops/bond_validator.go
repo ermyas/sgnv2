@@ -18,10 +18,10 @@ func BondValidatorCommand() *cobra.Command {
 		Use:   "bond-validator",
 		Short: "Bond a validator",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return BondValiator()
+			return BondValidator()
 		},
 	}
-	cmd.Flags().String(FlagKeystore, "", "Valdiator or Signer keystore file")
+	cmd.Flags().String(FlagKeystore, "", "Validator or Signer keystore file")
 	cmd.Flags().String(FlagPassphrase, "", "Validator or Signer keystore passphrase")
 	cmd.Flags().String(FlagValidator, "", "Validator ETH address")
 
@@ -30,7 +30,7 @@ func BondValidatorCommand() *cobra.Command {
 	return cmd
 }
 
-func BondValiator() error {
+func BondValidator() error {
 	ethClient, err := newEthClient()
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func BondValiator() error {
 	valAddr := eth.Hex2Addr(viper.GetString(FlagValidator))
 	shouldBond, err := ethClient.Contracts.Viewer.ShouldBondValidator(&bind.CallOpts{}, valAddr)
 	if err != nil {
-		return fmt.Errorf("Check if should bond validator err: %w", err)
+		return fmt.Errorf("check if should bond validator err: %w", err)
 	}
 	if !shouldBond {
 		log.Info("Validator not ready to be bonded")
@@ -46,7 +46,7 @@ func BondValiator() error {
 	}
 	sgnAddr, err := ethClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, valAddr)
 	if err != nil {
-		return fmt.Errorf("Get sgn addr err: %w", err)
+		return fmt.Errorf("get sgn addr err: %w", err)
 	}
 	acctAddress, err := sdk.AccAddressFromBech32(viper.GetString(common.FlagSgnValidatorAccount))
 	if err != nil {

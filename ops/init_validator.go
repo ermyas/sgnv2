@@ -24,7 +24,7 @@ func InitValidatorCommand() *cobra.Command {
 		Use:   "init-validator",
 		Short: "Initialize a validator",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return InitValiator()
+			return InitValidator()
 		},
 	}
 	cmd.Flags().String(FlagKeystore, "", "Validator keystore file")
@@ -38,7 +38,7 @@ func InitValidatorCommand() *cobra.Command {
 	return cmd
 }
 
-func InitValiator() error {
+func InitValidator() error {
 	ethClient, err := newEthClient()
 	if err != nil {
 		return err
