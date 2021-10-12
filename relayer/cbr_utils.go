@@ -96,13 +96,6 @@ func validateSigQuorum(sortedSigs []*cbrtypes.AddrSig, curss currentSigners) (pa
 	return false, nil
 }
 
-func GatewayOnRelaySent(transferId, txHash string) error {
-	if dal.DB == nil {
-		return nil
-	}
-	return dal.UpdateTransferRelayedStatus(transferId, txHash)
-}
-
 func GatewayOnSend(transferId string) error {
 	if dal.DB == nil {
 		return nil

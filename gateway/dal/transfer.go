@@ -59,6 +59,7 @@ func (d *DAL) MarkTransferSend(transferId, usrAddr, tokenSymbol, amt, receivedAm
 }
 
 func (d *DAL) UpdateTransferRelayedStatus(transferId, txHash string) error {
+	log.Debugf("UpdateTransferRelayedStatus transferId:%s, txHash:%s", transferId, txHash)
 	status := uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE)
 	q := `UPDATE transfer SET status=$2, update_time=$3, dst_tx_hash=$4 WHERE transfer_id=$1`
 	res, err := d.Exec(q, transferId, status, now(), txHash)
@@ -73,9 +74,10 @@ func (d *DAL) UpdateTransferStatus(transferId string, status uint64) error {
 		uint64(types.TransferHistoryStatus_TRANSFER_FAILED):   // UpdateTransferStatusInHistory
 		checked = true // final status
 	case
-		uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE), // relayer event
-		uint64(types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED),           // UpdateTransferStatusInHistory
-		uint64(types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED):   // UpdateTransferStatusInHistory
+		uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION), // send event
+		uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE),     // relayer event
+		uint64(types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED),               // UpdateTransferStatusInHistory
+		uint64(types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED):       // UpdateTransferStatusInHistory
 		checked = true //todo CheckTransferStatusNotIn @Aric
 	case
 		uint64(types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND),      // MarkTransferRequestingRefund

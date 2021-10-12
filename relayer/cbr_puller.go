@@ -113,7 +113,7 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 		log.Errorln("relay err", err)
 		return
 	}
-	err = dal.UpdateTransferRelayedStatus(common.Bytes2Hex(relayEvent.XferId), txHash)
+	err = dal.UpdateTransferRelayedStatus(common.Bytes2Hash(relayEvent.XferId).String(), txHash)
 	if err != nil {
 		log.Errorln("failed in UpdateTransferRelayedStatus:", err)
 	}
