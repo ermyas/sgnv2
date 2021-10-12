@@ -95,8 +95,8 @@ message QueryLiquidityStatusResponse {
     cbridge.v1.LPHistoryStatus status = 2;
     bytes wd_onchain = 3; // for withdraw only
     repeated bytes sorted_sigs = 4; // for withdraw only
-    repeated string signers = 5; // for withdraw only
-    repeated string powers = 6; // for withdraw only
+    repeated bytes signers = 5; // for withdraw only
+    repeated bytes powers = 6; // for withdraw only
 }
 
 message Chain {
@@ -140,8 +140,8 @@ message GetTransferStatusResponse {
     cbridge.v1.TransferHistoryStatus status = 2;
     bytes wd_onchain = 3; // for refund only
     repeated bytes sorted_sigs = 4; // for refund only
-    repeated string signers = 5; // for refund only
-    repeated string powers = 6; // for refund only
+    repeated bytes signers = 5; // for refund only
+    repeated bytes powers = 6; // for refund only
 }
 
 message GetTransferConfigsRequest {
