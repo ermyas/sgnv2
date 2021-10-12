@@ -3,11 +3,11 @@ package fee
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/spf13/viper"
 	"io/ioutil"
 	"math"
 	"math/big"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -170,17 +170,12 @@ func (t *TokenPriceCache) cacheTokenData() error {
 	//Data Symbol string `json:"symbol"`
 	//Data Name   string `json:"name"`
 	var tokens []map[string]string
-	dir, err := filepath.Abs(filepath.Dir(os.Args[1]))
+	dir := viper.GetString(flags.FlagHome)
+	log.Debugf("dir:%s", dir)
+
+	file, err := ioutil.ReadFile(dir + "config/token_info.json")
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	file, err := ioutil.ReadFile(dir + "/fee/token_info.json")
-	if err != nil {
-		file, err = ioutil.ReadFile(dir + "/gateway/fee/token_info.json") //try another way
-		if err != nil {
-			log.Fatal(err)
-		}
 	}
 	err = json.Unmarshal(file, &tokens)
 	if err != nil {

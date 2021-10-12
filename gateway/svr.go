@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/celer-network/goutils/log"
@@ -64,6 +65,14 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 		var transfers []*dal.Transfer
 		transfers = append(transfers, transfer)
 		err = gs.updateTransferStatusInHistory(ctx, transfers)
+		if err != nil {
+			return &webapi.GetTransferStatusResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  err.Error(),
+				},
+			}, nil
+		}
 		transfer, found, err = dal.DB.GetTransfer(request.GetTransferId())
 		if found && err == nil && (transfer.Status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND || transfer.Status == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED) {
 			if transfer.RefundSeqNum > 0 {
@@ -139,6 +148,19 @@ func (gs *GatewayService) GetTransferConfigs(ctx context.Context, request *webap
 		chainIds = append(chainIds, key)
 	}
 	chains, err := dal.DB.GetChainInfo(chainIds)
+	chainFound := make(map[uint32]bool)
+	for _, chain := range chains {
+		chainFound[chain.Id] = true
+	}
+	for chainId, tokens := range chainTokenList {
+		_, found := chainFound[chainId]
+		if !found {
+			chains = append(chains, unknownChain(chainId))
+		}
+		for _, token := range tokens.Token {
+			enrichUnknownToken(token)
+		}
+	}
 	if err != nil {
 		return &webapi.GetTransferConfigsResponse{
 			Err: &webapi.ErrMsg{
@@ -162,8 +184,7 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 	dstChainId := request.GetDstChainId()
 	tokenSymbol := request.GetTokenSymbol()
 	srcToken, found1, err1 := dal.DB.GetTokenBySymbol(tokenSymbol, uint64(srcChainId))
-	dstToken, found2, err2 := dal.DB.GetTokenBySymbol(tokenSymbol, uint64(dstChainId))
-	if err1 != nil || !found1 || err2 != nil || !found2 {
+	if err1 != nil || !found1 {
 		return &webapi.EstimateAmtResponse{
 			Err: &webapi.ErrMsg{
 				Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -171,6 +192,16 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 			},
 		}, nil
 	}
+	dstToken, found2, err2 := dal.DB.GetTokenBySymbol(tokenSymbol, uint64(dstChainId))
+	if err2 != nil || !found2 {
+		return &webapi.EstimateAmtResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_NO_TOKEN_ON_DST_CHAIN,
+				Msg:  "token not support on dst chain",
+			},
+		}, nil
+	}
+
 	addr := common.Hex2Addr(request.GetUsrAddr()).String()
 	slippage, found, err := dal.DB.GetSlippageSetting(addr)
 	if err != nil || !found {
@@ -183,6 +214,15 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 		SrcTokenAddr: srcToken.Token.GetAddress(),
 		Amt:          amt,
 	})
+	if err != nil {
+		log.Warnf("cli.QueryFee error:%+v", err)
+		return &webapi.EstimateAmtResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  err.Error(),
+			},
+		}, nil
+	}
 	if feeInfo == nil {
 		return &webapi.EstimateAmtResponse{
 			Err: &webapi.ErrMsg{
@@ -287,7 +327,7 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	for _, detail := range detailList.GetLiquidityDetail() {
 		chainId := detail.GetChainId()
 		tokenWithAddr := detail.GetToken() // only has addr field
-		token, found, dbErr := dal.DB.GetTokenByAddr(tokenWithAddr.GetAddress(), chainId)
+		token, found, dbErr := dal.DB.GetTokenByAddr(common.Hex2Addr(tokenWithAddr.GetAddress()).String(), chainId)
 		if !found || dbErr != nil {
 			log.Debugf("data, token not found in lp list, token addr:%s, chainId:%d", tokenWithAddr.GetAddress(), chainId)
 			continue
@@ -314,29 +354,35 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 				usrLiquidity = detail.GetUsrLiquidity()
 			}
 
+			enrichUnknownToken(token)
 			chain, _, found, dbErr := dal.DB.GetChain(chainId)
 			if !found || dbErr != nil {
-				chain = &webapi.Chain{
-					Id:   uint32(chainId),
-					Name: "UNKNOWN CHAIN",
-					Icon: "",
-				}
+				chain = unknownChain(chainId32)
 			}
 
 			data := data24h[chainId][tokenSymbol]
 			lpFeeEarningApy := 0.0
 			volume24h := 0.0
 			if data != nil {
-				lpFeeEarningApy, _ = new(big.Float).Quo(new(big.Float).SetInt(data.fee), new(big.Float).SetInt(common.Str2BigInt(totalLiquidity))).Float64()
+				if common.Str2BigInt(totalLiquidity).Cmp(new(big.Int).SetInt64(0)) > 0 {
+					lpFeeEarningApy, _ = new(big.Float).Quo(new(big.Float).SetInt(data.fee), new(big.Float).SetInt(common.Str2BigInt(totalLiquidity))).Float64()
+				}
 				volume24h = data.volume
+			}
+			staking := stakingMap[chainId][token.Token.GetSymbol()]
+			hasSession := false
+			currentEarning := 0.0
+			if staking != nil {
+				hasSession = staking.staking > 0
+				currentEarning = staking.earning
 			}
 			lp := &webapi.LPInfo{
 				Chain:                chain,
 				Token:                token,
 				Liquidity:            gs.f.GetUsdVolume(token.Token, common.Str2BigInt(usrLiquidity)),
-				HasFarmingSessions:   stakingMap[chainId][token.Token.GetSymbol()] > 0,
+				HasFarmingSessions:   hasSession,
 				LpFeeEarning:         gs.f.GetUsdVolume(token.Token, common.Str2BigInt(usrLpFeeEarning)),
-				FarmingRewardEarning: farmingEarningMap[chainId][token.Token.GetSymbol()],
+				FarmingRewardEarning: farmingEarningMap[chainId][token.Token.GetSymbol()] + currentEarning,
 				Volume_24H:           volume24h,
 				TotalLiquidity:       gs.f.GetUsdVolume(token.Token, common.Str2BigInt(totalLiquidity)),
 				LpFeeEarningApy:      lpFeeEarningApy,
@@ -475,10 +521,6 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 	txHash, status, found, err := dal.DB.GetLPInfo(seqNum, lpType, chainId, addr)
 	if found && err == nil && status == uint64(types.LPHistoryStatus_LP_SUBMITTING) && txHash != "" {
 		ec := gs.ec[chainId]
-		if ec == nil {
-			gs.initTransactors()
-			ec = gs.ec[chainId]
-		}
 		if ec == nil {
 			log.Errorf("no ethClient found for chain:%d", chainId)
 			return nil, fmt.Errorf("no ethClient found for chain:%d", chainId)
@@ -809,10 +851,6 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 		if status == types.TransferHistoryStatus_TRANSFER_SUBMITTING {
 			ec := gs.ec[srcChainId]
 			if ec == nil {
-				gs.initTransactors()
-				ec = gs.ec[srcChainId]
-			}
-			if ec == nil {
 				log.Errorf("no ethClient found for chain:%d", srcChainId)
 				return fmt.Errorf("no ethClient found for chain:%d", srcChainId)
 			}
@@ -929,7 +967,12 @@ func (gs *GatewayService) get24hTx() map[uint64]map[string]*txData {
 	return resp
 }
 
-func (gs *GatewayService) getUserStaking(ctx context.Context, address string) map[uint64]map[string]int {
+type stakingInfo struct {
+	staking int
+	earning float64
+}
+
+func (gs *GatewayService) getUserStaking(ctx context.Context, address string) map[uint64]map[string]*stakingInfo {
 	tr := gs.tp.GetTransactor()
 	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
 	stakingRes, err := queryClient.StakedPools(
@@ -939,16 +982,62 @@ func (gs *GatewayService) getUserStaking(ctx context.Context, address string) ma
 		},
 	)
 	log.Debugf("farming stakingRes:%+v", stakingRes)
-	stakingPools := make(map[uint64]map[string]int) // map<chain_id, map<token_symbol, FarmingPool>>
+
+	stakingPools := make(map[uint64]map[string]*stakingInfo) // map<chain_id, map<token_symbol, FarmingPool>>
 	if err == nil {
 		for _, pool := range stakingRes.GetPools() {
-			staking := make(map[string]int)
-			token := pool.GetStakeToken()
-			staking[token.Symbol] = len(pool.GetRewardTokenInfos())
-			stakingPools[token.ChainId] = staking
+			erc20Token := pool.GetStakeToken()
+
+			currentRes, earningErr := queryClient.Earnings(
+				ctx,
+				&farmingtypes.QueryEarningsRequest{
+					PoolName: pool.GetName(),
+					Address:  address,
+				},
+			)
+			if earningErr != nil {
+				log.Errorf("earningErr:%+v", earningErr)
+				continue
+			}
+			log.Debugf("farming current earning reqAddr:%s, reqPool:%s, Res:%+v", address, pool.GetName(), currentRes)
+			currentEarnings := currentRes.GetEarnings()
+			earning := 0.0
+			tokenSymbol := getSymbolFromFarmingToken(erc20Token.GetSymbol())
+			for _, reward := range currentEarnings.GetRewardAmounts() {
+				amt, parseErr := gs.getInfoFromFarmingReward(reward)
+				if parseErr != nil {
+					continue
+				}
+				earning += amt
+				log.Debugf("chain:%d, token:%s, earning%.2f", erc20Token.GetChainId(), tokenSymbol, amt)
+			}
+
+			// return info
+			staking, found := stakingPools[erc20Token.ChainId]
+			if !found {
+				staking = make(map[string]*stakingInfo)
+			}
+			staking[tokenSymbol] = &stakingInfo{
+				staking: len(pool.GetRewardTokenInfos()),
+				earning: earning,
+			}
+			stakingPools[erc20Token.ChainId] = staking
 		}
 	}
 	return stakingPools
+}
+
+func (gs *GatewayService) getInfoFromFarmingReward(reward sdk.DecCoin) (float64, error) {
+	chainId, tokenSymbol, parseErr := farmingkp.ParseERC20TokenDenom(reward.GetDenom())
+	if parseErr != nil {
+		log.Errorf("parse token denom error, denom:%s, err:%+v", reward.GetDenom(), parseErr)
+	}
+	tokenSymbol = getSymbolFromFarmingToken(tokenSymbol)
+	token, found, dbErr := dal.DB.GetTokenBySymbol(tokenSymbol, chainId)
+	if !found || dbErr != nil {
+		return 0, dbErr
+	}
+	return gs.f.GetUsdVolume(token.Token, common.Str2BigInt(reward.Amount.String())), parseErr
 }
 
 func (gs *GatewayService) getUserFarmingCumulativeEarning(ctx context.Context, address string) map[uint64]map[string]float64 {
@@ -1005,25 +1094,41 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 	for _, pool := range res.GetPools() {
 		farmingPool := make(map[string]float64)
 		token := pool.GetStakeToken()
-		tokenInfo, found, dbErr := dal.DB.GetTokenByAddr(token.GetAddress(), token.GetChainId())
-		if tokenInfo == nil || !found || dbErr != nil {
-			log.Warnf("can not found token in db, token addr:%s, chainId:%d", token.GetAddress(), token.GetChainId())
-			continue
-		}
+		tokenSymbol := getSymbolFromFarmingToken(token.GetSymbol())
 		totalStakedAmount := pool.TotalStakedAmount
 		if totalStakedAmount.Amount.Equal(sdk.ZeroDec()) {
-			log.Debugf("farming totalStakedAmount is 0 on chain:%d, token: %s", token.GetChainId(), tokenInfo.Token.GetSymbol())
-			farmingPool[tokenInfo.Token.GetSymbol()] = 0.0
+			log.Debugf("farming totalStakedAmount is 0 on chain:%d, token: %s", token.GetChainId(), tokenSymbol)
+			farmingPool[tokenSymbol] = 0.0
 		} else {
 			totalReward := sdk.ZeroDec()
 			for _, reward := range pool.GetRewardTokenInfos() {
 				totalReward = totalReward.Add(reward.RewardAmountPerBlock)
 			}
 
-			apy, _ := totalReward.Quo(totalStakedAmount.Amount).Float64()
-			farmingPool[tokenInfo.Token.GetSymbol()] = apy
+			// apy=totalReward/totalStakedAmount
+			apy, _ := new(big.Float).Quo(new(big.Float).SetInt(totalReward.BigInt()), new(big.Float).SetInt(totalStakedAmount.Amount.BigInt())).Float64()
+			farmingPool[tokenSymbol] = apy
 		}
 		farmingPools[token.GetChainId()] = farmingPool
 	}
 	return farmingPools
+}
+
+func getSymbolFromFarmingToken(token string) string {
+	return strings.Replace(token, "CB-", "", 1)
+}
+
+func unknownChain(chainId uint32) *webapi.Chain {
+	return &webapi.Chain{
+		Id:   chainId,
+		Name: fmt.Sprintf("Chain-%d", chainId),
+		Icon: "https://cbridge.celer.network/ETH.png",
+	}
+}
+
+func enrichUnknownToken(token *webapi.TokenInfo) {
+	if token.GetName() == "" {
+		token.Name = token.Token.GetSymbol()
+		token.Icon = "https://get.celer.app/cbridge-icons/ETH.png"
+	}
 }

@@ -140,6 +140,7 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 	var params types.GetFeeRequest
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
+		log.Errorf("failed to parse params: %s", err)
 		return nil, fmt.Errorf("failed to parse params: %s", err)
 	}
 
@@ -173,6 +174,7 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 	}
 	res, err := k.cdc.Marshal(&resp)
 	if err != nil {
+		log.Errorf("failed to marshal response: %s", err)
 		return nil, err
 	}
 

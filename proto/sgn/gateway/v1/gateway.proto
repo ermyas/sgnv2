@@ -306,4 +306,5 @@ message ErrMsg {
 enum ErrCode {
     ERROR_CODE_UNDEFINED = 0;
     ERROR_CODE_COMMON = 500;
+    ERROR_NO_TOKEN_ON_DST_CHAIN = 1001;
 }

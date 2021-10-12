@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -506,4 +507,8 @@ func TestLPList(t *testing.T) {
 	errIsNil(t, err)
 	errMsgIsNil(t, list.Err)
 	t.Log(list)
+}
+
+func TestParse(t *testing.T) {
+	t.Log(strings.Replace("CB-USDT", "CB-", "", 1))
 }
