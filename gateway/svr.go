@@ -54,6 +54,23 @@ type GatewayService struct {
 	ec map[uint64]*ethclient.Client
 }
 
+func (gs *GatewayService) GetAdvancedInfo(ctx context.Context, request *webapi.GetAdvancedInfoRequest) (*webapi.GetAdvancedInfoResponse, error) {
+	addr := common.Hex2Addr(request.GetAddr()).String()
+	slippageSetting, found, err := dal.DB.GetSlippageSetting(addr)
+	if !found || err != nil {
+		log.Errorf("GetAdvancedInfo failed, err:%+v", err)
+		return &webapi.GetAdvancedInfoResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "AdvancedInfo not found",
+			},
+		}, nil
+	}
+	return &webapi.GetAdvancedInfoResponse{
+		SlippageTolerance: slippageSetting,
+	}, nil
+}
+
 func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi.GetTransferStatusRequest) (*webapi.GetTransferStatusResponse, error) {
 	transfer, found, err := dal.DB.GetTransfer(request.GetTransferId())
 	if !found || err != nil {
@@ -885,10 +902,14 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 			status == types.TransferHistoryStatus_TRANSFER_REFUNDED {
 			continue // finial status, not updated by sgn
 		}
+		log.Debugf("transfer:%s, status:%s", transferId, transferStatusMap[transferId].GetGatewayStatus())
 		if transferStatusMap[transferId].GetGatewayStatus() == types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED ||
 			transferStatusMap[transferId].GetGatewayStatus() == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED {
 			if status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND || status == types.TransferHistoryStatus_TRANSFER_CONFIRMING_YOUR_REFUND {
 				continue // user action, not updated by sgn
+			}
+			if status == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED && transferStatusMap[transferId].GetGatewayStatus() == types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED {
+				continue // user confirmed but sgn doesn't know, skip
 			}
 			if status == transferStatusMap[transferId].GetGatewayStatus() {
 				log.Debugf("status not change in polling for transfer:%s, status:%s", transfer.TransferId, status)

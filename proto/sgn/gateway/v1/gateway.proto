@@ -16,6 +16,14 @@ service Web {
     };
     }
 
+    // current only for slippage_tolerance setting
+    rpc GetAdvancedInfo (GetAdvancedInfoRequest) returns (GetAdvancedInfoResponse) {
+        option (google.api.http) = {
+      post: "/v1/getAdvancedInfo"
+      body: "*"
+    };
+    }
+
     // get chain and token selector
     // after getting these info, remember to record them(especially decimal)
     rpc GetTransferConfigs (GetTransferConfigsRequest) returns (GetTransferConfigsResponse) {
@@ -125,11 +133,20 @@ message TransferInfo {
 
 message SetAdvancedInfoRequest {
     string addr = 1;
-    uint32 slippage_tolerance = 5; // slippage * 1M, eg. 0.5% is 5000
+    uint32 slippage_tolerance = 2; // slippage * 1M, eg. 0.5% is 5000
 }
 
 message SetAdvancedInfoResponse {
     ErrMsg err = 1;
+}
+
+message GetAdvancedInfoRequest {
+    string addr = 1;
+}
+
+message GetAdvancedInfoResponse {
+    ErrMsg err = 1;
+    uint32 slippage_tolerance = 2; // slippage * 1M, eg. 0.5% is 5000
 }
 
 message GetTransferStatusRequest {
