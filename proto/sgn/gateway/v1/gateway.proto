@@ -4,6 +4,7 @@ package sgn.gateway.v1;
 import "google/api/annotations.proto";
 import "sgn/cbridge/v1/query.proto";
 import "sgn/cbridge/v1/cbridge.proto";
+import "sgn/farming/v1/farming.proto";
 
 option go_package = "github.com/celer-network/sgn-v2/gateway/webapi";
 
@@ -82,6 +83,22 @@ service Web {
     rpc QueryLiquidityStatus (QueryLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {
         option (google.api.http) = {
       get: "/v1/queryLiquidityStatus"
+    };
+    }
+
+    // web will use this api to init reward cliam
+    rpc ClaimWithdrawReward (ClaimWithdrawRewardRequest) returns (ClaimWithdrawRewardResponse) {
+        option (google.api.http) = {
+      post: "/v1/claimWithdrawReward"
+      body: "*"
+    };
+    }
+
+    // web polling this api after ClaimWithdrawReward
+    rpc ClaimRewardDetails (ClaimRewardDetailsRequest) returns (ClaimRewardDetailsResponse) {
+        option (google.api.http) = {
+      post: "/v1/claimRewardDetails"
+      body: "*"
     };
     }
 
@@ -256,6 +273,23 @@ message MarkLiquidityRequest {
 
 message MarkLiquidityResponse {
     ErrMsg err = 1;
+}
+
+
+message ClaimWithdrawRewardRequest {
+    string addr = 1;
+}
+
+message ClaimWithdrawRewardResponse {
+    ErrMsg err = 1;
+}
+message ClaimRewardDetailsRequest {
+    string addr = 1;
+}
+
+message ClaimRewardDetailsResponse {
+    ErrMsg err = 1;
+    repeated farming.v1.RewardClaimDetails details = 2;
 }
 
 message QueryLiquidityStatusRequest {

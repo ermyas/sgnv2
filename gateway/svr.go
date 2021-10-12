@@ -3,6 +3,9 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"github.com/celer-network/sgn-v2/eth"
+	farmingcli "github.com/celer-network/sgn-v2/x/farming/client/cli"
+	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	"math/big"
 	"path/filepath"
 	"strconv"
@@ -18,7 +21,6 @@ import (
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	farmingkp "github.com/celer-network/sgn-v2/x/farming/keeper"
-	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -52,6 +54,57 @@ type GatewayService struct {
 	f  *fee.TokenPriceCache
 	tp *transactor.TransactorPool
 	ec map[uint64]*ethclient.Client
+}
+
+func (gs *GatewayService) ClaimWithdrawReward(ctx context.Context, request *webapi.ClaimWithdrawRewardRequest) (*webapi.ClaimWithdrawRewardResponse, error) {
+	tr := gs.tp.GetTransactor()
+	_, err := farmingcli.ClaimAllRewards(tr, &farmingtypes.MsgClaimAllRewards{
+		Address: eth.Addr2Hex(common.Hex2Addr(request.GetAddr())),
+		Sender:  tr.Key.GetAddress().String(),
+	})
+	if err != nil {
+		return &webapi.ClaimWithdrawRewardResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  err.Error(),
+			},
+		}, nil
+	} else {
+		return &webapi.ClaimWithdrawRewardResponse{}, nil
+	}
+}
+
+func (gs *GatewayService) ClaimRewardDetails(ctx context.Context, request *webapi.ClaimRewardDetailsRequest) (*webapi.ClaimRewardDetailsResponse, error) {
+	tr := gs.tp.GetTransactor()
+	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
+	res, err := queryClient.RewardClaimInfo(
+		ctx,
+		&farmingtypes.QueryRewardClaimInfoRequest{
+			Address: common.Hex2Addr(request.GetAddr()).String(),
+		},
+	)
+	if res == nil || err != nil {
+		log.Errorf("check failed, error:%+v", err)
+		return &webapi.ClaimRewardDetailsResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "check failed",
+			},
+		}, nil
+	}
+	rewardClaimInfo := res.GetRewardClaimInfo()
+	var claimDetails []*farmingtypes.RewardClaimDetails
+	for _, detail := range rewardClaimInfo.GetRewardClaimDetailsList() {
+		claimDetails = append(claimDetails, &farmingtypes.RewardClaimDetails{
+			ChainId:                 detail.GetChainId(),
+			CumulativeRewardAmounts: detail.GetCumulativeRewardAmounts(),
+			RewardProtoBytes:        detail.GetRewardProtoBytes(),
+			Signatures:              detail.GetSignatures(),
+		})
+	}
+	return &webapi.ClaimRewardDetailsResponse{
+		Details: claimDetails,
+	}, nil
 }
 
 func (gs *GatewayService) GetAdvancedInfo(ctx context.Context, request *webapi.GetAdvancedInfoRequest) (*webapi.GetAdvancedInfoResponse, error) {
