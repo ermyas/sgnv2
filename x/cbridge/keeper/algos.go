@@ -120,6 +120,7 @@ func (k Keeper) PickLPsAndAdjustLiquidity(ctx sdk.Context, kv sdk.KVStore, src, 
 	if toAllocate.Sign() == 1 {
 		// if we're here but toAllocate > 0, means we went over all LPs but still have no enough
 		// what to do?
+		log.Errorf("toAllocate still has %s", toAllocate)
 		panic(fmt.Sprintf("toAllocate still has %s", toAllocate))
 	}
 	return
@@ -201,7 +202,7 @@ func amt2float(amt *big.Int, decimal uint32) float64 {
 	ret.Quo(ret, big.NewFloat(math.Pow10(int(decimal))))
 	result, accuracy := ret.Float64()
 	if accuracy != 0 {
-		panic("accuracy is " + accuracy.String())
+		log.Warnln(amt.String(), decimal, "accuracy is", accuracy.String(), "result:", result)
 	}
 	return result
 }
