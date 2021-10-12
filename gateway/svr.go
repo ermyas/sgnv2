@@ -56,49 +56,6 @@ type GatewayService struct {
 
 func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi.GetTransferStatusRequest) (*webapi.GetTransferStatusResponse, error) {
 	transfer, found, err := dal.DB.GetTransfer(request.GetTransferId())
-	var detail *types.QueryLiquidityStatusResponse
-	var wdOnchain []byte
-	var sortedSigs [][]byte
-	var signers [][]byte
-	var powers [][]byte
-	if found && err == nil {
-		var transfers []*dal.Transfer
-		transfers = append(transfers, transfer)
-		err = gs.updateTransferStatusInHistory(ctx, transfers)
-		if err != nil {
-			return &webapi.GetTransferStatusResponse{
-				Err: &webapi.ErrMsg{
-					Code: webapi.ErrCode_ERROR_CODE_COMMON,
-					Msg:  err.Error(),
-				},
-			}, nil
-		}
-		transfer, found, err = dal.DB.GetTransfer(request.GetTransferId())
-		if found && err == nil && (transfer.Status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND || transfer.Status == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED) {
-			if transfer.RefundSeqNum > 0 {
-				detail, wdOnchain, sortedSigs, signers, powers = gs.getWithdrawInfo(transfer.RefundSeqNum, transfer.SrcChainId)
-				if detail == nil {
-					return &webapi.GetTransferStatusResponse{
-						Err: &webapi.ErrMsg{
-							Code: webapi.ErrCode_ERROR_CODE_COMMON,
-							Msg:  "withdrawInfo not found",
-						},
-					}, nil
-				}
-				log.Debugf("get lp info for transfer, status is :%+v", detail.GetStatus())
-				if detail.GetStatus() == types.LPHistoryStatus_LP_WAITING_FOR_LP && transfer.Status != types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED {
-					log.Warnf("update transfer:%s by seqNum: %d, from %s, to %s", transfer.TransferId, transfer.RefundSeqNum, transfer.Status, types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED)
-					dbErr := dal.DB.UpdateTransferStatus(transfer.TransferId, uint64(types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED))
-					if dbErr != nil {
-						log.Warnf("UpdateTransferStatus failed, transferId:%s, status:%s", transfer.TransferId, types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED.String())
-					}
-					transfer.Status = types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED
-				}
-			} else {
-				log.Errorf("transfer seq num not found for transfer:%s", transfer.TransferId)
-			}
-		}
-	}
 	if !found || err != nil {
 		return &webapi.GetTransferStatusResponse{
 			Err: &webapi.ErrMsg{
@@ -107,12 +64,63 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 			},
 		}, nil
 	}
+
+	var detail *types.QueryLiquidityStatusResponse
+	var wdOnchain []byte
+	var sortedSigs [][]byte
+	var signers [][]byte
+	var powers [][]byte
+	refundReason := types.XferStatus_UNKNOWN
+
+	var transfers []*dal.Transfer
+	transfers = append(transfers, transfer)
+	refundReason, err = gs.updateTransferStatusInHistory(ctx, transfers)
+	if err != nil {
+		return &webapi.GetTransferStatusResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  err.Error(),
+			},
+		}, nil
+	}
+	transfer, found, err = dal.DB.GetTransfer(request.GetTransferId())
+	if found && err == nil && (transfer.Status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND || transfer.Status == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED) {
+		if transfer.RefundSeqNum > 0 {
+			detail, wdOnchain, sortedSigs, signers, powers = gs.getWithdrawInfo(transfer.RefundSeqNum, transfer.SrcChainId)
+			if detail == nil {
+				return &webapi.GetTransferStatusResponse{
+					Err: &webapi.ErrMsg{
+						Code: webapi.ErrCode_ERROR_CODE_COMMON,
+						Msg:  "withdrawInfo not found",
+					},
+				}, nil
+			}
+			log.Debugf("get lp info for transfer, status is :%+v", detail.GetStatus())
+			if detail.GetStatus() == types.LPHistoryStatus_LP_WAITING_FOR_LP && transfer.Status != types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED {
+				log.Warnf("update transfer:%s by seqNum: %d, from %s, to %s", transfer.TransferId, transfer.RefundSeqNum, transfer.Status, types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED)
+				dbErr := dal.DB.UpdateTransferStatus(transfer.TransferId, uint64(types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED))
+				if dbErr != nil {
+					log.Warnf("UpdateTransferStatus failed, transferId:%s, status:%s", transfer.TransferId, types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED.String())
+				}
+				transfer.Status = types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED
+			}
+		} else {
+			log.Errorf("transfer seq num not found for transfer:%s", transfer.TransferId)
+		}
+	}
+
+	blockDelay, found, err := dal.DB.GetChainBlockDelay(transfer.SrcChainId)
+	if !found || err != nil {
+		blockDelay = 0
+	}
 	return &webapi.GetTransferStatusResponse{
-		Status:     transfer.Status,
-		WdOnchain:  wdOnchain,
-		SortedSigs: sortedSigs,
-		Signers:    signers,
-		Powers:     powers,
+		Status:       transfer.Status,
+		WdOnchain:    wdOnchain,
+		SortedSigs:   sortedSigs,
+		Signers:      signers,
+		Powers:       powers,
+		RefundReason: refundReason,
+		BlockDelay:   blockDelay,
 	}, nil
 }
 
@@ -505,8 +513,10 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 
 func (gs *GatewayService) initWithdraw(req *types.MsgInitWithdraw) (uint64, error) {
 	tr := gs.tp.GetTransactor()
+	log.Debugf("init withdraw, req:%+v", req)
 	resp, err := cbrcli.InitWithdraw(tr, req)
-	if resp == nil {
+	if resp == nil || err != nil {
+		log.Errorf("init withdraw failed, err:%+v", err)
 		return 0, err
 	}
 	return resp.GetSeqnum(), err
@@ -625,7 +635,7 @@ func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.T
 	if err != nil {
 		return &webapi.TransferHistoryResponse{}, nil
 	}
-	err = gs.updateTransferStatusInHistory(ctx, transferList)
+	_, err = gs.updateTransferStatusInHistory(ctx, transferList)
 	if err != nil {
 		log.Warnf("update transfer status failed for user:%s, error:%v", addr, err)
 	}
@@ -804,7 +814,12 @@ func (gs *GatewayService) pollChainToken() {
 			token := asset.GetToken()
 			dbErr := dal.DB.UpsertTokenBaseInfo(token.GetSymbol(), common.Hex2Addr(token.GetAddress()).String(), common.Hex2Addr(asset.GetContractAddr()).String(), uint64(chainId), uint64(token.GetDecimal()))
 			if dbErr != nil {
-				log.Errorf("failed to write token: %v", err)
+				log.Errorf("failed to write token: %v", dbErr)
+			}
+			blockDelay := asset.GetBlockDelay()
+			dbErr = dal.DB.UpsertChainWithBlockDelay(uint64(chainId), blockDelay)
+			if dbErr != nil {
+				log.Errorf("failed to write blockDelay: %v", dbErr)
 			}
 		}
 	}
@@ -828,8 +843,9 @@ func (gs *GatewayService) updateLpStatusInHistory(lpHistory []*dal.LP) {
 	}
 }
 
-func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, transferList []*dal.Transfer) error {
+func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, transferList []*dal.Transfer) (types.XferStatus, error) {
 	var transferIds []string
+	refundReason := types.XferStatus_UNKNOWN
 	for _, transfer := range transferList {
 		transferIds = append(transferIds, transfer.TransferId)
 	}
@@ -839,7 +855,7 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 	})
 	if err != nil {
 		log.Errorf("updateTransferStatusInHistory when QueryTransferStatus in sgn failed, error: %+v", err)
-		return err
+		return refundReason, err
 	}
 	transferStatusMap := transferMap.Status
 
@@ -852,7 +868,7 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 			ec := gs.ec[srcChainId]
 			if ec == nil {
 				log.Errorf("no ethClient found for chain:%d", srcChainId)
-				return fmt.Errorf("no ethClient found for chain:%d", srcChainId)
+				return refundReason, fmt.Errorf("no ethClient found for chain:%d", srcChainId)
 			}
 			receipt, recErr := ec.TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))
 			if recErr == nil && receipt.Status != ethtypes.ReceiptStatusSuccessful {
@@ -869,24 +885,25 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 			status == types.TransferHistoryStatus_TRANSFER_REFUNDED {
 			continue // finial status, not updated by sgn
 		}
-		if transferStatusMap[transferId] == types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED ||
-			transferStatusMap[transferId] == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED {
+		if transferStatusMap[transferId].GetGatewayStatus() == types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED ||
+			transferStatusMap[transferId].GetGatewayStatus() == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED {
 			if status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND || status == types.TransferHistoryStatus_TRANSFER_CONFIRMING_YOUR_REFUND {
 				continue // user action, not updated by sgn
 			}
-			if status == transferStatusMap[transferId] {
+			if status == transferStatusMap[transferId].GetGatewayStatus() {
 				log.Debugf("status not change in polling for transfer:%s, status:%s", transfer.TransferId, status)
 				continue
 			}
 			log.Debugf("update transfer refund status from sgn, current is %s, dst is %s", status.String(), transferStatusMap[transferId].String())
-			dbErr := dal.DB.UpdateTransferStatus(transferId, uint64(transferStatusMap[transferId]))
+			dbErr := dal.DB.UpdateTransferStatus(transferId, uint64(transferStatusMap[transferId].GetGatewayStatus()))
 			if dbErr != nil {
 				log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", srcChainId, txHash)
 			}
+			refundReason = transferStatusMap[transferId].SgnStatus
 		}
-		return nil
+		return refundReason, nil
 	}
-	return nil
+	return refundReason, nil
 }
 
 func (gs *GatewayService) initTransactors() error {

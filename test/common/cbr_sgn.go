@@ -48,17 +48,17 @@ func CheckXfer(transactor *transactor.Transactor, xferId []byte) {
 			TransferId: []string{xferIdStr},
 		})
 		curStatus, ok := resp.Status[xferIdStr]
-		if ok && curStatus != prevXferStatus {
+		if ok && curStatus.GatewayStatus != prevXferStatus {
 			log.Infof("xfer status changed from %s to %s", prevXferStatus.String(), curStatus.String())
-			prevXferStatus = curStatus
+			prevXferStatus = curStatus.GatewayStatus
 		}
-		if err == nil && resp.Status[xferIdStr] == cbrtypes.TransferHistoryStatus_TRANSFER_COMPLETED {
+		if err == nil && resp.Status[xferIdStr].GatewayStatus == cbrtypes.TransferHistoryStatus_TRANSFER_COMPLETED {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
 	ChkErr(err, "failed to QueryTransferStatus")
-	if resp.Status[xferIdStr] != cbrtypes.TransferHistoryStatus_TRANSFER_COMPLETED {
+	if resp.Status[xferIdStr].GatewayStatus != cbrtypes.TransferHistoryStatus_TRANSFER_COMPLETED {
 		log.Fatalln("incorrect status")
 	}
 }

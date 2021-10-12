@@ -62,7 +62,8 @@ CREATE TABLE IF NOT EXISTS chain (
      id INT PRIMARY KEY NOT NULL,
      name TEXT NOT NULL DEFAULT '',
      icon TEXT NOT NULL DEFAULT '',
-     tx_url TEXT NOT NULL DEFAULT ''
+     tx_url TEXT NOT NULL DEFAULT '',
+     block_delay INT NOT NULL DEFAULT 0
 );
 
 

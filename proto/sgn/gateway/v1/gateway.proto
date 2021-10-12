@@ -3,6 +3,7 @@ package sgn.gateway.v1;
 
 import "google/api/annotations.proto";
 import "sgn/cbridge/v1/query.proto";
+import "sgn/cbridge/v1/cbridge.proto";
 
 option go_package = "github.com/celer-network/sgn-v2/gateway/webapi";
 
@@ -142,6 +143,8 @@ message GetTransferStatusResponse {
     repeated bytes sorted_sigs = 4; // for refund only
     repeated bytes signers = 5; // for refund only
     repeated bytes powers = 6; // for refund only
+    cbridge.v1.XferStatus refund_reason = 7; // used only for to_be_refund TransferStatus. BAD_LIQUIDITY, BAD_SLIPPAGE and BAD_TOKEN are used here
+    uint32 block_delay = 8; // waiting
 }
 
 message GetTransferConfigsRequest {

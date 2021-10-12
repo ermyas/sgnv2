@@ -40,6 +40,7 @@ message Assets {
 message AssetPerChain {
     Token token = 1;
     string contract_addr = 2;
+    uint32 block_delay = 3;
 }
 
 message GetFeeRequest {
@@ -60,7 +61,7 @@ message QueryTransferStatusRequest {
 }
 
 message QueryTransferStatusResponse {
-    map<string, TransferHistoryStatus> status = 2; //map<transfer_id, status>, transfer_id is hex string
+    map<string, TransferStatus> status = 2; //map<transfer_id, status>, transfer_id is hex string
 }
 
 message LiquidityDetail {
@@ -96,6 +97,11 @@ message QueryWithdrawLiquidityStatusRequest {
 message QueryLiquidityStatusResponse {
     LPHistoryStatus status = 1;
     WithdrawDetail detail = 2;
+}
+
+message TransferStatus {
+    TransferHistoryStatus gateway_status = 1; // to_be_refund and to_be_confirmed are used
+    XferStatus sgn_status = 2; // used for refund reason
 }
 
 message Token {

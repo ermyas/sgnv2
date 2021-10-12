@@ -157,6 +157,14 @@ func (d *DAL) UpsertChainInfo(id uint64, name, icon, url string) error {
 	return sqldb.ChkExec(res, err, 1, "UpsertChainInfo")
 }
 
+func (d *DAL) UpsertChainWithBlockDelay(id uint64, blockDelay uint32) error {
+	q := `INSERT INTO chain (id, block_delay)
+                VALUES ($1, $2) ON CONFLICT (id) DO UPDATE
+	SET block_delay=$2`
+	res, err := d.Exec(q, id, blockDelay)
+	return sqldb.ChkExec(res, err, 1, "UpsertChainWithBlockDelay")
+}
+
 func (d *DAL) GetChain(id uint64) (*webapi.Chain, string, bool, error) {
 	var name, icon, url string
 	q := `SELECT name, icon, tx_url FROM chain where id=$1`
@@ -167,4 +175,12 @@ func (d *DAL) GetChain(id uint64) (*webapi.Chain, string, bool, error) {
 		Name: name,
 		Icon: icon,
 	}, url, found, err
+}
+
+func (d *DAL) GetChainBlockDelay(id uint64) (uint32, bool, error) {
+	var blockDelay uint32
+	q := `SELECT block_delay FROM chain where id=$1`
+	err := d.QueryRow(q, id).Scan(&blockDelay)
+	found, err := sqldb.ChkQueryRow(err)
+	return blockDelay, found, err
 }
