@@ -313,6 +313,7 @@ message TransferHistory {
     string src_block_tx_link = 5;
     string dst_block_tx_link = 6;
     cbridge.v1.TransferHistoryStatus status = 7;
+    cbridge.v1.XferStatus refund_reason = 8; // used only for to_be_refund TransferStatus. BAD_LIQUIDITY, BAD_SLIPPAGE and BAD_TOKEN are used here
 }
 
 message LPHistory {

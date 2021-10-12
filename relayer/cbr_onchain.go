@@ -175,7 +175,7 @@ func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 }
 
 // send relay tx onchain to cbridge contract, no wait mine
-func (c *CbrOneChain) SendRelay(relay []byte, sigs [][]byte, curss currentSigners) error {
+func (c *CbrOneChain) SendRelay(relay []byte, sigs [][]byte, curss currentSigners) (string, error) {
 	tx, err := c.Transactor.Transact(
 		&ethutils.TransactionStateHandler{
 			OnMined: func(receipt *ethtypes.Receipt) {
@@ -195,9 +195,9 @@ func (c *CbrOneChain) SendRelay(relay []byte, sigs [][]byte, curss currentSigner
 	)
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	log.Infoln("Relay tx submitted", tx.Hash().Hex())
-	return nil
+	return tx.Hash().Hex(), nil
 }

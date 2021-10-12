@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/celer-network/sgn-v2/eth"
@@ -179,4 +180,8 @@ func Bytes2Addr(b []byte) Addr {
 
 func Bytes2Hash(b []byte) Hash {
 	return ec.BytesToHash(b)
+}
+
+func GetSymbolFromFarmingToken(token string) string {
+	return strings.Replace(token, "CB-", "", 1)
 }

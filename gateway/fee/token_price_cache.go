@@ -1,8 +1,11 @@
 package fee
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/celer-network/sgn-v2/common"
+	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/viper"
 	"io/ioutil"
@@ -124,6 +127,24 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 			tokenMap[asset.GetToken().Symbol] = 1
 		}
 	}
+
+	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancelFunc()
+
+	farmingPools, err := queryClient.Pools(
+		ctx,
+		&farmingtypes.QueryPoolsRequest{},
+	)
+	if farmingPools != nil {
+		for _, pool := range farmingPools.GetPools() {
+			for _, erc20Token := range pool.GetRewardTokens() {
+				tokenSymbol := common.GetSymbolFromFarmingToken(erc20Token.GetSymbol())
+				tokenMap[tokenSymbol] = 1
+			}
+		}
+	}
+
 	var tokenIds []string
 
 	for symbol := range tokenMap {

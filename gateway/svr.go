@@ -9,7 +9,6 @@ import (
 	"math/big"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/celer-network/goutils/log"
@@ -140,11 +139,10 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 	var sortedSigs [][]byte
 	var signers [][]byte
 	var powers [][]byte
-	refundReason := types.XferStatus_UNKNOWN
 
 	var transfers []*dal.Transfer
 	transfers = append(transfers, transfer)
-	refundReason, err = gs.updateTransferStatusInHistory(ctx, transfers)
+	refundReasons, err := gs.updateTransferStatusInHistory(ctx, transfers)
 	if err != nil {
 		return &webapi.GetTransferStatusResponse{
 			Err: &webapi.ErrMsg{
@@ -189,7 +187,7 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 		SortedSigs:   sortedSigs,
 		Signers:      signers,
 		Powers:       powers,
-		RefundReason: refundReason,
+		RefundReason: refundReasons[transfer.TransferId],
 		BlockDelay:   blockDelay,
 	}, nil
 }
@@ -705,7 +703,7 @@ func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.T
 	if err != nil {
 		return &webapi.TransferHistoryResponse{}, nil
 	}
-	_, err = gs.updateTransferStatusInHistory(ctx, transferList)
+	refundReasons, err := gs.updateTransferStatusInHistory(ctx, transferList)
 	if err != nil {
 		log.Warnf("update transfer status failed for user:%s, error:%v", addr, err)
 	}
@@ -717,18 +715,10 @@ func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.T
 			continue
 		}
 		if !srcFound {
-			srcChain = &webapi.Chain{
-				Id:   uint32(transfer.SrcChainId),
-				Name: "UNKNOWN NAME",
-				Icon: "",
-			}
+			srcChain = unknownChain(uint32(transfer.SrcChainId))
 		}
 		if !dstFound {
-			dstChain = &webapi.Chain{
-				Id:   uint32(transfer.DstChainId),
-				Name: "UNKNOWN NAME",
-				Icon: "",
-			}
+			dstChain = unknownChain(uint32(transfer.DstChainId))
 		}
 		srcToken, srcFound, err1 := dal.DB.GetTokenBySymbol(transfer.TokenSymbol, transfer.SrcChainId)
 		dstToken, dstFound, err2 := dal.DB.GetTokenBySymbol(transfer.TokenSymbol, transfer.DstChainId)
@@ -761,6 +751,7 @@ func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.T
 			SrcBlockTxLink: srcTxLink,
 			DstBlockTxLink: dstTxLink,
 			Status:         transfer.Status,
+			RefundReason:   refundReasons[transfer.TransferId],
 		})
 	}
 	return &webapi.TransferHistoryResponse{
@@ -794,11 +785,7 @@ func (gs *GatewayService) LPHistory(ctx context.Context, request *webapi.LPHisto
 			continue
 		}
 		if !found {
-			chain = &webapi.Chain{
-				Id:   uint32(lp.ChainId),
-				Name: "UNKNOWN NAME",
-				Icon: "",
-			}
+			chain = unknownChain(uint32(lp.ChainId))
 		}
 		token, found, lpErr := dal.DB.GetTokenBySymbol(lp.TokenSymbol, lp.ChainId)
 		if !found || lpErr != nil {
@@ -893,6 +880,26 @@ func (gs *GatewayService) pollChainToken() {
 			}
 		}
 	}
+
+	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancelFunc()
+
+	farmingPools, err := queryClient.Pools(
+		ctx,
+		&farmingtypes.QueryPoolsRequest{},
+	)
+	if farmingPools != nil {
+		for _, pool := range farmingPools.GetPools() {
+			for _, erc20Token := range pool.GetRewardTokens() {
+				tokenSymbol := common.GetSymbolFromFarmingToken(erc20Token.GetSymbol())
+				dbErr := dal.DB.UpsertTokenBaseInfo(tokenSymbol, common.Hex2Addr(erc20Token.GetAddress()).String(), "", erc20Token.GetChainId(), 18) // todo: right decimal @aric
+				if dbErr != nil {
+					log.Errorf("UpsertTokenBaseInfo error:%+v", dbErr)
+				}
+			}
+		}
+	}
 }
 
 func (gs *GatewayService) updateLpStatusInHistory(lpHistory []*dal.LP) {
@@ -913,9 +920,9 @@ func (gs *GatewayService) updateLpStatusInHistory(lpHistory []*dal.LP) {
 	}
 }
 
-func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, transferList []*dal.Transfer) (types.XferStatus, error) {
+func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, transferList []*dal.Transfer) (map[string]types.XferStatus, error) {
 	var transferIds []string
-	refundReason := types.XferStatus_UNKNOWN
+	refundReasons := make(map[string]types.XferStatus)
 	for _, transfer := range transferList {
 		transferIds = append(transferIds, transfer.TransferId)
 	}
@@ -925,11 +932,12 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 	})
 	if err != nil {
 		log.Errorf("updateTransferStatusInHistory when QueryTransferStatus in sgn failed, error: %+v", err)
-		return refundReason, err
+		return refundReasons, err
 	}
 	transferStatusMap := transferMap.Status
 
 	for _, transfer := range transferList {
+		refundReason := types.XferStatus_UNKNOWN
 		transferId := transfer.TransferId
 		status := transfer.Status
 		srcChainId := transfer.SrcChainId
@@ -938,7 +946,7 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 			ec := gs.ec[srcChainId]
 			if ec == nil {
 				log.Errorf("no ethClient found for chain:%d", srcChainId)
-				return refundReason, fmt.Errorf("no ethClient found for chain:%d", srcChainId)
+				continue
 			}
 			receipt, recErr := ec.TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))
 			if recErr == nil && receipt.Status != ethtypes.ReceiptStatusSuccessful {
@@ -955,7 +963,6 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 			status == types.TransferHistoryStatus_TRANSFER_REFUNDED {
 			continue // finial status, not updated by sgn
 		}
-		log.Debugf("transfer:%s, status:%s", transferId, transferStatusMap[transferId].GetGatewayStatus())
 		if transferStatusMap[transferId].GetGatewayStatus() == types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED ||
 			transferStatusMap[transferId].GetGatewayStatus() == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED {
 			if status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND || status == types.TransferHistoryStatus_TRANSFER_CONFIRMING_YOUR_REFUND {
@@ -975,9 +982,9 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 			}
 			refundReason = transferStatusMap[transferId].SgnStatus
 		}
-		return refundReason, nil
+		refundReasons[transferId] = refundReason
 	}
-	return refundReason, nil
+	return refundReasons, nil
 }
 
 func (gs *GatewayService) initTransactors() error {
@@ -1075,15 +1082,14 @@ func (gs *GatewayService) getUserStaking(ctx context.Context, address string) ma
 	log.Debugf("farming accountInfoResp:%+v", accountInfoResp)
 
 	stakingPools := make(map[uint64]map[string]*stakingInfo) // map<chain_id, map<token_symbol, FarmingPool>>
-	accountInfo := accountInfoResp.GetAccountInfo()
-	if err == nil {
+	if err == nil && accountInfoResp != nil {
+		accountInfo := accountInfoResp.GetAccountInfo()
 		for i, pool := range accountInfo.StakedPools {
 			erc20Token := pool.GetStakeToken()
-
+			tokenSymbol := common.GetSymbolFromFarmingToken(erc20Token.GetSymbol())
 			currentEarnings := accountInfo.EarningsList[i]
 			log.Debugf("farming current earnings reqAddr:%s, reqPool:%s, Res:%+v", address, pool.GetName(), currentEarnings)
 			earnings := 0.0
-			tokenSymbol := getSymbolFromFarmingToken(erc20Token.GetSymbol())
 			for _, reward := range currentEarnings.GetRewardAmounts() {
 				amt, parseErr := gs.getInfoFromFarmingReward(reward)
 				if parseErr != nil {
@@ -1113,7 +1119,7 @@ func (gs *GatewayService) getInfoFromFarmingReward(reward sdk.DecCoin) (float64,
 	if parseErr != nil {
 		log.Errorf("parse token denom error, denom:%s, err:%+v", reward.GetDenom(), parseErr)
 	}
-	tokenSymbol = getSymbolFromFarmingToken(tokenSymbol)
+	tokenSymbol = common.GetSymbolFromFarmingToken(tokenSymbol)
 	token, found, dbErr := dal.DB.GetTokenBySymbol(tokenSymbol, chainId)
 	if !found || dbErr != nil {
 		return 0, dbErr
@@ -1172,7 +1178,7 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 	for _, pool := range res.GetPools() {
 		farmingPool := make(map[string]float64)
 		token := pool.GetStakeToken()
-		tokenSymbol := getSymbolFromFarmingToken(token.GetSymbol())
+		tokenSymbol := common.GetSymbolFromFarmingToken(token.GetSymbol())
 		totalStakedAmount := pool.TotalStakedAmount
 		if totalStakedAmount.Amount.Equal(sdk.ZeroDec()) {
 			log.Debugf("farming totalStakedAmount is 0 on chain:%d, token: %s", token.GetChainId(), tokenSymbol)
@@ -1190,10 +1196,6 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 		farmingPools[token.GetChainId()] = farmingPool
 	}
 	return farmingPools
-}
-
-func getSymbolFromFarmingToken(token string) string {
-	return strings.Replace(token, "CB-", "", 1)
 }
 
 func unknownChain(chainId uint32) *webapi.Chain {

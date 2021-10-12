@@ -18,6 +18,16 @@ func UpdateTransferStatus(transferId string, status uint64) error {
 	}
 }
 
+// UpdateTransferRelayedStatus update api
+// called by relayer when relay tx sent successfully
+func UpdateTransferRelayedStatus(transferId, txHash string) error {
+	if DB == nil {
+		return nil
+	} else {
+		return DB.UpdateTransferRelayedStatus(transferId, txHash)
+	}
+}
+
 // TransferCompleted update api
 func TransferCompleted(transferId, txHash, dstTransferId, amt string) error {
 	if DB == nil {

@@ -58,6 +58,13 @@ func (d *DAL) MarkTransferSend(transferId, usrAddr, tokenSymbol, amt, receivedAm
 	return sqldb.ChkExec(res, err, 1, "MarkTransferSend")
 }
 
+func (d *DAL) UpdateTransferRelayedStatus(transferId, txHash string) error {
+	status := uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE)
+	q := `UPDATE transfer SET status=$2, update_time=$3, dst_tx_hash=$4 WHERE transfer_id=$1`
+	res, err := d.Exec(q, transferId, status, now(), txHash)
+	return sqldb.ChkExec(res, err, 1, "UpdateTransferRelayedStatus")
+}
+
 func (d *DAL) UpdateTransferStatus(transferId string, status uint64) error {
 	var checked bool
 	switch status {
