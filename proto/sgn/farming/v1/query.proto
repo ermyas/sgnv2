@@ -36,9 +36,9 @@ service Query {
     option (google.api.http).get = "/sgn/farming/v1/stake_info/{pool_name}/{address}";
   }
 
-  // StakedPools queries the current state of all the pools that an account has stakes in.
-  rpc StakedPools(QueryStakedPoolsRequest) returns (QueryStakedPoolsResponse) {
-    option (google.api.http).get = "/sgn/farming/v1/staked_pools/{address}";
+  // AccountInfo queries the current state of a farming account.
+  rpc AccountInfo(QueryAccountInfoRequest) returns (QueryAccountInfoResponse) {
+    option (google.api.http).get = "/sgn/farming/v1/account_info/{address}";
   }
 
   // AccountsStakedIn queries the list of accounts staked in a pool.
@@ -133,9 +133,9 @@ message QueryStakeInfoResponse {
   StakeInfo stake_info = 1 [(gogoproto.nullable) = false];
 }
 
-// QueryStakedPoolsRequest is the request type for the
-// Query/StakedPools RPC method.
-message QueryStakedPoolsRequest {
+// QueryAccountInfoRequest is the request type for the
+// Query/AccountInfo RPC method.
+message QueryAccountInfoRequest {
   option (gogoproto.equal) = false;
   option (gogoproto.goproto_getters) = false;
 
@@ -143,11 +143,11 @@ message QueryStakedPoolsRequest {
   string address = 1;
 }
 
-// QueryStakedPoolsResponse is the response type for the
-// Query/StakedPools RPC method.
-message QueryStakedPoolsResponse {
-  // pools defines the current state of the farming pools.
-  repeated FarmingPool pools = 1 [(gogoproto.nullable) = false];
+// QueryAccountInfoResponse is the response type for the
+// Query/AccountInfo RPC method.
+message QueryAccountInfoResponse {
+  // account_info defines the account info.
+  AccountInfo account_info = 1 [(gogoproto.nullable) = false];
 }
 
 // QueryAccountsStakedInRequest is the request type for the

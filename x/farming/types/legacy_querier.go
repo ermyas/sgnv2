@@ -10,7 +10,7 @@ const (
 	QueryPools            = "pools"
 	QueryEarnings         = "earnings"
 	QueryStakeInfo        = "stake-info"
-	QueryStakedPools      = "account"
+	QueryAccountInfo      = "account-info"
 	QueryAccountsStakedIn = "accounts-staked-in"
 	QueryNumPools         = "num-pools"
 )
@@ -59,15 +59,15 @@ func NewQueryPoolAccountParams(poolName string, addr eth.Addr) QueryPoolAccountP
 	}
 }
 
-// QueryStakedPoolsParams defines the params for the following queries:
+// QueryAccountParams defines the params for the following queries:
 // - 'custom/farming/staked-pools'
-type QueryStakedPoolsParams struct {
+type QueryAccountParams struct {
 	Address eth.Addr
 }
 
-// NewQueryStakedPoolsParams creates a new instance of QueryStakedPoolsParams
-func NewQueryStakedPoolsParams(addr eth.Addr) QueryStakedPoolsParams {
-	return QueryStakedPoolsParams{
+// NewQueryAccountParams creates a new instance of QueryAccountParams
+func NewQueryAccountParams(addr eth.Addr) QueryAccountParams {
+	return QueryAccountParams{
 		Address: addr,
 	}
 }

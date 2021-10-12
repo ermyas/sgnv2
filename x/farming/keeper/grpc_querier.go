@@ -6,6 +6,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/farming/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -97,8 +98,8 @@ func (k Keeper) StakeInfo(c context.Context, req *types.QueryStakeInfoRequest) (
 	return &types.QueryStakeInfoResponse{StakeInfo: stakeInfo}, nil
 }
 
-// StakedPools queries the current state of all the pools that an account has stakes in.
-func (k Keeper) StakedPools(c context.Context, req *types.QueryStakedPoolsRequest) (*types.QueryStakedPoolsResponse, error) {
+// AccountInfo queries the current state of a farming account.
+func (k Keeper) AccountInfo(c context.Context, req *types.QueryAccountInfoRequest) (*types.QueryAccountInfoResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
@@ -107,7 +108,9 @@ func (k Keeper) StakedPools(c context.Context, req *types.QueryStakedPoolsReques
 	}
 	ctx := sdk.UnwrapSDKContext(c)
 
-	poolNames := k.GetFarmingPoolNamesForAccount(ctx, eth.Hex2Addr(req.Address))
+	addr := eth.Hex2Addr(req.Address)
+	// StakedPools
+	poolNames := k.GetFarmingPoolNamesForAccount(ctx, addr)
 	var updatedPools types.FarmingPools
 	for _, poolName := range poolNames {
 		pool, found := k.GetFarmingPool(ctx, poolName)
@@ -117,7 +120,27 @@ func (k Keeper) StakedPools(c context.Context, req *types.QueryStakedPoolsReques
 		updatedPool, _ := k.CalculateAmountEarnedBetween(ctx, pool)
 		updatedPools = append(updatedPools, updatedPool)
 	}
-	return &types.QueryStakedPoolsResponse{Pools: updatedPools}, nil
+
+	// EarningsList
+	var earningsList []types.Earnings
+	for _, poolName := range poolNames {
+		earnings, sdkErr := k.GetEarnings(ctx, poolName, addr)
+		if sdkErr != nil {
+			return nil, sdkErr
+		}
+		earningsList = append(earningsList, earnings)
+	}
+
+	// CumulativeRewards
+	derivedRewardAccount := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, addr)
+	cumulativeRewards := sdk.NewDecCoinsFromCoins(k.bankKeeper.GetAllBalances(ctx, derivedRewardAccount)...)
+
+	accountInfo := types.AccountInfo{
+		StakedPools:       updatedPools,
+		EarningsList:      earningsList,
+		CumulativeRewards: cumulativeRewards,
+	}
+	return &types.QueryAccountInfoResponse{AccountInfo: accountInfo}, nil
 }
 
 func (k Keeper) AccountsStakedIn(c context.Context, req *types.QueryAccountsStakedInRequest) (*types.QueryAccountsStakedInResponse, error) {

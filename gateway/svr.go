@@ -398,7 +398,7 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 		return &webapi.GetLPInfoListResponse{}, nil
 	}
 	stakingMap := gs.getUserStaking(ctx, userAddr)
-	farmingEarningMap := gs.getUserFarmingCumulativeEarning(ctx, userAddr)
+	farmingEarningMap := gs.getUserFarmingCumulativeEarnings(ctx, userAddr)
 	farmingApyMap := gs.getFarmingApy(ctx)
 	data24h := gs.get24hTx()
 	userDetailMap := make(map[uint64]map[string]*types.LiquidityDetail)
@@ -451,8 +451,8 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 			hasSession := false
 			currentEarning := 0.0
 			if staking != nil {
-				hasSession = staking.staking > 0
-				currentEarning = staking.earning
+				hasSession = staking.numRewardTokens > 0
+				currentEarning = staking.currentEarnings
 			}
 			lp := &webapi.LPInfo{
 				Chain:                chain,
@@ -898,7 +898,7 @@ func (gs *GatewayService) pollChainToken() {
 func (gs *GatewayService) updateLpStatusInHistory(lpHistory []*dal.LP) {
 	for _, lp := range lpHistory {
 		if lp.Status == types.LPHistoryStatus_LP_SUBMITTING || lp.Status == types.LPHistoryStatus_LP_WAITING_FOR_SGN {
-			resp, err := gs.QueryLiquidityStatus(nil, &webapi.QueryLiquidityStatusRequest{
+			resp, err := gs.QueryLiquidityStatus(context.Background(), &webapi.QueryLiquidityStatusRequest{
 				SeqNum:  lp.SeqNum,
 				LpAddr:  lp.Addr,
 				ChainId: uint32(lp.ChainId),
@@ -1059,48 +1059,38 @@ func (gs *GatewayService) get24hTx() map[uint64]map[string]*txData {
 }
 
 type stakingInfo struct {
-	staking int
-	earning float64
+	numRewardTokens int
+	currentEarnings float64
 }
 
 func (gs *GatewayService) getUserStaking(ctx context.Context, address string) map[uint64]map[string]*stakingInfo {
 	tr := gs.tp.GetTransactor()
 	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
-	stakingRes, err := queryClient.StakedPools(
+	accountInfoResp, err := queryClient.AccountInfo(
 		ctx,
-		&farmingtypes.QueryStakedPoolsRequest{
+		&farmingtypes.QueryAccountInfoRequest{
 			Address: address,
 		},
 	)
-	log.Debugf("farming stakingRes:%+v", stakingRes)
+	log.Debugf("farming accountInfoResp:%+v", accountInfoResp)
 
 	stakingPools := make(map[uint64]map[string]*stakingInfo) // map<chain_id, map<token_symbol, FarmingPool>>
+	accountInfo := accountInfoResp.GetAccountInfo()
 	if err == nil {
-		for _, pool := range stakingRes.GetPools() {
+		for i, pool := range accountInfo.StakedPools {
 			erc20Token := pool.GetStakeToken()
 
-			currentRes, earningErr := queryClient.Earnings(
-				ctx,
-				&farmingtypes.QueryEarningsRequest{
-					PoolName: pool.GetName(),
-					Address:  address,
-				},
-			)
-			if earningErr != nil {
-				log.Errorf("earningErr:%+v", earningErr)
-				continue
-			}
-			log.Debugf("farming current earning reqAddr:%s, reqPool:%s, Res:%+v", address, pool.GetName(), currentRes)
-			currentEarnings := currentRes.GetEarnings()
-			earning := 0.0
+			currentEarnings := accountInfo.EarningsList[i]
+			log.Debugf("farming current earnings reqAddr:%s, reqPool:%s, Res:%+v", address, pool.GetName(), currentEarnings)
+			earnings := 0.0
 			tokenSymbol := getSymbolFromFarmingToken(erc20Token.GetSymbol())
 			for _, reward := range currentEarnings.GetRewardAmounts() {
 				amt, parseErr := gs.getInfoFromFarmingReward(reward)
 				if parseErr != nil {
 					continue
 				}
-				earning += amt
-				log.Debugf("chain:%d, token:%s, earning%.2f", erc20Token.GetChainId(), tokenSymbol, amt)
+				earnings += amt
+				log.Debugf("chain:%d, token:%s, earnings%.2f", erc20Token.GetChainId(), tokenSymbol, amt)
 			}
 
 			// return info
@@ -1109,8 +1099,8 @@ func (gs *GatewayService) getUserStaking(ctx context.Context, address string) ma
 				staking = make(map[string]*stakingInfo)
 			}
 			staking[tokenSymbol] = &stakingInfo{
-				staking: len(pool.GetRewardTokenInfos()),
-				earning: earning,
+				numRewardTokens: len(pool.GetRewardTokenInfos()),
+				currentEarnings: earnings,
 			}
 			stakingPools[erc20Token.ChainId] = staking
 		}
@@ -1131,42 +1121,39 @@ func (gs *GatewayService) getInfoFromFarmingReward(reward sdk.DecCoin) (float64,
 	return gs.f.GetUsdVolume(token.Token, common.Str2BigInt(reward.Amount.String())), parseErr
 }
 
-func (gs *GatewayService) getUserFarmingCumulativeEarning(ctx context.Context, address string) map[uint64]map[string]float64 {
+func (gs *GatewayService) getUserFarmingCumulativeEarnings(ctx context.Context, address string) map[uint64]map[string]float64 {
 	tr := gs.tp.GetTransactor()
 	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
-	res, err := queryClient.RewardClaimInfo(
+	accountInfoRes, err := queryClient.AccountInfo(
 		ctx,
-		&farmingtypes.QueryRewardClaimInfoRequest{
+		&farmingtypes.QueryAccountInfoRequest{
 			Address: address,
 		},
 	)
-	log.Debugf("farming earningRes:%+v", res)
+	log.Debugf("farming getUserFarmingCumulativeEarnings accountInfoRes:%+v", accountInfoRes)
 	earnings := make(map[uint64]map[string]float64) // map<chain_id, map<token_symbol, earning>>
-	if res == nil || err != nil {
+	if accountInfoRes == nil || err != nil {
 		return earnings
 	}
-	rewardClaimInfo := res.GetRewardClaimInfo()
-	for _, detail := range rewardClaimInfo.GetRewardClaimDetailsList() {
-		chainId := detail.GetChainId()
+	for _, reward := range accountInfoRes.GetAccountInfo().CumulativeRewards {
+		chainId, tokenSymbol, parseErr := farmingkp.ParseERC20TokenDenom(reward.GetDenom())
+		if parseErr != nil {
+			log.Errorf("parse token denom error, denom:%s, err:%+v", reward.GetDenom(), parseErr)
+			continue
+		}
+		amt, parseErr := reward.Amount.Float64()
+		if parseErr != nil {
+			log.Errorf("parse reward amt error, amt:%s, err:%+v", reward.Amount.String(), parseErr)
+			continue
+		}
 		earning, found := earnings[chainId]
 		if !found {
 			earning = make(map[string]float64)
 		}
-		for _, reward := range detail.GetCumulativeRewardAmounts() {
-			_, tokenSymbol, parseErr := farmingkp.ParseERC20TokenDenom(reward.GetDenom())
-			if parseErr != nil {
-				log.Errorf("parse token denom error, denom:%s, err:%+v", reward.GetDenom(), parseErr)
-				continue
-			}
-			amt, parseErr := reward.Amount.Float64()
-			if parseErr != nil {
-				log.Errorf("parse reward amt error, amt:%s, err:%+v", reward.Amount.String(), parseErr)
-				continue
-			}
-			earning[tokenSymbol] += amt
-		}
+		earning[tokenSymbol] += amt
 		earnings[chainId] = earning
 	}
+
 	return earnings
 }
 

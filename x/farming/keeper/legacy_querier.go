@@ -5,6 +5,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	abci "github.com/tendermint/tendermint/abci/types"
 
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/x/farming/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -28,8 +29,8 @@ func NewLegacyQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier
 			return queryEarnings(ctx, req, k, legacyQuerierCdc)
 		case types.QueryStakeInfo:
 			return queryStakeInfo(ctx, req, k, legacyQuerierCdc)
-		case types.QueryStakedPools:
-			return queryStakedPools(ctx, req, k, legacyQuerierCdc)
+		case types.QueryAccountInfo:
+			return QueryAccountInfo(ctx, req, k, legacyQuerierCdc)
 		case types.QueryAccountsStakedIn:
 			return queryAccountsStakedIn(ctx, req, k, legacyQuerierCdc)
 		case types.QueryNumPools:
@@ -142,12 +143,13 @@ func queryStakeInfo(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuer
 	return res, nil
 }
 
-func queryStakedPools(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
-	var params types.QueryStakedPoolsParams
+func QueryAccountInfo(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var params types.QueryAccountParams
 	if err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params); err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
+	// StakedPools
 	poolNames := k.GetFarmingPoolNamesForAccount(ctx, params.Address)
 	var updatedPools types.FarmingPools
 	for _, poolName := range poolNames {
@@ -158,7 +160,28 @@ func queryStakedPools(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQu
 		updatedPool, _ := k.CalculateAmountEarnedBetween(ctx, pool)
 		updatedPools = append(updatedPools, updatedPool)
 	}
-	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, updatedPools)
+
+	// EarningsList
+	var earningsList []types.Earnings
+	for _, poolName := range poolNames {
+		earnings, sdkErr := k.GetEarnings(ctx, poolName, params.Address)
+		if sdkErr != nil {
+			return nil, sdkErr
+		}
+		earningsList = append(earningsList, earnings)
+	}
+
+	// CumulativeRewards
+	derivedRewardAccount := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, params.Address)
+	cumulativeRewards := sdk.NewDecCoinsFromCoins(k.bankKeeper.GetAllBalances(ctx, derivedRewardAccount)...)
+
+	accountInfo := types.AccountInfo{
+		StakedPools:       updatedPools,
+		EarningsList:      earningsList,
+		CumulativeRewards: cumulativeRewards,
+	}
+
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, accountInfo)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}

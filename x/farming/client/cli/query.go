@@ -31,7 +31,7 @@ func GetQueryCmd() *cobra.Command {
 		GetCmdQueryNumPools(),
 		GetCmdQueryStakeInfo(),
 		GetCmdQueryEarnings(),
-		GetCmdQueryStakedPools(),
+		GetCmdQueryAccountInfo(),
 		GetCmdQueryAccountsStakedIn(),
 	)
 
@@ -166,16 +166,16 @@ $ %s query farming earnings cbridge-DAI/1 0xab5801a7d398351b8be11c439e05c5b3259a
 	return cmd
 }
 
-// GetCmdQueryStakedPools gets the staked pools query command.
-func GetCmdQueryStakedPools() *cobra.Command {
+// GetCmdQueryAccountInfo gets the account info query command.
+func GetCmdQueryAccountInfo() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "staked-pools [address]",
-		Short: "query the pools that an account has staked tokens in",
+		Use:   "account-info [address]",
+		Short: "query the info of a farming account",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Query all the pools that an account has staked tokens in.
+			fmt.Sprintf(`Query the info of a farming account.
 
 Example:
-$ %s query farming staked-pools 0xab5801a7d398351b8be11c439e05c5b3259aec9b
+$ %s query farming account-info 0xab5801a7d398351b8be11c439e05c5b3259aec9b
 `,
 				version.AppName,
 			),
@@ -187,9 +187,9 @@ $ %s query farming staked-pools 0xab5801a7d398351b8be11c439e05c5b3259aec9b
 				return err
 			}
 			queryClient := types.NewQueryClient(cliCtx)
-			res, err := queryClient.StakedPools(
+			res, err := queryClient.AccountInfo(
 				cmd.Context(),
-				&types.QueryStakedPoolsRequest{Address: args[0]},
+				&types.QueryAccountInfoRequest{Address: args[0]},
 			)
 			if err != nil {
 				return err

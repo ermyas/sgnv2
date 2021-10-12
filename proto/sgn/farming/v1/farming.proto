@@ -109,6 +109,22 @@ message Earnings {
   ];
 }
 
+// AccountInfo records the current state of a farming account.
+message AccountInfo {
+  // staked_pools defines the farming pools that the account has stakes in.
+  repeated FarmingPool staked_pools = 1 [(gogoproto.nullable) = false];
+
+  // earnings_list defines the earnings info from all the staked pools.
+  repeated Earnings earnings_list = 2 [(gogoproto.nullable) = false];
+
+  // cumulative_rewards defines the cumulative rewards.
+  repeated cosmos.base.v1beta1.DecCoin cumulative_rewards = 3 [
+    (gogoproto.moretags) = "yaml:\"cumulative_rewards\"",
+    (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.DecCoins",
+    (gogoproto.nullable) = false
+  ];
+}
+
 // Signature is the structure representing an Ethereum ECDSA signature.
 message Signature {
   // signer defines the Ethereum address of the signer.

@@ -34,11 +34,11 @@ func registerQueryRoutes(cliCtx client.Context, r *mux.Router) {
 	// get all the farming pools that the account has staked tokens in
 	r.HandleFunc(
 		"/farming/staked-pools/{addr}",
-		queryStakedPoolsHandlerFn(cliCtx),
+		QueryAccountHandlerFn(cliCtx),
 	).Methods("GET")
 }
 
-func queryStakedPoolsHandlerFn(cliCtx client.Context) http.HandlerFunc {
+func QueryAccountHandlerFn(cliCtx client.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
@@ -46,12 +46,12 @@ func queryStakedPoolsHandlerFn(cliCtx client.Context) http.HandlerFunc {
 		}
 
 		addr := eth.Hex2Addr(mux.Vars(r)["addr"])
-		jsonBytes, err := cliCtx.LegacyAmino.MarshalJSON(types.NewQueryStakedPoolsParams(addr))
+		jsonBytes, err := cliCtx.LegacyAmino.MarshalJSON(types.NewQueryAccountParams(addr))
 		if rest.CheckBadRequestError(w, err) {
 			return
 		}
 
-		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryStakedPools)
+		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryAccountInfo)
 		res, height, err := cliCtx.QueryWithData(route, jsonBytes)
 		if rest.CheckInternalServerError(w, err) {
 			return
