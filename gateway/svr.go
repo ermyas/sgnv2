@@ -97,10 +97,9 @@ func (gs *GatewayService) ClaimRewardDetails(ctx context.Context, request *webap
 	var claimDetails []*farmingtypes.RewardClaimDetails
 	for _, detail := range rewardClaimInfo.GetRewardClaimDetailsList() {
 		claimDetails = append(claimDetails, &farmingtypes.RewardClaimDetails{
-			ChainId:                 detail.GetChainId(),
-			CumulativeRewardAmounts: detail.GetCumulativeRewardAmounts(),
-			RewardProtoBytes:        detail.GetRewardProtoBytes(),
-			Signatures:              detail.GetSignatures(),
+			ChainId:          detail.GetChainId(),
+			RewardProtoBytes: detail.GetRewardProtoBytes(),
+			Signatures:       detail.GetSignatures(),
 		})
 	}
 	return &webapi.ClaimRewardDetailsResponse{
@@ -338,8 +337,8 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.MarkTransferRequest) (*webapi.MarkTransferResponse, error) {
 	transferId := request.GetTransferId()
 	addr := common.Hex2Addr(request.GetAddr())
-	sendInfo := request.GetSrcSendInfo()
-	receivedInfo := request.GetDstMinReceivedInfo()
+	sendInfo := refineTokenInfo(request.GetSrcSendInfo())
+	receivedInfo := refineTokenInfo(request.GetDstMinReceivedInfo())
 	txHash := request.GetSrcTxHash()
 	txType := request.GetType()
 	log.Infof("transferId in mark api: %s, bytes:%+v, request: %+v", transferId, common.Hex2Bytes(transferId), request)
@@ -369,6 +368,15 @@ func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.Mark
 	return &webapi.MarkTransferResponse{
 		Err: nil,
 	}, nil
+}
+func refineTokenInfo(token *webapi.TransferInfo) *webapi.TransferInfo {
+	t, found, err := dal.DB.GetTokenBySymbol(token.GetToken().GetSymbol(), uint64(token.GetChain().GetId()))
+	if !found || err != nil {
+		log.Errorf("can not find token in db, token:%s, chain:%d", token.GetToken().GetSymbol(), token.GetChain().GetId())
+		return token
+	}
+	token.Token = t.Token
+	return token
 }
 
 func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.GetLPInfoListRequest) (*webapi.GetLPInfoListResponse, error) {
@@ -612,6 +620,7 @@ func (gs *GatewayService) initWithdraw(req *types.MsgInitWithdraw) (uint64, erro
 	log.Debugf("init withdraw, req:%+v", req)
 	err := checkSig(req.GetReqId(), req.GetUserSig(), common.Bytes2Addr(req.GetLpAddr()))
 	if err != nil {
+		log.Errorf("checkSig err:%+v", err)
 		return 0, err
 	}
 	_, err = cbrcli.InitWithdraw(tr, req)
@@ -631,7 +640,7 @@ func checkSig(reqId uint64, sig []byte, addr common.Addr) error {
 		return err
 	}
 	if signAddr != addr {
-		return fmt.Errorf("error sig")
+		return fmt.Errorf("error sig addr, sigAddr:%s, usrAddr:%s", signAddr.String(), addr.String())
 	}
 	return nil
 }
@@ -719,19 +728,19 @@ func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64, usrAddr string
 	var sortedSigs [][]byte
 	if detail != nil && err2 == nil {
 		wdOnchain = detail.GetDetail().GetWdOnchain()
+		sortedSigs = detail.GetDetail().GetSortedSigsBytes()
+		curss, signErr := cbrcli.QueryChainSigners(tr.CliCtx, chainId)
+		if signErr != nil {
+			log.Warnf("QueryChainSigners error:%+v", signErr)
+		} else {
+			ss, ps := types.SignersToEthArrays(curss.GetSortedSigners())
+			for i, s := range ss {
+				signers = append(signers, s.Bytes())
+				powers = append(powers, ps[i].Bytes())
+			}
+		}
 	} else {
 		log.Warnf("QueryWithdrawLiquidityStatus error for detail, error%+v", err2)
-	}
-	sortedSigs = detail.GetDetail().GetSortedSigsBytes()
-	curss, signErr := cbrcli.QueryChainSigners(tr.CliCtx, chainId)
-	if signErr != nil {
-		log.Warnf("QueryChainSigners error:%+v", signErr)
-	} else {
-		ss, ps := types.SignersToEthArrays(curss.GetSortedSigners())
-		for i, s := range ss {
-			signers = append(signers, s.Bytes())
-			powers = append(powers, ps[i].Bytes())
-		}
 	}
 	return detail, wdOnchain, sortedSigs, signers, powers
 }
