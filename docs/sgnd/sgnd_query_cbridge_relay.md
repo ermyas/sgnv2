@@ -1,15 +1,15 @@
-## sgnd query cbridge config
+## sgnd query cbridge relay
 
-Query the current cbridge config
+Query relay for xfer id
 
 ```
-sgnd query cbridge config [flags]
+sgnd query cbridge relay [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for config
+  -h, --help   help for relay
 ```
 
 ### Options inherited from parent commands

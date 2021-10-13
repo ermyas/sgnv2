@@ -1,15 +1,15 @@
-## sgnd query cbridge config
+## sgnd query cbridge chaintokens
 
-Query the current cbridge config
+Query the chain tokens
 
 ```
-sgnd query cbridge config [flags]
+sgnd query cbridge chaintokens [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for config
+  -h, --help   help for chaintokens
 ```
 
 ### Options inherited from parent commands

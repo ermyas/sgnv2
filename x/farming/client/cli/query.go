@@ -33,6 +33,7 @@ func GetQueryCmd() *cobra.Command {
 		GetCmdQueryEarnings(),
 		GetCmdQueryAccountInfo(),
 		GetCmdQueryAccountsStakedIn(),
+		GetCmdQueryRewardClaimInfo(),
 	)
 
 	return farmQueryCmd

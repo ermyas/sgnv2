@@ -1,15 +1,15 @@
-## sgnd query cbridge config
+## sgnd query cbridge chain-signers
 
-Query the current cbridge config
+Query signers for chainid
 
 ```
-sgnd query cbridge config [flags]
+sgnd query cbridge chain-signers [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for config
+  -h, --help   help for chain-signers
 ```
 
 ### Options inherited from parent commands

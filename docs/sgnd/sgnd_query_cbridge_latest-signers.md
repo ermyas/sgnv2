@@ -1,15 +1,15 @@
-## sgnd query cbridge config
+## sgnd query cbridge latest-signers
 
-Query the current cbridge config
+Query the latest signers
 
 ```
-sgnd query cbridge config [flags]
+sgnd query cbridge latest-signers [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for config
+  -h, --help   help for latest-signers
 ```
 
 ### Options inherited from parent commands

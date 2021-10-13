@@ -198,6 +198,7 @@ func (k msgServer) accumulateRewards(ctx sdk.Context, addr eth.Addr, claimInfo *
 
 	// 4. Append RewardClaimDetails and set RewardClaimInfo
 	// TODO: 1. Avoid copying 2. Sort by ascending chain IDs?
+	claimInfo.RewardClaimDetailsList = []types.RewardClaimDetails{}
 	for _, details := range chainIdToDetails {
 		claimInfo.RewardClaimDetailsList = append(claimInfo.RewardClaimDetailsList, *details)
 	}

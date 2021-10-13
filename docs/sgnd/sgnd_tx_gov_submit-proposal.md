@@ -69,6 +69,7 @@ sgnd tx gov submit-proposal [flags]
 
 * [sgnd tx gov](sgnd_tx_gov.md)	 - Governance transactions subcommands
 * [sgnd tx gov submit-proposal add-pool](sgnd_tx_gov_submit-proposal_add-pool.md)	 - Submit an AddPoolProposal
+* [sgnd tx gov submit-proposal cbridge-change](sgnd_tx_gov_submit-proposal_cbridge-change.md)	 - Submit a cbridge config change proposal
 * [sgnd tx gov submit-proposal param-change](sgnd_tx_gov_submit-proposal_param-change.md)	 - Submit a parameter change proposal
 * [sgnd tx gov submit-proposal software-upgrade](sgnd_tx_gov_submit-proposal_software-upgrade.md)	 - Submit a software upgrade proposal
 

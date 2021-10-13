@@ -1,23 +1,23 @@
-## sgnd query farming staked-pools
+## sgnd query farming account-info
 
-query the pools that an account has staked tokens in
+query the info of a farming account
 
 ### Synopsis
 
-Query all the pools that an account has staked tokens in.
+Query the info of a farming account.
 
 Example:
-$ <appd> query farming staked-pools 0xab5801a7d398351b8be11c439e05c5b3259aec9b
+$ <appd> query farming account-info 0xab5801a7d398351b8be11c439e05c5b3259aec9b
 
 ```
-sgnd query farming staked-pools [address] [flags]
+sgnd query farming account-info [address] [flags]
 ```
 
 ### Options
 
 ```
       --height int      Use a specific height to query state at (this can error if the node is pruning state)
-  -h, --help            help for staked-pools
+  -h, --help            help for account-info
       --node string     <host>:<port> to Tendermint RPC interface for this chain (default "tcp://localhost:26657")
   -o, --output string   Output format (text|json) (default "text")
 ```

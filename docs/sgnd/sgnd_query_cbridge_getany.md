@@ -1,15 +1,15 @@
-## sgnd query cbridge config
+## sgnd query cbridge getany
 
-Query the current cbridge config
+Query any kv value for given full key
 
 ```
-sgnd query cbridge config [flags]
+sgnd query cbridge getany [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for config
+  -h, --help   help for getany
 ```
 
 ### Options inherited from parent commands
