@@ -199,12 +199,6 @@ func (d *DAL) UpsertTransferOnSend(transferId, dstTransferId, usrAddr, tokenSymb
 	return sqldb.ChkExec(res, err, 1, "UpsertTransferOnSend")
 }
 
-func (d *DAL) UpdateTransferOnRelay(dstTransferId, receivedAmt, relayTx string, status uint64) error {
-	q := `UPDATE transfer set received_amt=$2, dst_tx_hash=$3, status= $4, update_time=$5 WHERE dst_transfer_id=$1`
-	res, err := d.Exec(q, dstTransferId, receivedAmt, relayTx, status, now())
-	return sqldb.ChkExec(res, err, 1, "UpdateTransferOnRelay")
-}
-
 func (d *DAL) UpsertSlippageSetting(addr string, slippage uint32) error {
 	q := `INSERT INTO usr_slippage (addr, slippage) VALUES ($1, $2) ON CONFLICT (addr) DO UPDATE SET slippage=$2`
 	res, err := d.Exec(q, addr, slippage)

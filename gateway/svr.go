@@ -508,10 +508,30 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 	tr := gs.tp.GetTransactor()
 	if transferId != "" {
 		// refund transfer
-		seqNum, err := gs.initWithdraw(&types.MsgInitWithdraw{
-			XferId:  common.Hex2Bytes(transferId),
-			Creator: tr.Key.GetAddress().String(),
-		})
+		transfer, tFound, err := dal.DB.GetTransfer(transferId)
+		if !tFound || err != nil {
+			return &webapi.WithdrawLiquidityResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  "transfer not found",
+				},
+			}, nil
+		}
+		var seqNum uint64
+		if transfer.RefundSeqNum > 0 {
+			log.Debugf("signAgain for transfer:%s, seqNum:%d", transferId, transfer.RefundSeqNum)
+			seqNum, err = gs.signAgainWithdraw(&types.MsgSignAgain{
+				XferId:  common.Hex2Bytes(transferId),
+				Creator: tr.Key.GetAddress().String(),
+				Seqnum:  transfer.RefundSeqNum,
+			})
+		} else {
+			seqNum, err = gs.initWithdraw(&types.MsgInitWithdraw{
+				XferId:  common.Hex2Bytes(transferId),
+				Creator: tr.Key.GetAddress().String(),
+			})
+		}
+
 		if err != nil {
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
@@ -588,6 +608,17 @@ func (gs *GatewayService) initWithdraw(req *types.MsgInitWithdraw) (uint64, erro
 		return 0, err
 	}
 	return resp.GetSeqnum(), err
+}
+
+func (gs *GatewayService) signAgainWithdraw(req *types.MsgSignAgain) (uint64, error) {
+	tr := gs.tp.GetTransactor()
+	log.Debugf("init withdraw, req:%+v", req)
+	resp, err := cbrcli.SignAgain(tr, req)
+	if resp == nil || err != nil {
+		log.Errorf("init withdraw failed, err:%+v", err)
+		return 0, err
+	}
+	return req.GetSeqnum(), err
 }
 
 func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *webapi.QueryLiquidityStatusRequest) (*webapi.QueryLiquidityStatusResponse, error) {
