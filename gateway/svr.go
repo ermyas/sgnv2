@@ -3,11 +3,12 @@ package gateway
 import (
 	"context"
 	"fmt"
-	ethutils "github.com/celer-network/goutils/eth"
 	"math/big"
 	"path/filepath"
 	"strconv"
 	"time"
+
+	ethutils "github.com/celer-network/goutils/eth"
 
 	"github.com/celer-network/sgn-v2/eth"
 	farmingcli "github.com/celer-network/sgn-v2/x/farming/client/cli"
@@ -945,11 +946,14 @@ func (gs *GatewayService) pollChainToken() {
 		ctx,
 		&farmingtypes.QueryPoolsRequest{},
 	)
+	if err != nil {
+		log.Errorln("query pools err", err)
+	}
 	if farmingPools != nil {
 		for _, pool := range farmingPools.GetPools() {
 			for _, erc20Token := range pool.GetRewardTokens() {
 				tokenSymbol := common.GetSymbolFromFarmingToken(erc20Token.GetSymbol())
-				dbErr := dal.DB.UpsertRewardToken(tokenSymbol, common.Hex2Addr(erc20Token.GetAddress()).String(), erc20Token.GetChainId(), 18) // todo: right decimal @aric
+				dbErr := dal.DB.UpsertRewardToken(tokenSymbol, common.Hex2Addr(erc20Token.GetAddress()).String(), erc20Token.GetChainId(), uint64(erc20Token.Decimals))
 				if dbErr != nil {
 					log.Errorf("UpsertTokenBaseInfo error:%+v", dbErr)
 				}

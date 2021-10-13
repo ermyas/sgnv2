@@ -5,13 +5,15 @@
   "stake_token": {
     "chain_id": 1,
     "symbol": "CB-DAI",
-    "address": "0x6b175474e89094c44da98b954eedeac495271d0f"
+    "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
+    "decimals": 18
   },
   "reward_tokens": [
     {
       "chain_id": 1,
       "symbol": "CELR",
-      "address": "0x4f9254c83eb525f9fcf346490bbb3ed28a81c667"
+      "address": "0x4f9254c83eb525f9fcf346490bbb3ed28a81c667",
+      "decimals": 18
     }
   ],
   "initial_reward_inputs": [

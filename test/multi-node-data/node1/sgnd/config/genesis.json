@@ -136,13 +136,15 @@
           "stake_token": {
             "chain_id": 883,
             "symbol": "CB-USDT",
-            "address": "daa38d17ff77ae7c26a4afc0bea9c7156ed7af27"
+            "address": "daa38d17ff77ae7c26a4afc0bea9c7156ed7af27",
+            "decimals": 6
           },
           "reward_tokens": [
             {
               "chain_id": 883,
               "symbol": "CELR",
-              "address": "58712219a4bdbb0e581dcaf6f5c4c2b2d2f42158"
+              "address": "58712219a4bdbb0e581dcaf6f5c4c2b2d2f42158",
+              "decimals": 18
             }
           ],
           "total_staked_amount": {
