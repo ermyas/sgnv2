@@ -3,7 +3,6 @@ package common
 import (
 	"bytes"
 	"context"
-	"errors"
 	"math/big"
 	"testing"
 	"time"
@@ -111,31 +110,28 @@ func sameSortedSigenrs(ss1, ss2 []*cbrtypes.Signer) bool {
 }
 
 // call initwithdraw and return withdraw seqnum
-func (c *CbrChain) StartWithdraw(transactor *transactor.Transactor, uid uint64, amt *big.Int) (uint64, error) {
-	resp, err := cbrcli.InitWithdraw(transactor, &cbrtypes.MsgInitWithdraw{
+func (c *CbrChain) StartWithdraw(transactor *transactor.Transactor, reqid, uid uint64, amt *big.Int) error {
+	_, err := cbrcli.InitWithdraw(transactor, &cbrtypes.MsgInitWithdraw{
 		Chainid: c.ChainId,
 		LpAddr:  c.Users[uid].Address.Bytes(),
 		Token:   c.USDTAddr.Bytes(),
 		Amount:  amt.Bytes(),
 		Creator: transactor.Key.GetAddress().String(),
+		ReqId:   reqid,
+		UserSig: c.Users[uid].SignMsg(eth.ToPadBytes(reqid)),
 	})
-	if err != nil {
-		return 0, err
-	}
-	if resp.Errmsg != nil {
-		return 0, errors.New(resp.Errmsg.String())
-	}
-	return resp.Seqnum, nil
+	return err
 }
 
-func GetWithdrawDetailWithSigs(transactor *transactor.Transactor, wdseq uint64, expSigNum int) *cbrtypes.WithdrawDetail {
+func GetWithdrawDetailWithSigs(transactor *transactor.Transactor, usraddr eth.Addr, reqid uint64, expSigNum int) *cbrtypes.WithdrawDetail {
 	var resp *cbrtypes.QueryLiquidityStatusResponse
 	var err error
 	for retry := 0; retry < RetryLimit; retry++ {
 		resp, err = cbrcli.QueryWithdrawLiquidityStatus(
 			transactor.CliCtx,
 			&cbrtypes.QueryWithdrawLiquidityStatusRequest{
-				SeqNum: wdseq,
+				SeqNum:  reqid,
+				UsrAddr: eth.Addr2Hex(usraddr),
 			})
 
 		if err == nil && len(resp.GetDetail().GetSortedSigs()) == expSigNum {
@@ -147,7 +143,7 @@ func GetWithdrawDetailWithSigs(transactor *transactor.Transactor, wdseq uint64, 
 	if len(resp.GetDetail().GetSortedSigs()) != expSigNum {
 		log.Fatalf("GetWithdrawDetail expected sigNum %d, actual %d", expSigNum, len(resp.GetDetail().GetSortedSigs()))
 	}
-	log.Infoln("wdseq", wdseq, "status:", resp.Status)
+	log.Infoln("usr", usraddr.String(), "wdseq", reqid, "status:", resp.Status)
 	return resp.Detail
 }
 

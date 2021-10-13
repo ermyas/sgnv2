@@ -254,11 +254,15 @@ message WithdrawLiquidityRequest {
     string amount = 3;
     string token_addr = 4;
     uint32 chain_id = 5;
+
+    // unique req id from client and sig to avoid dos attack
+    uint64 reqid = 6;
+    bytes sig = 7;
 }
 
 message WithdrawLiquidityResponse {
     ErrMsg err = 1;
-    uint64 seq_num = 2; // nonce
+    uint64 seq_num = 2; // same as WithdrawLiquidityRequest.reqid
 }
 
 message MarkLiquidityRequest {

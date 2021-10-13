@@ -129,27 +129,14 @@ func GetSrcXferId(kv sdk.KVStore, relayXferId [32]byte) []byte {
 	return kv.Get(types.EvRelayKey(relayXferId))
 }
 
-// increment withdraw seq num by 1 and return new value
-// seq num start from 1
-func IncrWithdrawSeq(kv sdk.KVStore) uint64 {
-	had := GetWithdrawSeq(kv)
-	newseq := had + 1
-	kv.Set(types.WithdrawSeqNumKey, big.NewInt(int64(newseq)).Bytes())
-	return newseq
-}
-
-func GetWithdrawSeq(kv sdk.KVStore) uint64 {
-	return new(big.Int).SetBytes(kv.Get(types.WithdrawSeqNumKey)).Uint64()
-}
-
-func SaveWithdrawDetail(kv sdk.KVStore, seqnum uint64, wdd *types.WithdrawDetail) {
+func SaveWithdrawDetail(kv sdk.KVStore, userAddr eth.Addr, reqid uint64, wdd *types.WithdrawDetail) {
 	raw, _ := wdd.Marshal()
-	kv.Set(types.WdDetailKey(seqnum), raw)
+	kv.Set(types.WdDetailKey(userAddr, reqid), raw)
 }
 
 // if not found, return nil
-func GetWithdrawDetail(kv sdk.KVStore, seqnum uint64) *types.WithdrawDetail {
-	raw := kv.Get(types.WdDetailKey(seqnum))
+func GetWithdrawDetail(kv sdk.KVStore, userAddr eth.Addr, reqid uint64) *types.WithdrawDetail {
+	raw := kv.Get(types.WdDetailKey(userAddr, reqid))
 	if raw == nil {
 		return nil
 	}

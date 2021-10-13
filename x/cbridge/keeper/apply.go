@@ -179,13 +179,13 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			return false, err
 		}
 		log.Infoln("x/cbr apply withdrawDone", ev.String())
-		wdDetail := GetWithdrawDetail(kv, ev.Seqnum)
+		wdDetail := GetWithdrawDetail(kv, ev.Receiver, ev.Seqnum)
 		if wdDetail == nil {
 			// what to do if not found?
 			return true, nil
 		}
 		wdDetail.Completed = true
-		SaveWithdrawDetail(kv, ev.Seqnum, wdDetail)
+		SaveWithdrawDetail(kv, ev.Receiver, ev.Seqnum, wdDetail)
 		if wdDetail.XferId != nil {
 			// this is a refund so we set xfer status to refund_done
 			SetEvSendStatus(kv, eth.Bytes2Hash(wdDetail.XferId), types.XferStatus_REFUND_DONE)

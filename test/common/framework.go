@@ -48,6 +48,11 @@ type TestEthClient struct {
 	Signer  ethutils.Signer
 }
 
+func (c *TestEthClient) SignMsg(data []byte) []byte {
+	ret, _ := c.Signer.SignEthMessage(data)
+	return ret
+}
+
 type ContractParams struct {
 	CelrAddr              eth.Addr
 	ProposalDeposit       *big.Int

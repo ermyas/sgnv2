@@ -192,17 +192,13 @@ func invarRight(A, D, x, y, m, n float64) float64 {
 	return 4*A*D + math.Pow(D, 3)/(4*math.Pow(x, m)*math.Pow(y, n))
 }
 
-// divide amt by 10**(decimal), panic if result < math.SmallestNonzeroFloat64
-// only return 0 if amt is 0
+// divide amt by 10**(decimal)
 func amt2float(amt *big.Int, decimal uint32) float64 {
 	if amt.Sign() == 0 {
 		return 0
 	}
 	ret := new(big.Float).SetInt(amt)
 	ret.Quo(ret, big.NewFloat(math.Pow10(int(decimal))))
-	result, accuracy := ret.Float64()
-	if accuracy != 0 {
-		log.Warnln(amt.String(), decimal, "accuracy is", accuracy.String(), "result:", result)
-	}
+	result, _ := ret.Float64()
 	return result
 }

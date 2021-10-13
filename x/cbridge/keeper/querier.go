@@ -320,7 +320,7 @@ func queryWithdrawLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keep
 	}
 
 	var status types.LPHistoryStatus
-	wd := GetWithdrawDetail(ctx.KVStore(k.storeKey), params.SeqNum)
+	wd := GetWithdrawDetail(ctx.KVStore(k.storeKey), eth.Hex2Addr(params.UsrAddr), params.SeqNum)
 	if wd == nil {
 		log.Errorf("withdraw not exist, seq: %d", params.SeqNum)
 		return nil, fmt.Errorf("withdraw not exist, seq: %d", params.SeqNum)

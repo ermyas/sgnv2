@@ -30,9 +30,6 @@ const (
 )
 
 var (
-	// value is big.NewInt(int).Bytes
-	WithdrawSeqNumKey = []byte("withdrawSeqNum")
-
 	ChainSignersKey  = []byte("cs")
 	LatestSignersKey = []byte("ls")
 )
@@ -53,9 +50,9 @@ func GetChainSignersKey(chid uint64) []byte {
 3. send event, evsend-%x transferid, module has seen this event, value is enum status
 4. relay event, evrelay-%x relay transferid -> srcTransferid
 5. xfer relay: xferRelay-%x, src transfer id, relay msg and sigs
-6. withdraw seq num: withdrawSeqNum, value is big.Int bytes
-7. withdraw detail, wdDetail-%d seqnum, onchain msg and sigs
-8. xfer refund, xferRefund-%x src xfer id -> withdrawonchain, only for failed xfer. first set when apply send, but no seqnum, later when user InitWithdraw, set seqnum
+6. no longer need withdrawSeq
+7. withdraw detail, wdDetail-%x-%d user addr and reqid, value is onchain msg and sigs
+8. xfer refund, xferRefund-%x src xfer id -> withdrawonchain, only for failed xfer. first set when apply send, but no reqid, later when user InitWithdraw, set reqid in it
 9. lp fee, lpfee-chid-token-lp -> fee big.Int bytes on this (chain,token)
 10. sgn fee, sgnfee-chid-token -> big.Int bytes
 */
@@ -86,13 +83,12 @@ func XferRelayKey(tid [32]byte) []byte {
 	return []byte(fmt.Sprintf("xferRelay-%x", tid))
 }
 
-// so we know which withdraw seqnum is for this xfer, only for debugging
 func XferRefundKey(tid [32]byte) []byte {
 	return []byte(fmt.Sprintf("xferRefund-%x", tid))
 }
 
-func WdDetailKey(seqnum uint64) []byte {
-	return []byte(fmt.Sprintf("wdDetail-%d", seqnum))
+func WdDetailKey(usraddr eth.Addr, reqid uint64) []byte {
+	return []byte(fmt.Sprintf("wdDetail-%x-%d", usraddr, reqid))
 }
 
 // for chid, token, how much fee this lp has earned

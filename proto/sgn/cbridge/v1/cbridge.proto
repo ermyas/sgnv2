@@ -87,7 +87,7 @@ message WithdrawOnchain {
   option (gogoproto.goproto_stringer) = false;
 
   uint64 chainid = 1;
-  uint64 seqnum = 2; // global unique across chains, assigned by sgn
+  uint64 seqnum = 2; // user request id, sgn ensure unique(addr, reqid)
   bytes receiver = 3;
   bytes token = 4; // token address
   bytes amount = 5;

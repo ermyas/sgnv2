@@ -3,13 +3,14 @@ package gateway
 import (
 	"context"
 	"fmt"
-	"github.com/celer-network/sgn-v2/eth"
-	farmingcli "github.com/celer-network/sgn-v2/x/farming/client/cli"
-	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	"math/big"
 	"path/filepath"
 	"strconv"
 	"time"
+
+	"github.com/celer-network/sgn-v2/eth"
+	farmingcli "github.com/celer-network/sgn-v2/x/farming/client/cli"
+	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -505,6 +506,7 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 
 func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi.WithdrawLiquidityRequest) (*webapi.WithdrawLiquidityResponse, error) {
 	transferId := request.GetTransferId()
+	receiver := common.Hex2Addr(request.ReceiverAddr).Bytes()
 	tr := gs.tp.GetTransactor()
 	if transferId != "" {
 		// refund transfer
@@ -521,14 +523,16 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 		if transfer.RefundSeqNum > 0 {
 			log.Debugf("signAgain for transfer:%s, seqNum:%d", transferId, transfer.RefundSeqNum)
 			seqNum, err = gs.signAgainWithdraw(&types.MsgSignAgain{
-				XferId:  common.Hex2Bytes(transferId),
-				Creator: tr.Key.GetAddress().String(),
-				Seqnum:  transfer.RefundSeqNum,
+				Creator:  tr.Key.GetAddress().String(),
+				ReqId:    transfer.RefundSeqNum,
+				UserAddr: receiver,
 			})
 		} else {
 			seqNum, err = gs.initWithdraw(&types.MsgInitWithdraw{
 				XferId:  common.Hex2Bytes(transferId),
 				Creator: tr.Key.GetAddress().String(),
+				ReqId:   request.Reqid,
+				UserSig: request.Sig,
 			})
 		}
 
@@ -602,23 +606,15 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 func (gs *GatewayService) initWithdraw(req *types.MsgInitWithdraw) (uint64, error) {
 	tr := gs.tp.GetTransactor()
 	log.Debugf("init withdraw, req:%+v", req)
-	resp, err := cbrcli.InitWithdraw(tr, req)
-	if resp == nil || err != nil {
-		log.Errorf("init withdraw failed, err:%+v", err)
-		return 0, err
-	}
-	return resp.GetSeqnum(), err
+	_, err := cbrcli.InitWithdraw(tr, req)
+	return req.ReqId, err
 }
 
 func (gs *GatewayService) signAgainWithdraw(req *types.MsgSignAgain) (uint64, error) {
 	tr := gs.tp.GetTransactor()
 	log.Debugf("init withdraw, req:%+v", req)
-	resp, err := cbrcli.SignAgain(tr, req)
-	if resp == nil || err != nil {
-		log.Errorf("init withdraw failed, err:%+v", err)
-		return 0, err
-	}
-	return req.GetSeqnum(), err
+	_, err := cbrcli.SignAgain(tr, req)
+	return req.ReqId, err
 }
 
 func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *webapi.QueryLiquidityStatusRequest) (*webapi.QueryLiquidityStatusResponse, error) {

@@ -37,45 +37,45 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 	}
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	kv := sdkCtx.KVStore(k.storeKey)
-	// todo: do we need to check creator sig? or it doesn't matter anyway
-	var wdOnchain *types.WithdrawOnchain
-	resp := &types.MsgInitWithdrawResp{
-		ReqId: req.ReqId,
+	// check reqid, recover user addr, ensure no existing wdDetail-%x-%d
+	signAddr, err := ethutils.RecoverSigner(eth.ToPadBytes(req.ReqId), req.UserSig)
+	if err != nil {
+		return nil, fmt.Errorf("recover signer err: %w", err)
 	}
-	// we have to emit event to let caller know the response, seqnum or errmsg will set before return
-	defer emitWdResp(sdkCtx, resp)
+	if GetWithdrawDetail(kv, signAddr, req.ReqId) != nil {
+		// same reqid already exist
+		return nil, types.WdErr_DUP_REQID
+	}
+	var wdOnchain *types.WithdrawOnchain
 	if req.XferId != nil { // user refund
 		xferId := eth.Bytes2Hash(req.XferId)
 		wdOnchain = GetXferRefund(kv, xferId)
 		if wdOnchain == nil {
-			resp.Errmsg = &types.ErrMsg{
-				Code: types.ErrCode_XFER_NOT_REFUNDABLE,
-			}
-			return resp, fmt.Errorf("xfer %x not valid for refund", xferId)
+			return nil, types.WdErr_XFER_NOT_REFUNDABLE
 		}
 		if wdOnchain.Seqnum != 0 {
 			// already requested withdraw before
-			resp.Errmsg = &types.ErrMsg{
-				Code: types.ErrCode_XFER_HAS_SEQNUM,
-				Msg:  fmt.Sprintf("%d", wdOnchain.Seqnum),
-			}
-			return nil, fmt.Errorf("xfer %x already has withdraw seqnum %d, use SignAgain", xferId, wdOnchain.Seqnum)
+			return nil, types.WdErr_XFER_HAS_WITHDRAW
 		}
+		// now make sure address match
+		if eth.Bytes2Addr(wdOnchain.Receiver) != signAddr {
+			return nil, types.WdErr_INVALID_SIG
+		}
+		wdOnchain.Seqnum = req.ReqId
 		log.Infof("x/cbr handle refund xferId %x, reqId %d, creator %s, wdOnChain %s",
 			xferId, req.ReqId, req.Creator, wdOnchain.String())
 	} else { // LP withdraw liquidity
 		lpAddr := eth.Bytes2Addr(req.LpAddr)
+		if lpAddr != signAddr {
+			return nil, types.WdErr_INVALID_SIG
+		}
 		token := eth.Bytes2Addr(req.Token)
 		amt := new(big.Int).SetBytes(req.Amount)
 		balance := GetLPBalance(kv, req.Chainid, token, lpAddr)
 		log.Infof("x/cbr handle lp withdraw: %s, lp balance %s", req.String()[9:], balance)
 		if balance.Cmp(amt) < 0 {
 			// balance not enough, return error
-			resp.Errmsg = &types.ErrMsg{
-				Code: types.ErrCode_LP_BAL_NOT_ENOUGH,
-				Msg:  balance.String(),
-			}
-			return nil, fmt.Errorf("lp balance %s < %s", balance, amt)
+			return nil, types.WdErr_LP_BAL_NOT_ENOUGH
 		}
 		k.Keeper.ChangeLiquidity(sdkCtx, kv, req.Chainid, token, lpAddr, new(big.Int).Neg(amt)) // remove amt from lp map
 		wdOnchain = &types.WithdrawOnchain{
@@ -83,18 +83,15 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 			Receiver: req.LpAddr,
 			Token:    req.Token,
 			Amount:   req.Amount,
+			Seqnum:   req.ReqId,
 		}
 	}
-	// can withdraw, errmsg is nil, only set seqnum. seqnum start from 1
-	newseq := IncrWithdrawSeq(kv)
-	resp.Seqnum = newseq
-	wdOnchain.Seqnum = newseq
 	if req.XferId != nil {
 		// save this back to avoid dup initwithdraw for refund
 		SetXferRefund(kv, eth.Bytes2Hash(req.XferId), wdOnchain)
 	}
 	wdOnChainRaw, _ := wdOnchain.Marshal()
-	SaveWithdrawDetail(kv, newseq, &types.WithdrawDetail{
+	SaveWithdrawDetail(kv, signAddr, req.ReqId, &types.WithdrawDetail{
 		WdOnchain:   wdOnChainRaw, // only has what to send onchain now
 		LastReqTime: sdkCtx.BlockTime().Unix(),
 		XferId:      req.XferId, // nil if not user refund
@@ -105,30 +102,12 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 		sdk.NewAttribute(types.AttributeKeyData, eth.Bytes2Hex(wdOnChainRaw)),
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 	))
-	return resp, nil
-}
-
-// helper util to emit EventWdResp event
-func emitWdResp(sdkCtx sdk.Context, wdresp *types.MsgInitWithdrawResp) {
-	raw, _ := wdresp.Marshal()
-	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
-		types.EventTypeMsgResp,
-		sdk.NewAttribute(types.AttributeKeyMsgType, "MsgInitWithdrawResp"),
-		sdk.NewAttribute(types.AttributeKeyResp, string(raw))))
-}
-
-func emitSignAgainResp(sdkCtx sdk.Context, resp *types.MsgSignAgainResp) {
-	raw, _ := resp.Marshal()
-	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
-		types.EventTypeMsgResp,
-		sdk.NewAttribute(types.AttributeKeyMsgType, "MsgSignAgainResp"),
-		sdk.NewAttribute(types.AttributeKeyResp, string(raw))))
+	return new(types.MsgInitWithdrawResp), nil
 }
 
 // user can request to sign a previous withdraw again
 // to mitigate dos attack, we could be smart and re-use sigs if
-// they are still valid. we should also deny if withdraw already
-// completed
+// they are still valid.
 func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*types.MsgSignAgainResp, error) {
 	if req == nil {
 		return nil, fmt.Errorf("nil request")
@@ -136,43 +115,30 @@ func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*typ
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	kv := sdkCtx.KVStore(k.storeKey)
 	// resp.errmsg is nil if accepted
-	resp := &types.MsgSignAgainResp{
-		ReqId: req.ReqId,
-	}
-	defer emitSignAgainResp(sdkCtx, resp)
-
-	wdDetail := GetWithdrawDetail(kv, req.Seqnum)
+	usrAddr := eth.Bytes2Addr(req.UserAddr)
+	wdDetail := GetWithdrawDetail(kv, usrAddr, req.ReqId)
 	if wdDetail == nil {
-		// not found
-		resp.Errmsg = &types.ErrMsg{
-			Code: types.ErrCode_SEQ_NOT_FOUND,
-		}
-		return nil, fmt.Errorf("withdraw seq %d not found", req.Seqnum)
+		// (addr, reqid) not found
+		return nil, types.WdErr_NOT_FOUND
 	}
 	if wdDetail.Completed {
-		resp.Errmsg = &types.ErrMsg{
-			Code: types.ErrCode_ALREADY_DONE,
-		}
-		return nil, fmt.Errorf("withdraw seq %d already completed", req.Seqnum)
+		return nil, types.WdErr_ALREADY_DONE
 	}
 	now := sdkCtx.BlockTime().Unix()
 	if now-wdDetail.LastReqTime < SignAgainCoolDownSec {
-		resp.Errmsg = &types.ErrMsg{
-			Code: types.ErrCode_REQ_TOO_SOON,
-		}
-		return nil, fmt.Errorf("withdraw seq %d sig was last requested at %d, try again after 10min", req.Seqnum, wdDetail.LastReqTime)
+		return nil, types.WdErr_REQ_TOO_SOON
 	}
 	// remove all previous sigs
 	wdDetail.SortedSigs = nil
 	wdDetail.LastReqTime = now
-	SaveWithdrawDetail(kv, req.Seqnum, wdDetail)
+	SaveWithdrawDetail(kv, usrAddr, req.ReqId, wdDetail)
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeDataToSign,
 		sdk.NewAttribute(types.AttributeKeyType, types.SignDataType_WITHDRAW.String()),
 		sdk.NewAttribute(types.AttributeKeyData, eth.Bytes2Hex(wdDetail.WdOnchain)),
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 	))
-	return resp, nil
+	return new(types.MsgSignAgainResp), nil
 }
 
 // send my sig for data, so it can be later submitted onchain
@@ -243,8 +209,8 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 			return nil, fmt.Errorf("%s, unmarshal %x to WithdrawOnchain fail %w", logmsg, msg.Data, err)
 		}
 		logmsg = fmt.Sprintf("%s, seqnum %d", logmsg, onchain.Seqnum)
-
-		wdDetail := GetWithdrawDetail(kv, onchain.Seqnum)
+		usrAddr := eth.Bytes2Addr(onchain.Receiver)
+		wdDetail := GetWithdrawDetail(kv, usrAddr, onchain.Seqnum)
 		if wdDetail == nil {
 			return nil, fmt.Errorf("%s, withdraw seq not found", logmsg)
 		}
@@ -252,7 +218,7 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 			Addr: signer[:],
 			Sig:  msg.MySig,
 		})
-		SaveWithdrawDetail(kv, onchain.Seqnum, wdDetail)
+		SaveWithdrawDetail(kv, usrAddr, onchain.Seqnum, wdDetail)
 	} else if msg.Datatype == types.SignDataType_SIGNERS {
 		latestSigners, found := k.GetLatestSigners(sdkCtx)
 		if !found {

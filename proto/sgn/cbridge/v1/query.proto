@@ -25,6 +25,9 @@ service Query {
 
     rpc QueryWithdrawLiquidityStatus (QueryWithdrawLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {
     }
+
+    // we could return all withdraw req ids for one user in case gateway lost db, req is usr addr, resp has repeated req ids
+    // rpc QueryAllWdReqIdList (QueryAllWdReqIdListReq) returns (QueryAllWdReqIdListResp) {}
 }
 
 message ChainTokensConfigRequest {
@@ -91,7 +94,8 @@ message QueryAddLiquidityStatusRequest {
 }
 
 message QueryWithdrawLiquidityStatusRequest {
-    uint64 seq_num = 1;
+    uint64 seq_num = 1; // user req id
+    string usr_addr = 2; // hex string of eth address
 }
 
 message QueryLiquidityStatusResponse {
