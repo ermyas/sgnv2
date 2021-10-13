@@ -172,7 +172,7 @@ func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*typ
 		sdk.NewAttribute(types.AttributeKeyData, eth.Bytes2Hex(wdDetail.WdOnchain)),
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 	))
-	return nil, nil
+	return resp, nil
 }
 
 // send my sig for data, so it can be later submitted onchain
