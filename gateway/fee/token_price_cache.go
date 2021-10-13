@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/celer-network/sgn-v2/common"
-	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/spf13/viper"
 	"io/ioutil"
 	"math"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/celer-network/sgn-v2/common"
+	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/spf13/viper"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/transactor"
@@ -194,7 +195,7 @@ func (t *TokenPriceCache) cacheTokenData() error {
 	dir := viper.GetString(flags.FlagHome)
 	log.Debugf("dir:%s", dir)
 
-	file, err := ioutil.ReadFile(dir + "config/token_info.json")
+	file, err := ioutil.ReadFile(dir + "/config/token_info.json")
 	if err != nil {
 		log.Fatal(err)
 	}

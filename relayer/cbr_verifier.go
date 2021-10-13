@@ -243,7 +243,7 @@ func (c *CbrOneChain) verifySigners(eLog *ethtypes.Log, cliCtx client.Context, l
 	// check in store
 	storedChainSigners, err := cbrcli.QueryChainSigners(cliCtx, c.chainid)
 	if err == nil {
-		if equalSigners(storedChainSigners.GetSortedSigners(), ev) {
+		if EqualSigners(storedChainSigners.GetSortedSigners(), ev) {
 			log.Infof("%s. already updated", logmsg)
 			return true, false
 		}
@@ -266,7 +266,7 @@ func (c *CbrOneChain) verifySigners(eLog *ethtypes.Log, cliCtx client.Context, l
 	return true, true
 }
 
-func equalSigners(ss []*cbrtypes.Signer, ev *eth.BridgeSignersUpdated) bool {
+func EqualSigners(ss []*cbrtypes.Signer, ev *eth.BridgeSignersUpdated) bool {
 	if len(ss) != len(ev.Signers) {
 		return false
 	}

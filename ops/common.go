@@ -1,13 +1,19 @@
 package ops
 
 import (
+	"context"
+	"fmt"
+	"io/ioutil"
 	"math/big"
+	"time"
 
+	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
 )
 
@@ -70,4 +76,84 @@ func approveCelr(ethClient *eth.EthClient, spender eth.Addr, amount *big.Int) er
 		}
 	}
 	return nil
+}
+
+type cbrContract struct {
+	*eth.Bridge
+	Address eth.Addr
+}
+
+type CbrOneChain struct {
+	*ethclient.Client
+	*ethutils.Transactor
+	contract *cbrContract
+}
+
+func newOneChain(chainId uint64) (*CbrOneChain, error) {
+	var mcc []*common.OneChainConfig
+	err := viper.UnmarshalKey(common.FlagMultiChain, &mcc)
+	if err != nil {
+		log.Fatalln("fail to load multichain configs err:", err)
+	}
+
+	for _, cfg := range mcc {
+		if cfg.ChainID == chainId {
+			fixCfg(cfg) // if cfg.chainid equals ethchainid, uses eth.xxx
+			ec, err := ethclient.Dial(cfg.Gateway)
+			if err != nil {
+				log.Fatalln("dial", cfg.Gateway, "err:", err)
+			}
+			chid, err := ec.ChainID(context.Background())
+			if err != nil {
+				log.Fatalf("get chainid %d err: %s", cfg.ChainID, err)
+			}
+			if chid.Uint64() != cfg.ChainID {
+				log.Fatalf("chainid mismatch! cfg has %d but onchain has %d", cfg.ChainID, chid.Uint64())
+			}
+			cbr, err := eth.NewBridge(eth.Hex2Addr(cfg.CBridge), ec)
+			if err != nil {
+				log.Fatalln("cbridge contract at", cfg.CBridge, "err:", err)
+			}
+
+			ksBytes, err := ioutil.ReadFile(viper.GetString(common.FlagEthSignerKeystore))
+			if err != nil {
+				log.Fatalln("ReadFile err:", err)
+			}
+			transactor, err := ethutils.NewTransactor(
+				string(ksBytes),
+				viper.GetString(common.FlagEthSignerPassphrase),
+				ec,
+				big.NewInt(int64(cfg.ChainID)),
+				ethutils.WithBlockDelay(cfg.BlkDelay),
+				ethutils.WithPollingInterval(time.Duration(cfg.BlkInterval)*time.Second),
+			)
+			if err != nil {
+				log.Fatalln("NewTransactor err:", err)
+			}
+			c := &CbrOneChain{
+				Client:     ec,
+				Transactor: transactor,
+				contract: &cbrContract{
+					Bridge:  cbr,
+					Address: eth.Hex2Addr(cfg.CBridge),
+				},
+			}
+			return c, nil
+		}
+	}
+
+	return nil, fmt.Errorf("chaid %d not exists", chainId)
+}
+
+func fixCfg(cfg *common.OneChainConfig) {
+	ethchainid := viper.GetUint64(common.FlagEthChainId)
+	if cfg.ChainID != ethchainid {
+		return
+	}
+	if cfg.Gateway == "" {
+		cfg.Gateway = viper.GetString(common.FlagEthGateway)
+	}
+	cfg.BlkDelay = viper.GetUint64(common.FlagEthBlockDelay)
+	cfg.BlkInterval = viper.GetUint64(common.FlagEthPollInterval)
+	cfg.MaxBlkDelta = viper.GetUint64(common.FlagEthMaxBlockDelta)
 }

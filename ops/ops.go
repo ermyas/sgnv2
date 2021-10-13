@@ -22,6 +22,7 @@ func OpsCommand() *cobra.Command {
 		UndelegateCommand(),
 		CompleteUndelegateCommand(),
 		tc.DeployCommand(),
+		GetSyncCmd(),
 	)
 
 	return cmd
