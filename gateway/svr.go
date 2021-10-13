@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"fmt"
+	ethutils "github.com/celer-network/goutils/eth"
 	"math/big"
 	"path/filepath"
 	"strconv"
@@ -155,7 +156,7 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 	transfer, found, err = dal.DB.GetTransfer(request.GetTransferId())
 	if found && err == nil && (transfer.Status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND || transfer.Status == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED) {
 		if transfer.RefundSeqNum > 0 {
-			detail, wdOnchain, sortedSigs, signers, powers = gs.getWithdrawInfo(transfer.RefundSeqNum, transfer.SrcChainId)
+			detail, wdOnchain, sortedSigs, signers, powers = gs.getWithdrawInfo(transfer.RefundSeqNum, transfer.SrcChainId, transfer.UsrAddr)
 			if detail == nil {
 				return &webapi.GetTransferStatusResponse{
 					Err: &webapi.ErrMsg{
@@ -528,6 +529,15 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				UserAddr: receiver,
 			})
 		} else {
+			err = dal.DB.MarkTransferRequestingRefund(transferId, seqNum)
+			if err != nil {
+				return &webapi.WithdrawLiquidityResponse{
+					Err: &webapi.ErrMsg{
+						Code: webapi.ErrCode_ERROR_CODE_COMMON,
+						Msg:  "db error when mark refund",
+					},
+				}, nil
+			}
 			seqNum, err = gs.initWithdraw(&types.MsgInitWithdraw{
 				XferId:  common.Hex2Bytes(transferId),
 				Creator: tr.Key.GetAddress().String(),
@@ -541,15 +551,6 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
 					Msg:  err.Error(),
-				},
-			}, nil
-		}
-		err = dal.DB.MarkTransferRequestingRefund(transferId, seqNum)
-		if err != nil {
-			return &webapi.WithdrawLiquidityResponse{
-				Err: &webapi.ErrMsg{
-					Code: webapi.ErrCode_ERROR_CODE_COMMON,
-					Msg:  "db error when mark refund",
 				},
 			}, nil
 		}
@@ -571,22 +572,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			}, nil
 		}
 		lp := common.Hex2Addr(request.GetReceiverAddr()).String()
-		seqNum, err := gs.initWithdraw(&types.MsgInitWithdraw{
-			Chainid: uint64(chainId),
-			LpAddr:  common.Hex2Bytes(lp),
-			Token:   common.Hex2Bytes(tokenAddr),
-			Amount:  common.Str2BigInt(amt).Bytes(),
-			Creator: tr.Key.GetAddress().String(),
-		})
-		if err != nil {
-			_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(types.LPHistoryStatus_LP_FAILED))
-			return &webapi.WithdrawLiquidityResponse{
-				Err: &webapi.ErrMsg{
-					Code: webapi.ErrCode_ERROR_CODE_COMMON,
-					Msg:  err.Error(),
-				},
-			}, nil
-		}
+		seqNum := request.Reqid
 		err = dal.DB.UpsertLP(lp, token.Token.Symbol, token.Token.Address, amt, "", uint64(chainId), uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
 		if err != nil {
 			_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(types.LPHistoryStatus_LP_FAILED))
@@ -594,6 +580,24 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
 					Msg:  "db error when mark refund",
+				},
+			}, nil
+		}
+		seqNum, err = gs.initWithdraw(&types.MsgInitWithdraw{
+			Chainid: uint64(chainId),
+			LpAddr:  common.Hex2Bytes(lp),
+			Token:   common.Hex2Bytes(tokenAddr),
+			Amount:  common.Str2BigInt(amt).Bytes(),
+			Creator: tr.Key.GetAddress().String(),
+			ReqId:   seqNum,
+			UserSig: request.Sig,
+		})
+		if err != nil {
+			_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(types.LPHistoryStatus_LP_FAILED))
+			return &webapi.WithdrawLiquidityResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  err.Error(),
 				},
 			}, nil
 		}
@@ -606,7 +610,11 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 func (gs *GatewayService) initWithdraw(req *types.MsgInitWithdraw) (uint64, error) {
 	tr := gs.tp.GetTransactor()
 	log.Debugf("init withdraw, req:%+v", req)
-	_, err := cbrcli.InitWithdraw(tr, req)
+	err := checkSig(req.GetReqId(), req.GetUserSig(), common.Bytes2Addr(req.GetLpAddr()))
+	if err != nil {
+		return 0, err
+	}
+	_, err = cbrcli.InitWithdraw(tr, req)
 	return req.ReqId, err
 }
 
@@ -617,11 +625,22 @@ func (gs *GatewayService) signAgainWithdraw(req *types.MsgSignAgain) (uint64, er
 	return req.ReqId, err
 }
 
+func checkSig(reqId uint64, sig []byte, addr common.Addr) error {
+	signAddr, err := ethutils.RecoverSigner(eth.ToPadBytes(reqId), sig)
+	if err != nil {
+		return err
+	}
+	if signAddr != addr {
+		return fmt.Errorf("error sig")
+	}
+	return nil
+}
+
 func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *webapi.QueryLiquidityStatusRequest) (*webapi.QueryLiquidityStatusResponse, error) {
 	seqNum := request.GetSeqNum()
 	chainId := uint64(request.GetChainId())
 	lpType := uint64(request.GetType())
-	addr := request.GetLpAddr()
+	addr := common.Hex2Addr(request.GetLpAddr()).String()
 	tr := gs.tp.GetTransactor()
 	txHash, status, found, err := dal.DB.GetLPInfo(seqNum, lpType, chainId, addr)
 	if found && err == nil && status == uint64(types.LPHistoryStatus_LP_SUBMITTING) && txHash != "" {
@@ -667,7 +686,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 			SortedSigs: nil,
 		}
 		if status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN) || status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_LP) {
-			detail, wdOnchain, sortedSigs, signers, powers := gs.getWithdrawInfo(seqNum, chainId)
+			detail, wdOnchain, sortedSigs, signers, powers := gs.getWithdrawInfo(seqNum, chainId, addr)
 			resp.WdOnchain = wdOnchain
 			resp.SortedSigs = sortedSigs
 			resp.Signers = signers
@@ -688,10 +707,11 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 	}, nil
 }
 
-func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64) (*types.QueryLiquidityStatusResponse, []byte, [][]byte, [][]byte, [][]byte) {
+func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64, usrAddr string) (*types.QueryLiquidityStatusResponse, []byte, [][]byte, [][]byte, [][]byte) {
 	tr := gs.tp.GetTransactor()
 	detail, err2 := cbrcli.QueryWithdrawLiquidityStatus(tr.CliCtx, &types.QueryWithdrawLiquidityStatusRequest{
-		SeqNum: seqNum,
+		SeqNum:  seqNum,
+		UsrAddr: usrAddr,
 	})
 	var wdOnchain []byte
 	var signers [][]byte

@@ -8,11 +8,11 @@ import (
 )
 
 func (d *DAL) GetTransfer(transferId string) (*Transfer, bool, error) {
-	q := `SELECT create_time, status, src_chain_id,dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt,refund_seq_num FROM transfer WHERE transfer_id = $1`
-	var srcTxHash, dstTxHash, tokenSymbol, srcAmt, dstAmt string
+	q := `SELECT create_time, status, src_chain_id,dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt, refund_seq_num, usr_addr FROM transfer WHERE transfer_id = $1`
+	var srcTxHash, dstTxHash, tokenSymbol, srcAmt, dstAmt, usrAddr string
 	var srcChainId, status, dstChainId, refundSeqNum uint64
 	var ct time.Time
-	err := d.QueryRow(q, transferId).Scan(&ct, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum)
+	err := d.QueryRow(q, transferId).Scan(&ct, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum, &usrAddr)
 	found, err := sqldb.ChkQueryRow(err)
 	return &Transfer{
 		TransferId:   transferId,
@@ -26,6 +26,7 @@ func (d *DAL) GetTransfer(transferId string) (*Transfer, bool, error) {
 		SrcAmt:       srcAmt,
 		DstAmt:       dstAmt,
 		RefundSeqNum: refundSeqNum,
+		UsrAddr:      usrAddr,
 	}, found, err
 }
 
@@ -109,6 +110,7 @@ type Transfer struct {
 	CT           time.Time
 	Volume       float64
 	RefundSeqNum uint64
+	UsrAddr      string
 }
 
 func (d *DAL) PaginateTransferList(sender string, end time.Time, size uint64) ([]*Transfer, int, time.Time, error) {
