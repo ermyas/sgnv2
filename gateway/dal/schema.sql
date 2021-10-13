@@ -44,6 +44,15 @@ CREATE INDEX IF NOT EXISTS lp_utm_idx ON lp (update_time);
 CREATE INDEX IF NOT EXISTS lp_ctm_idx ON lp (create_time);
 CREATE INDEX IF NOT EXISTS lp_addr_idx ON lp (usr_addr);
 
+CREATE TABLE IF NOT EXISTS reward_token (
+    symbol TEXT NOT NULL,
+    chain_id INT NOT NULL,
+    update_time TIMESTAMPTZ NOT NULL DEFAULT now(),
+    decimal INT NOT NULL,
+    address TEXT NOT NULL,
+    PRIMARY KEY (symbol, chain_id)
+    );
+CREATE INDEX IF NOT EXISTS rwtk_addr_idx ON reward_token (address, chain_id);
 
 CREATE TABLE IF NOT EXISTS token (
     symbol TEXT NOT NULL,

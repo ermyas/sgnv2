@@ -893,7 +893,7 @@ func (gs *GatewayService) pollChainToken() {
 		for _, pool := range farmingPools.GetPools() {
 			for _, erc20Token := range pool.GetRewardTokens() {
 				tokenSymbol := common.GetSymbolFromFarmingToken(erc20Token.GetSymbol())
-				dbErr := dal.DB.UpsertTokenBaseInfo(tokenSymbol, common.Hex2Addr(erc20Token.GetAddress()).String(), "", erc20Token.GetChainId(), 18) // todo: right decimal @aric
+				dbErr := dal.DB.UpsertRewardToken(tokenSymbol, common.Hex2Addr(erc20Token.GetAddress()).String(), erc20Token.GetChainId(), 18) // todo: right decimal @aric
 				if dbErr != nil {
 					log.Errorf("UpsertTokenBaseInfo error:%+v", dbErr)
 				}
@@ -1120,11 +1120,11 @@ func (gs *GatewayService) getInfoFromFarmingReward(reward sdk.DecCoin) (float64,
 		log.Errorf("parse token denom error, denom:%s, err:%+v", reward.GetDenom(), parseErr)
 	}
 	tokenSymbol = common.GetSymbolFromFarmingToken(tokenSymbol)
-	token, found, dbErr := dal.DB.GetTokenBySymbol(tokenSymbol, chainId)
+	token, found, dbErr := dal.DB.GetRewardTokenBySymbol(tokenSymbol, chainId)
 	if !found || dbErr != nil {
 		return 0, dbErr
 	}
-	return gs.f.GetUsdVolume(token.Token, common.Str2BigInt(reward.Amount.String())), parseErr
+	return gs.f.GetUsdVolume(token, common.Str2BigInt(reward.Amount.String())), parseErr
 }
 
 func (gs *GatewayService) getUserFarmingCumulativeEarnings(ctx context.Context, address string) map[uint64]map[string]float64 {

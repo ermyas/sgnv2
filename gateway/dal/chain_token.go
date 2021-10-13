@@ -15,6 +15,27 @@ func (d *DAL) UpsertTokenBaseInfo(symbol, addr, contract string, chainId, decima
 	return sqldb.ChkExec(res, err, 1, "UpsertTokenBaseInfo")
 }
 
+func (d *DAL) UpsertRewardToken(symbol, addr string, chainId, decimal uint64) error {
+	q := `INSERT INTO reward_token (symbol, address, chain_id, decimal, update_time)
+                VALUES ($1, $2, $3, $4, $5) ON CONFLICT (symbol, chain_id) DO UPDATE
+	SET decimal = $4, address = $2, update_time=$5`
+	res, err := d.Exec(q, symbol, addr, chainId, decimal, now())
+	return sqldb.ChkExec(res, err, 1, "UpsertRewardToken")
+}
+
+func (d *DAL) GetRewardTokenBySymbol(symbol string, chainId uint64) (*types.Token, bool, error) {
+	var addr string
+	var decimal uint64
+	q := `SELECT address, decimal FROM reward_token WHERE symbol = $1 AND chain_id=$2`
+	err := d.QueryRow(q, symbol, chainId).Scan(&addr, &decimal)
+	found, err := sqldb.ChkQueryRow(err)
+	return &types.Token{
+		Symbol:  symbol,
+		Address: addr,
+		Decimal: int32(decimal),
+	}, found, err
+}
+
 func (d *DAL) GetTokenSymbols() ([]string, error) {
 	q := `select distinct symbol from token`
 	rows, err := d.Query(q)
