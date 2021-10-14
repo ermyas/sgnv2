@@ -2,6 +2,8 @@ package gatewaysvc
 
 import (
 	"context"
+	"math/big"
+
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
@@ -11,7 +13,6 @@ import (
 	farmingcli "github.com/celer-network/sgn-v2/x/farming/client/cli"
 	farmingkp "github.com/celer-network/sgn-v2/x/farming/keeper"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
-	"math/big"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )

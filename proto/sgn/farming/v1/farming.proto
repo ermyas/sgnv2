@@ -116,7 +116,7 @@ message AccountInfo {
   // staked_pools defines the farming pools that the account has stakes in.
   repeated FarmingPool staked_pools = 1 [(gogoproto.nullable) = false];
 
-  // earnings_list defines the earnings info from all the staked pools.
+  // earnings_list defines the outstanding earnings info from all the staked pools.
   repeated Earnings earnings_list = 2 [(gogoproto.nullable) = false];
 
   // cumulative_reward_amounts defines the total cumulative rewards.

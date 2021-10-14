@@ -595,7 +595,7 @@ func (m *Earnings) GetRewardAmounts() github_com_cosmos_cosmos_sdk_types.DecCoin
 type AccountInfo struct {
 	// staked_pools defines the farming pools that the account has stakes in.
 	StakedPools []FarmingPool `protobuf:"bytes,1,rep,name=staked_pools,json=stakedPools,proto3" json:"staked_pools"`
-	// earnings_list defines the earnings info from all the staked pools.
+	// earnings_list defines the outstanding earnings info from all the staked pools.
 	EarningsList []Earnings `protobuf:"bytes,2,rep,name=earnings_list,json=earningsList,proto3" json:"earnings_list"`
 	// cumulative_reward_amounts defines the total cumulative rewards.
 	CumulativeRewardAmounts github_com_cosmos_cosmos_sdk_types.DecCoins `protobuf:"bytes,3,rep,name=cumulative_reward_amounts,json=cumulativeRewardAmounts,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.DecCoins" json:"cumulative_reward_amounts" yaml:"cumulative_reward_amounts"`

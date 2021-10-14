@@ -180,7 +180,7 @@ func (k msgServer) accumulateRewards(ctx sdk.Context, addr eth.Addr, claimInfo *
 				return types.WrapErrTokenNotExist(coin.Denom)
 			}
 			tokenAddresses = append(tokenAddresses, eth.Hex2Addr(token.Address).Bytes())
-			cumulativeRewardAmounts = append(cumulativeRewardAmounts, coin.Amount.BigInt().Bytes())
+			cumulativeRewardAmounts = append(cumulativeRewardAmounts, coin.Amount.RoundInt().BigInt().Bytes())
 		}
 		// Marshal RewardProtoBytes
 		rewardProtoBytes, marshalErr := proto.Marshal(
@@ -196,11 +196,16 @@ func (k msgServer) accumulateRewards(ctx sdk.Context, addr eth.Addr, claimInfo *
 		details.RewardProtoBytes = rewardProtoBytes
 	}
 
-	// 4. Append RewardClaimDetails and set RewardClaimInfo
+	// 4.1.  Append RewardClaimDetails and set RewardClaimInfo
 	// TODO: 1. Avoid copying 2. Sort by ascending chain IDs?
 	claimInfo.RewardClaimDetailsList = []types.RewardClaimDetails{}
 	for _, details := range chainIdToDetails {
 		claimInfo.RewardClaimDetailsList = append(claimInfo.RewardClaimDetailsList, *details)
+	}
+	// 4.2. Clear stale signatures
+	for i := 0; i < len(claimInfo.RewardClaimDetailsList); i++ {
+		detail := &claimInfo.RewardClaimDetailsList[i]
+		detail.Signatures = []types.Signature{}
 	}
 	k.SetRewardClaimInfo(ctx, *claimInfo)
 	return nil

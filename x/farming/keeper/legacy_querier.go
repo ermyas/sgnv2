@@ -171,9 +171,13 @@ func QueryAccountInfo(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQu
 		earningsList = append(earningsList, earnings)
 	}
 
-	// CumulativeRewards
+	// CumulativeRewards (settled rewards + outstanding earnings)
 	derivedRewardAccount := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, params.Address)
-	cumulativeRewards := sdk.NewDecCoinsFromCoins(k.bankKeeper.GetAllBalances(ctx, derivedRewardAccount)...)
+	// TODO: Avoid sorting?
+	cumulativeRewards := sdk.NewDecCoinsFromCoins(k.bankKeeper.GetAllBalances(ctx, derivedRewardAccount)...).Sort()
+	for _, earnings := range earningsList {
+		cumulativeRewards = cumulativeRewards.Add(earnings.RewardAmounts.Sort()...)
+	}
 
 	accountInfo := types.AccountInfo{
 		StakedPools:             updatedPools,
