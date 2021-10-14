@@ -134,7 +134,12 @@ func (gs *GatewayService) pollChainToken() {
 		for _, pool := range farmingPools.GetPools() {
 			for _, erc20Token := range pool.GetRewardTokens() {
 				tokenSymbol := common.GetSymbolFromFarmingToken(erc20Token.GetSymbol())
-				dbErr := dal.DB.UpsertRewardToken(tokenSymbol, common.Hex2Addr(erc20Token.GetAddress()).String(), erc20Token.GetChainId(), uint64(erc20Token.Decimals))
+				dbErr := dal.DB.UpsertRewardToken(
+					tokenSymbol,
+					common.Hex2Addr(erc20Token.GetAddress()).String(),
+					erc20Token.GetChainId(),
+					uint64(erc20Token.GetDecimals()),
+				)
 				if dbErr != nil {
 					log.Errorf("UpsertTokenBaseInfo error:%+v", dbErr)
 				}

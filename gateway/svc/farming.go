@@ -2,7 +2,7 @@ package gatewaysvc
 
 import (
 	"context"
-	"math/big"
+	"math"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -178,14 +178,11 @@ func (gs *GatewayService) getInfoFromFarmingReward(reward sdk.DecCoin) (*types.T
 	}
 	tokenSymbol = common.GetSymbolFromFarmingToken(tokenSymbol)
 	token, found, dbErr := dal.DB.GetRewardTokenBySymbol(tokenSymbol, chainId)
-	rwd := 0.0
+	rewardFloat64 := 0.0
 	if found && dbErr == nil {
-		amt, parsed := new(big.Float).SetString(reward.Amount.String())
-		if parsed {
-			rwd, _ = new(big.Float).Quo(amt, new(big.Float).SetInt64(int64(token.GetDecimal()))).Float64()
-		}
+		rewardFloat64 = formatDecimals(token, reward.Amount.MustFloat64())
 	}
-	return token, rwd, parseErr
+	return token, rewardFloat64, parseErr
 }
 
 // todo cache this @aric
@@ -197,28 +194,75 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 		&farmingtypes.QueryPoolsRequest{},
 	)
 	if err != nil {
+		log.Error("getFarmingApy error", err)
 		return nil
 	}
-	farmingPools := make(map[uint64]map[string]float64) // map<chain_id, map<token_symbol, FarmingPool>>
+	apysByChainId := make(map[uint64]map[string]float64) // map<chain_id, map<token_symbol, apy>>
 	for _, pool := range res.GetPools() {
-		farmingPool := make(map[string]float64)
-		token := pool.GetStakeToken()
-		tokenSymbol := common.GetSymbolFromFarmingToken(token.GetSymbol())
-		totalStakedAmount := pool.TotalStakedAmount
-		if totalStakedAmount.Amount.Equal(sdk.ZeroDec()) {
-			log.Debugf("farming totalStakedAmount is 0 on chain:%d, token: %s", token.GetChainId(), tokenSymbol)
-			farmingPool[tokenSymbol] = 0.0
-		} else {
-			totalReward := sdk.ZeroDec()
-			for _, reward := range pool.GetRewardTokenInfos() {
-				totalReward = totalReward.Add(reward.RewardAmountPerBlock)
-			}
-
-			// apy=totalReward/totalStakedAmount
-			apy, _ := new(big.Float).Quo(new(big.Float).SetInt(totalReward.BigInt()), new(big.Float).SetInt(totalStakedAmount.Amount.BigInt())).Float64()
-			farmingPool[tokenSymbol] = apy
+		apy, err := gs.calcPoolApy(&pool)
+		if err != nil {
+			log.Error("getFarmingApy error", err)
+			return nil
 		}
-		farmingPools[token.GetChainId()] = farmingPool
+		apysByToken := make(map[string]float64)
+		stakeToken := pool.StakeToken
+		stakeTokenSymbol := common.GetSymbolFromFarmingToken(stakeToken.GetSymbol())
+		apysByToken[stakeTokenSymbol] = apy
+		apysByChainId[stakeToken.GetChainId()] = apysByToken
 	}
-	return farmingPools
+	return apysByChainId
+}
+
+// calcPoolApy calculates USD-based APY with the formula (1 + r)^n - 1, assuming 5 seconds block time and daily compounding.
+// The returned APY is the sum from all the reward tokens of the pool.
+func (gs *GatewayService) calcPoolApy(pool *farmingtypes.FarmingPool) (float64, error) {
+	const n = 365
+	const secondsPerDay = 86400
+
+	// Calculate staked USD value
+	stakeToken := pool.StakeToken
+	stakeTokenSymbol := common.GetSymbolFromFarmingToken(pool.StakeToken.Symbol)
+	totalStakedUsd, err := gs.calcUsdValue(stakeTokenSymbol, int(stakeToken.Decimals), pool.TotalStakedAmount.Amount.MustFloat64())
+	if err != nil {
+		log.Errorf("calcUsdValue %s error %s", stakeToken.Symbol, err)
+		return 0.0, err
+	}
+
+	// Calculate apy for each reward token, and sum them up
+	const sgnBlockTime = 5
+	totalApy := 0.0
+	if totalStakedUsd != 0 {
+		for i, info := range pool.RewardTokenInfos {
+			rewardPerBlock := info.RewardAmountPerBlock.MustFloat64()
+			rewardPerDay := rewardPerBlock * secondsPerDay / float64(sgnBlockTime)
+			rewardToken := &pool.RewardTokens[i]
+			rewardUsdPerDay, err := gs.calcUsdValue(rewardToken.Symbol, int(rewardToken.Decimals), rewardPerDay)
+			if err != nil {
+				log.Errorf("calcUsdValue %s error %s", rewardToken.Symbol, err)
+				return 0.0, err
+			}
+			apyForToken := math.Pow(1+rewardUsdPerDay/totalStakedUsd, n) - 1
+			if apyForToken >= 999 { // limit the max to make it more sense and also to avoid +Inf in case
+				apyForToken = 999
+			}
+			totalApy += apyForToken
+		}
+	} else {
+		log.Debugf("farming totalStakedUsd is 0 on chain:%d, token: %s", pool.StakeToken.ChainId, pool.StakeToken.Symbol)
+	}
+	return totalApy, nil
+}
+
+func (gs *GatewayService) calcUsdValue(symbol string, decimals int, amount float64) (float64, error) {
+	usdPrice, err := gs.F.GetUsdPrice(symbol)
+	if err != nil {
+		log.Errorf("unable to get price of token %s from token price cache: %s", symbol, err)
+		return 0, err
+	}
+	usdValue := amount * usdPrice / math.Pow10((decimals))
+	return usdValue, nil
+}
+
+func formatDecimals(token *types.Token, amount float64) float64 {
+	return amount / math.Pow10(int(token.Decimal))
 }
