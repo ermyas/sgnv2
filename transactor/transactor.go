@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/celer-network/goutils/log"
@@ -43,6 +44,7 @@ type Transactor struct {
 	Key        keyring.Info
 	passphrase string
 	msgQueue   deque.Deque
+	lock       sync.Mutex
 }
 
 func NewTransactor(
@@ -260,6 +262,18 @@ func (t *Transactor) sendTxMsgs(msgs []sdk.Msg, gas uint64) (*sdk.TxResponse, er
 		}
 	}
 	return nil, txResponseErr
+}
+
+// send a single msg so one fail won't affect others. this is only intended
+// for initwithdraw/signagain request, if x/cbr return err, we return it immediately (wrapped in sendTxMsgs fmt.Errorf)
+// if nil err, caller should query later. No waitmine
+// note due to inherent async of estimategas and actual include in block, it's
+// possible even this returns nil err, x/cbr still fails
+// lock to ensure req are serialized even gateway handle concurrent initwithdraw from clients
+func (t *Transactor) LockSendTx(msg sdk.Msg) (*sdk.TxResponse, error) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	return t.sendTxMsgs([]sdk.Msg{msg}, 0) // 0 gas so estimate will be called
 }
 
 func (t *Transactor) buildAndSignTx(msgs []sdk.Msg, gas uint64) ([]byte, error) {

@@ -8,7 +8,6 @@ import (
 	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/cosmos/cosmos-sdk/client"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // GetTxCmd returns the transaction commands for this module
@@ -28,12 +27,12 @@ func GetTxCmd() *cobra.Command {
 
 // if err not nil, should return immediately when estimate gas
 func InitWithdraw(t *transactor.Transactor, req *types.MsgInitWithdraw) (resp *types.MsgInitWithdrawResp, err error) {
-	_, err = t.SendTxMsgsWaitMined([]sdk.Msg{req})
+	_, err = t.LockSendTx(req)
 	return
 }
 
 // if err not nil, should return immediately when estimate gas
 func SignAgain(t *transactor.Transactor, req *types.MsgSignAgain) (resp *types.MsgSignAgainResp, err error) {
-	_, err = t.SendTxMsgsWaitMined([]sdk.Msg{req})
+	_, err = t.LockSendTx(req)
 	return
 }

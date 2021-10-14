@@ -3,6 +3,7 @@ package keeper
 import (
 	"math/big"
 
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -63,14 +64,13 @@ func (k Keeper) Transfer(
 		return
 	}
 	feeAmt = CalcFee(kv, src, dest, destAmount)
-	// check slippage
-	if feeAmt.Sign() == 1 {
-		slippage := new(big.Int).Mul(feeAmt, big.NewInt(1e6))
-		slippage.Div(slippage, destAmount)
-		if slippage.Uint64() > uint64(maxSlippage) {
-			status = types.XferStatus_BAD_SLIPPAGE
-			return
-		}
+	userReceive := new(big.Int).Sub(destAmount, feeAmt)
+	promised := calcPromised(maxSlippage, srcToken.Decimal, destToken.Decimal, amount)
+	// actual receive is less than promised
+	if userReceive.Cmp(promised) == -1 {
+		log.Debugf("bad slippage promised %s userReceive %s", promised, userReceive)
+		status = types.XferStatus_BAD_SLIPPAGE
+		return
 	}
 
 	// pick LPs, minus each's destChain liquidity, add src liquidity

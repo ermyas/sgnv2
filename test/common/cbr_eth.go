@@ -80,7 +80,7 @@ func (c *CbrChain) AddLiq(uid uint64, amt *big.Int) error {
 }
 
 func (c *CbrChain) Send(uid uint64, amt *big.Int, dstChainId, nonce uint64) ([32]byte, error) {
-	return c.SendAny(uid, uid, amt, dstChainId, nonce, 10000) //1% slippage
+	return c.SendAny(uid, uid, amt, dstChainId, nonce, 100000) //10% slippage
 }
 
 func (c *CbrChain) SendAny(fromUid, toUid uint64, amt *big.Int, dstChainId, nonce uint64, maxSlippage uint32) ([32]byte, error) {

@@ -149,3 +149,29 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 	}
 	return true, nil
 }
+
+// check slippage, be careful with decimal diff between src and dest
+// user's max slippage represents our promise for at least how many dest token will be relayed
+// promised = srcAmt * (1e6 - maxslip) / 1e6 * 1e(dstdecimal - srcdecimal)
+// ev.MaxSlippage is slippage * 1e6, eg. 0.1% -> 1000
+// if MaxSlippage >= 1e6, likely an attack, return 0 meaning no promise
+func calcPromised(maxslip, srcDeci, destDeci uint32, srcAmt *big.Int) *big.Int {
+	promised := new(big.Int)
+	if maxslip >= 1e6 {
+		return promised
+	}
+	e6 := big.NewInt(1e6)
+	promised.Sub(e6, big.NewInt(int64(maxslip)))
+	promised.Mul(promised, srcAmt)
+	promised.Div(promised, e6)
+	if destDeci > srcDeci {
+		// dest amt is larger due to more decimals. note we lose some precision due to Div e6 first
+		// but it's ok
+		upScale := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(destDeci-srcDeci)), nil)
+		promised.Mul(promised, upScale)
+	} else if destDeci < srcDeci {
+		downScale := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(srcDeci-destDeci)), nil)
+		promised.Div(promised, downScale)
+	} // if decimal equal, return directly without scaling
+	return promised
+}
