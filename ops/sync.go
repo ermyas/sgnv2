@@ -63,7 +63,7 @@ $ %s ops sync signers --chainid=883 --txhash="xxxxx"
 			}
 
 			chainId := viper.GetUint64(FlagChainId)
-			txHash := viper.GetString(FlagChainId)
+			txHash := viper.GetString(FlagTxHash)
 
 			c, err := newOneChain(chainId)
 			if err != nil {
