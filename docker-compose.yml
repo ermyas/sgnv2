@@ -28,6 +28,7 @@ services:
     image: "celer-network/sgnnode"
     ports:
       - "8081:8081"
+      - "10000:10000"
       - "26656-26657:26656-26657"
     extra_hosts:
       - "api.coingecko.com:104.18.28.120"
