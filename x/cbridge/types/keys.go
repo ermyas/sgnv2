@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/celer-network/sgn-v2/eth"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -61,6 +62,14 @@ func GetChainSignersKey(chid uint64) []byte {
 // value is big.Int.Bytes()
 func LiqMapKey(chid uint64, token, lp eth.Addr) []byte {
 	return []byte(fmt.Sprintf("lm-%d-%x-%x", chid, token, lp))
+}
+
+func GetLpAddrFromLiqMapKey(key []byte) (eth.Addr, error) {
+	keystrs := strings.Split(string(key), "-")
+	if len(keystrs) != 4 {
+		return eth.ZeroAddr, fmt.Errorf("invaid key")
+	}
+	return eth.Hex2Addr(keystrs[3]), nil
 }
 
 // value is 0x01 to indicate has applied event

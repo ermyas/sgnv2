@@ -125,3 +125,46 @@ func (msg *MsgSignAgain) ValidateBasic() error {
 	}
 	return nil
 }
+
+func NewMsgInternalTransfer(transfer, sig []byte, creator string) *MsgInternalTransfer {
+	return &MsgInternalTransfer{
+		Transfer: transfer,
+		Sig:      sig,
+		Creator:  creator,
+	}
+}
+
+func (msg *MsgInternalTransfer) Route() string {
+	return RouterKey
+}
+
+func (msg *MsgInternalTransfer) Type() string {
+	return "InternalTransfer"
+}
+
+func (msg *MsgInternalTransfer) GetSigners() []sdk.AccAddress {
+	creator, err := sdk.AccAddressFromBech32(msg.Creator)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{creator}
+}
+
+func (msg *MsgInternalTransfer) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+func (msg *MsgInternalTransfer) ValidateBasic() error {
+	_, err := sdk.AccAddressFromBech32(msg.Creator)
+	if err != nil {
+		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid creator address (%s)", err)
+	}
+	if len(msg.Transfer) == 0 {
+		return fmt.Errorf("empty transfer")
+	}
+	if len(msg.Sig) == 0 {
+		return fmt.Errorf("empty sig")
+	}
+	return nil
+}

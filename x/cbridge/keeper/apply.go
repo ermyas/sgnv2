@@ -77,70 +77,16 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			SetEvSendStatus(kv, ev.TransferId, sendStatus)
 		}()
 
-		src := &ChainIdTokenAddr{
-			ChId:      onchev.Chainid,
-			TokenAddr: ev.Token,
-		}
-		assetSym := GetAssetSymbol(kv, src)
-		if assetSym == "" {
-			// unsupported src token, don't allow refund because this must be an attack?
-			sendStatus = types.XferStatus_BAD_TOKEN
-			// SetXferRefund(kv, ev.TransferId, wdOnchain)
-			return true, nil
-		}
-		srcToken := GetAssetInfo(kv, assetSym, onchev.Chainid)
-		if srcToken == nil {
-			// unsupported dest chain
-			sendStatus = types.XferStatus_BAD_TOKEN
-			return true, nil
-		}
-		destToken := GetAssetInfo(kv, assetSym, ev.DstChainId)
-		if destToken == nil {
-			// unsupported dest chain
-			sendStatus = types.XferStatus_BAD_TOKEN
-			return true, nil
-		}
-		destTokenAddr := eth.Hex2Addr(destToken.Addr)
-		dest := &ChainIdTokenAddr{
-			ChId:      ev.DstChainId,
-			TokenAddr: destTokenAddr,
-		}
-		// now we need to decide if this send can be completed by sgn, eg. has enough liquidity on dest chain etc
-		destAmount := CalcEqualOnDestChain(kv, &ChainIdTokenDecimal{
-			ChainIdTokenAddr: src,
-			Decimal:          srcToken.Decimal,
-		}, &ChainIdTokenDecimal{
-			ChainIdTokenAddr: dest,
-			Decimal:          destToken.Decimal,
-		}, ev.Amount)
-		if destAmount.Sign() == 0 { // avoid div by 0
-			// define another enum?
-			sendStatus = types.XferStatus_BAD_LIQUIDITY
-			SetXferRefund(kv, ev.TransferId, wdOnchain)
-			return true, nil
-		}
-		// check has enough liq on dest chain
-		if !HasEnoughLiq(kv, dest, destAmount) {
-			sendStatus = types.XferStatus_BAD_LIQUIDITY
-			SetXferRefund(kv, ev.TransferId, wdOnchain)
-			return true, nil
-		}
-		feeAmt := CalcFee(kv, src, dest, destAmount)
-		// check slippage
-		if feeAmt.Sign() == 1 {
-			slippage := new(big.Int).Mul(feeAmt, big.NewInt(1e6))
-			slippage.Div(slippage, destAmount)
-			if slippage.Uint64() > uint64(ev.MaxSlippage) {
-				sendStatus = types.XferStatus_BAD_SLIPPAGE
-				SetXferRefund(kv, ev.TransferId, wdOnchain)
-				return true, nil
-			}
-		}
-
-		// pick LPs, minus each's destChain liquidity, add src liquidity
 		randNum := new(big.Int).SetBytes(ev.TransferId[28:]).Uint64() // last 4B of xfer id
-		k.PickLPsAndAdjustLiquidity(ctx, kv, src, dest, ev.Amount, destAmount, feeAmt, randNum)
+		sendStatus, destAmount, feeAmt, destTokenAddr :=
+			k.Transfer(ctx, eth.ZeroAddr, ev.Token, ev.Amount, onchev.Chainid, ev.DstChainId, ev.MaxSlippage, randNum)
 
+		if sendStatus != types.XferStatus_OK_TO_RELAY {
+			if sendStatus == types.XferStatus_BAD_LIQUIDITY || sendStatus == types.XferStatus_BAD_SLIPPAGE {
+				SetXferRefund(kv, ev.TransferId, wdOnchain)
+			}
+			return true, nil
+		}
 		relayOnchain := &types.RelayOnChain{
 			Sender:        ev.Sender[:],
 			Receiver:      ev.Receiver[:],
@@ -151,9 +97,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			SrcTransferId: ev.TransferId[:],
 		}
 		relayRaw, _ := relayOnchain.Marshal()
-		SetXferRelay(kv, ev.TransferId, &types.XferRelay{
-			Relay: relayRaw,
-		}, k.cdc)
+		SetXferRelay(kv, ev.TransferId, &types.XferRelay{Relay: relayRaw}, k.cdc)
 		ctx.EventManager().EmitEvent(sdk.NewEvent(
 			types.EventTypeDataToSign,
 			sdk.NewAttribute(types.AttributeKeyType, types.SignDataType_RELAY.String()),

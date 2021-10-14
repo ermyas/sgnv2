@@ -90,12 +90,19 @@ func GetLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr) *big.Int {
 	return totalLiq
 }
 
-func HasEnoughLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr, needed *big.Int) bool {
+func HasEnoughLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr, needed *big.Int, sender eth.Addr) bool {
 	// sum over all liqmap, if larger than needed, return true
 	iter := sdk.KVStorePrefixIterator(kv, []byte(fmt.Sprintf("lm-%d-%x-", chaddr.ChId, chaddr.TokenAddr)))
 	defer iter.Close()
 	totalLiq := new(big.Int)
 	for ; iter.Valid(); iter.Next() {
+		lpAddr, err := types.GetLpAddrFromLiqMapKey(iter.Key())
+		if err != nil {
+			log.Error(err)
+		} else if lpAddr == sender {
+			// Do not swap sender's liquidity from dst chain to src chain
+			continue
+		}
 		totalLiq.Add(totalLiq, new(big.Int).SetBytes(iter.Value()))
 		if totalLiq.Cmp(needed) >= 0 {
 			return true

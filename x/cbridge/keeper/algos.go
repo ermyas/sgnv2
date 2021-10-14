@@ -66,7 +66,8 @@ type AddrHexAmtInt struct {
 // pick LPs, minus each's destChain liquidity and add srcChain liq
 // for each lp, try to use all he has, if enough, we are good, if not, we move on to next LP
 // fee and add liq on src are calculated based on ratio this LP contributed into destAmount
-func (k Keeper) PickLPsAndAdjustLiquidity(ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdTokenAddr, srcAmount, destAmount, fee *big.Int, randN uint64) {
+func (k Keeper) PickLPsAndAdjustLiquidity(
+	ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdTokenAddr, srcAmount, destAmount, fee *big.Int, sender eth.Addr, randN uint64) {
 	lpFeePerc := new(big.Int).SetBytes(kv.Get(types.CfgKeyFeePerc))
 	totalLpFee := new(big.Int).Mul(fee, lpFeePerc)
 	totalLpFee.Div(totalLpFee, big.NewInt(100))
@@ -93,6 +94,11 @@ func (k Keeper) PickLPsAndAdjustLiquidity(ctx sdk.Context, kv sdk.KVStore, src, 
 	toAllocate := new(big.Int).Set(destAmount) // how much left to allocate to LP
 	for cnt := 0; cnt < lpCnt; cnt++ {         // how many LPs we have used
 		idx := (cnt + firstLPIdx) % lpCnt
+		lpAddr := eth.Hex2Addr(allLPs[idx].AddrHex)
+		if lpAddr == sender {
+			// Do not swap sender's liquidity from dst chain to src chain
+			continue
+		}
 		used := new(big.Int)
 		if allLPs[idx].AmtInt.Cmp(toAllocate) >= 0 {
 			// this lp has enough for all remaining needed liquidity
@@ -103,7 +109,6 @@ func (k Keeper) PickLPsAndAdjustLiquidity(ctx sdk.Context, kv sdk.KVStore, src, 
 			used.Set(allLPs[idx].AmtInt)
 			toAllocate.Sub(toAllocate, used)
 		}
-		lpAddr := eth.Hex2Addr(allLPs[idx].AddrHex)
 		// fee = totalFee * used/destAmt
 		earnedFee := new(big.Int).Mul(used, totalLpFee)
 		earnedFee.Div(earnedFee, destAmount)

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"sort"
 
 	ethutils "github.com/celer-network/goutils/eth"
@@ -235,6 +236,30 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 		k.SetLatestSigners(sdkCtx, &latestSigners)
 	}
 	log.Info(logmsg)
+	return ret, nil
+}
+
+func (k msgServer) InternalTransfer(ctx context.Context, req *types.MsgInternalTransfer) (*types.MsgInternalTransferResp, error) {
+	ret := &types.MsgInternalTransferResp{}
+	xfer := new(types.InternalTransfer)
+	err := xfer.Unmarshal(req.GetTransfer())
+	if err != nil {
+		return nil, err
+	}
+	sender, err := ethutils.RecoverSigner(req.GetTransfer(), req.GetSig())
+	if err != nil {
+		return nil, fmt.Errorf("recover signer err: %w", err)
+	}
+	log.Infof("internal xfer %s, sender %x", xfer.String(), sender)
+
+	amount, ok := new(big.Int).SetString(xfer.GetAmount(), 10)
+	if !ok {
+		return nil, fmt.Errorf("invalid amount %s", xfer.GetAmount())
+	}
+	// TODO: pre-processing: check for replay, validated src balance, etc.
+	k.Transfer(sdk.UnwrapSDKContext(ctx),
+		sender, eth.Hex2Addr(xfer.Token), amount, xfer.SrcChainId, xfer.DstChainId, xfer.MaxSlippage, rand.Uint64())
+	// TODO: post-processing, record status, etc.
 	return ret, nil
 }
 

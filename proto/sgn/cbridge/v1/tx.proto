@@ -86,4 +86,23 @@ enum WdErr {
     // below are initwithdraw due to new user sig and req id fields
     INVALID_SIG = 7; // if eth recover from sig doesn't match expected
     DUP_REQID = 8; // already exist reqid for this user
-  }
+}
+
+message InternalTransfer {
+    string receiver = 1;
+    string token = 2;
+    string amount = 3;
+    uint64 src_chain_id = 4;
+    uint64 dst_chain_id = 5;
+    uint64 nonce = 6;
+    uint32 max_slippage = 7;
+}
+
+message MsgInternalTransfer {
+    bytes transfer = 1; // seralized internalTransfer
+    bytes sig = 2; // sender sig
+    string creator = 3;
+}
+
+message MsgInternalTransferResp {
+}
