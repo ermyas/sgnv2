@@ -88,18 +88,17 @@ service Web {
     }
 
     // web will use this api to init reward cliam
-    rpc ClaimWithdrawReward (ClaimWithdrawRewardRequest) returns (ClaimWithdrawRewardResponse) {
+    rpc UnlockFarmingReward (UnlockFarmingRewardRequest) returns (UnlockFarmingRewardResponse) {
         option (google.api.http) = {
-      post: "/v1/claimWithdrawReward"
+      post: "/v1/unlockFarmingReward"
       body: "*"
     };
     }
 
-    // web polling this api after ClaimWithdrawReward
-    rpc ClaimRewardDetails (ClaimRewardDetailsRequest) returns (ClaimRewardDetailsResponse) {
+    // web polling this api after UnlockFarmingReward
+    rpc GetFarmingRewardDetails (GetFarmingRewardDetailsRequest) returns (GetFarmingRewardDetailsResponse) {
         option (google.api.http) = {
-      post: "/v1/claimRewardDetails"
-      body: "*"
+      get: "/v1/getFarmingRewardDetails"
     };
     }
 
@@ -290,18 +289,18 @@ message MarkLiquidityResponse {
 }
 
 
-message ClaimWithdrawRewardRequest {
+message UnlockFarmingRewardRequest {
     string addr = 1;
 }
 
-message ClaimWithdrawRewardResponse {
+message UnlockFarmingRewardResponse {
     ErrMsg err = 1;
 }
-message ClaimRewardDetailsRequest {
+message GetFarmingRewardDetailsRequest {
     string addr = 1;
 }
 
-message ClaimRewardDetailsResponse {
+message GetFarmingRewardDetailsResponse {
     ErrMsg err = 1;
     repeated farming.v1.RewardClaimDetails details = 2;
 }
@@ -377,7 +376,7 @@ message Reward {
 }
 message RewardingDataResponse {
     ErrMsg err = 1;
-    double total_farming_rewards = 2;
+    map<string, double> usd_price = 2; // map<token_symbol, usd_price>, token scope: HistoricalCumulativeRewards
     repeated Reward historical_cumulative_rewards = 3;
     repeated Reward unlocked_cumulative_rewards = 4;
 }

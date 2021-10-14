@@ -20,8 +20,8 @@ type GatewayAPI interface {
 	GetLPInfoList(ctx context.Context, request *webapi.GetLPInfoListRequest) (*webapi.GetLPInfoListResponse, error)
 	MarkLiquidity(ctx context.Context, request *webapi.MarkLiquidityRequest) (*webapi.MarkLiquidityResponse, error)
 	QueryLiquidityStatus(ctx context.Context, request *webapi.QueryLiquidityStatusRequest) (*webapi.QueryLiquidityStatusResponse, error)
-	ClaimWithdrawReward(ctx context.Context, request *webapi.ClaimWithdrawRewardRequest) (*webapi.ClaimWithdrawRewardResponse, error)
-	ClaimRewardDetails(ctx context.Context, request *webapi.ClaimRewardDetailsRequest) (*webapi.ClaimRewardDetailsResponse, error)
+	UnlockFarmingReward(ctx context.Context, request *webapi.UnlockFarmingRewardRequest) (*webapi.UnlockFarmingRewardResponse, error)
+	GetFarmingRewardDetails(ctx context.Context, request *webapi.GetFarmingRewardDetailsRequest) (*webapi.GetFarmingRewardDetailsResponse, error)
 	TransferHistory(ctx context.Context, request *webapi.TransferHistoryRequest) (*webapi.TransferHistoryResponse, error)
 	LPHistory(ctx context.Context, request *webapi.LPHistoryRequest) (*webapi.LPHistoryResponse, error)
 }
@@ -153,8 +153,8 @@ func (g *GatewayClient) QueryLiquidityStatus(ctx context.Context, request *webap
 	return resp, nil
 }
 
-func (g *GatewayClient) ClaimWithdrawReward(ctx context.Context, request *webapi.ClaimWithdrawRewardRequest) (*webapi.ClaimWithdrawRewardResponse, error) {
-	resp, err := webapi.NewWebClient(g.gatewayConn).ClaimWithdrawReward(context.Background(), request)
+func (g *GatewayClient) UnlockFarmingReward(ctx context.Context, request *webapi.UnlockFarmingRewardRequest) (*webapi.UnlockFarmingRewardResponse, error) {
+	resp, err := webapi.NewWebClient(g.gatewayConn).UnlockFarmingReward(context.Background(), request)
 	if err != nil {
 		return nil, err
 	}
@@ -164,8 +164,8 @@ func (g *GatewayClient) ClaimWithdrawReward(ctx context.Context, request *webapi
 	return resp, nil
 }
 
-func (g *GatewayClient) ClaimRewardDetails(ctx context.Context, request *webapi.ClaimRewardDetailsRequest) (*webapi.ClaimRewardDetailsResponse, error) {
-	resp, err := webapi.NewWebClient(g.gatewayConn).ClaimRewardDetails(context.Background(), request)
+func (g *GatewayClient) GetFarmingRewardDetails(ctx context.Context, request *webapi.GetFarmingRewardDetailsRequest) (*webapi.GetFarmingRewardDetailsResponse, error) {
+	resp, err := webapi.NewWebClient(g.gatewayConn).GetFarmingRewardDetails(context.Background(), request)
 	if err != nil {
 		return nil, err
 	}

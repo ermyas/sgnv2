@@ -185,11 +185,3 @@ func Bytes2Hash(b []byte) Hash {
 func GetSymbolFromFarmingToken(token string) string {
 	return strings.Replace(token, "CB-", "", 1)
 }
-
-func FloatToBigInt(bigval *big.Float) *big.Int {
-	result := new(big.Int)
-	f, _ := bigval.Uint64()
-	result.SetUint64(f)
-
-	return result
-}

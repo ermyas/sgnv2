@@ -563,11 +563,3 @@ func TestLPList(t *testing.T) {
 	errMsgIsNil(t, list.Err)
 	t.Log(list)
 }
-
-func TestParse(t *testing.T) {
-	f, err := new(big.Float).SetString("10.1")
-	if !err {
-		t.Log("parse error")
-	}
-	t.Log(common.FloatToBigInt(f).String())
-}
