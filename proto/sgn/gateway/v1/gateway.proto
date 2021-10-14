@@ -196,6 +196,7 @@ message GetTransferConfigsResponse {
     ErrMsg err = 1;
     repeated Chain chains = 2;
     map<uint32, ChainTokenInfo> chain_token = 3; //map<chain_id, ChainTokenInfo>
+    string farming_reward_contract_addr = 4;
 }
 
 message EstimateAmtRequest {

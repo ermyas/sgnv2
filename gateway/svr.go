@@ -281,9 +281,10 @@ func (gs *GatewayService) GetTransferConfigs(ctx context.Context, request *webap
 		}, nil
 	}
 	return &webapi.GetTransferConfigsResponse{
-		Err:        nil,
-		Chains:     chains,
-		ChainToken: chainTokenList,
+		Err:                       nil,
+		Chains:                    chains,
+		ChainToken:                chainTokenList,
+		FarmingRewardContractAddr: viper.GetString(common.FlagEthContractFarmingRewards),
 	}, nil
 }
 
@@ -1208,6 +1209,7 @@ func (gs *GatewayService) getUnlockedCumulativeRewards(ctx context.Context, addr
 				}
 				r := records[token.Symbol]
 				r.rwd += amt
+				r.token = token
 				records[token.Symbol] = r
 			}
 		}
@@ -1263,6 +1265,7 @@ func (gs *GatewayService) getHistoricalCumulativeRewards(ctx context.Context, ad
 			}
 			r := records[token.Symbol]
 			r.rwd += amt
+			r.token = token
 			records[token.Symbol] = r
 			sumVolume += volume
 		}
