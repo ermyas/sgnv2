@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"sort"
 	"strconv"
 	"testing"
 	"time"
@@ -551,15 +552,10 @@ func TestLPWithdraw(t *testing.T) {
 }
 
 func TestLPList(t *testing.T) {
-	svc := newTestSvc(t)
-	if svc == nil {
-		t.Errorf("fail to init service")
-		return
-	}
-	mockChian()
-	addr := "0x25846D545a60A029E5C83f0FB96e41b408528e9E"
-	list, err := svc.GetLPInfoList(nil, &webapi.GetLPInfoListRequest{Addr: addr})
-	errIsNil(t, err)
-	errMsgIsNil(t, list.Err)
-	t.Log(list)
+	var lps []int
+	lps = append(lps, 1, 2, 3, 4, 5)
+	sort.SliceStable(lps, func(i, j int) bool {
+		return lps[i] < lps[j]
+	})
+	t.Log(lps)
 }

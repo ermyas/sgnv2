@@ -13,7 +13,6 @@ import (
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"math/big"
-	"sort"
 	"strconv"
 	"time"
 )
@@ -22,117 +21,6 @@ type txData struct {
 	volume   float64
 	fee      *big.Int
 	dstToken *types.Token
-}
-
-func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.GetLPInfoListRequest) (*webapi.GetLPInfoListResponse, error) {
-	userAddr := common.Hex2Addr(request.GetAddr()).String()
-	chainTokenInfos, err := dal.DB.GetChainTokenList()
-	if err != nil || len(chainTokenInfos) == 0 {
-		return &webapi.GetLPInfoListResponse{}, nil
-	}
-	var chainTokens []*types.ChainTokenAddrPair
-	for chainId, tokens := range chainTokenInfos {
-		for _, tokenInfo := range tokens.Token {
-			chainTokens = append(chainTokens, &types.ChainTokenAddrPair{
-				ChainId:   uint64(chainId),
-				TokenAddr: tokenInfo.GetToken().Address,
-			})
-		}
-	}
-
-	var lps []*webapi.LPInfo
-	tr := gs.TP.GetTransactor()
-	detailList, err := cbrcli.QueryLiquidityDetailList(tr.CliCtx, &types.LiquidityDetailListRequest{
-		LpAddr:     userAddr,
-		ChainToken: chainTokens,
-	})
-
-	if err != nil || detailList == nil || len(detailList.GetLiquidityDetail()) == 0 {
-		return &webapi.GetLPInfoListResponse{}, nil
-	}
-	farmingApyMap := gs.getFarmingApy(ctx)
-	data24h := get24hTx()
-	userDetailMap := make(map[uint64]map[string]*types.LiquidityDetail)
-	for _, detail := range detailList.GetLiquidityDetail() {
-		chainId := detail.GetChainId()
-		tokenWithAddr := detail.GetToken() // only has addr field
-		token, found, dbErr := dal.DB.GetTokenByAddr(common.Hex2Addr(tokenWithAddr.GetAddress()).String(), chainId)
-		if !found || dbErr != nil {
-			log.Debugf("data, token not found in lp list, token addr:%s, chainId:%d", tokenWithAddr.GetAddress(), chainId)
-			continue
-		}
-		detail.Token = token.Token
-		chainInfo, found := userDetailMap[chainId]
-		if !found {
-			chainInfo = make(map[string]*types.LiquidityDetail)
-		}
-		chainInfo[token.Token.Symbol] = detail
-		userDetailMap[chainId] = chainInfo
-	}
-	for chainId32, chainToken := range chainTokenInfos {
-		chainId := uint64(chainId32)
-		for _, token := range chainToken.Token {
-			tokenSymbol := token.Token.Symbol
-			totalLiquidity := "0"
-			usrLpFeeEarning := "0"
-			usrLiquidity := "0"
-			detail, found := userDetailMap[chainId][tokenSymbol]
-			if found {
-				totalLiquidity = detail.GetTotalLiquidity()
-				usrLpFeeEarning = detail.GetUsrLpFeeEarning()
-				usrLiquidity = detail.GetUsrLiquidity()
-			}
-
-			enrichUnknownToken(token)
-			chain, _, found, dbErr := dal.DB.GetChain(chainId)
-			if !found || dbErr != nil {
-				chain = unknownChain(chainId32)
-			}
-
-			data := data24h[chainId][tokenSymbol]
-			lpFeeEarningApy := 0.0
-			volume24h := 0.0
-			if data != nil {
-				if common.Str2BigInt(totalLiquidity).Cmp(new(big.Int).SetInt64(0)) > 0 {
-					lpFeeEarningApy, _ = new(big.Float).Quo(new(big.Float).SetInt(data.fee), new(big.Float).SetInt(common.Str2BigInt(totalLiquidity))).Float64()
-				}
-				volume24h = data.volume
-			}
-			farmingApy, hasSession := farmingApyMap[chainId][token.Token.GetSymbol()]
-			lp := &webapi.LPInfo{
-				Chain:              chain,
-				Token:              token,
-				Liquidity:          gs.F.GetUsdVolume(token.Token, common.Str2BigInt(usrLiquidity)),
-				LiquidityAmt:       usrLiquidity,
-				HasFarmingSessions: hasSession,
-				LpFeeEarning:       gs.F.GetUsdVolume(token.Token, common.Str2BigInt(usrLpFeeEarning)),
-				Volume_24H:         volume24h,
-				TotalLiquidity:     gs.F.GetUsdVolume(token.Token, common.Str2BigInt(totalLiquidity)),
-				TotalLiquidityAmt:  totalLiquidity,
-				LpFeeEarningApy:    lpFeeEarningApy,
-				FarmingApy:         farmingApy,
-			}
-			lps = append(lps, lp)
-		}
-	}
-	sort.SliceStable(lps, func(i, j int) bool {
-		if lps[i].HasFarmingSessions {
-			if lps[j].HasFarmingSessions {
-				return lps[i].GetVolume_24H() < lps[j].GetVolume_24H()
-			} else {
-				return false
-			}
-		} else {
-			if lps[j].HasFarmingSessions {
-				return true
-			} else {
-				return lps[i].GetVolume_24H() < lps[j].GetVolume_24H()
-			}
-		}
-	})
-	return &webapi.GetLPInfoListResponse{
-		LpInfo: lps,
-	}, nil
 }
 
 func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.MarkLiquidityRequest) (*webapi.MarkLiquidityResponse, error) {
@@ -474,39 +362,6 @@ func (gs *GatewayService) updateLpStatusInHistory(lpHistory []*dal.LP) {
 			lp.Status = resp.GetStatus()
 		}
 	}
-}
-
-// todo cache this @aric
-func get24hTx() map[uint64]map[string]*txData {
-	txs, err := dal.DB.Get24hTx()
-	resp := make(map[uint64]map[string]*txData) // map<chain_id, map<token_symbol, txData>>
-	if err == nil {
-		for _, tx := range txs {
-			tokenSymbol := tx.TokenSymbol
-			dstToken, found, dbErr := dal.DB.GetTokenBySymbol(tokenSymbol, tx.DstChainId)
-			if !found || dbErr != nil {
-				continue
-			}
-			dstChainId := tx.DstChainId
-			data, found := resp[dstChainId]
-			if !found || data == nil {
-				data = make(map[string]*txData)
-			}
-			d, found := data[tokenSymbol]
-			if !found || d == nil {
-				d = &txData{
-					volume:   0,
-					fee:      new(big.Int),
-					dstToken: dstToken.Token,
-				}
-			}
-			d.fee = new(big.Int).Add(d.fee, common.Str2BigInt(tx.DstAmt))
-			d.volume += tx.Volume
-			data[tokenSymbol] = d
-			resp[tx.DstChainId] = data
-		}
-	}
-	return resp
 }
 
 func checkSig(reqId uint64, sig []byte, addr common.Addr) error {
