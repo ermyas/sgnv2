@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/celer-network/sgn-v2/gateway/svc"
 	"net"
 	"net/http"
 	"time"
@@ -32,16 +33,16 @@ func InitGateway(
 	_selfStart bool,
 	_dbUrl string) {
 
-	rootDir = _homeDir
-	legacyAmino = _legacyAmino
-	cdc = _cdc
-	interfaceRegistry = _interfaceRegistry
-	selfStart = _selfStart
+	gatewaysvc.RootDir = _homeDir
+	gatewaysvc.LegacyAmino = _legacyAmino
+	gatewaysvc.Cdc = _cdc
+	gatewaysvc.InterfaceRegistry = _interfaceRegistry
+	gatewaysvc.SelfStart = _selfStart
 
 	flag.Parse()
 	log.Infof("Starting gateway at rest:%d, grpc:%d", *port, *rpcPort)
 
-	gs, err := NewGatewayService(_dbUrl)
+	gs, err := gatewaysvc.NewGatewayService(_dbUrl)
 	if err != nil {
 		log.Fatalf("fail to init gateway server, err:%v", err)
 		return
@@ -49,7 +50,7 @@ func InitGateway(
 	defer gs.Close()
 	log.Infof(" gateway svc started")
 
-	err = gs.initTransactors()
+	err = gs.InitTransactors()
 	if err != nil {
 		log.Fatalf("fail to init transactor in gateway server, err:%v", err)
 		return
@@ -58,7 +59,7 @@ func InitGateway(
 	gs.StartChainTokenPolling(10 * time.Second)
 	log.Infof("chain token cached")
 
-	gs.f = fee.NewTokenPriceCache(gs.tp.GetTransactor())
+	gs.F = fee.NewTokenPriceCache(gs.TP.GetTransactor())
 	log.Infof(" token price cached")
 
 	// start a rpc server

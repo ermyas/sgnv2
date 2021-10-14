@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/celer-network/sgn-v2/gateway/svc"
 	"io"
 	"math/big"
 	"math/rand"
@@ -33,11 +34,11 @@ const (
 )
 
 func setGlobal() {
-	rootDir = os.ExpandEnv("$HOME/.sgnd")
-	legacyAmino = codec.NewLegacyAmino()
-	interfaceRegistry = codectypes.NewInterfaceRegistry()
-	cdc = codec.NewProtoCodec(interfaceRegistry)
-	selfStart = true
+	gatewaysvc.RootDir = os.ExpandEnv("$HOME/.sgnd")
+	gatewaysvc.LegacyAmino = codec.NewLegacyAmino()
+	gatewaysvc.InterfaceRegistry = codectypes.NewInterfaceRegistry()
+	gatewaysvc.Cdc = codec.NewProtoCodec(gatewaysvc.InterfaceRegistry)
+	gatewaysvc.SelfStart = true
 }
 
 // TestMain is used to setup/teardown a temporary CockroachDB instance
@@ -131,13 +132,13 @@ func checkLpStatus(t *testing.T, status types.LPHistoryStatus, dest types.LPHist
 	}
 }
 
-func newTestSvc(t *testing.T) *GatewayService {
-	gs, err := NewGatewayService(stSvr)
+func newTestSvc(t *testing.T) *gatewaysvc.GatewayService {
+	gs, err := gatewaysvc.NewGatewayService(stSvr)
 	require.NoError(t, err, "failed to initialize gateway service", err)
-	err = gs.initTransactors()
+	err = gs.InitTransactors()
 	require.NoError(t, err, "failed to initialize gateway transactors", err)
 	gs.StartChainTokenPolling(10 * time.Second)
-	gs.f = fee.NewTokenPriceCache(gs.tp.GetTransactor())
+	gs.F = fee.NewTokenPriceCache(gs.TP.GetTransactor())
 	return gs
 }
 
@@ -163,7 +164,7 @@ func TestTokenAndFee(t *testing.T) {
 		Address: "3efc487eef37187483d8f7dbe5f8781f2af4b5c5",
 		Decimal: 6,
 	}
-	tokenUsdPrice := svc.f.GetUsdVolume(token, big.NewInt(2500))
+	tokenUsdPrice := svc.F.GetUsdVolume(token, big.NewInt(2500))
 	t.Log("DAI eth prize:", tokenUsdPrice)
 	configs, err := svc.GetTransferConfigs(nil, nil)
 	errIsNil(t, err)
