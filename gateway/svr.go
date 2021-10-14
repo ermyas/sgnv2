@@ -1239,7 +1239,7 @@ func (gs *GatewayService) getHistoricalCumulativeRewards(ctx context.Context, ad
 	} else {
 		records := make(map[string]*big.Int)
 		accountInfo := res.GetAccountInfo()
-		for _, reward := range accountInfo.GetCumulativeRewards() {
+		for _, reward := range accountInfo.GetCumulativeRewardAmounts() {
 			chainId, tokenSymbol, amtStr, parseErr := gs.getInfoFromFarmingReward(reward)
 			if parseErr != nil {
 				continue

@@ -136,9 +136,9 @@ func (k Keeper) AccountInfo(c context.Context, req *types.QueryAccountInfoReques
 	cumulativeRewards := sdk.NewDecCoinsFromCoins(k.bankKeeper.GetAllBalances(ctx, derivedRewardAccount)...)
 
 	accountInfo := types.AccountInfo{
-		StakedPools:       updatedPools,
-		EarningsList:      earningsList,
-		CumulativeRewards: cumulativeRewards,
+		StakedPools:             updatedPools,
+		EarningsList:            earningsList,
+		CumulativeRewardAmounts: cumulativeRewards,
 	}
 	return &types.QueryAccountInfoResponse{AccountInfo: accountInfo}, nil
 }

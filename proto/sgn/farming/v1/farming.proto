@@ -119,9 +119,9 @@ message AccountInfo {
   // earnings_list defines the earnings info from all the staked pools.
   repeated Earnings earnings_list = 2 [(gogoproto.nullable) = false];
 
-  // cumulative_rewards defines the cumulative rewards.
-  repeated cosmos.base.v1beta1.DecCoin cumulative_rewards = 3 [
-    (gogoproto.moretags) = "yaml:\"cumulative_rewards\"",
+  // cumulative_reward_amounts defines the total cumulative rewards.
+  repeated cosmos.base.v1beta1.DecCoin cumulative_reward_amounts = 3 [
+    (gogoproto.moretags) = "yaml:\"cumulative_reward_amounts\"",
     (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.DecCoins",
     (gogoproto.nullable) = false
   ];
@@ -141,14 +141,14 @@ message RewardClaimDetails {
   // chain_id defines the EVM chain ID for the claim.
   uint64 chain_id = 1;
 
-  // reward_amount defines the cumulative reward tokens claimed.
+  // cumulative_reward_amounts defines the cumulative rewards claimable on the EVM chain.
   repeated cosmos.base.v1beta1.DecCoin cumulative_reward_amounts = 2 [
     (gogoproto.moretags) = "yaml:\"cumulative_reward_amounts\"",
     (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.DecCoins",
     (gogoproto.nullable) = false
   ];
 
-  // reward_proto_bytes defines the serialized reward protobuf to be submitted on the EVM chain.
+  // reward_proto_bytes defines the serialized reward protobuf to be submitted to the EVM chain.
   bytes reward_proto_bytes = 3 [(gogoproto.moretags) = "yaml:\"reward_proto_bytes\""];
 
   // signatures defines the signatures to be verified on the EVM chain.

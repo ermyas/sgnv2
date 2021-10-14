@@ -142,7 +142,7 @@ func newOneChain(chainId uint64) (*CbrOneChain, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("chaid %d not exists", chainId)
+	return nil, fmt.Errorf("chainId %d not exist", chainId)
 }
 
 func fixCfg(cfg *common.OneChainConfig) {

@@ -176,9 +176,9 @@ func QueryAccountInfo(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQu
 	cumulativeRewards := sdk.NewDecCoinsFromCoins(k.bankKeeper.GetAllBalances(ctx, derivedRewardAccount)...)
 
 	accountInfo := types.AccountInfo{
-		StakedPools:       updatedPools,
-		EarningsList:      earningsList,
-		CumulativeRewards: cumulativeRewards,
+		StakedPools:             updatedPools,
+		EarningsList:            earningsList,
+		CumulativeRewardAmounts: cumulativeRewards,
 	}
 
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, accountInfo)
