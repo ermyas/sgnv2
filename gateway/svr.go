@@ -1175,6 +1175,11 @@ func (gs *GatewayService) get24hTx() map[uint64]map[string]*txData {
 	return resp
 }
 
+type rewardRecord struct {
+	rwd   float64
+	token *types.Token
+}
+
 func (gs *GatewayService) getUnlockedCumulativeRewards(ctx context.Context, address string) ([]*webapi.Reward, error) {
 	tr := gs.tp.GetTransactor()
 	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
@@ -1189,28 +1194,30 @@ func (gs *GatewayService) getUnlockedCumulativeRewards(ctx context.Context, addr
 		log.Warnf("check failed, error:%+v", err)
 	} else {
 		rewardClaimInfo := res.GetRewardClaimInfo()
-		records := make(map[string]float64)
+		records := make(map[string]rewardRecord)
 		for _, detail := range rewardClaimInfo.GetRewardClaimDetailsList() {
 			rewardAmts := detail.GetCumulativeRewardAmounts()
 			for _, rewardAmt := range rewardAmts {
-				tokenSymbol, amt, _, parseErr := gs.getInfoFromFarmingReward(rewardAmt)
+				token, amt, _, parseErr := gs.getInfoFromFarmingReward(rewardAmt)
 				if parseErr != nil {
 					continue
 				}
-				records[tokenSymbol] += amt
+				r := records[token.Symbol]
+				r.rwd += amt
+				records[token.Symbol] = r
 			}
 		}
-		for tokenSymbol, amt := range records {
+		for _, rcd := range records {
 			rewards = append(rewards, &webapi.Reward{
-				Amt:         amt,
-				TokenSymbol: tokenSymbol,
+				Amt:   rcd.rwd,
+				Token: rcd.token,
 			})
 		}
 	}
 	return rewards, nil
 }
 
-func (gs *GatewayService) getInfoFromFarmingReward(reward sdk.DecCoin) (string, float64, float64, error) {
+func (gs *GatewayService) getInfoFromFarmingReward(reward sdk.DecCoin) (*types.Token, float64, float64, error) {
 	chainId, tokenSymbol, parseErr := farmingkp.ParseERC20TokenDenom(reward.GetDenom())
 	if parseErr != nil {
 		log.Errorf("parse token denom error, denom:%s, err:%+v", reward.GetDenom(), parseErr)
@@ -1226,7 +1233,7 @@ func (gs *GatewayService) getInfoFromFarmingReward(reward sdk.DecCoin) (string, 
 			amtInt = common.FloatToBigInt(amt)
 		}
 	}
-	return tokenSymbol, rwd, gs.f.GetUsdVolume(token, amtInt), parseErr
+	return token, rwd, gs.f.GetUsdVolume(token, amtInt), parseErr
 }
 
 func (gs *GatewayService) getHistoricalCumulativeRewards(ctx context.Context, address string) ([]*webapi.Reward, float64, error) {
@@ -1243,20 +1250,22 @@ func (gs *GatewayService) getHistoricalCumulativeRewards(ctx context.Context, ad
 	if res == nil || err != nil {
 		log.Warnf("check failed, error:%+v", err)
 	} else {
-		records := make(map[string]float64)
+		records := make(map[string]rewardRecord)
 		accountInfo := res.GetAccountInfo()
 		for _, reward := range accountInfo.GetCumulativeRewardAmounts() {
-			tokenSymbol, amt, volume, parseErr := gs.getInfoFromFarmingReward(reward)
+			token, amt, volume, parseErr := gs.getInfoFromFarmingReward(reward)
 			if parseErr != nil {
 				continue
 			}
-			records[tokenSymbol] += amt
+			r := records[token.Symbol]
+			r.rwd += amt
+			records[token.Symbol] = r
 			sumVolume += volume
 		}
-		for tokenSymbol, amt := range records {
+		for _, rcd := range records {
 			rewards = append(rewards, &webapi.Reward{
-				Amt:         amt,
-				TokenSymbol: tokenSymbol,
+				Amt:   rcd.rwd,
+				Token: rcd.token,
 			})
 
 		}

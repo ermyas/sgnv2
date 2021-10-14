@@ -372,7 +372,7 @@ message RewardingDataRequest {
 
 message Reward {
     double amt = 1;
-    string token_symbol = 2;
+    cbridge.v1.Token token = 2;
 }
 message RewardingDataResponse {
     ErrMsg err = 1;
