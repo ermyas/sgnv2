@@ -371,7 +371,7 @@ message RewardingDataRequest {
 }
 
 message Reward {
-    string amt = 1;
+    double amt = 1;
     string token_symbol = 2;
 }
 message RewardingDataResponse {

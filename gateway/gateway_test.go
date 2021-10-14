@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -510,5 +509,9 @@ func TestLPList(t *testing.T) {
 }
 
 func TestParse(t *testing.T) {
-	t.Log(strings.Replace("CB-USDT", "CB-", "", 1))
+	f, err := new(big.Float).SetString("10.1")
+	if !err {
+		t.Log("parse error")
+	}
+	t.Log(common.FloatToBigInt(f).String())
 }
