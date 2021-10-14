@@ -8,17 +8,18 @@ import (
 )
 
 func (d *DAL) GetTransfer(transferId string) (*Transfer, bool, error) {
-	q := `SELECT create_time, status, src_chain_id,dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt, refund_seq_num, usr_addr FROM transfer WHERE transfer_id = $1`
+	q := `SELECT create_time, update_time, status, src_chain_id, dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt, refund_seq_num, usr_addr FROM transfer WHERE transfer_id = $1`
 	var srcTxHash, dstTxHash, tokenSymbol, srcAmt, dstAmt, usrAddr string
 	var srcChainId, status, dstChainId, refundSeqNum uint64
-	var ct time.Time
-	err := d.QueryRow(q, transferId).Scan(&ct, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum, &usrAddr)
+	var ct, ut time.Time
+	err := d.QueryRow(q, transferId).Scan(&ct, &ut, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum, &usrAddr)
 	found, err := sqldb.ChkQueryRow(err)
 	return &Transfer{
 		TransferId:   transferId,
 		SrcChainId:   srcChainId,
 		DstChainId:   dstChainId,
 		CT:           ct,
+		UT:           ut,
 		SrcTxHash:    srcTxHash,
 		DstTxHash:    dstTxHash,
 		Status:       types.TransferHistoryStatus(int32(status)),
@@ -108,6 +109,7 @@ type Transfer struct {
 	DstAmt       string
 	TokenSymbol  string
 	CT           time.Time
+	UT           time.Time
 	Volume       float64
 	RefundSeqNum uint64
 	UsrAddr      string

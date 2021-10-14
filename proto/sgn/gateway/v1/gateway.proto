@@ -5,6 +5,7 @@ import "google/api/annotations.proto";
 import "sgn/cbridge/v1/query.proto";
 import "sgn/cbridge/v1/cbridge.proto";
 import "sgn/farming/v1/farming.proto";
+import "cosmos/base/v1beta1/coin.proto";
 
 option go_package = "github.com/celer-network/sgn-v2/gateway/webapi";
 
@@ -112,6 +113,12 @@ service Web {
     rpc LPHistory (LPHistoryRequest) returns (LPHistoryResponse) {
         option (google.api.http) = {
       get: "/v1/lpHistory"
+    };
+    }
+
+    rpc RewardingData (RewardingDataRequest) returns (RewardingDataResponse) {
+        option (google.api.http) = {
+      get: "/v1/rewardingData"
     };
     }
 }
@@ -234,13 +241,15 @@ message LPInfo {
     Chain chain = 1;
     TokenInfo token = 2;
     double liquidity = 3; // current liquidity of user in usd
-    bool has_farming_sessions = 4;
-    double lp_fee_earning = 5; // in usd
-    double farming_reward_earning = 6; // in usd
-    double volume_24h = 7; //gateway cal this based on local db
-    double total_liquidity = 8; // current liquidity of user in usd
-    double lp_fee_earning_apy = 9;
-    double farming_apy = 10;
+    string liquidity_amt = 4; // current liquidity of user in token
+    bool has_farming_sessions = 5;
+    double lp_fee_earning = 6; // in usd
+    double farming_reward_earning = 7; // in usd
+    double volume_24h = 8; //gateway cal this based on local db
+    double total_liquidity = 9; // total liquidity of user in usd
+    string total_liquidity_amt = 10; // total liquidity of user in token
+    double lp_fee_earning_apy = 11;
+    double farming_apy = 12;
 }
 message GetLPInfoListResponse {
     ErrMsg err = 1;
@@ -355,6 +364,21 @@ message LPHistoryResponse {
     repeated LPHistory history = 2;
     string next_page_token = 3;
     uint64 current_size = 4;
+}
+
+message RewardingDataRequest {
+    string addr = 1;
+}
+
+message Reward {
+    string amt = 1;
+    string token_symbol = 2;
+}
+message RewardingDataResponse {
+    ErrMsg err = 1;
+    double total_farming_rewards = 2;
+    repeated Reward historical_cumulative_rewards = 3;
+    repeated Reward unlocked_cumulative_rewards = 4;
 }
 
 message ErrMsg {

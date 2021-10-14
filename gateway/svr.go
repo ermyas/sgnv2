@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"time"
 
@@ -58,6 +59,23 @@ type GatewayService struct {
 	ec map[uint64]*ethclient.Client
 }
 
+func (gs *GatewayService) RewardingData(ctx context.Context, request *webapi.RewardingDataRequest) (*webapi.RewardingDataResponse, error) {
+	addr := common.Hex2Addr(request.GetAddr()).String()
+	unlockedCumulativeRewards, err := gs.getUnlockedCumulativeRewards(ctx, addr)
+	if err != nil {
+		log.Errorf("getUnlockedCumulativeRewards err:%+V", err)
+	}
+	historicalCumulativeRewards, totalVolunme, err := gs.getHistoricalCumulativeRewards(ctx, addr)
+	if err != nil {
+		log.Errorf("getHistoricalCumulativeRewards err:%+V", err)
+	}
+	return &webapi.RewardingDataResponse{
+		TotalFarmingRewards:         totalVolunme,
+		HistoricalCumulativeRewards: historicalCumulativeRewards,
+		UnlockedCumulativeRewards:   unlockedCumulativeRewards,
+	}, nil
+}
+
 func (gs *GatewayService) ClaimWithdrawReward(ctx context.Context, request *webapi.ClaimWithdrawRewardRequest) (*webapi.ClaimWithdrawRewardResponse, error) {
 	tr := gs.tp.GetTransactor()
 	_, err := farmingcli.ClaimAllRewards(tr, &farmingtypes.MsgClaimAllRewards{
@@ -86,7 +104,7 @@ func (gs *GatewayService) ClaimRewardDetails(ctx context.Context, request *webap
 		},
 	)
 	if res == nil || err != nil {
-		log.Errorf("check failed, error:%+v", err)
+		log.Warnf("check failed, error:%+v", err)
 		return &webapi.ClaimRewardDetailsResponse{
 			Err: &webapi.ErrMsg{
 				Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -107,7 +125,6 @@ func (gs *GatewayService) ClaimRewardDetails(ctx context.Context, request *webap
 		Details: claimDetails,
 	}, nil
 }
-
 func (gs *GatewayService) GetAdvancedInfo(ctx context.Context, request *webapi.GetAdvancedInfoRequest) (*webapi.GetAdvancedInfoResponse, error) {
 	addr := common.Hex2Addr(request.GetAddr()).String()
 	slippageSetting, found, err := dal.DB.GetSlippageSetting(addr)
@@ -156,6 +173,16 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 	transfer, found, err = dal.DB.GetTransfer(request.GetTransferId())
 	if found && err == nil && (transfer.Status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND || transfer.Status == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED) {
 		if transfer.RefundSeqNum > 0 {
+			if transfer.Status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND && time.Now().Add(-15*time.Minute).After(transfer.UT) {
+				tr := gs.tp.GetTransactor()
+				gs.signAgainWithdraw(&types.MsgSignAgain{
+					Creator:  tr.Key.GetAddress().String(),
+					ReqId:    transfer.RefundSeqNum,
+					UserAddr: common.Hex2Addr(transfer.UsrAddr).Bytes(),
+				})
+				// update db: refresh update_time, so that will sign again after 15 min
+				dal.DB.UpdateTransferStatus(transfer.TransferId, uint64(types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND))
+			}
 			detail, wdOnchain, sortedSigs, signers, powers = gs.getWithdrawInfo(transfer.RefundSeqNum, transfer.SrcChainId, transfer.UsrAddr)
 			if detail == nil {
 				return &webapi.GetTransferStatusResponse{
@@ -406,8 +433,6 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	if err != nil || detailList == nil || len(detailList.GetLiquidityDetail()) == 0 {
 		return &webapi.GetLPInfoListResponse{}, nil
 	}
-	stakingMap := gs.getUserStaking(ctx, userAddr)
-	farmingEarningMap := gs.getUserFarmingCumulativeEarnings(ctx, userAddr)
 	farmingApyMap := gs.getFarmingApy(ctx)
 	data24h := gs.get24hTx()
 	userDetailMap := make(map[uint64]map[string]*types.LiquidityDetail)
@@ -456,28 +481,38 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 				}
 				volume24h = data.volume
 			}
-			staking := stakingMap[chainId][token.Token.GetSymbol()]
-			hasSession := false
-			currentEarning := 0.0
-			if staking != nil {
-				hasSession = staking.numRewardTokens > 0
-				currentEarning = staking.currentEarnings
-			}
+			farmingApy, hasSession := farmingApyMap[chainId][token.Token.GetSymbol()]
 			lp := &webapi.LPInfo{
-				Chain:                chain,
-				Token:                token,
-				Liquidity:            gs.f.GetUsdVolume(token.Token, common.Str2BigInt(usrLiquidity)),
-				HasFarmingSessions:   hasSession,
-				LpFeeEarning:         gs.f.GetUsdVolume(token.Token, common.Str2BigInt(usrLpFeeEarning)),
-				FarmingRewardEarning: farmingEarningMap[chainId][token.Token.GetSymbol()] + currentEarning,
-				Volume_24H:           volume24h,
-				TotalLiquidity:       gs.f.GetUsdVolume(token.Token, common.Str2BigInt(totalLiquidity)),
-				LpFeeEarningApy:      lpFeeEarningApy,
-				FarmingApy:           farmingApyMap[chainId][token.Token.GetSymbol()],
+				Chain:              chain,
+				Token:              token,
+				Liquidity:          gs.f.GetUsdVolume(token.Token, common.Str2BigInt(usrLiquidity)),
+				LiquidityAmt:       usrLiquidity,
+				HasFarmingSessions: hasSession,
+				LpFeeEarning:       gs.f.GetUsdVolume(token.Token, common.Str2BigInt(usrLpFeeEarning)),
+				Volume_24H:         volume24h,
+				TotalLiquidity:     gs.f.GetUsdVolume(token.Token, common.Str2BigInt(totalLiquidity)),
+				TotalLiquidityAmt:  totalLiquidity,
+				LpFeeEarningApy:    lpFeeEarningApy,
+				FarmingApy:         farmingApy,
 			}
 			lps = append(lps, lp)
 		}
 	}
+	sort.SliceStable(lps, func(i, j int) bool {
+		if lps[i].HasFarmingSessions {
+			if lps[j].HasFarmingSessions {
+				return lps[i].GetVolume_24H() < lps[j].GetVolume_24H()
+			} else {
+				return false
+			}
+		} else {
+			if lps[j].HasFarmingSessions {
+				return true
+			} else {
+				return lps[i].GetVolume_24H() < lps[j].GetVolume_24H()
+			}
+		}
+	})
 	return &webapi.GetLPInfoListResponse{
 		LpInfo: lps,
 	}, nil
@@ -515,8 +550,8 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 }
 
 func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi.WithdrawLiquidityRequest) (*webapi.WithdrawLiquidityResponse, error) {
+	log.Debugf("WithdrawLiquidity req:%+v", request)
 	transferId := request.GetTransferId()
-	receiver := common.Hex2Addr(request.ReceiverAddr).Bytes()
 	tr := gs.tp.GetTransactor()
 	if transferId != "" {
 		// refund transfer
@@ -529,12 +564,14 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				},
 			}, nil
 		}
-		var seqNum uint64
+		seqNum := request.Reqid
+		receiver := common.Hex2Addr(transfer.UsrAddr).Bytes()
 		if transfer.RefundSeqNum > 0 {
+			// for sign again test only, not normal case
 			log.Debugf("signAgain for transfer:%s, seqNum:%d", transferId, transfer.RefundSeqNum)
 			seqNum, err = gs.signAgainWithdraw(&types.MsgSignAgain{
 				Creator:  tr.Key.GetAddress().String(),
-				ReqId:    transfer.RefundSeqNum,
+				ReqId:    seqNum,
 				UserAddr: receiver,
 			})
 		} else {
@@ -552,6 +589,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				Creator: tr.Key.GetAddress().String(),
 				ReqId:   request.Reqid,
 				UserSig: request.Sig,
+				LpAddr:  receiver,
 			})
 		}
 
@@ -630,7 +668,7 @@ func (gs *GatewayService) initWithdraw(req *types.MsgInitWithdraw) (uint64, erro
 
 func (gs *GatewayService) signAgainWithdraw(req *types.MsgSignAgain) (uint64, error) {
 	tr := gs.tp.GetTransactor()
-	log.Debugf("init withdraw, req:%+v", req)
+	log.Debugf("sign again, req:%+v", req)
 	_, err := cbrcli.SignAgain(tr, req)
 	return req.ReqId, err
 }
@@ -650,9 +688,9 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 	seqNum := request.GetSeqNum()
 	chainId := uint64(request.GetChainId())
 	lpType := uint64(request.GetType())
-	addr := common.Hex2Addr(request.GetLpAddr()).String()
+	addr := common.Hex2Addr(request.GetLpAddr())
 	tr := gs.tp.GetTransactor()
-	txHash, status, found, err := dal.DB.GetLPInfo(seqNum, lpType, chainId, addr)
+	txHash, status, lpUpdateTime, found, err := dal.DB.GetLPInfo(seqNum, lpType, chainId, addr.String())
 	if found && err == nil && status == uint64(types.LPHistoryStatus_LP_SUBMITTING) && txHash != "" {
 		ec := gs.ec[chainId]
 		if ec == nil {
@@ -663,7 +701,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 		receipt, recErr := ec.TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))
 		if recErr == nil && receipt.Status != ethtypes.ReceiptStatusSuccessful {
 			log.Warnf("find transfer failed, chain_id %d, hash:%s", chainId, txHash)
-			dbErr := dal.DB.UpdateLPStatus(seqNum, lpType, chainId, addr, uint64(types.LPHistoryStatus_LP_FAILED))
+			dbErr := dal.DB.UpdateLPStatus(seqNum, lpType, chainId, addr.String(), uint64(types.LPHistoryStatus_LP_FAILED))
 			if dbErr != nil {
 				log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", chainId, txHash)
 			} else {
@@ -679,7 +717,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 				SeqNum:  seqNum,
 			})
 			if resp != nil && err2 == nil {
-				_ = dal.DB.UpdateLPStatus(seqNum, lpType, chainId, addr, uint64(resp.Status))
+				_ = dal.DB.UpdateLPStatus(seqNum, lpType, chainId, addr.String(), uint64(resp.Status))
 				return &webapi.QueryLiquidityStatusResponse{
 					Status:     types.LPHistoryStatus(status),
 					WdOnchain:  nil,
@@ -696,14 +734,26 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 			SortedSigs: nil,
 		}
 		if status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN) || status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_LP) {
-			detail, wdOnchain, sortedSigs, signers, powers := gs.getWithdrawInfo(seqNum, chainId, addr)
-			resp.WdOnchain = wdOnchain
-			resp.SortedSigs = sortedSigs
-			resp.Signers = signers
-			resp.Powers = powers
-			if status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN) && detail.GetStatus() != resp.Status {
-				_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(detail.Status))
-				resp.Status = detail.GetStatus()
+			if status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN) && time.Now().Add(-15*time.Minute).After(lpUpdateTime) {
+				seqNum, err = gs.signAgainWithdraw(&types.MsgSignAgain{
+					Creator:  tr.Key.GetAddress().String(),
+					ReqId:    seqNum,
+					UserAddr: addr.Bytes(),
+				})
+				if err != nil {
+					// sign again failed, we will mark this tx as WAITING_FOR_SGN again and will check again after 15 min
+					_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN))
+				}
+			} else {
+				detail, wdOnchain, sortedSigs, signers, powers := gs.getWithdrawInfo(seqNum, chainId, addr.String())
+				resp.WdOnchain = wdOnchain
+				resp.SortedSigs = sortedSigs
+				resp.Signers = signers
+				resp.Powers = powers
+				if detail != nil && status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN) && detail.GetStatus() != resp.Status {
+					_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(detail.Status))
+					resp.Status = detail.GetStatus()
+				}
 			}
 		}
 		return resp, nil
@@ -1125,102 +1175,96 @@ func (gs *GatewayService) get24hTx() map[uint64]map[string]*txData {
 	return resp
 }
 
-type stakingInfo struct {
-	numRewardTokens int
-	currentEarnings float64
-}
-
-func (gs *GatewayService) getUserStaking(ctx context.Context, address string) map[uint64]map[string]*stakingInfo {
+func (gs *GatewayService) getUnlockedCumulativeRewards(ctx context.Context, address string) ([]*webapi.Reward, error) {
 	tr := gs.tp.GetTransactor()
 	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
-	accountInfoResp, err := queryClient.AccountInfo(
+	res, err := queryClient.RewardClaimInfo(
 		ctx,
-		&farmingtypes.QueryAccountInfoRequest{
-			Address: address,
+		&farmingtypes.QueryRewardClaimInfoRequest{
+			Address: common.Hex2Addr(address).String(),
 		},
 	)
-	log.Debugf("farming accountInfoResp:%+v", accountInfoResp)
-
-	stakingPools := make(map[uint64]map[string]*stakingInfo) // map<chain_id, map<token_symbol, FarmingPool>>
-	if err == nil && accountInfoResp != nil {
-		accountInfo := accountInfoResp.GetAccountInfo()
-		for i, pool := range accountInfo.StakedPools {
-			erc20Token := pool.GetStakeToken()
-			tokenSymbol := common.GetSymbolFromFarmingToken(erc20Token.GetSymbol())
-			currentEarnings := accountInfo.EarningsList[i]
-			log.Debugf("farming current earnings reqAddr:%s, reqPool:%s, Res:%+v", address, pool.GetName(), currentEarnings)
-			earnings := 0.0
-			for _, reward := range currentEarnings.GetRewardAmounts() {
-				amt, parseErr := gs.getInfoFromFarmingReward(reward)
+	var rewards []*webapi.Reward
+	if res == nil || err != nil {
+		log.Warnf("check failed, error:%+v", err)
+	} else {
+		rewardClaimInfo := res.GetRewardClaimInfo()
+		records := make(map[string]*big.Int)
+		for _, detail := range rewardClaimInfo.GetRewardClaimDetailsList() {
+			rewardAmts := detail.GetCumulativeRewardAmounts()
+			for _, rewardAmt := range rewardAmts {
+				_, tokenSymbol, amtStr, parseErr := gs.getInfoFromFarmingReward(rewardAmt)
 				if parseErr != nil {
 					continue
 				}
-				earnings += amt
-				log.Debugf("chain:%d, token:%s, earnings%.2f", erc20Token.GetChainId(), tokenSymbol, amt)
+				r, rf := records[tokenSymbol]
+				if !rf {
+					r = common.Str2BigInt("0")
+				}
+				records[tokenSymbol] = new(big.Int).Add(r, common.Str2BigInt(amtStr))
 			}
-
-			// return info
-			staking, found := stakingPools[erc20Token.ChainId]
-			if !found {
-				staking = make(map[string]*stakingInfo)
-			}
-			staking[tokenSymbol] = &stakingInfo{
-				numRewardTokens: len(pool.GetRewardTokenInfos()),
-				currentEarnings: earnings,
-			}
-			stakingPools[erc20Token.ChainId] = staking
+		}
+		for tokenSymbol, amt := range records {
+			rewards = append(rewards, &webapi.Reward{
+				Amt:         amt.String(),
+				TokenSymbol: tokenSymbol,
+			})
 		}
 	}
-	return stakingPools
+	return rewards, nil
 }
 
-func (gs *GatewayService) getInfoFromFarmingReward(reward sdk.DecCoin) (float64, error) {
+func (gs *GatewayService) getInfoFromFarmingReward(reward sdk.DecCoin) (uint64, string, string, error) {
 	chainId, tokenSymbol, parseErr := farmingkp.ParseERC20TokenDenom(reward.GetDenom())
 	if parseErr != nil {
 		log.Errorf("parse token denom error, denom:%s, err:%+v", reward.GetDenom(), parseErr)
 	}
 	tokenSymbol = common.GetSymbolFromFarmingToken(tokenSymbol)
-	token, found, dbErr := dal.DB.GetRewardTokenBySymbol(tokenSymbol, chainId)
-	if !found || dbErr != nil {
-		return 0, dbErr
-	}
-	return gs.f.GetUsdVolume(token, common.Str2BigInt(reward.Amount.String())), parseErr
+	return chainId, tokenSymbol, reward.Amount.String(), parseErr
 }
 
-func (gs *GatewayService) getUserFarmingCumulativeEarnings(ctx context.Context, address string) map[uint64]map[string]float64 {
+func (gs *GatewayService) getHistoricalCumulativeRewards(ctx context.Context, address string) ([]*webapi.Reward, float64, error) {
 	tr := gs.tp.GetTransactor()
 	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
-	accountInfoRes, err := queryClient.AccountInfo(
+	res, err := queryClient.AccountInfo(
 		ctx,
 		&farmingtypes.QueryAccountInfoRequest{
 			Address: address,
 		},
 	)
-	log.Debugf("farming getUserFarmingCumulativeEarnings accountInfoRes:%+v", accountInfoRes)
-	earnings := make(map[uint64]map[string]float64) // map<chain_id, map<token_symbol, earning>>
-	if accountInfoRes == nil || err != nil {
-		return earnings
-	}
-	for _, reward := range accountInfoRes.GetAccountInfo().CumulativeRewards {
-		chainId, tokenSymbol, parseErr := farmingkp.ParseERC20TokenDenom(reward.GetDenom())
-		if parseErr != nil {
-			log.Errorf("parse token denom error, denom:%s, err:%+v", reward.GetDenom(), parseErr)
-			continue
+	var rewards []*webapi.Reward
+	sumVolume := 0.0
+	if res == nil || err != nil {
+		log.Warnf("check failed, error:%+v", err)
+	} else {
+		records := make(map[string]*big.Int)
+		accountInfo := res.GetAccountInfo()
+		for _, reward := range accountInfo.GetCumulativeRewards() {
+			chainId, tokenSymbol, amtStr, parseErr := gs.getInfoFromFarmingReward(reward)
+			if parseErr != nil {
+				continue
+			}
+			r, rf := records[tokenSymbol]
+			if !rf {
+				r = common.Str2BigInt("0")
+			}
+			amt := common.Str2BigInt(amtStr)
+			records[tokenSymbol] = new(big.Int).Add(r, amt)
+			token, found, dbErr := dal.DB.GetTokenBySymbol(tokenSymbol, chainId)
+			if !found || dbErr != nil {
+				continue
+			}
+			sumVolume += gs.f.GetUsdVolume(token.Token, amt)
 		}
-		amt, parseErr := reward.Amount.Float64()
-		if parseErr != nil {
-			log.Errorf("parse reward amt error, amt:%s, err:%+v", reward.Amount.String(), parseErr)
-			continue
-		}
-		earning, found := earnings[chainId]
-		if !found {
-			earning = make(map[string]float64)
-		}
-		earning[tokenSymbol] += amt
-		earnings[chainId] = earning
-	}
+		for tokenSymbol, amt := range records {
+			rewards = append(rewards, &webapi.Reward{
+				Amt:         amt.String(),
+				TokenSymbol: tokenSymbol,
+			})
 
-	return earnings
+		}
+	}
+	return rewards, sumVolume, nil
 }
 
 // todo cache this @aric
