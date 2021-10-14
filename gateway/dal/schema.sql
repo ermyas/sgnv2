@@ -80,3 +80,9 @@ CREATE TABLE IF NOT EXISTS usr_slippage (
      addr TEXT PRIMARY KEY NOT NULL,
      slippage INT NOT NULL DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS claim_withdraw_reward_log (
+     usr_addr TEXT NOT NULL,
+     create_time TIMESTAMPTZ NOT NULL DEFAULT now(),
+     PRIMARY KEY (usr_addr, create_time)
+);

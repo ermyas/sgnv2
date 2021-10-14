@@ -174,6 +174,61 @@ func mockChian() {
 	dal.DB.UpsertChainInfo(883, "chain1", "test1", "url1")
 	dal.DB.UpsertChainInfo(884, "chain2", "test2", "url2")
 }
+func TestCampaign(t *testing.T) {
+	_db, err := dal.NewDAL("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", stSvr), 10)
+	errIsNil(t, err)
+
+	dal.DB = _db
+	usrAddr := "0x25846D545a60A029E5C83f0FB96e41b408528e9E"
+
+	err = dal.DB.InsertClaimWithdrawRewardLog(usrAddr)
+
+	score, err := dal.DB.CalcCampaignScore()
+	errIsNil(t, err)
+	if score[0].UsrAddr != usrAddr {
+		t.Errorf("usrAddr wrong")
+	}
+	if score[0].Score != 1 {
+		t.Errorf("Score wrong")
+	}
+
+	time.Sleep(2 * time.Second)
+
+	err = dal.DB.InsertClaimWithdrawRewardLog(usrAddr)
+
+	score, err = dal.DB.CalcCampaignScore()
+	errIsNil(t, err)
+	if score[0].UsrAddr != usrAddr {
+		t.Errorf("usrAddr wrong")
+	}
+	if score[0].Score != 2 {
+		t.Errorf("Score wrong")
+	}
+
+	err = dal.DB.InsertClaimWithdrawRewardLog(usrAddr)
+	err = dal.DB.InsertClaimWithdrawRewardLog(usrAddr)
+	err = dal.DB.InsertClaimWithdrawRewardLog(usrAddr)
+	err = dal.DB.InsertClaimWithdrawRewardLog(usrAddr)
+	q := `INSERT INTO claim_withdraw_reward_log (usr_addr, create_time)
+                VALUES ($1, $2)`
+	dal.DB.Exec(q, usrAddr, time.Now().Add(24*time.Hour))
+	q = `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
+	dal.DB.Exec(q, usrAddr, 33, "ddd", "ggg", "ggg", "ggg", time.Now(), time.Now(), 4, 1, 1)
+	q = `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
+	dal.DB.Exec(q, usrAddr, 33, "ddd", "ggg", "ggg", "ggg", time.Now(), time.Now(), 3, 1, 2)
+
+	score, err = dal.DB.CalcCampaignScore()
+	errIsNil(t, err)
+	if score[0].UsrAddr != usrAddr {
+		t.Errorf("usrAddr wrong")
+	}
+	if score[0].Score != 7 {
+		t.Errorf("Score wrong")
+	}
+
+}
 func TestTransfer(t *testing.T) {
 	svc := newTestSvc(t)
 	if svc == nil {

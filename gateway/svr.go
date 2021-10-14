@@ -90,6 +90,10 @@ func (gs *GatewayService) ClaimWithdrawReward(ctx context.Context, request *weba
 			},
 		}, nil
 	} else {
+		err := dal.DB.InsertClaimWithdrawRewardLog(request.GetAddr())
+		if err != nil {
+			log.Errorf("InsertClaimWithdrawRewardLog failed, error:%+v", err)
+		}
 		return &webapi.ClaimWithdrawRewardResponse{}, nil
 	}
 }
