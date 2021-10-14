@@ -59,7 +59,8 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 			return true // ask to recreate to process event again
 		}
 		log.Infof("transferId in Send event: %s", common.Hash(ev.TransferId).String())
-		err = GatewayOnSend(common.Hash(ev.TransferId).String())
+
+		err = GatewayOnSend(common.Hash(ev.TransferId).String(), ev.Sender.String(), ev.Token.String(), ev.Amount.String(), eLog.TxHash.String(), c.chainid, ev.DstChainId)
 		if err != nil {
 			log.Errorln("GatewayOnSend err:", err)
 		}

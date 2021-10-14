@@ -302,7 +302,7 @@ func TestTransfer(t *testing.T) {
 	errMsgIsNil(t, history.Err)
 	checkTransferStatus(t, history.History[0].GetStatus(), types.TransferHistoryStatus_TRANSFER_SUBMITTING)
 
-	err = relayer.GatewayOnSend(transferId)
+	err = relayer.GatewayOnSend(transferId, usrAddr, chainToken1.Token[0].Token.Symbol, srcAmt, srcTxHash, uint64(chain1), uint64(chain2))
 	errIsNil(t, err)
 	history, err = svc.TransferHistory(nil, &webapi.TransferHistoryRequest{
 		NextPageToken: "",

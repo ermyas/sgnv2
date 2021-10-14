@@ -306,7 +306,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 			if resp != nil && err2 == nil {
 				_ = dal.DB.UpdateLPStatus(seqNum, lpType, chainId, addr.String(), uint64(resp.Status))
 				return &webapi.QueryLiquidityStatusResponse{
-					Status:     types.LPHistoryStatus(status),
+					Status:     resp.Status,
 					WdOnchain:  nil,
 					Signers:    nil,
 					SortedSigs: nil,

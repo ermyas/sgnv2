@@ -166,6 +166,24 @@ func (d *DAL) GetTransferByRefundSeqNum(seqNum uint64) (string, bool, error) {
 	found, err := sqldb.ChkQueryRow(err)
 	return transferId, found, err
 }
+
+func (d *DAL) UpsertTransferOnSend(transferId, usrAddr, tokenAddr, amt, sendTxHash string, srcChainId, dsChainId uint64) error {
+	status := uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION)
+	token, tokenFound, tokenErr := GetTokenByAddr(tokenAddr, srcChainId)
+	if token == nil || !tokenFound || tokenErr != nil {
+		log.Errorf("token not found on send event, tokenAddr:%s, chainId:%d", tokenAddr, dsChainId)
+		updateErr := d.UpdateTransferStatus(transferId, status)
+		if updateErr != nil {
+			log.Errorf("try update transfer status but failed for transfer:%s, status:%d", transferId, status)
+		}
+		return updateErr
+	}
+	q := `INSERT INTO transfer (transfer_id, usr_addr, token_symbol, amt, src_chain_id, dst_chain_id, status, create_time, update_time, src_tx_hash)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT (transfer_id) DO UPDATE
+	SET amt=$4, status= $7, update_time=$9, src_tx_hash=$10`
+	res, err := d.Exec(q, transferId, usrAddr, token.Token.Symbol, amt, srcChainId, dsChainId, status, now(), now(), sendTxHash)
+	return sqldb.ChkExec(res, err, 1, "UpsertTransferOnSend")
+}
 func (d *DAL) TransferCompleted(transferId, txHash, dstTransferId, receivedAmt string) error {
 	status := uint64(types.TransferHistoryStatus_TRANSFER_COMPLETED)
 	q := `UPDATE transfer SET dst_tx_hash=$2, status=$3, update_time=$4, dst_transfer_id=$5, received_amt=$6 WHERE transfer_id=$1`
@@ -193,14 +211,6 @@ func (d *DAL) MarkTransferRequestingRefund(transferId string, withdrawSeqNum uin
 	q := `UPDATE transfer SET status=$2, update_time=$3, refund_seq_num=$4 WHERE transfer_id=$1`
 	res, err := d.Exec(q, transferId, status, now(), withdrawSeqNum)
 	return sqldb.ChkExec(res, err, 1, "MarkTransferRefund")
-}
-
-func (d *DAL) UpsertTransferOnSend(transferId, dstTransferId, usrAddr, tokenSymbol, amt, receivedAmt, sendTx string, srcChainId, dsChainId, status uint64, volume float64) error {
-	q := `INSERT INTO transfer (transfer_id, dst_transfer_id, usr_addr, token_symbol, amt, received_amt, src_chain_id, dst_chain_id, status, volume, create_time, update_time, src_tx_hash)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) ON CONFLICT (transfer_id) DO UPDATE
-	SET received_amt=$6, status= $7, update_time=$12, src_tx_hash=$13`
-	res, err := d.Exec(q, transferId, dstTransferId, usrAddr, tokenSymbol, amt, receivedAmt, srcChainId, dsChainId, status, volume, now(), now(), sendTx)
-	return sqldb.ChkExec(res, err, 1, "UpsertTransferOnSend")
 }
 
 func (d *DAL) UpsertSlippageSetting(addr string, slippage uint32) error {

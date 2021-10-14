@@ -96,11 +96,11 @@ func validateSigQuorum(sortedSigs []*cbrtypes.AddrSig, curss currentSigners) (pa
 	return false, nil
 }
 
-func GatewayOnSend(transferId string) error {
+func GatewayOnSend(transferId, usrAddr, tokenSymbol, amt, sendTxHash string, srcChainId, dsChainId uint64) error {
 	if dal.DB == nil {
 		return nil
 	}
-	return dal.UpdateTransferStatus(transferId, uint64(cbrtypes.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION))
+	return dal.UpsertTransferOnSend(transferId, usrAddr, tokenSymbol, amt, sendTxHash, srcChainId, dsChainId)
 }
 
 func GatewayOnRelay(transferId, txHash, dstTransferId, amt string) error {

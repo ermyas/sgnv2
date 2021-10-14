@@ -18,6 +18,15 @@ func UpdateTransferStatus(transferId string, status uint64) error {
 	}
 }
 
+// UpsertTransferOnSend update api
+func UpsertTransferOnSend(transferId, usrAddr, tokenSymbol, amt, sendTxHash string, srcChainId, dsChainId uint64) error {
+	if DB == nil {
+		return nil
+	} else {
+		return DB.UpsertTransferOnSend(transferId, usrAddr, tokenSymbol, amt, sendTxHash, srcChainId, dsChainId)
+	}
+}
+
 // UpdateTransferRelayedStatus update api
 // called by relayer when relay tx sent successfully
 func UpdateTransferRelayedStatus(transferId, txHash string) error {
