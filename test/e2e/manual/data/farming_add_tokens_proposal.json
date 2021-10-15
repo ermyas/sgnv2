@@ -1,0 +1,19 @@
+{
+  "title": "Add USDT/1 and USDC/5",
+  "description": "Add USDT on Ethereum and USDC on Goerli",
+  "tokens": [
+    {
+      "chain_id": 1,
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    {
+      "chain_id": 5,
+      "symbol": "USDC",
+      "address": "0xCbE56b00d173A26a5978cE90Db2E33622fD95A28",
+      "decimals": 6
+    }
+  ],
+  "deposit": "10000000CELR/stake"
+}

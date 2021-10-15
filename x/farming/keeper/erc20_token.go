@@ -28,6 +28,21 @@ func (k Keeper) GetERC20Token(ctx sdk.Context, chainId uint64, symbol string) (t
 	return token, true
 }
 
+// GetERC20Tokens gets all supported tokens
+func (k Keeper) GetERC20Tokens(ctx sdk.Context) (tokens types.ERC20Tokens) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.ERC20TokenPrefix)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		var token types.ERC20Token
+		k.cdc.MustUnmarshal(iterator.Value(), &token)
+		tokens = append(tokens, token)
+	}
+
+	return
+}
+
 func (k Keeper) HasERC20Token(ctx sdk.Context, chainId uint64, symbol string) bool {
 	store := ctx.KVStore(k.storeKey)
 	return store.Has(types.GetERC20TokenKey(chainId, symbol))

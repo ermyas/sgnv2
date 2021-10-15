@@ -58,6 +58,37 @@ func (k Keeper) Pool(c context.Context, req *types.QueryPoolRequest) (*types.Que
 	return &types.QueryPoolResponse{Pool: updatedPool}, nil
 }
 
+// Tokens queries all the tokens.
+func (k Keeper) Tokens(c context.Context, req *types.QueryTokensRequest) (*types.QueryTokensResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	ctx := sdk.UnwrapSDKContext(c)
+
+	tokens := k.GetERC20Tokens(ctx)
+	return &types.QueryTokensResponse{Tokens: tokens}, nil
+}
+
+// Token queries a single token.
+func (k Keeper) Token(c context.Context, req *types.QueryTokenRequest) (*types.QueryTokenResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	if req.ChainId == 0 {
+		return nil, status.Error(codes.InvalidArgument, "invalid chain ID")
+	}
+	if req.Symbol == "" {
+		return nil, status.Error(codes.InvalidArgument, "empty symbol")
+	}
+	ctx := sdk.UnwrapSDKContext(c)
+
+	token, found := k.GetERC20Token(ctx, req.ChainId, req.Symbol)
+	if !found {
+		return nil, status.Errorf(codes.NotFound, "token %s/%d not found", req.Symbol, req.ChainId)
+	}
+	return &types.QueryTokenResponse{Token: token}, nil
+}
+
 // Earnings queries the current earnings of an account in a pool.
 func (k Keeper) Earnings(c context.Context, req *types.QueryEarningsRequest) (*types.QueryEarningsResponse, error) {
 	if req == nil {

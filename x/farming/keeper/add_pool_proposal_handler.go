@@ -37,7 +37,10 @@ func HandleAddPoolProposal(ctx sdk.Context, k Keeper, p *types.AddPoolProposal) 
 	for _, initialRewardInput := range p.InitialRewardInputs {
 		truncatedAddAmount, _ := initialRewardInput.AddAmount.TruncateDecimal()
 		// Mint reward
-		k.bankKeeper.MintCoins(ctx, types.RewardModuleAccountName, sdk.NewCoins(truncatedAddAmount))
+		mintErr := k.bankKeeper.MintCoins(ctx, types.RewardModuleAccountName, sdk.NewCoins(truncatedAddAmount))
+		if mintErr != nil {
+			return types.WrapErrMintCoinsFailed(mintErr.Error())
+		}
 		rewardTokenInfo := types.RewardTokenInfo{
 			RemainingAmount:        sdk.NewDecCoinFromCoin(truncatedAddAmount),
 			RewardStartBlockHeight: ctx.BlockHeight() + initialRewardInput.RewardStartBlockDelay,
@@ -88,7 +91,8 @@ func (k Keeper) CheckAddPoolProposal(ctx sdk.Context, p *types.AddPoolProposal) 
 				len(p.InitialRewardInputs),
 			))
 	}
-	// 2.2. Check reward token denoms match
+	// 2.2. Check reward token denoms match and sorted by ascending denom
+	lastDenom := ""
 	for i, rewardToken := range p.RewardTokens {
 		denom1 := DeriveERC20TokenDenom(rewardToken.ChainId, rewardToken.Symbol)
 		denom2 := p.InitialRewardInputs[i].AddAmount.Denom
@@ -96,6 +100,11 @@ func (k Keeper) CheckAddPoolProposal(ctx sdk.Context, p *types.AddPoolProposal) 
 			return types.WrapErrInvalidInput(
 				fmt.Sprintf("reward token denoms mismatch: %s vs %s", denom1, denom2))
 		}
+		if denom1 <= lastDenom {
+			return types.WrapErrInvalidInput(
+				fmt.Sprintf("reward token denoms out-of-order: %s vs %s", lastDenom, denom1))
+		}
+		lastDenom = denom1
 	}
 	return nil
 }

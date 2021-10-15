@@ -6,7 +6,9 @@ import (
 	govcli "github.com/celer-network/sgn-v2/x/gov/client"
 )
 
+// Aliases for gov NewProposalHandler
 var (
-	// AddPoolProposalHandler alias gov NewProposalHandler
-	AddPoolProposalHandler = govcli.NewProposalHandler(cli.GetCmdSubmitAddPoolProposal, rest.AddPoolProposalRESTHandler)
+	AddPoolProposalHandler      = govcli.NewProposalHandler(cli.GetCmdSubmitAddPoolProposal, rest.AddPoolProposalRESTHandler)
+	AddTokensProposalHandler    = govcli.NewProposalHandler(cli.GetCmdSubmitAddTokensProposal, rest.AddTokensProposalRESTHandler)
+	AdjustRewardProposalHandler = govcli.NewProposalHandler(cli.GetCmdSubmitAdjustRewardProposal, rest.AdjustRewardProposalRESTHandler)
 )

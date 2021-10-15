@@ -22,3 +22,35 @@ func ParseAddPoolProposalWithDeposit(cdc codec.JSONCodec, proposalFile string) (
 
 	return proposal, nil
 }
+
+// ParseAddTokensProposalWithDeposit reads and parses an AddTokensProposalWithDeposit from a JSON file.
+func ParseAddTokensProposalWithDeposit(cdc codec.JSONCodec, proposalFile string) (
+	types.AddTokensProposalWithDeposit, error) {
+	proposal := types.AddTokensProposalWithDeposit{}
+
+	contents, err := ioutil.ReadFile(proposalFile)
+	if err != nil {
+		return proposal, err
+	}
+	if err = cdc.UnmarshalJSON(contents, &proposal); err != nil {
+		return proposal, err
+	}
+
+	return proposal, nil
+}
+
+// ParseAdjustRewardProposalWithDeposit reads and parses an AdjustRewardProposalWithDeposit from a JSON file.
+func ParseAdjustRewardProposalWithDeposit(cdc codec.JSONCodec, proposalFile string) (
+	types.AdjustRewardProposalWithDeposit, error) {
+	proposal := types.AdjustRewardProposalWithDeposit{}
+
+	contents, err := ioutil.ReadFile(proposalFile)
+	if err != nil {
+		return proposal, err
+	}
+	if err = cdc.UnmarshalJSON(contents, &proposal); err != nil {
+		return proposal, err
+	}
+
+	return proposal, nil
+}

@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -28,6 +29,8 @@ func GetQueryCmd() *cobra.Command {
 		GetCmdQueryParams(),
 		GetCmdQueryPool(),
 		GetCmdQueryPools(),
+		GetCmdQueryToken(),
+		GetCmdQueryTokens(),
 		GetCmdQueryNumPools(),
 		GetCmdQueryStakeInfo(),
 		GetCmdQueryEarnings(),
@@ -121,6 +124,79 @@ $ %s query farming pools
 			res, err := queryClient.Pools(
 				cmd.Context(),
 				&types.QueryPoolsRequest{},
+			)
+			if err != nil {
+				return err
+			}
+			return cliCtx.PrintProto(res)
+		},
+	}
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
+}
+
+// GetCmdQueryToken gets the token query command.
+func GetCmdQueryToken() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "token [chain-id] [symbol]",
+		Short: "query a token",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query the info about a token.
+
+Example:
+$ %s query farming token 1 DAI
+`,
+				version.AppName,
+			),
+		),
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			chainId, err := strconv.ParseUint(args[0], 10, 64)
+			if err != nil {
+				return err
+			}
+			queryClient := types.NewQueryClient(cliCtx)
+			res, err := queryClient.Token(
+				cmd.Context(),
+				&types.QueryTokenRequest{ChainId: chainId, Symbol: args[1]},
+			)
+			if err != nil {
+				return err
+			}
+			return cliCtx.PrintProto(&res.Token)
+		},
+	}
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
+}
+
+// GetCmdQueryTokens gets the tokens query command.
+func GetCmdQueryTokens() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "tokens",
+		Short: "query all tokens",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query the info about all tokens.
+
+Example:
+$ %s query farming tokens
+`,
+				version.AppName,
+			),
+		),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			queryClient := types.NewQueryClient(cliCtx)
+			res, err := queryClient.Tokens(
+				cmd.Context(),
+				&types.QueryTokensRequest{},
 			)
 			if err != nil {
 				return err

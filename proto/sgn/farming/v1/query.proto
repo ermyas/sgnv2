@@ -26,6 +26,16 @@ service Query {
     option (google.api.http).get = "/sgn/farming/v1/pool/{pool_name}";
   }
 
+  // Tokens queries the info of all supported tokens.
+  rpc Tokens(QueryTokensRequest) returns (QueryTokensResponse) {
+    option (google.api.http).get = "/sgn/farming/v1/tokens";
+  }
+
+  // Token queries the info of a single token.
+  rpc Token(QueryTokenRequest) returns (QueryTokenResponse) {
+    option (google.api.http).get = "/sgn/farming/v1/token/{chain_id}/{symbol}";
+  }
+
   // Earnings queries the current earnings of an account in a pool.
   rpc Earnings(QueryEarningsRequest) returns (QueryEarningsResponse) {
     option (google.api.http).get = "/sgn/farming/v1/earnings/{pool_name}/{address}";
@@ -93,6 +103,38 @@ message QueryPoolRequest {
 message QueryPoolResponse {
   // pool defines the current state of the farming pool.
   FarmingPool pool = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryTokensRequest is the request type for the
+// Query/Tokens RPC method.
+message QueryTokensRequest {
+  // TODO: Support pagination
+}
+
+// QueryTokensResponse is the response type for the
+// Query/Tokens RPC method.
+message QueryTokensResponse {
+  // tokens defines the info of all the tokens.
+  repeated ERC20Token tokens = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryTokenRequest is the request type for the
+// Query/Token RPC method.
+message QueryTokenRequest {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // chain_id defines the chain ID of the token to query for.
+  uint64 chain_id = 1;
+  // symbol defines the symbol of the token to query for.
+  string symbol = 2;
+}
+
+// QueryTokenResponse is the response type for the
+// Query/Token RPC method.
+message QueryTokenResponse {
+  // token defines the token info.
+  ERC20Token token = 1 [(gogoproto.nullable) = false];
 }
 
 // QueryEarningsRequest is the request type for the

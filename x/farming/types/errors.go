@@ -9,26 +9,27 @@ import (
 var (
 	ErrInvalidInput                       = sdkerrors.Register(ModuleName, 601, "invalid input")
 	ErrPoolAlreadyExist                   = sdkerrors.Register(ModuleName, 602, "pool already exists")
-	ErrNoFarmingPoolFound                 = sdkerrors.Register(ModuleName, 603, "no farming pool found")
+	ErrPoolNotExist                       = sdkerrors.Register(ModuleName, 603, "pool not exist")
 	ErrNoStakeInfoFound                   = sdkerrors.Register(ModuleName, 604, "no stake info found")
-	ErrTokenNotExist                      = sdkerrors.Register(ModuleName, 605, "token not exist")
-	ErrPoolNotFinished                    = sdkerrors.Register(ModuleName, 606, "pool not finished")
-	ErrUnexpectedProposalType             = sdkerrors.Register(ModuleName, 607, "unexpected proposal type")
-	ErrInvalidAddress                     = sdkerrors.Register(ModuleName, 608, "invalid address")
-	ErrInvalidDenom                       = sdkerrors.Register(ModuleName, 609, "invalid denom")
-	ErrSendCoinsFromAccountToModuleFailed = sdkerrors.Register(ModuleName, 610, "send coins from account to module failed")
-	ErrUnknownFarmingMsgType              = sdkerrors.Register(ModuleName, 611, "unknown farming msg type")
-	ErrUnknownFarmingQueryType            = sdkerrors.Register(ModuleName, 612, "unknown farming query type")
-	ErrInvalidInputAmount                 = sdkerrors.Register(ModuleName, 613, "invalid input amount")
-	ErrInsufficientAmount                 = sdkerrors.Register(ModuleName, 614, "insufficient amount")
-	ErrInvalidStartHeight                 = sdkerrors.Register(ModuleName, 615, "invalid start height")
-	ErrPoolNameLength                     = sdkerrors.Register(ModuleName, 616, "invalid pool name length")
-	ErrSendCoinsFromModuleToAccountFailed = sdkerrors.Register(ModuleName, 617, "send coins from module to account failed")
-	ErrMintCoinsFailed                    = sdkerrors.Register(ModuleName, 618, "mint coins failed")
-	ErrBurnCoinsFailed                    = sdkerrors.Register(ModuleName, 619, "burn coins failed")
-	ErrInvalidSig                         = sdkerrors.Register(ModuleName, 620, "invalid signature")
-	ErrClaimCooldownNotPassed             = sdkerrors.Register(ModuleName, 621, "claim cooldown not passed")
-	ErrNoClaimInfoFound                   = sdkerrors.Register(ModuleName, 622, "no claim info found")
+	ErrTokenAlreadyExist                  = sdkerrors.Register(ModuleName, 605, "token already exists")
+	ErrTokenNotExist                      = sdkerrors.Register(ModuleName, 606, "token not exist")
+	ErrPoolNotFinished                    = sdkerrors.Register(ModuleName, 607, "pool not finished")
+	ErrUnexpectedProposalType             = sdkerrors.Register(ModuleName, 608, "unexpected proposal type")
+	ErrInvalidAddress                     = sdkerrors.Register(ModuleName, 609, "invalid address")
+	ErrInvalidDenom                       = sdkerrors.Register(ModuleName, 610, "invalid denom")
+	ErrSendCoinsFromAccountToModuleFailed = sdkerrors.Register(ModuleName, 611, "send coins from account to module failed")
+	ErrUnknownFarmingMsgType              = sdkerrors.Register(ModuleName, 612, "unknown farming msg type")
+	ErrUnknownFarmingQueryType            = sdkerrors.Register(ModuleName, 613, "unknown farming query type")
+	ErrInvalidInputAmount                 = sdkerrors.Register(ModuleName, 614, "invalid input amount")
+	ErrInsufficientAmount                 = sdkerrors.Register(ModuleName, 615, "insufficient amount")
+	ErrInvalidStartHeight                 = sdkerrors.Register(ModuleName, 616, "invalid start height")
+	ErrPoolNameLength                     = sdkerrors.Register(ModuleName, 617, "invalid pool name length")
+	ErrSendCoinsFromModuleToAccountFailed = sdkerrors.Register(ModuleName, 618, "send coins from module to account failed")
+	ErrMintCoinsFailed                    = sdkerrors.Register(ModuleName, 619, "mint coins failed")
+	ErrBurnCoinsFailed                    = sdkerrors.Register(ModuleName, 620, "burn coins failed")
+	ErrInvalidSig                         = sdkerrors.Register(ModuleName, 621, "invalid signature")
+	ErrClaimCooldownNotPassed             = sdkerrors.Register(ModuleName, 622, "claim cooldown not passed")
+	ErrNoClaimInfoFound                   = sdkerrors.Register(ModuleName, 623, "no claim info found")
 )
 
 // WrapErrInvalidInput returns an error when an input parameter is invalid
@@ -41,9 +42,9 @@ func WrapErrPoolAlreadyExist(poolName string) error {
 	return sdkerrors.Wrapf(ErrPoolAlreadyExist, "farming pool %s already exists", poolName)
 }
 
-// WrapErrNoFarmingPoolFound returns an error when a farming pool doesn't exist
-func WrapErrNoFarmingPoolFound(poolName string) error {
-	return sdkerrors.Wrapf(ErrNoFarmingPoolFound, "farming pool %s does not exist", poolName)
+// WrapErrPoolNotExist returns an error when a farming pool doesn't exist
+func WrapErrPoolNotExist(poolName string) error {
+	return sdkerrors.Wrapf(ErrPoolNotExist, "farming pool %s does not exist", poolName)
 }
 
 // WrapErrNoStakeInfoFound returns an error when an address doesn't have any stake infos
@@ -51,7 +52,12 @@ func WrapErrNoStakeInfoFound(addr string, pool string) error {
 	return sdkerrors.Wrapf(ErrNoStakeInfoFound, "%s has no stake in pool %s", addr, pool)
 }
 
-// WrapErrTokenNotExist returns an error when a token not exists
+// WrapErrTokenAlreadyExist returns an error when a token already exists
+func WrapErrTokenAlreadyExist(tokenName string) error {
+	return sdkerrors.Wrapf(ErrTokenAlreadyExist, "token %s already exists", tokenName)
+}
+
+// WrapErrTokenNotExist returns an error when a token doesn't exist
 func WrapErrTokenNotExist(tokenName string) error {
 	return sdkerrors.Wrapf(ErrTokenNotExist, "token %s does not exist", tokenName)
 }

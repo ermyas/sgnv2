@@ -109,7 +109,7 @@ func (k msgServer) claimOnePool(
 	// 1. Get the pool info
 	pool, poolFound := k.GetFarmingPool(ctx, poolName)
 	if !poolFound {
-		return types.WrapErrNoFarmingPoolFound(poolName)
+		return types.WrapErrPoolNotExist(poolName)
 	}
 
 	// 2. Calculate how many reward tokens can be earned in the current period

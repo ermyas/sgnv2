@@ -16,7 +16,7 @@ func (k Keeper) GetEarnings(ctx sdk.Context, poolName string, addr eth.Addr) (ty
 
 	pool, found := k.GetFarmingPool(ctx, poolName)
 	if !found {
-		return earnings, types.WrapErrNoFarmingPoolFound(poolName)
+		return earnings, types.WrapErrPoolNotExist(poolName)
 	}
 
 	// 1.1 Calculate how many reward tokens have been earned between start block height and current height

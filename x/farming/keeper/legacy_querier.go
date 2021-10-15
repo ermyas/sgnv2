@@ -62,7 +62,7 @@ func queryPool(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCd
 
 	pool, found := k.GetFarmingPool(ctx, params.PoolName)
 	if !found {
-		return nil, types.WrapErrNoFarmingPoolFound(params.PoolName)
+		return nil, types.WrapErrPoolNotExist(params.PoolName)
 	}
 
 	updatedPool, _ := k.CalculateAmountEarnedBetween(ctx, pool)

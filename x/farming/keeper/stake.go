@@ -17,7 +17,7 @@ func (k Keeper) Stake(
 	// 1.1 Get farming pool
 	pool, found := k.GetFarmingPool(ctx, poolName)
 	if !found {
-		return types.WrapErrNoFarmingPoolFound(poolName)
+		return types.WrapErrPoolNotExist(poolName)
 	}
 	// 1.2. Check stake token denom
 	stakeTokenDenom := DeriveERC20TokenDenom(pool.StakeToken.ChainId, pool.StakeToken.Symbol)
@@ -109,7 +109,7 @@ func (k Keeper) Unstake(
 	// 1.2. Get the pool info
 	pool, poolFound := k.GetFarmingPool(ctx, poolName)
 	if !poolFound {
-		return types.WrapErrNoFarmingPoolFound(poolName)
+		return types.WrapErrPoolNotExist(poolName)
 	}
 	stakeTokenDenom := DeriveERC20TokenDenom(pool.StakeToken.ChainId, pool.StakeToken.Symbol)
 	if stakeTokenDenom != amount.Denom {

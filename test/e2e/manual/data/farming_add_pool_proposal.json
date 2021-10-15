@@ -1,6 +1,6 @@
 {
-  "title": "add a farming pool",
-  "description": "add a CBridge farming pool for DAI on Ethereum",
+  "title": "Add cbridge-DAI/1 pool",
+  "description": "Add a CBridge farming pool for DAI on Ethereum",
   "pool_name": "cbridge-DAI/1",
   "stake_token": {
     "chain_id": 1,
