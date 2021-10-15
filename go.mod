@@ -6,7 +6,7 @@ require (
 	github.com/allegro/bigcache v1.2.1
 	github.com/armon/go-metrics v0.3.9
 	github.com/celer-network/goutils v0.1.36
-	github.com/cosmos/cosmos-sdk v0.44.1
+	github.com/cosmos/cosmos-sdk v0.44.2
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/deckarep/golang-set v1.7.1
 	github.com/ethereum/go-ethereum v1.10.8
@@ -17,7 +17,6 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.6.0 // indirect
 	github.com/iancoleman/strcase v0.1.0
 	github.com/lthibault/jitterbug v2.0.0+incompatible
 	github.com/miguelmota/go-solidity-sha3 v0.1.1

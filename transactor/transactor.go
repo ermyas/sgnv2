@@ -26,17 +26,16 @@ import (
 )
 
 const (
-	maxTxRetry      = 15
-	maxTxQueryRetry = 30
-	txRetryDelay    = 1 * time.Second
-	maxSignRetry    = 10
-	signRetryDelay  = 100 * time.Millisecond
-	maxSeqRetry     = 10
-	seqRetryDelay   = 1 * time.Second
-	maxGasRetry     = 5
+	maxTxRetry        = 15
+	maxTxQueryRetry   = 30
+	txRetryDelay      = 1 * time.Second
+	maxSignRetry      = 10
+	signRetryDelay    = 100 * time.Millisecond
+	maxWaitMinedRetry = 5
 )
 
-var errGasCode = fmt.Errorf("code 11")
+var errGasCode = fmt.Errorf("code %d", sdkerrors.ErrOutOfGas.ABCICode())
+var errSeqCode = fmt.Errorf("code %d", sdkerrors.ErrWrongSequence.ABCICode())
 
 type Transactor struct {
 	TxFactory  clienttx.Factory
@@ -194,11 +193,6 @@ func (t *Transactor) SendTxMsgsWaitMined(msgs []sdk.Msg) (*sdk.TxResponse, error
 			logEntry.TxHash = txResponse.TxHash
 		}
 		if err != nil {
-			if strings.Contains(err.Error(), "account sequence mismatch") && retryNum < maxSeqRetry {
-				time.Sleep(seqRetryDelay)
-				retryNum++
-				continue
-			}
 			logEntry.Error = append(logEntry.Error, err.Error())
 			logEntry.Status = seal.TxMsgStatus_FAILED
 			seal.CommitTransactorLog(logEntry)
@@ -214,9 +208,12 @@ func (t *Transactor) SendTxMsgsWaitMined(msgs []sdk.Msg) (*sdk.TxResponse, error
 			logEntry.GasUsed = txResponse.GasUsed
 		}
 		if err != nil {
-			if errors.Is(err, errGasCode) && retryNum < maxGasRetry {
+			if errors.Is(err, errGasCode) && retryNum < maxWaitMinedRetry {
 				gas = uint64(txResponse.GasUsed) * 2
-				logEntry.Warn = append(logEntry.Warn, err.Error()+". retry...")
+				logEntry.Warn = append(logEntry.Warn, err.Error()+". will retry...")
+				retry = true
+			} else if errors.Is(err, errSeqCode) && retryNum < maxWaitMinedRetry {
+				logEntry.Warn = append(logEntry.Warn, err.Error()+". will retry...")
 				retry = true
 			} else {
 				logEntry.Error = append(logEntry.Error, err.Error())
@@ -241,6 +238,11 @@ func (t *Transactor) sendTxMsgs(msgs []sdk.Msg, gas uint64) (*sdk.TxResponse, er
 	for try := 0; try < maxTxRetry; try++ {
 		txBytes, err := t.buildAndSignTx(msgs, gas)
 		if err != nil {
+			if strings.Contains(err.Error(), "account sequence mismatch") && try < maxTxRetry-1 {
+				log.Debugln(err, "will retry")
+				time.Sleep(txRetryDelay)
+				continue
+			}
 			return nil, fmt.Errorf("buildAndSignTx err: %w", err)
 		}
 		txResponse, err := t.CliCtx.BroadcastTx(txBytes)
@@ -254,8 +256,8 @@ func (t *Transactor) sendTxMsgs(msgs []sdk.Msg, gas uint64) (*sdk.TxResponse, er
 
 		txResponseErr = fmt.Errorf("BroadcastTx failed with code: %d, rawLog: %s, acct: %s",
 			txResponse.Code, txResponse.RawLog, t.Key.GetAddress())
-		if txResponse.Code == sdkerrors.ErrUnauthorized.ABCICode() {
-			log.Warnln(txResponseErr.Error(), "retrying")
+		if txResponse.Code == sdkerrors.ErrWrongSequence.ABCICode() && try < maxTxRetry-1 {
+			log.Debugln(txResponseErr.Error(), "will retry")
 			time.Sleep(txRetryDelay)
 		} else {
 			return txResponse, txResponseErr
@@ -323,8 +325,10 @@ func (t *Transactor) waitMined(txHash string) (*sdk.TxResponse, error) {
 	if !mined {
 		return txResponse, fmt.Errorf("tx not mined, err: %w", err)
 	} else if txResponse.Code != sdkerrors.SuccessABCICode {
-		if txResponse.Code == 11 { // out of gas
+		if txResponse.Code == sdkerrors.ErrOutOfGas.ABCICode() { // out of gas
 			return txResponse, fmt.Errorf("tx failed with %w, %s", errGasCode, txResponse.RawLog)
+		} else if txResponse.Code == sdkerrors.ErrWrongSequence.ABCICode() {
+			return txResponse, fmt.Errorf("tx failed with %w, %s", errSeqCode, txResponse.RawLog)
 		} else {
 			return txResponse, fmt.Errorf("tx failed with code %d, %s", txResponse.Code, txResponse.RawLog)
 		}
