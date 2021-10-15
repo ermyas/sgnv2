@@ -85,12 +85,12 @@ $ %s ops sync signers --chainid=883 --txhash="xxxxx"
 
 			// check in store
 			storedChainSigners, err := cbrcli.QueryChainSigners(cliCtx, chainId)
-			if err != nil {
+			if err != nil && !strings.Contains(err.Error(), "record not found") {
 				log.Errorf("QueryChainSigners err: %s", err)
 				return err
 			}
 
-			if relayer.EqualSigners(storedChainSigners.GetSortedSigners(), ev) {
+			if storedChainSigners != nil && relayer.EqualSigners(storedChainSigners.GetSortedSigners(), ev) {
 				log.Infof("Signers already updated")
 				return nil
 			}
@@ -142,7 +142,7 @@ $ %s ops sync signers --chainid=883 --txhash="xxxxx"
 				Data:       data,
 			})
 
-			txr.AddTxMsg(msg)
+			txr.CliSendTxMsgWaitMined(msg)
 
 			return nil
 		},
