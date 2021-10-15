@@ -41,9 +41,10 @@ func (c *CbrOneChain) startMon() {
 
 func (c *CbrOneChain) monSend(blk *big.Int) {
 	cfg := &monitor.Config{
-		EventName:  cbrtypes.CbrEventSend,
-		Contract:   c.contract,
-		StartBlock: blk,
+		EventName:    cbrtypes.CbrEventSend,
+		Contract:     c.contract,
+		StartBlock:   blk,
+		ForwardDelay: c.forwardBlkDelay,
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.contract.ParseSend(eLog)
@@ -70,9 +71,10 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 
 func (c *CbrOneChain) monRelay(blk *big.Int) {
 	cfg := &monitor.Config{
-		EventName:  cbrtypes.CbrEventRelay,
-		Contract:   c.contract,
-		StartBlock: blk,
+		EventName:    cbrtypes.CbrEventRelay,
+		Contract:     c.contract,
+		StartBlock:   blk,
+		ForwardDelay: c.forwardBlkDelay,
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.contract.ParseRelay(eLog)
@@ -96,9 +98,10 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 
 func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 	cfg := &monitor.Config{
-		EventName:  cbrtypes.CbrEventLiqAdd,
-		Contract:   c.contract,
-		StartBlock: blk,
+		EventName:    cbrtypes.CbrEventLiqAdd,
+		Contract:     c.contract,
+		StartBlock:   blk,
+		ForwardDelay: c.forwardBlkDelay,
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.contract.ParseLiquidityAdded(eLog)
@@ -129,9 +132,10 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 
 func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 	cfg := &monitor.Config{
-		EventName:  cbrtypes.CbrEventWithdraw,
-		Contract:   c.contract,
-		StartBlock: blk,
+		EventName:    cbrtypes.CbrEventWithdraw,
+		Contract:     c.contract,
+		StartBlock:   blk,
+		ForwardDelay: c.forwardBlkDelay,
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.contract.ParseWithdrawDone(eLog)
@@ -153,9 +157,10 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 
 func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 	cfg := &monitor.Config{
-		EventName:  cbrtypes.CbrEventSignersUpdated,
-		Contract:   c.contract,
-		StartBlock: blk,
+		EventName:    cbrtypes.CbrEventSignersUpdated,
+		Contract:     c.contract,
+		StartBlock:   blk,
+		ForwardDelay: c.forwardBlkDelay,
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.contract.ParseSignersUpdated(eLog)

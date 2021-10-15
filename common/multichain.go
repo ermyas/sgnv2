@@ -2,9 +2,9 @@ package common
 
 // represent one chain in config file, include necessary info like chainid, gateway, cbridge address etc
 type OneChainConfig struct {
-	ChainID                            uint64
-	Name, Gateway                      string
-	BlkInterval, BlkDelay, MaxBlkDelta uint64
+	ChainID                                             uint64
+	Name, Gateway                                       string
+	BlkInterval, BlkDelay, MaxBlkDelta, ForwardBlkDelay uint64
 	// cbridge contract address
 	CBridge string
 }
