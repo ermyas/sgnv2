@@ -105,8 +105,20 @@ func (gs *GatewayService) getUnlockedCumulativeRewards(ctx context.Context, addr
 		},
 	)
 	var rewards []*webapi.Reward
-	if res == nil || err != nil {
-		log.Warnf("check failed, error:%+v", err)
+	// TODO: Properly handle the case of no unlocked amounts
+	if res == nil {
+		if err != nil {
+			log.Warnf("check failed, error:%+v", err)
+		}
+		// Populate with 0 amounts
+		rewards, _, err = gs.getHistoricalCumulativeRewards(ctx, address)
+		if err != nil {
+			log.Error(err)
+			return nil, err
+		}
+		for _, reward := range rewards {
+			reward.Amt = 0
+		}
 	} else {
 		rewardClaimInfo := res.GetRewardClaimInfo()
 		records := make(map[string]rewardRecord)
@@ -242,8 +254,8 @@ func (gs *GatewayService) calcPoolApy(pool *farmingtypes.FarmingPool) (float64, 
 				return 0.0, err
 			}
 			apyForToken := math.Pow(1+rewardUsdPerDay/totalStakedUsd, n) - 1
-			if apyForToken >= 999 { // limit the max to make it more sense and also to avoid +Inf in case
-				apyForToken = 999
+			if apyForToken >= 9999999 { // limit the max to make it more sense and also to avoid +Inf in case
+				apyForToken = 9999999
 			}
 			totalApy += apyForToken
 		}
