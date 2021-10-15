@@ -12,7 +12,7 @@ import (
 func (d *DAL) UpsertLP(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum uint64) error {
 	q := `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (usr_addr, chain_id, seq_num, lp_type) DO UPDATE
-	SET status = $9, update_time = $7`
+	SET status = $9, tx_hash=$6, update_time = $7`
 	res, err := d.Exec(q, usrAddr, chainId, tokenSymbol, tokenAddr, amt, txHash, now(), now(), status, lpType, seqNum)
 	return sqldb.ChkExec(res, err, 1, "UpsertLP")
 }

@@ -185,6 +185,14 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 		}
 	}
 
+	link := ""
+	if txHash != "" {
+		_, chainUrl, chainFound, chainErr := dal.DB.GetChain(chainId)
+		if chainFound && chainErr == nil && chainUrl != "" {
+			link = chainUrl + txHash
+		}
+	}
+
 	if found && lpType == uint64(webapi.LPType_LP_TYPE_ADD) { // add type
 		if status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN) {
 			resp, err2 := cbrcli.QueryAddLiquidityStatus(tr.CliCtx, &types.QueryAddLiquidityStatusRequest{
@@ -193,21 +201,26 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 			})
 			if resp != nil && err2 == nil {
 				_ = dal.DB.UpdateLPStatus(seqNum, lpType, chainId, addr.String(), uint64(resp.Status))
-				return &webapi.QueryLiquidityStatusResponse{
-					Status:     resp.Status,
-					WdOnchain:  nil,
-					Signers:    nil,
-					SortedSigs: nil,
-				}, nil
+				status = uint64(resp.Status)
 			}
 		}
+
+		return &webapi.QueryLiquidityStatusResponse{
+			Status:      types.LPHistoryStatus(status),
+			WdOnchain:   nil,
+			Signers:     nil,
+			SortedSigs:  nil,
+			BlockTxLink: link,
+		}, nil
 	} else if found && lpType == uint64(webapi.LPType_LP_TYPE_REMOVE) { // withdraw type
 		resp := &webapi.QueryLiquidityStatusResponse{
-			Status:     types.LPHistoryStatus(status),
-			WdOnchain:  nil,
-			Signers:    nil,
-			SortedSigs: nil,
+			Status:      types.LPHistoryStatus(status),
+			WdOnchain:   nil,
+			Signers:     nil,
+			SortedSigs:  nil,
+			BlockTxLink: link,
 		}
+
 		if status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN) || status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_LP) {
 			if status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN) && time.Now().Add(-15*time.Minute).After(lpUpdateTime) {
 				seqNum, err = gs.signAgainWithdraw(&types.MsgSignAgain{
@@ -231,18 +244,15 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 				}
 			}
 		}
-		_, chainUrl, chainFound, chainErr := dal.DB.GetChain(chainId)
-		if chainFound && chainErr == nil && chainUrl != "" && txHash != "" {
-			resp.BlockTxLink = chainUrl + txHash
-		}
 		return resp, nil
 	}
 
 	return &webapi.QueryLiquidityStatusResponse{
-		Status:     types.LPHistoryStatus(status),
-		WdOnchain:  nil,
-		Signers:    nil,
-		SortedSigs: nil,
+		Status:      types.LPHistoryStatus(status),
+		WdOnchain:   nil,
+		Signers:     nil,
+		SortedSigs:  nil,
+		BlockTxLink: link,
 	}, nil
 }
 
