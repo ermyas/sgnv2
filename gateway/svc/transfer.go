@@ -81,14 +81,17 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 	if !found || err != nil {
 		blockDelay = 0
 	}
+	srcTxHash, dstTxHash := gs.getTxHashForTransfer(transfer)
 	return &webapi.GetTransferStatusResponse{
-		Status:       transfer.Status,
-		WdOnchain:    wdOnchain,
-		SortedSigs:   sortedSigs,
-		Signers:      signers,
-		Powers:       powers,
-		RefundReason: refundReasons[transfer.TransferId],
-		BlockDelay:   blockDelay,
+		Status:         transfer.Status,
+		WdOnchain:      wdOnchain,
+		SortedSigs:     sortedSigs,
+		Signers:        signers,
+		Powers:         powers,
+		RefundReason:   refundReasons[transfer.TransferId],
+		BlockDelay:     blockDelay,
+		SrcBlockTxLink: srcTxHash,
+		DstBlockTxLink: dstTxHash,
 	}, nil
 }
 
@@ -356,4 +359,19 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 		refundReasons[transferId] = refundReason
 	}
 	return refundReasons, nil
+}
+
+func (gs *GatewayService) getTxHashForTransfer(transfer *dal.Transfer) (string, string) {
+	srcTxHash, dstTxHash := "", ""
+	if transfer.Status == types.TransferHistoryStatus_TRANSFER_COMPLETED || transfer.Status == types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE {
+		_, url1, found1, err1 := dal.DB.GetChain(transfer.SrcChainId)
+		if found1 && err1 == nil && url1 != "" && transfer.SrcTxHash != "" {
+			srcTxHash = url1 + transfer.SrcTxHash
+		}
+		_, url2, found2, err2 := dal.DB.GetChain(transfer.DstChainId)
+		if found2 && err2 == nil && url2 != "" && transfer.DstTxHash != "" {
+			dstTxHash = url2 + transfer.DstTxHash
+		}
+	}
+	return srcTxHash, dstTxHash
 }

@@ -231,6 +231,10 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 				}
 			}
 		}
+		_, chainUrl, chainFound, chainErr := dal.DB.GetChain(chainId)
+		if chainFound && chainErr == nil && chainUrl != "" && txHash != "" {
+			resp.BlockTxLink = chainUrl + txHash
+		}
 		return resp, nil
 	}
 

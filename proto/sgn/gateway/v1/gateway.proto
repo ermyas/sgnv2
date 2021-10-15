@@ -129,6 +129,7 @@ message QueryLiquidityStatusResponse {
     repeated bytes sorted_sigs = 4; // for withdraw only
     repeated bytes signers = 5; // for withdraw only
     repeated bytes powers = 6; // for withdraw only
+    string block_tx_link = 7;
 }
 
 message Chain {
@@ -185,6 +186,8 @@ message GetTransferStatusResponse {
     repeated bytes powers = 6; // for refund only
     cbridge.v1.XferStatus refund_reason = 7; // used only for to_be_refund TransferStatus. BAD_LIQUIDITY, BAD_SLIPPAGE and BAD_TOKEN are used here
     uint32 block_delay = 8; // waiting
+    string src_block_tx_link = 9;
+    string dst_block_tx_link = 10;
 }
 
 message GetTransferConfigsRequest {
