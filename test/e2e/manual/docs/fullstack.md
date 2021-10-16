@@ -32,6 +32,12 @@ sgnd query cbridge chain-signers 884 --home data/node0/sgnd
 2. `go run localnet.go -rebuild`: rebuild sgn images (with code updates)
 3. `go run localnet.go -upall`: restart all sgn nodes
 
+### Connect MetaMask
+
+Add two Custom RPCs in MetaMask:
+1. Network Name: `TestChain1`, New RPC URL: `http://127.0.0.1:8545`, Chain ID: `883`
+1. Network Name: `TestChain2`, New RPC URL: `http://127.0.0.1:8547`, Chain ID: `884`
+
 ### Send test tokens
 
 Run following command to send Mock ETH, CELR, and USDT tokens to a test address.
