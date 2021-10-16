@@ -83,9 +83,10 @@ func (gs *GatewayService) GetFarmingRewardDetails(ctx context.Context, request *
 	var claimDetails []*farmingtypes.RewardClaimDetails
 	for _, detail := range rewardClaimInfo.GetRewardClaimDetailsList() {
 		claimDetails = append(claimDetails, &farmingtypes.RewardClaimDetails{
-			ChainId:          detail.GetChainId(),
-			RewardProtoBytes: detail.GetRewardProtoBytes(),
-			Signatures:       detail.GetSignatures(),
+			ChainId:                 detail.GetChainId(),
+			CumulativeRewardAmounts: detail.GetCumulativeRewardAmounts(),
+			RewardProtoBytes:        detail.GetRewardProtoBytes(),
+			Signatures:              detail.GetSignatures(),
 		})
 	}
 	return &webapi.GetFarmingRewardDetailsResponse{
