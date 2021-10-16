@@ -41,6 +41,7 @@ func (c *CbrOneChain) startMon() {
 
 func (c *CbrOneChain) monSend(blk *big.Int) {
 	cfg := &monitor.Config{
+		ChainId:      c.chainid,
 		EventName:    cbrtypes.CbrEventSend,
 		Contract:     c.contract,
 		StartBlock:   blk,
@@ -71,6 +72,7 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 
 func (c *CbrOneChain) monRelay(blk *big.Int) {
 	cfg := &monitor.Config{
+		ChainId:      c.chainid,
 		EventName:    cbrtypes.CbrEventRelay,
 		Contract:     c.contract,
 		StartBlock:   blk,
@@ -98,6 +100,7 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 
 func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 	cfg := &monitor.Config{
+		ChainId:      c.chainid,
 		EventName:    cbrtypes.CbrEventLiqAdd,
 		Contract:     c.contract,
 		StartBlock:   blk,
@@ -132,6 +135,7 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 
 func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 	cfg := &monitor.Config{
+		ChainId:      c.chainid,
 		EventName:    cbrtypes.CbrEventWithdraw,
 		Contract:     c.contract,
 		StartBlock:   blk,
@@ -157,6 +161,7 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 
 func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 	cfg := &monitor.Config{
+		ChainId:      c.chainid,
 		EventName:    cbrtypes.CbrEventSignersUpdated,
 		Contract:     c.contract,
 		StartBlock:   blk,
