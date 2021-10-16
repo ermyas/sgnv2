@@ -143,11 +143,11 @@ func (k Keeper) calculateRewards(
 
 	startingPeriod := stakeInfo.ReferencePeriod
 	// calculate rewards for final period
-	return k.calculateLockRewardsBetween(ctx, poolName, startingPeriod, endingPeriod, stakeInfo.Amount)
+	return k.calculateStakeRewardsBetween(ctx, poolName, startingPeriod, endingPeriod, stakeInfo.Amount)
 }
 
-// calculateLockRewardsBetween calculate the rewards accrued by a pool between two periods
-func (k Keeper) calculateLockRewardsBetween(ctx sdk.Context, poolName string, startingPeriod, endingPeriod uint64,
+// calculateStakeRewardsBetween calculate the rewards accrued by a pool between two periods
+func (k Keeper) calculateStakeRewardsBetween(ctx sdk.Context, poolName string, startingPeriod, endingPeriod uint64,
 	amount sdk.DecCoin) (rewards sdk.DecCoins) {
 
 	// sanity check

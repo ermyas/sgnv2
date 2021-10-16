@@ -125,8 +125,12 @@ func (k msgServer) claimOnePool(
 	k.UpdateStakeInfo(ctx, addr, pool.Name, sdk.ZeroDec())
 
 	// 5. Update FarmingPool
-	// NOTE: Will panic if TotalAccumulatedRewards < rewards
-	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Sub(rewards)
+	origAccumulatedRewards := updatedPool.TotalAccumulatedRewards
+	var hasNeg bool
+	updatedPool.TotalAccumulatedRewards, hasNeg = origAccumulatedRewards.SafeSub(rewards)
+	if hasNeg {
+		return types.WrapErrInsufficientAmount(origAccumulatedRewards.String(), rewards.String())
+	}
 	k.SetFarmingPool(ctx, updatedPool)
 
 	return nil

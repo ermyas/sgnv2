@@ -39,9 +39,12 @@ func (k Keeper) Stake(
 		if err != nil {
 			return err
 		}
-		// NOTE: Will panic if TotalAccumulatedRewards < rewards
-		updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Sub(rewards)
-
+		origAccumulatedRewards := updatedPool.TotalAccumulatedRewards
+		var hasNeg bool
+		updatedPool.TotalAccumulatedRewards, hasNeg = origAccumulatedRewards.SafeSub(rewards)
+		if hasNeg {
+			return types.WrapErrInsufficientAmount(origAccumulatedRewards.String(), rewards.String())
+		}
 	} else {
 		// If it doesn't exist, only increase period
 		k.IncrementPoolPeriod(ctx, pool.Name, pool.TotalStakedAmount, earnedTokens)
@@ -142,8 +145,12 @@ func (k Keeper) Unstake(
 
 	// 6. Update farming pool
 	updatedPool.TotalStakedAmount = updatedPool.TotalStakedAmount.Sub(sdk.NewDecCoinFromCoin(amount))
-	// NOTE: Will panic if TotalAccumulatedRewards < rewards
-	updatedPool.TotalAccumulatedRewards = updatedPool.TotalAccumulatedRewards.Sub(rewards)
+	origAccumulatedRewards := updatedPool.TotalAccumulatedRewards
+	var hasNeg bool
+	updatedPool.TotalAccumulatedRewards, hasNeg = origAccumulatedRewards.SafeSub(rewards)
+	if hasNeg {
+		return types.WrapErrInsufficientAmount(origAccumulatedRewards.String(), rewards.String())
+	}
 	k.SetFarmingPool(ctx, updatedPool)
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(

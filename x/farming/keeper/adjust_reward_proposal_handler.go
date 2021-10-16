@@ -64,7 +64,7 @@ func HandleAdjustRewardProposal(ctx sdk.Context, k Keeper, p *types.AdjustReward
 		case -1: // info denom < input denom, add existing info
 			newInfos = append(newInfos, info)
 			newTokens = append(newTokens, pool.RewardTokens[indexInfos])
-			newAccumulatedRewards = append(newAccumulatedRewards, pool.TotalAccumulatedRewards[indexInfos])
+			newAccumulatedRewards = append(newAccumulatedRewards, updatedPool.TotalAccumulatedRewards[indexInfos])
 			indexInfos++
 
 		case 0: // info denom == input denom: adjust existing reward, mint AddAmount, adjust RewardAmountPerBlock
@@ -74,7 +74,7 @@ func HandleAdjustRewardProposal(ctx sdk.Context, k Keeper, p *types.AdjustReward
 			}
 			newInfos = append(newInfos, *newInfo)
 			newTokens = append(newTokens, pool.RewardTokens[indexInfos])
-			newAccumulatedRewards = append(newAccumulatedRewards, pool.TotalAccumulatedRewards[indexInfos])
+			newAccumulatedRewards = append(newAccumulatedRewards, updatedPool.TotalAccumulatedRewards[indexInfos])
 
 			indexInfos++
 			indexInputs++
