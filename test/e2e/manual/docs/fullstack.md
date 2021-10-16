@@ -2,7 +2,7 @@
 
 ### Start local testnet
 
-Run the following command at [e2e/mnual](../) folder to to start testnet with full stack setup, which includes four validators and four delegators for staking tests, and two chains with mock USDT for cBridge tests. Gateway is started in node 0. Nodes IP and and port mappings can be found at [docker-compose.yml](../../../../docker-compose.yml).
+Run the following command at [e2e/mnual](../) folder to to start a local testnet with full stack setup, which includes four validators and four delegators for staking tests, and two chains with mock USDT for cBridge tests. Gateway is started in node 0. Nodes IP and port mappings can be found at [docker-compose.yml](../../../../docker-compose.yml).
 
 ```sh
 echo 12341234 | go run localnet.go -start -full
@@ -40,7 +40,7 @@ Add two Custom RPCs in MetaMask:
 
 ### Send test tokens
 
-Run following command to send Mock ETH, CELR, and USDT tokens to a test address.
+Run following command to send Mock ETH, CELR, and USDT tokens to a test (e.g., MetaMask account) address.
 ```sh
 go run localnet.go -cbr -fund <eth-addess>
 ```
