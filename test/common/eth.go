@@ -155,7 +155,7 @@ func FundAddrsErc20(erc20Addr eth.Addr, recipients []eth.Addr, amount *big.Int, 
 			return transferErr
 		}
 		lastTx = tx
-		log.Infof("Sending ERC20 %s to %x from %x", amount, addr, auth.From)
+		log.Infof("Sending ERC20 %x %s to %x from %x", erc20Addr, amount, addr, auth.From)
 	}
 	_, err = ethutils.WaitMined(context.Background(), ethClient, lastTx, ethutils.WithBlockDelay(BlockDelay), ethutils.WithPollingInterval(PollingInterval))
 	return err
@@ -194,7 +194,7 @@ func Delegate(auth *bind.TransactOpts, valAddr eth.Addr, amt *big.Int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 
-	log.Infof("%x calls staking contract to delegate to the validator %x...", auth.From, valAddr)
+	log.Infof("%x calls staking contract to delegate to the validator %x, amt: %s", auth.From, valAddr, amt)
 	tx, err := CelrContract.Approve(auth, Contracts.Staking.Address, amt)
 	if err != nil {
 		log.Error(err)

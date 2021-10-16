@@ -30,7 +30,7 @@ func setupCbridge() {
 		ValidatorBondInterval: big.NewInt(0),
 		MaxSlashFactor:        big.NewInt(1e5),
 	}
-	SetupNewSgnEnv(p, false, true)
+	SetupNewSgnEnv(p, true, false, false)
 	tc.SleepWithLog(10, "sgn being ready")
 }
 

@@ -5,6 +5,7 @@ Follow instructions to start a local testnet with multiple validators and test d
 
 ### Test Cases
 
+- [Full Stack](./docs/fullstack.md)
 - [Staking](./docs/staking.md)
 - [Governance](./docs/governance.md)
 - [cBridge](./docs/cbridge.md)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"math/big"
@@ -16,13 +17,17 @@ import (
 	tc "github.com/celer-network/sgn-v2/test/common"
 	"github.com/celer-network/sgn-v2/test/e2e/multinode"
 	"github.com/celer-network/sgn-v2/transactor"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/spf13/viper"
 )
 
 var (
 	start   = flag.Bool("start", false, "start local testnet")
 	cbr     = flag.Bool("cbr", false, "start with cbridge")
+	gateway = flag.Bool("gateway", false, "start with gateway")
+	full    = flag.Bool("full", false, "start with full stack setup")
 	auto    = flag.Bool("auto", false, "auto-add all validators")
 	down    = flag.Bool("down", false, "shutdown local testnet")
 	up      = flag.Int("up", -1, "start a testnet node")
@@ -30,11 +35,17 @@ var (
 	upall   = flag.Bool("upall", false, "start all nodes")
 	stopall = flag.Bool("stopall", false, "stop all nodes")
 	rebuild = flag.Bool("rebuild", false, "rebuild sgn node docker image")
+	fund    = flag.String("fund", "", "fund test tokens to give address")
 )
 
 func main() {
 	flag.Parse()
 	repoRoot, _ := filepath.Abs("../../..")
+	if *full {
+		*cbr = true
+		*gateway = true
+		*auto = true
+	}
 	if *start {
 		multinode.SetupMainchain()
 		if *cbr {
@@ -54,7 +65,7 @@ func main() {
 			ValidatorBondInterval: big.NewInt(0),
 			MaxSlashFactor:        big.NewInt(1e5),
 		}
-		multinode.SetupNewSgnEnv(p, true, *cbr)
+		multinode.SetupNewSgnEnv(p, *cbr, *gateway, true)
 		if *cbr {
 			amts := []*big.Int{big.NewInt(1e18)}
 			tc.CbrChain1.SetInitSigners(amts)
@@ -146,6 +157,12 @@ func main() {
 			log.Error(err)
 		}
 		os.Exit(0)
+	} else if *fund != "" {
+		err := fundAddr()
+		if err != nil {
+			log.Error(err)
+		}
+		os.Exit(0)
 	}
 }
 
@@ -167,8 +184,8 @@ func addValidators() {
 	}
 	txr.Run()
 
-	amts := []*big.Int{
-		new(big.Int).Mul(big.NewInt(10000), big.NewInt(common.TokenDec)),
+	valAmts := []*big.Int{
+		new(big.Int).Mul(big.NewInt(16000), big.NewInt(common.TokenDec)),
 		new(big.Int).Mul(big.NewInt(20000), big.NewInt(common.TokenDec)),
 		new(big.Int).Mul(big.NewInt(15000), big.NewInt(common.TokenDec)),
 		new(big.Int).Mul(big.NewInt(18000), big.NewInt(common.TokenDec)),
@@ -176,8 +193,8 @@ func addValidators() {
 	commissions := []uint64{eth.CommissionRate(0.15), eth.CommissionRate(0.2), eth.CommissionRate(0.12), eth.CommissionRate(0.1)}
 
 	for i := 0; i < 4; i++ {
-		log.Infoln("Adding validator ", i, tc.ValEthAddrs[i].Hex())
-		err := tc.InitializeValidator(tc.ValAuths[i], tc.ValSignerAddrs[i], tc.ValSgnAddrs[i], amts[i], commissions[i])
+		log.Infoln("Adding validator", i, tc.ValEthAddrs[i].Hex())
+		err := tc.InitializeValidator(tc.ValAuths[i], tc.ValSignerAddrs[i], tc.ValSgnAddrs[i], valAmts[i], commissions[i])
 		if err != nil {
 			log.Errorln("failed to initialize validator: ", err)
 		}
@@ -190,5 +207,68 @@ func addValidators() {
 			}
 			time.Sleep(tc.RetryPeriod)
 		}
+		for j := 0; j <= i; j++ {
+			err = tc.Delegate(tc.DelAuths[j], tc.ValEthAddrs[i], tc.NewBigInt(10+i+j, 19))
+		}
 	}
+
+	if *gateway {
+		configFileViper := viper.New()
+		configFileViper.SetConfigFile("./data/node0/sgnd/config/sgn.toml")
+		if err := configFileViper.ReadInConfig(); err != nil {
+			log.Error(err)
+		}
+		transactors := configFileViper.GetStringSlice(common.FlagSgnTransactors)
+		msg := stakingtypes.NewMsgSetTransactors(stakingtypes.SetTransactorsOp_Overwrite, transactors, txr.Key.GetAddress().String())
+		err = msg.ValidateBasic()
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		txr.AddTxMsg(&msg)
+	}
+}
+
+func fundAddr() error {
+	addrs := []eth.Addr{eth.Hex2Addr(*fund)}
+	err := tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20), tc.LocalGeth, int64(tc.ChainID))
+	if err != nil {
+		return err
+	}
+	tc.SetupEthClients()
+
+	configFileViper := viper.New()
+	configFileViper.SetConfigFile("./data/node0/sgnd/config/sgn.toml")
+	if err := configFileViper.ReadInConfig(); err != nil {
+		return err
+	}
+	celrAddr := eth.Hex2Addr(configFileViper.GetString(common.FlagEthContractCelr))
+	err = tc.FundAddrsErc20(celrAddr, addrs, tc.NewBigInt(1, 25), tc.EthClient, tc.EtherBaseAuth)
+	if err != nil {
+		return err
+	}
+	if *cbr {
+		tc.InitCbrChainConfigs()
+		err = tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20), tc.LocalGeth2, int64(tc.Geth2ChainID))
+		if err != nil {
+			return err
+		}
+		genesisViper := viper.New()
+		genesisViper.SetConfigFile("./data/node0/sgnd/config/genesis.json")
+		if err := genesisViper.ReadInConfig(); err != nil {
+			return err
+		}
+		cbrConfig := new(cbrtypes.CbrConfig)
+		jsonByte, _ := json.Marshal(genesisViper.Get("app_state.cbridge.config"))
+		json.Unmarshal(jsonByte, cbrConfig)
+		err = tc.FundAddrsErc20(eth.Hex2Addr(cbrConfig.Assets[0].Addr), addrs, tc.NewBigInt(1, 13), tc.CbrChain1.Ec, tc.CbrChain1.Auth)
+		if err != nil {
+			return err
+		}
+		err = tc.FundAddrsErc20(eth.Hex2Addr(cbrConfig.Assets[1].Addr), addrs, tc.NewBigInt(1, 13), tc.CbrChain2.Ec, tc.CbrChain2.Auth)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
