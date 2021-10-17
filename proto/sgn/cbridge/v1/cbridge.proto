@@ -16,6 +16,12 @@ message Params {
     (gogoproto.jsontag)     = "signer_update_duration,omitempty",
     (gogoproto.moretags)    = "yaml:\"signer_update_duration\""
   ];
+  google.protobuf.Duration sign_again_cool_down_duration = 2 [
+    (gogoproto.nullable)    = false,
+    (gogoproto.stdduration) = true,
+    (gogoproto.jsontag)     = "sign_again_cool_down_duration,omitempty",
+    (gogoproto.moretags)    = "yaml:\"sign_again_cool_down_duration\""
+  ];
 }
 
 // ========== configs

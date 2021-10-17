@@ -13,7 +13,7 @@ const (
 )
 
 func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
-	return types.NewParams(k.GetSignerUpdateDuration(ctx))
+	return types.NewParams(k.GetSignerUpdateDuration(ctx), k.GetSignAgainCoolDownDuration(ctx))
 }
 
 func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
@@ -22,5 +22,13 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 
 func (k Keeper) GetSignerUpdateDuration(ctx sdk.Context) (duration time.Duration) {
 	k.paramstore.Get(ctx, types.KeySignerUpdateDuration, &duration)
+	return
+}
+
+func (k Keeper) GetSignAgainCoolDownDuration(ctx sdk.Context) (duration time.Duration) {
+	k.paramstore.GetIfExists(ctx, types.KeySignAgainCoolDownDuration, &duration)
+	if duration == 0 {
+		duration = types.DefaultSignAgainCoolDownDuration
+	}
 	return
 }

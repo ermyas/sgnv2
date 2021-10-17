@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/celer-network/sgn-v2/common"
 	"math/big"
 	"math/rand"
 	"sort"
@@ -13,10 +14,6 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-)
-
-const (
-	SignAgainCoolDownSec = 600 // if last sign within 600s, don't sign again
 )
 
 type msgServer struct {
@@ -125,8 +122,9 @@ func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*typ
 	if wdDetail.Completed {
 		return nil, types.WdErr_ALREADY_DONE
 	}
-	now := sdkCtx.BlockTime().Unix()
-	if now-wdDetail.LastReqTime < SignAgainCoolDownSec {
+	nowTime := sdkCtx.BlockTime()
+	now := nowTime.Unix()
+	if nowTime.Before(common.TsToTime(uint64(wdDetail.LastReqTime)).Add(k.Keeper.GetSignAgainCoolDownDuration(sdkCtx))) {
 		return nil, types.WdErr_REQ_TOO_SOON
 	}
 	// remove all previous sigs
