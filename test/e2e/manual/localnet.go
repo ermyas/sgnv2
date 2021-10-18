@@ -210,22 +210,30 @@ func addValidators() {
 		for j := 0; j <= i; j++ {
 			err = tc.Delegate(tc.DelAuths[j], tc.ValEthAddrs[i], tc.NewBigInt(10+i+j, 19))
 		}
-	}
-
-	if *gateway {
-		configFileViper := viper.New()
-		configFileViper.SetConfigFile("./data/node0/sgnd/config/sgn.toml")
-		if err := configFileViper.ReadInConfig(); err != nil {
-			log.Error(err)
+		if i == 0 {
+			configFileViper := viper.New()
+			configFileViper.SetConfigFile("./data/node0/sgnd/config/sgn.toml")
+			if err := configFileViper.ReadInConfig(); err != nil {
+				log.Error(err)
+			}
+			transactors := configFileViper.GetStringSlice(common.FlagSgnTransactors)
+			msg1 := stakingtypes.NewMsgSetTransactors(stakingtypes.SetTransactorsOp_Overwrite, transactors, txr.Key.GetAddress().String())
+			err = msg1.ValidateBasic()
+			if err != nil {
+				log.Error(err)
+				return
+			}
+			txr.AddTxMsg(&msg1)
+			description := stakingtypes.NewDescription(
+				"node1", stakingtypes.DoNotModifyDesc, "www.celer.network", "sgn-validator@celer.network", stakingtypes.DoNotModifyDesc)
+			msg2 := stakingtypes.NewMsgEditDescription(description, txr.Key.GetAddress().String())
+			err = msg2.ValidateBasic()
+			if err != nil {
+				log.Error(err)
+				return
+			}
+			txr.AddTxMsg(&msg2)
 		}
-		transactors := configFileViper.GetStringSlice(common.FlagSgnTransactors)
-		msg := stakingtypes.NewMsgSetTransactors(stakingtypes.SetTransactorsOp_Overwrite, transactors, txr.Key.GetAddress().String())
-		err = msg.ValidateBasic()
-		if err != nil {
-			log.Error(err)
-			return
-		}
-		txr.AddTxMsg(&msg)
 	}
 }
 

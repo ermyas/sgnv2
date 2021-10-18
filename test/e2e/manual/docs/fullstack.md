@@ -19,6 +19,7 @@ docker-volumes/nodeN/sgnd/tendermint.log
 
 ```sh
 sgnd query staking validators --home data/node0/sgnd
+sgnd query staking validator 00078b31fa8b29a76bce074b5ea0d515a6aeaee7 --home data/node0/sgnd
 sgnd query staking delegations 003ea363bccfd7d14285a34a6b1deb862df0bc84 --home data/node0/sgnd
 sgnd query staking transactors 00078b31fa8b29a76bce074b5ea0d515a6aeaee7 --home data/node0/sgnd
 
@@ -34,7 +35,7 @@ sgnd query cbridge chain-signers 884 --home data/node0/sgnd
 
 ### Connect MetaMask
 
-Add two Custom RPCs in MetaMask:
+Add two Custom RPCs in MetaMask for staking and cBridge frontend tests:
 1. Network Name: `TestChain1`, New RPC URL: `http://127.0.0.1:8545`, Chain ID: `883`
 1. Network Name: `TestChain2`, New RPC URL: `http://127.0.0.1:8547`, Chain ID: `884`
 
