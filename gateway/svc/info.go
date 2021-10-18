@@ -15,18 +15,8 @@ import (
 
 func (gs *GatewayService) GetAdvancedInfo(ctx context.Context, request *webapi.GetAdvancedInfoRequest) (*webapi.GetAdvancedInfoResponse, error) {
 	addr := common.Hex2Addr(request.GetAddr()).String()
-	slippageSetting, found, err := dal.DB.GetSlippageSetting(addr)
-	if !found || err != nil {
-		log.Errorf("GetAdvancedInfo failed, err:%+v", err)
-		return &webapi.GetAdvancedInfoResponse{
-			Err: &webapi.ErrMsg{
-				Code: webapi.ErrCode_ERROR_CODE_COMMON,
-				Msg:  "AdvancedInfo not found",
-			},
-		}, nil
-	}
 	return &webapi.GetAdvancedInfoResponse{
-		SlippageTolerance: slippageSetting,
+		SlippageTolerance: GetSlippage(addr),
 	}, nil
 }
 
@@ -244,4 +234,12 @@ func get24hTx() map[uint64]map[string]*txData {
 		}
 	}
 	return resp
+}
+
+func GetSlippage(addr string) uint32 {
+	slippageSetting, found, err := dal.DB.GetSlippageSetting(addr)
+	if !found || err != nil {
+		slippageSetting = 5000 //default 500
+	}
+	return slippageSetting
 }

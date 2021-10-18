@@ -120,6 +120,22 @@ service Web {
       get: "/v1/rewardingData"
     };
     }
+
+    // configs api
+
+    rpc UpdateChain (UpdateChainRequest) returns (UpdateChainResponse) {
+        option (google.api.http) = {
+      post: "/v1/config/updateChain"
+      body: "*"
+    };
+    }
+
+    rpc UpdateToken (UpdateTokenRequest) returns (UpdateTokenResponse) {
+        option (google.api.http) = {
+      post: "/v1/config/updateToken"
+      body: "*"
+    };
+    }
 }
 
 message QueryLiquidityStatusResponse {
@@ -136,6 +152,10 @@ message Chain {
     uint32 id = 1;
     string name = 2;
     string icon = 3;
+    uint32 block_delay = 4;
+    string gas_token_symbol = 5;
+    string explore_url = 6;
+    string rpc_url = 7;
 }
 
 message ChainTokenInfo {
@@ -382,6 +402,29 @@ message RewardingDataResponse {
     map<string, double> usd_price = 2; // map<token_symbol, usd_price>, token scope: HistoricalCumulativeRewards
     repeated Reward historical_cumulative_rewards = 3;
     repeated Reward unlocked_cumulative_rewards = 4;
+}
+
+message UpdateChainRequest {
+    Chain chain = 1;
+    string tx_url_prefix = 2;
+}
+
+message UpdateChainResponse {
+    ErrMsg err = 1;
+    Chain chain = 2;
+    string tx_url_prefix = 3;
+}
+
+message UpdateTokenRequest {
+    uint32 chain_id = 1;
+    string token_symbol = 2;
+    string token_name = 3;
+    string token_icon = 4;
+}
+
+message UpdateTokenResponse {
+    ErrMsg err = 1;
+    TokenInfo token = 2;
 }
 
 message ErrMsg {

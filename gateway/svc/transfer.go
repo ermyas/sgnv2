@@ -120,10 +120,8 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 	}
 
 	addr := common.Hex2Addr(request.GetUsrAddr()).String()
-	slippage, found, err := dal.DB.GetSlippageSetting(addr)
-	if err != nil || !found {
-		slippage = 5000
-	}
+	slippage := GetSlippage(addr)
+
 	tr := gs.TP.GetTransactor()
 	feeInfo, err := cbrcli.QueryFee(tr.CliCtx, &types.GetFeeRequest{
 		SrcChainId:   uint64(srcChainId),

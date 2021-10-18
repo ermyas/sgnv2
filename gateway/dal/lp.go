@@ -46,6 +46,17 @@ func (d *DAL) GetLPInfo(seqNum, lpType, chainId uint64, lpAddr string) (string, 
 	return txHash, status, ut, found, err
 }
 
+func (d *DAL) HasSeqNumUsedForWithdraw(seqNum uint64, lpAddr string) bool {
+	var cnt uint64
+	q := `SELECT count(1) FROM lp WHERE seq_num = $1 and usr_addr = $2 and lp_type = $3`
+	err := d.QueryRow(q, seqNum, lpAddr, uint64(webapi.LPType_LP_TYPE_REMOVE)).Scan(&cnt)
+	if err != nil {
+		log.Errorf("run sql HasSeqNumUsedForWithdraw failed, err%+v", err)
+		return true
+	}
+	return cnt > 0
+}
+
 func (d *DAL) GetAllLpChainToken(usr string) ([]*types.ChainTokenAddrPair, error) {
 	q := "SELECT chain_id, token_addr FROM lp WHERE usr_addr = $1 group by chain_id, token_addr"
 	rows, err := d.Query(q, usr)

@@ -72,7 +72,10 @@ CREATE TABLE IF NOT EXISTS chain (
      name TEXT NOT NULL DEFAULT '',
      icon TEXT NOT NULL DEFAULT '',
      tx_url TEXT NOT NULL DEFAULT '',
-     block_delay INT NOT NULL DEFAULT 0
+     block_delay INT NOT NULL DEFAULT 0,
+     gas_token_symbol TEXT NOT NULL DEFAULT '',
+     explore_url TEXT NOT NULL DEFAULT '',
+     rpc_url TEXT NOT NULL DEFAULT '',
 );
 
 

@@ -125,13 +125,21 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 		}
 		lp := common.Hex2Addr(request.GetReceiverAddr()).String()
 		seqNum := request.Reqid
+		if dal.DB.HasSeqNumUsedForWithdraw(seqNum, lp) {
+			return &webapi.WithdrawLiquidityResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  "invalid seq num, it has been used for current lp",
+				},
+			}, nil
+		}
 		err = dal.DB.UpsertLP(lp, token.Token.Symbol, token.Token.Address, amt, "", uint64(chainId), uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
 		if err != nil {
 			_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(types.LPHistoryStatus_LP_FAILED))
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
-					Msg:  "db error when mark refund",
+					Msg:  "db error when mark withdraw",
 				},
 			}, nil
 		}

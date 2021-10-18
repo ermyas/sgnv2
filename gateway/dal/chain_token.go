@@ -58,7 +58,7 @@ func (d *DAL) GetTokenSymbols() ([]string, error) {
 }
 
 func (d *DAL) UpdateTokenUIInfo(symbol string, chainId uint64, name, icon string) error {
-	q := `UPDATE transfer set name=$3, icon=$4 where symbol=$1 AND chain_id=$2`
+	q := `UPDATE token set name=$3, icon=$4 where symbol=$1 AND chain_id=$2`
 	res, err := d.Exec(q, symbol, chainId, name, icon)
 	return sqldb.ChkExec(res, err, 1, "UpdateTokenUIInfo")
 }
@@ -141,7 +141,7 @@ func (d *DAL) GetChainTokenList() (map[uint32]*webapi.ChainTokenInfo, error) {
 
 func (d *DAL) GetChainInfo(ids []uint32) ([]*webapi.Chain, error) {
 	inClause := sqldb.InClause("id", len(ids), 1)
-	q := fmt.Sprintf(`SELECT id, name, icon FROM chain WHERE %s`, inClause)
+	q := fmt.Sprintf(`SELECT id, name, icon, block_delay, gas_token_symbol, explore_url, rpc_url FROM chain WHERE %s`, inClause)
 	var params []interface{}
 	for _, v := range ids {
 		params = append(params, v)
@@ -152,29 +152,33 @@ func (d *DAL) GetChainInfo(ids []uint32) ([]*webapi.Chain, error) {
 	}
 	defer closeRows(rows)
 
-	var id uint32
-	var name, icon string
+	var id, blockDelay uint32
+	var name, icon, gasTokenSymbol, exploreUrl, rpcUrl string
 
 	var tps []*webapi.Chain
 	for rows.Next() {
-		err = rows.Scan(&id, &name, &icon)
+		err = rows.Scan(&id, &name, &icon, &blockDelay, &gasTokenSymbol, &exploreUrl, &rpcUrl)
 		if err != nil {
 			return nil, err
 		}
 		tp := &webapi.Chain{
-			Id:   id,
-			Name: name,
-			Icon: icon,
+			Id:             id,
+			Name:           name,
+			Icon:           icon,
+			BlockDelay:     blockDelay,
+			GasTokenSymbol: gasTokenSymbol,
+			ExploreUrl:     exploreUrl,
+			RpcUrl:         rpcUrl,
 		}
 		tps = append(tps, tp)
 	}
 	return tps, nil
 }
-func (d *DAL) UpsertChainInfo(id uint64, name, icon, url string) error {
-	q := `INSERT INTO chain (id, name, icon, tx_url)
-                VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE
-	SET name=$2, icon=$3, tx_url=$4`
-	res, err := d.Exec(q, id, name, icon, url)
+func (d *DAL) UpsertChainUIInfo(id uint64, name, icon, url, gasTokenSymbol, exploreUrl, rpcUrl string) error {
+	q := `INSERT INTO chain (id, name, icon, tx_url, gas_token_symbol, explore_url, rpc_url)
+                VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (id) DO UPDATE
+	SET name=$2, icon=$3, tx_url=$4, gas_token_symbol=$5, explore_url=$6, rpc_url=$7`
+	res, err := d.Exec(q, id, name, icon, url, gasTokenSymbol, exploreUrl, rpcUrl)
 	return sqldb.ChkExec(res, err, 1, "UpsertChainInfo")
 }
 
@@ -187,15 +191,20 @@ func (d *DAL) UpsertChainWithBlockDelay(id uint64, blockDelay uint32) error {
 }
 
 func (d *DAL) GetChain(id uint64) (*webapi.Chain, string, bool, error) {
-	var name, icon, url string
-	q := `SELECT name, icon, tx_url FROM chain where id=$1`
-	err := d.QueryRow(q, id).Scan(&name, &icon, &url)
+	var name, icon, txUrl, gasTokenSymbol, exploreUrl, rpcUrl string
+	var blockDelay uint32
+	q := `SELECT name, icon, tx_url, block_delay, gas_token_symbol, explore_url, rpc_url FROM chain where id=$1`
+	err := d.QueryRow(q, id).Scan(&name, &icon, &txUrl, &blockDelay, &gasTokenSymbol, &exploreUrl, &rpcUrl)
 	found, err := sqldb.ChkQueryRow(err)
 	return &webapi.Chain{
-		Id:   uint32(id),
-		Name: name,
-		Icon: icon,
-	}, url, found, err
+		Id:             uint32(id),
+		Name:           name,
+		Icon:           icon,
+		BlockDelay:     blockDelay,
+		GasTokenSymbol: gasTokenSymbol,
+		ExploreUrl:     exploreUrl,
+		RpcUrl:         rpcUrl,
+	}, txUrl, found, err
 }
 
 func (d *DAL) GetChainBlockDelay(id uint64) (uint32, bool, error) {
