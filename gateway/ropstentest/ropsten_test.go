@@ -49,7 +49,7 @@ var (
 		{
 			chainId:      3,
 			endpoint:     "wss://ropsten.infura.io/ws/v3/bf6437ebf88d487abbff85ba975def88",
-			contractAddr: "0x04dd87eddbe958c8f405e9c641693fab94d562d1",
+			contractAddr: "0x2c60A9874493d8fE9b314c73F9d2cBe73ae18FB1",
 		},
 		{
 			chainId:      5,
@@ -61,14 +61,29 @@ var (
 	gatewayClient *GatewayClient
 
 	// bot behavior config
-	senderAddr            = common.Hex2Addr("0x29B563951Ed0eB9Ae5C49692266E1fbc81445cfE")
-	receiverAddr          = common.Hex2Addr("0x29B563951Ed0eB9Ae5C49692266E1fbc81445cfE")
+	// user addr
+	userAddr              = common.Hex2Addr("0x29B563951Ed0eB9Ae5C49692266E1fbc81445cfE")
+	usdtTokenAddrOnChain3 = common.Hex2Addr("0x7Df0C9680B7493Cd41332176559B8E2bA7c2A355")
 	usdtTokenAddrOnChain5 = common.Hex2Addr("0xf4b2cbc3ba04c478f0dc824f4806ac39982dce73")
-	srcChainId            = uint64(5)
-	dstChainId            = uint64(3)
 
 	signer *eth.CelerSigner // sign req msg
+
+	defaultConfig = ProcessConfig{
+		senderAddr:   userAddr,
+		receiverAddr: userAddr,
+		srcChainId:   5,
+		dstChainId:   3,
+		token:        usdtTokenAddrOnChain5,
+	}
 )
+
+type ProcessConfig struct {
+	senderAddr   common.Addr
+	receiverAddr common.Addr
+	srcChainId   uint64
+	dstChainId   uint64
+	token        common.Addr
+}
 
 // TestMain is used to setup/teardown a temporary CockroachDB instance
 // and run all the unit tests in between.
@@ -146,10 +161,10 @@ func setUp() error {
 }
 
 func TestGenTransferId(t *testing.T) {
-	tid := getTransferId(senderAddr,
-		receiverAddr, usdtTokenAddrOnChain5, big.NewInt(10),
-		5,
-		3,
+	tid := getTransferId(defaultConfig.senderAddr,
+		defaultConfig.receiverAddr, usdtTokenAddrOnChain5, big.NewInt(10),
+		defaultConfig.srcChainId,
+		defaultConfig.dstChainId,
 		1634032921829)
 	if tid != sgneth.Hex2Hash("CBB877C0BC985F817D713ECA5039BF4E6FFD867A60E307F6EB25E103E6E30E1E") {
 		log.Fatalf("unexpected transfer id")
@@ -157,13 +172,13 @@ func TestGenTransferId(t *testing.T) {
 }
 
 func TestTransfer(t *testing.T) {
-	transferAmount := big.NewInt(1000000000)
+	transferAmount := big.NewInt(100000)
 	estimateAmountReq := &webapi.EstimateAmtRequest{
-		SrcChainId:  uint32(srcChainId),
-		DstChainId:  uint32(dstChainId),
+		SrcChainId:  uint32(defaultConfig.srcChainId),
+		DstChainId:  uint32(defaultConfig.dstChainId),
 		TokenSymbol: testTokenSymbol,
 		Amt:         transferAmount.String(),
-		UsrAddr:     senderAddr.String(),
+		UsrAddr:     defaultConfig.senderAddr.String(),
 	}
 	estimateAmountResp, err := gatewayClient.EstimateAmt(context.Background(), estimateAmountReq)
 	if err != nil {
@@ -171,7 +186,7 @@ func TestTransfer(t *testing.T) {
 		return
 	}
 
-	onChain, foundOnChain := onChainMap[srcChainId]
+	onChain, foundOnChain := onChainMap[defaultConfig.srcChainId]
 	if !foundOnChain {
 		t.Fatalf("fail to found this chain transactor, chain id:%d", 5)
 		return
@@ -179,14 +194,14 @@ func TestTransfer(t *testing.T) {
 
 	nowTs := time.Now()
 	nonce := common.TsMilli(nowTs)
-	tid := getTransferId(senderAddr,
-		receiverAddr, usdtTokenAddrOnChain5, transferAmount,
-		srcChainId,
-		dstChainId,
+	tid := getTransferId(defaultConfig.senderAddr,
+		defaultConfig.receiverAddr, usdtTokenAddrOnChain5, transferAmount,
+		defaultConfig.srcChainId,
+		defaultConfig.dstChainId,
 		nonce)
 
 	log.Infof("transferId:%s", tid.String())
-	tx, err := send(onChain, senderAddr, receiverAddr, usdtTokenAddrOnChain5, transferAmount, dstChainId, nonce, estimateAmountResp.GetMaxSlippage())
+	tx, err := send(onChain, defaultConfig.senderAddr, defaultConfig.receiverAddr, usdtTokenAddrOnChain5, transferAmount, defaultConfig.dstChainId, nonce, estimateAmountResp.GetMaxSlippage())
 	if err != nil {
 		log.Fatalf("fail to send on contract, err:%v", err)
 		return
@@ -196,7 +211,7 @@ func TestTransfer(t *testing.T) {
 		TransferId: tid.String(),
 		SrcSendInfo: &webapi.TransferInfo{
 			Chain: &webapi.Chain{
-				Id: uint32(srcChainId),
+				Id: uint32(defaultConfig.srcChainId),
 			},
 			Token: &types.Token{
 				Symbol: testTokenSymbol,
@@ -205,14 +220,14 @@ func TestTransfer(t *testing.T) {
 		},
 		DstMinReceivedInfo: &webapi.TransferInfo{
 			Chain: &webapi.Chain{
-				Id: uint32(dstChainId),
+				Id: uint32(defaultConfig.dstChainId),
 			},
 			Token: &types.Token{
 				Symbol: testTokenSymbol,
 			},
 			Amount: transferAmount.String(),
 		},
-		Addr:      senderAddr.String(),
+		Addr:      defaultConfig.senderAddr.String(),
 		SrcTxHash: tx.Hash().String(),
 		Type:      webapi.TransferType_TRANSFER_TYPE_SEND,
 	}
@@ -234,7 +249,7 @@ func TestTransfer(t *testing.T) {
 			break
 		} else if getStatusResp.GetStatus() == types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED {
 			log.Infof("fail to transfer, status:%s", getStatusResp.GetStatus().String())
-			processRefundErr := processRefund(onChain, tid, senderAddr, usdtTokenAddrOnChain5, transferAmount, srcChainId)
+			processRefundErr := processRefund(onChain, tid, defaultConfig.senderAddr, usdtTokenAddrOnChain5, transferAmount, defaultConfig.srcChainId)
 			if processRefundErr != nil {
 				log.Errorf("fail to refund, err:%v", processRefundErr)
 			} else {
@@ -249,29 +264,22 @@ func TestTransfer(t *testing.T) {
 	}
 }
 
-func TestProcessRefund(t *testing.T) {
-	transferAmount := big.NewInt(1000000000)
-	onChain, foundOnChain := onChainMap[srcChainId]
-	if !foundOnChain {
-		t.Fatalf("fail to found this chain transactor, chain id:%d", 5)
-		return
-	}
-	err := processRefund(onChain, sgneth.Hex2Hash("0xe3cdf65dffa7dd247f4f65b3d15e68ea3f86f095816b78bfabf2abbcd5982319"), receiverAddr, usdtTokenAddrOnChain5, transferAmount, srcChainId)
-	if err != nil {
-		log.Errorf("fail to process refund, err:%v", err)
-	} else {
-		log.Infof("success to refund")
-	}
-}
-
 func processRefund(onChain *TestOnChain, tid common.Hash, receiver, token common.Addr, amount *big.Int, chainId uint64) error {
 	// TODO need sign again
+	nowTs := time.Now()
+	sigMsg, err := signer.SignEthMessage(sgneth.ToPadBytes(common.TsMilli(nowTs)))
+	if err != nil {
+		log.Errorf("fail to sig for ping, err:%v", err)
+		return err
+	}
 	withdrawLiquidityResp, withdrawLiquidityRespErr := gatewayClient.WithdrawLiquidity(context.Background(), &webapi.WithdrawLiquidityRequest{
 		TransferId:   tid.String(),
 		ReceiverAddr: receiver.String(),
 		Amount:       amount.String(),
 		TokenAddr:    token.String(),
 		ChainId:      uint32(chainId),
+		Reqid:        common.TsMilli(nowTs),
+		Sig:          sigMsg,
 	})
 	if withdrawLiquidityRespErr != nil {
 		return withdrawLiquidityRespErr
@@ -393,23 +401,23 @@ func TestAddLp(t *testing.T) {
 	addLpAmount := big.NewInt(1000)
 	removeLpAmount := big.NewInt(100)
 	nowTs := time.Now()
-	onChain, foundOnChain := onChainMap[srcChainId]
+	onChain, foundOnChain := onChainMap[defaultConfig.srcChainId]
 	if !foundOnChain {
 		t.Fatalf("fail to found this chain transactor, chain id:%d", 5)
 		return
 	}
 
-	txOp, err := addLp(onChain, senderAddr, usdtTokenAddrOnChain5, addLpAmount)
+	txOp, err := addLp(onChain, defaultConfig.senderAddr, usdtTokenAddrOnChain5, addLpAmount)
 	if err != nil {
 		log.Errorf("fail to add lp, err:%v", err)
 		return
 	}
 	log.Infof("add lp, tx:%s", txOp.Hash().String())
 	addLpReq := &webapi.MarkLiquidityRequest{
-		LpAddr:    senderAddr.String(),
+		LpAddr:    defaultConfig.senderAddr.String(),
 		Amt:       addLpAmount.String(),
 		TokenAddr: usdtTokenAddrOnChain5.String(),
-		ChainId:   uint32(srcChainId),
+		ChainId:   uint32(defaultConfig.srcChainId),
 		SeqNum:    common.TsMilli(nowTs),
 		TxHash:    txOp.Hash().String(),
 		Type:      webapi.LPType_LP_TYPE_ADD,
@@ -428,10 +436,10 @@ func TestAddLp(t *testing.T) {
 		return
 	}
 	withdrawLiquidityReq := &webapi.WithdrawLiquidityRequest{
-		ReceiverAddr: senderAddr.String(),
+		ReceiverAddr: defaultConfig.senderAddr.String(),
 		Amount:       removeLpAmount.String(),
 		TokenAddr:    usdtTokenAddrOnChain5.String(),
-		ChainId:      uint32(srcChainId),
+		ChainId:      uint32(defaultConfig.srcChainId),
 		Reqid:        common.TsMilli(nowTs),
 		Sig:          sigMsg,
 	}
@@ -451,8 +459,8 @@ func TestAddLp(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		queryLiquidityStatusReq := &webapi.QueryLiquidityStatusRequest{
 			SeqNum:  wdSeqNum,
-			LpAddr:  senderAddr.String(),
-			ChainId: uint32(srcChainId),
+			LpAddr:  defaultConfig.senderAddr.String(),
+			ChainId: uint32(defaultConfig.srcChainId),
 			Type:    webapi.LPType_LP_TYPE_REMOVE,
 		}
 		qResp, qRespErr = gatewayClient.QueryLiquidityStatus(context.Background(), queryLiquidityStatusReq)
@@ -496,8 +504,8 @@ func TestAddLp(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		queryLiquidityStatusReq := &webapi.QueryLiquidityStatusRequest{
 			SeqNum:  wdSeqNum,
-			LpAddr:  senderAddr.String(),
-			ChainId: uint32(srcChainId),
+			LpAddr:  defaultConfig.senderAddr.String(),
+			ChainId: uint32(defaultConfig.srcChainId),
 			Type:    webapi.LPType_LP_TYPE_REMOVE,
 		}
 		qResp, qRespErr = gatewayClient.QueryLiquidityStatus(context.Background(), queryLiquidityStatusReq)
