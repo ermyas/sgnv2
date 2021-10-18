@@ -110,34 +110,40 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	}
 
 	var lps []*webapi.LPInfo
-	tr := gs.TP.GetTransactor()
-	detailList, err := cbrcli.QueryLiquidityDetailList(tr.CliCtx, &types.LiquidityDetailListRequest{
-		LpAddr:     userAddr,
-		ChainToken: chainTokens,
-	})
 
-	if err != nil || detailList == nil || len(detailList.GetLiquidityDetail()) == 0 {
-		return &webapi.GetLPInfoListResponse{}, nil
+	userDetailMap := make(map[uint64]map[string]*types.LiquidityDetail)
+	hasUsr := request.GetAddr() != ""
+	if hasUsr {
+		tr := gs.TP.GetTransactor()
+		detailList, detailErr := cbrcli.QueryLiquidityDetailList(tr.CliCtx, &types.LiquidityDetailListRequest{
+			LpAddr:     userAddr,
+			ChainToken: chainTokens,
+		})
+		if detailList == nil || detailErr != nil {
+			var emptyLiquidityDetail []*types.LiquidityDetail
+			detailList = &types.LiquidityDetailListResponse{LiquidityDetail: emptyLiquidityDetail}
+		}
+		for _, detail := range detailList.GetLiquidityDetail() {
+			chainId := detail.GetChainId()
+			tokenWithAddr := detail.GetToken() // only has addr field
+			token, found, dbErr := dal.DB.GetTokenByAddr(common.Hex2Addr(tokenWithAddr.GetAddress()).String(), chainId)
+			if !found || dbErr != nil {
+				log.Debugf("data, token not found in lp list, token addr:%s, chainId:%d", tokenWithAddr.GetAddress(), chainId)
+				continue
+			}
+			detail.Token = token.Token
+			chainInfo, found := userDetailMap[chainId]
+			if !found {
+				chainInfo = make(map[string]*types.LiquidityDetail)
+			}
+			chainInfo[token.Token.Symbol] = detail
+			userDetailMap[chainId] = chainInfo
+		}
 	}
+
 	farmingApyMap := gs.getFarmingApy(ctx)
 	data24h := get24hTx()
-	userDetailMap := make(map[uint64]map[string]*types.LiquidityDetail)
-	for _, detail := range detailList.GetLiquidityDetail() {
-		chainId := detail.GetChainId()
-		tokenWithAddr := detail.GetToken() // only has addr field
-		token, found, dbErr := dal.DB.GetTokenByAddr(common.Hex2Addr(tokenWithAddr.GetAddress()).String(), chainId)
-		if !found || dbErr != nil {
-			log.Debugf("data, token not found in lp list, token addr:%s, chainId:%d", tokenWithAddr.GetAddress(), chainId)
-			continue
-		}
-		detail.Token = token.Token
-		chainInfo, found := userDetailMap[chainId]
-		if !found {
-			chainInfo = make(map[string]*types.LiquidityDetail)
-		}
-		chainInfo[token.Token.Symbol] = detail
-		userDetailMap[chainId] = chainInfo
-	}
+
 	for chainId32, chainToken := range chainTokenInfos {
 		chainId := uint64(chainId32)
 		for _, token := range chainToken.Token {
@@ -145,11 +151,14 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 			totalLiquidity := "0"
 			usrLpFeeEarning := "0"
 			usrLiquidity := "0"
-			detail, found := userDetailMap[chainId][tokenSymbol]
-			if found {
-				totalLiquidity = detail.GetTotalLiquidity()
-				usrLpFeeEarning = detail.GetUsrLpFeeEarning()
-				usrLiquidity = detail.GetUsrLiquidity()
+			_, found1 := userDetailMap[chainId]
+			if found1 {
+				detail, found2 := userDetailMap[chainId][tokenSymbol]
+				if found2 {
+					totalLiquidity = detail.GetTotalLiquidity()
+					usrLpFeeEarning = detail.GetUsrLpFeeEarning()
+					usrLiquidity = detail.GetUsrLiquidity()
+				}
 			}
 
 			enrichUnknownToken(token)
@@ -204,7 +213,7 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	}, nil
 }
 
-// todo cache this @aric
+// todo cache this  @aric
 func get24hTx() map[uint64]map[string]*txData {
 	txs, err := dal.DB.Get24hTx()
 	resp := make(map[uint64]map[string]*txData) // map<chain_id, map<token_symbol, txData>>
