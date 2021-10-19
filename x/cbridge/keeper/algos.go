@@ -26,7 +26,7 @@ const (
 // note if decimals are different, extra careful
 func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmount *big.Int) *big.Int {
 	ret := new(big.Int)
-	if srcAmount.Sign() <= 0 {
+	if isNegOrZero(srcAmount) {
 		return ret
 	}
 	// A,m,n are from chain pair config
@@ -37,11 +37,11 @@ func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmo
 	}
 	srcLiqSum := GetLiq(kv, src.ChainIdTokenAddr)
 	x := Epsilon // if srcLiqSum is 0, use Epsilon to avoid div by 0
-	if srcLiqSum.Sign() == 1 {
+	if isPos(srcLiqSum) {
 		x = amt2float(srcLiqSum, src.Decimal)
 	}
 	destLiqSum := GetLiq(kv, dest.ChainIdTokenAddr)
-	if destLiqSum.Sign() == 0 {
+	if isZero(destLiqSum) {
 		return ret // no liq on dest chain
 	}
 	y := amt2float(destLiqSum, dest.Decimal) // y can't be 0
@@ -75,7 +75,7 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 	totalLpFee := new(big.Int).Mul(fee, lpFeePerc)
 	totalLpFee.Div(totalLpFee, big.NewInt(100))
 	sgnFee := new(big.Int).Sub(fee, totalLpFee)
-	if sgnFee.Sign() == 1 {
+	if isPos(sgnFee) {
 		AddSgnFee(kv, dest.ChId, dest.TokenAddr, sgnFee)
 	}
 
@@ -94,11 +94,11 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 		wtList := getWeightSlice(pickedLPs, decDivisor)
 		totalWt := wtList[len(wtList)-1]
 		rand.Seed(new(big.Int).SetBytes(lpPre).Int64())
-		for toAllocate.Sign() > 0 {
+		for isPos(toAllocate) {
 			lpIdx := searchInts(wtList, rand.Int63n(totalWt)+1)
 			lpIdx = nextNonZeroLp(pickedLPs, lpIdx)
 			k.updateOneLP(ctx, kv, src, dest, pickedLPs[lpIdx], toAllocate, totalLpFee, srcAmount, destAmount)
-			if toAllocate.Sign() == 0 {
+			if isZero(toAllocate) {
 				break // we've allocated all
 			}
 		}
@@ -106,12 +106,12 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 		// from first in pickedLPs, one by one
 		for _, lp := range pickedLPs {
 			k.updateOneLP(ctx, kv, src, dest, lp, toAllocate, totalLpFee, srcAmount, destAmount)
-			if toAllocate.Sign() == 0 {
+			if isZero(toAllocate) {
 				break // we've allocated all
 			}
 		}
 	}
-	if toAllocate.Sign() > 0 {
+	if isPos(toAllocate) {
 		panic("toallocate not 0")
 	}
 	return
@@ -138,7 +138,7 @@ func (k Keeper) updateOneLP(ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdT
 	// add LP liquidity on src chain, toadd = srcAmt * used/destAmt
 	addOnSrc := new(big.Int).Mul(used, srcAmount)
 	addOnSrc.Div(addOnSrc, destAmount)
-	if addOnSrc.Sign() == 1 {
+	if isPos(addOnSrc) {
 		k.ChangeLiquidity(ctx, kv, src.ChId, src.TokenAddr, lpAddr, addOnSrc)
 	}
 }
@@ -149,14 +149,14 @@ func nextNonZeroLp(lps []*AddrHexAmtInt, begin int) int {
 	lpCnt := len(lps)
 	for cnt := 0; cnt < lpCnt; cnt++ {
 		idx := (cnt + begin) % lpCnt
-		if lps[idx].AmtInt.Sign() > 0 {
+		if isPos(lps[idx].AmtInt) {
 			return idx
 		}
 	}
 	panic("lps are all zero liquidity")
 }
 
-// from https://github.com/mroth/weightedrand
+// modified from sort.Search
 func searchInts(a []int64, x int64) int {
 	i, j := 0, len(a)
 	for i < j {
@@ -245,7 +245,7 @@ func pickLpTillSize(kv sdk.KVStore, begin, end []byte, size int, sender string) 
 	iter = kv.Iterator(begin, end)
 	for ; iter.Valid(); iter.Next() {
 		amt := new(big.Int).SetBytes(iter.Value())
-		if amt.Sign() == 1 {
+		if isPos(amt) {
 			lpAddr := getAddr(iter.Key())
 			if lpAddr == sender {
 				continue // don't use sender's own liquidity
@@ -270,7 +270,7 @@ func pickLpTillSum(iter sdk.Iterator, expSum *big.Int, sender string) (picked []
 	actualSum = new(big.Int)
 	for ; iter.Valid(); iter.Next() {
 		amt := new(big.Int).SetBytes(iter.Value())
-		if amt.Sign() == 1 {
+		if isPos(amt) {
 			lpAddr := getAddr(iter.Key())
 			if lpAddr == sender {
 				continue // don't use sender's own liquidity
@@ -324,6 +324,18 @@ func CalcFee(kv sdk.KVStore, src, dest *ChainIdTokenAddr, total *big.Int) *big.I
 	return feeAmt
 }
 
+func isPos(i *big.Int) bool {
+	return i.Sign() == 1
+}
+
+func isZero(i *big.Int) bool {
+	return i.Sign() == 0
+}
+
+func isNegOrZero(i *big.Int) bool {
+	return i.Sign() <= 0
+}
+
 // ========== below impl price formula
 
 // we can solve D directly, p = (4A-1){4x_i^{w_i}x_j^{w_j}}
@@ -365,7 +377,7 @@ func invarRight(A, D, x, y, m, n float64) float64 {
 
 // divide amt by 10**(decimal)
 func amt2float(amt *big.Int, decimal uint32) float64 {
-	if amt.Sign() == 0 {
+	if isZero(amt) {
 		return 0
 	}
 	ret := new(big.Float).SetInt(amt)
