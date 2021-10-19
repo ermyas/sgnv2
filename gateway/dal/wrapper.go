@@ -55,30 +55,30 @@ func GetTokenByAddr(addr string, chainId uint64) (*webapi.TokenInfo, bool, error
 	}
 }
 
-// UpsertLP update api
-func UpsertLP(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum uint64) error {
+// UpsertLPForLiqAdd update api
+func UpsertLPForLiqAdd(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum uint64) error {
 	if DB == nil {
 		return nil
 	} else {
-		return DB.UpsertLP(usrAddr, tokenSymbol, tokenAddr, amt, txHash, chainId, status, lpType, seqNum)
+		return DB.UpsertLPWithTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash, chainId, status, lpType, seqNum)
 	}
 }
 
 // GetTransferByRefundSeqNum query api
-func GetTransferByRefundSeqNum(seqNum uint64) (string, bool, error) {
+func GetTransferByRefundSeqNum(chainId, seqNum uint64, usrAddr string) (string, bool, error) {
 	if DB == nil {
 		return "", false, noDBErrorForQuery()
 	} else {
-		return DB.GetTransferByRefundSeqNum(seqNum)
+		return DB.GetTransferByRefundSeqNum(chainId, seqNum, usrAddr)
 	}
 }
 
 // UpdateLPStatusForWithdraw update api
-func UpdateLPStatusForWithdraw(seqNum, status uint64) error {
+func UpdateLPStatusForWithdraw(chainId, seqNum, status uint64, addr string) error {
 	if DB == nil {
 		return nil
 	} else {
-		return DB.UpdateLPStatusForWithdraw(seqNum, status)
+		return DB.UpdateLPStatusForWithdraw(chainId, seqNum, status, addr)
 	}
 }
 

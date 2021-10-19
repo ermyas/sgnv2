@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -184,4 +185,14 @@ func Bytes2Hash(b []byte) Hash {
 
 func GetSymbolFromFarmingToken(token string) string {
 	return strings.Replace(token, "CB-", "", 1)
+}
+
+func IsValidTxHash(txHash string) bool {
+	if txHash == "" {
+		return false
+	}
+	num, err := strconv.Atoi(txHash)
+	notNum := num == 0 && err != nil
+	preFix0x := strings.HasPrefix(txHash, "0x")
+	return notNum || preFix0x
 }

@@ -28,7 +28,6 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 	chainId := request.GetChainId()
 	amt := request.GetAmt()
 	addr := common.Hex2Addr(request.GetLpAddr()).String()
-	seqNum := request.GetSeqNum()
 	tokenAddr := common.Hex2Addr(request.GetTokenAddr()).String()
 	log.Infof("Liquidity in mark api request:%+v", request)
 	token, found, err := dal.DB.GetTokenByAddr(tokenAddr, uint64(chainId))
@@ -41,7 +40,12 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 		}, nil
 	}
 	txHash := request.GetTxHash()
-	err = dal.DB.UpsertLP(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, uint64(chainId), uint64(types.LPHistoryStatus_LP_SUBMITTING), uint64(lpType), seqNum)
+	if lpType == webapi.LPType_LP_TYPE_ADD {
+		err = dal.DB.UpsertLPWithTx(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, uint64(chainId), uint64(types.LPHistoryStatus_LP_SUBMITTING), uint64(lpType), 0)
+	} else if lpType == webapi.LPType_LP_TYPE_REMOVE {
+		seqNum := request.GetSeqNum()
+		err = dal.DB.UpsertLPWithSeqNum(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, uint64(chainId), uint64(types.LPHistoryStatus_LP_SUBMITTING), uint64(lpType), seqNum)
+	}
 	if err == nil {
 		return &webapi.MarkLiquidityResponse{}, nil
 	} else {
@@ -133,9 +137,9 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				},
 			}, nil
 		}
-		err = dal.DB.UpsertLP(lp, token.Token.Symbol, token.Token.Address, amt, "", uint64(chainId), uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
+		err = dal.DB.UpsertLPWithSeqNum(lp, token.Token.Symbol, token.Token.Address, amt, strconv.Itoa(int(seqNum)), uint64(chainId), uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
 		if err != nil {
-			_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(types.LPHistoryStatus_LP_FAILED))
+			_ = dal.DB.UpdateLPStatusForWithdraw(uint64(chainId), seqNum, uint64(types.LPHistoryStatus_LP_FAILED), lp)
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -153,7 +157,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			UserSig: request.Sig,
 		})
 		if err != nil {
-			_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(types.LPHistoryStatus_LP_FAILED))
+			_ = dal.DB.UpdateLPStatusForWithdraw(uint64(chainId), seqNum, uint64(types.LPHistoryStatus_LP_FAILED), lp)
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -174,7 +178,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 	addr := common.Hex2Addr(request.GetLpAddr())
 	tr := gs.TP.GetTransactor()
 	txHash, status, lpUpdateTime, found, err := dal.DB.GetLPInfo(seqNum, lpType, chainId, addr.String())
-	if found && err == nil && status == uint64(types.LPHistoryStatus_LP_SUBMITTING) && txHash != "" {
+	if found && err == nil && status == uint64(types.LPHistoryStatus_LP_SUBMITTING) && common.IsValidTxHash(txHash) {
 		ec := gs.EC[chainId]
 		if ec == nil {
 			log.Errorf("no ethClient found for chain:%d", chainId)
@@ -203,7 +207,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 	}
 
 	link := ""
-	if txHash != "" {
+	if common.IsValidTxHash(txHash) {
 		_, chainUrl, chainFound, chainErr := dal.DB.GetChain(chainId)
 		if chainFound && chainErr == nil && chainUrl != "" {
 			link = chainUrl + txHash
@@ -247,7 +251,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 				})
 				if err != nil {
 					// sign again failed, we will mark this tx as WAITING_FOR_SGN again and will check again after 15 min
-					_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN))
+					_ = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), addr.String())
 				}
 			} else {
 				detail, wdOnchain, sortedSigs, signers, powers := gs.getWithdrawInfo(seqNum, chainId, addr.String())
@@ -256,7 +260,10 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 				resp.Signers = signers
 				resp.Powers = powers
 				if detail != nil && status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN) && detail.GetStatus() != resp.Status {
-					_ = dal.DB.UpdateLPStatusForWithdraw(seqNum, uint64(detail.Status))
+					dberr := dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(detail.Status), addr.String())
+					if dberr != nil {
+						log.Errorf("db error:%+v", dberr)
+					}
 					resp.Status = detail.GetStatus()
 				}
 			}
@@ -305,7 +312,7 @@ func (gs *GatewayService) LPHistory(ctx context.Context, request *webapi.LPHisto
 			continue
 		}
 		txLink := ""
-		if lp.TxHash != "" {
+		if common.IsValidTxHash(lp.TxHash) {
 			txLink = chainUrl + lp.TxHash
 		}
 

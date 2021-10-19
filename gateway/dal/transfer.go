@@ -162,10 +162,10 @@ func (d *DAL) PaginateTransferList(sender string, end time.Time, size uint64) ([
 	return tps, len(tps), minTime, nil
 }
 
-func (d *DAL) GetTransferByRefundSeqNum(seqNum uint64) (string, bool, error) {
+func (d *DAL) GetTransferByRefundSeqNum(chainId, seqNum uint64, addr string) (string, bool, error) {
 	var transferId string
-	q := `SELECT transfer_id FROM transfer WHERE refund_seq_num = $1`
-	err := d.QueryRow(q, seqNum).Scan(&transferId)
+	q := `SELECT transfer_id FROM transfer WHERE src_chain_id=$1 and refund_seq_num = $2 and usr_addr=$3`
+	err := d.QueryRow(q, chainId, seqNum, addr).Scan(&transferId)
 	found, err := sqldb.ChkQueryRow(err)
 	return transferId, found, err
 }

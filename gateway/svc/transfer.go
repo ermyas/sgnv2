@@ -247,11 +247,11 @@ func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.T
 		}
 		srcTxLink := ""
 		dstTxLink := ""
-		if transfer.SrcTxHash != "" {
+		if common.IsValidTxHash(transfer.SrcTxHash) {
 			srcTxLink = srcChainUrl + transfer.SrcTxHash
 		}
 
-		if transfer.DstTxHash != "" {
+		if common.IsValidTxHash(transfer.DstTxHash) {
 			dstTxLink = dstChainUrl + transfer.DstTxHash
 		}
 
@@ -377,8 +377,8 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 			if dbErr != nil {
 				log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", srcChainId, txHash)
 			}
-			refundReason = transferStatusMap[transferId].SgnStatus
 		}
+		refundReason = transferStatusMap[transferId].SgnStatus
 		refundReasons[transferId] = refundReason
 	}
 	return refundReasons, nil
@@ -388,11 +388,11 @@ func (gs *GatewayService) getTxHashForTransfer(transfer *dal.Transfer) (string, 
 	srcTxHash, dstTxHash := "", ""
 	if transfer.Status == types.TransferHistoryStatus_TRANSFER_COMPLETED || transfer.Status == types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE {
 		_, url1, found1, err1 := dal.DB.GetChain(transfer.SrcChainId)
-		if found1 && err1 == nil && url1 != "" && transfer.SrcTxHash != "" {
+		if found1 && err1 == nil && url1 != "" && common.IsValidTxHash(transfer.SrcTxHash) {
 			srcTxHash = url1 + transfer.SrcTxHash
 		}
 		_, url2, found2, err2 := dal.DB.GetChain(transfer.DstChainId)
-		if found2 && err2 == nil && url2 != "" && transfer.DstTxHash != "" {
+		if found2 && err2 == nil && url2 != "" && common.IsValidTxHash(transfer.DstTxHash) {
 			dstTxHash = url2 + transfer.DstTxHash
 		}
 	}

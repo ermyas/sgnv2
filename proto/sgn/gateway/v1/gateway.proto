@@ -302,7 +302,7 @@ message MarkLiquidityRequest {
     string amt = 2;
     string token_addr = 3;
     uint32 chain_id = 4;
-    uint64 seq_num = 5;
+    uint64 seq_num = 5; // used for withdraw only
     string tx_hash = 6;
     LPType type = 7;
 }

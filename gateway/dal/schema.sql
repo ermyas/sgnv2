@@ -38,7 +38,8 @@ CREATE TABLE IF NOT EXISTS lp (
     status INT NOT NULL DEFAULT 1,
     lp_type INT NOT NULL DEFAULT 1,
     seq_num INT NOT NULL DEFAULT 0,
-    PRIMARY KEY (usr_addr, chain_id, seq_num, lp_type)
+    PRIMARY KEY (usr_addr, chain_id, seq_num, lp_type),
+    UNIQUE (usr_addr, chain_id, tx_hash, lp_type)
     );
 CREATE INDEX IF NOT EXISTS lp_utm_idx ON lp (update_time);
 CREATE INDEX IF NOT EXISTS lp_ctm_idx ON lp (create_time);
@@ -75,7 +76,7 @@ CREATE TABLE IF NOT EXISTS chain (
      block_delay INT NOT NULL DEFAULT 0,
      gas_token_symbol TEXT NOT NULL DEFAULT '',
      explore_url TEXT NOT NULL DEFAULT '',
-     rpc_url TEXT NOT NULL DEFAULT '',
+     rpc_url TEXT NOT NULL DEFAULT ''
 );
 
 
