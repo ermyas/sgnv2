@@ -184,11 +184,20 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 		receipt, recErr := ec.TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))
 		if recErr == nil && receipt.Status != ethtypes.ReceiptStatusSuccessful {
 			log.Warnf("find transfer failed, chain_id %d, hash:%s", chainId, txHash)
-			dbErr := dal.DB.UpdateLPStatus(seqNum, lpType, chainId, addr.String(), uint64(types.LPHistoryStatus_LP_FAILED))
-			if dbErr != nil {
-				log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", chainId, txHash)
-			} else {
-				status = uint64(types.LPHistoryStatus_LP_FAILED)
+			if lpType == uint64(webapi.LPType_LP_TYPE_ADD) {
+				dbErr := dal.DB.UpdateLPStatus(seqNum, lpType, chainId, addr.String(), uint64(types.LPHistoryStatus_LP_FAILED))
+				if dbErr != nil {
+					log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", chainId, txHash)
+				} else {
+					status = uint64(types.LPHistoryStatus_LP_FAILED)
+				}
+			} else if lpType == uint64(webapi.LPType_LP_TYPE_REMOVE) {
+				dbErr := dal.DB.UpdateLPStatus(seqNum, lpType, chainId, addr.String(), uint64(types.LPHistoryStatus_LP_WAITING_FOR_LP))
+				if dbErr != nil {
+					log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", chainId, txHash)
+				} else {
+					status = uint64(types.LPHistoryStatus_LP_WAITING_FOR_LP)
+				}
 			}
 		}
 	}

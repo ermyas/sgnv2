@@ -8,11 +8,11 @@ import (
 )
 
 func (d *DAL) GetTransfer(transferId string) (*Transfer, bool, error) {
-	q := `SELECT create_time, update_time, status, src_chain_id, dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt, refund_seq_num, usr_addr FROM transfer WHERE transfer_id = $1`
-	var srcTxHash, dstTxHash, tokenSymbol, srcAmt, dstAmt, usrAddr string
+	q := `SELECT create_time, update_time, status, src_chain_id, dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt, refund_seq_num, usr_addr, refund_tx FROM transfer WHERE transfer_id = $1`
+	var srcTxHash, dstTxHash, tokenSymbol, srcAmt, dstAmt, usrAddr, refundTx string
 	var srcChainId, status, dstChainId, refundSeqNum uint64
 	var ct, ut time.Time
-	err := d.QueryRow(q, transferId).Scan(&ct, &ut, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum, &usrAddr)
+	err := d.QueryRow(q, transferId).Scan(&ct, &ut, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum, &usrAddr, &refundTx)
 	found, err := sqldb.ChkQueryRow(err)
 	return &Transfer{
 		TransferId:   transferId,
@@ -28,6 +28,7 @@ func (d *DAL) GetTransfer(transferId string) (*Transfer, bool, error) {
 		DstAmt:       dstAmt,
 		RefundSeqNum: refundSeqNum,
 		UsrAddr:      usrAddr,
+		RefundTx:     refundTx,
 	}, found, err
 }
 
@@ -113,10 +114,11 @@ type Transfer struct {
 	Volume       float64
 	RefundSeqNum uint64
 	UsrAddr      string
+	RefundTx     string
 }
 
 func (d *DAL) PaginateTransferList(sender string, end time.Time, size uint64) ([]*Transfer, int, time.Time, error) {
-	q := "SELECT transfer_id, create_time, status, src_chain_id,dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt FROM transfer WHERE usr_addr = $1 and create_time < $3 order by create_time desc limit $2"
+	q := "SELECT transfer_id, create_time, status, src_chain_id,dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt, refund_tx FROM transfer WHERE usr_addr = $1 and create_time < $3 order by create_time desc limit $2"
 	rows, err := d.Query(q, sender, size, end)
 	if err != nil {
 		log.Errorf("db error:%v", err)
@@ -125,12 +127,12 @@ func (d *DAL) PaginateTransferList(sender string, end time.Time, size uint64) ([
 	defer closeRows(rows)
 
 	var tps []*Transfer
-	var transferId, srcTxHash, dstTxHash, tokenSymbol, srcAmt, dstAmt string
+	var transferId, srcTxHash, dstTxHash, tokenSymbol, srcAmt, dstAmt, refundTx string
 	var srcChainId, status, dstChainId uint64
 	var ct time.Time
 	minTime := now()
 	for rows.Next() {
-		err = rows.Scan(&transferId, &ct, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt)
+		err = rows.Scan(&transferId, &ct, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundTx)
 		if err != nil {
 			return nil, 0, time.Unix(0, 0), err
 		}
@@ -146,6 +148,7 @@ func (d *DAL) PaginateTransferList(sender string, end time.Time, size uint64) ([
 			TokenSymbol: tokenSymbol,
 			SrcAmt:      srcAmt,
 			DstAmt:      dstAmt,
+			RefundTx:    refundTx,
 		}
 		if minTime.After(ct) {
 			minTime = ct

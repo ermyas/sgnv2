@@ -2,6 +2,7 @@ package gatewaysvc
 
 import (
 	"context"
+	"fmt"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
@@ -335,13 +336,37 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 			status == types.TransferHistoryStatus_TRANSFER_REFUNDED {
 			continue // finial status, not updated by sgn
 		}
+
+		// revert status if onchain refund failed
+		if status == types.TransferHistoryStatus_TRANSFER_CONFIRMING_YOUR_REFUND {
+			chainId := transfer.SrcChainId
+			refundTx := transfer.RefundTx
+			if refundTx == "" {
+				log.Errorf("refund tx is nil for transfer refund:%s", transferId)
+			} else {
+				ec := gs.EC[chainId]
+				if ec == nil {
+					log.Errorf("no ethClient found for chain:%d", chainId)
+					return nil, fmt.Errorf("no ethClient found for chain:%d", chainId)
+				}
+				receipt, recErr := ec.TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(refundTx)))
+				if recErr == nil && receipt.Status != ethtypes.ReceiptStatusSuccessful {
+					dbErr := dal.DB.UpdateTransferStatus(transferId, uint64(types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED))
+					if dbErr != nil {
+						log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", srcChainId, refundTx)
+					}
+					status = types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED
+				}
+			}
+		}
+
 		if transferStatusMap[transferId].GetGatewayStatus() == types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED ||
 			transferStatusMap[transferId].GetGatewayStatus() == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED {
 			if status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND || status == types.TransferHistoryStatus_TRANSFER_CONFIRMING_YOUR_REFUND {
 				continue // user action, not updated by sgn
 			}
 			if status == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED && transferStatusMap[transferId].GetGatewayStatus() == types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED {
-				continue // user confirmed but sgn doesn't know, skip
+				continue // waiting for user confirmed but sgn doesn't know, skip
 			}
 			if status == transferStatusMap[transferId].GetGatewayStatus() {
 				log.Debugf("status not change in polling for transfer:%s, status:%s", transfer.TransferId, status)
