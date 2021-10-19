@@ -114,10 +114,12 @@ func SgnFeeKey(chid uint64, token eth.Addr) []byte {
 2. chid-tokenAddr -> asset symbol string eg. "USDT", all uppercase
 3. symbol-chid -> ChainAsset, note proto has dup info symbol and chain_id
 4. chid1-chid2 -> ChainPair. keys are sorted so chid1 < chid2
+5. pick lp size, how many LPs on first select. value is big.Int bytes
 */
 
 var (
-	CfgKeyFeePerc = []byte("cfg-feeperc")
+	CfgKeyFeePerc    = []byte("cfg-feeperc")
+	CfgKeyPickLpSize = []byte("cfg-lpsize")
 )
 
 func CfgKeyChain2Sym(chid uint64, addr eth.Addr) []byte {

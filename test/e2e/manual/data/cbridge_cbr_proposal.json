@@ -2,7 +2,7 @@
 	"title": "cBridge config Change",
 	"description": "Update cbridge param to v1.1",
 	"cbr_config": {
-		"lp_fee": 90,
+		"lp_fee_perc": 90,
 		"assets": [{
       "addr": "0fDcC176bf7b46B32ABB993eb6EFfFA70D97e6D6",
       "chain_id": 883,

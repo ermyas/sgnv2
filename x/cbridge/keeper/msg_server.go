@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/celer-network/sgn-v2/common"
 	"math/big"
-	"math/rand"
 	"sort"
+
+	"github.com/celer-network/sgn-v2/common"
+	"github.com/tendermint/tendermint/libs/rand"
 
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
@@ -256,7 +257,7 @@ func (k msgServer) InternalTransfer(ctx context.Context, req *types.MsgInternalT
 	}
 	// TODO: pre-processing: check for replay, validated src balance, etc.
 	k.Transfer(sdk.UnwrapSDKContext(ctx),
-		sender, eth.Hex2Addr(xfer.Token), amount, xfer.SrcChainId, xfer.DstChainId, xfer.MaxSlippage, rand.Uint64())
+		sender, eth.Hex2Addr(xfer.Token), amount, xfer.SrcChainId, xfer.DstChainId, xfer.MaxSlippage, big.NewInt(int64(rand.Uint32())).Bytes())
 	// TODO: post-processing, record status, etc.
 	return ret, nil
 }

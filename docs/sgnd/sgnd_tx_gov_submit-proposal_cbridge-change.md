@@ -10,7 +10,7 @@ proposal file is path to json like below
 	"title": "cBridge config Change",
 	"description": "Update cbridge param to v1.1",
 	"cbr_config": {
-		"lp_fee": 80,
+		"lp_fee_perc": 80,
 		"assets": [{}],
 		"chain_pairs": [{}]
 	},

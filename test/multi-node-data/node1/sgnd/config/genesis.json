@@ -81,7 +81,7 @@
         "sign_again_cool_down_duration": "600s"
       },
       "config": {
-        "lp_fee": 80,
+        "lp_fee_perc": 80,
         "assets": [
           {
             "symbol": "USDT",

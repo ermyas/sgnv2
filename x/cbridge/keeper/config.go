@@ -19,8 +19,10 @@ var (
 // set the params, delete all param kvs first
 func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 	kv := ctx.KVStore(k.storeKey)
-	kv.Set(types.CfgKeyFeePerc, big.NewInt(int64(cfg.LpFee)).Bytes())
+	setUint32(kv, types.CfgKeyFeePerc, cfg.LpFeePerc)
+	setUint32(kv, types.CfgKeyPickLpSize, cfg.PickLpSize)
 	// todo: iter and del all cfg-xxx key/val if we're removing asset
+	// but this may be VERY unlikely, also need to take care of past xfers
 	// go over asset and set ch2sym and sym2info
 	for _, asset := range cfg.Assets {
 		addr := eth.Hex2Addr(asset.Addr)
@@ -35,10 +37,19 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 	}
 }
 
+func getUint32(kv sdk.KVStore, key []byte) uint32 {
+	return uint32(new(big.Int).SetBytes(kv.Get(key)).Int64())
+}
+
+func setUint32(kv sdk.KVStore, key []byte, val uint32) {
+	kv.Set(key, big.NewInt(int64(val)).Bytes())
+}
+
 func (k Keeper) GetCbrConfig(ctx sdk.Context) types.CbrConfig {
 	var cbrConfig types.CbrConfig
 	kv := ctx.KVStore(k.storeKey)
-	cbrConfig.LpFee = uint32(new(big.Int).SetBytes(kv.Get(types.CfgKeyFeePerc)).Int64())
+	cbrConfig.LpFeePerc = getUint32(kv, types.CfgKeyFeePerc)
+	cbrConfig.PickLpSize = getUint32(kv, types.CfgKeyPickLpSize)
 	cbrConfig.Assets = make([]*types.ChainAsset, 0)
 	cbrConfig.ChainPairs = make([]*types.ChainPair, 0)
 

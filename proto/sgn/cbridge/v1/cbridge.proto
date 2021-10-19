@@ -27,7 +27,12 @@ message Params {
 // ========== configs
 // use configs to avoid confusion w/ cosmos param
 message CbrConfig {
-  uint32 lp_fee = 1; // eg. 80 means 80% fee goes to cbridge lp, 20% goes to sgn
+  uint32 lp_fee_perc = 1; // eg. 80 means 80% fee goes to cbridge lp, 20% goes to sgn
+  // to improve scalability, we'll first pick this many LPs to see if their total liquidity is enough
+  // if yes, we'll use weighted random sampling among them until xfer can be fulfilled.
+  // if not, we'll continue choose next LPs until we have enough and use all
+  // this param is a trade-off between scalability and fairness
+  uint32 pick_lp_size = 4;
   repeated ChainAsset assets = 2; // multi-asset, multi-chain
   repeated ChainPair chain_pairs = 3; // per chain pair configs
 }
@@ -39,6 +44,7 @@ message ChainAsset {
   string addr = 3; // hex string of erc20 address, use string for easier json integration
   uint32 decimal = 4; // to handle same asset has different decimal on different chains
   string max_fee_amount = 5; // max fee, use string to avoid uint64 not enough for 18 decimal
+  bool xfer_disabled = 6; // if set to true, won't relay if this asset is src or dest
 }
 
 // chid1 must be smaller than chid2 order

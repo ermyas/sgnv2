@@ -41,8 +41,8 @@ func (m *WithdrawDetail) GetSortedSigsBytes() [][]byte {
 
 // basic check of config
 func (c *CbrConfig) Validate() error {
-	if c.LpFee > 100 {
-		return fmt.Errorf("lp_fee %d > 100", c.LpFee)
+	if c.LpFeePerc > 100 {
+		return fmt.Errorf("lp_fee_perc %d > 100", c.LpFeePerc)
 	}
 	var err error
 	for _, ast := range c.Assets {

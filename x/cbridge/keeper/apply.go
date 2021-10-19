@@ -77,9 +77,8 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			SetEvSendStatus(kv, ev.TransferId, sendStatus)
 		}()
 
-		randNum := new(big.Int).SetBytes(ev.TransferId[28:]).Uint64() // last 4B of xfer id
 		sendStatus, destAmount, feeAmt, destTokenAddr :=
-			k.Transfer(ctx, eth.ZeroAddr, ev.Token, ev.Amount, onchev.Chainid, ev.DstChainId, ev.MaxSlippage, randNum)
+			k.Transfer(ctx, eth.ZeroAddr, ev.Token, ev.Amount, onchev.Chainid, ev.DstChainId, ev.MaxSlippage, ev.TransferId[28:]) // last 4B of xfer id
 
 		if sendStatus != types.XferStatus_OK_TO_RELAY {
 			if sendStatus == types.XferStatus_BAD_LIQUIDITY || sendStatus == types.XferStatus_BAD_SLIPPAGE {
