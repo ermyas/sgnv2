@@ -94,7 +94,7 @@ prepare-docker-env: build-dockers build-linux prepare-geth-data
 .PHONY: prepare-geth2-env
 prepare-geth2-env:
 	DOCKER_BUILDKIT=1 docker build --tag celer-network/geth2 networks/local/geth2
-	rm -rf ./docker-volumes/geth2-env
+	sudo rm -rf ./docker-volumes/geth2-env
 	mkdir -p ./docker-volumes
 	cp -r ./test/multi-node-data/geth2-env ./docker-volumes/
 
@@ -138,14 +138,14 @@ localnet-down:
 # Prepare geth data
 .PHONY: prepare-geth-data
 prepare-geth-data:
-	rm -rf ./docker-volumes/geth-env
+	sudo rm -rf ./docker-volumes/geth-env
 	mkdir -p ./docker-volumes
 	cp -r ./test/multi-node-data/geth-env ./docker-volumes/
 
 # Prepare sgn nodes' data
 .PHONY: prepare-sgn-data
 prepare-sgn-data:
-	rm -rf ./docker-volumes/node*
+	sudo rm -rf ./docker-volumes/node*
 	mkdir -p ./docker-volumes
 	cp -r ./test/multi-node-data/node* ./docker-volumes/
 

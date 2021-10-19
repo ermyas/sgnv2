@@ -209,12 +209,7 @@ func queryTransferStatus(ctx sdk.Context, req abci.RequestQuery, k Keeper, legac
 				GatewayStatus: types.TransferHistoryStatus_TRANSFER_COMPLETED,
 				SgnStatus:     xferStatus,
 			}
-		case types.XferStatus_BAD_LIQUIDITY:
-			status[xferId] = &types.TransferStatus{
-				GatewayStatus: types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED,
-				SgnStatus:     xferStatus,
-			}
-		case types.XferStatus_BAD_SLIPPAGE:
+		case types.XferStatus_BAD_LIQUIDITY, types.XferStatus_BAD_SLIPPAGE, types.XferStatus_BAD_XFER_DISABLED, types.XferStatus_BAD_DEST_CHAIN:
 			status[xferId] = &types.TransferStatus{
 				GatewayStatus: types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED,
 				SgnStatus:     xferStatus,

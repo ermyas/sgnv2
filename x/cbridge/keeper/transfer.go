@@ -14,6 +14,11 @@ func (k Keeper) Transfer(
 	ctx sdk.Context, sender, token eth.Addr, amount *big.Int, srcChainId, dstChainId uint64,
 	maxSlippage uint32, startLpPre []byte) (status types.XferStatus, destAmount, feeAmt *big.Int, destTokenAddr eth.Addr) {
 
+	if srcChainId == dstChainId {
+		status = types.XferStatus_BAD_DEST_CHAIN
+		return
+	}
+
 	kv := ctx.KVStore(k.storeKey)
 	src := &ChainIdTokenAddr{
 		ChId:      srcChainId,
@@ -43,6 +48,24 @@ func (k Keeper) Transfer(
 		ChId:      dstChainId,
 		TokenAddr: destTokenAddr,
 	}
+
+	// check the asset xfer disabled
+	cbrConfig := k.GetCbrConfig(ctx)
+	var srcAssetDisabled, destAssetDisabled bool
+	for _, chainAsset := range cbrConfig.GetAssets() {
+		if chainAsset.GetChainId() == src.ChId && eth.Hex2Addr(chainAsset.GetAddr()) == src.TokenAddr {
+			srcAssetDisabled = chainAsset.GetXferDisabled()
+		}
+		if chainAsset.GetChainId() == dest.ChId && eth.Hex2Addr(chainAsset.GetAddr()) == dest.TokenAddr {
+			destAssetDisabled = chainAsset.GetXferDisabled()
+		}
+	}
+
+	if srcAssetDisabled || destAssetDisabled {
+		status = types.XferStatus_BAD_XFER_DISABLED
+		return
+	}
+
 	// now we need to decide if this send can be completed by sgn, eg. has enough liquidity on dest chain etc
 	destAmount = CalcEqualOnDestChain(kv,
 		&ChainIdTokenDecimal{

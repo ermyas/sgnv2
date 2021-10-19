@@ -1,29 +1,36 @@
 {
-	"title": "cBridge config Change",
-	"description": "Update cbridge param to v1.1",
-	"cbr_config": {
-		"lp_fee_perc": 90,
-		"assets": [{
-      "addr": "0fDcC176bf7b46B32ABB993eb6EFfFA70D97e6D6",
-      "chain_id": 883,
-      "decimal": 6,
-      "max_fee_amount": "100000000",
-      "symbol": "DAI"
-    },{
-      "addr": "0fDcC176bf7b46B32ABB993eb6EFfFA70D97e6D6",
-      "chain_id": 884,
-      "decimal": 6,
-      "max_fee_amount": "100000000",
-      "symbol": "DAI"
-    }],
-		"chain_pairs": [{
-      "chid1": 883,
-      "chid2": 885,
-      "const_a": 0,
-      "fee1to2": 10000,
-      "fee2to1": 20000,
-      "weight1": 100
-    }]
-	},
-	"deposit": "1000"
+  "title": "cBridge config Change",
+  "description": "Update cbridge param to v1.1",
+  "cbr_config": {
+    "lp_fee_perc": 80,
+    "assets": [
+      {
+        "addr": "2b499b7e9de669e968acd6039845a422f7ff758a",
+        "chain_id": 883,
+        "decimal": 6,
+        "max_fee_amount": "100000000",
+        "symbol": "USDT",
+        "xfer_disabled": false
+      },
+      {
+        "addr": "d22fe06b3f7fae4e72717762b075e63e5f0121be",
+        "chain_id": 884,
+        "decimal": 6,
+        "max_fee_amount": "100000000",
+        "symbol": "USDT",
+        "xfer_disabled": false
+      }
+    ],
+    "chain_pairs": [
+      {
+        "chid1": 883,
+        "chid2": 884,
+        "const_a": 0,
+        "fee1to2": 10000,
+        "fee2to1": 20000,
+        "weight1": 100
+      }
+    ]
+  },
+  "deposit": "1000"
 }

@@ -24,13 +24,11 @@ var (
 	MaxUint256 = new(big.Int).SetBytes(eth.Hex2Bytes(strings.Repeat("ff", 32)))
 )
 
-const maxSlip = 50000 // todo: use flag
-
 // sendCmd represents the send command
 var sendCmd = &cobra.Command{
 	Use:   "send",
-	Short: "send token, eg. send usdt 3 10000000, 3 is dst chainid",
-	Args:  cobra.ExactArgs(3),
+	Short: "send token, eg. send usdt 3 10000000 5, 3 is dst chainid, 5 is max slip",
+	Args:  cobra.ExactArgs(4),
 	Run: func(cmd *cobra.Command, args []string) {
 		if auth == nil {
 			log.Fatal("must set -ks flag")
@@ -39,7 +37,8 @@ var sendCmd = &cobra.Command{
 		tokenAddr := cfg.GetTokenAddr(sym)
 		dstChid, _ := strconv.Atoi(args[1])
 		amt, _ := new(big.Int).SetString(args[2], 10)
-		log.Println("send", sym, "from", chainName, "addr:", tokenAddr, "to", dstChid, "amt:", amt)
+		maxSlip, _ := new(big.Int).SetString(args[3], 10)
+		log.Println("send", sym, "from", chainName, "addr:", tokenAddr, "to", dstChid, "amt:", amt, "max slip:", maxSlip)
 		cbrAddr := eth.Hex2Addr(cfg.Cbridge)
 		erc20, _ := eth.NewErc20(tokenAddr, ec)
 		bal, _ := erc20.BalanceOf(nil, auth.From)
@@ -58,7 +57,7 @@ var sendCmd = &cobra.Command{
 		}
 		cbr, _ := eth.NewBridge(cbrAddr, ec)
 		log.Println("calling onchain send")
-		tx, err := cbr.Send(auth, auth.From, tokenAddr, amt, uint64(dstChid), uint64(time.Now().Unix()), maxSlip)
+		tx, err := cbr.Send(auth, auth.From, tokenAddr, amt, uint64(dstChid), uint64(time.Now().Unix()), uint32(maxSlip.Uint64()))
 		chkTxErr(tx, err)
 	},
 }

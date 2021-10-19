@@ -81,7 +81,10 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			k.Transfer(ctx, eth.ZeroAddr, ev.Token, ev.Amount, onchev.Chainid, ev.DstChainId, ev.MaxSlippage, ev.TransferId[28:]) // last 4B of xfer id
 
 		if sendStatus != types.XferStatus_OK_TO_RELAY {
-			if sendStatus == types.XferStatus_BAD_LIQUIDITY || sendStatus == types.XferStatus_BAD_SLIPPAGE {
+			if sendStatus == types.XferStatus_BAD_LIQUIDITY ||
+				sendStatus == types.XferStatus_BAD_SLIPPAGE ||
+				sendStatus == types.XferStatus_BAD_XFER_DISABLED ||
+				sendStatus == types.XferStatus_BAD_DEST_CHAIN {
 				SetXferRefund(kv, ev.TransferId, wdOnchain)
 			}
 			return true, nil
