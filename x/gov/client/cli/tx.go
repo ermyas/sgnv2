@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -116,6 +117,9 @@ $ %s tx gov submit-proposal --title="Test Proposal" --description="My awesome pr
 			amount, err := sdk.ParseCoinsNormalized(proposal.Deposit)
 			if err != nil {
 				return err
+			}
+			if len(amount) != 1 {
+				return errors.New("only support a single amount")
 			}
 
 			content := types.ContentFromProposalType(proposal.Title, proposal.Description, proposal.Type)

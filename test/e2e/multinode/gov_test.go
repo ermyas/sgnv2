@@ -172,7 +172,7 @@ func sgnchainGovTest(t *testing.T) {
 
 	log.Info("======================== Test change epochlength passed for over 1/2 yes ===========================")
 	paramChanges = []govtypes.ParamChange{govtypes.NewParamChange("staking", "EpochLength", "\"5\"")}
-	content = govtypes.NewParameterProposal("Gubscribe Param Change", "Update EpochLength", paramChanges)
+	content = govtypes.NewParameterProposal("Subscribe Param Change", "Update EpochLength", paramChanges)
 	submitProposalmsg, _ = govtypes.NewMsgSubmitProposal(content, sdk.NewInt(1e18), transactor2.Key.GetAddress())
 	transactor2.AddTxMsg(submitProposalmsg)
 
