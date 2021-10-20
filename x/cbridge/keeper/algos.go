@@ -85,6 +85,9 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 	}
 
 	toAllocate := new(big.Int).Set(destAmount) // how much left to allocate to LP
+	// keep track of total liq changes on dest and src, note diff dest will be negative
+	// we can't use destAmount/srcAmount etc due to per LP division rounding error
+	totalDestNeg, totalSrcAdd := new(big.Int), new(big.Int)
 	if useByRatio {
 		// weighted random sample till we have enough liq for destAmount.
 		// weight is uint64 each lp's liquidity amount divided by decimal, if 0 due to rounding, use 1
@@ -97,7 +100,9 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 		for isPos(toAllocate) {
 			lpIdx := searchInts(wtList, rand.Int63n(totalWt)+1)
 			lpIdx = nextNonZeroLp(pickedLPs, lpIdx)
-			k.updateOneLP(ctx, kv, src, dest, pickedLPs[lpIdx], toAllocate, totalLpFee, srcAmount, destAmount)
+			negAmt, srcAdd := k.updateOneLP(ctx, kv, src, dest, pickedLPs[lpIdx], toAllocate, totalLpFee, srcAmount, destAmount)
+			totalDestNeg.Add(totalDestNeg, negAmt) // negative!
+			totalSrcAdd.Add(totalSrcAdd, srcAdd)
 			if isZero(toAllocate) {
 				break // we've allocated all
 			}
@@ -105,19 +110,25 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 	} else {
 		// from first in pickedLPs, one by one
 		for _, lp := range pickedLPs {
-			k.updateOneLP(ctx, kv, src, dest, lp, toAllocate, totalLpFee, srcAmount, destAmount)
+			negAmt, srcAdd := k.updateOneLP(ctx, kv, src, dest, lp, toAllocate, totalLpFee, srcAmount, destAmount)
+			totalDestNeg.Add(totalDestNeg, negAmt) // negative!
+			totalSrcAdd.Add(totalSrcAdd, srcAdd)
 			if isZero(toAllocate) {
 				break // we've allocated all
 			}
 		}
 	}
+	// update liqsum to keep it the same as sum over all liq map
+	ChangeLiqSum(kv, dest.ChId, dest.TokenAddr, totalDestNeg)
+	ChangeLiqSum(kv, src.ChId, src.TokenAddr, totalSrcAdd)
 	if isPos(toAllocate) {
 		panic("toallocate not 0")
 	}
 	return
 }
 
-func (k Keeper) updateOneLP(ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdTokenAddr, lp *AddrHexAmtInt, toAllocate, totalLpFee, srcAmount, destAmount *big.Int) {
+// return negative big.Int liq delta on dest chain, and >=0 big.Int on src chain
+func (k Keeper) updateOneLP(ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdTokenAddr, lp *AddrHexAmtInt, toAllocate, totalLpFee, srcAmount, destAmount *big.Int) (*big.Int, *big.Int) {
 	used := new(big.Int)
 	if lp.AmtInt.Cmp(toAllocate) >= 0 {
 		// this lp has enough for all remaining needed liquidity
@@ -133,7 +144,8 @@ func (k Keeper) updateOneLP(ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdT
 	earnedFee.Div(earnedFee, destAmount)
 	// on dest chain, minus used, plus earnedfee
 	lpAddr := eth.Hex2Addr(lp.AddrHex)
-	k.ChangeLiquidity(ctx, kv, dest.ChId, dest.TokenAddr, lpAddr, new(big.Int).Sub(earnedFee, used))
+	negAmt := new(big.Int).Sub(earnedFee, used)
+	k.ChangeLiquidity(ctx, kv, dest.ChId, dest.TokenAddr, lpAddr, negAmt)
 	AddLPFee(kv, dest.ChId, dest.TokenAddr, lpAddr, earnedFee)
 	// add LP liquidity on src chain, toadd = srcAmt * used/destAmt
 	addOnSrc := new(big.Int).Mul(used, srcAmount)
@@ -141,6 +153,7 @@ func (k Keeper) updateOneLP(ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdT
 	if isPos(addOnSrc) {
 		k.ChangeLiquidity(ctx, kv, src.ChId, src.TokenAddr, lpAddr, addOnSrc)
 	}
+	return negAmt, addOnSrc
 }
 
 // return idx for next positive liquidity lp, wrap around if pass last

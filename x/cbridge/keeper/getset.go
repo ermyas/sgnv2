@@ -24,7 +24,7 @@ func (k Keeper) ChangeLiquidity(ctx sdk.Context, kv sdk.KVStore, chid uint64, to
 	if had.Sign() == -1 { // negative
 		panic(string(lqKey) + " negative liquidity: " + had.String())
 	}
-	kv.Set(lqKey, []byte(had.Bytes()))
+	kv.Set(lqKey, had.Bytes())
 
 	sym := GetAssetSymbol(kv, &ChainIdTokenAddr{chid, token})
 	err := k.SyncFarming(ctx, sym, chid, lp, had)
@@ -71,8 +71,8 @@ func GetEvSendStatus(kv sdk.KVStore, xferId [32]byte) types.XferStatus {
 	return types.XferStatus(val[0])
 }
 
-// get total liquidity of chid, token
-func GetLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr) *big.Int {
+// iter over all lm-%d-%x-%x keys and sum liquidity
+func GetLiqIterSum(kv sdk.KVStore, chaddr *ChainIdTokenAddr) *big.Int {
 	iter := sdk.KVStorePrefixIterator(kv, []byte(fmt.Sprintf("lm-%d-%x-", chaddr.ChId, chaddr.TokenAddr)))
 	defer iter.Close()
 	totalLiq := new(big.Int)
@@ -83,23 +83,35 @@ func GetLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr) *big.Int {
 	return totalLiq
 }
 
+// return liqsum-%d-%x value as big.Int
+func GetLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr) *big.Int {
+	return new(big.Int).SetBytes(kv.Get(types.LiqSumKey(chaddr.ChId, chaddr.TokenAddr)))
+}
+
+// if delta is negative, means deduct, if result is negative, panic
+// return new sum
+func ChangeLiqSum(kv sdk.KVStore, chid uint64, token eth.Addr, delta *big.Int) *big.Int {
+	has := GetLiq(kv, &ChainIdTokenAddr{
+		ChId:      chid,
+		TokenAddr: token,
+	})
+	has.Add(has, delta)
+	if has.Sign() == -1 {
+		panic("negative liq sum")
+	}
+	kv.Set(types.LiqSumKey(chid, token), has.Bytes())
+	return has
+}
+
 func HasEnoughLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr, needed *big.Int, sender eth.Addr) bool {
-	// sum over all liqmap, if larger than needed, return true
-	iter := sdk.KVStorePrefixIterator(kv, []byte(fmt.Sprintf("lm-%d-%x-", chaddr.ChId, chaddr.TokenAddr)))
-	defer iter.Close()
-	totalLiq := new(big.Int)
-	for ; iter.Valid(); iter.Next() {
-		lpAddr, err := types.GetLpAddrFromLiqMapKey(iter.Key())
-		if err != nil {
-			log.Error(err)
-		} else if lpAddr == sender {
-			// Do not swap sender's liquidity from dst chain to src chain
-			continue
-		}
-		totalLiq.Add(totalLiq, new(big.Int).SetBytes(iter.Value()))
-		if totalLiq.Cmp(needed) >= 0 {
-			return true
-		}
+	liqsum := GetLiq(kv, chaddr)
+	// remove sender's own liquidity
+	senderliq := GetLPBalance(kv, chaddr.ChId, chaddr.TokenAddr, sender)
+	if isPos(senderliq) {
+		liqsum.Sub(liqsum, senderliq)
+	}
+	if liqsum.Cmp(needed) >= 0 {
+		return true
 	}
 	return false
 }

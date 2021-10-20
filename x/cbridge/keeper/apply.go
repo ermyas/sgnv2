@@ -50,6 +50,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		// be accounted correctly (but can't be used for transfer as that requires asset info)
 		SetEvLiqAdd(kv, onchev.Chainid, ev.Seqnum)
 		bal := k.ChangeLiquidity(ctx, kv, onchev.Chainid, ev.Token, ev.Provider, ev.Amount)
+		ChangeLiqSum(kv, onchev.Chainid, ev.Token, ev.Amount)
 		log.Infoln("x/cbr applied:", ev.PrettyLog(onchev.Chainid), "balance:", bal.String())
 		return true, nil
 	case types.CbrEventSend:

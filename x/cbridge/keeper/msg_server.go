@@ -76,7 +76,10 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 			// balance not enough, return error
 			return nil, types.WdErr_LP_BAL_NOT_ENOUGH
 		}
-		k.Keeper.ChangeLiquidity(sdkCtx, kv, req.Chainid, token, lpAddr, new(big.Int).Neg(amt)) // remove amt from lp map
+		negAmt := new(big.Int).Neg(amt)
+		k.Keeper.ChangeLiquidity(sdkCtx, kv, req.Chainid, token, lpAddr, negAmt) // remove amt from lp map
+		// also remove liq from liqsum
+		ChangeLiqSum(kv, req.Chainid, token, negAmt)
 		wdOnchain = &types.WithdrawOnchain{
 			Chainid:  req.Chainid,
 			Receiver: req.LpAddr,

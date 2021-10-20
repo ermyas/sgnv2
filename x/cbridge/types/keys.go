@@ -56,12 +56,18 @@ func GetChainSignersKey(chid uint64) []byte {
 8. xfer refund, xferRefund-%x src xfer id -> withdrawonchain, only for failed xfer. first set when apply send, but no reqid, later when user InitWithdraw, set reqid in it
 9. lp fee, lpfee-chid-token-lp -> fee big.Int bytes on this (chain,token)
 10. sgn fee, sgnfee-chid-token -> big.Int bytes
+11. liquidity sum of liqsum-chid-token, always equal sum of all lm-chid-token-xxx, we keep sum to avoid iter over all lps
 */
 
 // key for liquidity map, chainid-tokenaddr-lpaddr
 // value is big.Int.Bytes()
 func LiqMapKey(chid uint64, token, lp eth.Addr) []byte {
 	return []byte(fmt.Sprintf("lm-%d-%x-%x", chid, token, lp))
+}
+
+// value is big.Int bytes of sum over all lm-chid-token-xxx
+func LiqSumKey(chid uint64, token eth.Addr) []byte {
+	return []byte(fmt.Sprintf("liqsum-%d-%x", chid, token))
 }
 
 func GetLpAddrFromLiqMapKey(key []byte) (eth.Addr, error) {
