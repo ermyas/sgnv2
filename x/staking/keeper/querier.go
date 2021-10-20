@@ -196,7 +196,7 @@ func querySgnAccountExist(ctx sdk.Context, req abci.RequestQuery, k Keeper, lega
 	}
 	account := k.sdkAccountKeeper.GetAccount(ctx, acctAddr)
 	if account == nil {
-		return nil, sdkerrors.Wrapf(types.ErrSgnAccounNotFound, "%s", params.SgnAddress)
+		return nil, sdkerrors.Wrapf(types.ErrSgnAccountNotFound, "%s", params.SgnAddress)
 	}
 
 	return []byte{1}, nil

@@ -939,7 +939,7 @@ var xxx_messageInfo_QueryRewardClaimInfoRequest proto.InternalMessageInfo
 // QueryRewardClaimInfoResponse is the response type for the
 // Query/RewardClaimInfo RPC method.
 type QueryRewardClaimInfoResponse struct {
-	// reward_claim_infos defines the reward claim info.
+	// reward_claim_info defines the reward claim info.
 	RewardClaimInfo RewardClaimInfo `protobuf:"bytes,1,opt,name=reward_claim_info,json=rewardClaimInfo,proto3" json:"reward_claim_info"`
 }
 

@@ -2,7 +2,7 @@ package types
 
 import "github.com/celer-network/sgn-v2/eth"
 
-// querier keys
+// legacy querier keys
 const (
 	QueryParams                      = "params"
 	QueryValidatorOutstandingRewards = "validator_outstanding_rewards"

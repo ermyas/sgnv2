@@ -232,6 +232,6 @@ message QueryRewardClaimInfoRequest {
 // QueryRewardClaimInfoResponse is the response type for the
 // Query/RewardClaimInfo RPC method.
 message QueryRewardClaimInfoResponse {
-  // reward_claim_infos defines the reward claim info.
+  // reward_claim_info defines the reward claim info.
   RewardClaimInfo reward_claim_info = 1 [(gogoproto.nullable) = false];
 }

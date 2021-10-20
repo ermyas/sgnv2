@@ -129,3 +129,8 @@ func (k msgServer) FundCommunityPool(goCtx context.Context, msg *types.MsgFundCo
 
 	return &types.MsgFundCommunityPoolResponse{}, nil
 }
+
+func (k msgServer) ClaimAllStakingReward(goCtx context.Context, msg *types.MsgClaimAllStakingReward) (*types.MsgClaimAllStakingRewardResponse, error) {
+	// TODO
+	return &types.MsgClaimAllStakingRewardResponse{}, nil
+}

@@ -52,6 +52,8 @@ var (
 	ValidatorCurrentRewardsPrefix        = []byte{0x06} // key for current validator rewards
 	ValidatorAccumulatedCommissionPrefix = []byte{0x07} // key for accumulated validator commission
 	ValidatorSlashEventPrefix            = []byte{0x08} // key for validator slash fraction
+
+	StakingRewardClaimInfoPrefix = []byte{0x09}
 )
 
 // GetValidatorOutstandingRewardsAddress creates an address from a validator's outstanding rewards key.
@@ -211,4 +213,9 @@ func GetValidatorSlashEventKey(v eth.Addr, height, period uint64) []byte {
 	prefix := GetValidatorSlashEventKeyPrefix(v, height)
 
 	return append(prefix, periodBz...)
+}
+
+// GetStakingRewardClaimInfoKey gets staking reward claim info key from an Ethereum address
+func GetStakingRewardClaimInfoKey(addr eth.Addr) []byte {
+	return append(StakingRewardClaimInfoPrefix, addr.Bytes()...)
 }

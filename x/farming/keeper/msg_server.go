@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/celer-network/sgn-v2/common"
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	ethproto "github.com/celer-network/sgn-v2/proto/eth"
 	"github.com/celer-network/sgn-v2/x/farming/types"
@@ -209,7 +210,7 @@ func (k msgServer) accumulateRewards(ctx sdk.Context, addr eth.Addr, claimInfo *
 	// 4.2. Clear stale signatures
 	for i := 0; i < len(claimInfo.RewardClaimDetailsList); i++ {
 		detail := &claimInfo.RewardClaimDetailsList[i]
-		detail.Signatures = []types.Signature{}
+		detail.Signatures = []commontypes.Signature{}
 	}
 	k.SetRewardClaimInfo(ctx, *claimInfo)
 	return nil

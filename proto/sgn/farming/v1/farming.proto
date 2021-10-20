@@ -8,6 +8,7 @@ import "gogoproto/gogo.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "cosmos/base/v1beta1/coin.proto";
+import "sgn/common/v1/common.proto";
 
 // Params defines the set of params for the farming module.
 message Params {
@@ -127,15 +128,6 @@ message AccountInfo {
   ];
 }
 
-// Signature is the structure representing an Ethereum ECDSA signature.
-message Signature {
-  // signer defines the Ethereum address of the signer.
-  string signer = 1 [(gogoproto.moretags) = "yaml:\"signer\""];
-
-  // sig_bytes defines the signature bytes.
-  bytes sig_bytes = 2 [(gogoproto.moretags) = "yaml:\"sig_bytes\""];
-}
-
 // RewardClaimDetails describes the reward to be claimed on the EVM chain.
 message RewardClaimDetails {
   // chain_id defines the EVM chain ID for the claim.
@@ -152,7 +144,7 @@ message RewardClaimDetails {
   bytes reward_proto_bytes = 3 [(gogoproto.moretags) = "yaml:\"reward_proto_bytes\""];
 
   // signatures defines the signatures to be verified on the EVM chain.
-  repeated Signature signatures = 4 [(gogoproto.moretags) = "yaml:\"signatures\"", (gogoproto.nullable) = false];
+  repeated sgn.common.v1.Signature signatures = 4 [(gogoproto.moretags) = "yaml:\"signatures\"", (gogoproto.nullable) = false];
 }
 
 // RewardClaimInfo describes the reward claim metadata and details for a recipient.

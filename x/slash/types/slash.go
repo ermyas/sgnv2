@@ -26,6 +26,7 @@ func NewSig(signer string, sig []byte) Sig {
 	}
 }
 
+// TODO: Use commontypes.Signature
 func AddSig(sigs []Sig, msg []byte, sig []byte, expectedSigner string) ([]Sig, error) {
 	// make sure sig won't be changed by callee
 	tmpSig := make([]byte, len(sig))

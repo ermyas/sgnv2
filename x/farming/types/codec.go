@@ -14,6 +14,7 @@ import (
 func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(&MsgClaimRewards{}, "sgn-v2/MsgClaimRewards", nil)
 	cdc.RegisterConcrete(&MsgClaimAllRewards{}, "sgn-v2/MsgClaimAllRewards", nil)
+
 	cdc.RegisterConcrete(&AddPoolProposal{}, "sgn-v2/AddPoolProposal", nil)
 	cdc.RegisterConcrete(&RemovePoolProposal{}, "sgn-v2/RemovePoolProposal", nil)
 	cdc.RegisterConcrete(&AdjustRewardProposal{}, "sgn-v2/AdjustRewardProposal", nil)

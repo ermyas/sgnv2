@@ -224,3 +224,19 @@ func (k Keeper) CommunityPool(c context.Context, req *types.QueryCommunityPoolRe
 
 	return &types.QueryCommunityPoolResponse{Pool: pool}, nil
 }
+
+func (k Keeper) StakingRewardClaimInfo(c context.Context, req *types.QueryStakingRewardClaimInfoRequest) (*types.QueryStakingRewardClaimInfoResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	if req.DelegatorAddress == "" {
+		return nil, status.Error(codes.InvalidArgument, "empty delegator address")
+	}
+	ctx := sdk.UnwrapSDKContext(c)
+
+	info, found := k.GetStakingRewardClaimInfo(ctx, eth.Hex2Addr(req.DelegatorAddress))
+	if !found {
+		return nil, status.Errorf(codes.NotFound, "reward claim info not found")
+	}
+	return &types.QueryStakingRewardClaimInfoResponse{RewardClaimInfo: info}, nil
+}

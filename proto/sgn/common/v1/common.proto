@@ -1,0 +1,16 @@
+syntax = "proto3";
+package sgn.common.v1;
+
+option go_package = "github.com/celer-network/sgn-v2/common/types";
+option (gogoproto.equal_all) = true;
+
+import "gogoproto/gogo.proto";
+
+// Signature is the structure representing an Ethereum ECDSA signature.
+message Signature {
+  // signer defines the Ethereum address of the signer.
+  string signer = 1 [(gogoproto.moretags) = "yaml:\"signer\""];
+
+  // sig_bytes defines the signature bytes.
+  bytes sig_bytes = 2 [(gogoproto.moretags) = "yaml:\"sig_bytes\""];
+}

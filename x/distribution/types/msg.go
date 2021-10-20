@@ -12,10 +12,12 @@ const (
 	TypeMsgWithdrawDelegatorReward     = "withdraw_delegator_reward"
 	TypeMsgWithdrawValidatorCommission = "withdraw_validator_commission"
 	TypeMsgFundCommunityPool           = "fund_community_pool"
+	TypeMsgClaimAllStakingReward       = "claim_all_staking_reward"
 )
 
 // Verify interface at compile time
-var _, _, _ sdk.Msg = &MsgSetWithdrawAddress{}, &MsgWithdrawDelegatorReward{}, &MsgWithdrawValidatorCommission{}
+var _, _, _, _ sdk.Msg = &MsgSetWithdrawAddress{}, &MsgWithdrawDelegatorReward{},
+	&MsgWithdrawValidatorCommission{}, &MsgClaimAllStakingReward{}
 
 func NewMsgSetWithdrawAddress(delAddr eth.Addr, withdrawAddr eth.Addr) *MsgSetWithdrawAddress {
 	return &MsgSetWithdrawAddress{
@@ -29,11 +31,11 @@ func (msg MsgSetWithdrawAddress) Type() string  { return TypeMsgSetWithdrawAddre
 
 // Return address that must sign over msg.GetSignBytes()
 func (msg MsgSetWithdrawAddress) GetSigners() []sdk.AccAddress {
-	delAddr, err := sdk.AccAddressFromBech32(msg.DelegatorAddress)
+	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)
 	if err != nil {
 		panic(err)
 	}
-	return []sdk.AccAddress{delAddr}
+	return []sdk.AccAddress{senderAddr}
 }
 
 // get the bytes for the message signer to sign on
@@ -50,7 +52,9 @@ func (msg MsgSetWithdrawAddress) ValidateBasic() error {
 	if msg.WithdrawAddress == "" {
 		return ErrEmptyWithdrawAddr
 	}
-
+	if msg.Sender == "" {
+		return ErrEmptySender
+	}
 	return nil
 }
 
@@ -66,11 +70,11 @@ func (msg MsgWithdrawDelegatorReward) Type() string  { return TypeMsgWithdrawDel
 
 // Return address that must sign over msg.GetSignBytes()
 func (msg MsgWithdrawDelegatorReward) GetSigners() []sdk.AccAddress {
-	delAddr, err := sdk.AccAddressFromBech32(msg.DelegatorAddress)
+	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)
 	if err != nil {
 		panic(err)
 	}
-	return []sdk.AccAddress{delAddr}
+	return []sdk.AccAddress{senderAddr}
 }
 
 // get the bytes for the message signer to sign on
@@ -87,6 +91,9 @@ func (msg MsgWithdrawDelegatorReward) ValidateBasic() error {
 	if msg.ValidatorAddress == "" {
 		return ErrEmptyValidatorAddr
 	}
+	if msg.Sender == "" {
+		return ErrEmptySender
+	}
 	return nil
 }
 
@@ -101,8 +108,11 @@ func (msg MsgWithdrawValidatorCommission) Type() string  { return TypeMsgWithdra
 
 // Return address that must sign over msg.GetSignBytes()
 func (msg MsgWithdrawValidatorCommission) GetSigners() []sdk.AccAddress {
-	valAddr := eth.Hex2Addr(msg.ValidatorAddress)
-	return []sdk.AccAddress{valAddr.Bytes()}
+	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{senderAddr}
 }
 
 // get the bytes for the message signer to sign on
@@ -115,6 +125,9 @@ func (msg MsgWithdrawValidatorCommission) GetSignBytes() []byte {
 func (msg MsgWithdrawValidatorCommission) ValidateBasic() error {
 	if msg.ValidatorAddress == "" {
 		return ErrEmptyValidatorAddr
+	}
+	if msg.Sender == "" {
+		return ErrEmptySender
 	}
 	return nil
 }
@@ -159,6 +172,40 @@ func (msg MsgFundCommunityPool) ValidateBasic() error {
 	if msg.Depositor == "" {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, msg.Depositor)
 	}
+	return nil
+}
 
+func NewMsgClaimAllStakingReward(delAddr eth.Addr) *MsgClaimAllStakingReward {
+	return &MsgClaimAllStakingReward{
+		DelegatorAddress: delAddr.String(),
+	}
+}
+
+func (msg MsgClaimAllStakingReward) Route() string { return ModuleName }
+func (msg MsgClaimAllStakingReward) Type() string  { return TypeMsgWithdrawValidatorCommission }
+
+// Return address that must sign over msg.GetSignBytes()
+func (msg MsgClaimAllStakingReward) GetSigners() []sdk.AccAddress {
+	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{senderAddr}
+}
+
+// get the bytes for the message signer to sign on
+func (msg MsgClaimAllStakingReward) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(&msg)
+	return sdk.MustSortJSON(bz)
+}
+
+// quick validity check
+func (msg MsgClaimAllStakingReward) ValidateBasic() error {
+	if msg.DelegatorAddress == "" {
+		return ErrEmptyDelegatorAddr
+	}
+	if msg.Sender == "" {
+		return ErrEmptySender
+	}
 	return nil
 }

@@ -13,7 +13,7 @@ service Msg {
   // for a delegator (or validator self-delegation).
   rpc SetWithdrawAddress(MsgSetWithdrawAddress) returns (MsgSetWithdrawAddressResponse);
 
-  // WithdrawDelegatorReward defines a method to withdraw rewards of delegator
+  // WithdrawDelegatorReward defines a method to withdraw rewards of a delegator
   // from a single validator.
   rpc WithdrawDelegatorReward(MsgWithdrawDelegatorReward) returns (MsgWithdrawDelegatorRewardResponse);
 
@@ -24,6 +24,10 @@ service Msg {
   // FundCommunityPool defines a method to allow an account to directly
   // fund the community pool.
   rpc FundCommunityPool(MsgFundCommunityPool) returns (MsgFundCommunityPoolResponse);
+
+  // ClaimAllStakingReward defines a method to claim staking rewards of a delegator
+  // from all validators.
+  rpc ClaimAllStakingReward(MsgClaimAllStakingReward) returns (MsgClaimAllStakingRewardResponse);
 }
 
 // MsgSetWithdrawAddress sets the withdraw address for
@@ -32,8 +36,12 @@ message MsgSetWithdrawAddress {
   option (gogoproto.equal) = false;
   option (gogoproto.goproto_getters) = false;
 
+  // delegator_address defines the delegator's Ethereum address.
   string delegator_address = 1 [(gogoproto.moretags) = "yaml:\"delegator_address\""];
+  // validator_address defines the validator's Ethereum address.
   string withdraw_address = 2 [(gogoproto.moretags) = "yaml:\"withdraw_address\""];
+  // sender defines the SGN account sending the claim Msg.
+  string sender = 3 [(gogoproto.moretags) = "yaml:\"sender\""];
 }
 
 // MsgSetWithdrawAddressResponse defines the Msg/SetWithdrawAddress response type.
@@ -45,8 +53,12 @@ message MsgWithdrawDelegatorReward {
   option (gogoproto.equal) = false;
   option (gogoproto.goproto_getters) = false;
 
+  // delegator_address defines the delegator's Ethereum address.
   string delegator_address = 1 [(gogoproto.moretags) = "yaml:\"delegator_address\""];
+  // validator_address defines the validator's Ethereum address.
   string validator_address = 2 [(gogoproto.moretags) = "yaml:\"validator_address\""];
+  // sender defines the SGN account sending the claim Msg.
+  string sender = 3 [(gogoproto.moretags) = "yaml:\"sender\""];
 }
 
 // MsgWithdrawDelegatorRewardResponse defines the Msg/WithdrawDelegatorReward response type.
@@ -58,7 +70,10 @@ message MsgWithdrawValidatorCommission {
   option (gogoproto.equal) = false;
   option (gogoproto.goproto_getters) = false;
 
+  // validator_address defines the validator's Ethereum address.
   string validator_address = 1 [(gogoproto.moretags) = "yaml:\"validator_address\""];
+  // sender defines the SGN account sending the claim Msg.
+  string sender = 3 [(gogoproto.moretags) = "yaml:\"sender\""];
 }
 
 // MsgWithdrawValidatorCommissionResponse defines the Msg/WithdrawValidatorCommission response type.
@@ -70,10 +85,26 @@ message MsgFundCommunityPool {
   option (gogoproto.equal) = false;
   option (gogoproto.goproto_getters) = false;
 
+  // amount defines the contribution amount.
   repeated cosmos.base.v1beta1.Coin amount = 1
       [(gogoproto.nullable) = false, (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.Coins"];
+  // depositor defines the contributor's SGN account address.
   string depositor = 2;
 }
 
 // MsgFundCommunityPoolResponse defines the Msg/FundCommunityPool response type.
 message MsgFundCommunityPoolResponse {}
+
+// MsgClaimAllStakingReward defines the Msg/ClaimAllStakingReward request type.
+message MsgClaimAllStakingReward {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // delegator_address defines the delegator's Ethereum address
+  string delegator_address = 1 [(gogoproto.moretags) = "yaml:\"delegator_address\""];
+  // sender defines the SGN account sending the claim Msg.
+  string sender = 2 [(gogoproto.moretags) = "yaml:\"sender\""];
+}
+
+// MsgClaimAllStakingRewardResponse defines the Msg/ClaimAllStakingReward response type.
+message MsgClaimAllStakingRewardResponse {}

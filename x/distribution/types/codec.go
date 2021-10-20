@@ -16,6 +16,8 @@ func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(&MsgWithdrawValidatorCommission{}, "sgn-v2/MsgWithdrawValidatorCommission", nil)
 	cdc.RegisterConcrete(&MsgSetWithdrawAddress{}, "sgn-v2/MsgModifyWithdrawAddress", nil)
 	cdc.RegisterConcrete(&MsgFundCommunityPool{}, "sgn-v2/MsgFundCommunityPool", nil)
+	cdc.RegisterConcrete(&MsgClaimAllStakingReward{}, "sgn-v2/MsgClaimAllStakingReward", nil)
+
 	cdc.RegisterConcrete(&CommunityPoolSpendProposal{}, "sgn-v2/CommunityPoolSpendProposal", nil)
 }
 
@@ -26,6 +28,7 @@ func RegisterInterfaces(registry types.InterfaceRegistry) {
 		&MsgWithdrawValidatorCommission{},
 		&MsgSetWithdrawAddress{},
 		&MsgFundCommunityPool{},
+		&MsgClaimAllStakingReward{},
 	)
 	registry.RegisterImplementations(
 		(*govtypes.Content)(nil),
