@@ -136,6 +136,13 @@ service Web {
       body: "*"
     };
     }
+
+    // staking api
+    rpc StakingConfig (StakingConfigRequest) returns (StakingConfigResponse) {
+        option (google.api.http) = {
+      get: "/v1/staking/stakingConfig"
+    };
+    }
 }
 
 message QueryLiquidityStatusResponse {
@@ -425,6 +432,14 @@ message UpdateTokenRequest {
 message UpdateTokenResponse {
     ErrMsg err = 1;
     TokenInfo token = 2;
+}
+
+message StakingConfigRequest {
+}
+message StakingConfigResponse {
+    string viewer_contract = 1;
+    string staking_contract = 2;
+    string staking_reward_contract = 3;
 }
 
 message ErrMsg {
