@@ -61,6 +61,19 @@ func (r *Relayer) verifyCbrEventUpdate(update *synctypes.PendingUpdate) (done, a
 	}
 }
 
+func (r *Relayer) verifyCbrUpdateCbrPrice(update *synctypes.PendingUpdate) (bool, bool) {
+	price := new(cbrtypes.CbrPrice)
+	err := price.Unmarshal(update.Data)
+	if err != nil {
+		log.Errorf("failed to unmarshal %x to CbrPrice msg", update.Data)
+		return true, false
+	}
+	// todo: check asset price
+
+	log.Infof("verifyCbrUpdateCbrPrice success, %+v", price)
+	return true, true
+}
+
 func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, logmsg string) (done, approve bool) {
 	// parse event
 	ev, err := c.contract.ParseLiquidityAdded(*eLog)

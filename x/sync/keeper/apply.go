@@ -24,6 +24,8 @@ func (k Keeper) ApplyUpdate(ctx sdk.Context, update *types.PendingUpdate) bool {
 		applied, err = k.applyDelegatorShares(ctx, update)
 	case types.DataType_CbrOnchainEvent:
 		applied, err = k.cbrKeeper.ApplyEvent(ctx, update.Data)
+	case types.DataType_CbrUpdateCbrPrice:
+		applied, err = k.cbrKeeper.ApplyUpdateCbrPrice(ctx, update.Data)
 	}
 
 	if err != nil {

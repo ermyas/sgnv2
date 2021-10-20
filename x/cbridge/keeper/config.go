@@ -11,7 +11,10 @@ import (
 )
 
 var (
-	ErrNoChainPair = errors.New("chain pair not found")
+	ErrNoChainPair      = errors.New("chain pair not found")
+	ErrNoGasPrice       = errors.New("gas price not found")
+	ErrNoGasTokenSymbol = errors.New("gas token symbol not found")
+	ErrNoSymbolUsdPrice = errors.New("symbol usd price not found")
 )
 
 // We don't use paramstore at all as the configs are complicated
@@ -35,6 +38,12 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 		raw, _ := chpair.Marshal()
 		kv.Set(types.CfgKeyChainPair(chpair.Chid1, chpair.Chid2), raw)
 	}
+}
+
+func (k Keeper) SetCbrPriceConfig(ctx sdk.Context, cfg *types.CbrPrice) {
+	kv := ctx.KVStore(k.storeKey)
+	SetGasPrice(kv, cfg.GetGasPrice())
+	SetAssetPrice(kv, cfg.GetAssetPrice())
 }
 
 func getUint32(kv sdk.KVStore, key []byte) uint32 {

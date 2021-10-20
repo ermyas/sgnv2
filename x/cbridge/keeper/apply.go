@@ -178,3 +178,14 @@ func calcPromised(maxslip, srcDeci, destDeci uint32, srcAmt *big.Int) *big.Int {
 	} // if decimal equal, return directly without scaling
 	return promised
 }
+
+func (k Keeper) ApplyUpdateCbrPrice(ctx sdk.Context, data []byte) (bool, error) {
+	price := new(types.CbrPrice)
+	err := price.Unmarshal(data)
+	if err != nil {
+		return false, err
+	}
+	k.SetCbrPriceConfig(ctx, price)
+	log.Infoln("x/cbr applied UpdateCbrPrice:", price)
+	return true, nil
+}

@@ -121,6 +121,9 @@ func SgnFeeKey(chid uint64, token eth.Addr) []byte {
 3. symbol-chid -> ChainAsset, note proto has dup info symbol and chain_id
 4. chid1-chid2 -> ChainPair. keys are sorted so chid1 < chid2
 5. pick lp size, how many LPs on first select. value is big.Int bytes
+6. chid -> gas price gwei.
+7. chid -> GasTokenSymbol.
+8. symbol -> USD price.
 */
 
 var (
@@ -141,4 +144,16 @@ func CfgKeyChainPair(chid1, chid2 uint64) []byte {
 		panic(fmt.Sprintf("chid1 %d > chid2 %d", chid2, chid2))
 	}
 	return []byte(fmt.Sprintf("cfg-chpair-%d-%d", chid1, chid2))
+}
+
+func CfgKeyChain2GasPrice(chid uint64) []byte {
+	return []byte(fmt.Sprintf("cfg-ch2gasprice-%d", chid))
+}
+
+func CfgKeyChain2GasTokenSymbol(chid uint64) []byte {
+	return []byte(fmt.Sprintf("cfg-ch2gastokensymbol-%d", chid))
+}
+
+func CfgKeySymbol2UsdPrice(sym string) []byte {
+	return []byte(fmt.Sprintf("cfg-symbol2usdprice-%s", sym))
 }

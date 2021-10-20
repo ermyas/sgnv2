@@ -35,20 +35,25 @@ message CbrConfig {
   uint32 pick_lp_size = 4;
   repeated ChainAsset assets = 2; // multi-asset, multi-chain
   repeated ChainPair chain_pairs = 3; // per chain pair configs
+}
 
-  // needed for base fee calculation
+// needed for base fee calculation. the value set in genesis is only used when first start.
+// then there'll be propose/vote and new price will be saved in x/cbrige kv
+message CbrPrice {
+  uint64 update_epoch = 1; // epoch sec of this snapshot, as implicit version
   repeated AssetPrice asset_price = 5; // per asset symbol
   repeated GasPrice gas_price = 6; // per chain_id
 }
 
 // if an asset is not used by any chain as native gas token, no need to set chain_id. eg. USDT
 // if an asset is native gas token for some chains, set the chainids
-// it's possible an asset is only native gas token but NOT used for transfers (ie. not in "repeated ChainAsset assets = 2;" above)
+// it's possible an asset is only native gas token but NOT used for transfers (ie. not in CbrConfig.assets)
 // price is in USD
 message AssetPrice {
   string symbol = 1;
-  repeated uint64 chain_ids = 2; // these chains uses this asset as native gas token, eg. ETH is gas token for both ethereum and Arbitrum
-  float price = 3;
+  // these chains uses this asset as native gas token, eg. ETH is gas token for both ethereum and Arbitrum
+  repeated uint64 chain_ids = 2;
+  string price = 3;
 }
 
 // each chainid's gas price, as it's very dynamic, the goal is only to avoid off too much
@@ -57,12 +62,6 @@ message GasPrice {
   // ethclient.SuggestGasPrice big.Int.String(). but what about the chains whose suggest is off?
   // we could put an s3 file somewhere for relayer to read and update s3 via a separate service
   string price = 2;
-}
-
-// each chain's native gas token eg. ETH for ethereum, BNB for BSC, their price in USD
-message GasTokenPrice {
-  uint64 chain_id = 1;
-  float price = 2;
 }
 
 // represent asset detail on one chain.

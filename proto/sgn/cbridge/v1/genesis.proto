@@ -13,4 +13,7 @@ message GenesisState {
     Params params = 1 [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"params\""];
 
     CbrConfig config = 2 [(gogoproto.nullable) = false];
+    // only used when first start, x/cbr kv will be updated via propose/vote
+    // if not set, basefee will be 0
+    CbrPrice price = 3;
 }

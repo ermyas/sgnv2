@@ -13,6 +13,9 @@ enum DataType {
   DelegatorShares = 4;
 
   CbrOnchainEvent = 5; // syncer saw a new onchain event
+
+  // use PendingUpdate.data as serialized CbrPrice msg
+  CbrUpdateCbrPrice = 6;
 }
 
 enum VoteOption {

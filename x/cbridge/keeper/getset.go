@@ -208,3 +208,58 @@ func AddSgnFee(kv sdk.KVStore, chid uint64, token eth.Addr, delta *big.Int) *big
 	kv.Set(feeKey, had.Bytes())
 	return had
 }
+
+func GetGasPrice(kv sdk.KVStore, chainId uint64) (*big.Int, error) {
+	raw := kv.Get(types.CfgKeyChain2GasPrice(chainId))
+	if len(raw) == 0 {
+		return nil, ErrNoGasPrice
+	}
+	price := new(big.Int).SetBytes(raw)
+	return price, nil
+}
+
+func SetGasPrice(kv sdk.KVStore, gp []*types.GasPrice) {
+	for _, it := range gp {
+		price, b := new(big.Int).SetString(it.GetPrice(), 10)
+		if !b {
+			log.Errorln("SetGasPrice fail, ", gp)
+			return
+		}
+		kv.Set(types.CfgKeyChain2GasPrice(it.GetChainId()), price.Bytes())
+	}
+}
+
+func GetGasTokenSymbol(kv sdk.KVStore, chid uint64) (string, error) {
+	raw := kv.Get(types.CfgKeyChain2GasTokenSymbol(chid))
+	if len(raw) == 0 {
+		return "", ErrNoGasTokenSymbol
+	}
+	return string(raw), nil
+}
+
+func GetGasTokenPrice(kv sdk.KVStore, chid uint64) (*big.Int, error) {
+	symbol, err := GetGasTokenSymbol(kv, chid)
+	if err != nil {
+		return nil, err
+	}
+	raw := kv.Get(types.CfgKeySymbol2UsdPrice(symbol))
+	if len(raw) == 0 {
+		return nil, ErrNoSymbolUsdPrice
+	}
+	price := new(big.Int).SetBytes(raw)
+	return price, nil
+}
+
+func SetAssetPrice(kv sdk.KVStore, ap []*types.AssetPrice) {
+	for _, it := range ap {
+		for _, chainId := range it.GetChainIds() {
+			kv.Set(types.CfgKeyChain2GasTokenSymbol(chainId), []byte(it.GetSymbol()))
+		}
+		price, b := new(big.Int).SetString(it.GetPrice(), 10)
+		if !b {
+			log.Errorln("SetAssetPrice fail, ", ap)
+			return
+		}
+		kv.Set(types.CfgKeySymbol2UsdPrice(it.GetSymbol()), price.Bytes())
+	}
+}
