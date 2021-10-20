@@ -163,6 +163,7 @@ func (k Keeper) processNewInput(ctx sdk.Context, poolName string, input *types.R
 }
 
 // processInputForExistingInfo adjusts existing reward, mints AddAmount, adjusts RewardAmountPerBlock
+// NOTE: only sets RewardStartBlockHeight when existing value is 0. i.e. restarting a reward
 func (k Keeper) processInputForExistingInfo(ctx sdk.Context, poolName string, input *types.RewardAdjustmentInput, info *types.RewardTokenInfo) (
 	newInfo *types.RewardTokenInfo, err error) {
 	truncatedAddAmount, _ := input.AddAmount.TruncateDecimal()
@@ -172,9 +173,13 @@ func (k Keeper) processInputForExistingInfo(ctx sdk.Context, poolName string, in
 		return nil, types.WrapErrMintCoinsFailed(mintErr.Error())
 	}
 	// 2. Update info
+	startBlockHeight := info.RewardStartBlockHeight
+	if startBlockHeight == 0 {
+		startBlockHeight = ctx.BlockHeight() + input.RewardStartBlockDelay
+	}
 	newInfo = &types.RewardTokenInfo{
 		RemainingAmount:        info.RemainingAmount.Add(sdk.NewDecCoinFromCoin(truncatedAddAmount)),
-		RewardStartBlockHeight: info.RewardStartBlockHeight,
+		RewardStartBlockHeight: startBlockHeight,
 		RewardAmountPerBlock:   input.NewRewardAmountPerBlock,
 	}
 	// 3. Emit event
