@@ -8,10 +8,27 @@ jobs:
     timeout-minutes: 60
     steps:
     - uses: actions/checkout@v2
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          src:
+            - '*'
+            - '.github/workflows/run_multinode_tests'
+            - '!.dockerignore'
+            - '!.github'
+            - '!.gitignore'
+            - '!LICENSE'
+            - '!README.md'
+            - '!docs/**/*'
+            - '!gateway/**/*'
+            - '!scripts/**/*'
+            - '!tools/**/*'
     - uses: actions/setup-go@v2
       with:
         go-version: '1.17'
     - name: Install Docker
+      if: steps.filter.outputs.src == 'true'
       run: |
          sudo apt-get update
          sudo apt-get install apt-transport-https ca-certificates curl gnupg lsb-release
@@ -22,5 +39,6 @@ jobs:
          sudo apt-get update
          sudo apt-get install docker-ce docker-ce-cli containerd.io
     - name: Run multinode tests
+      if: steps.filter.outputs.src == 'true'
       run: |
         go test -failfast -v -timeout 60m github.com/celer-network/sgn-v2/test/e2e/multinode

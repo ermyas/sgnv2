@@ -13,7 +13,7 @@ FROM alpine:latest
 RUN apk add leveldb
 VOLUME /sgn-v2/env
 WORKDIR /sgn-v2/env
-EXPOSE 26656 26657 8081
+EXPOSE 26656 26657 1317 8081
 COPY --from=builder /sgn-v2/bin/sgnd /usr/local/bin
 CMD ["/bin/sh", "-c", "sgnd start --home /sgn-v2/env/sgnd 2> /sgn-v2/env/sgnd/app.log > /sgn-v2/env/sgnd/tendermint.log"]
 STOPSIGNAL SIGTERM
