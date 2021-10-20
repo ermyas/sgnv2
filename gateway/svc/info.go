@@ -9,6 +9,7 @@ import (
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/spf13/viper"
+	"math"
 	"math/big"
 	"sort"
 )
@@ -162,7 +163,8 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 			volume24h := 0.0
 			if data != nil {
 				if common.Str2BigInt(totalLiquidity).Cmp(new(big.Int).SetInt64(0)) > 0 {
-					lpFeeEarningApy, _ = new(big.Float).Quo(new(big.Float).SetInt(data.fee), new(big.Float).SetInt(common.Str2BigInt(totalLiquidity))).Float64()
+					rate, _ := new(big.Float).Quo(new(big.Float).SetInt(data.fee), new(big.Float).SetInt(common.Str2BigInt(totalLiquidity))).Float64()
+					lpFeeEarningApy = math.Pow(1+rate, 365) - 1
 				}
 				volume24h = data.volume
 			}
@@ -227,7 +229,10 @@ func get24hTx() map[uint64]map[string]*txData {
 					dstToken: dstToken.Token,
 				}
 			}
-			d.fee = new(big.Int).Add(d.fee, common.Str2BigInt(tx.DstAmt))
+			feeAmt := new(big.Float).Mul(new(big.Float).SetInt(common.Str2BigInt(tx.DstAmt)), new(big.Float).SetFloat64(0.0004))
+			feeAmtInt := new(big.Int)
+			feeAmt.Int(feeAmtInt)
+			d.fee = new(big.Int).Add(d.fee, feeAmtInt)
 			d.volume += tx.Volume
 			data[tokenSymbol] = d
 			resp[tx.DstChainId] = data
