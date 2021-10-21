@@ -1,7 +1,10 @@
 package types
 
 import (
+	"encoding/json"
+	fmt "fmt"
 	"sort"
+	"strings"
 
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -80,6 +83,50 @@ func (d Delegations) Less(i, j int) bool {
 // Implements sort interface
 func (d Delegations) Swap(i, j int) {
 	d[i], d[j] = d[j], d[i]
+}
+
+// ----------------------------------------------------------------------------
+// Client Types
+
+// NewDelegationResp creates a new DelegationResponse instance
+func NewDelegationResp(
+	delegatorAddr eth.Addr, validatorAddr eth.Addr, shares sdk.Int, balance sdk.Coin,
+) DelegationResponse {
+	return DelegationResponse{
+		Delegation: NewDelegation(delegatorAddr, validatorAddr, shares),
+		Balance:    balance,
+	}
+}
+
+// String implements the Stringer interface for DelegationResponse.
+func (d DelegationResponse) String() string {
+	return fmt.Sprintf("%s\n  Balance:   %s", d.Delegation.String(), d.Balance)
+}
+
+type delegationRespAlias DelegationResponse
+
+// MarshalJSON implements the json.Marshaler interface. This is so we can
+// achieve a flattened structure while embedding other types.
+func (d DelegationResponse) MarshalJSON() ([]byte, error) {
+	return json.Marshal((delegationRespAlias)(d))
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface. This is so we can
+// achieve a flattened structure while embedding other types.
+func (d *DelegationResponse) UnmarshalJSON(bz []byte) error {
+	return json.Unmarshal(bz, (*delegationRespAlias)(d))
+}
+
+// DelegationResponses is a collection of DelegationResp
+type DelegationResponses []DelegationResponse
+
+// String implements the Stringer interface for DelegationResponses.
+func (d DelegationResponses) String() (out string) {
+	for _, del := range d {
+		out += del.String() + "\n"
+	}
+
+	return strings.TrimSpace(out)
 }
 
 // ----------------------- CLI print-friendly output --------------------

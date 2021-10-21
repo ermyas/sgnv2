@@ -326,7 +326,7 @@ func NewSgnApp(
 		mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper),
 		distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
 		farming.NewAppModule(appCodec, app.FarmingKeeper),
-		staking.NewAppModule(app.StakingKeeper),
+		staking.NewAppModule(appCodec, app.StakingKeeper),
 		gov.NewAppModule(app.GovKeeper, app.AccountKeeper),
 		slash.NewAppModule(app.SlashKeeper),
 		sync.NewAppModule(app.SyncKeeper),

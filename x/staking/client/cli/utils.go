@@ -2,8 +2,8 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"fmt"
-	"sort"
 
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/x/staking/types"
@@ -11,7 +11,7 @@ import (
 )
 
 func QueryValidator(cliCtx client.Context, ethAddress string) (validator *types.Validator, err error) {
-	params := types.NewQueryValidatorParams(ethAddress)
+	params := types.NewQueryValidatorParams(ethAddress, 1, types.MaxValidators)
 	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
 	if err != nil {
 		return
@@ -59,16 +59,14 @@ func QueryValidatorByConsAddr(cliCtx client.Context, consAddress string) (valida
 }
 
 func QueryValidators(cliCtx client.Context) (validators types.Validators, err error) {
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryValidators)
-	res, err := common.RobustQuery(cliCtx, route)
-	if err != nil {
-		return
-	}
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &validators)
-	sort.SliceStable(validators, func(i, j int) bool {
-		return validators[i].Tokens.GT(validators[j].Tokens)
+	queryClient := types.NewQueryClient(cliCtx)
+	result, err := queryClient.Validators(context.Background(), &types.QueryValidatorsRequest{
+		// Leaving status empty on purpose to query all validators.
 	})
-	return
+	if err != nil {
+		return nil, err
+	}
+	return result.Validators, nil
 }
 
 func QueryTransactors(cliCtx client.Context, ethAddress string) (transactors *types.ValidatorTransactors, err error) {
@@ -108,7 +106,7 @@ func QueryDelegations(cliCtx client.Context, ethAddress string) (delegations typ
 	if err != nil {
 		return nil, err
 	}
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDelegations)
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryValidatorDelegations)
 	res, err := common.RobustQueryWithData(cliCtx, route, data)
 	if err != nil {
 		return
@@ -128,7 +126,7 @@ func QuerySgnAccount(cliCtx client.Context, sgnAddr string) (exist bool, err err
 	if err != nil {
 		return
 	}
-	exist = bytes.Compare(res, []byte{1}) == 0
+	exist = bytes.Equal(res, []byte{1})
 	return
 }
 

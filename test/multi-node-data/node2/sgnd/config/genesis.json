@@ -265,7 +265,7 @@
             "@type": "/cosmos.crypto.ed25519.PubKey",
             "key": "UradGKLBv+ASty5KxSP1sPaQRe9SO0EvZmzzXrpxUTg="
           },
-          "status": "Bonded",
+          "status": "BOND_STATUS_BONDED",
           "tokens": "1000000000000",
           "delegator_shares": "1000000000000",
           "commission_rate": "0",

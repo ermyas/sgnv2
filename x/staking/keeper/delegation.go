@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"bytes"
+
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -21,16 +23,66 @@ func (k Keeper) GetDelegation(
 	return delegation, true
 }
 
-func (k Keeper) GetAllDelegations(ctx sdk.Context, valAddr eth.Addr) (delegations types.Delegations) {
+// IterateAllDelegations iterate through all of the delegations
+func (k Keeper) IterateAllDelegations(ctx sdk.Context, cb func(delegation types.Delegation) (stop bool)) {
 	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, types.GetDelegationsKey(valAddr))
+
+	iterator := sdk.KVStorePrefixIterator(store, types.DelegationKey)
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
 		delegation := types.MustUnmarshalDelegation(k.cdc, iterator.Value())
-		delegations = append(delegations, delegation)
+		if cb(delegation) {
+			break
+		}
 	}
+}
+
+// GetAllDelegations returns all delegations. NOTE: This is only used during genesis dump
+func (k Keeper) GetAllDelegations(ctx sdk.Context, valAddr eth.Addr) (delegations types.Delegations) {
+	k.IterateAllDelegations(ctx, func(delegation types.Delegation) bool {
+		delegations = append(delegations, delegation)
+		return false
+	})
+
 	return delegations
+}
+
+// return all delegations to a specific validator. Useful for querier.
+func (k Keeper) GetValidatorDelegations(ctx sdk.Context, valAddr eth.Addr) (delegations []types.Delegation) { //nolint:interfacer
+	store := ctx.KVStore(k.storeKey)
+
+	iterator := sdk.KVStorePrefixIterator(store, types.DelegationKey)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		delegation := types.MustUnmarshalDelegation(k.cdc, iterator.Value())
+		if bytes.Equal(delegation.GetValidatorAddr().Bytes(), valAddr.Bytes()) {
+			delegations = append(delegations, delegation)
+		}
+	}
+
+	return delegations
+}
+
+// return a given amount of all the delegations from a delegator
+func (k Keeper) GetDelegatorDelegations(ctx sdk.Context, delegator eth.Addr,
+	maxRetrieve uint16) (delegations []types.Delegation) {
+	delegations = make([]types.Delegation, maxRetrieve)
+	store := ctx.KVStore(k.storeKey)
+	delegatorPrefixKey := types.GetDelegationsKey(delegator)
+
+	iterator := sdk.KVStorePrefixIterator(store, delegatorPrefixKey)
+	defer iterator.Close()
+
+	i := 0
+	for ; iterator.Valid() && i < int(maxRetrieve); iterator.Next() {
+		delegation := types.MustUnmarshalDelegation(k.cdc, iterator.Value())
+		delegations[i] = delegation
+		i++
+	}
+
+	return delegations[:i] // trim if the array length < maxRetrieve
 }
 
 func (k Keeper) SetDelegation(ctx sdk.Context, delegation types.Delegation) {

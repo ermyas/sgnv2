@@ -55,22 +55,25 @@ func GetCmdValidators() *cobra.Command {
 		Use:   "validators",
 		Short: "query all validators",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx, err := client.GetClientQueryContext(cmd)
+			clientCtx, err := client.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
 			}
-			validators, err := QueryValidators(cliCtx)
+			queryClient := types.NewQueryClient(clientCtx)
+			pageReq, err := client.ReadPageRequest(cmd.Flags())
 			if err != nil {
-				log.Errorln("query error", err)
 				return err
 			}
 
-			validators.Sort()
-			fmt.Printf("Number of validators: %d\n\n", len(validators))
-			for _, validator := range validators {
-				fmt.Println(validator.YamlStr())
+			result, err := queryClient.Validators(cmd.Context(), &types.QueryValidatorsRequest{
+				// Leaving status empty on purpose to query all validators.
+				Pagination: pageReq,
+			})
+			if err != nil {
+				return err
 			}
-			return nil
+
+			return clientCtx.PrintProto(result)
 		},
 	}
 }

@@ -21,6 +21,8 @@ const (
 	RouterKey = ModuleName
 
 	StakeDenom = common.CelrDenom + "/stake"
+
+	MaxValidators = 21 // TODO: Make it a param?
 )
 
 var (
@@ -62,15 +64,14 @@ func GetValidatorTransactorsKey(ethAddr eth.Addr) []byte {
 	return append(ValidatorTransactorsKey, ethAddr.Bytes()...)
 }
 
-// get delegations key from validator address
-func GetDelegationsKey(valAddr eth.Addr) []byte {
-	return append(DelegationKey, valAddr.Bytes()...)
+// get delegations key from delegator address
+func GetDelegationsKey(delAddr eth.Addr) []byte {
+	return append(DelegationKey, delAddr.Bytes()...)
 }
 
-// get delegation key from validator address and delegator address
+// get delegation key from delegator address and validator address
 func GetDelegationKey(delAddr eth.Addr, valAddr eth.Addr) []byte {
-	// NOTE: Currently we use the key format valAddr/delAddr whereas Cosmos SDK uses the reverse
-	return append(GetDelegationsKey(valAddr), delAddr.Bytes()...)
+	return append(GetDelegationsKey(delAddr), valAddr.Bytes()...)
 }
 
 func AddrFromValidatorKey(key []byte) []byte {
