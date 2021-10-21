@@ -1,4 +1,4 @@
-## sgnd tx gov submit-proposal add-pool
+## sgnd tx gov submit-proposal farming-add-pool
 
 Submit an AddPoolProposal
 
@@ -8,46 +8,43 @@ Submit an AddPoolProposal along with an initial deposit.
 The proposal details must be supplied via a JSON file.
 
 Example:
-$ <appd> gov submit-proposal add-pool <path/to/proposal.json> --from=<key_or_address>
+$ <appd> gov submit-proposal farming-add-pool <path/to/proposal.json> --from=<key_or_address>
 
 Where proposal.json contains:
 
 {
- "title": "add a farming pool",
- "description": "add a CBridge farming pool for DAI on Ethereum",
- "pool_name": "cbridge-DAI/1",
- "stake_token": {
-   "chain_id": 1,
-   "symbol": "CB-DAI",
-   "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
- },
- "reward_tokens": [
-   {
-     "chain_id": 1,
-     "symbol": "CELR",
-     "address": "0x4f9254c83eb525f9fcf346490bbb3ed28a81c667",
-   }
- ],
- "initial_reward_inputs": [
-   {
-     "add_amount": {
-       "denom": "CELR/1",
-       "amount": "100000000000000000000000"
-	 },
-     "reward_start_block_delay": 8640,
-     "new_reward_amount_per_block": "100000000000000000"
-   }
- ],
- "deposit": [
-   {
-     "denom": "CELR/stake",
-     "amount": "100"
-   }
- ]
+  "title": "Add cbridge-DAI/1 pool",
+  "description": "add a CBridge farming pool for DAI on Ethereum",
+  "pool_name": "cbridge-DAI/1",
+  "stake_token": {
+    "chain_id": 1,
+    "symbol": "CB-DAI",
+    "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
+    "decimals": 18
+  },
+  "reward_tokens": [
+    {
+      "chain_id": 1,
+      "symbol": "CELR",
+      "address": "0x4f9254c83eb525f9fcf346490bbb3ed28a81c667",
+      "decimals": 18
+    }
+  ],
+  "initial_reward_inputs": [
+    {
+      "add_amount": {
+        "denom": "CELR/1",
+        "amount": "100000000000000000000000"
+      },
+      "reward_start_block_delay": 0,
+      "new_reward_amount_per_block": "100000000000000000"
+    }
+  ],
+  "deposit": "10000000CELR/stake"
 }
 
 ```
-sgnd tx gov submit-proposal add-pool [proposal-file] [flags]
+sgnd tx gov submit-proposal farming-add-pool [proposal-file] [flags]
 ```
 
 ### Options
@@ -63,7 +60,7 @@ sgnd tx gov submit-proposal add-pool [proposal-file] [flags]
       --gas-adjustment float     adjustment factor to be multiplied against the estimate returned by the tx simulation; if the gas limit is set manually this flag is ignored  (default 1)
       --gas-prices string        Gas prices in decimal format to determine the transaction fee (e.g. 0.1uatom)
       --generate-only            Build an unsigned transaction and write it to STDOUT (when enabled, the local Keybase is not accessible)
-  -h, --help                     help for add-pool
+  -h, --help                     help for farming-add-pool
       --keyring-backend string   Select keyring's backend (os|file|kwallet|pass|test|memory) (default "os")
       --keyring-dir string       The client Keyring directory; if omitted, the default 'home' directory will be used
       --ledger                   Use a connected Ledger device
