@@ -16,7 +16,7 @@ jobs:
             - '*'
             - '.github/workflows/run_singlenode_tests'
             - '!.dockerignore'
-            - '!.github'
+            - '!.github/**/*'
             - '!.gitignore'
             - '!LICENSE'
             - '!README.md'
