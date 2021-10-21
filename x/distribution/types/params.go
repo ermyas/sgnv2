@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	time "time"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -15,6 +16,7 @@ var (
 	ParamStoreKeyBaseProposerReward  = []byte("baseproposerreward")
 	ParamStoreKeyBonusProposerReward = []byte("bonusproposerreward")
 	ParamStoreKeyWithdrawAddrEnabled = []byte("withdrawaddrenabled")
+	ParamStoreKeyClaimCooldown       = []byte("claimcooldown")
 )
 
 // ParamKeyTable returns the parameter key table.
@@ -29,6 +31,7 @@ func DefaultParams() Params {
 		BaseProposerReward:  sdk.NewDecWithPrec(1, 2), // 1%
 		BonusProposerReward: sdk.NewDecWithPrec(4, 2), // 4%
 		WithdrawAddrEnabled: false,
+		ClaimCooldown:       time.Minute, // 1 minute
 	}
 }
 
@@ -44,6 +47,7 @@ func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
 		paramtypes.NewParamSetPair(ParamStoreKeyBaseProposerReward, &p.BaseProposerReward, validateBaseProposerReward),
 		paramtypes.NewParamSetPair(ParamStoreKeyBonusProposerReward, &p.BonusProposerReward, validateBonusProposerReward),
 		paramtypes.NewParamSetPair(ParamStoreKeyWithdrawAddrEnabled, &p.WithdrawAddrEnabled, validateWithdrawAddrEnabled),
+		paramtypes.NewParamSetPair(ParamStoreKeyClaimCooldown, &p.ClaimCooldown, validateClaimCooldown),
 	}
 }
 
@@ -136,5 +140,16 @@ func validateWithdrawAddrEnabled(i interface{}) error {
 		return fmt.Errorf("invalid parameter type: %T", i)
 	}
 
+	return nil
+}
+
+func validateClaimCooldown(i interface{}) error {
+	v, ok := i.(time.Duration)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+	if v <= 0 {
+		return fmt.Errorf("claim cooldown must be positive: %d", v)
+	}
 	return nil
 }

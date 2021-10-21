@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/binary"
 
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/cosmos/cosmos-sdk/types/address"
 )
@@ -19,6 +20,8 @@ const (
 
 	// QuerierRoute is the querier route for distribution
 	QuerierRoute = ModuleName
+
+	StakingRewardDenom = common.CelrDenom + "/reward"
 )
 
 // Keys for distribution store

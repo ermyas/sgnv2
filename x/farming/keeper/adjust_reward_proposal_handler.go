@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/x/farming/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -117,7 +118,7 @@ func (k Keeper) CheckAdjustRewardProposal(ctx sdk.Context, p *types.AdjustReward
 	lastDenom := ""
 	for _, input := range p.RewardAdjustmentInputs {
 		denom := input.AddAmount.Denom
-		chainId, symbol, parseErr := ParseERC20TokenDenom(denom)
+		chainId, symbol, parseErr := common.ParseERC20TokenDenom(denom)
 		if parseErr != nil {
 			return nil, nil, parseErr
 		}

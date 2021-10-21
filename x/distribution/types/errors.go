@@ -19,4 +19,6 @@ var (
 	ErrNoValidatorExists       = sdkerrors.Register(ModuleName, 32, "validator does not exist")
 	ErrNoDelegationExists      = sdkerrors.Register(ModuleName, 33, "delegation does not exist")
 	ErrEmptySender             = sdkerrors.Register(ModuleName, 34, "sender address is empty")
+	ErrClaimCooldownNotPassed  = sdkerrors.Register(ModuleName, 35, "claim cooldown not passed")
+	ErrEmptySignature          = sdkerrors.Register(ModuleName, 36, "empty signature")
 )

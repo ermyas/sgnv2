@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"time"
+
 	"github.com/celer-network/sgn-v2/x/distribution/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -40,4 +42,10 @@ func (k Keeper) GetBonusProposerReward(ctx sdk.Context) (percent sdk.Dec) {
 func (k Keeper) GetWithdrawAddrEnabled(ctx sdk.Context) (enabled bool) {
 	k.paramSpace.Get(ctx, types.ParamStoreKeyWithdrawAddrEnabled, &enabled)
 	return enabled
+}
+
+// GetClaimCooldown returns the current farming claim cooldown period.
+func (k Keeper) GetClaimCooldown(ctx sdk.Context) (cooldown time.Duration) {
+	k.paramSpace.Get(ctx, types.ParamStoreKeyClaimCooldown, &cooldown)
+	return cooldown
 }

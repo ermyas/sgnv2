@@ -11,7 +11,6 @@ import (
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	farmingcli "github.com/celer-network/sgn-v2/x/farming/client/cli"
-	farmingkp "github.com/celer-network/sgn-v2/x/farming/keeper"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -185,7 +184,7 @@ func (gs *GatewayService) getHistoricalCumulativeRewards(ctx context.Context, ad
 }
 
 func (gs *GatewayService) getInfoFromFarmingReward(reward sdk.DecCoin) (*types.Token, float64, error) {
-	chainId, tokenSymbol, parseErr := farmingkp.ParseERC20TokenDenom(reward.GetDenom())
+	chainId, tokenSymbol, parseErr := common.ParseERC20TokenDenom(reward.GetDenom())
 	if parseErr != nil {
 		log.Errorf("parse token denom error, denom:%s, err:%+v", reward.GetDenom(), parseErr)
 	}

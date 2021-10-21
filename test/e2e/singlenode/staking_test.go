@@ -93,4 +93,11 @@ func stakingTest(t *testing.T) {
 	tc.CheckValidator(t, transactor, expVal)
 	tc.Sleep(5)
 	tc.PrintTendermintValidators(t, transactor)
+
+	log.Infoln("======================== Delegator claim staking reward on-chain ===========================")
+	err = tc.StartClaimStakingReward(transactor, 0)
+	tc.ChkErr(err, "u0 start claim all staking reward")
+	info := tc.GetStakingRewardClaimInfoWithSigs(transactor, 0, 1)
+	err = tc.OnchainClaimStakingReward(info)
+	tc.ChkErr(err, "u0 onchain claim staking reward")
 }

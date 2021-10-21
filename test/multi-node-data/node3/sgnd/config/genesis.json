@@ -196,7 +196,8 @@
         "community_tax": "0.000000000000000000",
         "base_proposer_reward": "0.010000000000000000",
         "bonus_proposer_reward": "0.040000000000000000",
-        "withdraw_addr_enabled": false
+        "withdraw_addr_enabled": false,
+        "claim_cooldown": "1s"
       },
       "fee_pool": {
         "community_pool": []

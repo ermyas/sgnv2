@@ -20,7 +20,7 @@ func (k Keeper) Stake(
 		return types.WrapErrPoolNotExist(poolName)
 	}
 	// 1.2. Check stake token denom
-	stakeTokenDenom := DeriveERC20TokenDenom(pool.StakeToken.ChainId, pool.StakeToken.Symbol)
+	stakeTokenDenom := common.DeriveERC20TokenDenom(pool.StakeToken.ChainId, pool.StakeToken.Symbol)
 	if stakeTokenDenom != amount.Denom {
 		return types.WrapErrInvalidDenom(stakeTokenDenom, amount.Denom)
 	}
@@ -114,7 +114,7 @@ func (k Keeper) Unstake(
 	if !poolFound {
 		return types.WrapErrPoolNotExist(poolName)
 	}
-	stakeTokenDenom := DeriveERC20TokenDenom(pool.StakeToken.ChainId, pool.StakeToken.Symbol)
+	stakeTokenDenom := common.DeriveERC20TokenDenom(pool.StakeToken.ChainId, pool.StakeToken.Symbol)
 	if stakeTokenDenom != amount.Denom {
 		return types.WrapErrInvalidDenom(stakeTokenDenom, amount.Denom)
 	}

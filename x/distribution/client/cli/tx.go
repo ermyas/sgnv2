@@ -3,8 +3,10 @@ package cli
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/distribution/types"
 	"github.com/cosmos/cosmos-sdk/client"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // Transaction flags for the x/distribution module
@@ -30,4 +32,24 @@ func NewTxCmd() *cobra.Command {
 	distTxCmd.AddCommand()
 
 	return distTxCmd
+}
+
+func ClaimAllStakingReward(
+	t *transactor.Transactor, req *types.MsgClaimAllStakingReward) (resp *types.MsgClaimAllStakingRewardResponse, err error) {
+	txResponse, err := t.SendTxMsgsWaitMined([]sdk.Msg{req})
+	if err != nil {
+		return resp, err
+	}
+	for _, log := range txResponse.Logs {
+		for _, e := range log.Events {
+			if e.Type == types.EventTypeClaimAllStakingReward {
+				resp = new(types.MsgClaimAllStakingRewardResponse)
+				break
+			}
+		}
+		if resp != nil {
+			break
+		}
+	}
+	return resp, err
 }

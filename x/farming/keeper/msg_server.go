@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -35,7 +36,7 @@ func (k msgServer) ClaimRewards(goCtx context.Context, msg *types.MsgClaimReward
 	}
 
 	addr := eth.Hex2Addr(msg.Address)
-	err = k.claimOnePool(ctx, msg.PoolName, addr, claimInfo)
+	err = k.claimOnePool(ctx, msg.PoolName, addr)
 	if err != nil {
 		return nil, err
 	}
@@ -59,26 +60,29 @@ func (k msgServer) ClaimAllRewards(
 	goCtx context.Context, msg *types.MsgClaimAllRewards) (*types.MsgClaimAllRewardsResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
+	// 1. Check cooldown and update claim time
 	claimInfo, err := k.checkCooldownAndUpdateClaimTime(ctx, msg.Address)
 	if err != nil {
 		return nil, err
 	}
 
+	// 2. Claim for all pools
 	addr := eth.Hex2Addr(msg.Address)
 	poolNames := k.GetFarmingPoolNamesForAccount(ctx, addr)
 	for _, poolName := range poolNames {
-		claimErr := k.claimOnePool(ctx, poolName, addr, claimInfo)
+		claimErr := k.claimOnePool(ctx, poolName, addr)
 		if claimErr != nil {
 			return nil, claimErr
 		}
 	}
 
+	// 3. Accumulate rewards into claimInfo
 	err = k.accumulateRewards(ctx, addr, claimInfo)
 	if err != nil {
 		return nil, err
 	}
 
-	// Emit claim_all event to trigger validators signing
+	// 4. Emit claim_all event to trigger validators signing
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeClaimAll,
 		sdk.NewAttribute(types.AttributeKeyAddress, addr.String()),
@@ -105,8 +109,7 @@ func (k msgServer) checkCooldownAndUpdateClaimTime(ctx sdk.Context, addr string)
 	return &claimInfo, nil
 }
 
-func (k msgServer) claimOnePool(
-	ctx sdk.Context, poolName string, addr eth.Addr, claimInfo *types.RewardClaimInfo) error {
+func (k msgServer) claimOnePool(ctx sdk.Context, poolName string, addr eth.Addr) error {
 	// 1. Get the pool info
 	pool, poolFound := k.GetFarmingPool(ctx, poolName)
 	if !poolFound {
@@ -144,13 +147,17 @@ func (k msgServer) accumulateRewards(ctx sdk.Context, addr eth.Addr, claimInfo *
 	for _, detail := range claimInfo.RewardClaimDetailsList {
 		chainIdToDetails[detail.ChainId] = &detail
 	}
-	// 2. Update CumulativeRewardAmounts
+	// 2. Update CumulativeRewardAmounts in details
 	derivedRewardAccount := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, addr)
 	rewards := k.bankKeeper.GetAllBalances(ctx, derivedRewardAccount)
+	if rewards.Empty() {
+		// TODO: Check
+		return errors.New("no reward")
+	}
 	for _, reward := range rewards {
 		denom := reward.Denom
 		cumulativeReward := k.bankKeeper.GetBalance(ctx, derivedRewardAccount, denom)
-		chainId, _, parseErr := ParseERC20TokenDenom(denom)
+		chainId, _, parseErr := common.ParseERC20TokenDenom(denom)
 		if parseErr != nil {
 			return parseErr
 		}
@@ -171,12 +178,12 @@ func (k msgServer) accumulateRewards(ctx sdk.Context, addr eth.Addr, claimInfo *
 				details.CumulativeRewardAmounts.Sub(sdk.NewDecCoins(existing)).Add(updated)
 		}
 	}
-	// 3. Update TokenAddresses and CumulativeRewardAmounts, Reconstruct RewardProtoBytes
+	// 3. Reconstruct RewardProtoBytes with TokenAddresses and updated CumulativeRewardAmounts
 	for chainId, details := range chainIdToDetails {
 		var tokenAddresses [][]byte
 		var cumulativeRewardAmounts [][]byte
 		for _, coin := range details.CumulativeRewardAmounts {
-			chainId, symbol, parseErr := ParseERC20TokenDenom(coin.Denom)
+			chainId, symbol, parseErr := common.ParseERC20TokenDenom(coin.Denom)
 			if parseErr != nil {
 				return parseErr
 			}
@@ -201,7 +208,7 @@ func (k msgServer) accumulateRewards(ctx sdk.Context, addr eth.Addr, claimInfo *
 		details.RewardProtoBytes = rewardProtoBytes
 	}
 
-	// 4.1.  Append RewardClaimDetails and set RewardClaimInfo
+	// 4.1. Append RewardClaimDetails
 	// TODO: 1. Avoid copying 2. Sort by ascending chain IDs?
 	claimInfo.RewardClaimDetailsList = []types.RewardClaimDetails{}
 	for _, details := range chainIdToDetails {
@@ -212,6 +219,7 @@ func (k msgServer) accumulateRewards(ctx sdk.Context, addr eth.Addr, claimInfo *
 		detail := &claimInfo.RewardClaimDetailsList[i]
 		detail.Signatures = []commontypes.Signature{}
 	}
+	// 4.3. Set RewardClaimInfo
 	k.SetRewardClaimInfo(ctx, *claimInfo)
 	return nil
 }

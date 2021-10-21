@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -318,4 +319,16 @@ $ %s query distribution community-pool
 
 	flags.AddQueryFlagsToCmd(cmd)
 	return cmd
+}
+
+func QueryStakingRewardClaimInfo(goCtx context.Context, cliCtx client.Context, addr string) (*types.StakingRewardClaimInfo, error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	res, err := queryClient.StakingRewardClaimInfo(
+		goCtx,
+		&types.QueryStakingRewardClaimInfoRequest{DelegatorAddress: addr},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &res.RewardClaimInfo, nil
 }

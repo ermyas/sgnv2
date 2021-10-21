@@ -3,6 +3,7 @@ package keeper
 import (
 	"fmt"
 
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/x/farming/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -26,7 +27,7 @@ func HandleAddPoolProposal(ctx sdk.Context, k Keeper, p *types.AddPoolProposal) 
 		}
 	}
 	// 3.1. Add pool
-	stakeTokenDenom := DeriveERC20TokenDenom(stakeToken.ChainId, stakeToken.Symbol)
+	stakeTokenDenom := common.DeriveERC20TokenDenom(stakeToken.ChainId, stakeToken.Symbol)
 	totalStakedAmount :=
 		sdk.NewDecCoin(
 			stakeTokenDenom,
@@ -94,7 +95,7 @@ func (k Keeper) CheckAddPoolProposal(ctx sdk.Context, p *types.AddPoolProposal) 
 	// 2.2. Check reward token denoms match and sorted by ascending denom
 	lastDenom := ""
 	for i, rewardToken := range p.RewardTokens {
-		denom1 := DeriveERC20TokenDenom(rewardToken.ChainId, rewardToken.Symbol)
+		denom1 := common.DeriveERC20TokenDenom(rewardToken.ChainId, rewardToken.Symbol)
 		denom2 := p.InitialRewardInputs[i].AddAmount.Denom
 		if denom1 != denom2 {
 			return types.WrapErrInvalidInput(

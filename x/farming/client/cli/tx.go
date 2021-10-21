@@ -71,9 +71,8 @@ $ %s tx farming claim-all 0xab5801a7d398351b8be11c439e05c5b3259aec9b --from myke
 func ClaimAllRewards(t *transactor.Transactor, req *types.MsgClaimAllRewards) (resp *types.MsgClaimAllRewardsResponse, err error) {
 	txResponse, err := t.SendTxMsgsWaitMined([]sdk.Msg{req})
 	if err != nil {
-		return
+		return resp, err
 	}
-
 	for _, log := range txResponse.Logs {
 		for _, e := range log.Events {
 			if e.Type == types.EventTypeClaimAll {
@@ -81,13 +80,11 @@ func ClaimAllRewards(t *transactor.Transactor, req *types.MsgClaimAllRewards) (r
 				break
 			}
 		}
-
 		if resp != nil {
 			break
 		}
 	}
-
-	return
+	return resp, err
 }
 
 // GetCmdSubmitAddPoolProposal implements a command handler for submitting an AddPoolProposal

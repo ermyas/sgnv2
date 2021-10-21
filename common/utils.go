@@ -22,6 +22,8 @@ import (
 
 const (
 	retryTimeout = 500 * time.Millisecond
+
+	ERC20DenomSeparator = "/" // NOTE: Cosmos SDK only accepts "/" or "-"
 )
 
 func ParseTransactorAddrs(ts []string) ([]sdk.AccAddress, error) {
@@ -100,6 +102,23 @@ func VerifyAddressFormat(bz []byte) error {
 
 func DeriveSdkAccAddressFromEthAddress(namespace string, ethAddr eth.Addr) sdk.AccAddress {
 	return sdk.AccAddress(sdkaddress.Module(fmt.Sprintf("eth-%s", namespace), ethAddr.Bytes()))
+}
+
+// DeriveERC20TokenDenom generates denoms of the form symbol/chainId
+func DeriveERC20TokenDenom(chainId uint64, symbol string) string {
+	return fmt.Sprintf("%s%s%d", symbol, ERC20DenomSeparator, chainId)
+}
+
+func ParseERC20TokenDenom(denom string) (chainId uint64, symbol string, err error) {
+	splitted := strings.Split(denom, ERC20DenomSeparator)
+	if len(splitted) != 2 {
+		return 0, "", fmt.Errorf("invalid denom %s", denom)
+	}
+	chainIdInt64, err := strconv.ParseInt(splitted[1], 10, 64)
+	if err != nil {
+		return 0, "", err
+	}
+	return uint64(chainIdInt64), splitted[0], nil
 }
 
 func TsMilliToTime(ms uint64) time.Time {

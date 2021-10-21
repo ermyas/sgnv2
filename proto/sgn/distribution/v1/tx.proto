@@ -28,6 +28,9 @@ service Msg {
   // ClaimAllStakingReward defines a method to claim staking rewards of a delegator
   // from all validators.
   rpc ClaimAllStakingReward(MsgClaimAllStakingReward) returns (MsgClaimAllStakingRewardResponse);
+
+  // SignStakingReward defines a method for validators to co-sign a staking reward claim.
+  rpc SignStakingReward(MsgSignStakingReward) returns (MsgSignStakingRewardResponse);
 }
 
 // MsgSetWithdrawAddress sets the withdraw address for
@@ -108,3 +111,19 @@ message MsgClaimAllStakingReward {
 
 // MsgClaimAllStakingRewardResponse defines the Msg/ClaimAllStakingReward response type.
 message MsgClaimAllStakingRewardResponse {}
+
+// MsgSignStakingReward signs a staking reward claim.
+message MsgSignStakingReward {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // address defines the Ethereum address of the delegator claiming the reward.
+  string delegator_address = 1;
+  // sender defines the SGN account sending the signing Msg.
+  string sender = 2;
+  // signature defines the signature.
+  bytes signature = 3 [(gogoproto.moretags) = "yaml:\"signature\""];
+}
+
+// MsgSignStakingRewardResponse defines the Msg/SignStakingReward response type.
+message MsgSignStakingRewardResponse {}

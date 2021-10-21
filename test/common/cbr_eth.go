@@ -11,6 +11,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -128,7 +129,7 @@ func (c *CbrChain) SetInitSigners(amts []*big.Int) error {
 	return nil
 }
 
-func OnchainClaimRewards(details *farmingtypes.RewardClaimDetails) error {
+func OnchainClaimFarmingRewards(details *farmingtypes.RewardClaimDetails) error {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 	sort.Slice(details.Signatures, func(i int, j int) bool {
@@ -142,6 +143,24 @@ func OnchainClaimRewards(details *farmingtypes.RewardClaimDetails) error {
 	if err != nil {
 		return err
 	}
-	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "OnchainClaimRewards")
+	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "OnchainClaimFarmingRewards")
+	return nil
+}
+
+func OnchainClaimStakingReward(claimInfo *distrtypes.StakingRewardClaimInfo) error {
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
+	sort.Slice(claimInfo.Signatures, func(i int, j int) bool {
+		return claimInfo.Signatures[i].Signer < claimInfo.Signatures[j].Signer
+	})
+	var sigs [][]byte
+	for _, signature := range claimInfo.Signatures {
+		sigs = append(sigs, signature.SigBytes)
+	}
+	tx, err := Contracts.StakingReward.ClaimReward(EtherBaseAuth, claimInfo.RewardProtoBytes, sigs)
+	if err != nil {
+		return err
+	}
+	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "OnchainClaimStakingReward")
 	return nil
 }

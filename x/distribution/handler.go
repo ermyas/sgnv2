@@ -31,6 +31,14 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			res, err := msgServer.FundCommunityPool(sdk.WrapSDKContext(ctx), msg)
 			return sdk.WrapServiceResult(ctx, res, err)
 
+		case *types.MsgClaimAllStakingReward:
+			res, err := msgServer.ClaimAllStakingReward(sdk.WrapSDKContext(ctx), msg)
+			return sdk.WrapServiceResult(ctx, res, err)
+
+		case *types.MsgSignStakingReward:
+			res, err := msgServer.SignStakingReward(sdk.WrapSDKContext(ctx), msg)
+			return sdk.WrapServiceResult(ctx, res, err)
+
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized distribution message type: %T", msg)
 		}

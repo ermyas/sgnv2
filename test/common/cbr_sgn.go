@@ -13,6 +13,8 @@ import (
 	"github.com/celer-network/sgn-v2/transactor"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	distrcli "github.com/celer-network/sgn-v2/x/distribution/client/cli"
+	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
 	farmingcli "github.com/celer-network/sgn-v2/x/farming/client/cli"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	"github.com/stretchr/testify/assert"
@@ -168,7 +170,7 @@ func GetCurSortedSigners(transactor *transactor.Transactor, chid uint64) ([]*cbr
 	return cs.SortedSigners, nil
 }
 
-// call claim-all
+// StartClaimFarmingRewards sends MsgClaimAll to the farming module
 func StartClaimFarmingRewards(transactor *transactor.Transactor, uid uint64) error {
 	_, err := farmingcli.ClaimAllRewards(transactor, &farmingtypes.MsgClaimAllRewards{
 		Address: eth.Addr2Hex(ClientEthAddrs[uid]),
@@ -202,4 +204,37 @@ func GetFarmingRewardClaimInfoWithSigs(
 
 func GetFarmingRewardClaimInfo(transactor *transactor.Transactor, uid uint64) (*farmingtypes.RewardClaimInfo, error) {
 	return farmingcli.QueryRewardClaimInfo(context.Background(), transactor.CliCtx, eth.Addr2Hex(ClientEthAddrs[uid]))
+}
+
+// StartClaimStakingReward sends MsgClaimAllStakingReward to the distribution module
+func StartClaimStakingReward(transactor *transactor.Transactor, uid uint64) error {
+	_, err := distrcli.ClaimAllStakingReward(transactor, &distrtypes.MsgClaimAllStakingReward{
+		DelegatorAddress: eth.Addr2Hex(DelEthAddrs[uid]),
+		Sender:           transactor.Key.GetAddress().String(),
+	})
+	return err
+}
+
+func GetStakingRewardClaimInfoWithSigs(
+	transactor *transactor.Transactor, uid uint64, expSigNum int) *distrtypes.StakingRewardClaimInfo {
+	var info *distrtypes.StakingRewardClaimInfo
+	var err error
+	for retry := 0; retry < RetryLimit; retry++ {
+		info, err = GetStakingRewardClaimInfo(transactor, uid)
+		if err == nil && len(info.Signatures) == expSigNum {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to GetStakingRewardClaimInfo")
+	if len(info.Signatures) != expSigNum {
+		log.Fatalf("GetStakingRewardClaimInfo sigs num %d, expected %d", len(info.Signatures), expSigNum)
+	}
+	return info
+}
+
+func GetStakingRewardClaimInfo(
+	transactor *transactor.Transactor, uid uint64) (*distrtypes.StakingRewardClaimInfo, error) {
+	return distrcli.QueryStakingRewardClaimInfo(
+		context.Background(), transactor.CliCtx, eth.Addr2Hex(DelEthAddrs[uid]))
 }

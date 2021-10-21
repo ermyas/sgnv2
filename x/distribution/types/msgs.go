@@ -13,11 +13,12 @@ const (
 	TypeMsgWithdrawValidatorCommission = "withdraw_validator_commission"
 	TypeMsgFundCommunityPool           = "fund_community_pool"
 	TypeMsgClaimAllStakingReward       = "claim_all_staking_reward"
+	TypeMsgSignStakingReward           = "sign_staking_reward"
 )
 
 // Verify interface at compile time
-var _, _, _, _ sdk.Msg = &MsgSetWithdrawAddress{}, &MsgWithdrawDelegatorReward{},
-	&MsgWithdrawValidatorCommission{}, &MsgClaimAllStakingReward{}
+var _, _, _, _, _ sdk.Msg = &MsgSetWithdrawAddress{}, &MsgWithdrawDelegatorReward{},
+	&MsgWithdrawValidatorCommission{}, &MsgClaimAllStakingReward{}, &MsgSignStakingReward{}
 
 func NewMsgSetWithdrawAddress(delAddr eth.Addr, withdrawAddr eth.Addr) *MsgSetWithdrawAddress {
 	return &MsgSetWithdrawAddress{
@@ -208,4 +209,47 @@ func (msg MsgClaimAllStakingReward) ValidateBasic() error {
 		return ErrEmptySender
 	}
 	return nil
+}
+
+func NewMsgSignStakingReward(
+	delAddr eth.Addr, sender sdk.AccAddress, signature []byte) *MsgSignStakingReward {
+	return &MsgSignStakingReward{
+		DelegatorAddress: eth.Addr2Hex(delAddr),
+		Sender:           sender.String(),
+		Signature:        signature,
+	}
+}
+
+func (m MsgSignStakingReward) Route() string {
+	return RouterKey
+}
+
+func (m MsgSignStakingReward) Type() string {
+	return TypeMsgSignStakingReward
+}
+
+func (m MsgSignStakingReward) ValidateBasic() error {
+	if m.DelegatorAddress == "" {
+		return ErrEmptyDelegatorAddr
+	}
+	if m.Sender == "" {
+		return ErrEmptySender
+	}
+	if len(m.Signature) == 0 {
+		return ErrEmptySignature
+	}
+	return nil
+}
+
+func (m MsgSignStakingReward) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(&m)
+	return sdk.MustSortJSON(bz)
+}
+
+func (m MsgSignStakingReward) GetSigners() []sdk.AccAddress {
+	senderAddr, err := sdk.AccAddressFromBech32(m.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{senderAddr}
 }

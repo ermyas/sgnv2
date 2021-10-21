@@ -130,10 +130,10 @@ func cbridgeTest(t *testing.T) {
 
 	log.Infoln("======================== LP claim farming reward on-chain ===========================")
 	err = tc.StartClaimFarmingRewards(transactor, 0)
-	tc.ChkErr(err, "u0 start claim all")
+	tc.ChkErr(err, "u0 start claim all farming rewards")
 	info := tc.GetFarmingRewardClaimInfoWithSigs(transactor, 0, 3)
-	err = tc.OnchainClaimRewards(&info.RewardClaimDetailsList[0])
-	tc.ChkErr(err, "u0 onchain claim rewards")
+	err = tc.OnchainClaimFarmingRewards(&info.RewardClaimDetailsList[0])
+	tc.ChkErr(err, "u0 onchain claim farming rewards")
 }
 
 func cbrSignersTest(t *testing.T) {

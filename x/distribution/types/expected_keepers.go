@@ -34,6 +34,9 @@ type BankKeeper interface {
 type StakingKeeper interface {
 	Validator(sdk.Context, eth.Addr) stakingtypes.ValidatorI                  // get a particular validator by eth address
 	ValidatorByConsAddr(sdk.Context, sdk.ConsAddress) stakingtypes.ValidatorI // get a particular validator by consensus address
+	GetValidatorBySgnAddr(sdk.Context, sdk.AccAddress) (stakingtypes.ValidatorI, bool)
+
+	GetAllValidators(ctx sdk.Context) (validators stakingtypes.Validators)
 
 	// Delegation allows for getting a particular delegation for a given validator
 	// and delegator outside the scope of the staking module.

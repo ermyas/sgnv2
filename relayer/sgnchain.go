@@ -8,6 +8,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	slashcli "github.com/celer-network/sgn-v2/x/slash/client/cli"
 	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
@@ -24,6 +25,10 @@ var (
 		fmt.Sprintf("%s.%s='%s'", cbrtypes.EventTypeDataToSign, sdk.AttributeKeyModule, cbrtypes.ModuleName)).String()
 	EventQueryFarmingClaimAll = tmquery.MustParse(
 		fmt.Sprintf("tm.event='Tx' AND %s.%s EXISTS", farmingtypes.EventTypeClaimAll, farmingtypes.AttributeKeyAddress)).String()
+	EventQueryDistributionClaimAllStakingReward = tmquery.MustParse(
+		fmt.Sprintf(
+			"tm.event='Tx' AND %s.%s EXISTS",
+			distrtypes.EventTypeClaimAllStakingReward, distrtypes.AttributeKeyDelegatorAddress)).String()
 )
 
 func MonitorTendermintEvent(nodeURI, eventQuery string, handleEvents func(events map[string][]string)) {
@@ -180,6 +185,38 @@ func (r *Relayer) monitorSgnFarmingClaimAllEvent() {
 					})
 				}
 				msg := farmingtypes.NewMsgSignRewards(eth.Hex2Addr(addr), r.Transactor.Key.GetAddress(), signatureDetailsList)
+				r.Transactor.AddTxMsg(msg)
+			}
+		})
+}
+
+func (r *Relayer) monitorSgnDistributionClaimAllStakingRewardEvent() {
+	MonitorTendermintEvent(
+		r.Transactor.CliCtx.NodeURI,
+		EventQueryDistributionClaimAllStakingReward,
+		func(events map[string][]string) {
+			if !r.isBonded() {
+				return
+			}
+			for _, addr := range events[fmt.Sprintf("%s.%s",
+				distrtypes.EventTypeClaimAllStakingReward, distrtypes.AttributeKeyDelegatorAddress)] {
+				queryClient := distrtypes.NewQueryClient(r.Transactor.CliCtx)
+				stakingRewardClaimInfo, err := queryClient.StakingRewardClaimInfo(
+					context.Background(),
+					&distrtypes.QueryStakingRewardClaimInfoRequest{
+						DelegatorAddress: addr,
+					},
+				)
+				if err != nil {
+					log.Errorf("Query StakingRewardClaimInfo err %s", err)
+					return
+				}
+				sig, err := r.EthClient.SignEthMessage(stakingRewardClaimInfo.RewardClaimInfo.RewardProtoBytes)
+				if err != nil {
+					log.Errorln("SignEthMessage err", err)
+					return
+				}
+				msg := distrtypes.NewMsgSignStakingReward(eth.Hex2Addr(addr), r.Transactor.Key.GetAddress(), sig)
 				r.Transactor.AddTxMsg(msg)
 			}
 		})
