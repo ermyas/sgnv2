@@ -440,6 +440,7 @@ message StakingConfigResponse {
     string viewer_contract = 1;
     string staking_contract = 2;
     string staking_reward_contract = 3;
+    string celr_contract = 4;
 }
 
 message ErrMsg {

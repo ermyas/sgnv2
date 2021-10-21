@@ -12,5 +12,6 @@ func (gs *GatewayService) StakingConfig(ctx context.Context, request *webapi.Sta
 		ViewerContract:        viper.GetString(common.FlagEthContractViewer),
 		StakingContract:       viper.GetString(common.FlagEthContractStaking),
 		StakingRewardContract: viper.GetString(common.FlagEthContractStakingReward),
+		CelrContract:          viper.GetString(common.FlagEthContractCelr),
 	}, nil
 }

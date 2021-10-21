@@ -148,7 +148,7 @@ type CbrConfig struct {
 	// to improve scalability, we'll first pick this many LPs to see if their total liquidity is enough
 	// if yes, we'll use weighted random sampling among them until xfer can be fulfilled.
 	// if not, we'll continue choose next LPs until we have enough and use all
-	// this param is a trade-off between scalability and fairness
+	// this param is a trade-off between scalability and fairness, if not set, default is 100
 	PickLpSize uint32 `protobuf:"varint,4,opt,name=pick_lp_size,json=pickLpSize,proto3" json:"pick_lp_size,omitempty"`
 	// onchain relay tx gas cost to compute base fee
 	// note actual gas cost depends on number of validator sigs and how many we need to reach
