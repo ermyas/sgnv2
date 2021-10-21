@@ -55,7 +55,8 @@ message GetFeeRequest {
 
 message GetFeeResponse {
     string eq_value_token_amt = 2; //on_dst_chain
-    string fee = 3; //on_dst_chain
+    string perc_fee = 3; //on_dst_chain, percentage fee based on amount
+    string base_fee = 5; //on_dest_chain, independent of amount, to cover relay onchain tx gas cost
     uint64 decimal = 4; //on_dst_chain
 }
 

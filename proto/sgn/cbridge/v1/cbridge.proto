@@ -31,8 +31,14 @@ message CbrConfig {
   // to improve scalability, we'll first pick this many LPs to see if their total liquidity is enough
   // if yes, we'll use weighted random sampling among them until xfer can be fulfilled.
   // if not, we'll continue choose next LPs until we have enough and use all
-  // this param is a trade-off between scalability and fairness
+  // this param is a trade-off between scalability and fairness, if not set, default is 100
   uint32 pick_lp_size = 4;
+  // onchain relay tx gas cost to compute base fee
+  // note actual gas cost depends on number of validator sigs and how many we need to reach
+  // enough vote. if this isn't set, basefee will be 0
+  // todo: when impl relay gas optimize, change this to per sig gas cost
+  uint32 relay_onchain_gas_cost = 5;
+
   repeated ChainAsset assets = 2; // multi-asset, multi-chain
   repeated ChainPair chain_pairs = 3; // per chain pair configs
 }
@@ -48,12 +54,12 @@ message CbrPrice {
 // if an asset is not used by any chain as native gas token, no need to set chain_id. eg. USDT
 // if an asset is native gas token for some chains, set the chainids
 // it's possible an asset is only native gas token but NOT used for transfers (ie. not in CbrConfig.assets)
-// price is in USD
+// price is in int(USD float * 1e4)
 message AssetPrice {
   string symbol = 1;
   // these chains uses this asset as native gas token, eg. ETH is gas token for both ethereum and Arbitrum
   repeated uint64 chain_ids = 2;
-  string price = 3;
+  uint32 price = 3; // int(USD float * 1e4), eg. $12.34 -> 123400
 }
 
 // each chainid's gas price, as it's very dynamic, the goal is only to avoid off too much
@@ -70,7 +76,7 @@ message ChainAsset {
   uint64 chain_id = 2;
   string addr = 3; // hex string of erc20 address, use string for easier json integration
   uint32 decimal = 4; // to handle same asset has different decimal on different chains
-  string max_fee_amount = 5; // max fee, use string to avoid uint64 not enough for 18 decimal
+  string max_fee_amount = 5; // max fee cap for percentage fee, use string to avoid uint64 not enough for 18 decimal
   bool xfer_disabled = 6; // if set to true, won't relay if this asset is src or dest
 }
 

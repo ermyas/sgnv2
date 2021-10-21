@@ -78,7 +78,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			SetEvSendStatus(kv, ev.TransferId, sendStatus)
 		}()
 
-		sendStatus, destAmount, feeAmt, destTokenAddr :=
+		sendStatus, destAmount, percFee, baseFee, destTokenAddr :=
 			k.Transfer(ctx, eth.ZeroAddr, ev.Token, ev.Amount, onchev.Chainid, ev.DstChainId, ev.MaxSlippage, ev.TransferId[28:]) // last 4B of xfer id
 
 		if sendStatus != types.XferStatus_OK_TO_RELAY {
@@ -90,11 +90,13 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			}
 			return true, nil
 		}
+		userReceive := new(big.Int).Sub(destAmount, percFee)
+		userReceive.Sub(userReceive, baseFee)
 		relayOnchain := &types.RelayOnChain{
 			Sender:        ev.Sender[:],
 			Receiver:      ev.Receiver[:],
 			Token:         destTokenAddr[:],
-			Amount:        new(big.Int).Sub(destAmount, feeAmt).Bytes(),
+			Amount:        userReceive.Bytes(),
 			SrcChainId:    onchev.Chainid,
 			DstChainId:    ev.DstChainId,
 			SrcTransferId: ev.TransferId[:],
@@ -185,7 +187,7 @@ func (k Keeper) ApplyUpdateCbrPrice(ctx sdk.Context, data []byte) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-	k.SetCbrPriceConfig(ctx, price)
+	k.SetCbrPrice(ctx, price)
 	log.Infoln("x/cbr applied UpdateCbrPrice:", price)
 	return true, nil
 }

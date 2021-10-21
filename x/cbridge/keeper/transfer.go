@@ -12,7 +12,7 @@ import (
 // startLpPre is the lp address prefix iter to start with
 func (k Keeper) Transfer(
 	ctx sdk.Context, sender, token eth.Addr, amount *big.Int, srcChainId, dstChainId uint64,
-	maxSlippage uint32, startLpPre []byte) (status types.XferStatus, destAmount, feeAmt *big.Int, destTokenAddr eth.Addr) {
+	maxSlippage uint32, startLpPre []byte) (status types.XferStatus, destAmount, percFee, baseFee *big.Int, destTokenAddr eth.Addr) {
 
 	if srcChainId == dstChainId {
 		status = types.XferStatus_BAD_DEST_CHAIN
@@ -50,18 +50,7 @@ func (k Keeper) Transfer(
 	}
 
 	// check the asset xfer disabled
-	cbrConfig := k.GetCbrConfig(ctx)
-	var srcAssetDisabled, destAssetDisabled bool
-	for _, chainAsset := range cbrConfig.GetAssets() {
-		if chainAsset.GetChainId() == src.ChId && eth.Hex2Addr(chainAsset.GetAddr()) == src.TokenAddr {
-			srcAssetDisabled = chainAsset.GetXferDisabled()
-		}
-		if chainAsset.GetChainId() == dest.ChId && eth.Hex2Addr(chainAsset.GetAddr()) == dest.TokenAddr {
-			destAssetDisabled = chainAsset.GetXferDisabled()
-		}
-	}
-
-	if srcAssetDisabled || destAssetDisabled {
+	if srcToken.XferDisabled || destToken.XferDisabled {
 		status = types.XferStatus_BAD_XFER_DISABLED
 		return
 	}
@@ -87,8 +76,17 @@ func (k Keeper) Transfer(
 		status = types.XferStatus_BAD_LIQUIDITY
 		return
 	}
-	feeAmt = CalcFee(kv, src, dest, destAmount)
-	userReceive := new(big.Int).Sub(destAmount, feeAmt)
+	// perc fee is based on total destAmount, before deduct basefee
+	percFee = CalcPercFee(kv, src, dest, destAmount)
+	baseFee = CalcBaseFee(kv, assetSym, dest.ChId)
+	userReceive := new(big.Int).Sub(destAmount, percFee)
+	userReceive.Sub(userReceive, baseFee)
+	if isNegOrZero(userReceive) {
+		// amount isn't enough to pay fees
+		log.Debugln(destAmount, "less than fee. base:", baseFee, "perc:", percFee)
+		status = types.XferStatus_BAD_SLIPPAGE
+		return
+	}
 	promised := calcPromised(maxSlippage, srcToken.Decimal, destToken.Decimal, amount)
 	// actual receive is less than promised
 	if userReceive.Cmp(promised) == -1 {
@@ -98,8 +96,13 @@ func (k Keeper) Transfer(
 	}
 
 	// pick LPs, minus each's destChain liquidity, add src liquidity
-	k.PickLPsAndAdjustLiquidity(ctx, kv, src, dest, amount, destAmount, feeAmt, destToken.Decimal, sender, startLpPre)
-
+	// this func DOESN'T care baseFee BY DESIGN!
+	k.PickLPsAndAdjustLiquidity(ctx, kv, src, dest, amount, destAmount, percFee, destToken.Decimal, sender, startLpPre)
+	// baseFee goes to sgn, if we ever want to support accurate baseFee attribution,
+	// we need to save baseFee in relay detail, and upon seeing the relay event, figure out
+	// its sender and add to that address. Note there is no way we can make baseFee equal the actual
+	// onchain tx cost because gasprice and token usd prices are all changing constantly
+	AddSgnFee(kv, dest.ChId, dest.TokenAddr, baseFee)
 	status = types.XferStatus_OK_TO_RELAY
 	return
 }

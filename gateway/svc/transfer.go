@@ -3,6 +3,9 @@ package gatewaysvc
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
@@ -10,8 +13,6 @@ import (
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"strconv"
-	"time"
 )
 
 func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi.GetTransferStatusRequest) (*webapi.GetTransferStatusResponse, error) {
@@ -148,7 +149,7 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 		}, nil
 	}
 	eqValueTokenAmt := feeInfo.GetEqValueTokenAmt()
-	feeAmt := feeInfo.GetFee()
+	feeAmt := feeInfo.GetPercFee()
 
 	srcVolume := gs.F.GetUsdVolume(srcToken.Token, common.Str2BigInt(amt))
 	dstVolume := gs.F.GetUsdVolume(dstToken.Token, common.Str2BigInt(eqValueTokenAmt))

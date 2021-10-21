@@ -15,6 +15,8 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, genState types.GenesisState) 
 		panic(err)
 	}
 	k.SetCbrConfig(ctx, genState.Config)
+	// set initial price so base fee will work before new prices are set in x/cbridge kv
+	k.SetCbrPrice(ctx, genState.Price)
 }
 
 // ExportGenesis returns the capability module's exported genesis.

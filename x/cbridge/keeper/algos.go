@@ -68,6 +68,7 @@ type AddrHexAmtInt struct {
 
 // pick LPs, minus each's destChain liquidity and add srcChain liq
 // fee and add liq on src are calculated based on ratio this LP contributed into destAmount
+// WARNING: this func doesn't care base fee BY DESIGN!!!
 func (k Keeper) PickLPsAndAdjustLiquidity(
 	ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdTokenAddr, srcAmount, destAmount, fee *big.Int, destDecimal uint32, sender eth.Addr, lpPre []byte) {
 	lpFeePerc := new(big.Int).SetBytes(kv.Get(types.CfgKeyFeePerc))
@@ -317,8 +318,8 @@ func getAddr(lpmapkey []byte) string {
 	return keystr[lastDashIdx+1:]
 }
 
-// total is dest amount, return fee
-func CalcFee(kv sdk.KVStore, src, dest *ChainIdTokenAddr, total *big.Int) *big.Int {
+// total is dest amount, return percent fee based on it
+func CalcPercFee(kv sdk.KVStore, src, dest *ChainIdTokenAddr, total *big.Int) *big.Int {
 	feePerc := GetFeePerc(kv, src.ChId, dest.ChId) // fee percent * 1e6
 	if feePerc == 0 {
 		return new(big.Int)
@@ -335,6 +336,25 @@ func CalcFee(kv sdk.KVStore, src, dest *ChainIdTokenAddr, total *big.Int) *big.I
 		return maxFee
 	}
 	return feeAmt
+}
+
+// base fee only depends on asset price, dest chain gas token price, dest chain gas price and relay gas cost
+// todo: relay gas cost depends on number of sigs to reach 2/3
+func CalcBaseFee(kv sdk.KVStore, assetSym string, destChid uint64) (baseFee *big.Int) {
+	baseFee = new(big.Int)
+	gasTokenUsdPrice := GetGasTokenUsdPrice(kv, destChid)
+	assetUsdPrice := GetAssetUsdPrice(kv, assetSym)
+	gasCost := getUint32(kv, types.CfgKeyRelayGasCost)
+	gasPrice := GetGasPrice(kv, destChid)
+	// formula is gasCost * gasPrice * gasTokenPrice / 1e18 / assetPrice
+	if assetUsdPrice == 0 {
+		return // avoid div by 0
+	}
+	baseFee.Mul(gasPrice, big.NewInt(int64(gasCost)))
+	baseFee.Mul(baseFee, big.NewInt(int64(gasTokenUsdPrice)))
+	baseFee.Div(baseFee, big.NewInt(1e18)) // gas token always 18 decimal
+	baseFee.Div(baseFee, big.NewInt(int64(assetUsdPrice)))
+	return
 }
 
 func isPos(i *big.Int) bool {

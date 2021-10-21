@@ -121,14 +121,15 @@ func SgnFeeKey(chid uint64, token eth.Addr) []byte {
 3. symbol-chid -> ChainAsset, note proto has dup info symbol and chain_id
 4. chid1-chid2 -> ChainPair. keys are sorted so chid1 < chid2
 5. pick lp size, how many LPs on first select. value is big.Int bytes
-6. chid -> gas price gwei.
-7. chid -> GasTokenSymbol.
-8. symbol -> USD price.
+6. chid -> gas price big.Int.Bytes.
+7. chid -> GasTokenSymbol string.
+8. symbol -> uint32(USD price * 1e4)
 */
 
 var (
-	CfgKeyFeePerc    = []byte("cfg-feeperc")
-	CfgKeyPickLpSize = []byte("cfg-lpsize")
+	CfgKeyFeePerc      = []byte("cfg-feeperc")
+	CfgKeyPickLpSize   = []byte("cfg-lpsize")
+	CfgKeyRelayGasCost = []byte("cfg-relaygas")
 )
 
 func CfgKeyChain2Sym(chid uint64, addr eth.Addr) []byte {

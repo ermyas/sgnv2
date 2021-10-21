@@ -166,11 +166,11 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 		ChainIdTokenAddr: dest,
 		Decimal:          destToken.Decimal,
 	}, srcAmt)
-	feeAmt := CalcFee(kv, src, dest, destAmt)
 
 	resp := types.GetFeeResponse{
 		EqValueTokenAmt: destAmt.String(),
-		Fee:             feeAmt.String(),
+		PercFee:         CalcPercFee(kv, src, dest, destAmt).String(),
+		BaseFee:         CalcBaseFee(kv, assetSym, dest.ChId).String(),
 		Decimal:         uint64(destToken.Decimal),
 	}
 	res, err := k.cdc.Marshal(&resp)

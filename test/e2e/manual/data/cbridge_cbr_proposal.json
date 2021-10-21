@@ -3,6 +3,7 @@
   "description": "Update cbridge param to v1.1",
   "cbr_config": {
     "lp_fee_perc": 80,
+    "relay_onchain_gas_cost": 150000,
     "assets": [
       {
         "addr": "2b499b7e9de669e968acd6039845a422f7ff758a",

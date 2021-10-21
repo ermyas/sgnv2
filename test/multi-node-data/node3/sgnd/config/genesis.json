@@ -82,6 +82,7 @@
       },
       "config": {
         "lp_fee_perc": 80,
+        "relay_onchain_gas_cost": 150000,
         "assets": [
           {
             "symbol": "USDT",
@@ -105,6 +106,30 @@
             "weight1": 100,
             "fee1to2": 10000,
             "fee2to1": 20000
+          }
+        ]
+      },
+      "price": {
+        "update_epoch": 1634786000,
+        "asset_price": [
+          {
+            "symbol": "USDT",
+            "price": 10000
+          },
+          {
+            "symbol": "ETH",
+            "chain_ids": [883, 884],
+            "price": 30000000
+          }
+        ],
+        "gas_price": [
+          {
+            "chain_id": 883,
+            "price": "1000000000"
+          },
+          {
+            "chain_id": 884,
+            "price": "2000000000"
           }
         ]
       }

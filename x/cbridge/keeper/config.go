@@ -24,6 +24,7 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 	kv := ctx.KVStore(k.storeKey)
 	setUint32(kv, types.CfgKeyFeePerc, cfg.LpFeePerc)
 	setUint32(kv, types.CfgKeyPickLpSize, cfg.PickLpSize)
+	setUint32(kv, types.CfgKeyRelayGasCost, cfg.RelayOnchainGasCost)
 	// todo: iter and del all cfg-xxx key/val if we're removing asset
 	// but this may be VERY unlikely, also need to take care of past xfers
 	// go over asset and set ch2sym and sym2info
@@ -40,7 +41,7 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 	}
 }
 
-func (k Keeper) SetCbrPriceConfig(ctx sdk.Context, cfg *types.CbrPrice) {
+func (k Keeper) SetCbrPrice(ctx sdk.Context, cfg *types.CbrPrice) {
 	kv := ctx.KVStore(k.storeKey)
 	SetGasPrice(kv, cfg.GetGasPrice())
 	SetAssetPrice(kv, cfg.GetAssetPrice())
@@ -59,6 +60,7 @@ func (k Keeper) GetCbrConfig(ctx sdk.Context) types.CbrConfig {
 	kv := ctx.KVStore(k.storeKey)
 	cbrConfig.LpFeePerc = getUint32(kv, types.CfgKeyFeePerc)
 	cbrConfig.PickLpSize = getUint32(kv, types.CfgKeyPickLpSize)
+	cbrConfig.RelayOnchainGasCost = getUint32(kv, types.CfgKeyRelayGasCost)
 	cbrConfig.Assets = make([]*types.ChainAsset, 0)
 	cbrConfig.ChainPairs = make([]*types.ChainPair, 0)
 
