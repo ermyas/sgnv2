@@ -29,3 +29,4 @@ inter-block-cache = true
 enable = true
 address = "tcp://0.0.0.0:1317"
 swagger = true
+enable-unsafe-cors = true
