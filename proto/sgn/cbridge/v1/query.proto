@@ -104,6 +104,16 @@ message QueryLiquidityStatusResponse {
     WithdrawDetail detail = 2;
 }
 
+message CheckChainTokenValidRequest {
+    uint64 src_chain_id = 1;
+    string src_token_addr = 2;
+    uint64 dest_chain_id = 3;
+}
+
+message CheckChainTokenValidResponse {
+    bool valid = 1;
+}
+
 message TransferStatus {
     TransferHistoryStatus gateway_status = 1; // to_be_refund and to_be_confirmed are used
     XferStatus sgn_status = 2; // used for refund reason

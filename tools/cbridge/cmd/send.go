@@ -27,7 +27,7 @@ var (
 // sendCmd represents the send command
 var sendCmd = &cobra.Command{
 	Use:   "send",
-	Short: "send token, eg. send usdt 3 10000000 5, 3 is dst chainid, 5 is max slip",
+	Short: "send token, eg. send usdt 3 10000000 50000, 3 is dst chainid, 50000 is max slip, means (50000/10000)% = 5%",
 	Args:  cobra.ExactArgs(4),
 	Run: func(cmd *cobra.Command, args []string) {
 		if auth == nil {

@@ -3,9 +3,10 @@ chainid = 883
 gateway = "http://127.0.0.1:8545"
 cbridge = "0x246C3469E42E51F7ea1adb397977164DE2F088A1"
 usdt = "2b499b7e9de669e968acd6039845a422f7ff758a"
+weth = "4e4a0101cd72258183586a51f8254e871b9c544a"
 
 [geth2]
 chainid = 884
-gateway = "http://127.0.0.1:8548"
+gateway = "http://127.0.0.1:8547"
 cbridge = "0xF3Ccc0a86f8451AB193011fbb408db2e38EAF10a"
 usdt = "d22fe06b3f7fae4e72717762b075e63e5f0121be"

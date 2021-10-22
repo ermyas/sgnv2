@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"encoding/json"
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -12,6 +13,7 @@ import (
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
+	"github.com/cosmos/cosmos-sdk/client"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -40,7 +42,7 @@ func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
 
 		for chid, onech := range cbrMgr {
 			// go over each chain db events, send msg
-			msg.Updates = append(msg.Updates, onech.pullEvents(chid)...)
+			msg.Updates = append(msg.Updates, onech.pullEvents(chid, r.Transactor.CliCtx)...)
 		}
 		if len(msg.Updates) > 0 {
 			// or we should call cbridge grpc here?
@@ -135,8 +137,11 @@ func (r *Relayer) requeueRelay(relayEvent RelayEvent) {
 // TODO: query x/cbridge to skip already processed events to avoid duplicated propose
 // Note if syncer changes before EndBlock, new syncer may still propose again
 // the 2nd propose shouldn't get votes? why? MUST confirm this
-func (c *CbrOneChain) pullEvents(chid uint64) []*synctypes.ProposeUpdate {
+func (c *CbrOneChain) pullEvents(chid uint64, CliCtx client.Context) []*synctypes.ProposeUpdate {
 	var ret []*synctypes.ProposeUpdate
+	// to make it simple we use "srcChainId-destChainId-srcTokenAddr" as key, and valid as val.
+	// this cache can only be used in only one pullEvents, if pull again, we should create and use a new cache.
+	cbrSendValidCache := make(map[string]bool)
 	// 1st loop over event names, then go over iter
 	for _, evn := range evNames {
 		var keys, vals [][]byte
@@ -160,6 +165,14 @@ func (c *CbrOneChain) pullEvents(chid uint64) []*synctypes.ProposeUpdate {
 				log.Errorln("db Delete err", err)
 				continue
 			}
+
+			// We check if cbr send ev token valid here.
+			// If invalid, do not send this ev to sgn.
+			if evn == cbrtypes.CbrEventSend && !checkCbrSendValid(chid, key, vals[i], CliCtx, cbrSendValidCache) {
+				log.Warnf("find invalid cbr send ev, skip it, key:%s", string(key))
+				continue
+			}
+
 			onchev := &cbrtypes.OnChainEvent{
 				Chainid: chid,
 				Evtype:  evn,
@@ -177,6 +190,45 @@ func (c *CbrOneChain) pullEvents(chid uint64) []*synctypes.ProposeUpdate {
 		}
 	}
 	return ret
+}
+
+// If marshal fail or cli check return invalid, return false.
+func checkCbrSendValid(chid uint64, key, data []byte, CliCtx client.Context, validCache map[string]bool) bool {
+	evlog := new(ethtypes.Log)
+	err := json.Unmarshal(data, evlog)
+	if err != nil {
+		log.Errorf("fail to unmarshal onchev elog, key:%s, err:%s", string(key), err.Error())
+		return false
+	}
+	bridgeFilterer, _ := eth.NewBridgeFilterer(eth.ZeroAddr, nil)
+	sendEv, err := bridgeFilterer.ParseSend(*evlog)
+	if err != nil {
+		log.Errorf("fail to parse evlog to cbr send, txHash:%s, err:%s", evlog.TxHash, err.Error())
+		return false
+	}
+	// we should check cache first
+	cacheKey := fmt.Sprintf("%d-%d-%s", chid, sendEv.DstChainId, sendEv.Token.String())
+	cacheValid, foundCacheValid := validCache[cacheKey]
+	if foundCacheValid {
+		return cacheValid
+	}
+	checkReq := &cbrtypes.CheckChainTokenValidRequest{
+		SrcChainId:   chid,
+		DestChainId:  sendEv.DstChainId,
+		SrcTokenAddr: sendEv.Token.String(),
+	}
+	checkResp, checkRespErr := cbrcli.QueryCheckChainTokenValid(CliCtx, checkReq)
+	if checkRespErr != nil {
+		// If request failed, we will not break this flow.
+		// As if invalid token send event go to the apply flow, sgn will also check it and set it to refund flow.
+		log.Errorf("fail to check chain token valid, sendEv:%s, err:%s", sendEv.PrettyLog(chid), checkRespErr.Error())
+		// may be call sgn fail, we still send this ev to sgn and sgn to do the check again.
+		return true
+	} else {
+		// cached and can reduce some cli call
+		validCache[cacheKey] = checkResp.GetValid()
+		return checkResp.GetValid()
+	}
 }
 
 func (r *Relayer) updateSigners() {

@@ -12,6 +12,7 @@ const (
 	QueryChainSigners            = "chain-signers"
 	QueryLatestSigners           = "latest-signers"
 	QueryDebugAny                = "debug-anykey"
+	QueryCheckChainTokenValid    = "check-chain-token-valid"
 )
 
 func NewQueryRelayParams(xrefId []byte) *QueryRelayParams {

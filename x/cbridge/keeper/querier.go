@@ -42,6 +42,8 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 			return queryLatestSigners(ctx, k, legacyQuerierCdc)
 		case types.QueryDebugAny:
 			return queryDebugAny(ctx, req, k)
+		case types.QueryCheckChainTokenValid:
+			return queryCheckTokenValid(ctx, req, k, legacyQuerierCdc)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "Unknown cbridge query endpoint")
 		}
@@ -131,6 +133,34 @@ func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, le
 	}
 	res, err := k.cdc.Marshal(&resp)
 	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func queryCheckTokenValid(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var params types.CheckChainTokenValidRequest
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		log.Errorf("failed to parse params: %s", err)
+		return nil, fmt.Errorf("failed to parse params: %s", err)
+	}
+
+	src := &ChainIdTokenAddr{
+		ChId:      params.SrcChainId,
+		TokenAddr: eth.Hex2Addr(params.SrcTokenAddr),
+	}
+	assetSym := GetAssetSymbol(ctx.KVStore(k.storeKey), src)
+	srcToken := GetAssetInfo(ctx.KVStore(k.storeKey), assetSym, params.SrcChainId)
+	destToken := GetAssetInfo(ctx.KVStore(k.storeKey), assetSym, params.DestChainId)
+
+	resp := types.CheckChainTokenValidResponse{
+		Valid: srcToken != nil && !srcToken.GetXferDisabled() && destToken != nil && !destToken.GetXferDisabled(),
+	}
+	res, err := k.cdc.Marshal(&resp)
+	if err != nil {
+		log.Errorf("failed to marshal response: %s", err)
 		return nil, err
 	}
 
