@@ -27,7 +27,9 @@ services:
     container_name: sgnnode0
     image: "celer-network/sgnnode"
     ports:
+      - "1317:1317"
       - "8081:8081"
+      - "9090:9090"
       - "10000:10000"
       - "26656-26657:26656-26657"
     extra_hosts:

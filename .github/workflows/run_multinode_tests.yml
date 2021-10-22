@@ -26,7 +26,7 @@ jobs:
             - 'test/**'
             - 'transactor/**'
             - 'x/**'
-            - 'docker-compose'
+            - 'docker-compose.yml'
             - 'Dockerfile'
             - 'Makefile'
     - uses: actions/setup-go@v2

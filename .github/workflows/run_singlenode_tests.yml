@@ -29,8 +29,6 @@ jobs:
             - 'tools/**'
             - 'transactor/**'
             - 'x/**'
-            - 'docker-compose'
-            - 'Dockerfile'
             - 'go.mod'
             - 'go.sum'
             - 'Makefile'
