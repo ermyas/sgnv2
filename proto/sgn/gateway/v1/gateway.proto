@@ -5,6 +5,7 @@ import "google/api/annotations.proto";
 import "sgn/cbridge/v1/query.proto";
 import "sgn/cbridge/v1/cbridge.proto";
 import "sgn/farming/v1/farming.proto";
+import "sgn/distribution/v1/distribution.proto";
 import "cosmos/base/v1beta1/coin.proto";
 
 option go_package = "github.com/celer-network/sgn-v2/gateway/webapi";
@@ -141,6 +142,21 @@ service Web {
     rpc StakingConfig (StakingConfigRequest) returns (StakingConfigResponse) {
         option (google.api.http) = {
       get: "/v1/staking/stakingConfig"
+    };
+    }
+
+    // web will use this api to init distribution reward claim
+    rpc UnlockStakingReward (UnlockStakingRewardRequest) returns (UnlockStakingRewardResponse) {
+        option (google.api.http) = {
+      post: "/v1/staking/unlockStakingReward"
+      body: "*"
+    };
+    }
+
+    // web polling this api after UnlockStakingReward
+    rpc GetStakingRewardDetails (GetStakingRewardDetailsRequest) returns (GetStakingRewardDetailsResponse) {
+        option (google.api.http) = {
+      get: "/v1/staking/getStakingRewardDetails"
     };
     }
 }
@@ -441,6 +457,22 @@ message StakingConfigResponse {
     string staking_contract = 2;
     string staking_reward_contract = 3;
     string celr_contract = 4;
+}
+
+message UnlockStakingRewardRequest {
+    string delegator_address = 1;
+}
+
+message UnlockStakingRewardResponse {
+    ErrMsg err = 1;
+}
+message GetStakingRewardDetailsRequest {
+    string delegator_address = 1;
+}
+
+message GetStakingRewardDetailsResponse {
+    ErrMsg err = 1;
+    distribution.v1.StakingRewardClaimInfo detail = 2;
 }
 
 message ErrMsg {
