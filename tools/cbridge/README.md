@@ -1,5 +1,5 @@
 # Command tools
-You can use this tools to send ev to onchain contract.
+You can use this tools to send tx to onchain contract.
 Key store is required.
 
 # Example use in manual test env

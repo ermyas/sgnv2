@@ -207,7 +207,7 @@ func checkCbrSendValid(chid uint64, key, data []byte, CliCtx client.Context, val
 		return false
 	}
 	// we should check cache first
-	cacheKey := fmt.Sprintf("%d-%d-%s", chid, sendEv.DstChainId, sendEv.Token.String())
+	cacheKey := fmt.Sprintf("%d-%d-%x", chid, sendEv.DstChainId, sendEv.Token)
 	cacheValid, foundCacheValid := validCache[cacheKey]
 	if foundCacheValid {
 		return cacheValid
@@ -215,7 +215,7 @@ func checkCbrSendValid(chid uint64, key, data []byte, CliCtx client.Context, val
 	checkReq := &cbrtypes.CheckChainTokenValidRequest{
 		SrcChainId:   chid,
 		DestChainId:  sendEv.DstChainId,
-		SrcTokenAddr: sendEv.Token.String(),
+		SrcTokenAddr: eth.Addr2Hex(sendEv.Token),
 	}
 	checkResp, checkRespErr := cbrcli.QueryCheckChainTokenValid(CliCtx, checkReq)
 	if checkRespErr != nil {
