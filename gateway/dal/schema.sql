@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS transfer (
     dst_tx_hash TEXT NOT NULL DEFAULT '',
     amt TEXT NOT NULL DEFAULT '0',
     received_amt TEXT NOT NULL DEFAULT '0',
+    fee_perc INT NOT NULL DEFAULT 0,
     status INT NOT NULL DEFAULT 1,
     volume FLOAT NOT NULL DEFAULT 0,
     refund_tx TEXT NOT NULL DEFAULT '',

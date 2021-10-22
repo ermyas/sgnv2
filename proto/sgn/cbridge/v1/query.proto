@@ -13,6 +13,10 @@ service Query {
     rpc GetFee (GetFeeRequest) returns (GetFeeResponse) {
     }
 
+    // get fee percentage between 2 chains
+    rpc GetFeePercentage (GetFeePercentageRequest) returns (GetFeePercentageResponse) {
+    }
+
     rpc QueryTransferStatus (QueryTransferStatusRequest) returns (QueryTransferStatusResponse) {
     }
 
@@ -58,6 +62,15 @@ message GetFeeResponse {
     string perc_fee = 3; //on_dst_chain, percentage fee based on amount
     string base_fee = 5; //on_dest_chain, independent of amount, to cover relay onchain tx gas cost
     uint64 decimal = 4; //on_dst_chain
+}
+
+message GetFeePercentageRequest {
+    uint64 src_chain_id = 1;
+    uint64 dst_chain_id = 2;
+}
+
+message GetFeePercentageResponse {
+    uint32 fee_perc = 1; //fee percent * 1e6
 }
 
 message QueryTransferStatusRequest {

@@ -53,11 +53,11 @@ func (d *DAL) CheckTransferStatusNotIn(transferId string, statusList []uint64) b
 	return true
 }
 
-func (d *DAL) MarkTransferSend(transferId, usrAddr, tokenSymbol, amt, receivedAmt, txHash string, srcChainId, dsChainId uint64, volume float64) error {
+func (d *DAL) MarkTransferSend(transferId, usrAddr, tokenSymbol, amt, receivedAmt, txHash string, srcChainId, dsChainId uint64, volume float64, feePerc uint32) error {
 	status := uint64(types.TransferHistoryStatus_TRANSFER_SUBMITTING)
-	q := `INSERT INTO transfer (transfer_id, usr_addr, token_symbol, amt, received_amt, src_chain_id, dst_chain_id, status, volume, create_time, update_time, src_tx_hash)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
-	res, err := d.Exec(q, transferId, usrAddr, tokenSymbol, amt, receivedAmt, srcChainId, dsChainId, status, volume, now(), now(), txHash)
+	q := `INSERT INTO transfer (transfer_id, usr_addr, token_symbol, amt, received_amt, src_chain_id, dst_chain_id, status, volume, create_time, update_time, src_tx_hash, fee_perc)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
+	res, err := d.Exec(q, transferId, usrAddr, tokenSymbol, amt, receivedAmt, srcChainId, dsChainId, status, volume, now(), now(), txHash, feePerc)
 	return sqldb.ChkExec(res, err, 1, "MarkTransferSend")
 }
 
@@ -115,6 +115,7 @@ type Transfer struct {
 	RefundSeqNum uint64
 	UsrAddr      string
 	RefundTx     string
+	FeePerc      uint32
 }
 
 func (d *DAL) PaginateTransferList(sender string, end time.Time, size uint64) ([]*Transfer, int, time.Time, error) {
@@ -231,7 +232,7 @@ func (d *DAL) GetSlippageSetting(addr string) (uint32, bool, error) {
 }
 
 func (d *DAL) Get24hTx() ([]*Transfer, error) {
-	q := "SELECT dst_chain_id, token_symbol, volume, received_amt FROM transfer WHERE create_time > $1"
+	q := "SELECT dst_chain_id, token_symbol, volume, received_amt, fee_perc FROM transfer WHERE create_time > $1"
 	rows, err := d.Query(q, now().Add(-24*time.Hour))
 	if err != nil {
 		return nil, err
@@ -242,8 +243,9 @@ func (d *DAL) Get24hTx() ([]*Transfer, error) {
 	var tokenSymbol, rcvAmt string
 	var dstChainId uint64
 	var volume float64
+	var feePerc uint32
 	for rows.Next() {
-		err = rows.Scan(&dstChainId, &tokenSymbol, &volume, &rcvAmt)
+		err = rows.Scan(&dstChainId, &tokenSymbol, &volume, &rcvAmt, &feePerc)
 		if err != nil {
 			return nil, err
 		}
@@ -253,6 +255,7 @@ func (d *DAL) Get24hTx() ([]*Transfer, error) {
 			TokenSymbol: tokenSymbol,
 			DstAmt:      rcvAmt,
 			Volume:      volume,
+			FeePerc:     feePerc,
 		}
 		tps = append(tps, tp)
 	}

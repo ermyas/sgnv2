@@ -229,7 +229,8 @@ func get24hTx() map[uint64]map[string]*txData {
 					dstToken: dstToken.Token,
 				}
 			}
-			feeAmt := new(big.Float).Mul(new(big.Float).SetInt(common.Str2BigInt(tx.DstAmt)), new(big.Float).SetFloat64(0.0004))
+			feePerc := float64(tx.FeePerc) / 1e6
+			feeAmt := new(big.Float).Mul(new(big.Float).SetInt(common.Str2BigInt(tx.DstAmt)), new(big.Float).SetFloat64(feePerc))
 			feeAmtInt := new(big.Int)
 			feeAmt.Int(feeAmtInt)
 			d.fee = new(big.Int).Add(d.fee, feeAmtInt)

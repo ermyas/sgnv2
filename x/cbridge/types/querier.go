@@ -5,6 +5,7 @@ const (
 	QueryRelay                   = "relay"
 	QueryChainTokensConfig       = "chain-tokens-config"
 	QueryFee                     = "fee"
+	QueryFeePerc                 = "fee-perc"
 	QueryTransferStatus          = "xfer-status"
 	QueryLiquidityDetailList     = "liquidity-detail-list"
 	QueryAddLiquidityStatus      = "add-liquidity-status"

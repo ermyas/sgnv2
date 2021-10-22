@@ -271,7 +271,7 @@ func TestTransfer(t *testing.T) {
 	errMsgIsNil(t, estimateAmt.Err)
 	t.Log("estimate amt:", estimateAmt)
 	dstAmt, _ := strconv.Atoi(estimateAmt.EqValueTokenAmt)
-	fee, _ := strconv.Atoi(estimateAmt.GetFee())
+	fee, _ := strconv.Atoi(estimateAmt.GetPercFee())
 	dstAmt = int(float64(dstAmt)*(1-float64(estimateAmt.SlippageTolerance)/10000.0)) - fee
 	t.Log("min received amt:", dstAmt)
 

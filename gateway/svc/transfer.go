@@ -3,6 +3,7 @@ package gatewaysvc
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"strconv"
 	"time"
 
@@ -149,8 +150,9 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 		}, nil
 	}
 	eqValueTokenAmt := feeInfo.GetEqValueTokenAmt()
-	feeAmt := feeInfo.GetPercFee()
-
+	percFee := feeInfo.GetPercFee()
+	baseFee := feeInfo.GetBaseFee()
+	feeAmt := new(big.Int).Add(common.Str2BigInt(percFee), common.Str2BigInt(baseFee))
 	srcVolume := gs.F.GetUsdVolume(srcToken.Token, common.Str2BigInt(amt))
 	dstVolume := gs.F.GetUsdVolume(dstToken.Token, common.Str2BigInt(eqValueTokenAmt))
 	bridgeRate := 0.0
@@ -164,11 +166,12 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 			},
 		}, nil
 	}
-	minReceiveVolume := dstVolume*(1-float64(slippage)/1e6) - gs.F.GetUsdVolume(dstToken.Token, common.Str2BigInt(feeAmt))
+	minReceiveVolume := dstVolume*(1-float64(slippage)/1e6) - gs.F.GetUsdVolume(dstToken.Token, feeAmt)
 	return &webapi.EstimateAmtResponse{
 		EqValueTokenAmt:   eqValueTokenAmt,
 		BridgeRate:        float32(bridgeRate),
-		Fee:               feeAmt,
+		PercFee:           percFee,
+		BaseFee:           baseFee,
 		SlippageTolerance: slippage,
 		MaxSlippage:       uint32((srcVolume - minReceiveVolume) * 1e6 / srcVolume),
 	}, nil
@@ -183,9 +186,23 @@ func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.Mark
 	txType := request.GetType()
 	log.Infof("transferId in mark api: %s, bytes:%+v, request: %+v", transferId, common.Hex2Bytes(transferId), request)
 	if txType == webapi.TransferType_TRANSFER_TYPE_SEND {
-		err := dal.DB.MarkTransferSend(transferId, addr.String(), sendInfo.GetToken().GetSymbol(),
-			sendInfo.GetAmount(), receivedInfo.GetAmount(), txHash, uint64(sendInfo.GetChain().GetId()),
-			uint64(receivedInfo.GetChain().GetId()), gs.F.GetUsdVolume(sendInfo.GetToken(), common.Str2BigInt(sendInfo.GetAmount())))
+		srcChainId := uint64(sendInfo.GetChain().GetId())
+		dstChainId := uint64(receivedInfo.GetChain().GetId())
+		percentage := uint32(400) // default 0.04%
+		tr := gs.TP.GetTransactor()
+		perc, err := cbrcli.QueryFeePerc(tr.CliCtx, &types.GetFeePercentageRequest{
+			SrcChainId: srcChainId,
+			DstChainId: dstChainId,
+		})
+		if err == nil && perc != nil && perc.FeePerc > 0 {
+			percentage = perc.FeePerc
+		} else {
+			log.Warnf("get perc failed:%+v", perc)
+		}
+
+		err = dal.DB.MarkTransferSend(transferId, addr.String(), sendInfo.GetToken().GetSymbol(),
+			sendInfo.GetAmount(), receivedInfo.GetAmount(), txHash, srcChainId,
+			dstChainId, gs.F.GetUsdVolume(sendInfo.GetToken(), common.Str2BigInt(sendInfo.GetAmount())), percentage)
 		if err != nil {
 			return &webapi.MarkTransferResponse{
 				Err: &webapi.ErrMsg{

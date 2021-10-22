@@ -28,6 +28,8 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 			return queryChainTokensConfig(ctx, req, k, legacyQuerierCdc)
 		case types.QueryFee:
 			return queryFee(ctx, req, k, legacyQuerierCdc)
+		case types.QueryFeePerc:
+			return queryFeePerc(ctx, req, k, legacyQuerierCdc)
 		case types.QueryTransferStatus:
 			return queryTransferStatus(ctx, req, k, legacyQuerierCdc)
 		case types.QueryLiquidityDetailList:
@@ -139,26 +141,20 @@ func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, le
 	return res, nil
 }
 
-func queryCheckTokenValid(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
-	var params types.CheckChainTokenValidRequest
+func queryFeePerc(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var params types.GetFeePercentageRequest
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
 		log.Errorf("failed to parse params: %s", err)
 		return nil, fmt.Errorf("failed to parse params: %s", err)
 	}
 
-	src := &ChainIdTokenAddr{
-		ChId:      params.SrcChainId,
-		TokenAddr: eth.Hex2Addr(params.SrcTokenAddr),
-	}
-	assetSym := GetAssetSymbol(ctx.KVStore(k.storeKey), src)
-	srcToken := GetAssetInfo(ctx.KVStore(k.storeKey), assetSym, params.SrcChainId)
-	destToken := GetAssetInfo(ctx.KVStore(k.storeKey), assetSym, params.DestChainId)
+	kv := ctx.KVStore(k.storeKey)
 
-	resp := types.CheckChainTokenValidResponse{
-		Valid: srcToken != nil && !srcToken.GetXferDisabled() && destToken != nil && !destToken.GetXferDisabled(),
-	}
+	feePerc := GetFeePerc(kv, params.SrcChainId, params.DstChainId) // fee percent * 1e6
+	resp := types.GetFeePercentageResponse{FeePerc: feePerc}
 	res, err := k.cdc.Marshal(&resp)
+
 	if err != nil {
 		log.Errorf("failed to marshal response: %s", err)
 		return nil, err
@@ -202,6 +198,34 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 		PercFee:         CalcPercFee(kv, src, dest, destAmt).String(),
 		BaseFee:         CalcBaseFee(kv, assetSym, dest.ChId).String(),
 		Decimal:         uint64(destToken.Decimal),
+	}
+	res, err := k.cdc.Marshal(&resp)
+	if err != nil {
+		log.Errorf("failed to marshal response: %s", err)
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func queryCheckTokenValid(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var params types.CheckChainTokenValidRequest
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		log.Errorf("failed to parse params: %s", err)
+		return nil, fmt.Errorf("failed to parse params: %s", err)
+	}
+
+	src := &ChainIdTokenAddr{
+		ChId:      params.SrcChainId,
+		TokenAddr: eth.Hex2Addr(params.SrcTokenAddr),
+	}
+	assetSym := GetAssetSymbol(ctx.KVStore(k.storeKey), src)
+	srcToken := GetAssetInfo(ctx.KVStore(k.storeKey), assetSym, params.SrcChainId)
+	destToken := GetAssetInfo(ctx.KVStore(k.storeKey), assetSym, params.DestChainId)
+
+	resp := types.CheckChainTokenValidResponse{
+		Valid: srcToken != nil && !srcToken.GetXferDisabled() && destToken != nil && !destToken.GetXferDisabled(),
 	}
 	res, err := k.cdc.Marshal(&resp)
 	if err != nil {

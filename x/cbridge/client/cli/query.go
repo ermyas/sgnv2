@@ -269,6 +269,23 @@ func QueryFee(cliCtx client.Context, request *types.GetFeeRequest) (resp *types.
 	return
 }
 
+func QueryFeePerc(cliCtx client.Context, request *types.GetFeePercentageRequest) (resp *types.GetFeePercentageResponse, err error) {
+	data, err := cliCtx.LegacyAmino.MarshalJSON(request)
+	if err != nil {
+		return
+	}
+
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryFeePerc)
+	res, err := common.RobustQueryWithData(cliCtx, route, data)
+	if err != nil {
+		return
+	}
+
+	resp = new(types.GetFeePercentageResponse)
+	err = cliCtx.Codec.Unmarshal(res, resp)
+	return
+}
+
 func QueryCheckChainTokenValid(cliCtx client.Context, request *types.CheckChainTokenValidRequest) (resp *types.CheckChainTokenValidResponse, err error) {
 	data, err := cliCtx.LegacyAmino.MarshalJSON(request)
 	if err != nil {
