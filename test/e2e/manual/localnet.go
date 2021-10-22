@@ -225,7 +225,7 @@ func addValidators() {
 			}
 			txr.AddTxMsg(&msg1)
 			description := stakingtypes.NewDescription(
-				"node1", stakingtypes.DoNotModifyDesc, "www.celer.network", "sgn-validator@celer.network", stakingtypes.DoNotModifyDesc)
+				"node0", stakingtypes.DoNotModifyDesc, "www.celer.network", "sgn-validator@celer.network", stakingtypes.DoNotModifyDesc)
 			msg2 := stakingtypes.NewMsgEditDescription(description, txr.Key.GetAddress().String())
 			err = msg2.ValidateBasic()
 			if err != nil {

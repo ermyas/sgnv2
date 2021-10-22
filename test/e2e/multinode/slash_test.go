@@ -76,8 +76,15 @@ func slashTest(t *testing.T) {
 	assert.Equal(t, eth.Addr2Hex(tc.ValEthAddrs[1]), slash.Validator)
 	assert.Equal(t, eth.Addr2Hex(tc.ValSignerAddrs[0]), slash.Sigs[0].Signer)
 
-	time.Sleep(10 * time.Second) // wait for onchain call mined
+	time.Sleep(5 * time.Second) // wait for onchain call mined
 	current, _ := tc.Contracts.Staking.Validators(&bind.CallOpts{}, tc.ValEthAddrs[1])
+	for retry := 0; retry < 20; retry++ {
+		if prev.Tokens.Cmp(current.Tokens) == 1 {
+			break
+		}
+		tc.Sleep(1)
+		current, _ = tc.Contracts.Staking.Validators(&bind.CallOpts{}, tc.ValEthAddrs[1])
+	}
 	log.Infof("Tokens before slash: %d, after slash: %d", prev.Tokens, current.Tokens)
 	assert.True(t, prev.Tokens.Cmp(current.Tokens) == 1)
 }

@@ -73,7 +73,10 @@ func GetCmdValidators() *cobra.Command {
 				return err
 			}
 
-			return clientCtx.PrintProto(result)
+			for _, validator := range result.GetValidators() {
+				fmt.Println(validator.YamlStr())
+			}
+			return nil
 		},
 	}
 }
