@@ -53,16 +53,21 @@ func (gs *GatewayService) GetTransferConfigs(ctx context.Context, request *webap
 		chainIds = append(chainIds, key)
 	}
 	chains, err := dal.DB.GetChainInfo(chainIds)
-	chainFound := make(map[uint32]*webapi.Chain)
+	chainMap := make(map[uint32]*webapi.Chain)
 	for _, chain := range chains {
-		chainFound[chain.Id] = chain
+		chainMap[chain.Id] = chain
 	}
+	chainAdded := make(map[uint32]bool)
 	for chainId, tokens := range chainTokenList {
-		chain, found := chainFound[chainId]
-		if !found {
-			chains = append(chains, unknownChain(chainId))
-		} else {
-			chains = append(chains, enrichChainUiInfo(chain))
+		_, added := chainAdded[chainId]
+		if !added {
+			_, found := chainMap[chainId]
+			if !found {
+				chains = append(chains, unknownChain(chainId))
+			} else {
+				chains = append(chains, enrichChainUiInfo(chainMap[chainId]))
+			}
+			chainAdded[chainId] = true
 		}
 		for _, token := range tokens.Token {
 			enrichUnknownToken(token)
