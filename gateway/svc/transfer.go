@@ -184,7 +184,7 @@ func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.Mark
 	receivedInfo := refineTokenInfo(request.GetDstMinReceivedInfo())
 	txHash := request.GetSrcTxHash()
 	txType := request.GetType()
-	log.Infof("transferId in mark api: %s, bytes:%+v, request: %+v", transferId, common.Hex2Bytes(transferId), request)
+	log.Infof("MarkTransfer transfer, transferId: %s, addr:%s, txHash: %s, srcChainId:%d, txType:%d", transferId, addr, txHash, sendInfo.GetChain().GetId(), txType)
 	if txType == webapi.TransferType_TRANSFER_TYPE_SEND {
 		srcChainId := uint64(sendInfo.GetChain().GetId())
 		dstChainId := uint64(receivedInfo.GetChain().GetId())
@@ -254,9 +254,13 @@ func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.T
 		}
 		if !srcFound {
 			srcChain = unknownChain(uint32(transfer.SrcChainId))
+		} else {
+			srcChain = enrichChainUiInfo(srcChain)
 		}
 		if !dstFound {
 			dstChain = unknownChain(uint32(transfer.DstChainId))
+		} else {
+			dstChain = enrichChainUiInfo(dstChain)
 		}
 		srcToken, srcFound, err1 := dal.DB.GetTokenBySymbol(transfer.TokenSymbol, transfer.SrcChainId)
 		dstToken, dstFound, err2 := dal.DB.GetTokenBySymbol(transfer.TokenSymbol, transfer.DstChainId)

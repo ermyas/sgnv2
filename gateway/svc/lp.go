@@ -29,7 +29,7 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 	amt := request.GetAmt()
 	addr := common.Hex2Addr(request.GetLpAddr()).String()
 	tokenAddr := common.Hex2Addr(request.GetTokenAddr()).String()
-	log.Infof("Liquidity in mark api request:%+v", request)
+	log.Infof("Liquidity in mark api addr:%s, amt:%s, chainId:%d, type:%d", addr, amt, chainId, lpType)
 	token, found, err := dal.DB.GetTokenByAddr(tokenAddr, uint64(chainId))
 	if !found || err != nil {
 		return &webapi.MarkLiquidityResponse{
@@ -59,10 +59,10 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 }
 
 func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi.WithdrawLiquidityRequest) (*webapi.WithdrawLiquidityResponse, error) {
-	log.Debugf("WithdrawLiquidity req:%+v", request)
 	transferId := request.GetTransferId()
 	tr := gs.TP.GetTransactor()
 	if transferId != "" {
+		log.Infof("WithdrawLiquidity for refund, TransferId:%s, ReqId:%d", transferId, request.GetReqid())
 		// refund transfer
 		transfer, tFound, err := dal.DB.GetTransfer(transferId)
 		if !tFound || err != nil {
@@ -129,7 +129,11 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 		}
 		lp := common.Hex2Addr(request.GetReceiverAddr()).String()
 		seqNum := request.Reqid
+
+		log.Infof("WithdrawLiquidity for refund, ReceiverAddr:%s, token:%s, Amount:%s, ChainId:%d, ReqId:%d", lp, token.GetToken().GetSymbol(), amt, chainId, seqNum)
+
 		if dal.DB.HasSeqNumUsedForWithdraw(seqNum, lp) {
+			log.Errorf("invalid seq num, it has been used for current lp")
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -305,6 +309,8 @@ func (gs *GatewayService) LPHistory(ctx context.Context, request *webapi.LPHisto
 		}
 		if !found {
 			chain = unknownChain(uint32(lp.ChainId))
+		} else {
+			chain = enrichChainUiInfo(chain)
 		}
 		token, found, lpErr := dal.DB.GetTokenBySymbol(lp.TokenSymbol, lp.ChainId)
 		if !found || lpErr != nil {

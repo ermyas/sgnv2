@@ -197,9 +197,25 @@ func unknownChain(chainId uint32) *webapi.Chain {
 	}
 }
 
+func enrichChainUiInfo(chain *webapi.Chain) *webapi.Chain {
+	if chain.GetName() == "" {
+		if chain.GetId() > 0 {
+			chain.Name = fmt.Sprintf("Chain-%d", chain.Id)
+		} else {
+			chain.Name = "New Added Chain"
+		}
+	}
+	if chain.GetIcon() == "" {
+		chain.Icon = "https://cbridge.celer.network/ETH.png"
+	}
+	return chain
+}
+
 func enrichUnknownToken(token *webapi.TokenInfo) {
 	if token.GetName() == "" {
 		token.Name = token.Token.GetSymbol()
+	}
+	if token.GetIcon() == "" {
 		token.Icon = "https://get.celer.app/cbridge-icons/ETH.png"
 	}
 }
