@@ -142,7 +142,7 @@ func (m *QueryValidatorsResponse) GetPagination() *query.PageResponse {
 
 // QueryValidatorRequest is response type for the Query/Validator RPC method
 type QueryValidatorRequest struct {
-	// validator_addr defines the validator address to query for.
+	// validator_addr defines the validator's Ethereum address to query for.
 	ValidatorAddr string `protobuf:"bytes,1,opt,name=validator_addr,json=validatorAddr,proto3" json:"validator_addr,omitempty"`
 }
 
@@ -235,7 +235,7 @@ func (m *QueryValidatorResponse) GetValidator() Validator {
 // QueryValidatorDelegationsRequest is request type for the
 // Query/ValidatorDelegations RPC method
 type QueryValidatorDelegationsRequest struct {
-	// validator_addr defines the validator address to query for.
+	// validator_addr defines the validator's Ethereum address to query for.
 	ValidatorAddr string `protobuf:"bytes,1,opt,name=validator_addr,json=validatorAddr,proto3" json:"validator_addr,omitempty"`
 	// pagination defines an optional pagination for the request.
 	Pagination *query.PageRequest `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
@@ -345,9 +345,9 @@ func (m *QueryValidatorDelegationsResponse) GetPagination() *query.PageResponse 
 
 // QueryDelegationRequest is request type for the Query/Delegation RPC method.
 type QueryDelegationRequest struct {
-	// delegator_addr defines the delegator address to query for.
+	// delegator_addr defines the delegator's Ethereum address to query for.
 	DelegatorAddr string `protobuf:"bytes,1,opt,name=delegator_addr,json=delegatorAddr,proto3" json:"delegator_addr,omitempty"`
-	// validator_addr defines the validator address to query for.
+	// validator_addr defines the validator's Ethereum address to query for.
 	ValidatorAddr string `protobuf:"bytes,2,opt,name=validator_addr,json=validatorAddr,proto3" json:"validator_addr,omitempty"`
 }
 
@@ -629,9 +629,9 @@ func (m *QueryDelegatorValidatorsResponse) GetPagination() *query.PageResponse {
 // QueryDelegatorValidatorRequest is request type for the
 // Query/DelegatorValidator RPC method.
 type QueryDelegatorValidatorRequest struct {
-	// delegator_addr defines the delegator address to query for.
+	// delegator_addr defines the delegator's Ethereum address to query for.
 	DelegatorAddr string `protobuf:"bytes,1,opt,name=delegator_addr,json=delegatorAddr,proto3" json:"delegator_addr,omitempty"`
-	// validator_addr defines the validator address to query for.
+	// validator_addr defines the validator's Ethereum address to query for.
 	ValidatorAddr string `protobuf:"bytes,2,opt,name=validator_addr,json=validatorAddr,proto3" json:"validator_addr,omitempty"`
 }
 

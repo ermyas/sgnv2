@@ -11,7 +11,7 @@ import (
 )
 
 func QueryValidator(cliCtx client.Context, ethAddress string) (validator *types.Validator, err error) {
-	params := types.NewQueryValidatorParams(ethAddress, 1, types.MaxValidators)
+	params := types.NewQueryValidatorParams(ethAddress, 1, types.DefaultQueryLimit)
 	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
 	if err != nil {
 		return
@@ -100,7 +100,7 @@ func QueryDelegation(cliCtx client.Context, valAddr, delAddr string) (delegation
 	return
 }
 
-func QueryDelegations(cliCtx client.Context, ethAddress string) (delegations types.Delegations, err error) {
+func QueryValidatorDelegations(cliCtx client.Context, ethAddress string) (delegations types.Delegations, err error) {
 	params := types.NewQueryDelegationsParams(ethAddress)
 	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
 	if err != nil {

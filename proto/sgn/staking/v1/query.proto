@@ -75,7 +75,7 @@ message QueryValidatorsResponse {
 
 // QueryValidatorRequest is response type for the Query/Validator RPC method
 message QueryValidatorRequest {
-  // validator_addr defines the validator address to query for.
+  // validator_addr defines the validator's Ethereum address to query for.
   string validator_addr = 1;
 }
 
@@ -88,7 +88,7 @@ message QueryValidatorResponse {
 // QueryValidatorDelegationsRequest is request type for the
 // Query/ValidatorDelegations RPC method
 message QueryValidatorDelegationsRequest {
-  // validator_addr defines the validator address to query for.
+  // validator_addr defines the validator's Ethereum address to query for.
   string validator_addr = 1;
 
   // pagination defines an optional pagination for the request.
@@ -109,10 +109,10 @@ message QueryDelegationRequest {
   option (gogoproto.equal) = false;
   option (gogoproto.goproto_getters) = false;
 
-  // delegator_addr defines the delegator address to query for.
+  // delegator_addr defines the delegator's Ethereum address to query for.
   string delegator_addr = 1;
 
-  // validator_addr defines the validator address to query for.
+  // validator_addr defines the validator's Ethereum address to query for.
   string validator_addr = 2;
 }
 
@@ -174,10 +174,10 @@ message QueryDelegatorValidatorRequest {
   option (gogoproto.equal) = false;
   option (gogoproto.goproto_getters) = false;
 
-  // delegator_addr defines the delegator address to query for.
+  // delegator_addr defines the delegator's Ethereum address to query for.
   string delegator_addr = 1;
 
-  // validator_addr defines the validator address to query for.
+  // validator_addr defines the validator's Ethereum address to query for.
   string validator_addr = 2;
 }
 

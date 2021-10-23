@@ -22,7 +22,7 @@ const (
 
 	StakeDenom = common.CelrDenom + "/stake"
 
-	MaxValidators = 21 // TODO: Make it a param?
+	DefaultQueryLimit = 100
 )
 
 var (

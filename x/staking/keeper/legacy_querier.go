@@ -78,7 +78,7 @@ func queryValidators(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQue
 		}
 	}
 
-	start, end := client.Paginate(len(filteredVals), params.Page, params.Limit, types.MaxValidators)
+	start, end := client.Paginate(len(filteredVals), params.Page, params.Limit, types.DefaultQueryLimit)
 
 	if start < 0 || end < 0 {
 		filteredVals = []types.Validator{}
@@ -127,7 +127,7 @@ func queryValidatorDelegations(ctx sdk.Context, req abci.RequestQuery, k Keeper,
 
 	delegations := k.GetValidatorDelegations(ctx, eth.Hex2Addr(params.EthAddress))
 
-	start, end := client.Paginate(len(delegations), params.Page, params.Limit, types.MaxValidators)
+	start, end := client.Paginate(len(delegations), params.Page, params.Limit, types.DefaultQueryLimit)
 	if start < 0 || end < 0 {
 		delegations = []types.Delegation{}
 	} else {
