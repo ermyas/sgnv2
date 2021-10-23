@@ -36,8 +36,8 @@ sgnd query staking validator 00078b31fa8b29a76bce074b5ea0d515a6aeaee7
 
 sgnd ops delegate --validator 00078b31fa8b29a76bce074b5ea0d515a6aeaee7 --amount 100 --keystore ~/.sgnd/keys/dethks0.json
 sgnd query staking validator 00078b31fa8b29a76bce074b5ea0d515a6aeaee7
-sgnd query staking delegations 00078b31fa8b29a76bce074b5ea0d515a6aeaee7
-sgnd query staking delegation 00078b31fa8b29a76bce074b5ea0d515a6aeaee7 d0f2596d700c9bd4d605c938e586ec67b01c7364
+sgnd query staking validator-delegations 00078b31fa8b29a76bce074b5ea0d515a6aeaee7
+sgnd query staking delegation d0f2596d700c9bd4d605c938e586ec67b01c7364 00078b31fa8b29a76bce074b5ea0d515a6aeaee7
 
 echo 12341234 | sgnd tx staking set-transactors
 sgnd query staking transactors 00078b31fa8b29a76bce074b5ea0d515a6aeaee7

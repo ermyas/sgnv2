@@ -20,7 +20,8 @@ docker-volumes/nodeN/sgnd/tendermint.log
 ```sh
 sgnd query staking validators --home data/node0/sgnd
 sgnd query staking validator 00078b31fa8b29a76bce074b5ea0d515a6aeaee7 --home data/node0/sgnd
-sgnd query staking delegations 003ea363bccfd7d14285a34a6b1deb862df0bc84 --home data/node0/sgnd
+sgnd query staking validator-delegations 003ea363bccfd7d14285a34a6b1deb862df0bc84 --home data/node0/sgnd
+sgnd query staking delegator-delegations d0f2596d700c9bd4d605c938e586ec67b01c7364 --home data/node0/sgnd
 sgnd query staking transactors 00078b31fa8b29a76bce074b5ea0d515a6aeaee7 --home data/node0/sgnd
 
 sgnd query cbridge chain-signers 883 --home data/node0/sgnd

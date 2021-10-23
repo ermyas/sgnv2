@@ -135,17 +135,19 @@ type DelegationOutput struct {
 	DelegatorAddress string  `json:"delegator_address,omitempty" yaml:"delegator_address"`
 	ValidatorAddress string  `json:"validator_address,omitempty" yaml:"validator_address"`
 	Shares           sdk.Dec `json:"shares" yaml:"shares"`
+	Tokens           sdk.Dec `json:"tokens" yaml:"tokens"`
 }
 
-func newDelegationOutput(d *Delegation) *DelegationOutput {
+func newDelegationOutput(d *DelegationResponse) *DelegationOutput {
 	return &DelegationOutput{
-		DelegatorAddress: d.DelegatorAddress,
-		ValidatorAddress: d.ValidatorAddress,
-		Shares:           sdk.NewDecFromIntWithPrec(d.Shares, 18),
+		DelegatorAddress: d.Delegation.DelegatorAddress,
+		ValidatorAddress: d.Delegation.ValidatorAddress,
+		Shares:           sdk.NewDecFromIntWithPrec(d.Delegation.Shares, 18),
+		Tokens:           sdk.NewDecFromIntWithPrec(d.Balance.Amount, 18),
 	}
 }
 
-func (d *Delegation) YamlStr() string {
+func (d *DelegationResponse) YamlStr() string {
 	output := newDelegationOutput(d)
 	out, _ := yaml.Marshal(output)
 	return string(out)

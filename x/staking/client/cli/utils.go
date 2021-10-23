@@ -153,3 +153,8 @@ func QueryParams(cliCtx client.Context) (params types.Params, err error) {
 	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &params)
 	return
 }
+
+func PrintValidator(cliCtx client.Context, validator types.Validator) {
+	val := types.MustUnmarshalValidator(cliCtx.Codec, types.MustMarshalValidator(cliCtx.Codec, &validator))
+	fmt.Println(val.YamlStr())
+}

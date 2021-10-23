@@ -1,6 +1,13 @@
 ## sgnd query staking validator
 
-query validator info by validator ETH address
+Query a validator
+
+### Synopsis
+
+Query details about an individual validator by Ethereum address.
+
+Example:
+$ <appd> query staking validator 0x00078b31fa8b29a76bce074b5ea0d515a6aeaee7
 
 ```
 sgnd query staking validator [validator-eth-addr] [flags]
@@ -9,8 +16,10 @@ sgnd query staking validator [validator-eth-addr] [flags]
 ### Options
 
 ```
-      --height int   Use a specific height to query state at (this can error if the node is pruning state)
-  -h, --help         help for validator
+      --height int      Use a specific height to query state at (this can error if the node is pruning state)
+  -h, --help            help for validator
+      --node string     <host>:<port> to Tendermint RPC interface for this chain (default "tcp://localhost:26657")
+  -o, --output string   Output format (text|json) (default "text")
 ```
 
 ### Options inherited from parent commands

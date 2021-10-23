@@ -10,6 +10,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+)
+
+const (
+	FlagStatus = "status"
 )
 
 func GetQueryCmd() *cobra.Command {
@@ -25,7 +30,7 @@ func GetQueryCmd() *cobra.Command {
 		GetCmdQueryValidators(),
 		GetCmdQueryTransactors(),
 		GetCmdQueryDelegation(),
-		GetCmdQueryDelegations(),
+		GetCmdQueryDelegatorDelegations(),
 		GetCmdQueryValidatorDelegations(),
 		GetCmdQuerySyncer(),
 		GetCmdQueryParams(),
@@ -61,7 +66,8 @@ $ %s query staking validator 0x00078b31fa8b29a76bce074b5ea0d515a6aeaee7
 				return err
 			}
 
-			return clientCtx.PrintProto(&res.Validator)
+			PrintValidator(clientCtx, res.Validator)
+			return nil
 		},
 	}
 
@@ -85,22 +91,38 @@ func GetCmdQueryValidators() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			var status string
+			st := viper.GetString(FlagStatus)
+			switch st {
+			case "bonded":
+				status = types.BondStatus_name[int32(types.Bonded)]
+			case "unbonded":
+				status = types.BondStatus_name[int32(types.Unbonded)]
+			case "unbonding":
+				status = types.BondStatus_name[int32(types.Unbonding)]
+			}
 
 			result, err := queryClient.Validators(cmd.Context(), &types.QueryValidatorsRequest{
-				// Leaving status empty on purpose to query all validators.
+				Status:     status,
 				Pagination: pageReq,
 			})
 			if err != nil {
 				return err
 			}
+			validators := types.Validators(result.GetValidators())
+			validators.Sort()
 
-			for _, validator := range result.GetValidators() {
-				fmt.Println(validator.YamlStr())
+			if status == "" {
+				st = "all"
+			}
+			fmt.Printf("Number of %s validators: %d\n\n", st, len(validators))
+			for _, validator := range validators {
+				PrintValidator(clientCtx, validator)
 			}
 			return nil
 		},
 	}
-
+	cmd.Flags().String(FlagStatus, "", "Validator status (bonded | unbonded | unbonding)")
 	flags.AddQueryFlagsToCmd(cmd)
 
 	return cmd
@@ -165,7 +187,8 @@ $ %s query staking delegation 0x00078b31fa8b29a76bce074b5ea0d515a6aeaee7 0xd0f25
 				return err
 			}
 
-			return clientCtx.PrintProto(res.DelegationResponse)
+			fmt.Println(res.DelegationResponse.YamlStr())
+			return nil
 		},
 	}
 
@@ -176,9 +199,9 @@ $ %s query staking delegation 0x00078b31fa8b29a76bce074b5ea0d515a6aeaee7 0xd0f25
 
 // GetCmdQueryDelegations implements the command to query all the delegations
 // made from one delegator.
-func GetCmdQueryDelegations() *cobra.Command {
+func GetCmdQueryDelegatorDelegations() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "delegations [delegator-eth-addr]",
+		Use:   "delegator-delegations [delegator-eth-addr]",
 		Short: "Query all delegations made by one delegator",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Query delegations for an individual delegator on all validators.
@@ -212,7 +235,10 @@ $ %s query staking delegations 0xd0f2596d700c9bd4d605c938e586ec67b01c7364
 				return err
 			}
 
-			return clientCtx.PrintProto(res)
+			for _, d := range res.DelegationResponses {
+				fmt.Println(d.YamlStr())
+			}
+			return nil
 		},
 	}
 
@@ -226,7 +252,7 @@ $ %s query staking delegations 0xd0f2596d700c9bd4d605c938e586ec67b01c7364
 // delegations to a specific validator.
 func GetCmdQueryValidatorDelegations() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "delegations-to [validator-eth-addr]",
+		Use:   "validator-delegations [validator-eth-addr]",
 		Short: "Query all delegations made to one validator",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Query delegations on an individual validator.
@@ -260,7 +286,10 @@ $ %s query staking delegations-to 0x00078b31fa8b29a76bce074b5ea0d515a6aeaee7
 				return err
 			}
 
-			return clientCtx.PrintProto(res)
+			for _, d := range res.DelegationResponses {
+				fmt.Println(d.YamlStr())
+			}
+			return nil
 		},
 	}
 
