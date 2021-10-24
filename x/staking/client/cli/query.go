@@ -207,7 +207,7 @@ func GetCmdQueryDelegatorDelegations() *cobra.Command {
 			fmt.Sprintf(`Query delegations for an individual delegator on all validators.
 
 Example:
-$ %s query staking delegations 0xd0f2596d700c9bd4d605c938e586ec67b01c7364
+$ %s query staking delegator-delegations 0xd0f2596d700c9bd4d605c938e586ec67b01c7364
 `,
 				version.AppName,
 			),
@@ -258,7 +258,7 @@ func GetCmdQueryValidatorDelegations() *cobra.Command {
 			fmt.Sprintf(`Query delegations on an individual validator.
 
 Example:
-$ %s query staking delegations-to 0x00078b31fa8b29a76bce074b5ea0d515a6aeaee7
+$ %s query staking validator-delegations 0x00078b31fa8b29a76bce074b5ea0d515a6aeaee7
 `,
 				version.AppName,
 			),
