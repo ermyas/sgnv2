@@ -126,12 +126,11 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 		}, nil
 	} else {
 		// remove liquidity
-		// TODO: support single-chain withdrawal
-		if len(wdReq.Withdraws) != 1 {
+		if len(wdReq.Withdraws) < 1 {
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
-					Msg:  "currently only support single withdraw",
+					Msg:  "withdraw src chains should >0",
 				},
 			}, nil
 		}
