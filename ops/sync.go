@@ -85,7 +85,16 @@ $ %s ops sync event --chainid=883 --txhash="xxxxx"
 			if err != nil {
 				return err
 			}
-			sendCbrOnchainEvent(cliCtx, chainid, evname, elog)
+			err = verifyEvent(cliCtx, ev)
+			if err != nil {
+				log.Errorf("verifyEvent err: %s", err)
+				return err
+			}
+			err = sendCbrOnchainEvent(cliCtx, chainid, evname, elog)
+			if err != nil {
+				log.Errorf("sendCbrOnchainEvent err: %s", err)
+				return err
+			}
 			return nil
 		},
 	}
@@ -120,6 +129,51 @@ func parseEvAndName(cbr *cbrContract, elog ethtypes.Log) (string, hasPrettyLog) 
 		return cbrtypes.CbrEventWithdraw, ev
 	}
 	return "", nil
+}
+
+func verifyEvent(cliCtx client.Context, ev hasPrettyLog) error {
+	switch e := ev.(type) {
+	case *eth.BridgeLiquidityAdded:
+		resp, err := cbrcli.QueryAddLiquidityStatus(cliCtx, &cbrtypes.QueryAddLiquidityStatusRequest{
+			ChainId: chainid,
+			SeqNum:  e.Seqnum,
+		})
+		if err != nil {
+			return fmt.Errorf("QueryAddLiquidityStatus err: %s", err)
+		}
+		if resp.Status == cbrtypes.LPHistoryStatus_LP_COMPLETED {
+			return fmt.Errorf("LiquidityAdded with seqNum %d on chain %d already synced", e.Seqnum, chainid)
+		}
+		return nil
+	case *eth.BridgeSend:
+		xferId := e.CalcXferId(chainid).Hex()
+		resp, err := cbrcli.QueryTransferStatus(cliCtx, &cbrtypes.QueryTransferStatusRequest{
+			TransferId: []string{xferId},
+		})
+		if err != nil {
+			return fmt.Errorf("QueryAddLiquidityStatus err: %s", err)
+		}
+		if resp.Status[xferId].SgnStatus != cbrtypes.XferStatus_UNKNOWN {
+			return fmt.Errorf("xfer with xferId %s from src chain %d already synced", xferId, chainid)
+		}
+		return nil
+	case *eth.BridgeRelay:
+		return nil
+	case *eth.BridgeWithdrawDone:
+		resp, err := cbrcli.QueryWithdrawLiquidityStatus(cliCtx, &cbrtypes.QueryWithdrawLiquidityStatusRequest{
+			SeqNum:  e.Seqnum,
+			UsrAddr: e.Receiver.String(),
+		})
+		if err != nil {
+			return fmt.Errorf("QueryWithdrawLiquidityStatus err: %s", err)
+		}
+		if resp.Status == cbrtypes.LPHistoryStatus_LP_COMPLETED {
+			return fmt.Errorf("withdrawal with seqNum %d on chain %d already synced", e.Seqnum, chainid)
+		}
+		return nil
+	}
+
+	return nil
 }
 
 type hasPrettyLog interface {
@@ -175,7 +229,11 @@ $ %s ops sync signers --chainid=883 --txhash="xxxxx"
 				return err
 			}
 
-			sendCbrOnchainEvent(cliCtx, chainid, cbrtypes.CbrEventSignersUpdated, elog)
+			err = sendCbrOnchainEvent(cliCtx, chainid, cbrtypes.CbrEventSignersUpdated, elog)
+			if err != nil {
+				log.Errorf("sendCbrOnchainEvent err: %s", err)
+				return err
+			}
 			return nil
 		},
 	}
