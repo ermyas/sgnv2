@@ -378,8 +378,8 @@ func (gs *GatewayService) LPHistory(ctx context.Context, request *webapi.LPHisto
 }
 
 func (gs *GatewayService) EstimateWithdrawAmt(ctx context.Context, request *webapi.EstimateWithdrawAmtRequest) (*webapi.EstimateWithdrawAmtResponse, error) {
-	amt := request.GetAmt()
-	srcChainIds := request.GetSrcChainId()
+
+	srcWithdraws := request.GetSrcWithdraws()
 	dstChainId := request.GetDstChainId()
 	tokenSymbol := request.GetTokenSymbol()
 	dstToken, found2, err2 := dal.DB.GetTokenBySymbol(tokenSymbol, uint64(dstChainId))
@@ -393,7 +393,9 @@ func (gs *GatewayService) EstimateWithdrawAmt(ctx context.Context, request *weba
 	}
 	resp := make(map[uint32]*webapi.EstimateWithdrawAmt)
 	addr := common.Hex2Addr(request.GetUsrAddr()).String()
-	for _, srcChainId := range srcChainIds {
+	for _, withdraw := range srcWithdraws {
+		srcChainId := withdraw.GetChain().GetId()
+		amt := withdraw.GetAmount()
 		srcToken, found1, err1 := dal.DB.GetTokenBySymbol(tokenSymbol, uint64(srcChainId))
 		if err1 != nil || !found1 {
 			return &webapi.EstimateWithdrawAmtResponse{

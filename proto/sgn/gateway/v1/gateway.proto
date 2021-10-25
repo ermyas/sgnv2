@@ -270,11 +270,10 @@ message EstimateAmtResponse {
 }
 
 message EstimateWithdrawAmtRequest {
-    repeated uint32 src_chain_id = 1;
+    repeated TransferInfo src_withdraws = 1; // use chain_id and amount only now
     uint32 dst_chain_id = 2;
     string token_symbol = 3;
-    string amt = 4;
-    string usr_addr = 5;
+    string usr_addr = 4;
 }
 
 message EstimateWithdrawAmtResponse {
