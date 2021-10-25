@@ -344,16 +344,19 @@ func CalcBaseFee(kv sdk.KVStore, assetSym string, destChid uint64) (baseFee *big
 	baseFee = new(big.Int)
 	gasTokenUsdPrice := GetGasTokenUsdPrice(kv, destChid)
 	assetUsdPrice := GetAssetUsdPrice(kv, assetSym)
+	assetInfo := GetAssetInfo(kv, assetSym, destChid)
 	gasCost := getUint32(kv, types.CfgKeyRelayGasCost)
 	gasPrice := GetGasPrice(kv, destChid)
 	// formula is gasCost * gasPrice * gasTokenPrice / 1e18 / assetPrice
 	if assetUsdPrice == 0 {
+		log.Warnln("chainid:", destChid, "asset", assetSym, "usd price is 0")
 		return // avoid div by 0
 	}
 	baseFee.Mul(gasPrice, big.NewInt(int64(gasCost)))
 	baseFee.Mul(baseFee, big.NewInt(int64(gasTokenUsdPrice)))
-	baseFee.Div(baseFee, big.NewInt(1e18)) // gas token always 18 decimal
 	baseFee.Div(baseFee, big.NewInt(int64(assetUsdPrice)))
+	baseFee.Div(baseFee, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(18-assetInfo.Decimal)), nil)) // gas token always 18 decimal
+	log.Debugf("basefee: %s, chid: %d, gasprice: %s, gascost: %d, gastokenusd: %d, assetusd: %d", baseFee, destChid, gasPrice, gasCost, gasTokenUsdPrice, assetUsdPrice)
 	return
 }
 
