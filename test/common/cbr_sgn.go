@@ -3,7 +3,6 @@ package common
 import (
 	"bytes"
 	"context"
-	"math/big"
 	"testing"
 	"time"
 
@@ -111,16 +110,27 @@ func sameSortedSigenrs(ss1, ss2 []*cbrtypes.Signer) bool {
 	return true
 }
 
-// call initwithdraw and return withdraw seqnum
-func (c *CbrChain) StartWithdraw(transactor *transactor.Transactor, reqid, uid uint64, amt *big.Int) error {
+func (c *CbrChain) GetWithdrawLq(ratio uint32) *cbrtypes.WithdrawLq {
+	return &cbrtypes.WithdrawLq{
+		FromChainId: c.ChainId,
+		TokenAddr:   c.USDTAddr.Hex(),
+		Ratio:       ratio,
+		MaxSlippage: 50000,
+	}
+}
+
+func (c *CbrChain) StartWithdraw(transactor *transactor.Transactor, reqid, uid uint64, wdLqs ...*cbrtypes.WithdrawLq) error {
+	withdrawReq := &cbrtypes.WithdrawReq{
+		Withdraws:   wdLqs,
+		ExitChainId: c.ChainId,
+		ReqId:       reqid,
+	}
+	wdBytes, _ := withdrawReq.Marshal()
+
 	_, err := cbrcli.InitWithdraw(transactor, &cbrtypes.MsgInitWithdraw{
-		Chainid: c.ChainId,
-		LpAddr:  c.Users[uid].Address.Bytes(),
-		Token:   c.USDTAddr.Bytes(),
-		Amount:  amt.Bytes(),
-		Creator: transactor.Key.GetAddress().String(),
-		ReqId:   reqid,
-		UserSig: c.Users[uid].SignMsg(eth.ToPadBytes(reqid)),
+		WithdrawReq: wdBytes,
+		UserSig:     c.Users[uid].SignMsg(wdBytes),
+		Creator:     transactor.Key.GetAddress().String(),
 	})
 	return err
 }
@@ -145,7 +155,7 @@ func GetWithdrawDetailWithSigs(transactor *transactor.Transactor, usraddr eth.Ad
 	if len(resp.GetDetail().GetSortedSigs()) != expSigNum {
 		log.Fatalf("GetWithdrawDetail expected sigNum %d, actual %d", expSigNum, len(resp.GetDetail().GetSortedSigs()))
 	}
-	log.Infoln("usr", usraddr.String(), "wdseq", reqid, "status:", resp.Status)
+	log.Infoln("Query sgn and get usr", usraddr.String(), "wdseq", reqid, "status:", resp.Status)
 	return resp.Detail
 }
 
@@ -158,7 +168,7 @@ func GetWithdrawDetail(transactor *transactor.Transactor, wdseq uint64) (*cbrtyp
 	if err != nil {
 		return nil, err
 	}
-	log.Infoln("wdseq", wdseq, "status:", resp.Status)
+	log.Infoln("Query sgn and get wdseq", wdseq, "status:", resp.Status)
 	return resp.Detail, err
 }
 

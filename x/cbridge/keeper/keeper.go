@@ -10,7 +10,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	params "github.com/cosmos/cosmos-sdk/x/params/types"
-	"github.com/tendermint/tendermint/libs/log"
 )
 
 type Keeper struct {
@@ -34,10 +33,6 @@ func NewKeeper(
 		stakingKeeper: stakingKeeper,
 		farmingKeeper: farmingKeeper,
 	}
-}
-
-func (k Keeper) Logger(ctx sdk.Context) log.Logger {
-	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
 }
 
 // SyncFarming attempts to sync liquidity with the stake in the farming module

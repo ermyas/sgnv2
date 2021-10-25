@@ -78,8 +78,8 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			SetEvSendStatus(kv, ev.TransferId, sendStatus)
 		}()
 
-		sendStatus, destAmount, percFee, baseFee, destTokenAddr :=
-			k.Transfer(ctx, eth.ZeroAddr, ev.Token, ev.Amount, onchev.Chainid, ev.DstChainId, ev.MaxSlippage, ev.TransferId[28:]) // last 4B of xfer id
+		sendStatus, userReceive, destTokenAddr :=
+			k.transfer(ctx, eth.ZeroAddr, ev.Token, ev.Amount, onchev.Chainid, ev.DstChainId, ev.MaxSlippage, ev.TransferId[28:]) // last 4B of xfer id
 
 		if sendStatus != types.XferStatus_OK_TO_RELAY {
 			if sendStatus == types.XferStatus_BAD_LIQUIDITY ||
@@ -90,8 +90,6 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			}
 			return true, nil
 		}
-		userReceive := new(big.Int).Sub(destAmount, percFee)
-		userReceive.Sub(userReceive, baseFee)
 		relayOnchain := &types.RelayOnChain{
 			Sender:        ev.Sender[:],
 			Receiver:      ev.Receiver[:],

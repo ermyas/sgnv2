@@ -121,60 +121,19 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 			},
 		}, nil
 	}
-
 	addr := common.Hex2Addr(request.GetUsrAddr()).String()
-	slippage := GetSlippage(addr)
 
-	tr := gs.TP.GetTransactor()
-	feeInfo, err := cbrcli.QueryFee(tr.CliCtx, &types.GetFeeRequest{
-		SrcChainId:   uint64(srcChainId),
-		DstChainId:   uint64(dstChainId),
-		SrcTokenAddr: srcToken.Token.GetAddress(),
-		Amt:          amt,
-	})
-	if err != nil {
-		log.Warnf("cli.QueryFee error:%+v", err)
+	resp, infoErr := gs.getEstimatedFeeInfo(addr, srcChainId, dstChainId, srcToken, dstToken, amt)
+	if infoErr != nil {
 		return &webapi.EstimateAmtResponse{
 			Err: &webapi.ErrMsg{
 				Code: webapi.ErrCode_ERROR_CODE_COMMON,
-				Msg:  err.Error(),
+				Msg:  infoErr.Error(),
 			},
 		}, nil
-	}
-	if feeInfo == nil {
-		return &webapi.EstimateAmtResponse{
-			Err: &webapi.ErrMsg{
-				Code: webapi.ErrCode_ERROR_CODE_COMMON,
-				Msg:  "can not estimate fee",
-			},
-		}, nil
-	}
-	eqValueTokenAmt := feeInfo.GetEqValueTokenAmt()
-	percFee := feeInfo.GetPercFee()
-	baseFee := feeInfo.GetBaseFee()
-	feeAmt := new(big.Int).Add(common.Str2BigInt(percFee), common.Str2BigInt(baseFee))
-	srcVolume := gs.F.GetUsdVolume(srcToken.Token, common.Str2BigInt(amt))
-	dstVolume := gs.F.GetUsdVolume(dstToken.Token, common.Str2BigInt(eqValueTokenAmt))
-	bridgeRate := 0.0
-	if srcVolume > 0.000000001 {
-		bridgeRate = dstVolume / srcVolume
 	} else {
-		return &webapi.EstimateAmtResponse{
-			Err: &webapi.ErrMsg{
-				Code: webapi.ErrCode_ERROR_CODE_COMMON,
-				Msg:  "amount should > 0",
-			},
-		}, nil
+		return resp, nil
 	}
-	minReceiveVolume := dstVolume*(1-float64(slippage)/1e6) - gs.F.GetUsdVolume(dstToken.Token, feeAmt)
-	return &webapi.EstimateAmtResponse{
-		EqValueTokenAmt:   eqValueTokenAmt,
-		BridgeRate:        float32(bridgeRate),
-		PercFee:           percFee,
-		BaseFee:           baseFee,
-		SlippageTolerance: slippage,
-		MaxSlippage:       uint32((srcVolume - minReceiveVolume) * 1e6 / srcVolume),
-	}, nil
 }
 
 func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.MarkTransferRequest) (*webapi.MarkTransferResponse, error) {
@@ -419,4 +378,43 @@ func (gs *GatewayService) getTxHashForTransfer(transfer *dal.Transfer) (string, 
 		}
 	}
 	return srcTxHash, dstTxHash
+}
+
+func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainId uint32, srcToken, dstToken *webapi.TokenInfo, amt string) (*webapi.EstimateAmtResponse, error) {
+	slippage := GetSlippage(addr)
+	tr := gs.TP.GetTransactor()
+	feeInfo, err := cbrcli.QueryFee(tr.CliCtx, &types.GetFeeRequest{
+		SrcChainId:   uint64(srcChainId),
+		DstChainId:   uint64(dstChainId),
+		SrcTokenAddr: srcToken.Token.GetAddress(),
+		Amt:          amt,
+	})
+	if err != nil {
+		log.Warnf("cli.QueryFee error:%+v", err)
+		return nil, err
+	}
+	if feeInfo == nil {
+		return nil, fmt.Errorf("can not estimate fee")
+	}
+	eqValueTokenAmt := feeInfo.GetEqValueTokenAmt()
+	percFee := feeInfo.GetPercFee()
+	baseFee := feeInfo.GetBaseFee()
+	feeAmt := new(big.Int).Add(common.Str2BigInt(percFee), common.Str2BigInt(baseFee))
+	srcVolume := gs.F.GetUsdVolume(srcToken.Token, common.Str2BigInt(amt))
+	dstVolume := gs.F.GetUsdVolume(dstToken.Token, common.Str2BigInt(eqValueTokenAmt))
+	bridgeRate := 0.0
+	if srcVolume > 0.000000001 {
+		bridgeRate = dstVolume / srcVolume
+	} else {
+		return nil, fmt.Errorf("amount should > 0")
+	}
+	minReceiveVolume := dstVolume*(1-float64(slippage)/1e6) - gs.F.GetUsdVolume(dstToken.Token, feeAmt)
+	return &webapi.EstimateAmtResponse{
+		EqValueTokenAmt:   eqValueTokenAmt,
+		BridgeRate:        float32(bridgeRate),
+		PercFee:           percFee,
+		BaseFee:           baseFee,
+		SlippageTolerance: slippage,
+		MaxSlippage:       uint32((srcVolume - minReceiveVolume) * 1e6 / srcVolume),
+	}, nil
 }

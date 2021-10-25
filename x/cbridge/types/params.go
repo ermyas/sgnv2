@@ -10,6 +10,8 @@ import (
 const (
 	DefaultSignerUpdateDuration      time.Duration = time.Hour * 24 // 1 day
 	DefaultSignAgainCoolDownDuration time.Duration = time.Minute * 10
+
+	WithdrawPercentageBase = 10000
 )
 
 var (

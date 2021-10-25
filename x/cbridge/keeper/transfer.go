@@ -10,9 +10,9 @@ import (
 )
 
 // startLpPre is the lp address prefix iter to start with
-func (k Keeper) Transfer(
+func (k Keeper) transfer(
 	ctx sdk.Context, sender, token eth.Addr, amount *big.Int, srcChainId, dstChainId uint64,
-	maxSlippage uint32, startLpPre []byte) (status types.XferStatus, destAmount, percFee, baseFee *big.Int, destTokenAddr eth.Addr) {
+	maxSlippage uint32, startLpPre []byte) (status types.XferStatus, userReceive *big.Int, destTokenAddr eth.Addr) {
 
 	if srcChainId == dstChainId {
 		status = types.XferStatus_BAD_DEST_CHAIN
@@ -56,7 +56,7 @@ func (k Keeper) Transfer(
 	}
 
 	// now we need to decide if this send can be completed by sgn, eg. has enough liquidity on dest chain etc
-	destAmount = CalcEqualOnDestChain(kv,
+	destAmount := CalcEqualOnDestChain(kv,
 		&ChainIdTokenDecimal{
 			ChainIdTokenAddr: src,
 			Decimal:          srcToken.Decimal,
@@ -77,9 +77,9 @@ func (k Keeper) Transfer(
 		return
 	}
 	// perc fee is based on total destAmount, before deduct basefee
-	percFee = CalcPercFee(kv, src, dest, destAmount)
-	baseFee = CalcBaseFee(kv, assetSym, dest.ChId)
-	userReceive := new(big.Int).Sub(destAmount, percFee)
+	percFee := CalcPercFee(kv, src, dest, destAmount)
+	baseFee := CalcBaseFee(kv, assetSym, dest.ChId)
+	userReceive = new(big.Int).Sub(destAmount, percFee)
 	userReceive.Sub(userReceive, baseFee)
 	if isNegOrZero(userReceive) {
 		// amount isn't enough to pay fees

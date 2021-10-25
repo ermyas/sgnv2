@@ -3,6 +3,10 @@ package gatewaysvc
 import (
 	"context"
 	"fmt"
+	"math/big"
+	"strconv"
+	"time"
+
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -12,9 +16,6 @@ import (
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"math/big"
-	"strconv"
-	"time"
 )
 
 type txData struct {
@@ -59,10 +60,22 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 }
 
 func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi.WithdrawLiquidityRequest) (*webapi.WithdrawLiquidityResponse, error) {
-	transferId := request.GetTransferId()
+	log.Debug("WithdrawLiquidity req")
+	wdReq := new(types.WithdrawReq)
+	parseErr := wdReq.Unmarshal(request.GetWithdrawReq())
+	if parseErr != nil {
+		return &webapi.WithdrawLiquidityResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  parseErr.Error(),
+			},
+		}, nil
+	}
+
+	transferId := wdReq.GetXferId()
 	tr := gs.TP.GetTransactor()
 	if transferId != "" {
-		log.Infof("WithdrawLiquidity for refund, TransferId:%s, ReqId:%d", transferId, request.GetReqid())
+		log.Infof("WithdrawLiquidity for refund, TransferId:%s, ReqId:%d", transferId, wdReq.GetReqId())
 		// refund transfer
 		transfer, tFound, err := dal.DB.GetTransfer(transferId)
 		if !tFound || err != nil {
@@ -73,7 +86,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				},
 			}, nil
 		}
-		seqNum := request.Reqid
+		seqNum := wdReq.ReqId
 		receiver := common.Hex2Addr(transfer.UsrAddr).Bytes()
 		if transfer.RefundSeqNum > 0 {
 			// for sign again test only, not normal case
@@ -93,12 +106,10 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 					},
 				}, nil
 			}
-			seqNum, err = gs.initWithdraw(&types.MsgInitWithdraw{
-				XferId:  common.Hex2Bytes(transferId),
-				Creator: tr.Key.GetAddress().String(),
-				ReqId:   request.Reqid,
-				UserSig: request.Sig,
-				LpAddr:  receiver,
+			err = gs.initWithdraw(&types.MsgInitWithdraw{
+				WithdrawReq: request.WithdrawReq,
+				UserSig:     request.Sig,
+				Creator:     tr.Key.GetAddress().String(),
 			})
 		}
 
@@ -115,11 +126,29 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 		}, nil
 	} else {
 		// remove liquidity
-		amt := request.GetAmount()
-		chainId := request.GetChainId()
-		tokenAddr := common.Hex2Addr(request.GetTokenAddr()).String()
-		token, found, err := dal.DB.GetTokenByAddr(tokenAddr, uint64(chainId))
-		if !found || err != nil {
+		// TODO: support single-chain withdrawal
+		if len(wdReq.Withdraws) != 1 {
+			return &webapi.WithdrawLiquidityResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  "currently only support single withdraw",
+				},
+			}, nil
+		}
+		chainId := wdReq.ExitChainId
+		amt := request.GetEstimatedReceivedAmt()
+		tokenFound := false
+		var token *webapi.TokenInfo
+		for _, wd := range wdReq.Withdraws {
+			if !tokenFound {
+				cid := wd.FromChainId
+				tokenAddr := common.Hex2Addr(wd.TokenAddr).String()
+				tokenIndb, found, dbErr := dal.DB.GetTokenByAddr(tokenAddr, cid)
+				tokenFound = found && dbErr == nil && tokenIndb != nil
+				token = tokenIndb
+			}
+		}
+		if !tokenFound || token == nil {
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -127,11 +156,11 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				},
 			}, nil
 		}
-		lp := common.Hex2Addr(request.GetReceiverAddr()).String()
-		seqNum := request.Reqid
+		signer, err := ethutils.RecoverSigner(request.WithdrawReq, request.Sig)
+		lp := signer.String()
+		seqNum := wdReq.ReqId
 
 		log.Infof("WithdrawLiquidity for refund, ReceiverAddr:%s, token:%s, Amount:%s, ChainId:%d, ReqId:%d", lp, token.GetToken().GetSymbol(), amt, chainId, seqNum)
-
 		if dal.DB.HasSeqNumUsedForWithdraw(seqNum, lp) {
 			log.Errorf("invalid seq num, it has been used for current lp")
 			return &webapi.WithdrawLiquidityResponse{
@@ -141,9 +170,10 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				},
 			}, nil
 		}
-		err = dal.DB.UpsertLPWithSeqNum(lp, token.Token.Symbol, token.Token.Address, amt, strconv.Itoa(int(seqNum)), uint64(chainId), uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
+		log.Debugf("withdraw estimate amt:%s, addr:%s", amt, lp)
+		err = dal.DB.UpsertLPWithSeqNum(lp, token.Token.Symbol, token.Token.Address, amt, strconv.Itoa(int(seqNum)), chainId, uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
 		if err != nil {
-			_ = dal.DB.UpdateLPStatusForWithdraw(uint64(chainId), seqNum, uint64(types.LPHistoryStatus_LP_FAILED), lp)
+			_ = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(types.LPHistoryStatus_LP_FAILED), lp)
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -151,17 +181,13 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				},
 			}, nil
 		}
-		seqNum, err = gs.initWithdraw(&types.MsgInitWithdraw{
-			Chainid: uint64(chainId),
-			LpAddr:  common.Hex2Bytes(lp),
-			Token:   common.Hex2Bytes(tokenAddr),
-			Amount:  common.Str2BigInt(amt).Bytes(),
-			Creator: tr.Key.GetAddress().String(),
-			ReqId:   seqNum,
-			UserSig: request.Sig,
+		err = gs.initWithdraw(&types.MsgInitWithdraw{
+			WithdrawReq: request.WithdrawReq,
+			UserSig:     request.Sig,
+			Creator:     tr.Key.GetAddress().String(),
 		})
 		if err != nil {
-			_ = dal.DB.UpdateLPStatusForWithdraw(uint64(chainId), seqNum, uint64(types.LPHistoryStatus_LP_FAILED), lp)
+			_ = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(types.LPHistoryStatus_LP_FAILED), lp)
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -263,8 +289,20 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 				resp.SortedSigs = sortedSigs
 				resp.Signers = signers
 				resp.Powers = powers
+				wdReq := new(types.WithdrawOnchain)
+				var amt = ""
+				parseErr := wdReq.Unmarshal(wdOnchain)
+				if parseErr == nil {
+					amt = new(big.Int).SetBytes(wdReq.Amount).String()
+					log.Debugf("withdraw real amt:%s, addr:%s", amt, addr.String())
+				}
 				if detail != nil && status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN) && detail.GetStatus() != resp.Status {
-					dberr := dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(detail.Status), addr.String())
+					var dberr error
+					if amt != "" {
+						dberr = dal.DB.UpdateWaitingForLPStatus(seqNum, lpType, chainId, addr.String(), amt, uint64(detail.Status))
+					} else {
+						dberr = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(detail.Status), addr.String())
+					}
 					if dberr != nil {
 						log.Errorf("db error:%+v", dberr)
 					}
@@ -340,18 +378,63 @@ func (gs *GatewayService) LPHistory(ctx context.Context, request *webapi.LPHisto
 	}, nil
 }
 
+func (gs *GatewayService) EstimateWithdrawAmt(ctx context.Context, request *webapi.EstimateWithdrawAmtRequest) (*webapi.EstimateWithdrawAmtResponse, error) {
+	amt := request.GetAmt()
+	srcChainIds := request.GetSrcChainId()
+	dstChainId := request.GetDstChainId()
+	tokenSymbol := request.GetTokenSymbol()
+	dstToken, found2, err2 := dal.DB.GetTokenBySymbol(tokenSymbol, uint64(dstChainId))
+	if err2 != nil || !found2 {
+		return &webapi.EstimateWithdrawAmtResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_NO_TOKEN_ON_DST_CHAIN,
+				Msg:  "token not support on dst chain",
+			},
+		}, nil
+	}
+	resp := make(map[uint32]*webapi.EstimateWithdrawAmt)
+	addr := common.Hex2Addr(request.GetUsrAddr()).String()
+	for _, srcChainId := range srcChainIds {
+		srcToken, found1, err1 := dal.DB.GetTokenBySymbol(tokenSymbol, uint64(srcChainId))
+		if err1 != nil || !found1 {
+			return &webapi.EstimateWithdrawAmtResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  "token not found",
+				},
+			}, nil
+		}
+		info, infoErr := gs.getEstimatedFeeInfo(addr, srcChainId, dstChainId, srcToken, dstToken, amt)
+		if infoErr != nil {
+			return &webapi.EstimateWithdrawAmtResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  infoErr.Error(),
+				},
+			}, nil
+		} else {
+			resp[srcChainId] = &webapi.EstimateWithdrawAmt{
+				EqValueTokenAmt:   info.EqValueTokenAmt,
+				BridgeRate:        info.BridgeRate,
+				PercFee:           info.PercFee,
+				BaseFee:           info.BaseFee,
+				SlippageTolerance: info.SlippageTolerance,
+				MaxSlippage:       info.MaxSlippage,
+			}
+		}
+	}
+	return &webapi.EstimateWithdrawAmtResponse{
+		ReqAmt: resp,
+	}, nil
+}
+
 // ================================= internal method below =====================================
 
-func (gs *GatewayService) initWithdraw(req *types.MsgInitWithdraw) (uint64, error) {
+func (gs *GatewayService) initWithdraw(req *types.MsgInitWithdraw) error {
 	tr := gs.TP.GetTransactor()
 	log.Debugf("init withdraw, req:%+v", req)
-	err := checkSig(req.GetReqId(), req.GetUserSig(), common.Bytes2Addr(req.GetLpAddr()))
-	if err != nil {
-		log.Errorf("checkSig err:%+v", err)
-		return 0, err
-	}
-	_, err = cbrcli.InitWithdraw(tr, req)
-	return req.ReqId, err
+	_, err := cbrcli.InitWithdraw(tr, req)
+	return err
 }
 
 func (gs *GatewayService) signAgainWithdraw(req *types.MsgSignAgain) (uint64, error) {

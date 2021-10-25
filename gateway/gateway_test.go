@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/celer-network/sgn-v2/gateway/svc"
 	"io"
 	"math/big"
 	"math/rand"
@@ -18,6 +17,7 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/fee"
+	gatewaysvc "github.com/celer-network/sgn-v2/gateway/svc"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/relayer"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -485,16 +485,26 @@ func TestLPWithdraw(t *testing.T) {
 	// add
 	addr := "0x25846D545a60A029E5C83f0FB96e41b408528e9E"
 	amt := "1000"
+	ratio := 2000 // 20%
 	tokenAddr := common.Hex2Addr(token.Token.Address).String()
 	chainId := 883
 	txHash := "111"
 
+	withdrawLq := &types.WithdrawLq{
+		FromChainId: uint64(chainId),
+		TokenAddr:   tokenAddr,
+		Ratio:       uint32(ratio),
+	}
+	withdrawReq := &types.WithdrawReq{
+		Withdraws:   []*types.WithdrawLq{withdrawLq},
+		ExitChainId: uint64(chainId),
+		ReqId:       1,
+	}
+	wdBytes, _ := withdrawReq.Marshal()
+
 	withdrawLiquidityResponse, err := svc.WithdrawLiquidity(nil, &webapi.WithdrawLiquidityRequest{
-		TransferId:   "",
-		ReceiverAddr: addr,
-		Amount:       amt,
-		TokenAddr:    tokenAddr,
-		ChainId:      uint32(chainId),
+		WithdrawReq: wdBytes,
+		// TODO: add sig
 	})
 	errIsNil(t, err)
 	errMsgIsNil(t, withdrawLiquidityResponse.Err)

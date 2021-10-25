@@ -1,6 +1,7 @@
 package multinode
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -89,18 +90,23 @@ func cbridgeTest(t *testing.T) {
 
 	log.Infoln("======================== Add liquidity on chain 1 ===========================")
 	addAmt := big.NewInt(5 * 1e10)
-	err = tc.CbrChain1.Approve(0, addAmt)
-	tc.ChkErr(err, "u0 chain1 approve")
-	err = tc.CbrChain1.AddLiq(0, addAmt)
-	tc.ChkErr(err, "u0 chain1 addliq")
-	tc.CheckAddLiquidityStatus(transactor, tc.CbrChain1.ChainId, 1)
+	var i uint64
+	for i = 0; i < 2; i++ {
+		err = tc.CbrChain1.Approve(i, addAmt)
+		tc.ChkErr(err, fmt.Sprintf("u%d chain1 approve", i))
+		err = tc.CbrChain1.AddLiq(i, addAmt)
+		tc.ChkErr(err, fmt.Sprintf("u%d chain1 addliq", i))
+		tc.CheckAddLiquidityStatus(transactor, tc.CbrChain1.ChainId, i+1)
+	}
 
 	log.Infoln("======================== Add liquidity on chain 2 ===========================")
-	err = tc.CbrChain2.Approve(0, addAmt)
-	tc.ChkErr(err, "u0 chain2 approve")
-	err = tc.CbrChain2.AddLiq(0, addAmt)
-	tc.ChkErr(err, "u0 chain2 addliq")
-	tc.CheckAddLiquidityStatus(transactor, tc.CbrChain2.ChainId, 1)
+	for i = 0; i < 2; i++ {
+		err = tc.CbrChain2.Approve(i, addAmt)
+		tc.ChkErr(err, fmt.Sprintf("u%d chain2 approve", i))
+		err = tc.CbrChain2.AddLiq(i, addAmt)
+		tc.ChkErr(err, fmt.Sprintf("u%d chain2 addliq", i))
+		tc.CheckAddLiquidityStatus(transactor, tc.CbrChain1.ChainId, i+1)
+	}
 	res, err = cbrcli.QueryLiquidityDetailList(transactor.CliCtx, &cbrtypes.LiquidityDetailListRequest{
 		LpAddr:     tc.ClientEthAddrs[0].Hex(),
 		ChainToken: chainTokens,
@@ -118,9 +124,11 @@ func cbridgeTest(t *testing.T) {
 
 	log.Infoln("======================== LP withdraw liquidity ===========================")
 	reqid := uint64(time.Now().Unix())
-	err = tc.CbrChain1.StartWithdraw(transactor, reqid, 0, big.NewInt(1e10))
+	wdLq1 := tc.CbrChain1.GetWithdrawLq(2000)
+	wdLq2 := tc.CbrChain2.GetWithdrawLq(1000)
+	err = tc.CbrChain1.StartWithdraw(transactor, reqid, 0, wdLq1, wdLq2) // withdraw 20%
 	tc.ChkErr(err, "u0 chain1 start withdraw")
-	log.Info("withdraw reqid: ", reqid)
+	log.Infoln("withdraw reqid:", reqid)
 	detail := tc.GetWithdrawDetailWithSigs(transactor, tc.CbrChain1.Users[0].Address, reqid, 3)
 	curss, err := tc.GetCurSortedSigners(transactor, tc.CbrChain1.ChainId)
 	tc.ChkErr(err, "chain1 GetCurSortedSigners")

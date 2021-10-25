@@ -4,14 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"math/big"
 	"sort"
-
-	"github.com/celer-network/sgn-v2/common"
-	"github.com/tendermint/tendermint/libs/rand"
 
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -34,70 +31,44 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 	if req == nil {
 		return nil, fmt.Errorf("nil request")
 	}
+	wdReq := new(types.WithdrawReq)
+	err := wdReq.Unmarshal(req.GetWithdrawReq())
+	if err != nil {
+		return nil, types.Error(types.ErrCode_INVALID_REQ, "fail to unmarshal")
+	}
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	kv := sdkCtx.KVStore(k.storeKey)
 	// check reqid, recover user addr, ensure no existing wdDetail-%x-%d
-	signAddr, err := ethutils.RecoverSigner(eth.ToPadBytes(req.ReqId), req.UserSig)
+	signer, err := ethutils.RecoverSigner(req.WithdrawReq, req.UserSig)
 	if err != nil {
 		return nil, fmt.Errorf("recover signer err: %w", err)
 	}
-	if GetWithdrawDetail(kv, signAddr, req.ReqId) != nil {
+	if GetWithdrawDetail(kv, signer, wdReq.ReqId) != nil {
 		// same reqid already exist
-		return nil, types.WdErr_DUP_REQID
+		return nil, types.Error(types.ErrCode_DUP_REQID, "withdraw %x %d exists", signer, wdReq.ReqId)
 	}
 	var wdOnchain *types.WithdrawOnchain
-	if req.XferId != nil { // user refund
-		xferId := eth.Bytes2Hash(req.XferId)
-		wdOnchain = GetXferRefund(kv, xferId)
-		if wdOnchain == nil {
-			return nil, types.WdErr_XFER_NOT_REFUNDABLE
+	var xferIdBytes []byte
+	if wdReq.XferId != "" { // user refund
+		xferIdBytes = common.Hex2Bytes(wdReq.XferId)
+		wdOnchain, err = k.refund(sdkCtx, wdReq, signer, req.Creator)
+		if err != nil {
+			return nil, err
 		}
-		if wdOnchain.Seqnum != 0 {
-			// already requested withdraw before
-			return nil, types.WdErr_XFER_HAS_WITHDRAW
-		}
-		// now make sure address match
-		if eth.Bytes2Addr(wdOnchain.Receiver) != signAddr {
-			return nil, types.WdErr_INVALID_SIG
-		}
-		wdOnchain.Seqnum = req.ReqId
-		log.Infof("x/cbr handle refund xferId %x, reqId %d, creator %s, wdOnChain %s",
-			xferId, req.ReqId, req.Creator, wdOnchain.String())
 	} else { // LP withdraw liquidity
-		lpAddr := eth.Bytes2Addr(req.LpAddr)
-		if lpAddr != signAddr {
-			return nil, types.WdErr_INVALID_SIG
+		wdOnchain, err = k.withdrawLP(sdkCtx, wdReq, signer, req.Creator)
+		if err != nil {
+			return nil, err
 		}
-		token := eth.Bytes2Addr(req.Token)
-		amt := new(big.Int).SetBytes(req.Amount)
-		balance := GetLPBalance(kv, req.Chainid, token, lpAddr)
-		log.Infof("x/cbr handle lp withdraw: %s, lp balance %s", req.String()[9:], balance)
-		if balance.Cmp(amt) < 0 {
-			// balance not enough, return error
-			return nil, types.WdErr_LP_BAL_NOT_ENOUGH
-		}
-		negAmt := new(big.Int).Neg(amt)
-		k.Keeper.ChangeLiquidity(sdkCtx, kv, req.Chainid, token, lpAddr, negAmt) // remove amt from lp map
-		// also remove liq from liqsum
-		ChangeLiqSum(kv, req.Chainid, token, negAmt)
-		wdOnchain = &types.WithdrawOnchain{
-			Chainid:  req.Chainid,
-			Receiver: req.LpAddr,
-			Token:    req.Token,
-			Amount:   req.Amount,
-			Seqnum:   req.ReqId,
-		}
-	}
-	if req.XferId != nil {
-		// save this back to avoid dup initwithdraw for refund
-		SetXferRefund(kv, eth.Bytes2Hash(req.XferId), wdOnchain)
 	}
 	wdOnChainRaw, _ := wdOnchain.Marshal()
-	SaveWithdrawDetail(kv, signAddr, req.ReqId, &types.WithdrawDetail{
-		WdOnchain:   wdOnChainRaw, // only has what to send onchain now
-		LastReqTime: sdkCtx.BlockTime().Unix(),
-		XferId:      req.XferId, // nil if not user refund
-	})
+	SaveWithdrawDetail(
+		kv, signer, wdReq.ReqId,
+		&types.WithdrawDetail{
+			WdOnchain:   wdOnChainRaw, // only has what to send onchain now
+			LastReqTime: sdkCtx.BlockTime().Unix(),
+			XferId:      xferIdBytes, // nil if not user refund
+		})
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeDataToSign,
 		sdk.NewAttribute(types.AttributeKeyType, types.SignDataType_WITHDRAW.String()),
@@ -121,15 +92,15 @@ func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*typ
 	wdDetail := GetWithdrawDetail(kv, usrAddr, req.ReqId)
 	if wdDetail == nil {
 		// (addr, reqid) not found
-		return nil, types.WdErr_NOT_FOUND
+		return nil, types.Error(types.ErrCode_NOT_FOUND, "withdraw %x %d not found", usrAddr, req.ReqId)
 	}
 	if wdDetail.Completed {
-		return nil, types.WdErr_ALREADY_DONE
+		return nil, types.Error(types.ErrCode_INVALID_STATUS, "withdraw  %x %d  already completed", usrAddr, req.ReqId)
 	}
 	nowTime := sdkCtx.BlockTime()
 	now := nowTime.Unix()
 	if nowTime.Before(common.TsToTime(uint64(wdDetail.LastReqTime)).Add(k.Keeper.GetSignAgainCoolDownDuration(sdkCtx))) {
-		return nil, types.WdErr_REQ_TOO_SOON
+		return nil, types.Error(types.ErrCode_REQ_TOO_SOON, "")
 	}
 	// remove all previous sigs
 	wdDetail.SortedSigs = nil
@@ -146,6 +117,7 @@ func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*typ
 
 // send my sig for data, so it can be later submitted onchain
 func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*types.MsgSendMySigResp, error) {
+	// TODO: use ErrMsg
 	if msg == nil {
 		return nil, fmt.Errorf("nil msg")
 	}
@@ -238,30 +210,6 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 		k.SetLatestSigners(sdkCtx, &latestSigners)
 	}
 	log.Info(logmsg)
-	return ret, nil
-}
-
-func (k msgServer) InternalTransfer(ctx context.Context, req *types.MsgInternalTransfer) (*types.MsgInternalTransferResp, error) {
-	ret := &types.MsgInternalTransferResp{}
-	xfer := new(types.InternalTransfer)
-	err := xfer.Unmarshal(req.GetTransfer())
-	if err != nil {
-		return nil, err
-	}
-	sender, err := ethutils.RecoverSigner(req.GetTransfer(), req.GetSig())
-	if err != nil {
-		return nil, fmt.Errorf("recover signer err: %w", err)
-	}
-	log.Infof("internal xfer %s, sender %x", xfer.String(), sender)
-
-	amount, ok := new(big.Int).SetString(xfer.GetAmount(), 10)
-	if !ok {
-		return nil, fmt.Errorf("invalid amount %s", xfer.GetAmount())
-	}
-	// TODO: pre-processing: check for replay, validated src balance, etc.
-	k.Transfer(sdk.UnwrapSDKContext(ctx),
-		sender, eth.Hex2Addr(xfer.Token), amount, xfer.SrcChainId, xfer.DstChainId, xfer.MaxSlippage, big.NewInt(int64(rand.Uint32())).Bytes())
-	// TODO: post-processing, record status, etc.
 	return ret, nil
 }
 

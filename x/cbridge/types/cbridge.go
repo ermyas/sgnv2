@@ -5,10 +5,6 @@ import (
 	"math/big"
 )
 
-func (wde WdErr) Error() string {
-	return wde.String()
-}
-
 func (m *XferRelay) GetSortedSigsBytes() [][]byte {
 	if m != nil {
 		sigs := make([][]byte, len(m.SortedSigs))

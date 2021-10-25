@@ -81,6 +81,13 @@ service Web {
     };
     }
 
+    // estimate transfer fee
+    rpc EstimateWithdrawAmt (EstimateWithdrawAmtRequest) returns (EstimateWithdrawAmtResponse) {
+        option (google.api.http) = {
+      get: "/v1/estimateAmt"
+    };
+    }
+
     // bcz it's time cost for sgn voting, so we need a polling api to check the status
     rpc QueryLiquidityStatus (QueryLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {
         option (google.api.http) = {
@@ -262,6 +269,28 @@ message EstimateAmtResponse {
     uint32 max_slippage = 6; // param for requesting on chain, slippage * 1M, eg. 0.5% is 5000
 }
 
+message EstimateWithdrawAmtRequest {
+    repeated uint32 src_chain_id = 1;
+    uint32 dst_chain_id = 2;
+    string token_symbol = 3;
+    string amt = 4;
+    string usr_addr = 5;
+}
+
+message EstimateWithdrawAmtResponse {
+    ErrMsg err = 1;
+    map<uint32, EstimateWithdrawAmt> req_amt = 2; // map<src_chain_id, EstimateWithdrawAmt>
+}
+
+message EstimateWithdrawAmt {
+    string eq_value_token_amt = 1; //on_dst_chain, to cal minimum_received_amt = eq_value_token_amt*(1-slippage_tolerance) -  fee
+    float bridge_rate = 2;
+    string perc_fee = 3; //on_dst_chain, percentage fee based on amount
+    string base_fee = 4; //on_dest_chain, independent of amount, to cover relay onchain tx gas cost
+    uint32 slippage_tolerance = 5; // user setting, for ui only, slippage * 1M, eg. 0.5% is 5000
+    uint32 max_slippage = 6; // param for requesting on chain, slippage * 1M, eg. 0.5% is 5000
+}
+
 enum TransferType {
     TRANSFER_TYPE_UNKNOWN = 0;
     TRANSFER_TYPE_SEND = 1;
@@ -304,16 +333,9 @@ message GetLPInfoListResponse {
 }
 
 message WithdrawLiquidityRequest {
-    string transfer_id = 1; // if set, user refund src transfer id
-    // lp withdraw, only set if xfer_id is nil
-    string receiver_addr = 2;
-    string amount = 3;
-    string token_addr = 4;
-    uint32 chain_id = 5;
-
-    // unique req id from client and sig to avoid dos attack
-    uint64 reqid = 6;
-    bytes sig = 7;
+    bytes withdraw_req = 1; // seralized WithdrawReq in sgn/cbridge/v1/tx.proto
+    bytes sig = 2;
+    string estimated_received_amt = 3; // on dst chain
 }
 
 message WithdrawLiquidityResponse {
