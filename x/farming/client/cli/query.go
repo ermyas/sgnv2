@@ -388,7 +388,7 @@ $ %s query farming stake-info cbridge-DAI/1 0xab5801a7d398351b8be11c439e05c5b325
 func GetCmdQueryRewardClaimInfo() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "reward-claim-info [address]",
-		Short: "query the stake info of an account on a pool",
+		Short: "query the reward claim info of an account",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Query the reward claim info of an account.
 

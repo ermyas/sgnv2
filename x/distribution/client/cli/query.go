@@ -11,7 +11,6 @@ import (
 	"github.com/celer-network/sgn-v2/x/distribution/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 )
 
@@ -32,6 +31,7 @@ func GetQueryCmd() *cobra.Command {
 		GetCmdQueryValidatorSlashes(),
 		GetCmdQueryDelegatorRewards(),
 		GetCmdQueryCommunityPool(),
+		GetCmdQueryStakingRewardClaimInfo(),
 	)
 
 	return distQueryCmd
@@ -66,8 +66,6 @@ func GetCmdQueryParams() *cobra.Command {
 // GetCmdQueryValidatorOutstandingRewards implements the query validator
 // outstanding rewards command.
 func GetCmdQueryValidatorOutstandingRewards() *cobra.Command {
-	bech32PrefixValAddr := sdk.GetConfig().GetBech32ValidatorAddrPrefix()
-
 	cmd := &cobra.Command{
 		Use:   "validator-outstanding-rewards [validator]",
 		Args:  cobra.ExactArgs(1),
@@ -76,9 +74,9 @@ func GetCmdQueryValidatorOutstandingRewards() *cobra.Command {
 			fmt.Sprintf(`Query distribution outstanding (un-withdrawn) rewards for a validator and all their delegations.
 
 Example:
-$ %s query distribution validator-outstanding-rewards %s1lwjmdnks33xwnmfayc64ycprww49n33mtm92ne
+$ %s query distribution validator-outstanding-rewards 0x00078b31fa8b29a76bce074b5ea0d515a6aeaee7
 `,
-				version.AppName, bech32PrefixValAddr,
+				version.AppName,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -88,14 +86,9 @@ $ %s query distribution validator-outstanding-rewards %s1lwjmdnks33xwnmfayc64ycp
 			}
 			queryClient := types.NewQueryClient(clientCtx)
 
-			validatorAddr, err := sdk.ValAddressFromBech32(args[0])
-			if err != nil {
-				return err
-			}
-
 			res, err := queryClient.ValidatorOutstandingRewards(
 				cmd.Context(),
-				&types.QueryValidatorOutstandingRewardsRequest{ValidatorAddress: validatorAddr.String()},
+				&types.QueryValidatorOutstandingRewardsRequest{ValidatorAddress: args[0]},
 			)
 			if err != nil {
 				return err
@@ -111,8 +104,6 @@ $ %s query distribution validator-outstanding-rewards %s1lwjmdnks33xwnmfayc64ycp
 
 // GetCmdQueryValidatorCommission implements the query validator commission command.
 func GetCmdQueryValidatorCommission() *cobra.Command {
-	bech32PrefixValAddr := sdk.GetConfig().GetBech32ValidatorAddrPrefix()
-
 	cmd := &cobra.Command{
 		Use:   "commission [validator]",
 		Args:  cobra.ExactArgs(1),
@@ -121,9 +112,9 @@ func GetCmdQueryValidatorCommission() *cobra.Command {
 			fmt.Sprintf(`Query validator commission rewards from delegators to that validator.
 
 Example:
-$ %s query distribution commission %s1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj
+$ %s query distribution commission 0x00078b31fa8b29a76bce074b5ea0d515a6aeaee7
 `,
-				version.AppName, bech32PrefixValAddr,
+				version.AppName,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -133,14 +124,9 @@ $ %s query distribution commission %s1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj
 			}
 			queryClient := types.NewQueryClient(clientCtx)
 
-			validatorAddr, err := sdk.ValAddressFromBech32(args[0])
-			if err != nil {
-				return err
-			}
-
 			res, err := queryClient.ValidatorCommission(
 				cmd.Context(),
-				&types.QueryValidatorCommissionRequest{ValidatorAddress: validatorAddr.String()},
+				&types.QueryValidatorCommissionRequest{ValidatorAddress: args[0]},
 			)
 			if err != nil {
 				return err
@@ -156,8 +142,6 @@ $ %s query distribution commission %s1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj
 
 // GetCmdQueryValidatorSlashes implements the query validator slashes command.
 func GetCmdQueryValidatorSlashes() *cobra.Command {
-	bech32PrefixValAddr := sdk.GetConfig().GetBech32ValidatorAddrPrefix()
-
 	cmd := &cobra.Command{
 		Use:   "slashes [validator] [start-height] [end-height]",
 		Args:  cobra.ExactArgs(3),
@@ -166,9 +150,9 @@ func GetCmdQueryValidatorSlashes() *cobra.Command {
 			fmt.Sprintf(`Query all slashes of a validator for a given block range.
 
 Example:
-$ %s query distribution slashes %svaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj 0 100
+$ %s query distribution slashes 0x00078b31fa8b29a76bce074b5ea0d515a6aeaee7 0 100
 `,
-				version.AppName, bech32PrefixValAddr,
+				version.AppName,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -177,11 +161,6 @@ $ %s query distribution slashes %svaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj
 				return err
 			}
 			queryClient := types.NewQueryClient(clientCtx)
-
-			validatorAddr, err := sdk.ValAddressFromBech32(args[0])
-			if err != nil {
-				return err
-			}
 
 			startHeight, err := strconv.ParseUint(args[1], 10, 64)
 			if err != nil {
@@ -201,7 +180,7 @@ $ %s query distribution slashes %svaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj
 			res, err := queryClient.ValidatorSlashes(
 				cmd.Context(),
 				&types.QueryValidatorSlashesRequest{
-					ValidatorAddress: validatorAddr.String(),
+					ValidatorAddress: args[0],
 					StartingHeight:   startHeight,
 					EndingHeight:     endHeight,
 					Pagination:       pageReq,
@@ -222,9 +201,6 @@ $ %s query distribution slashes %svaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj
 
 // GetCmdQueryDelegatorRewards implements the query delegator rewards command.
 func GetCmdQueryDelegatorRewards() *cobra.Command {
-	bech32PrefixAccAddr := sdk.GetConfig().GetBech32AccountAddrPrefix()
-	bech32PrefixValAddr := sdk.GetConfig().GetBech32ValidatorAddrPrefix()
-
 	cmd := &cobra.Command{
 		Use:   "rewards [delegator-addr] [validator-addr]",
 		Args:  cobra.RangeArgs(1, 2),
@@ -233,10 +209,10 @@ func GetCmdQueryDelegatorRewards() *cobra.Command {
 			fmt.Sprintf(`Query all rewards earned by a delegator, optionally restrict to rewards from a single validator.
 
 Example:
-$ %s query distribution rewards %s1gghjut3ccd8ay0zduzj64hwre2fxs9ld75ru9p
-$ %s query distribution rewards %s1gghjut3ccd8ay0zduzj64hwre2fxs9ld75ru9p %s1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj
+$ %s query distribution rewards 0xd0f2596d700c9bd4d605c938e586ec67b01c7364
+$ %s query distribution rewards 0xd0f2596d700c9bd4d605c938e586ec67b01c7364 0x00078b31fa8b29a76bce074b5ea0d515a6aeaee7
 `,
-				version.AppName, bech32PrefixAccAddr, version.AppName, bech32PrefixAccAddr, bech32PrefixValAddr,
+				version.AppName, version.AppName,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -246,22 +222,12 @@ $ %s query distribution rewards %s1gghjut3ccd8ay0zduzj64hwre2fxs9ld75ru9p %s1ggh
 			}
 			queryClient := types.NewQueryClient(clientCtx)
 
-			delegatorAddr, err := sdk.AccAddressFromBech32(args[0])
-			if err != nil {
-				return err
-			}
-
 			// query for rewards from a particular delegation
 			ctx := cmd.Context()
 			if len(args) == 2 {
-				validatorAddr, err := sdk.ValAddressFromBech32(args[1])
-				if err != nil {
-					return err
-				}
-
 				res, err := queryClient.DelegationRewards(
 					ctx,
-					&types.QueryDelegationRewardsRequest{DelegatorAddress: delegatorAddr.String(), ValidatorAddress: validatorAddr.String()},
+					&types.QueryDelegationRewardsRequest{DelegatorAddress: args[0], ValidatorAddress: args[1]},
 				)
 				if err != nil {
 					return err
@@ -272,7 +238,7 @@ $ %s query distribution rewards %s1gghjut3ccd8ay0zduzj64hwre2fxs9ld75ru9p %s1ggh
 
 			res, err := queryClient.DelegationTotalRewards(
 				ctx,
-				&types.QueryDelegationTotalRewardsRequest{DelegatorAddress: delegatorAddr.String()},
+				&types.QueryDelegationTotalRewardsRequest{DelegatorAddress: args[0]},
 			)
 			if err != nil {
 				return err
@@ -317,6 +283,42 @@ $ %s query distribution community-pool
 		},
 	}
 
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
+}
+
+// GetCmdQueryStakingRewardClaimInfo gets the staking reward claim info of a delegator
+func GetCmdQueryStakingRewardClaimInfo() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "staking-reward-claim-info [delegator-address]",
+		Short: "query the staking reward claim info of an account",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query the staking reward claim info of an account.
+
+Example:
+$ %s query staking-reward-claim-info 0xd0f2596d700c9bd4d605c938e586ec67b01c7364
+`,
+				version.AppName,
+			),
+		),
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			queryClient := types.NewQueryClient(cliCtx)
+			res, err := queryClient.StakingRewardClaimInfo(
+				cmd.Context(),
+				&types.QueryStakingRewardClaimInfoRequest{DelegatorAddress: args[0]},
+			)
+			if err != nil {
+				return err
+			}
+			return cliCtx.PrintProto(&res.RewardClaimInfo)
+		},
+	}
 	flags.AddQueryFlagsToCmd(cmd)
 	return cmd
 }
