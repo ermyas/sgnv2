@@ -12,7 +12,8 @@ import (
 // startLpPre is the lp address prefix iter to start with
 func (k Keeper) transfer(
 	ctx sdk.Context, sender, token eth.Addr, amount *big.Int, srcChainId, dstChainId uint64,
-	maxSlippage uint32, startLpPre []byte) (status types.XferStatus, userReceive *big.Int, destTokenAddr eth.Addr) {
+	maxSlippage uint32, chargeBaseFee bool, startLpPre []byte) (
+	status types.XferStatus, userReceive *big.Int, destTokenAddr eth.Addr) {
 
 	if srcChainId == dstChainId {
 		status = types.XferStatus_BAD_DEST_CHAIN
@@ -78,9 +79,12 @@ func (k Keeper) transfer(
 	}
 	// perc fee is based on total destAmount, before deduct basefee
 	percFee := CalcPercFee(kv, src, dest, destAmount)
-	baseFee := CalcBaseFee(kv, assetSym, dest.ChId)
 	userReceive = new(big.Int).Sub(destAmount, percFee)
-	userReceive.Sub(userReceive, baseFee)
+	baseFee := big.NewInt(0)
+	if chargeBaseFee {
+		baseFee = CalcBaseFee(kv, assetSym, dest.ChId)
+		userReceive.Sub(userReceive, baseFee)
+	}
 	if isNegOrZero(userReceive) {
 		// amount isn't enough to pay fees
 		log.Debugln(destAmount, "less than fee. base:", baseFee, "perc:", percFee)

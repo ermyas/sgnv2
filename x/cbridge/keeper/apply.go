@@ -79,7 +79,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		}()
 
 		sendStatus, userReceive, destTokenAddr :=
-			k.transfer(ctx, eth.ZeroAddr, ev.Token, ev.Amount, onchev.Chainid, ev.DstChainId, ev.MaxSlippage, ev.TransferId[28:]) // last 4B of xfer id
+			k.transfer(ctx, eth.ZeroAddr, ev.Token, ev.Amount, onchev.Chainid, ev.DstChainId, ev.MaxSlippage, true, ev.TransferId[28:]) // last 4B of xfer id
 
 		if sendStatus != types.XferStatus_OK_TO_RELAY {
 			if sendStatus == types.XferStatus_BAD_LIQUIDITY ||

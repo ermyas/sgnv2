@@ -65,7 +65,7 @@ func (k Keeper) withdrawLP(ctx sdk.Context, wdReq *types.WithdrawReq, lpAddr eth
 		} else {
 			randBytes := crypto.Keccak256Hash([]byte(fmt.Sprintf("%x-%d-%d", lpAddr, wdReq.ReqId, ctx.BlockTime().Unix())))
 			status, recvAmount, destTk := k.transfer(
-				ctx, lpAddr, token, amt, wd.FromChainId, wdReq.ExitChainId, wd.MaxSlippage, randBytes.Bytes()[0:4])
+				ctx, lpAddr, token, amt, wd.FromChainId, wdReq.ExitChainId, wd.MaxSlippage, false, randBytes.Bytes()[0:4])
 			if status != types.XferStatus_OK_TO_RELAY {
 				return nil, types.Error(types.ErrCode_INVALID_REQ, "%s %s internal transfer failed %s", logmsg, wdmsg, status)
 			}
