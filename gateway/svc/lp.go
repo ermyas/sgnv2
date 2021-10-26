@@ -87,15 +87,13 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			}, nil
 		}
 		seqNum := wdReq.ReqId
-		receiver := common.Hex2Addr(transfer.UsrAddr).Bytes()
 		if transfer.RefundSeqNum > 0 {
-			// for sign again test only, not normal case
-			log.Debugf("signAgain for transfer:%s, seqNum:%d", transferId, transfer.RefundSeqNum)
-			seqNum, err = gs.signAgainWithdraw(&types.MsgSignAgain{
-				Creator:  tr.Key.GetAddress().String(),
-				ReqId:    seqNum,
-				UserAddr: receiver,
-			})
+			return &webapi.WithdrawLiquidityResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  "transfer withdraw has been initialized, please check transfer status",
+				},
+			}, nil
 		} else {
 			err = dal.DB.MarkTransferRequestingRefund(transferId, seqNum)
 			if err != nil {
@@ -278,10 +276,8 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 					ReqId:    seqNum,
 					UserAddr: addr.Bytes(),
 				})
-				if err != nil {
-					// sign again failed, we will mark this tx as WAITING_FOR_SGN again and will check again after 15 min
-					_ = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), addr.String())
-				}
+				// we will mark this tx as WAITING_FOR_SGN again and will check again after 15 min
+				_ = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), addr.String())
 			} else {
 				detail, wdOnchain, sortedSigs, signers, powers := gs.getWithdrawInfo(seqNum, chainId, addr.String())
 				resp.WdOnchain = wdOnchain

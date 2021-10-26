@@ -80,10 +80,10 @@ func (d *DAL) UpdateTransferStatus(transferId string, status uint64) error {
 		uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION), // send event
 		uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE),     // relayer event
 		uint64(types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED),               // UpdateTransferStatusInHistory
-		uint64(types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED):       // UpdateTransferStatusInHistory
-		checked = true //todo CheckTransferStatusNotIn @Aric
+		uint64(types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED),       // UpdateTransferStatusInHistory
+		uint64(types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND):            // 1. UpdateTransferStatusInHistory when signAgainWithdraw; 2. MarkTransferRequestingRefund
+		checked = true
 	case
-		uint64(types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND),      // MarkTransferRequestingRefund
 		uint64(types.TransferHistoryStatus_TRANSFER_COMPLETED),              //TransferCompleted called by relayer event
 		uint64(types.TransferHistoryStatus_TRANSFER_CONFIRMING_YOUR_REFUND), // MarkTransferRefund called by user
 		uint64(types.TransferHistoryStatus_TRANSFER_SUBMITTING):             //MarkTransferSend called by user
