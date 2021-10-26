@@ -39,20 +39,10 @@ var (
 // GetSyncCmd
 func GetSyncCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "sync",
-		Short: "Sync an event from onchain to sidechain",
-		RunE:  client.ValidateCmd,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			var err error
-			cbr, err = newOneChain(chainid)
-			if err != nil {
-				log.Fatal("newOneChain err:", err)
-			}
-			txReceipt, err = cbr.TransactionReceipt(context.Background(), eth.Hex2Hash(txhash))
-			if err != nil {
-				log.Fatal("TransactionReceipt err:", err)
-			}
-		},
+		Use:                        "sync",
+		Short:                      "Sync an event from onchain to sidechain",
+		SuggestionsMinimumDistance: 2,
+		RunE:                       client.ValidateCmd,
 	}
 
 	cmd.AddCommand(common.PostCommands(
@@ -62,6 +52,9 @@ func GetSyncCmd() *cobra.Command {
 
 	cmd.PersistentFlags().Uint64Var(&chainid, FlagChainId, 0, "which chainid to query tx hash")
 	cmd.PersistentFlags().StringVar(&txhash, FlagTxHash, "", "tx hash, will parse last event")
+	cmd.MarkPersistentFlagRequired(FlagChainId)
+	cmd.MarkPersistentFlagRequired(FlagTxHash)
+
 	return cmd
 }
 
@@ -78,6 +71,8 @@ $ %s ops sync event --chainid=883 --txhash="xxxxx"
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			setup()
+
 			elog := *txReceipt.Logs[len(txReceipt.Logs)-1]
 			evname, ev := parseEvAndName(cbr.contract, elog)
 			log.Info(ev.PrettyLog(chainid))
@@ -98,7 +93,19 @@ $ %s ops sync event --chainid=883 --txhash="xxxxx"
 			return nil
 		},
 	}
+
 	return cmd
+}
+
+func setup() {
+	c, err := newOneChain(chainid)
+	if err != nil {
+		log.Fatal("newOneChain err:", err)
+	}
+	txReceipt, err = c.TransactionReceipt(context.Background(), eth.Hex2Hash(txhash))
+	if err != nil {
+		log.Fatal("TransactionReceipt err:", err)
+	}
 }
 
 /*
@@ -193,6 +200,8 @@ $ %s ops sync signers --chainid=883 --txhash="xxxxx"
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			setup()
+
 			cliCtx, err := client.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
@@ -237,6 +246,7 @@ $ %s ops sync signers --chainid=883 --txhash="xxxxx"
 			return nil
 		},
 	}
+
 	return cmd
 }
 
