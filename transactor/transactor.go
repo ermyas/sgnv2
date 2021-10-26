@@ -238,11 +238,6 @@ func (t *Transactor) sendTxMsgs(msgs []sdk.Msg, gas uint64) (*sdk.TxResponse, er
 	for try := 0; try < maxTxRetry; try++ {
 		txBytes, err := t.buildAndSignTx(msgs, gas)
 		if err != nil {
-			if strings.Contains(err.Error(), "account sequence mismatch") && try < maxTxRetry-1 {
-				log.Debugln(err, "will retry")
-				time.Sleep(txRetryDelay)
-				continue
-			}
 			return nil, fmt.Errorf("buildAndSignTx err: %w", err)
 		}
 		txResponse, err := t.CliCtx.BroadcastTx(txBytes)
@@ -288,12 +283,19 @@ func (t *Transactor) buildAndSignTx(msgs []sdk.Msg, gas uint64) ([]byte, error) 
 	if gas != 0 {
 		txf = txf.WithGas(gas)
 	} else if txf.SimulateAndExecute() || t.CliCtx.Simulate {
-		_, adjusted, err := clienttx.CalculateGas(t.CliCtx, txf, msgs...)
-		if err != nil {
-			return nil, err
+		for try := 0; try < maxTxRetry; try++ {
+			_, adjusted, err := clienttx.CalculateGas(t.CliCtx, txf, msgs...)
+			if err != nil {
+				if strings.Contains(err.Error(), "account sequence mismatch") && try < maxTxRetry-1 {
+					log.Debugln(err, "increment seq and retry")
+					txf = txf.WithSequence(txf.Sequence() + 1)
+					continue
+				}
+				return nil, fmt.Errorf("CalculateGas err: %w", err)
+			}
+			txf = txf.WithGas(adjusted)
+			break
 		}
-
-		txf = txf.WithGas(adjusted)
 	}
 
 	tx, err := clienttx.BuildUnsignedTx(txf, msgs...)
