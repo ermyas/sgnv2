@@ -217,7 +217,7 @@
       "votes": [],
       "proposals": [],
       "deposit_params": {
-        "min_deposit": "0",
+        "min_deposit": "1000",
         "max_deposit_period": "120s"
       },
       "voting_params": {
