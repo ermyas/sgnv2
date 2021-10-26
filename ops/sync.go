@@ -98,11 +98,12 @@ $ %s ops sync event --chainid=883 --txhash="xxxxx"
 }
 
 func setup() {
-	c, err := newOneChain(chainid)
+	var err error
+	cbr, err = newOneChain(chainid)
 	if err != nil {
 		log.Fatal("newOneChain err:", err)
 	}
-	txReceipt, err = c.TransactionReceipt(context.Background(), eth.Hex2Hash(txhash))
+	txReceipt, err = cbr.TransactionReceipt(context.Background(), eth.Hex2Hash(txhash))
 	if err != nil {
 		log.Fatal("TransactionReceipt err:", err)
 	}
