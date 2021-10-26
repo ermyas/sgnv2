@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/allegro/bigcache v1.2.1
 	github.com/armon/go-metrics v0.3.9
+	github.com/aws/aws-sdk-go v1.36.30
 	github.com/celer-network/goutils v0.1.36
 	github.com/cosmos/cosmos-sdk v0.44.3
 	github.com/cosmos/go-bip39 v1.0.0

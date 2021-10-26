@@ -34,6 +34,7 @@ node_uri = "tcp://localhost:26657"
 passphrase = "12341234"
 transactors = ["sgn1wkmgk2acpjxfwcmgaaa32ruqnutnf0lr030apy"]
 validator_account = "sgn1egtta7su5jxjahtw56pe07qerz4lwvrlttac6y"
+price_update_url = "https://cbridge-stat.s3.us-west-2.amazonaws.com/test/cbridge-price.json"
 
 [sgnd.check_interval]
 slash = 2

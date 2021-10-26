@@ -139,6 +139,7 @@ func newTestSvc(t *testing.T) *gatewaysvc.GatewayService {
 	err = gs.InitTransactors()
 	require.NoError(t, err, "failed to initialize gateway transactors", err)
 	gs.StartChainTokenPolling(10 * time.Second)
+	gs.StartUpdateTokenPricePolling(relayer.Interval)
 	gs.F = fee.NewTokenPriceCache(gs.TP.GetTransactor())
 	return gs
 }

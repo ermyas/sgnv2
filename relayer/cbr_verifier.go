@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/big"
-
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
@@ -16,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"math/big"
 )
 
 // to be called by r.verifyUpdate
@@ -61,16 +60,35 @@ func (r *Relayer) verifyCbrEventUpdate(update *synctypes.PendingUpdate) (done, a
 	}
 }
 
-func (r *Relayer) verifyCbrUpdateCbrPrice(update *synctypes.PendingUpdate) (bool, bool) {
-	price := new(cbrtypes.CbrPrice)
-	err := price.Unmarshal(update.Data)
+func (r *Relayer) verifyUpdateCbrPrice(update *synctypes.PendingUpdate) (done, approve bool) {
+	priceFromSyncer := new(cbrtypes.CbrPrice)
+	err := priceFromSyncer.Unmarshal(update.Data)
 	if err != nil {
-		log.Errorf("failed to unmarshal %x to CbrPrice msg", update.Data)
+		log.Errorln("failed to unmarshal ", update.Data, " to CbrPrice msg")
 		return true, false
 	}
-	// todo: check asset price
+	priceIGot, success := getCbrPriceFromUrl()
+	if !success {
+		log.Errorln("failed to get CbrPrice from s3", update.Data)
+		return false, false
+	}
+	if priceIGot.GetUpdateEpoch() < priceFromSyncer.GetUpdateEpoch() {
+		log.Warnln("price I got is older than price from syncer, price I got:", priceIGot.GetUpdateEpoch(),
+			" price from syncer:", priceFromSyncer.GetUpdateEpoch())
+		return false, false
+	} else if priceIGot.GetUpdateEpoch() > priceFromSyncer.GetUpdateEpoch() {
+		log.Warnln("price I got is newer than price from syncer, price I got:", priceIGot.GetUpdateEpoch(),
+			" price from syncer:", priceFromSyncer.GetUpdateEpoch())
+		return true, false
+	}
+	p1, _ := priceIGot.Marshal()
+	if bytes.Compare(p1, update.Data) != 0 {
+		log.Errorln("price I got is different from price from syncer but has same update_epoch, price I got:", priceIGot,
+			" price from syncer:", priceFromSyncer)
+		return true, false
+	}
 
-	log.Infof("verifyCbrUpdateCbrPrice success, %+v", price)
+	log.Infof("verifyUpdateCbrPrice success, %+v", priceFromSyncer)
 	return true, true
 }
 

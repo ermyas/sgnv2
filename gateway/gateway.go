@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/celer-network/sgn-v2/relayer"
 	"net"
 	"net/http"
 	"strings"
@@ -79,6 +80,8 @@ func InitGateway(
 
 	gs.F = fee.NewTokenPriceCache(gs.TP.GetTransactor())
 	log.Infof(" token price cached")
+
+	gs.StartUpdateTokenPricePolling(relayer.Interval)
 
 	// start a rpc server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *rpcPort))

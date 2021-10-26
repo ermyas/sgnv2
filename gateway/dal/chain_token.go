@@ -139,6 +139,34 @@ func (d *DAL) GetChainTokenList() (map[uint32]*webapi.ChainTokenInfo, error) {
 	return resp, nil
 }
 
+// GetAllChainAndGasToken return key is gas token symbol, value is chainId
+func (d *DAL) GetAllChainAndGasToken() (symbol2chainIds map[string][]uint64, chainId2Symbol map[uint64]string, error error) {
+	symbol2chainIds = make(map[string][]uint64)
+	chainId2Symbol = make(map[uint64]string)
+	q := `SELECT id, gas_token_symbol
+          FROM chain
+          WHERE gas_token_symbol is not null`
+	rows, err := d.Query(q)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closeRows(rows)
+	var id uint64
+	var gasTokenSymbol string
+	for rows.Next() {
+		err = rows.Scan(&id, &gasTokenSymbol)
+		if err != nil {
+			return nil, nil, err
+		}
+		chainId2Symbol[id] = gasTokenSymbol
+		if len(symbol2chainIds[gasTokenSymbol]) == 0 {
+			symbol2chainIds[gasTokenSymbol] = []uint64{id}
+		} else {
+			symbol2chainIds[gasTokenSymbol] = append(symbol2chainIds[gasTokenSymbol], id)
+		}
+	}
+	return symbol2chainIds, chainId2Symbol, nil
+}
 func (d *DAL) GetChainInfo(ids []uint32) ([]*webapi.Chain, error) {
 	inClause := sqldb.InClause("id", len(ids), 1)
 	q := fmt.Sprintf(`SELECT id, name, icon, block_delay, gas_token_symbol, explore_url, rpc_url FROM chain WHERE %s`, inClause)

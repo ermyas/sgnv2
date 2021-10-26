@@ -34,6 +34,7 @@ services:
       - "26656-26657:26656-26657"
     extra_hosts:
       - "api.coingecko.com:104.18.28.120"
+      - "cbridge-stat.s3.us-west-2.amazonaws.com:52.218.201.137"
     volumes:
       - ./docker-volumes/node0:/sgn-v2/env:Z
     networks:
@@ -45,6 +46,8 @@ services:
     image: "celer-network/sgnnode"
     ports:
       - "26659-26660:26656-26657"
+    extra_hosts:
+      - "cbridge-stat.s3.us-west-2.amazonaws.com:52.218.201.137"
     volumes:
       - ./docker-volumes/node1:/sgn-v2/env:Z
     networks:
@@ -56,6 +59,8 @@ services:
     image: "celer-network/sgnnode"
     ports:
       - "26661-26662:26656-26657"
+    extra_hosts:
+      - "cbridge-stat.s3.us-west-2.amazonaws.com:52.218.201.137"
     volumes:
       - ./docker-volumes/node2:/sgn-v2/env:Z
     networks:
@@ -67,6 +72,8 @@ services:
     image: "celer-network/sgnnode"
     ports:
       - "26663-26664:26656-26657"
+    extra_hosts:
+      - "cbridge-stat.s3.us-west-2.amazonaws.com:52.218.201.137"
     volumes:
       - ./docker-volumes/node3:/sgn-v2/env:Z
     networks:

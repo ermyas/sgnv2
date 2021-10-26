@@ -32,6 +32,7 @@ const (
 	FlagSgnChainId          = "sgnd.chain_id"
 	FlagSgnNodeURI          = "sgnd.node_uri"
 	FlagSgnBaseGasPrice     = "sgnd.base_gas_price"
+	FlagSgnPriceUpdateUrl   = "sgnd.price_update_url"
 	FlagSgnKeyringBackend   = "sgnd.keyring_backend"
 	FlagSgnGasAdjustment    = "sgnd.gas_adjustment"
 
@@ -44,8 +45,13 @@ const (
 	FlagLogLevel = "log.level"
 	FlagLogColor = "log.color"
 
-	FlagToStartGateway = "gateway.start_gateway"
-	FlagGatewayDbUrl   = "gateway.db_url"
+	FlagToStartGateway     = "gateway.start_gateway"
+	FlagGatewayDbUrl       = "gateway.db_url"
+	FlagGatewayAwsS3Region = "gateway.aws.s3.region"
+	FlagGatewayAwsS3Bucket = "gateway.aws.s3.bucket"
+	FlagGatewayAwsKey      = "gateway.aws.key"
+	FlagGatewayAwsSecret   = "gateway.aws.secret"
+	FlagBlockNativeApiKey  = "gateway.block_native.apikey"
 
 	FlagMultiChain = "multichain" // array of toml tables, each table represents one chain, see common/multichain.go for details
 )
