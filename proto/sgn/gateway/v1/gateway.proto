@@ -82,9 +82,11 @@ service Web {
     }
 
     // estimate transfer fee
+    // front end need post method for this api
     rpc EstimateWithdrawAmt (EstimateWithdrawAmtRequest) returns (EstimateWithdrawAmtResponse) {
         option (google.api.http) = {
-      get: "/v1/estimateAmt"
+      post: "/v1/estimateAmt"
+      body: "*"
     };
     }
 
