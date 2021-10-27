@@ -107,7 +107,17 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 		r.requeueRelay(relayEvent)
 		return
 	}
-	// TODO: check if relay already sent on chain
+	relayTransferId := relayOnChain.GetRelayOnChainTransferId()
+	existRelay, existRelayErr := r.cbrMgr[relayOnChain.DstChainId].existTransferId(relayTransferId)
+	if existRelayErr != nil {
+		// if fail to query, continue to send this relay, because we can not make sure whether the relay already exist.
+		log.Warnf("fail to query this relay by transfer id, relay src transfer id:%x, dest transfer id:%x, err:%s",
+			relayOnChain.SrcChainId, relayTransferId, existRelayErr.Error())
+	} else if existRelay {
+		log.Infof("relay already exist on chain, skip it, relay src transfer id:%x, dest transfer id:%x",
+			relayOnChain.SrcChainId, relayTransferId)
+		return
+	}
 	log.Infof("%s with signers %s", logmsg, relay.SignersStr())
 	txHash, err := r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, sigsBytes, curss)
 	if err != nil {

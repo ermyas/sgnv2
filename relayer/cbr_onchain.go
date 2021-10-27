@@ -212,3 +212,7 @@ func (c *CbrOneChain) SendRelay(relay []byte, sigs [][]byte, curss currentSigner
 	log.Infoln("Relay tx submitted", tx.Hash().Hex())
 	return tx.Hash().Hex(), nil
 }
+
+func (c *CbrOneChain) existTransferId(transferId common.Hash) (bool, error) {
+	return c.contract.BridgeCaller.Transfers(&bind.CallOpts{}, transferId)
+}

@@ -102,6 +102,18 @@ func (ev *BridgeSend) CalcXferId(srcChid uint64) HashType {
 	return Bytes2Hash(crypto.Keccak256(b))
 }
 
+func GetRelayTransferId(sender, receiver, token Addr, amount *big.Int, srcChainId, destChainId uint64, srcTransferId HashType) HashType {
+	var b []byte
+	b = append(b, sender[:]...)
+	b = append(b, receiver[:]...)
+	b = append(b, token[:]...)
+	b = append(b, ToPadBytes(amount)...)
+	b = append(b, ToPadBytes(srcChainId)...)
+	b = append(b, ToPadBytes(destChainId)...)
+	b = append(b, srcTransferId[:]...)
+	return Bytes2Hash(crypto.Keccak256(b))
+}
+
 /*
 bytes32 wdId = keccak256(
   abi.encodePacked(wdmsg.chainid, wdmsg.seqnum, wdmsg.receiver, wdmsg.token, wdmsg.amount)

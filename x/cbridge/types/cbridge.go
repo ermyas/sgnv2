@@ -3,6 +3,8 @@ package types
 import (
 	"fmt"
 	"math/big"
+
+	"github.com/celer-network/sgn-v2/eth"
 )
 
 func (m *XferRelay) GetSortedSigsBytes() [][]byte {
@@ -88,6 +90,18 @@ func (r *RelayOnChain) String() string {
 	}
 	return fmt.Sprintf("sender %x, receiver %x, token %x, amount %s, src_chain_id %d, dst_chain_id %d, src_xfer_id %x",
 		r.Sender, r.Receiver, r.Token, big.NewInt(0).SetBytes(r.Amount), r.SrcChainId, r.DstChainId, r.SrcTransferId)
+}
+
+// get transfer id of relay (dest transfer id)
+func (ev *RelayOnChain) GetRelayOnChainTransferId() eth.HashType {
+	return eth.GetRelayTransferId(
+		eth.Bytes2Addr(ev.GetSender()),
+		eth.Bytes2Addr(ev.GetReceiver()),
+		eth.Bytes2Addr(ev.GetToken()),
+		new(big.Int).SetBytes(ev.GetAmount()),
+		ev.GetSrcChainId(),
+		ev.GetDstChainId(),
+		eth.Bytes2Hash(ev.GetSrcTransferId()))
 }
 
 func (w *WithdrawOnchain) String() string {
