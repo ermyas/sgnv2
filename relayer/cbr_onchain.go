@@ -85,6 +85,14 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+
+		// delete to-submit relay at local if have, as it's been submitted (by other nodes or me)
+		if CurRelayerInstance == nil {
+			log.Errorln("CurRelayerInstance not initialized", err)
+		} else {
+			CurRelayerInstance.dbDelete(GetCbrXferKey(ev.TransferId[:]))
+		}
+
 		err = c.saveEvent(cbrtypes.CbrEventRelay, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)

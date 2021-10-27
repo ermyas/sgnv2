@@ -31,6 +31,8 @@ type Relayer struct {
 	cbrSsUpdating   bool
 }
 
+var CurRelayerInstance *Relayer
+
 func NewRelayer(operator *Operator, db dbm.DB) {
 	relayerDb := dbm.NewPrefixDB(db, RelayerDbPrefix)
 
@@ -74,6 +76,8 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 		bootstrapped:    bondedValNum.Uint64() > 0,
 		startEthBlock:   startEthBlock,
 	}
+
+	CurRelayerInstance = &r
 
 	r.sgnAcct, err = sdk.AccAddressFromBech32(viper.GetString(common.FlagSgnValidatorAccount))
 	if err != nil {
