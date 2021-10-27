@@ -27,12 +27,14 @@ func GetTxCmd() *cobra.Command {
 
 // if err not nil, should return immediately when estimate gas
 func InitWithdraw(t *transactor.Transactor, req *types.MsgInitWithdraw) (resp *types.MsgInitWithdrawResp, err error) {
+	req.Creator = t.Key.GetAddress().String() // make sure the msg creator is the transactor
 	_, err = t.LockSendTx(req)
 	return
 }
 
 // if err not nil, should return immediately when estimate gas
 func SignAgain(t *transactor.Transactor, req *types.MsgSignAgain) (resp *types.MsgSignAgainResp, err error) {
+	req.Creator = t.Key.GetAddress().String() // make sure the msg creator is the transactor
 	_, err = t.LockSendTx(req)
 	return
 }

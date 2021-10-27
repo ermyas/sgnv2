@@ -151,6 +151,7 @@ func (t *Transactor) Run() {
 
 // AddTxMsg add msg into a queue before actual broadcast
 func (t *Transactor) AddTxMsg(msg sdk.Msg) {
+	t.checkSigner([]sdk.Msg{msg})
 	t.msgQueue.PushBack(msg)
 }
 
@@ -177,6 +178,8 @@ func (t *Transactor) drainTxMsgQueue() {
 }
 
 func (t *Transactor) SendTxMsgsWaitMined(msgs []sdk.Msg) (*sdk.TxResponse, error) {
+	t.checkSigner(msgs)
+
 	var txResponse *sdk.TxResponse
 	var err error
 	var gas uint64
@@ -268,6 +271,7 @@ func (t *Transactor) sendTxMsgs(msgs []sdk.Msg, gas uint64) (*sdk.TxResponse, er
 // possible even this returns nil err, x/cbr still fails
 // lock to ensure req are serialized even gateway handle concurrent initwithdraw from clients
 func (t *Transactor) LockSendTx(msg sdk.Msg) (*sdk.TxResponse, error) {
+	t.checkSigner([]sdk.Msg{msg})
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	return t.sendTxMsgs([]sdk.Msg{msg}, 0) // 0 gas so estimate will be called
@@ -339,10 +343,11 @@ func (t *Transactor) waitMined(txHash string) (*sdk.TxResponse, error) {
 }
 
 func (t *Transactor) CliSendTxMsgWaitMined(msg sdk.Msg) {
-	t.CliSendTxMsgsWaitMined([]sdk.Msg{msg})
+	t.checkSigner([]sdk.Msg{msg})
+	t.cliSendTxMsgsWaitMined([]sdk.Msg{msg})
 }
 
-func (t *Transactor) CliSendTxMsgsWaitMined(msgs []sdk.Msg) {
+func (t *Transactor) cliSendTxMsgsWaitMined(msgs []sdk.Msg) {
 	res, err := t.SendTxMsgsWaitMined(msgs)
 	t.CliCtx.OutputFormat = "text"
 	if err == nil {
@@ -380,4 +385,12 @@ func prepareFactory(clientCtx client.Context, txf clienttx.Factory) (clienttx.Fa
 	}
 
 	return txf, nil
+}
+
+func (t *Transactor) checkSigner(msgs []sdk.Msg) {
+	for _, msg := range msgs {
+		if t.Key.GetAddress().String() != msg.GetSigners()[0].String() {
+			log.Fatal("tx msg signer is not the transactor")
+		}
+	}
 }
