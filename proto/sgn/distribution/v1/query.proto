@@ -62,6 +62,11 @@ service Query {
     option (google.api.http).get = "/sgn/distribution/v1/community_pool";
   }
 
+  // StakingRewardInfo describes the cumulative and claimed staking reward amount for a delegator.
+  rpc StakingRewardInfo(QueryStakingRewardInfoRequest) returns (QueryStakingRewardInfoResponse) {
+    option (google.api.http).get = "/sgn/distribution/v1/staking_reward_info/{delegator_address}";
+  }
+
   // StakingRewardClaimInfo queries the info for claiming staking rewards on the mainchain.
   rpc StakingRewardClaimInfo(QueryStakingRewardClaimInfoRequest) returns (QueryStakingRewardClaimInfoResponse) {
     option (google.api.http).get = "/sgn/distribution/v1/staking_reward_claim_info/{delegator_address}";
@@ -219,6 +224,19 @@ message QueryCommunityPoolResponse {
   // pool defines community pool's coins.
   repeated cosmos.base.v1beta1.DecCoin pool = 1
       [(gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.DecCoins", (gogoproto.nullable) = false];
+}
+
+message QueryStakingRewardInfoRequest {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // delegator_address defines the delegator address to query for.
+  string delegator_address = 1;
+}
+
+message QueryStakingRewardInfoResponse {
+  // staking_reward_info defines the staking reward info.
+  StakingRewardInfo reward_info = 1 [(gogoproto.nullable) = false];
 }
 
 message QueryStakingRewardClaimInfoRequest {

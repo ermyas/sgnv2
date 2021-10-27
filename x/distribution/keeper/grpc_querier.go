@@ -6,6 +6,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/distribution/types"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
@@ -223,6 +224,54 @@ func (k Keeper) CommunityPool(c context.Context, req *types.QueryCommunityPoolRe
 	pool := k.GetFeePoolCommunityCoins(ctx)
 
 	return &types.QueryCommunityPoolResponse{Pool: pool}, nil
+}
+
+func (k Keeper) StakingRewardInfo(c context.Context, req *types.QueryStakingRewardInfoRequest) (*types.QueryStakingRewardInfoResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	if req.DelegatorAddress == "" {
+		return nil, status.Error(codes.InvalidArgument, "empty address")
+	}
+	ctx := sdk.UnwrapSDKContext(c)
+
+	// Outstanding reward
+	delAddr := eth.Hex2Addr(req.DelegatorAddress)
+	totalOutstandingReward := sdk.NewDecCoin(types.StakingRewardDenom, sdk.ZeroInt())
+	k.stakingKeeper.IterateDelegations(
+		ctx, delAddr,
+		func(_ int64, del stakingtypes.DelegationI) (stop bool) {
+			valAddr := del.GetValidatorAddr()
+			val := k.stakingKeeper.Validator(ctx, valAddr)
+			endingPeriod := k.IncrementValidatorPeriod(ctx, val)
+			outstandingRewards := k.CalculateDelegationRewards(ctx, val, del, endingPeriod)
+			for _, reward := range outstandingRewards {
+				if reward.Denom == types.StakingRewardDenom {
+					totalOutstandingReward = totalOutstandingReward.Add(reward)
+					break
+				}
+			}
+			return false
+		},
+	)
+
+	// Cumulative reward (settled + outstanding rewards)
+	derivedRewardAccount := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, delAddr)
+	cumulativeReward := sdk.NewDecCoinFromCoin(k.bankKeeper.GetBalance(ctx, derivedRewardAccount, types.StakingRewardDenom))
+	cumulativeReward = cumulativeReward.Add(totalOutstandingReward)
+
+	// Claimed reward
+	claimedReward := sdk.NewDecCoin(types.StakingRewardDenom, sdk.ZeroInt())
+	info, found := k.GetStakingRewardClaimInfo(ctx, eth.Hex2Addr(req.DelegatorAddress))
+	if found {
+		claimedReward = info.CumulativeRewardAmount
+	}
+
+	rewardInfo := types.StakingRewardInfo{
+		CumulativeRewardAmount: cumulativeReward,
+		ClaimedRewardAmount:    claimedReward,
+	}
+	return &types.QueryStakingRewardInfoResponse{RewardInfo: rewardInfo}, nil
 }
 
 func (k Keeper) StakingRewardClaimInfo(c context.Context, req *types.QueryStakingRewardClaimInfoRequest) (*types.QueryStakingRewardClaimInfoResponse, error) {

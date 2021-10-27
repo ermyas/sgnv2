@@ -153,6 +153,16 @@ message DelegationDelegatorReward {
       [(gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.DecCoins", (gogoproto.nullable) = false];
 }
 
+// StakingRewardInfo describes the cumulative and claimed staking reward amount for a delegator.
+message StakingRewardInfo {
+  // cumulative_reward_amount defines the cumulative staking reward amount.
+  cosmos.base.v1beta1.DecCoin cumulative_reward_amount = 1
+      [(gogoproto.moretags) = "yaml:\"cumulative_reward_amount\"", (gogoproto.nullable) = false];
+  // claimed_reward_amount defines the claimed staking reward amount.
+  cosmos.base.v1beta1.DecCoin claimed_reward_amount = 2
+      [(gogoproto.moretags) = "yaml:\"claimed_reward_amount\"", (gogoproto.nullable) = false];
+}
+
 // StakingRewardClaimInfo describes the staking reward claim metadata and details for a recipient.
 message StakingRewardClaimInfo {
   // recipient defines the Ethereum address of the reward recipient.

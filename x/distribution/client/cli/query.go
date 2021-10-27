@@ -31,6 +31,7 @@ func GetQueryCmd() *cobra.Command {
 		GetCmdQueryValidatorSlashes(),
 		GetCmdQueryDelegatorRewards(),
 		GetCmdQueryCommunityPool(),
+		GetCmdQueryStakingRewardInfo(),
 		GetCmdQueryStakingRewardClaimInfo(),
 	)
 
@@ -285,6 +286,54 @@ $ %s query distribution community-pool
 
 	flags.AddQueryFlagsToCmd(cmd)
 	return cmd
+}
+
+// GetCmdQueryStakingRewardInfo gets the staking reward info of a delegator
+func GetCmdQueryStakingRewardInfo() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "staking-reward-info [delegator-address]",
+		Short: "query the staking reward info of an account",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query the staking reward info of an account.
+
+Example:
+$ %s query staking-reward-info 0xd0f2596d700c9bd4d605c938e586ec67b01c7364
+`,
+				version.AppName,
+			),
+		),
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			queryClient := types.NewQueryClient(cliCtx)
+			res, err := queryClient.StakingRewardInfo(
+				cmd.Context(),
+				&types.QueryStakingRewardInfoRequest{DelegatorAddress: args[0]},
+			)
+			if err != nil {
+				return err
+			}
+			return cliCtx.PrintProto(&res.RewardInfo)
+		},
+	}
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
+}
+
+func QueryStakingRewardInfo(goCtx context.Context, cliCtx client.Context, addr string) (*types.StakingRewardInfo, error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	res, err := queryClient.StakingRewardInfo(
+		goCtx,
+		&types.QueryStakingRewardInfoRequest{DelegatorAddress: addr},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &res.RewardInfo, nil
 }
 
 // GetCmdQueryStakingRewardClaimInfo gets the staking reward claim info of a delegator
