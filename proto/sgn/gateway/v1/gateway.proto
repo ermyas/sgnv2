@@ -178,6 +178,7 @@ message QueryLiquidityStatusResponse {
     repeated bytes signers = 5; // for withdraw only
     repeated bytes powers = 6; // for withdraw only
     string block_tx_link = 7;
+    uint32 block_delay = 8; // ui shows "waiting for X block"
 }
 
 message Chain {

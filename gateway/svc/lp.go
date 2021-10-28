@@ -233,9 +233,13 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 		}
 	}
 
+	chain, chainUrl, chainFound, chainErr := dal.DB.GetChain(chainId)
+	blockDelay := uint32(0)
+	if chainFound && chain != nil {
+		blockDelay = chain.BlockDelay
+	}
 	link := ""
 	if common.IsValidTxHash(txHash) {
-		_, chainUrl, chainFound, chainErr := dal.DB.GetChain(chainId)
 		if chainFound && chainErr == nil && chainUrl != "" {
 			link = chainUrl + txHash
 		}
@@ -259,6 +263,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 			Signers:     nil,
 			SortedSigs:  nil,
 			BlockTxLink: link,
+			BlockDelay:  blockDelay,
 		}, nil
 	} else if found && lpType == uint64(webapi.LPType_LP_TYPE_REMOVE) { // withdraw type
 		resp := &webapi.QueryLiquidityStatusResponse{
@@ -267,6 +272,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 			Signers:     nil,
 			SortedSigs:  nil,
 			BlockTxLink: link,
+			BlockDelay:  blockDelay,
 		}
 
 		if status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN) || status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_LP) {
@@ -314,6 +320,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 		Signers:     nil,
 		SortedSigs:  nil,
 		BlockTxLink: link,
+		BlockDelay:  blockDelay,
 	}, nil
 }
 
