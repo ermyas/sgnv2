@@ -39,7 +39,7 @@ message MsgSendMySigResp {}
 message WithdrawLq {
   uint64 from_chain_id = 1;
   string token_addr = 2;    // token addr hex string
-  uint32 ratio = 3;         // max = 10000, e.g, 0.01% -> 1
+  uint32 ratio = 3;         // max = ie8, e.g, 0.01% -> 10000
   uint32 max_slippage = 4;  // slippage * 1M, eg. 0.5% -> 5000
 }
 
