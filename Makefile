@@ -161,6 +161,8 @@ prepare-sgn-data-sudo:
 copy-manual-test-data:
 	rm -rf ./test/e2e/manual/data/node*
 	cp -r ./docker-volumes/node* ./test/e2e/manual/data/
+	rm -f ./test/e2e/manual/data/node*/sgnd/*.log
+	rm -rf ./test/e2e/manual/data/node*/sgnd/data
 
 # Clean test data
 .PHONY: clean-test
