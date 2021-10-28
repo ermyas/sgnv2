@@ -161,3 +161,33 @@ func ValidateSigQuorum(sortedSigs []*AddrSig, curss []*Signer) bool {
 
 	return false
 }
+
+func MinSigsForQuorum(signers []*Signer) uint32 {
+	if len(signers) == 0 {
+		return 0
+	}
+
+	sigMap := make(map[eth.Addr]*big.Int)
+	totalPower := big.NewInt(0)
+	for _, signer := range signers {
+		power := big.NewInt(0).SetBytes(signer.GetPower())
+		sigMap[eth.Bytes2Addr(signer.Addr)] = power
+		totalPower.Add(totalPower, power)
+	}
+	quorumStake := big.NewInt(0).Mul(totalPower, big.NewInt(2))
+	quorumStake = quorumStake.Quo(quorumStake, big.NewInt(3))
+	sort.Slice(signers, func(i, j int) bool {
+		return sigMap[eth.Bytes2Addr(signers[i].Addr)].Cmp(sigMap[eth.Bytes2Addr(signers[j].Addr)]) > 0
+	})
+
+	signedPower := big.NewInt(0)
+	var count uint32 = 0
+	for _, signer := range signers {
+		signedPower.Add(signedPower, sigMap[eth.Bytes2Addr(signer.Addr)])
+		count++
+		if signedPower.Cmp(quorumStake) > 0 {
+			return count
+		}
+	}
+	return count
+}

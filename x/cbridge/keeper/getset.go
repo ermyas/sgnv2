@@ -259,3 +259,22 @@ func SetAssetPrice(kv sdk.KVStore, ap []*types.AssetPrice) {
 		setUint32(kv, types.CfgKeySymbol2UsdPrice(sym), it.Price)
 	}
 }
+
+// if not found, return nil
+func GetRelayGasCostParam(kv sdk.KVStore, chid uint64) *types.RelayGasCostParam {
+	raw := kv.Get(types.CfgKeyChain2RelayGasCostParam(chid))
+	if raw == nil {
+		return nil
+	}
+	ret := new(types.RelayGasCostParam)
+	err := ret.Unmarshal(raw)
+	if err != nil {
+		panic("unmarshal to RelayGasCostParam err: " + err.Error())
+	}
+	return ret
+}
+
+func SetRelayGasCostParam(kv sdk.KVStore, gc *types.RelayGasCostParam) {
+	raw, _ := gc.Marshal()
+	kv.Set(types.CfgKeyChain2RelayGasCostParam(gc.GetChainId()), raw)
+}

@@ -11,10 +11,7 @@ import (
 )
 
 var (
-	ErrNoChainPair      = errors.New("chain pair not found")
-	ErrNoGasPrice       = errors.New("gas price not found")
-	ErrNoGasTokenSymbol = errors.New("gas token symbol not found")
-	ErrNoSymbolUsdPrice = errors.New("symbol usd price not found")
+	ErrNoChainPair = errors.New("chain pair not found")
 )
 
 // We don't use paramstore at all as the configs are complicated
@@ -24,7 +21,6 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 	kv := ctx.KVStore(k.storeKey)
 	setUint32(kv, types.CfgKeyFeePerc, cfg.LpFeePerc)
 	setUint32(kv, types.CfgKeyPickLpSize, cfg.PickLpSize)
-	setUint32(kv, types.CfgKeyRelayGasCost, cfg.RelayOnchainGasCost)
 	// todo: iter and del all cfg-xxx key/val if we're removing asset
 	// but this may be VERY unlikely, also need to take care of past xfers
 	// go over asset and set ch2sym and sym2info
@@ -38,6 +34,9 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 	for _, chpair := range cfg.ChainPairs {
 		raw, _ := chpair.Marshal()
 		kv.Set(types.CfgKeyChainPair(chpair.Chid1, chpair.Chid2), raw)
+	}
+	for _, param := range cfg.GetRelayGasCost() {
+		SetRelayGasCostParam(kv, param)
 	}
 }
 
@@ -60,7 +59,6 @@ func (k Keeper) GetCbrConfig(ctx sdk.Context) types.CbrConfig {
 	kv := ctx.KVStore(k.storeKey)
 	cbrConfig.LpFeePerc = getUint32(kv, types.CfgKeyFeePerc)
 	cbrConfig.PickLpSize = getUint32(kv, types.CfgKeyPickLpSize)
-	cbrConfig.RelayOnchainGasCost = getUint32(kv, types.CfgKeyRelayGasCost)
 	cbrConfig.Assets = make([]*types.ChainAsset, 0)
 	cbrConfig.ChainPairs = make([]*types.ChainPair, 0)
 

@@ -130,12 +130,13 @@ func SgnFeeKey(chid uint64, token eth.Addr) []byte {
 6. chid -> gas price big.Int.Bytes.
 7. chid -> GasTokenSymbol string.
 8. symbol -> uint32(USD price * 1e4)
+9. chid -> GasCostParam
+9. chid -> GasCost
 */
 
 var (
-	CfgKeyFeePerc      = []byte("cfg-feeperc")
-	CfgKeyPickLpSize   = []byte("cfg-lpsize")
-	CfgKeyRelayGasCost = []byte("cfg-relaygas")
+	CfgKeyFeePerc    = []byte("cfg-feeperc")
+	CfgKeyPickLpSize = []byte("cfg-lpsize")
 )
 
 func CfgKeyChain2Sym(chid uint64, addr eth.Addr) []byte {
@@ -167,4 +168,14 @@ func CfgKeySymbol2UsdPrice(sym string) []byte {
 
 func GetSymbolFromStakeToken(token string) string {
 	return strings.Replace(token, CBridgeStakeDenomPrefix, "", 1)
+}
+
+// store params used to calculate relay gas cost when genesis
+func CfgKeyChain2RelayGasCostParam(chid uint64) []byte {
+	return []byte(fmt.Sprintf("cfg-ch2relaygascostparam-%d", chid))
+}
+
+// store estimate relay gas cost. only updated when monitored CbrEventSignersUpdated
+func CfgKeyChain2EstimateRelayGasCost(chid uint64) []byte {
+	return []byte(fmt.Sprintf("cfg-ch2relaygascost-%d", chid))
 }

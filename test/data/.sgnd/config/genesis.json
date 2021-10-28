@@ -82,7 +82,6 @@
       },
       "config": {
         "lp_fee_perc": 80,
-        "relay_onchain_gas_cost": 150000,
         "assets": [
           {
             "symbol": "USDT",
@@ -106,6 +105,20 @@
             "weight1": 100,
             "fee1to2": 10000,
             "fee2to1": 20000
+          }
+        ],
+        "relay_gas_cost": [
+          {
+            "chain_id": 883,
+            "cost_base": 86400,
+            "per_validator": 2475,
+            "per_sig": 5375
+          },
+          {
+            "chain_id": 884,
+            "cost_base": 86300,
+            "per_validator": 2375,
+            "per_sig": 5275
           }
         ]
       },

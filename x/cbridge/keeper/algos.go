@@ -339,13 +339,13 @@ func CalcPercFee(kv sdk.KVStore, src, dest *ChainIdTokenAddr, total *big.Int) *b
 }
 
 // base fee only depends on asset price, dest chain gas token price, dest chain gas price and relay gas cost
-// todo: relay gas cost depends on number of sigs to reach 2/3
 func CalcBaseFee(kv sdk.KVStore, assetSym string, destChid uint64) (baseFee *big.Int) {
 	baseFee = new(big.Int)
 	gasTokenUsdPrice := GetGasTokenUsdPrice(kv, destChid)
 	assetUsdPrice := GetAssetUsdPrice(kv, assetSym)
 	assetInfo := GetAssetInfo(kv, assetSym, destChid)
-	gasCost := getUint32(kv, types.CfgKeyRelayGasCost)
+	gasCost := getUint32(kv, types.CfgKeyChain2EstimateRelayGasCost(destChid))
+
 	gasPrice := GetGasPrice(kv, destChid)
 	// formula is gasCost * gasPrice * gasTokenPrice / 1e18 / assetPrice
 	if assetUsdPrice == 0 {
