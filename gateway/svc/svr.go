@@ -16,7 +16,7 @@ import (
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/transactor"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
-	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -94,7 +94,7 @@ func (gs *GatewayService) StartChainTokenPolling(interval time.Duration) {
 
 func (gs *GatewayService) pollChainToken() {
 	tr := gs.TP.GetTransactor()
-	resp, err := cbrcli.QueryChainTokensConfig(tr.CliCtx, &types.ChainTokensConfigRequest{})
+	resp, err := cbrcli.QueryChainTokensConfig(tr.CliCtx, &cbrtypes.ChainTokensConfigRequest{})
 	if err != nil {
 		log.Errorln("we will use mocked chain tokens failed to load basic token info:", err)
 	}
@@ -133,7 +133,7 @@ func (gs *GatewayService) pollChainToken() {
 	if farmingPools != nil {
 		for _, pool := range farmingPools.GetPools() {
 			for _, erc20Token := range pool.GetRewardTokens() {
-				tokenSymbol := common.GetSymbolFromFarmingToken(erc20Token.GetSymbol())
+				tokenSymbol := cbrtypes.GetSymbolFromStakeToken(erc20Token.GetSymbol())
 				dbErr := dal.DB.UpsertRewardToken(
 					tokenSymbol,
 					common.Hex2Addr(erc20Token.GetAddress()).String(),

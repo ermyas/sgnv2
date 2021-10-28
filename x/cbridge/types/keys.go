@@ -28,6 +28,9 @@ const (
 	DefaultParamspace = ModuleName
 
 	// this line is used by starport scaffolding # ibc/keys/name
+
+	CBridgeStakeDenomPrefix = "CB-"
+	CBridgeFeeDenomPrefix   = "CBF-"
 )
 
 var (
@@ -107,10 +110,13 @@ func WdDetailKey(usraddr eth.Addr, reqid uint64) []byte {
 }
 
 // for chid, token, how much fee this lp has earned
+// NOTE: Cumulative amount, only increasing
 func LpFeeKey(chid uint64, token, lp eth.Addr) []byte {
 	return []byte(fmt.Sprintf("lpfee-%d-%x-%x", chid, token, lp))
 }
 
+// Tracks the **total** fee allocated for SGN delegators
+// NOTE: Cumulative amount, only increasing
 func SgnFeeKey(chid uint64, token eth.Addr) []byte {
 	return []byte(fmt.Sprintf("sgnfee-%d-%x", chid, token))
 }
@@ -157,4 +163,8 @@ func CfgKeyChain2GasTokenSymbol(chid uint64) []byte {
 
 func CfgKeySymbol2UsdPrice(sym string) []byte {
 	return []byte(fmt.Sprintf("cfg-symbol2usdprice-%s", sym))
+}
+
+func GetSymbolFromStakeToken(token string) string {
+	return strings.Replace(token, CBridgeStakeDenomPrefix, "", 1)
 }

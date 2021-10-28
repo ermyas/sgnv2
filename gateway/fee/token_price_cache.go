@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/celer-network/sgn-v2/common"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/viper"
@@ -18,7 +17,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/cbridge/client/cli"
-	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/lthibault/jitterbug"
 	"gopkg.in/resty.v1"
 )
@@ -90,7 +89,7 @@ func (t *TokenPriceCache) GetUsdPrice(tokenSymbol string) (float64, error) {
 }
 
 // GetUsdPrice gets the token/USD price by token symbol. e.g. "ETH", "DAI", "USDT"
-func (t *TokenPriceCache) GetUsdVolume(token *types.Token, amt *big.Int) float64 {
+func (t *TokenPriceCache) GetUsdVolume(token *cbrtypes.Token, amt *big.Int) float64 {
 	tokenPrize, err := t.GetUsdPrice(token.GetSymbol())
 	if err != nil {
 		return 0
@@ -99,7 +98,7 @@ func (t *TokenPriceCache) GetUsdVolume(token *types.Token, amt *big.Int) float64
 	return tokenAmt * tokenPrize
 }
 
-func (t *TokenPriceCache) GetTokenPrice(token *types.Token, chainToken *types.Token, chainTokenAmt *big.Int) (*big.Int, error) {
+func (t *TokenPriceCache) GetTokenPrice(token *cbrtypes.Token, chainToken *cbrtypes.Token, chainTokenAmt *big.Int) (*big.Int, error) {
 	tokenPrize, err := t.GetUsdPrice(token.GetSymbol())
 	if err != nil {
 		return big.NewInt(0), err
@@ -117,7 +116,7 @@ func (t *TokenPriceCache) GetTokenPrice(token *types.Token, chainToken *types.To
 }
 
 func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
-	resp, err := cli.QueryChainTokensConfig(tr.CliCtx, &types.ChainTokensConfigRequest{})
+	resp, err := cli.QueryChainTokensConfig(tr.CliCtx, &cbrtypes.ChainTokensConfigRequest{})
 	if err != nil {
 		log.Errorln("we will use mocked chain tokens failed to load basic token info:", err)
 	}
@@ -137,10 +136,13 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 		ctx,
 		&farmingtypes.QueryPoolsRequest{},
 	)
+	if err != nil {
+		log.Error(err)
+	}
 	if farmingPools != nil {
 		for _, pool := range farmingPools.GetPools() {
 			for _, erc20Token := range pool.GetRewardTokens() {
-				tokenSymbol := common.GetSymbolFromFarmingToken(erc20Token.GetSymbol())
+				tokenSymbol := cbrtypes.GetSymbolFromStakeToken(erc20Token.GetSymbol())
 				tokenMap[tokenSymbol] = 1
 			}
 		}

@@ -19,3 +19,10 @@ type FarmingKeeper interface {
 	Stake(ctx sdk.Context, poolName string, address eth.Addr, amount sdk.Coin, mintStakes bool) error
 	Unstake(ctx sdk.Context, poolName string, address eth.Addr, amount sdk.Coin, burnStakes bool) error
 }
+
+type DistributionKeeper interface {
+	AddCBridgeFeeShare(ctx sdk.Context, amount sdk.Coin) error
+	BurnCBridgeFeeShare(ctx sdk.Context, delAddr eth.Addr, amount sdk.Coin) error
+	ClaimCBridgeFeeShare(ctx sdk.Context, delAddr eth.Addr) error
+	GetWithdrawableCBridgeFeeShare(ctx sdk.Context, delAddr eth.Addr, coin sdk.Coin) sdk.Coin
+}

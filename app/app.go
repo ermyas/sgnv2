@@ -118,9 +118,12 @@ var (
 	// module account permissions
 	maccPerms = map[string][]string{
 		minttypes.ModuleName:       {authtypes.Minter},
-		authtypes.FeeCollectorName: nil,
-		distrtypes.ModuleName:      nil,
+		authtypes.FeeCollectorName: {authtypes.Minter, authtypes.Burner},
+		// Needed for cBridge fees
+		// TODO: Mint / burn in cbridge module
+		distrtypes.ModuleName: {authtypes.Minter, authtypes.Burner},
 		// Needed for mint-then-stake & unstake-then-burn
+		// TODO: Mint / burn in cbridge module
 		farming.ModuleName: {authtypes.Minter, authtypes.Burner},
 		// Needed for rewards
 		farming.RewardModuleAccountName: {authtypes.Minter},
@@ -286,6 +289,7 @@ func NewSgnApp(
 		app.GetSubspace(cbrtypes.ModuleName),
 		&stakingKeeper,
 		app.FarmingKeeper,
+		app.DistrKeeper,
 	)
 	app.SyncKeeper = synckeeper.NewKeeper(
 		appCodec, keys[synctypes.StoreKey], &stakingKeeper, app.GetSubspace(synctypes.ModuleName), app.CbridgeKeeper,

@@ -71,6 +71,11 @@ service Query {
   rpc StakingRewardClaimInfo(QueryStakingRewardClaimInfoRequest) returns (QueryStakingRewardClaimInfoResponse) {
     option (google.api.http).get = "/sgn/distribution/v1/staking_reward_claim_info/{delegator_address}";
   }
+
+  // CBridgeFeeShareInfo describes the claimable CBridge fee share for a delegator.
+  rpc CBridgeFeeShareInfo(QueryCBridgeFeeShareInfoRequest) returns (QueryCBridgeFeeShareInfoResponse) {
+    option (google.api.http).get = "/sgn/distribution/v1/cbridge_fee_share_info/{delegator_address}";
+  }
 }
 
 // QueryParamsRequest is the request type for the Query/Params RPC method.
@@ -226,6 +231,8 @@ message QueryCommunityPoolResponse {
       [(gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.DecCoins", (gogoproto.nullable) = false];
 }
 
+// QueryStakingRewardInfoRequest is the request type for the Query/StakingRewardInfo
+// RPC method.
 message QueryStakingRewardInfoRequest {
   option (gogoproto.equal) = false;
   option (gogoproto.goproto_getters) = false;
@@ -234,11 +241,15 @@ message QueryStakingRewardInfoRequest {
   string delegator_address = 1;
 }
 
+// QueryStakingRewardInfoResponse is the response type for the Query/StakingRewardInfo
+// RPC method.
 message QueryStakingRewardInfoResponse {
   // staking_reward_info defines the staking reward info.
   StakingRewardInfo reward_info = 1 [(gogoproto.nullable) = false];
 }
 
+// QueryStakingRewardClaimInfoRequest is the request type for the Query/StakingRewardClaimInfo
+// RPC method.
 message QueryStakingRewardClaimInfoRequest {
   option (gogoproto.equal) = false;
   option (gogoproto.goproto_getters) = false;
@@ -247,7 +258,26 @@ message QueryStakingRewardClaimInfoRequest {
   string delegator_address = 1;
 }
 
+// QueryStakingRewardClaimInfoRequest is the response type for the Query/StakingRewardClaimInfo
+// RPC method.
 message QueryStakingRewardClaimInfoResponse {
   // staking_reward_claim_info defines the staking reward claim info.
   StakingRewardClaimInfo reward_claim_info = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryCBridgeFeeShareInfoRequest is the request type for the Query/CBridgeFeeShareInfo
+// RPC method.
+message QueryCBridgeFeeShareInfoRequest {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // delegator_address defines the delegator address to query for.
+  string delegator_address = 1;
+}
+
+// QueryCBridgeFeeShareInfoRequest is the response type for the Query/CBridgeFeeShareInfo
+// RPC method.
+message QueryCBridgeFeeShareInfoResponse {
+  // fee_share_info defines the fee share info.
+  CBridgeFeeShareInfo fee_share_info = 1 [(gogoproto.nullable) = false];
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	farmingcli "github.com/celer-network/sgn-v2/x/farming/client/cli"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 
@@ -183,12 +184,12 @@ func (gs *GatewayService) getHistoricalCumulativeRewards(ctx context.Context, ad
 	return rewards, usdPriceMap, nil
 }
 
-func (gs *GatewayService) getInfoFromFarmingReward(reward sdk.DecCoin) (*types.Token, float64, error) {
+func (gs *GatewayService) getInfoFromFarmingReward(reward sdk.DecCoin) (*cbrtypes.Token, float64, error) {
 	chainId, tokenSymbol, parseErr := common.ParseERC20TokenDenom(reward.GetDenom())
 	if parseErr != nil {
 		log.Errorf("parse token denom error, denom:%s, err:%+v", reward.GetDenom(), parseErr)
 	}
-	tokenSymbol = common.GetSymbolFromFarmingToken(tokenSymbol)
+	tokenSymbol = cbrtypes.GetSymbolFromStakeToken(tokenSymbol)
 	token, found, dbErr := dal.DB.GetRewardTokenBySymbol(tokenSymbol, chainId)
 	rewardFloat64 := 0.0
 	if found && dbErr == nil {
@@ -205,7 +206,7 @@ func (gs *GatewayService) calcPoolApy(pool *farmingtypes.FarmingPool) (float64, 
 
 	// Calculate staked USD value
 	stakeToken := pool.StakeToken
-	stakeTokenSymbol := common.GetSymbolFromFarmingToken(pool.StakeToken.Symbol)
+	stakeTokenSymbol := cbrtypes.GetSymbolFromStakeToken(pool.StakeToken.Symbol)
 	totalStakedUsd, err := gs.calcUsdValue(stakeTokenSymbol, int(stakeToken.Decimals), pool.TotalStakedAmount.Amount.MustFloat64())
 	if err != nil {
 		log.Errorf("calcUsdValue %s error %s", stakeToken.Symbol, err)
@@ -247,6 +248,6 @@ func (gs *GatewayService) calcUsdValue(symbol string, decimals int, amount float
 	return usdValue, nil
 }
 
-func formatDecimals(token *types.Token, amount float64) float64 {
+func formatDecimals(token *cbrtypes.Token, amount float64) float64 {
 	return amount / math.Pow10(int(token.Decimal))
 }

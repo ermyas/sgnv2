@@ -2,12 +2,14 @@ package keeper
 
 import (
 	"context"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/celer-network/sgn-v2/x/distribution/types"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
@@ -274,7 +276,8 @@ func (k Keeper) StakingRewardInfo(c context.Context, req *types.QueryStakingRewa
 	return &types.QueryStakingRewardInfoResponse{RewardInfo: rewardInfo}, nil
 }
 
-func (k Keeper) StakingRewardClaimInfo(c context.Context, req *types.QueryStakingRewardClaimInfoRequest) (*types.QueryStakingRewardClaimInfoResponse, error) {
+func (k Keeper) StakingRewardClaimInfo(
+	c context.Context, req *types.QueryStakingRewardClaimInfoRequest) (*types.QueryStakingRewardClaimInfoResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
 	}
@@ -288,4 +291,50 @@ func (k Keeper) StakingRewardClaimInfo(c context.Context, req *types.QueryStakin
 		return nil, status.Errorf(codes.NotFound, "reward claim info not found")
 	}
 	return &types.QueryStakingRewardClaimInfoResponse{RewardClaimInfo: info}, nil
+}
+
+func (k Keeper) CBridgeFeeShareInfo(
+	c context.Context, req *types.QueryCBridgeFeeShareInfoRequest) (*types.QueryCBridgeFeeShareInfoResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	if req.DelegatorAddress == "" {
+		return nil, status.Error(codes.InvalidArgument, "empty delegator address")
+	}
+	ctx := sdk.UnwrapSDKContext(c)
+
+	// Outstanding fees
+	delAddr := eth.Hex2Addr(req.DelegatorAddress)
+	totalOutstandingFees := sdk.DecCoins{}
+	k.stakingKeeper.IterateDelegations(
+		ctx, delAddr,
+		func(_ int64, del stakingtypes.DelegationI) (stop bool) {
+			valAddr := del.GetValidatorAddr()
+			val := k.stakingKeeper.Validator(ctx, valAddr)
+			endingPeriod := k.IncrementValidatorPeriod(ctx, val)
+			outstandingRewards := k.CalculateDelegationRewards(ctx, val, del, endingPeriod)
+			for _, reward := range outstandingRewards {
+				if strings.HasPrefix(reward.Denom, cbrtypes.CBridgeFeeDenomPrefix) {
+					totalOutstandingFees = totalOutstandingFees.Add(reward)
+				}
+			}
+			return false
+		},
+	)
+
+	// Claimable fees (settled + outstanding fees)
+	derivedRewardAccount := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, delAddr)
+	balances := k.bankKeeper.GetAllBalances(ctx, derivedRewardAccount)
+	settledFees := sdk.DecCoins{}
+	for _, coin := range balances {
+		if strings.HasPrefix(coin.Denom, cbrtypes.CBridgeFeeDenomPrefix) {
+			settledFees.Add(sdk.NewDecCoinFromCoin(coin))
+		}
+	}
+
+	claimableFees := settledFees.Sort().Add(totalOutstandingFees.Sort()...)
+	feeShareInfo := types.CBridgeFeeShareInfo{
+		ClaimableFeeAmounts: claimableFees,
+	}
+	return &types.QueryCBridgeFeeShareInfoResponse{FeeShareInfo: feeShareInfo}, nil
 }

@@ -33,6 +33,7 @@ func GetQueryCmd() *cobra.Command {
 		GetCmdQueryCommunityPool(),
 		GetCmdQueryStakingRewardInfo(),
 		GetCmdQueryStakingRewardClaimInfo(),
+		GetCmdQueryCBridgeFeeShareInfo(),
 	)
 
 	return distQueryCmd
@@ -382,4 +383,40 @@ func QueryStakingRewardClaimInfo(goCtx context.Context, cliCtx client.Context, a
 		return nil, err
 	}
 	return &res.RewardClaimInfo, nil
+}
+
+// GetCmdQueryCBridgeFeeShareInfo gets the cBridge fee share info of a delegator
+func GetCmdQueryCBridgeFeeShareInfo() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "cbridge-fee-share-info [delegator-address]",
+		Short: "query the cBridge fee share info of an account",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query the cBridge fee share info of an account.
+
+Example:
+$ %s query cbridge-fee-share-info 0xd0f2596d700c9bd4d605c938e586ec67b01c7364
+`,
+				version.AppName,
+			),
+		),
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			queryClient := types.NewQueryClient(cliCtx)
+			res, err := queryClient.CBridgeFeeShareInfo(
+				cmd.Context(),
+				&types.QueryCBridgeFeeShareInfoRequest{DelegatorAddress: args[0]},
+			)
+			if err != nil {
+				return err
+			}
+			return cliCtx.PrintProto(&res.FeeShareInfo)
+		},
+	}
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
 }

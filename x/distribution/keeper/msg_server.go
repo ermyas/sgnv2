@@ -172,37 +172,6 @@ func (k msgServer) checkCooldownAndUpdateClaimTime(ctx sdk.Context, addr string)
 	return &claimInfo, nil
 }
 
-func (k msgServer) withdrawDelegatorRewardForOneValidator(ctx sdk.Context, delAddrStr string, valAddrStr string) error {
-	valAddr := eth.Hex2Addr(valAddrStr)
-	delAddr := eth.Hex2Addr(delAddrStr)
-	amount, err := k.WithdrawDelegationRewards(ctx, delAddr, valAddr)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		for _, a := range amount {
-			if a.Amount.IsInt64() {
-				telemetry.SetGaugeWithLabels(
-					[]string{"tx", "msg", "withdraw_reward"},
-					float32(a.Amount.Int64()),
-					[]metrics.Label{telemetry.NewLabel("denom", a.Denom)},
-				)
-			}
-		}
-	}()
-
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			sdk.EventTypeMessage,
-			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
-			sdk.NewAttribute(sdk.AttributeKeySender, delAddrStr),
-		),
-	)
-
-	return nil
-}
-
 // accumulateStakingReward updates StakingRewardClaimInfo
 func (k msgServer) accumulateStakingReward(ctx sdk.Context, delAddr eth.Addr, claimInfo *types.StakingRewardClaimInfo) error {
 	// 1. Update CumulativeRewardAmount

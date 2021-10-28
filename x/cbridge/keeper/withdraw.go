@@ -94,3 +94,43 @@ func (k Keeper) withdrawLP(ctx sdk.Context, wdReq *types.WithdrawReq, lpAddr eth
 		Seqnum:   wdReq.ReqId,
 	}, nil
 }
+
+func (k Keeper) claimFeeShare(ctx sdk.Context, wdReq *types.WithdrawReq, delAddr eth.Addr, creator string) (*types.WithdrawOnchain, error) {
+	kv := ctx.KVStore(k.storeKey)
+	if len(wdReq.Withdraws) != 1 {
+		return nil, types.Error(types.ErrCode_INVALID_REQ, "only support claiming a single fee")
+	}
+	if wdReq.ExitChainId != wdReq.Withdraws[0].FromChainId {
+		return nil, types.Error(types.ErrCode_INVALID_REQ, "only support claiming fee on the same chain")
+	}
+	// 1. Claim cBridge fee share in distribution module
+	err := k.distrKeeper.ClaimCBridgeFeeShare(ctx, delAddr)
+	if err != nil {
+		return nil, err
+	}
+	logmsg := fmt.Sprintf("claimFeeShare:%x request_id:%d exit_chain_id:%d", delAddr, wdReq.ReqId, wdReq.ExitChainId)
+	var wdmsgs string
+	wd := wdReq.Withdraws[0]
+	wdmsg := wd.String()
+	feeTokenAddr := eth.Hex2Addr(wd.TokenAddr)
+	// 2. Take the fee balance in the distribution module and generate a WithdrawOnchain
+	symbol := GetAssetSymbol(kv, &ChainIdTokenAddr{wd.FromChainId, feeTokenAddr})
+	denom := fmt.Sprintf("%s%s/%d", types.CBridgeFeeDenomPrefix, symbol, wd.FromChainId)
+	coin := k.distrKeeper.GetWithdrawableCBridgeFeeShare(ctx, delAddr, sdk.NewCoin(denom, sdk.ZeroInt()))
+	err = k.distrKeeper.BurnCBridgeFeeShare(ctx, delAddr, coin)
+	if err != nil {
+		return nil, err
+	}
+	amount := coin.Amount.BigInt()
+	wdmsg = fmt.Sprintf("%sreqAmt:%s", wdmsg, amount)
+	wdmsgs += fmt.Sprintf("<%s> ", wdmsg)
+	logmsg = fmt.Sprintf("%s %sfee_token:%x, amt:%s", logmsg, wdmsgs, feeTokenAddr, amount)
+	log.Infof("x/cbr handle claim fee share: %s creator:%s", logmsg, creator)
+	return &types.WithdrawOnchain{
+		Chainid:  wdReq.ExitChainId,
+		Receiver: delAddr.Bytes(),
+		Token:    feeTokenAddr.Bytes(),
+		Amount:   amount.Bytes(),
+		Seqnum:   wdReq.ReqId,
+	}, nil
+}

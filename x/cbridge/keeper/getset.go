@@ -201,11 +201,19 @@ func GetSgnFee(kv sdk.KVStore, chid uint64, token eth.Addr) *big.Int {
 }
 
 // add new fee, return new sum
-func AddSgnFee(kv sdk.KVStore, chid uint64, token eth.Addr, delta *big.Int) *big.Int {
+func (k Keeper) AddSgnFee(ctx sdk.Context, kv sdk.KVStore, chid uint64, token eth.Addr, delta *big.Int) *big.Int {
 	feeKey := types.SgnFeeKey(chid, token)
 	had := new(big.Int).SetBytes(kv.Get(feeKey))
 	had.Add(had, delta)
 	kv.Set(feeKey, had.Bytes())
+	// Tell distribution module to add fees
+	symbol := GetAssetSymbol(kv, &ChainIdTokenAddr{chid, token})
+	denom := fmt.Sprintf("%s%s/%d", types.CBridgeFeeDenomPrefix, symbol, chid)
+	coin := sdk.NewCoin(denom, sdk.NewIntFromBigInt(delta))
+	err := k.distrKeeper.AddCBridgeFeeShare(ctx, coin)
+	if err != nil {
+		panic(err)
+	}
 	return had
 }
 

@@ -106,7 +106,7 @@ func (k Keeper) transfer(
 	// we need to save baseFee in relay detail, and upon seeing the relay event, figure out
 	// its sender and add to that address. Note there is no way we can make baseFee equal the actual
 	// onchain tx cost because gasprice and token usd prices are all changing constantly
-	AddSgnFee(kv, dest.ChId, dest.TokenAddr, baseFee)
+	k.AddSgnFee(ctx, kv, dest.ChId, dest.TokenAddr, baseFee)
 	status = types.XferStatus_OK_TO_RELAY
 	return
 }

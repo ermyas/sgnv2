@@ -202,10 +202,6 @@ func Bytes2Hash(b []byte) Hash {
 	return ec.BytesToHash(b)
 }
 
-func GetSymbolFromFarmingToken(token string) string {
-	return strings.Replace(token, "CB-", "", 1)
-}
-
 func IsValidTxHash(txHash string) bool {
 	if txHash == "" {
 		return false

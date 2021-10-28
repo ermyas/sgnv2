@@ -18,6 +18,7 @@ type Keeper struct {
 	paramstore    params.Subspace
 	stakingKeeper types.StakingKeeper
 	farmingKeeper types.FarmingKeeper
+	distrKeeper   types.DistributionKeeper
 }
 
 func NewKeeper(
@@ -25,13 +26,15 @@ func NewKeeper(
 	storeKey sdk.StoreKey,
 	params params.Subspace,
 	stakingKeeper types.StakingKeeper,
-	farmingKeeper types.FarmingKeeper) Keeper {
+	farmingKeeper types.FarmingKeeper,
+	distrKeeper types.DistributionKeeper) Keeper {
 	return Keeper{
 		cdc:           cdc,
 		storeKey:      storeKey,
 		paramstore:    params,
 		stakingKeeper: stakingKeeper,
 		farmingKeeper: farmingKeeper,
+		distrKeeper:   distrKeeper,
 	}
 }
 

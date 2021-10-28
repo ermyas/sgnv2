@@ -2,17 +2,18 @@ package gatewaysvc
 
 import (
 	"context"
+	"math"
+	"math/big"
+	"sort"
+
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
-	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	"github.com/spf13/viper"
-	"math"
-	"math/big"
-	"sort"
 )
 
 func (gs *GatewayService) GetAdvancedInfo(ctx context.Context, request *webapi.GetAdvancedInfoRequest) (*webapi.GetAdvancedInfoResponse, error) {
@@ -92,10 +93,10 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	if err != nil || len(chainTokenInfos) == 0 {
 		return &webapi.GetLPInfoListResponse{}, nil
 	}
-	var chainTokens []*types.ChainTokenAddrPair
+	var chainTokens []*cbrtypes.ChainTokenAddrPair
 	for chainId, tokens := range chainTokenInfos {
 		for _, tokenInfo := range tokens.Token {
-			chainTokens = append(chainTokens, &types.ChainTokenAddrPair{
+			chainTokens = append(chainTokens, &cbrtypes.ChainTokenAddrPair{
 				ChainId:   uint64(chainId),
 				TokenAddr: tokenInfo.GetToken().Address,
 			})
@@ -104,17 +105,17 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 
 	var lps []*webapi.LPInfo
 
-	userDetailMap := make(map[uint64]map[string]*types.LiquidityDetail)
+	userDetailMap := make(map[uint64]map[string]*cbrtypes.LiquidityDetail)
 	hasUsr := request.GetAddr() != ""
 	if hasUsr {
 		tr := gs.TP.GetTransactor()
-		detailList, detailErr := cbrcli.QueryLiquidityDetailList(tr.CliCtx, &types.LiquidityDetailListRequest{
+		detailList, detailErr := cbrcli.QueryLiquidityDetailList(tr.CliCtx, &cbrtypes.LiquidityDetailListRequest{
 			LpAddr:     userAddr,
 			ChainToken: chainTokens,
 		})
 		if detailList == nil || detailErr != nil {
-			var emptyLiquidityDetail []*types.LiquidityDetail
-			detailList = &types.LiquidityDetailListResponse{LiquidityDetail: emptyLiquidityDetail}
+			var emptyLiquidityDetail []*cbrtypes.LiquidityDetail
+			detailList = &cbrtypes.LiquidityDetailListResponse{LiquidityDetail: emptyLiquidityDetail}
 		}
 		for _, detail := range detailList.GetLiquidityDetail() {
 			chainId := detail.GetChainId()
@@ -127,7 +128,7 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 			detail.Token = token.Token
 			chainInfo, found := userDetailMap[chainId]
 			if !found {
-				chainInfo = make(map[string]*types.LiquidityDetail)
+				chainInfo = make(map[string]*cbrtypes.LiquidityDetail)
 			}
 			chainInfo[token.Token.Symbol] = detail
 			userDetailMap[chainId] = chainInfo
@@ -235,7 +236,7 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 		}
 		apysByToken := make(map[string]float64)
 		stakeToken := pool.StakeToken
-		stakeTokenSymbol := common.GetSymbolFromFarmingToken(stakeToken.GetSymbol())
+		stakeTokenSymbol := cbrtypes.GetSymbolFromStakeToken(stakeToken.GetSymbol())
 		apysByToken[stakeTokenSymbol] = apy
 		apysByChainId[stakeToken.GetChainId()] = apysByToken
 	}

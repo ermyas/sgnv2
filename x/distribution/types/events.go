@@ -9,6 +9,7 @@ const (
 	EventTypeWithdrawCommission    = "withdraw_commission"
 	EventTypeProposerReward        = "proposer_reward"
 	EventTypeClaimAllStakingReward = "claim_all_staking_reward"
+	EventTypeClaimCBridgeFeeShare  = "claim_cbridge_fee_share"
 
 	AttributeKeyWithdrawAddress  = "withdraw_address"
 	AttributeKeyValidator        = "validator"

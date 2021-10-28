@@ -49,14 +49,20 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 	}
 	var wdOnchain *types.WithdrawOnchain
 	var xferIdBytes []byte
-	if wdReq.XferId != "" { // user refund
+	switch wdReq.WithdrawType {
+	case types.RemoveLiquidity:
+		wdOnchain, err = k.withdrawLP(sdkCtx, wdReq, signer, req.Creator)
+		if err != nil {
+			return nil, err
+		}
+	case types.RefundTransfer:
 		xferIdBytes = common.Hex2Bytes(wdReq.XferId)
 		wdOnchain, err = k.refund(sdkCtx, wdReq, signer, req.Creator)
 		if err != nil {
 			return nil, err
 		}
-	} else { // LP withdraw liquidity
-		wdOnchain, err = k.withdrawLP(sdkCtx, wdReq, signer, req.Creator)
+	case types.ClaimFeeShare:
+		wdOnchain, err = k.claimFeeShare(sdkCtx, wdReq, signer, req.Creator)
 		if err != nil {
 			return nil, err
 		}
