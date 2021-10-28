@@ -8,6 +8,7 @@ import (
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	"github.com/spf13/viper"
 	"math"
 	"math/big"
@@ -134,7 +135,7 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	}
 
 	farmingApyMap := gs.getFarmingApy(ctx)
-	data24h := get24hTx()
+	data24h := gs.get24hTx()
 
 	for chainId32, chainToken := range chainTokenInfos {
 		chainId := uint64(chainId32)
@@ -208,8 +209,48 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	}, nil
 }
 
+func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[string]float64 {
+	cache := GetFarmingApyCache()
+	if cache != nil {
+		log.Debugf("farming apy cache used")
+		return cache
+	}
+	log.Debugf("farming apy cache not used")
+	tr := gs.TP.GetTransactor()
+	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
+	res, err := queryClient.Pools(
+		ctx,
+		&farmingtypes.QueryPoolsRequest{},
+	)
+	if err != nil {
+		log.Error("getFarmingApy error", err)
+		return nil
+	}
+	apysByChainId := make(map[uint64]map[string]float64) // map<chain_id, map<token_symbol, apy>>
+	for _, pool := range res.GetPools() {
+		apy, calErr := gs.calcPoolApy(&pool)
+		if calErr != nil {
+			log.Error("getFarmingApy error", err)
+			return nil
+		}
+		apysByToken := make(map[string]float64)
+		stakeToken := pool.StakeToken
+		stakeTokenSymbol := common.GetSymbolFromFarmingToken(stakeToken.GetSymbol())
+		apysByToken[stakeTokenSymbol] = apy
+		apysByChainId[stakeToken.GetChainId()] = apysByToken
+	}
+	SetFarmingApyCache(apysByChainId)
+	return apysByChainId
+}
+
 // todo cache this  @aric
-func get24hTx() map[uint64]map[string]*txData {
+func (gs *GatewayService) get24hTx() map[uint64]map[string]*txData {
+	cache := GetTx24hCache()
+	if cache != nil {
+		log.Debugf("24h tx cache used")
+		return cache
+	}
+	log.Debugf("24h tx cache not used")
 	txs, err := dal.DB.Get24hTx()
 	resp := make(map[uint64]map[string]*txData) // map<chain_id, map<token_symbol, txData>>
 	if err == nil {
@@ -242,6 +283,7 @@ func get24hTx() map[uint64]map[string]*txData {
 			resp[tx.DstChainId] = data
 		}
 	}
+	SetTx24hCache(resp)
 	return resp
 }
 

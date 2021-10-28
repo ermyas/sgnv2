@@ -197,34 +197,6 @@ func (gs *GatewayService) getInfoFromFarmingReward(reward sdk.DecCoin) (*types.T
 	return token, rewardFloat64, parseErr
 }
 
-// todo cache this @aric
-func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[string]float64 {
-	tr := gs.TP.GetTransactor()
-	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
-	res, err := queryClient.Pools(
-		ctx,
-		&farmingtypes.QueryPoolsRequest{},
-	)
-	if err != nil {
-		log.Error("getFarmingApy error", err)
-		return nil
-	}
-	apysByChainId := make(map[uint64]map[string]float64) // map<chain_id, map<token_symbol, apy>>
-	for _, pool := range res.GetPools() {
-		apy, err := gs.calcPoolApy(&pool)
-		if err != nil {
-			log.Error("getFarmingApy error", err)
-			return nil
-		}
-		apysByToken := make(map[string]float64)
-		stakeToken := pool.StakeToken
-		stakeTokenSymbol := common.GetSymbolFromFarmingToken(stakeToken.GetSymbol())
-		apysByToken[stakeTokenSymbol] = apy
-		apysByChainId[stakeToken.GetChainId()] = apysByToken
-	}
-	return apysByChainId
-}
-
 // calcPoolApy calculates USD-based APY with the formula (1 + r)^n - 1, assuming 5 seconds block time and daily compounding.
 // The returned APY is the sum from all the reward tokens of the pool.
 func (gs *GatewayService) calcPoolApy(pool *farmingtypes.FarmingPool) (float64, error) {
