@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS lp (
     status INT NOT NULL DEFAULT 1,
     lp_type INT NOT NULL DEFAULT 1,
     seq_num INT NOT NULL DEFAULT 0,
+    withdraw_method_type INT NOT NULL DEFAULT 1,
     PRIMARY KEY (usr_addr, chain_id, seq_num, lp_type),
     UNIQUE (usr_addr, chain_id, tx_hash, lp_type)
     );
@@ -64,7 +65,7 @@ CREATE TABLE IF NOT EXISTS token (
     address TEXT NOT NULL,
     name TEXT NOT NULL DEFAULT '',
     icon TEXT NOT NULL DEFAULT '',
-    contract TEXT NOT NULL,
+    disabled BOOL NOT NULL DEFAULT false,
     PRIMARY KEY (symbol, chain_id)
 );
 CREATE INDEX IF NOT EXISTS tk_addr_idx ON token (address, chain_id);
@@ -77,7 +78,8 @@ CREATE TABLE IF NOT EXISTS chain (
      block_delay INT NOT NULL DEFAULT 0,
      gas_token_symbol TEXT NOT NULL DEFAULT '',
      explore_url TEXT NOT NULL DEFAULT '',
-     rpc_url TEXT NOT NULL DEFAULT ''
+     rpc_url TEXT NOT NULL DEFAULT '',
+     contract TEXT NOT NULL DEFAULT ''
 );
 
 

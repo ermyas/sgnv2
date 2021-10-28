@@ -122,9 +122,9 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 	}
 	chainTokens := resp.GetChainTokens()
 	tokenMap := make(map[string]uint)
-	for _, assets := range chainTokens {
-		for _, asset := range assets.Assets {
-			tokenMap[asset.GetToken().Symbol] = 1
+	for _, tokens := range chainTokens {
+		for _, token := range tokens.Tokens {
+			tokenMap[token.GetSymbol()] = 1
 		}
 	}
 

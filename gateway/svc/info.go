@@ -39,7 +39,7 @@ func (gs *GatewayService) SetAdvancedInfo(ctx context.Context, request *webapi.S
 }
 
 func (gs *GatewayService) GetTransferConfigs(ctx context.Context, request *webapi.GetTransferConfigsRequest) (*webapi.GetTransferConfigsResponse, error) {
-	chainTokenList, err := dal.DB.GetChainTokenList()
+	chainTokenList, err := dal.DB.GetEnabledChainTokenList()
 	if err != nil {
 		return &webapi.GetTransferConfigsResponse{
 			Err: &webapi.ErrMsg{
@@ -84,6 +84,34 @@ func (gs *GatewayService) GetTransferConfigs(ctx context.Context, request *webap
 		Chains:                    chains,
 		ChainToken:                chainTokenList,
 		FarmingRewardContractAddr: viper.GetString(common.FlagEthContractFarmingRewards),
+	}, nil
+}
+
+func (gs *GatewayService) GetTokenInfo(ctx context.Context, request *webapi.GetTokenInfoRequest) (*webapi.GetTokenInfoResponse, error) {
+	chainId := uint64(request.GetChainId())
+	var token *webapi.TokenInfo
+	tokenFound := true
+	switch request.TokenType.(type) {
+	case *webapi.GetTokenInfoRequest_TokenSymbol:
+		tokenInDb, found, err := dal.DB.GetTokenBySymbol(request.GetTokenSymbol(), chainId)
+		if tokenInDb == nil || !found || err != nil {
+			tokenFound = false
+		}
+	case *webapi.GetTokenInfoRequest_TokenAddr:
+		tokenInDb, found, err := dal.DB.GetTokenByAddr(request.GetTokenAddr(), chainId)
+		if tokenInDb == nil || !found || err != nil {
+			tokenFound = false
+		}
+	}
+	if !tokenFound {
+		return &webapi.GetTokenInfoResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "token not found",
+			}}, nil
+	}
+	return &webapi.GetTokenInfoResponse{
+		TokenInfo: token,
 	}, nil
 }
 

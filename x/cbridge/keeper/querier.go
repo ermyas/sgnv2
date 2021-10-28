@@ -104,7 +104,7 @@ func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, le
 	if len(mca.Assets) == 0 {
 		log.Warnln("no chain assets configured yet!")
 	}
-	chainTokens := make(map[string]*types.Assets)
+	chainTokens := make(map[string]*types.Tokens)
 	for _, a := range mca.Assets {
 		occ, ok := mccMap[a.ChainId]
 		if !ok {
@@ -115,20 +115,20 @@ func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, le
 		chid := strconv.FormatUint(a.ChainId, 10)
 		assets, ok := chainTokens[chid]
 		if !ok {
-			assets = &types.Assets{
-				Assets: make([]*types.AssetPerChain, 0),
+			assets = &types.Tokens{
+				Tokens:       make([]*types.Token, 0),
+				ContractAddr: occ.CBridge,
+				BlockDelay:   uint32(occ.BlkDelay),
 			}
 			chainTokens[chid] = assets
 		}
-		assets.Assets = append(assets.Assets, &types.AssetPerChain{
-			Token: &types.Token{
-				Symbol:  a.Symbol,
-				Address: a.Addr,
-				Decimal: int32(a.Decimal),
-			},
-			ContractAddr: occ.CBridge,
-			BlockDelay:   uint32(occ.BlkDelay),
-		})
+		assets.Tokens = append(assets.Tokens, &types.Token{
+			Symbol:       a.Symbol,
+			Address:      a.Addr,
+			Decimal:      int32(a.Decimal),
+			XferDisabled: a.XferDisabled,
+		},
+		)
 	}
 	resp := types.ChainTokensConfigResponse{
 		ChainTokens: chainTokens,

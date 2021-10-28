@@ -46,9 +46,9 @@ func (gs *GatewayService) UpdateTokenPrice2S3() {
 	}
 	chainTokens := resp.GetChainTokens()
 	tokenMap := make(map[string]bool)
-	for _, assets := range chainTokens {
-		for _, asset := range assets.Assets {
-			tokenMap[asset.GetToken().GetSymbol()] = true
+	for _, tokens := range chainTokens {
+		for _, token := range tokens.Tokens {
+			tokenMap[token.GetSymbol()] = true
 		}
 	}
 	symbol2chainIds, chainId2Symbol, err := dal.DB.GetAllChainAndGasToken()

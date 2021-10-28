@@ -99,23 +99,22 @@ func (gs *GatewayService) pollChainToken() {
 		log.Errorln("we will use mocked chain tokens failed to load basic token info:", err)
 	}
 	chainTokens := resp.GetChainTokens()
-	for chainIdStr, assets := range chainTokens {
+	for chainIdStr, tokens := range chainTokens {
 		chainId, convErr := strconv.Atoi(chainIdStr)
 		if convErr != nil {
 			log.Errorf("error chain id found:%s", chainIdStr)
 			continue
 		}
-		for _, asset := range assets.Assets {
-			token := asset.GetToken()
-			dbErr := dal.DB.UpsertTokenBaseInfo(token.GetSymbol(), common.Hex2Addr(token.GetAddress()).String(), common.Hex2Addr(asset.GetContractAddr()).String(), uint64(chainId), uint64(token.GetDecimal()))
+		for _, token := range tokens.Tokens {
+			dbErr := dal.DB.UpsertTokenBaseInfo(token.GetSymbol(), common.Hex2Addr(token.GetAddress()).String(), uint64(chainId), uint64(token.GetDecimal()), token.GetXferDisabled())
 			if dbErr != nil {
 				log.Errorf("failed to write token: %v", dbErr)
 			}
-			blockDelay := asset.GetBlockDelay()
-			dbErr = dal.DB.UpsertChainWithBlockDelay(uint64(chainId), blockDelay)
-			if dbErr != nil {
-				log.Errorf("failed to write blockDelay: %v", dbErr)
-			}
+		}
+		blockDelay := tokens.GetBlockDelay()
+		dbErr := dal.DB.UpsertChainBaseInfo(uint64(chainId), blockDelay, common.Hex2Addr(tokens.GetContractAddr()).String())
+		if dbErr != nil {
+			log.Errorf("failed to write blockDelay: %v", dbErr)
 		}
 	}
 

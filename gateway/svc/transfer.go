@@ -103,16 +103,16 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 	srcChainId := request.GetSrcChainId()
 	dstChainId := request.GetDstChainId()
 	tokenSymbol := request.GetTokenSymbol()
-	srcToken, found1, err1 := dal.DB.GetTokenBySymbol(tokenSymbol, uint64(srcChainId))
+	srcToken, found1, err1 := dal.DB.GetTokenBySymbolForTransfer(tokenSymbol, uint64(srcChainId))
 	if err1 != nil || !found1 {
 		return &webapi.EstimateAmtResponse{
 			Err: &webapi.ErrMsg{
-				Code: webapi.ErrCode_ERROR_CODE_COMMON,
-				Msg:  "token not found",
+				Code: webapi.ErrCode_ERROR_NO_TOKEN_ON_SRC_CHAIN,
+				Msg:  "token not support on src chain",
 			},
 		}, nil
 	}
-	dstToken, found2, err2 := dal.DB.GetTokenBySymbol(tokenSymbol, uint64(dstChainId))
+	dstToken, found2, err2 := dal.DB.GetTokenBySymbolForTransfer(tokenSymbol, uint64(dstChainId))
 	if err2 != nil || !found2 {
 		return &webapi.EstimateAmtResponse{
 			Err: &webapi.ErrMsg{

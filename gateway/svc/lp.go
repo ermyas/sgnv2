@@ -168,7 +168,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			}, nil
 		}
 		log.Debugf("withdraw estimate amt:%s, addr:%s", amt, lp)
-		err = dal.DB.UpsertLPWithSeqNum(lp, token.Token.Symbol, token.Token.Address, amt, strconv.Itoa(int(seqNum)), chainId, uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum)
+		err = dal.DB.InsertLPWithSeqNumAndMethodType(lp, token.Token.Symbol, token.Token.Address, amt, strconv.Itoa(int(seqNum)), chainId, uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum, uint64(request.GetMethodType()))
 		if err != nil {
 			_ = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(types.LPHistoryStatus_LP_FAILED), lp)
 			return &webapi.WithdrawLiquidityResponse{
@@ -371,6 +371,7 @@ func (gs *GatewayService) LPHistory(ctx context.Context, request *webapi.LPHisto
 			Status:      lp.Status,
 			Type:        lp.LpType,
 			SeqNum:      lp.SeqNum,
+			MethodType:  lp.MethodType,
 		})
 	}
 	return &webapi.LPHistoryResponse{

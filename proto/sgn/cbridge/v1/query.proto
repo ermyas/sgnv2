@@ -38,14 +38,11 @@ message ChainTokensConfigRequest {
 }
 
 message ChainTokensConfigResponse {
-    map<string, Assets> chain_tokens = 2; //map<chain_id, Assets>, chain_id is a numeric string
+    map<string, Tokens> chain_tokens = 2; //map<chain_id, Tokens>, chain_id is a numeric string
 }
 
-message Assets {
-    repeated AssetPerChain assets = 1;
-}
-message AssetPerChain {
-    Token token = 1;
+message Tokens {
+    repeated Token tokens = 1;
     string contract_addr = 2;
     uint32 block_delay = 3;
 }
@@ -136,6 +133,7 @@ message Token {
     string symbol = 1; // upper case symbol
     string address = 2;
     int32 decimal = 3;
+    bool xfer_disabled = 4; // if set to true, won't relay if this asset is src or dest
 }
 
 enum LPHistoryStatus {

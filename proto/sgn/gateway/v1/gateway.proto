@@ -35,6 +35,13 @@ service Web {
     };
     }
 
+    // get chain and token info
+    rpc GetTokenInfo (GetTokenInfoRequest) returns (GetTokenInfoResponse) {
+        option (google.api.http) = {
+      get: "/v1/getTokenInfo"
+    };
+    }
+
     // estimate transfer fee
     rpc EstimateAmt (EstimateAmtRequest) returns (EstimateAmtResponse) {
         option (google.api.http) = {
@@ -189,6 +196,7 @@ message Chain {
     string gas_token_symbol = 5;
     string explore_url = 6;
     string rpc_url = 7;
+    string contract_addr = 8; // bridge contract addr
 }
 
 message ChainTokenInfo {
@@ -199,7 +207,6 @@ message TokenInfo {
     cbridge.v1.Token token = 1;
     string name = 2;
     string icon = 3;
-    string contract_addr = 4; // contract addr
 }
 
 message TransferInfo {
@@ -252,6 +259,20 @@ message GetTransferConfigsResponse {
     repeated Chain chains = 2;
     map<uint32, ChainTokenInfo> chain_token = 3; //map<chain_id, ChainTokenInfo>
     string farming_reward_contract_addr = 4;
+}
+
+
+message GetTokenInfoRequest {
+    uint32 chain_id = 1;
+    oneof token_type {
+        string token_symbol = 2;
+        string token_addr = 3;
+    }
+}
+
+message GetTokenInfoResponse {
+    ErrMsg err = 1;
+    TokenInfo token_info = 2;
 }
 
 message EstimateAmtRequest {
@@ -338,6 +359,7 @@ message WithdrawLiquidityRequest {
     bytes withdraw_req = 1; // seralized WithdrawReq in sgn/cbridge/v1/tx.proto
     bytes sig = 2;
     string estimated_received_amt = 3; // on dst chain
+    WithdrawMethodType method_type = 4; // record which type it is
 }
 
 message WithdrawLiquidityResponse {
@@ -409,6 +431,7 @@ message LPHistory {
     cbridge.v1.LPHistoryStatus status = 6;
     LPType type = 7;
     uint64 seq_num = 8;
+    WithdrawMethodType method_type = 9;
 }
 
 message TransferHistoryRequest {
@@ -500,6 +523,13 @@ message GetStakingRewardDetailsResponse {
     distribution.v1.StakingRewardClaimInfo detail = 2;
 }
 
+enum WithdrawMethodType {
+    WD_METHOD_TYPE_UNDEFINED = 0;
+    WD_METHOD_TYPE_ONE_RM = 1; // for lp one chain liquidity remove
+    WD_METHOD_TYPE_ALL_IN_ONE = 2; // for lp multi-chain -> one chain liquidity remove
+    WD_METHOD_TYPE_STAKING_CLAIM = 3; // for staking claim lp reward, these entries will not be shown in lp history
+}
+
 message ErrMsg {
     ErrCode code = 1;
     string msg = 2;
@@ -509,4 +539,5 @@ enum ErrCode {
     ERROR_CODE_UNDEFINED = 0;
     ERROR_CODE_COMMON = 500;
     ERROR_NO_TOKEN_ON_DST_CHAIN = 1001;
+    ERROR_NO_TOKEN_ON_SRC_CHAIN = 1002;
 }

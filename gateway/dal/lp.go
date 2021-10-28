@@ -9,6 +9,16 @@ import (
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 )
 
+func (d *DAL) InsertLPWithSeqNumAndMethodType(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum, methodType uint64) error {
+	q := `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num, withdraw_method_type)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
+	res, err := d.Exec(q, usrAddr, chainId, tokenSymbol, tokenAddr, amt, txHash, now(), now(), status, lpType, seqNum, methodType)
+	if err != nil {
+		log.Errorf("db err:%+v", err)
+	}
+	return sqldb.ChkExec(res, err, 1, "UpsertLPWithMethodType")
+}
+
 func (d *DAL) UpsertLPWithSeqNum(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum uint64) error {
 	q := `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (usr_addr, chain_id, seq_num, lp_type) DO UPDATE
@@ -109,10 +119,11 @@ type LP struct {
 	LpType      webapi.LPType
 	SeqNum      uint64
 	Addr        string
+	MethodType  webapi.WithdrawMethodType
 }
 
 func (d *DAL) PaginateLpHistory(sender string, end time.Time, size uint64) ([]*LP, int, time.Time, error) {
-	q := "SELECT chain_id, token_symbol, amt, tx_hash, create_time, status, lp_type, seq_num, usr_addr FROM lp WHERE usr_addr = $1 and create_time < $3 order by create_time desc limit $2"
+	q := "SELECT chain_id, token_symbol, amt, tx_hash, create_time, status, lp_type, seq_num, usr_addr, withdraw_method_type FROM lp WHERE usr_addr = $1 and create_time < $3 and withdraw_method_type in (1,2) order by create_time desc limit $2"
 	rows, err := d.Query(q, sender, size, end)
 	if err != nil {
 		return nil, 0, time.Unix(0, 0), err
@@ -121,11 +132,11 @@ func (d *DAL) PaginateLpHistory(sender string, end time.Time, size uint64) ([]*L
 
 	var tps []*LP
 	var txHash, tokenSymbol, amt, addr string
-	var chainId, status, lpType, seqnum uint64
+	var chainId, status, lpType, seqnum, methodType uint64
 	var ct time.Time
 	minTime := now()
 	for rows.Next() {
-		err = rows.Scan(&chainId, &tokenSymbol, &amt, &txHash, &ct, &status, &lpType, &seqnum, &addr)
+		err = rows.Scan(&chainId, &tokenSymbol, &amt, &txHash, &ct, &status, &lpType, &seqnum, &addr, &methodType)
 		if err != nil {
 			return nil, 0, time.Unix(0, 0), err
 		}
@@ -140,6 +151,7 @@ func (d *DAL) PaginateLpHistory(sender string, end time.Time, size uint64) ([]*L
 			LpType:      webapi.LPType(lpType),
 			SeqNum:      seqnum,
 			Addr:        addr,
+			MethodType:  webapi.WithdrawMethodType(methodType),
 		}
 		if minTime.After(ct) {
 			minTime = ct
