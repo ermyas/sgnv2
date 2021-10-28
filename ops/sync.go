@@ -13,8 +13,11 @@ import (
 	"github.com/celer-network/sgn-v2/transactor"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	"github.com/cosmos/cosmos-sdk/client"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -26,6 +29,8 @@ import (
 const (
 	FlagChainId = "chainid"
 	FlagTxHash  = "txhash"
+	FlagValAddr = "valaddr"
+	FlagDelAddr = "deladdr"
 )
 
 var (
@@ -47,34 +52,101 @@ func GetSyncCmd() *cobra.Command {
 
 	cmd.AddCommand(common.PostCommands(
 		GetSyncSigners(),
-		GetSyncEvent(),
+		GetSyncCbrEvent(),
+		GetSyncStaking(),
 	)...)
-
-	cmd.PersistentFlags().Uint64Var(&chainid, FlagChainId, 0, "which chainid to query tx hash")
-	cmd.PersistentFlags().StringVar(&txhash, FlagTxHash, "", "tx hash, will parse last event")
-	cmd.MarkPersistentFlagRequired(FlagChainId)
-	cmd.MarkPersistentFlagRequired(FlagTxHash)
 
 	return cmd
 }
 
-func GetSyncEvent() *cobra.Command {
+func GetSyncSigners() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "event",
-		Short: "Sync event from onchain, automatically figure out which event based on elog",
+		Use:   "signers",
+		Short: "Sync signers from onchain",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`
 Example:
-$ %s ops sync event --chainid=883 --txhash="xxxxx"
+$ %s ops sync signers --chainid=883 --txhash="0xxx"
 `,
 				version.AppName,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			setup()
+			setupCbr()
+
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
 
 			elog := *txReceipt.Logs[len(txReceipt.Logs)-1]
-			evname, ev := parseEvAndName(cbr.contract, elog)
+			ev, err := cbr.contract.ParseSignersUpdated(elog)
+			if err != nil {
+				log.Errorf("ParseSignersUpdated err: %s", err)
+				return err
+			}
+
+			// check in store
+			storedChainSigners, err := cbrcli.QueryChainSigners(cliCtx, chainid)
+			if err != nil && !strings.Contains(err.Error(), "record not found") {
+				log.Errorf("QueryChainSigners err: %s", err)
+				return err
+			}
+
+			if storedChainSigners != nil && relayer.EqualSigners(storedChainSigners.GetSortedSigners(), ev) {
+				log.Infof("Signers already updated")
+				return nil
+			}
+
+			// check on chain
+			ssHash, err := cbr.contract.SsHash(&bind.CallOpts{})
+			if err != nil {
+				log.Errorf("query ssHash err: %s", err)
+				return err
+			}
+			curssHash := eth.Bytes2Hash(crypto.Keccak256(eth.SignerBytes(ev.Signers, ev.Powers)))
+			if curssHash != ssHash {
+				log.Errorf("curss hash %x not match onchain values: %x", curssHash, ssHash)
+				return err
+			}
+
+			err = sendCbrOnchainEvent(cliCtx, chainid, cbrtypes.CbrEventSignersUpdated, elog)
+			if err != nil {
+				log.Errorf("sendCbrOnchainEvent err: %s", err)
+				return err
+			}
+			return nil
+		},
+	}
+
+	cmd.Flags().Uint64Var(&chainid, FlagChainId, 0, "which chainid to query tx hash")
+	cmd.Flags().StringVar(&txhash, FlagTxHash, "", "tx hash, will parse last event")
+	cmd.MarkFlagRequired(FlagChainId)
+	cmd.MarkFlagRequired(FlagTxHash)
+
+	return cmd
+}
+
+func GetSyncCbrEvent() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "event",
+		Short: "Sync bridge event from onchain, automatically figure out which event based on elog",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`
+Example:
+$ %s ops sync event --chainid=883 --txhash="0xxx"
+`,
+				version.AppName,
+			),
+		),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			setupCbr()
+
+			elog := *txReceipt.Logs[len(txReceipt.Logs)-1]
+			evname, ev := parseCbrEvAndName(cbr.contract, elog)
+			if ev == nil {
+				log.Fatalf("not a valid bridge event tx: %s", txhash)
+			}
 			log.Info(ev.PrettyLog(chainid))
 			cliCtx, err := client.GetClientQueryContext(cmd)
 			if err != nil {
@@ -94,10 +166,165 @@ $ %s ops sync event --chainid=883 --txhash="xxxxx"
 		},
 	}
 
+	cmd.Flags().Uint64Var(&chainid, FlagChainId, 0, "which chainid to query tx hash")
+	cmd.Flags().StringVar(&txhash, FlagTxHash, "", "tx hash, will parse last event")
+	cmd.MarkFlagRequired(FlagChainId)
+	cmd.MarkFlagRequired(FlagTxHash)
+
 	return cmd
 }
 
-func setup() {
+func GetSyncStaking() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "staking",
+		Short: "Sync latest staking info from onchain of the given validator addr. Delegation info will be synced also if delegator addr is provided.",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`
+Example:
+$ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
+`,
+				version.AppName,
+			),
+		),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			valAddr := viper.GetString(FlagValAddr)
+
+			ethClient, err := newEthClient()
+			if err != nil {
+				log.Fatal("newEthClient err:", err)
+			}
+
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			storeVal, err := stakingcli.QueryValidator(cliCtx, valAddr)
+			if err != nil {
+				return err
+			}
+			if storeVal == nil {
+				log.Errorf("store validator info not exists, valAddr %s", valAddr)
+				return fmt.Errorf("store validator info not exists, valAddr %s", valAddr)
+			}
+
+			updates := make([]*synctypes.ProposeUpdate, 0)
+
+			// 1. compare validator sgn addr
+			log.Infoln("check sgn addr")
+			sgnAddr, err := ethClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, common.Hex2Addr(valAddr))
+			if err != nil {
+				log.Errorf("Failed to query contract sgn address err: %s", err)
+				return err
+			}
+			if !storeVal.GetSgnAddr().Equals(sdk.AccAddress(sgnAddr)) {
+				log.Infoln("sgn addr needs update")
+				updateVal := &stakingtypes.Validator{
+					EthAddress: valAddr,
+					SgnAddress: sdk.AccAddress(sgnAddr).String(),
+				}
+				updates = append(updates, &synctypes.ProposeUpdate{
+					Type: synctypes.DataType_ValidatorSgnAddr,
+					Data: cliCtx.Codec.MustMarshal(updateVal),
+				})
+			} else {
+				log.Infoln("sgn addr needs no update")
+			}
+
+			// 2. compare validator params
+			log.Infoln("check validator params")
+			ethVal, err := ethClient.Contracts.Staking.Validators(&bind.CallOpts{}, common.Hex2Addr(valAddr))
+			if err != nil {
+				log.Errorf("Failed to query contract validator info: %s", err)
+				return err
+			}
+			if eth.Addr2Hex(ethVal.Signer) != storeVal.EthSigner ||
+				!sdk.NewDec(int64(ethVal.CommissionRate)).QuoInt64(eth.CommissionRateBase).Equal(storeVal.CommissionRate) {
+				log.Infoln("validator params needs update")
+				updateVal := &stakingtypes.Validator{
+					EthAddress:      valAddr,
+					EthSigner:       eth.Addr2Hex(ethVal.Signer),
+					SgnAddress:      sdk.AccAddress(sgnAddr).String(),
+					ConsensusPubkey: storeVal.ConsensusPubkey,
+					CommissionRate:  sdk.NewDec(int64(ethVal.CommissionRate)).QuoInt64(eth.CommissionRateBase),
+				}
+
+				updates = append(updates, &synctypes.ProposeUpdate{
+					Type: synctypes.DataType_ValidatorParams,
+					Data: cliCtx.Codec.MustMarshal(updateVal),
+				})
+			} else {
+				log.Infoln("validator params needs no update")
+			}
+
+			// 3. compare validator status
+			log.Infoln("check validator status")
+			if stakingtypes.BondStatus(ethVal.Status) != storeVal.Status ||
+				!sdk.NewIntFromBigInt(ethVal.Tokens).Equal(storeVal.Tokens) ||
+				!sdk.NewIntFromBigInt(ethVal.Shares).Equal(storeVal.DelegatorShares) {
+				log.Infoln("validator status needs update")
+				updateVal := &stakingtypes.Validator{
+					EthAddress:      valAddr,
+					Status:          stakingtypes.BondStatus(ethVal.Status),
+					Tokens:          sdk.NewIntFromBigInt(ethVal.Tokens),
+					DelegatorShares: sdk.NewIntFromBigInt(ethVal.Shares),
+				}
+
+				updates = append(updates, &synctypes.ProposeUpdate{
+					Type: synctypes.DataType_ValidatorStates,
+					Data: cliCtx.Codec.MustMarshal(updateVal),
+				})
+			} else {
+				log.Infoln("validator status needs no update")
+			}
+
+			// 4. compare delegation info
+			delAddr := viper.GetString(FlagDelAddr)
+			if delAddr != "" {
+				log.Infoln("check delegator shares")
+				ethDel, err := ethClient.Contracts.Staking.GetDelegatorInfo(&bind.CallOpts{}, common.Hex2Addr(valAddr), common.Hex2Addr(delAddr))
+				if err != nil {
+					log.Errorf("failed to query delegator info err: %s", err)
+					return nil
+				}
+
+				updateDel := &stakingtypes.Delegation{
+					DelegatorAddress: delAddr,
+					ValidatorAddress: valAddr,
+					Shares:           sdk.NewIntFromBigInt(ethDel.Shares),
+				}
+
+				storeDel, _ := stakingcli.QueryDelegation(cliCtx, valAddr, delAddr)
+
+				if storeDel == nil || !updateDel.Shares.Equal(storeDel.Shares) {
+					log.Infoln("delegator shares needs update")
+					updates = append(updates, &synctypes.ProposeUpdate{
+						Type: synctypes.DataType_DelegatorShares,
+						Data: cliCtx.Codec.MustMarshal(updateDel),
+					})
+				} else {
+					log.Infoln("delegator shares needs no update")
+				}
+			}
+
+			if len(updates) > 0 {
+				err = sendSgnTxMsg(cliCtx, updates)
+				if err != nil {
+					log.Errorf("sendSgnTxMsg err: %s", err)
+					return err
+				}
+			}
+			return nil
+		},
+	}
+
+	cmd.Flags().String(FlagValAddr, "", "validator address, required")
+	cmd.Flags().String(FlagDelAddr, "", "delagator address, optional. must be presented when sync delegation info")
+	cmd.MarkFlagRequired(FlagValAddr)
+
+	return cmd
+}
+
+func setupCbr() {
 	var err error
 	cbr, err = newOneChain(chainid)
 	if err != nil {
@@ -118,7 +345,7 @@ for evname, v := range cbrabi.Events {
 	}
 }
 */
-func parseEvAndName(cbr *cbrContract, elog ethtypes.Log) (string, hasPrettyLog) {
+func parseCbrEvAndName(cbr *cbrContract, elog ethtypes.Log) (string, hasPrettyLog) {
 	var ev hasPrettyLog
 	ev, err := cbr.ParseLiquidityAdded(elog)
 	if err == nil {
@@ -188,70 +415,22 @@ type hasPrettyLog interface {
 	PrettyLog(uint64) string
 }
 
-func GetSyncSigners() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "signers",
-		Short: "Sync signers from onchain",
-		Long: strings.TrimSpace(
-			fmt.Sprintf(`
-Example:
-$ %s ops sync signers --chainid=883 --txhash="xxxxx"
-`,
-				version.AppName,
-			),
-		),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			setup()
-
-			cliCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
-
-			elog := *txReceipt.Logs[len(txReceipt.Logs)-1]
-			ev, err := cbr.contract.ParseSignersUpdated(elog)
-			if err != nil {
-				log.Errorf("ParseSignersUpdated err: %s", err)
-				return err
-			}
-
-			// check in store
-			storedChainSigners, err := cbrcli.QueryChainSigners(cliCtx, chainid)
-			if err != nil && !strings.Contains(err.Error(), "record not found") {
-				log.Errorf("QueryChainSigners err: %s", err)
-				return err
-			}
-
-			if storedChainSigners != nil && relayer.EqualSigners(storedChainSigners.GetSortedSigners(), ev) {
-				log.Infof("Signers already updated")
-				return nil
-			}
-
-			// check on chain
-			ssHash, err := cbr.contract.SsHash(&bind.CallOpts{})
-			if err != nil {
-				log.Errorf("query ssHash err: %s", err)
-				return err
-			}
-			curssHash := eth.Bytes2Hash(crypto.Keccak256(eth.SignerBytes(ev.Signers, ev.Powers)))
-			if curssHash != ssHash {
-				log.Errorf("curss hash %x not match onchain values: %x", curssHash, ssHash)
-				return err
-			}
-
-			err = sendCbrOnchainEvent(cliCtx, chainid, cbrtypes.CbrEventSignersUpdated, elog)
-			if err != nil {
-				log.Errorf("sendCbrOnchainEvent err: %s", err)
-				return err
-			}
-			return nil
-		},
+func sendCbrOnchainEvent(cliCtx client.Context, chainid uint64, evtype string, elog ethtypes.Log) error {
+	elogJson, _ := json.Marshal(elog)
+	onchev := &cbrtypes.OnChainEvent{
+		Chainid: chainid,
+		Evtype:  evtype,
+		Elog:    elogJson,
 	}
-
-	return cmd
+	data, _ := onchev.Marshal()
+	return sendSgnTxMsg(cliCtx, []*synctypes.ProposeUpdate{{
+		Type:    synctypes.DataType_CbrOnchainEvent,
+		ChainId: chainid,
+		Data:    data,
+	}})
 }
 
-func sendCbrOnchainEvent(cliCtx client.Context, chainid uint64, evtype string, elog ethtypes.Log) error {
+func sendSgnTxMsg(cliCtx client.Context, updates []*synctypes.ProposeUpdate) error {
 	txr, err := transactor.NewTransactor(
 		cliCtx.HomeDir,
 		viper.GetString(common.FlagSgnChainId),
@@ -272,18 +451,7 @@ func sendCbrOnchainEvent(cliCtx client.Context, chainid uint64, evtype string, e
 		Updates: make([]*synctypes.ProposeUpdate, 0),
 	}
 
-	elogJson, _ := json.Marshal(elog)
-	onchev := &cbrtypes.OnChainEvent{
-		Chainid: chainid,
-		Evtype:  evtype,
-		Elog:    elogJson,
-	}
-	data, _ := onchev.Marshal()
-	msg.Updates = append(msg.Updates, &synctypes.ProposeUpdate{
-		Type:    synctypes.DataType_CbrOnchainEvent,
-		ChainId: chainid,
-		Data:    data,
-	})
+	msg.Updates = append(msg.Updates, updates...)
 
 	txr.CliSendTxMsgWaitMined(msg)
 	return nil
