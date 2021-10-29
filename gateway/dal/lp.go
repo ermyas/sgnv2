@@ -57,12 +57,8 @@ func (d *DAL) UpdateLPStatus(seqNum, lpType, chainId uint64, lpAddr string, stat
 }
 
 func (d *DAL) UpdateLPStatusForWithdraw(chainId, seqNum, status uint64, lpAddr string) error {
-	q := `UPDATE lp SET status=$4, update_time=$5 WHERE seq_num = $1 and chain_id = $2 and usr_addr = $3 and lp_type in (2,3)`
-	res, err := d.Exec(q, seqNum, chainId, lpAddr, status, now())
-	if err != nil {
-		log.Errorf("UpdateLPStatus error:%+v", err)
-	}
-	return sqldb.ChkExec(res, err, 1, "UpdateLPStatusForWithdraw")
+	lpType := uint64(webapi.LPType_LP_TYPE_REMOVE)
+	return d.UpdateLPStatus(seqNum, lpType, chainId, lpAddr, status)
 }
 
 func (d *DAL) GetLPInfo(seqNum, lpType, chainId uint64, lpAddr string) (string, uint64, time.Time, bool, error) {
@@ -77,8 +73,8 @@ func (d *DAL) GetLPInfo(seqNum, lpType, chainId uint64, lpAddr string) (string, 
 
 func (d *DAL) HasSeqNumUsedForWithdraw(seqNum uint64, lpAddr string) bool {
 	var cnt uint64
-	q := `SELECT count(1) FROM lp WHERE seq_num = $1 and usr_addr = $2 and lp_type in (2,3)`
-	err := d.QueryRow(q, seqNum, lpAddr).Scan(&cnt)
+	q := `SELECT count(1) FROM lp WHERE seq_num = $1 and usr_addr = $2 and lp_type = $3`
+	err := d.QueryRow(q, seqNum, lpAddr, uint64(webapi.LPType_LP_TYPE_REMOVE)).Scan(&cnt)
 	if err != nil {
 		log.Errorf("run sql HasSeqNumUsedForWithdraw failed, err%+v", err)
 		return true
