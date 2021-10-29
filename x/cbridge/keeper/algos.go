@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
@@ -16,7 +17,7 @@ import (
 const (
 	Epsilon float64 = 0.00001 // used to replace 0 so no div by 0 error
 
-	DefaultPickLpSize uint32 = 100 // if pick lp size isn't set in cbrConfig, use this instead
+	DefaultPickLpSize uint32 = 1000 // if pick lp size isn't set in cbrConfig, use this instead
 )
 
 // various algorithms eg. compute dest chain token
@@ -56,6 +57,7 @@ func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmo
 	if isZero(destLiqSum) {
 		return ret // no liq on dest chain
 	}
+	log.Infoln("srcLiqSum:", srcLiqSum, "destLiqSum:", destLiqSum)
 	y := amt2float(destLiqSum, dest.Decimal) // y can't be 0
 
 	D := solveD(A, x, y, m, n)
@@ -91,8 +93,9 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 	if isPos(sgnFee) {
 		k.AddSgnFee(ctx, kv, dest.ChId, dest.TokenAddr, sgnFee)
 	}
-
+	start := time.Now()
 	pickedLPs, useByRatio := pickLPs(kv, dest.ChId, dest.TokenAddr, sender, destAmount, lpPre)
+	log.Infoln("perfxxx picked", len(pickedLPs), "lps, byratio:", useByRatio, "took:", time.Since(start))
 	if sumLiq(pickedLPs).Cmp(destAmount) == -1 {
 		panic("not enough liq") // todo: return err or set xfer to bad_liq
 	}
@@ -114,6 +117,7 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 			lpIdx := searchInts(wtList, rand.Int63n(totalWt)+1)
 			lpIdx = nextNonZeroLp(pickedLPs, lpIdx)
 			negAmt, srcAdd := k.updateOneLP(ctx, kv, src, dest, pickedLPs[lpIdx], toAllocate, totalLpFee, srcAmount, destAmount)
+			log.Infoln("use lp:", pickedLPs[lpIdx].AddrHex, negAmt)
 			totalDestNeg.Add(totalDestNeg, negAmt) // negative!
 			totalSrcAdd.Add(totalSrcAdd, srcAdd)
 			if isZero(toAllocate) {
@@ -124,6 +128,7 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 		// from first in pickedLPs, one by one
 		for _, lp := range pickedLPs {
 			negAmt, srcAdd := k.updateOneLP(ctx, kv, src, dest, lp, toAllocate, totalLpFee, srcAmount, destAmount)
+			log.Infoln("use lp:", lp.AddrHex, negAmt)
 			totalDestNeg.Add(totalDestNeg, negAmt) // negative!
 			totalSrcAdd.Add(totalSrcAdd, srcAdd)
 			if isZero(toAllocate) {
@@ -152,6 +157,7 @@ func (k Keeper) updateOneLP(ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdT
 		used.Set(lp.AmtInt)
 		toAllocate.Sub(toAllocate, used)
 	}
+	lp.AmtInt.Sub(lp.AmtInt, used) // so this won't be picked again
 	// fee = totalFee * used/destAmt
 	earnedFee := new(big.Int).Mul(used, totalLpFee)
 	earnedFee.Div(earnedFee, destAmount)
@@ -269,6 +275,7 @@ func pickLPs(kv sdk.KVStore, dstchid uint64, dstToken, sender eth.Addr, destAmou
 // caller need to check return value to handle 2 cases.
 func pickLpTillSize(kv sdk.KVStore, begin, end []byte, size int, sender string) (picked []*AddrHexAmtInt, iter sdk.Iterator) {
 	iter = kv.Iterator(begin, end)
+	log.Infoln("pickTillSize:", string(begin), string(end), size)
 	for ; iter.Valid(); iter.Next() {
 		amt := new(big.Int).SetBytes(iter.Value())
 		if isPos(amt) {
@@ -294,6 +301,7 @@ func pickLpTillSize(kv sdk.KVStore, begin, end []byte, size int, sender string) 
 // iter till end and if liqsum >= expSum, return early
 func pickLpTillSum(iter sdk.Iterator, expSum *big.Int, sender string) (picked []*AddrHexAmtInt, actualSum *big.Int) {
 	actualSum = new(big.Int)
+	log.Infoln("pickTillSum:", expSum)
 	for ; iter.Valid(); iter.Next() {
 		amt := new(big.Int).SetBytes(iter.Value())
 		if isPos(amt) {

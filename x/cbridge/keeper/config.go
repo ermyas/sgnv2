@@ -24,8 +24,12 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 	// todo: iter and del all cfg-xxx key/val if we're removing asset
 	// but this may be VERY unlikely, also need to take care of past xfers
 	// go over asset and set ch2sym and sym2info
+
+	// lp hack for scalability test
+	// chidTokenMap := make(map[uint64]eth.Addr) // only support one asset
 	for _, asset := range cfg.Assets {
 		addr := eth.Hex2Addr(asset.Addr)
+		// chidTokenMap[asset.ChainId] = addr
 		sym := strings.ToUpper(asset.Symbol)
 		kv.Set(types.CfgKeyChain2Sym(asset.ChainId, addr), []byte(sym))
 		raw, _ := asset.Marshal()
@@ -34,11 +38,29 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 	for _, chpair := range cfg.ChainPairs {
 		raw, _ := chpair.Marshal()
 		kv.Set(types.CfgKeyChainPair(chpair.Chid1, chpair.Chid2), raw)
+		// SetLPs(kv, chpair.Chid1, chidTokenMap[chpair.Chid1])
+		// SetLPs(kv, chpair.Chid2, chidTokenMap[chpair.Chid2])
 	}
 	for _, param := range cfg.GetRelayGasCost() {
 		SetRelayGasCostParam(kv, param)
 	}
 }
+
+/*
+func SetLPs(kv sdk.KVStore, chid uint64, token eth.Addr) {
+	lpCnt := 65535
+	perLpAmt := big.NewInt(1e8)
+	lmKeyStr := fmt.Sprintf("lm-%d-%x-%x", chid, token, eth.ZeroAddr)
+	amt := perLpAmt.Bytes() // $100 per lp
+	lpAddrBegin := len(lmKeyStr) - 40
+	for i := 1; i < lpCnt; i++ {
+		lmKey := []byte(lmKeyStr)
+		copy(lmKey[lpAddrBegin:], []byte(fmt.Sprintf("%02x", i)))
+		kv.Set(lmKey, amt)
+	}
+	kv.Set(types.LiqSumKey(chid, token), new(big.Int).Mul(perLpAmt, big.NewInt(int64(lpCnt))).Bytes())
+}
+*/
 
 func (k Keeper) SetCbrPrice(ctx sdk.Context, cfg *types.CbrPrice) {
 	kv := ctx.KVStore(k.storeKey)

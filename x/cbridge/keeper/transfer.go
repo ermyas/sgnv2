@@ -2,7 +2,9 @@ package keeper
 
 import (
 	"math/big"
+	"time"
 
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -54,7 +56,6 @@ func (k Keeper) transfer(
 		status = types.XferStatus_BAD_XFER_DISABLED
 		return
 	}
-
 	// now we need to decide if this send can be completed by sgn, eg. has enough liquidity on dest chain etc
 	destAmount := CalcEqualOnDestChain(kv,
 		&ChainIdTokenDecimal{
@@ -98,7 +99,9 @@ func (k Keeper) transfer(
 
 	// pick LPs, minus each's destChain liquidity, add src liquidity
 	// this func DOESN'T care baseFee BY DESIGN!
+	start := time.Now()
 	k.PickLPsAndAdjustLiquidity(ctx, kv, src, dest, amount, destAmount, percFee, destToken.Decimal, lpSender, startLpPre)
+	log.Info("perfxxx pickLPs took: ", time.Since(start))
 	// baseFee goes to sgn, if we ever want to support accurate baseFee attribution,
 	// we need to save baseFee in relay detail, and upon seeing the relay event, figure out
 	// its sender and add to that address. Note there is no way we can make baseFee equal the actual
