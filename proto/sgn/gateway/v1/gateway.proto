@@ -138,22 +138,6 @@ service Web {
     };
     }
 
-    // configs api
-
-    rpc UpdateChain (UpdateChainRequest) returns (UpdateChainResponse) {
-        option (google.api.http) = {
-      post: "/v1/config/updateChain"
-      body: "*"
-    };
-    }
-
-    rpc UpdateToken (UpdateTokenRequest) returns (UpdateTokenResponse) {
-        option (google.api.http) = {
-      post: "/v1/config/updateToken"
-      body: "*"
-    };
-    }
-
     // staking api
     rpc StakingConfig (StakingConfigRequest) returns (StakingConfigResponse) {
         option (google.api.http) = {
@@ -173,6 +157,21 @@ service Web {
     rpc GetStakingRewardDetails (GetStakingRewardDetailsRequest) returns (GetStakingRewardDetailsResponse) {
         option (google.api.http) = {
       get: "/v1/staking/getStakingRewardDetails"
+    };
+    }
+
+    // configs api, apis in these service need sign valid addr
+    rpc UpdateChain (UpdateChainRequest) returns (UpdateChainResponse) {
+        option (google.api.http) = {
+      post: "/v1/config/updateChain"
+      body: "*"
+    };
+    }
+
+    rpc UpdateToken (UpdateTokenRequest) returns (UpdateTokenResponse) {
+        option (google.api.http) = {
+      post: "/v1/config/updateToken"
+      body: "*"
     };
     }
 }
@@ -475,6 +474,8 @@ message RewardingDataResponse {
 message UpdateChainRequest {
     Chain chain = 1;
     string tx_url_prefix = 2;
+    bytes sig = 3;
+    string addr = 4;
 }
 
 message UpdateChainResponse {
@@ -488,6 +489,8 @@ message UpdateTokenRequest {
     string token_symbol = 2;
     string token_name = 3;
     string token_icon = 4;
+    bytes sig = 5;
+    string addr = 6;
 }
 
 message UpdateTokenResponse {

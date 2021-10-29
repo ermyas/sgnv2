@@ -103,6 +103,14 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 	srcChainId := request.GetSrcChainId()
 	dstChainId := request.GetDstChainId()
 	tokenSymbol := request.GetTokenSymbol()
+	if srcChainId == dstChainId {
+		return &webapi.EstimateAmtResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "src chain can not be the same with dst chain",
+			},
+		}, nil
+	}
 	srcToken, found1, err1 := dal.DB.GetTokenBySymbolForTransfer(tokenSymbol, uint64(srcChainId))
 	if err1 != nil || !found1 {
 		return &webapi.EstimateAmtResponse{

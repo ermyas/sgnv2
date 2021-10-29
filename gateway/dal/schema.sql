@@ -93,3 +93,7 @@ CREATE TABLE IF NOT EXISTS claim_withdraw_reward_log (
      create_time TIMESTAMPTZ NOT NULL DEFAULT now(),
      PRIMARY KEY (usr_addr, create_time)
 );
+
+CREATE TABLE IF NOT EXISTS admin_addr (
+     addr TEXT PRIMARY KEY NOT NULL
+);

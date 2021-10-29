@@ -2,11 +2,22 @@ package gatewaysvc
 
 import (
 	"context"
+	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func (gs *GatewayService) UpdateChain(ctx context.Context, request *webapi.UpdateChainRequest) (*webapi.UpdateChainResponse, error) {
+	if !checkSigner(common.Hex2Addr(request.GetAddr()).Bytes(), request.Sig) {
+		return &webapi.UpdateChainResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "invalid addr to update chain",
+			},
+		}, nil
+	}
 	chainInput := request.GetChain()
 	chainId := uint64(chainInput.GetId())
 
@@ -55,6 +66,14 @@ func (gs *GatewayService) UpdateChain(ctx context.Context, request *webapi.Updat
 }
 
 func (gs *GatewayService) UpdateToken(ctx context.Context, request *webapi.UpdateTokenRequest) (*webapi.UpdateTokenResponse, error) {
+	if !checkSigner(common.Hex2Addr(request.GetAddr()).Bytes(), request.Sig) {
+		return &webapi.UpdateTokenResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "invalid addr to update token",
+			},
+		}, nil
+	}
 	chainId := uint64(request.GetChainId())
 	tokenSymbol := request.GetTokenSymbol()
 	if chainId == 0 || tokenSymbol == "" {
@@ -89,4 +108,31 @@ func (gs *GatewayService) UpdateToken(ctx context.Context, request *webapi.Updat
 	return &webapi.UpdateTokenResponse{
 		Token: tokenInDb,
 	}, nil
+}
+
+func checkSigner(data []byte, sig []byte) bool {
+	if len(sig) == 65 { // we could return zeroAddr if len not 65
+		if sig[64] == 27 || sig[64] == 28 {
+			// SigToPub only expect v to be 0 or 1,
+			// see https://github.com/ethereum/go-ethereum/blob/v1.8.23/internal/ethapi/api.go#L468.
+			// we've been ok as our own code only has v 0 or 1, but using external signer may cause issue
+			// we also fix v in celersdk.PublishSignedResult to be extra safe
+			sig[64] -= 27
+		}
+	}
+	pubKey, err := crypto.SigToPub(generatePrefixedHash(data), sig)
+	if err != nil {
+		log.Error("RecoverSigner err:", err)
+		return false
+	}
+	recoveredAddr := crypto.PubkeyToAddress(*pubKey)
+	checked := dal.DB.IsAdminAddrValid(recoveredAddr.String())
+	if !checked {
+		log.Errorf("error addr:%s to use admin api:", recoveredAddr)
+	}
+	return checked
+}
+
+func generatePrefixedHash(data []byte) []byte {
+	return crypto.Keccak256([]byte("\x19Ethereum Signed Message:\n32"), crypto.Keccak256(data))
 }

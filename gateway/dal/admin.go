@@ -63,3 +63,14 @@ func (d *DAL) CalcCampaignScore() ([]*CampaignScore, error) {
 	}
 	return res, nil
 }
+
+func (d *DAL) IsAdminAddrValid(addr string) bool {
+	var cnt uint64
+	q := `SELECT count(1) FROM admin_addr WHERE addr = $1`
+	err := d.QueryRow(q, addr).Scan(&cnt)
+	if err != nil {
+		log.Errorf("run sql HasAdminAddr failed, err%+v", err)
+		return false
+	}
+	return cnt > 0
+}

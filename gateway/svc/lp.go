@@ -10,7 +10,6 @@ import (
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
@@ -504,15 +503,4 @@ func (gs *GatewayService) updateLpStatusInHistory(lpHistory []*dal.LP) {
 			lp.Status = resp.GetStatus()
 		}
 	}
-}
-
-func checkSig(reqId uint64, sig []byte, addr common.Addr) error {
-	signAddr, err := ethutils.RecoverSigner(eth.ToPadBytes(reqId), sig)
-	if err != nil {
-		return err
-	}
-	if signAddr != addr {
-		return fmt.Errorf("error sig addr, sigAddr:%s, usrAddr:%s", signAddr.String(), addr.String())
-	}
-	return nil
 }
