@@ -17,7 +17,7 @@ func (k Keeper) AddCBridgeFeeShare(ctx sdk.Context, amount sdk.Coin) error {
 
 func (k Keeper) BurnCBridgeFeeShare(ctx sdk.Context, delAddr eth.Addr, amount sdk.Coin) error {
 	derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, delAddr)
-	err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, k.feeCollectorName, derivedAccAddress, sdk.NewCoins(amount))
+	err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, derivedAccAddress, k.feeCollectorName, sdk.NewCoins(amount))
 	if err != nil {
 		return err
 	}
