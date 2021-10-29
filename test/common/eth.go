@@ -217,7 +217,7 @@ func Undelegate(auth *bind.TransactOpts, valAddr eth.Addr, amt *big.Int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 
-	tx, err := Contracts.Staking.Undelegate(auth, valAddr, amt)
+	tx, err := Contracts.Staking.UndelegateTokens(auth, valAddr, amt)
 	if err != nil {
 		log.Error(err)
 		return err

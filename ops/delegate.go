@@ -101,7 +101,7 @@ func Undelegate() error {
 	_, err = ethClient.Transactor.TransactWaitMined(
 		"Undelegate",
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
-			return ethClient.Contracts.Staking.Undelegate(opts, validator, amount)
+			return ethClient.Contracts.Staking.UndelegateTokens(opts, validator, amount)
 		},
 	)
 	if err != nil {
