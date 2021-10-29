@@ -388,6 +388,7 @@ func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainI
 		DstChainId:   uint64(dstChainId),
 		SrcTokenAddr: srcToken.Token.GetAddress(),
 		Amt:          amt,
+		LpAddr:       addr,
 	})
 	if err != nil {
 		log.Warnf("cli.QueryFee error:%+v", err)
