@@ -264,10 +264,7 @@ message GetTransferConfigsResponse {
 
 message GetTokenInfoRequest {
     uint32 chain_id = 1;
-    oneof token_type {
-        string token_symbol = 2;
-        string token_addr = 3;
-    }
+    string token_symbol = 2;
 }
 
 message GetTokenInfoResponse {

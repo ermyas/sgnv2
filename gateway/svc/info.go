@@ -89,30 +89,30 @@ func (gs *GatewayService) GetTransferConfigs(ctx context.Context, request *webap
 
 func (gs *GatewayService) GetTokenInfo(ctx context.Context, request *webapi.GetTokenInfoRequest) (*webapi.GetTokenInfoResponse, error) {
 	chainId := uint64(request.GetChainId())
-	var token *webapi.TokenInfo
-	tokenFound := true
-	switch request.TokenType.(type) {
-	case *webapi.GetTokenInfoRequest_TokenSymbol:
-		tokenInDb, found, err := dal.DB.GetTokenBySymbol(request.GetTokenSymbol(), chainId)
-		if tokenInDb == nil || !found || err != nil {
-			tokenFound = false
-		}
-	case *webapi.GetTokenInfoRequest_TokenAddr:
-		tokenInDb, found, err := dal.DB.GetTokenByAddr(request.GetTokenAddr(), chainId)
-		if tokenInDb == nil || !found || err != nil {
-			tokenFound = false
-		}
-	}
-	if !tokenFound {
+	tokenInfo, found, err := dal.DB.GetTokenBySymbol(request.GetTokenSymbol(), chainId)
+	if tokenInfo != nil && found && err == nil {
 		return &webapi.GetTokenInfoResponse{
-			Err: &webapi.ErrMsg{
-				Code: webapi.ErrCode_ERROR_CODE_COMMON,
-				Msg:  "token not found",
-			}}, nil
+			TokenInfo: tokenInfo,
+		}, nil
+	}
+	// if bridge token not found, try to find reward token
+	token, found, err := dal.DB.GetRewardTokenBySymbol(request.GetTokenSymbol(), chainId)
+	if token != nil && found && err == nil {
+		tokenInfo = &webapi.TokenInfo{
+			Token: token,
+			Name:  token.Symbol,
+			Icon:  "",
+		}
+		enrichUnknownToken(tokenInfo)
+		return &webapi.GetTokenInfoResponse{
+			TokenInfo: tokenInfo,
+		}, nil
 	}
 	return &webapi.GetTokenInfoResponse{
-		TokenInfo: token,
-	}, nil
+		Err: &webapi.ErrMsg{
+			Code: webapi.ErrCode_ERROR_CODE_COMMON,
+			Msg:  "token not found",
+		}}, nil
 }
 
 func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.GetLPInfoListRequest) (*webapi.GetLPInfoListResponse, error) {
