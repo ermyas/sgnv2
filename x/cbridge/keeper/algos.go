@@ -24,7 +24,7 @@ const (
 // given src chain token amount, calculate how much token on dest chain
 // worth the same. pre-fee
 // note if decimals are different, extra careful
-func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmount *big.Int) *big.Int {
+func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmount *big.Int, lpAddr eth.Addr) *big.Int {
 	ret := new(big.Int)
 	if isNegOrZero(srcAmount) {
 		return ret
@@ -36,11 +36,23 @@ func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmo
 		return ret // 0 if not found chain pair
 	}
 	srcLiqSum := GetLiq(kv, src.ChainIdTokenAddr)
+	if lpAddr != eth.ZeroAddr { // internal LP transfer for cross-chain withdrawal
+		// caller need to make sure srcAmount <= srcLiqSum
+		srcLiqSum.Sub(srcLiqSum, srcAmount)
+		if srcLiqSum.Sign() < 0 {
+			log.Errorln("srcLiqSum err:", srcLiqSum, srcAmount)
+			return ret
+		}
+	}
 	x := Epsilon // if srcLiqSum is 0, use Epsilon to avoid div by 0
 	if isPos(srcLiqSum) {
 		x = amt2float(srcLiqSum, src.Decimal)
 	}
 	destLiqSum := GetLiq(kv, dest.ChainIdTokenAddr)
+	if lpAddr != eth.ZeroAddr { // internal LP transfer for cross-chain withdrawal
+		balance := GetLPBalance(kv, dest.ChainIdTokenAddr.ChId, dest.ChainIdTokenAddr.TokenAddr, lpAddr)
+		destLiqSum.Sub(destLiqSum, balance)
+	}
 	if isZero(destLiqSum) {
 		return ret // no liq on dest chain
 	}

@@ -191,7 +191,7 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 	}, &ChainIdTokenDecimal{
 		ChainIdTokenAddr: dest,
 		Decimal:          destToken.Decimal,
-	}, srcAmt)
+	}, srcAmt, eth.Hex2Addr(params.LpAddr))
 
 	resp := types.GetFeeResponse{
 		EqValueTokenAmt: destAmt.String(),

@@ -3,7 +3,6 @@ package keeper
 import (
 	"math/big"
 
-	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -11,9 +10,9 @@ import (
 
 // startLpPre is the lp address prefix iter to start with
 func (k Keeper) transfer(
-	ctx sdk.Context, sender, token eth.Addr, amount *big.Int, srcChainId, dstChainId uint64,
-	maxSlippage uint32, chargeBaseFee bool, startLpPre []byte) (
-	status types.XferStatus, userReceive *big.Int, destTokenAddr eth.Addr) {
+	ctx sdk.Context, token eth.Addr, amount *big.Int, srcChainId, dstChainId uint64,
+	maxSlippage uint32, lpSender eth.Addr, startLpPre []byte) (
+	status types.XferStatus, userReceive *big.Int, destTokenAddr eth.Addr, percFee, baseFee *big.Int) {
 
 	if srcChainId == dstChainId {
 		status = types.XferStatus_BAD_DEST_CHAIN
@@ -66,42 +65,40 @@ func (k Keeper) transfer(
 			ChainIdTokenAddr: dest,
 			Decimal:          destToken.Decimal,
 		},
-		amount)
+		amount, lpSender)
 	if destAmount.Sign() == 0 { // avoid div by 0
 		// define another enum?
 		status = types.XferStatus_BAD_LIQUIDITY
 		return
 	}
 	// check has enough liq on dest chain
-	if !HasEnoughLiq(kv, dest, destAmount, sender) {
+	if !HasEnoughLiq(kv, dest, destAmount, lpSender) {
 		status = types.XferStatus_BAD_LIQUIDITY
 		return
 	}
 	// perc fee is based on total destAmount, before deduct basefee
-	percFee := CalcPercFee(kv, src, dest, destAmount)
+	percFee = CalcPercFee(kv, src, dest, destAmount)
 	userReceive = new(big.Int).Sub(destAmount, percFee)
-	baseFee := big.NewInt(0)
-	if chargeBaseFee {
+	baseFee = big.NewInt(0)
+	if lpSender != eth.ZeroAddr { // charge base fee if not internal transfer by LP
 		baseFee = CalcBaseFee(kv, assetSym, dest.ChId)
 		userReceive.Sub(userReceive, baseFee)
 	}
 	if isNegOrZero(userReceive) {
 		// amount isn't enough to pay fees
-		log.Debugln(destAmount, "less than fee. base:", baseFee, "perc:", percFee)
 		status = types.XferStatus_BAD_SLIPPAGE
 		return
 	}
 	promised := calcPromised(maxSlippage, srcToken.Decimal, destToken.Decimal, amount)
 	// actual receive is less than promised
 	if userReceive.Cmp(promised) == -1 {
-		log.Debugf("bad slippage promised %s userReceive %s", promised, userReceive)
 		status = types.XferStatus_BAD_SLIPPAGE
 		return
 	}
 
 	// pick LPs, minus each's destChain liquidity, add src liquidity
 	// this func DOESN'T care baseFee BY DESIGN!
-	k.PickLPsAndAdjustLiquidity(ctx, kv, src, dest, amount, destAmount, percFee, destToken.Decimal, sender, startLpPre)
+	k.PickLPsAndAdjustLiquidity(ctx, kv, src, dest, amount, destAmount, percFee, destToken.Decimal, lpSender, startLpPre)
 	// baseFee goes to sgn, if we ever want to support accurate baseFee attribution,
 	// we need to save baseFee in relay detail, and upon seeing the relay event, figure out
 	// its sender and add to that address. Note there is no way we can make baseFee equal the actual

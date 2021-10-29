@@ -61,7 +61,6 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		if HasEvSend(kv, ev.TransferId) {
 			return false, fmt.Errorf("already applied send event. chainid %d xferId %x", onchev.Chainid, ev.TransferId)
 		}
-		log.Infoln("x/cbr apply send", ev.String())
 		// in case of bad_xxx, save info for later user refund, NO seqnum yet as it'll be set
 		// when user calls InitWithdraw
 		wdOnchain := &types.WithdrawOnchain{
@@ -72,14 +71,14 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		}
 
 		// must set to non-zero before return
-		var sendStatus types.XferStatus
+		sendStatus, userReceive, destTokenAddr, percFee, baseFee :=
+			k.transfer(ctx, ev.Token, ev.Amount, onchev.Chainid, ev.DstChainId, ev.MaxSlippage, eth.ZeroAddr, ev.TransferId[28:]) // last 4B of xfer id
+
 		defer func() {
-			log.Infoln("x/cbr applied:", ev.PrettyLog(onchev.Chainid), "status:", sendStatus.String())
+			log.Infof("x/cbr applied: %s, status: %s, recv %s, fee perc %s base %s",
+				ev.PrettyLog(onchev.Chainid), sendStatus, userReceive, percFee, baseFee)
 			SetEvSendStatus(kv, ev.TransferId, sendStatus)
 		}()
-
-		sendStatus, userReceive, destTokenAddr :=
-			k.transfer(ctx, eth.ZeroAddr, ev.Token, ev.Amount, onchev.Chainid, ev.DstChainId, ev.MaxSlippage, true, ev.TransferId[28:]) // last 4B of xfer id
 
 		if sendStatus != types.XferStatus_OK_TO_RELAY {
 			if sendStatus == types.XferStatus_BAD_LIQUIDITY ||

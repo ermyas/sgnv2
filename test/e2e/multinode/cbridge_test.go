@@ -124,9 +124,9 @@ func cbridgeTest(t *testing.T) {
 
 	log.Infoln("======================== LP withdraw liquidity ===========================")
 	reqid := uint64(time.Now().Unix())
-	wdLq1 := tc.CbrChain1.GetWithdrawLq(2000)
-	wdLq2 := tc.CbrChain2.GetWithdrawLq(1000)
-	err = tc.CbrChain1.StartWithdraw(transactor, reqid, 0, wdLq1, wdLq2) // withdraw 20%
+	wdLq1 := tc.CbrChain1.GetWithdrawLq(20000000) // withdraw 20%
+	wdLq2 := tc.CbrChain2.GetWithdrawLq(10000000) // withdraw 10%
+	err = tc.CbrChain1.StartWithdraw(transactor, reqid, 0, wdLq1, wdLq2)
 	tc.ChkErr(err, "u0 chain1 start withdraw")
 	log.Infoln("withdraw reqid:", reqid)
 	detail := tc.GetWithdrawDetailWithSigs(transactor, tc.CbrChain1.Users[0].Address, reqid, 3)

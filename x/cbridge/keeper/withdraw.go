@@ -40,13 +40,14 @@ func (k Keeper) withdrawLP(ctx sdk.Context, wdReq *types.WithdrawReq, lpAddr eth
 	if len(wdReq.Withdraws) == 0 {
 		return nil, types.Error(types.ErrCode_INVALID_REQ, "empty withdraw list")
 	}
-	var exitToken eth.Addr
+	var recvToken eth.Addr
 	logmsg := fmt.Sprintf("lp:%x request_id:%d exit_chain_id:%d", lpAddr, wdReq.ReqId, wdReq.ExitChainId)
 	var wdmsgs string
 	reqAmt := big.NewInt(0)
-	exitAmt := big.NewInt(0)
+	recvAmt := big.NewInt(0)
 	for _, wd := range wdReq.Withdraws {
-		wdmsg := wd.String()
+		wdmsg := fmt.Sprintf("from_chain_id:%d token_addr:%s ratio:%f max_slippage:%f",
+			wd.FromChainId, eth.FormatAddrHex(wd.TokenAddr), float32(wd.Ratio)/types.WithdrawPercentageBase, float32(wd.MaxSlippage)/1000000)
 		token := eth.Hex2Addr(wd.TokenAddr)
 		balance := GetLPBalance(kv, wd.FromChainId, token, lpAddr)
 		if balance.Sign() <= 0 {
@@ -57,40 +58,40 @@ func (k Keeper) withdrawLP(ctx sdk.Context, wdReq *types.WithdrawReq, lpAddr eth
 		}
 		var destToken eth.Addr
 		amt := new(big.Int).Div(new(big.Int).Mul(balance, big.NewInt(int64(wd.Ratio))), big.NewInt(int64(types.WithdrawPercentageBase)))
-		wdmsg = fmt.Sprintf("%sreqAmt:%s", wdmsg, amt)
+		wdmsg = fmt.Sprintf("%s req_amt:%s", wdmsg, amt)
 		reqAmt.Add(reqAmt, amt)
 		if wd.FromChainId == wdReq.ExitChainId {
-			exitAmt.Add(exitAmt, amt)
+			recvAmt.Add(recvAmt, amt)
 			destToken = token
 		} else {
 			randBytes := crypto.Keccak256Hash([]byte(fmt.Sprintf("%x-%d-%d", lpAddr, wdReq.ReqId, ctx.BlockTime().Unix())))
-			status, recvAmount, destTk := k.transfer(
-				ctx, lpAddr, token, amt, wd.FromChainId, wdReq.ExitChainId, wd.MaxSlippage, false, randBytes.Bytes()[0:4])
+			status, recvAmount, destTk, _, _ := k.transfer(
+				ctx, token, amt, wd.FromChainId, wdReq.ExitChainId, wd.MaxSlippage, lpAddr, randBytes.Bytes()[0:4])
+			wdmsg = fmt.Sprintf("%s recv_amt:%s", wdmsg, recvAmount)
 			if status != types.XferStatus_OK_TO_RELAY {
-				return nil, types.Error(types.ErrCode_INVALID_REQ, "%s %s internal transfer failed %s", logmsg, wdmsg, status)
+				return nil, types.Error(types.ErrCode_WD_INTERNAL_XFER_FAILURE, "%s %s internal transfer failed %s", logmsg, wdmsg, status)
 			}
-			wdmsg = fmt.Sprintf("%s recvAmt:%s", wdmsg, recvAmount)
-			exitAmt.Add(exitAmt, recvAmount)
+			recvAmt.Add(recvAmt, recvAmount)
 			destToken = destTk
 		}
-		if exitToken == eth.ZeroAddr {
-			exitToken = destToken
-		} else if exitToken != destToken {
-			return nil, types.Error(types.ErrCode_INVALID_REQ, "%s %s inconsistent exit token %x %x", logmsg, wdmsg, exitToken, destToken)
+		if recvToken == eth.ZeroAddr {
+			recvToken = destToken
+		} else if recvToken != destToken {
+			return nil, types.Error(types.ErrCode_INVALID_REQ, "%s %s inconsistent exit token %x %x", logmsg, wdmsg, recvToken, destToken)
 		}
 		wdmsgs += fmt.Sprintf("<%s> ", wdmsg)
 	}
-	logmsg = fmt.Sprintf("%s %sexit_token:%x, req_amt:%s exit_amt:%s", logmsg, wdmsgs, exitToken, reqAmt, exitAmt)
+	logmsg = fmt.Sprintf("%s %srecv_token:%x, total_req_amt:%s total_recv_amt:%s", logmsg, wdmsgs, recvToken, reqAmt, recvAmt)
 	log.Infof("x/cbr handle lp withdraw: %s creator:%s", logmsg, creator)
-	negAmt := new(big.Int).Neg(exitAmt)
-	k.ChangeLiquidity(ctx, kv, wdReq.ExitChainId, exitToken, lpAddr, negAmt) // remove amt from lp map
+	negAmt := new(big.Int).Neg(recvAmt)
+	k.ChangeLiquidity(ctx, kv, wdReq.ExitChainId, recvToken, lpAddr, negAmt) // remove amt from lp map
 	// also remove liq from liqsum
-	ChangeLiqSum(kv, wdReq.ExitChainId, exitToken, negAmt)
+	ChangeLiqSum(kv, wdReq.ExitChainId, recvToken, negAmt)
 	return &types.WithdrawOnchain{
 		Chainid:  wdReq.ExitChainId,
 		Receiver: lpAddr.Bytes(),
-		Token:    exitToken.Bytes(),
-		Amount:   exitAmt.Bytes(),
+		Token:    recvToken.Bytes(),
+		Amount:   recvAmt.Bytes(),
 		Seqnum:   wdReq.ReqId,
 	}, nil
 }

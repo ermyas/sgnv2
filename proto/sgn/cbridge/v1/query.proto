@@ -52,6 +52,7 @@ message GetFeeRequest {
     uint64 dst_chain_id = 2;
     string src_token_addr = 3;
     string amt = 4; //on_src_chain, numeric string with decimal
+    string lp_addr = 5; // set for LP cross-chain withdrawal
 }
 
 message GetFeeResponse {
