@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/celer-network/sgn-v2/gateway/dal"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -159,6 +160,20 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 			log.Errorf("token %s not found in json file", symbol)
 		}
 	}
+
+	symbol2chainIds, _, err := dal.DB.GetAllChainAndGasToken()
+	if err != nil {
+		return fmt.Errorf("failed to GetAllChainAndGasToken")
+	}
+	for sym, _ := range symbol2chainIds {
+		token, found := t.allTokenIds[sym]
+		if found {
+			tokenIds = append(tokenIds, token.Id)
+		} else {
+			log.Errorf("token %s not found in json file", sym)
+		}
+	}
+
 	log.Debugf("found tokenIds:%+v", tokenIds)
 	if len(tokenIds) == 0 || len(t.vsTokenIds) == 0 {
 		return fmt.Errorf("tokenIds and vsTokenIds are required")
