@@ -1,10 +1,10 @@
 package relayer
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
-	"encoding/json"
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -176,10 +176,23 @@ func (c *CbrOneChain) pullEvents(chid uint64, CliCtx client.Context) []*synctype
 				continue
 			}
 
-			// We check if cbr send ev token valid here.
-			// If invalid, do not send this ev to sgn.
-			if evn == cbrtypes.CbrEventSend && !checkCbrSendValid(chid, key, vals[i], CliCtx, cbrSendValidCache) {
-				log.Warnf("find invalid cbr send ev, skip it, key:%s", string(key))
+			evlog := new(ethtypes.Log)
+			err := json.Unmarshal(vals[i], evlog)
+			if err != nil {
+				log.Errorf("failed to unmarshal onchev elog, key:%s, err:%s", string(key), err.Error())
+				continue
+			}
+			var skip bool
+			var reason string
+			// TODO: other events
+			switch evn {
+			case cbrtypes.CbrEventSend:
+				skip, reason = c.skipSyncCbrSend(evlog, CliCtx, cbrSendValidCache)
+			case cbrtypes.CbrEventSignersUpdated:
+				skip, reason = c.skipSyncCbrSignerUdpate(evlog, CliCtx)
+			}
+			if skip {
+				log.Debugf("skip cbr event: %s, chid %d, reason: %s", string(key), c.chainid, reason)
 				continue
 			}
 
@@ -202,28 +215,21 @@ func (c *CbrOneChain) pullEvents(chid uint64, CliCtx client.Context) []*synctype
 	return ret
 }
 
-// If marshal fail or cli check return invalid, return false.
-func checkCbrSendValid(chid uint64, key, data []byte, CliCtx client.Context, validCache map[string]bool) bool {
-	evlog := new(ethtypes.Log)
-	err := json.Unmarshal(data, evlog)
+func (c *CbrOneChain) skipSyncCbrSend(
+	evlog *ethtypes.Log, CliCtx client.Context, validCache map[string]bool) (skip bool, reason string) {
+
+	sendEv, err := c.contract.ParseSend(*evlog)
 	if err != nil {
-		log.Errorf("fail to unmarshal onchev elog, key:%s, err:%s", string(key), err.Error())
-		return false
-	}
-	bridgeFilterer, _ := eth.NewBridgeFilterer(eth.ZeroAddr, nil)
-	sendEv, err := bridgeFilterer.ParseSend(*evlog)
-	if err != nil {
-		log.Errorf("fail to parse evlog to cbr send, txHash:%s, err:%s", evlog.TxHash, err.Error())
-		return false
+		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
 	}
 	// we should check cache first
-	cacheKey := fmt.Sprintf("%d-%d-%x", chid, sendEv.DstChainId, sendEv.Token)
-	cacheValid, foundCacheValid := validCache[cacheKey]
-	if foundCacheValid {
-		return cacheValid
+	cacheKey := fmt.Sprintf("%d-%d-%x", c.chainid, sendEv.DstChainId, sendEv.Token)
+	cacheValid, found := validCache[cacheKey]
+	if found && !cacheValid {
+		return true, "invalid cbr send"
 	}
 	checkReq := &cbrtypes.CheckChainTokenValidRequest{
-		SrcChainId:   chid,
+		SrcChainId:   c.chainid,
 		DestChainId:  sendEv.DstChainId,
 		SrcTokenAddr: eth.Addr2Hex(sendEv.Token),
 	}
@@ -231,14 +237,42 @@ func checkCbrSendValid(chid uint64, key, data []byte, CliCtx client.Context, val
 	if checkRespErr != nil {
 		// If request failed, we will not break this flow.
 		// As if invalid token send event go to the apply flow, sgn will also check it and set it to refund flow.
-		log.Errorf("fail to check chain token valid, sendEv:%s, err:%s", sendEv.PrettyLog(chid), checkRespErr.Error())
+		log.Errorf("fail to check chain token valid, sendEv:%s, err:%s", sendEv.PrettyLog(c.chainid), checkRespErr.Error())
 		// may be call sgn fail, we still send this ev to sgn and sgn to do the check again.
-		return true
+		return
 	} else {
 		// cached and can reduce some cli call
 		validCache[cacheKey] = checkResp.GetValid()
-		return checkResp.GetValid()
+		if !checkResp.GetValid() {
+			return true, "invalid cbr send"
+		}
 	}
+	// TODO: check is sendEv already snynced
+	return
+}
+
+func (c *CbrOneChain) skipSyncCbrSignerUdpate(evlog *ethtypes.Log, CliCtx client.Context) (skip bool, reason string) {
+	ev, err := c.contract.ParseSignersUpdated(*evlog)
+	if err != nil {
+		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+	}
+	ssHash, err := c.contract.SsHash(&bind.CallOpts{})
+	if err != nil {
+		log.Errorf("chain %d failed to get onchain sshash err %s", c.chainid, err)
+		return
+	}
+	if eth.Bytes2Hash(crypto.Keccak256(eth.SignerBytes(ev.Signers, ev.Powers))) != ssHash {
+		return true, "not match onchain sshash, maybe outdated"
+	}
+
+	chainSigners, err := cbrcli.QueryChainSigners(CliCtx, c.chainid)
+	if err == nil {
+		addrs, powers := cbrtypes.SignersToEthArrays(chainSigners.SortedSigners)
+		if eth.Bytes2Hash(crypto.Keccak256(eth.SignerBytes(addrs, powers))) == ssHash {
+			return true, "chain signers already updated"
+		}
+	}
+	return
 }
 
 func (r *Relayer) updateSigners() {
