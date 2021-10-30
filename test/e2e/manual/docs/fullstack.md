@@ -8,7 +8,7 @@ Run the following command at [e2e/mnual](../) folder to to start a local testnet
 echo 12341234 | go run localnet.go -start -full
 ```
 
-Validator logs are located at
+Validator data, logs, and configs are located at `docker-volumes/nodeN` from the repo root folder. Logs of each validators are at
 
 ```sh
 docker-volumes/nodeN/sgnd/app.log
