@@ -100,7 +100,12 @@ func (k Keeper) transfer(
 	// pick LPs, minus each's destChain liquidity, add src liquidity
 	// this func DOESN'T care baseFee BY DESIGN!
 	start := time.Now()
-	k.PickLPsAndAdjustLiquidity(ctx, kv, src, dest, amount, destAmount, percFee, destToken.Decimal, lpSender, startLpPre)
+	err := k.PickLPsAndAdjustLiquidity(ctx, kv, src, dest, amount, destAmount, percFee, destToken.Decimal, lpSender, startLpPre)
+	if err != nil {
+		log.Error(err)
+		status = types.XferStatus_BAD_LIQUIDITY
+		return
+	}
 	log.Info("perfxxx pickLPs took: ", time.Since(start))
 	// baseFee goes to sgn, if we ever want to support accurate baseFee attribution,
 	// we need to save baseFee in relay detail, and upon seeing the relay event, figure out

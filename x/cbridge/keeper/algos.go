@@ -84,23 +84,26 @@ type AddrHexAmtInt struct {
 // fee and add liq on src are calculated based on ratio this LP contributed into destAmount
 // WARNING: this func doesn't care base fee BY DESIGN!!!
 func (k Keeper) PickLPsAndAdjustLiquidity(
-	ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdTokenAddr, srcAmount, destAmount, fee *big.Int, destDecimal uint32, sender eth.Addr, lpPre []byte) {
-	lpFeePerc := new(big.Int).SetBytes(kv.Get(types.CfgKeyFeePerc))
+	ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdTokenAddr, srcAmount, destAmount, fee *big.Int, destDecimal uint32, sender eth.Addr, lpPre []byte) error {
+	// don't write to kv before possible return error because it'll cause wrong state
+	start := time.Now()
+	pickedLPs, useByRatio := pickLPs(kv, dest.ChId, dest.TokenAddr, sender, destAmount, lpPre)
+	log.Infoln("perfxxx picked", len(pickedLPs), "lps, byratio:", useByRatio, "took:", time.Since(start))
+	if sumLiq(pickedLPs).Cmp(destAmount) == -1 {
+		return fmt.Errorf("sumliq of picked LPs less than needed destAmt. %s < %s", sumLiq(pickedLPs), destAmount)
+	}
 
+	// calc fees
+	lpFeePerc := new(big.Int).SetBytes(kv.Get(types.CfgKeyFeePerc))
 	totalLpFee := new(big.Int).Mul(fee, lpFeePerc)
 	totalLpFee.Div(totalLpFee, big.NewInt(100))
 	sgnFee := new(big.Int).Sub(fee, totalLpFee)
 	if isPos(sgnFee) {
 		k.AddSgnFee(ctx, kv, dest.ChId, dest.TokenAddr, sgnFee)
 	}
-	start := time.Now()
-	pickedLPs, useByRatio := pickLPs(kv, dest.ChId, dest.TokenAddr, sender, destAmount, lpPre)
-	log.Infoln("perfxxx picked", len(pickedLPs), "lps, byratio:", useByRatio, "took:", time.Since(start))
-	if sumLiq(pickedLPs).Cmp(destAmount) == -1 {
-		panic("not enough liq") // todo: return err or set xfer to bad_liq
-	}
 
-	toAllocate := new(big.Int).Set(destAmount) // how much left to allocate to LP
+	// update LP's liquidity
+	toAllocate := new(big.Int).Set(destAmount) // how much left to allocate to LP, will be reduced in updateOneLP
 	// keep track of total liq changes on dest and src, note diff dest will be negative
 	// we can't use destAmount/srcAmount etc due to per LP division rounding error
 	totalDestNeg, totalSrcAdd := new(big.Int), new(big.Int)
@@ -140,12 +143,16 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 	ChangeLiqSum(kv, dest.ChId, dest.TokenAddr, totalDestNeg)
 	ChangeLiqSum(kv, src.ChId, src.TokenAddr, totalSrcAdd)
 	if isPos(toAllocate) {
-		panic("toallocate not 0")
+		// we can't return err now because kv is already modified, so panic
+		panic(fmt.Sprintf("toAllocate still has %s left", toAllocate))
 	}
-	return
+	return nil
 }
 
-// return negative big.Int liq delta on dest chain, and >=0 big.Int on src chain
+// return negative big.Int liq delta on dest chain, equals earnedFee - used
+// and >=0 big.Int on src chain to add
+// will also reduce toAllocate and lp.AmtInt by amount used. Note here it can't be
+// negamt because we only consider liquidity in toAllocate
 func (k Keeper) updateOneLP(ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdTokenAddr, lp *AddrHexAmtInt, toAllocate, totalLpFee, srcAmount, destAmount *big.Int) (*big.Int, *big.Int) {
 	used := new(big.Int)
 	if lp.AmtInt.Cmp(toAllocate) >= 0 {

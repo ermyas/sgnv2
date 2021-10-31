@@ -21,12 +21,14 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 	kv := ctx.KVStore(k.storeKey)
 	setUint32(kv, types.CfgKeyFeePerc, cfg.LpFeePerc)
 	setUint32(kv, types.CfgKeyPickLpSize, cfg.PickLpSize)
-	// todo: iter and del all cfg-xxx key/val if we're removing asset
-	// but this may be VERY unlikely, also need to take care of past xfers
-	// go over asset and set ch2sym and sym2info
+	// Note: we don't iter and del all cfg-xxx key/val if we're removing asset
+	// because this is VERY unlikely, also need to take care of past xfers
+	// now we have xfer_disabled in asset, so there should be no need to delete
+	// asset
 
 	// lp hack for scalability test
 	// chidTokenMap := make(map[uint64]eth.Addr) // only support one asset
+	// go over asset and set ch2sym and sym2info
 	for _, asset := range cfg.Assets {
 		addr := eth.Hex2Addr(asset.Addr)
 		// chidTokenMap[asset.ChainId] = addr

@@ -77,7 +77,7 @@ func NewCbridgeMgr(db dbm.DB, cliCtx client.Context) CbrMgr {
 	// setup db/dal, shared by all chains
 	cbrDb := dbm.NewPrefixDB(db, []byte(cbrDbPrefix))
 	// watcherDal is shared because monitor adds chainID automatically
-	watcherDal := newWatcherDAL(cbrDb) // TODO: watcherDAL concurrency?
+	watcherDal := newWatcherDAL(cbrDb)
 	ret := make(CbrMgr)
 	ethChainID := viper.GetUint64(common.FlagEthChainId)
 	for _, onecfg := range mcc {

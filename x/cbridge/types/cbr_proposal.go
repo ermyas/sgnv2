@@ -22,6 +22,5 @@ func (cp *CbrProposal) ProposalType() string { return ProposalTypeCbridge }
 
 // ValidateBasic validates the parameter change proposal
 func (cp *CbrProposal) ValidateBasic() error {
-	// todo: validate cp.CbrConfig?
 	return nil
 }

@@ -56,7 +56,7 @@ func (c *CbrConfig) Validate() error {
 		}
 	}
 	// todo: make sure assets are multi-chain correctly?
-	// todo: also check all chains in assets are in chainpairs
+	// also check all chains in assets are in chainpairs
 	return nil
 }
 

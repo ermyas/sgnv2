@@ -79,15 +79,6 @@ func (ev *BridgeSend) PrettyLog(srcChid uint64) string {
 	return fmt.Sprintf("send-%x src: %d-%x dstchid: %d sender: %x receiver: %x amt: %s maxslip: %f%%", ev.TransferId, srcChid, ev.Token, ev.DstChainId, ev.Sender, ev.Receiver, ev.Amount, float64(ev.MaxSlippage)/10000)
 }
 
-// calculate xfer id the same way as Bridge.sol
-// todo: change chainid to match latest contract after new deploy
-/*
-bytes32 transferId = keccak256(
-// uint64(block.chainid) for consistency as entire system uses uint64 for chain id
-  abi.encodePacked(msg.sender, _receiver, _token, _amount, _dstChainId, _nonce, uint64(block.chainid))
-);
-*/
-
 func (ev *BridgeSend) CalcXferId(srcChid uint64) HashType {
 	var b []byte
 	b = append(b, ev.Sender[:]...)

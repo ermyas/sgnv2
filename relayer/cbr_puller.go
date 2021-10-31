@@ -146,7 +146,8 @@ func (r *Relayer) requeueRelay(relayEvent RelayEvent) {
 
 // TODO: query x/cbridge to skip already processed events to avoid duplicated propose
 // Note if syncer changes before EndBlock, new syncer may still propose again
-// the 2nd propose shouldn't get votes? why? MUST confirm this
+// the 2nd propose shouldn't get votes because when verify, sgn nodes will find it's already processed
+// even it is voted, apply will still fail because x/cbr will err
 func (c *CbrOneChain) pullEvents(chid uint64, CliCtx client.Context) []*synctypes.ProposeUpdate {
 	var ret []*synctypes.ProposeUpdate
 	// to make it simple we use "srcChainId-destChainId-srcTokenAddr" as key, and valid as val.

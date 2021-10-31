@@ -3,6 +3,7 @@ package relayer
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	tmdb "github.com/tendermint/tm-db"
 )
@@ -11,8 +12,10 @@ const (
 	prefixMonitorWatcher = "emw" // event name -> monitorBlockInfo
 )
 
+// MUST have proper lock/unlock as one watcherDAL is shared by all chains
 type watcherDAL struct {
 	db tmdb.DB
+	sync.RWMutex
 }
 
 type monitorBlockInfo struct {
@@ -66,6 +69,8 @@ func (dal *watcherDAL) UpsertMonitorBlock(event string, blockNum uint64, blockId
 }
 
 func (dal *watcherDAL) insertMonitorBlock(event string, blockNum uint64, blockIdx int64, restart bool) error {
+	dal.Lock()
+	defer dal.Unlock()
 	info := newMonitorBlockInfo(blockNum, blockIdx, restart)
 	bytes, err := json.Marshal(info)
 	if err != nil {
@@ -75,6 +80,8 @@ func (dal *watcherDAL) insertMonitorBlock(event string, blockNum uint64, blockId
 }
 
 func (dal *watcherDAL) getMonitorBlock(event string) (*monitorBlockInfo, error) {
+	dal.RLock()
+	defer dal.RUnlock()
 	bytes, err := dal.db.Get([]byte(event))
 	if err != nil {
 		return nil, err
