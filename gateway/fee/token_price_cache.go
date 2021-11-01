@@ -148,7 +148,6 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 			}
 		}
 	}
-	log.Debugf("found tokens:%+v", tokenMap)
 
 	var tokenIds []string
 
@@ -174,7 +173,6 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 		}
 	}
 
-	log.Debugf("found tokenIds:%+v", tokenIds)
 	if len(tokenIds) == 0 || len(t.vsTokenIds) == 0 {
 		return fmt.Errorf("tokenIds and vsTokenIds are required")
 	}
@@ -191,7 +189,6 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 		return fmt.Errorf("failed to refresh token price cache: status code %d", r.StatusCode())
 	}
 	tokenPrices := r.Result().(*TokenPrices)
-	log.Debugf("tokenPrices:%+v", tokenPrices)
 	newPrices := make(map[string]float64)
 	// flatten the nested map since we only care about USD Prices
 	for tokenId, vsTokenPrices := range *tokenPrices {

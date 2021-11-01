@@ -30,7 +30,7 @@ func (d *DAL) UpsertLPWithSeqNum(usrAddr, tokenSymbol, tokenAddr, amt, txHash st
 	return sqldb.ChkExec(res, err, 1, "UpsertLPWithSeqNum")
 }
 
-func (d *DAL) UpsertLPWithTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum uint64) error {
+func (d *DAL) UpsertLPWithTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType uint64, seqNum int64) error {
 	q := `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (usr_addr, chain_id, tx_hash, lp_type) DO UPDATE
 	SET status = $9, seq_num = $11, update_time = $7`

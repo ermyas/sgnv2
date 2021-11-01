@@ -41,7 +41,7 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 	}
 	txHash := request.GetTxHash()
 	if lpType == webapi.LPType_LP_TYPE_ADD {
-		err = dal.DB.UpsertLPWithTx(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, uint64(chainId), uint64(types.LPHistoryStatus_LP_SUBMITTING), uint64(lpType), -common.TsMilli(time.Now()))
+		err = dal.DB.UpsertLPWithTx(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, uint64(chainId), uint64(types.LPHistoryStatus_LP_SUBMITTING), uint64(lpType), -int64(common.TsMilli(time.Now())))
 	} else if lpType == webapi.LPType_LP_TYPE_REMOVE {
 		seqNum := request.GetSeqNum()
 		err = dal.DB.UpsertLPWithSeqNum(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, uint64(chainId), uint64(types.LPHistoryStatus_LP_SUBMITTING), uint64(lpType), seqNum)
@@ -254,7 +254,6 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 		}
 	}
 
-	log.Debugf("")
 	if found && lpType == uint64(webapi.LPType_LP_TYPE_ADD) { // add type
 		if status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN) {
 			resp, err2 := cbrcli.QueryAddLiquidityStatus(tr.CliCtx, &types.QueryAddLiquidityStatusRequest{

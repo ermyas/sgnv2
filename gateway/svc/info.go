@@ -274,10 +274,8 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 func (gs *GatewayService) get24hTx() map[uint64]map[string]*txData {
 	cache := GetTx24hCache()
 	if cache != nil {
-		log.Debugf("24h tx cache used")
 		return cache
 	}
-	log.Debugf("24h tx cache not used")
 	txs, err := dal.DB.Get24hTx()
 	resp := make(map[uint64]map[string]*txData) // map<chain_id, map<token_symbol, txData>>
 	if err == nil {

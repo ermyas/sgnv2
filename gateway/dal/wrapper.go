@@ -60,7 +60,7 @@ func UpsertLPForLiqAdd(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chai
 	if DB == nil {
 		return nil
 	} else {
-		return DB.UpsertLPWithTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash, chainId, status, lpType, seqNum)
+		return DB.UpsertLPWithTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash, chainId, status, lpType, int64(seqNum))
 	}
 }
 
