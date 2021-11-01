@@ -195,7 +195,6 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 	newPrices := make(map[string]float64)
 	// flatten the nested map since we only care about USD Prices
 	for tokenId, vsTokenPrices := range *tokenPrices {
-		log.Debugf("add token price, token:%s, price:%.2f", tokenId, vsTokenPrices["usd"])
 		newPrices[tokenId] = vsTokenPrices["usd"]
 	}
 	t.Prices = newPrices

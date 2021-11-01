@@ -35,6 +35,9 @@ func (d *DAL) UpsertLPWithTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash string
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (usr_addr, chain_id, tx_hash, lp_type) DO UPDATE
 	SET status = $9, seq_num = $11, update_time = $7`
 	res, err := d.Exec(q, usrAddr, chainId, tokenSymbol, tokenAddr, amt, txHash, now(), now(), status, lpType, seqNum)
+	if err != nil {
+		log.Errorf("db err, err:%+v", err)
+	}
 	return sqldb.ChkExec(res, err, 1, "UpsertLPWithTx")
 }
 

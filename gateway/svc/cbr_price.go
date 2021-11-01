@@ -62,7 +62,6 @@ func (gs *GatewayService) UpdateTokenPrice2S3() {
 		AssetPrice:  gs.PrepareAssetPrice(tokenMap, symbol2chainIds),
 		GasPrice:    gs.PrepareGasPrice(chainId2Symbol),
 	}
-	log.Debugln("CbrPrice:", c)
 
 	marshaler := jsonpb.Marshaler{}
 	m, err := marshaler.MarshalToString(c)

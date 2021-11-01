@@ -241,10 +241,8 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[string]float64 {
 	cache := GetFarmingApyCache()
 	if cache != nil {
-		log.Debugf("farming apy cache used")
 		return cache
 	}
-	log.Debugf("farming apy cache not used")
 	tr := gs.TP.GetTransactor()
 	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
 	res, err := queryClient.Pools(
