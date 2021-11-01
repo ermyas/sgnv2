@@ -320,9 +320,6 @@ func queryLiquidityDetailList(ctx sdk.Context, req abci.RequestQuery, k Keeper, 
 				ChId:      pair.ChainId,
 				TokenAddr: tokenEthAddr,
 			}).String(),
-			//TODO aric this may be a wrong proto field because fee perc is by chain pair, different src chain to same dest chain
-			// has different rate
-			//LpFeeRate: ,
 		})
 	}
 
