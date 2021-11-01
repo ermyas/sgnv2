@@ -43,8 +43,9 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 		// SetLPs(kv, chpair.Chid1, chidTokenMap[chpair.Chid1])
 		// SetLPs(kv, chpair.Chid2, chidTokenMap[chpair.Chid2])
 	}
-	for _, param := range cfg.GetRelayGasCost() {
-		SetRelayGasCostParam(kv, param)
+	for _, relayGasCost := range cfg.GetRelayGasCost() {
+		raw, _ := relayGasCost.Marshal()
+		kv.Set(types.CfgKeyChain2RelayGasCostParam(relayGasCost.GetChainId()), raw)
 	}
 }
 
@@ -102,6 +103,15 @@ func (k Keeper) GetCbrConfig(ctx sdk.Context) types.CbrConfig {
 		pair := new(types.ChainPair)
 		pair.Unmarshal(pairRaw)
 		cbrConfig.ChainPairs = append(cbrConfig.ChainPairs, pair)
+	}
+
+	iter3 := sdk.KVStorePrefixIterator(kv, []byte("cfg-ch2relaygascostparam-"))
+	defer iter3.Close()
+	for ; iter3.Valid(); iter3.Next() {
+		relayGasCostRaw := iter3.Value()
+		relayGasCostParam := new(types.RelayGasCostParam)
+		relayGasCostParam.Unmarshal(relayGasCostRaw)
+		cbrConfig.RelayGasCost = append(cbrConfig.RelayGasCost, relayGasCostParam)
 	}
 
 	return cbrConfig

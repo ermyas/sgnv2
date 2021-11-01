@@ -273,8 +273,3 @@ func GetRelayGasCostParam(kv sdk.KVStore, chid uint64) *types.RelayGasCostParam 
 	}
 	return ret
 }
-
-func SetRelayGasCostParam(kv sdk.KVStore, gc *types.RelayGasCostParam) {
-	raw, _ := gc.Marshal()
-	kv.Set(types.CfgKeyChain2RelayGasCostParam(gc.GetChainId()), raw)
-}
