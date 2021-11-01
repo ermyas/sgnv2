@@ -1,0 +1,12 @@
+# leading slash / means path from repo root
+# if multiple matches, last match will take effect
+# keep rules sorted by folder name
+
+/proto/sgn/cbridge/v1/ @i9
+/proto/sgn/cbridge/v1/query.proto @zhangqi021
+
+/relayer/cbr_*.go @hezhihua81 @i9
+
+/x/cbridge/ @i9
+/x/cbridge/client/ @hezhihua81
+x/cbridge/keeper/querier.go @hezhihua81
