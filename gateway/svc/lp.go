@@ -59,7 +59,7 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 }
 
 func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi.WithdrawLiquidityRequest) (*webapi.WithdrawLiquidityResponse, error) {
-	log.Debug("WithdrawLiquidity req")
+	// only valid request will be logged
 	wdReq := new(types.WithdrawReq)
 	parseErr := wdReq.Unmarshal(request.GetWithdrawReq())
 	if parseErr != nil {
@@ -111,6 +111,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 		}
 
 		if err != nil {
+			log.Errorf("init withdraw failed, err:%s", err.Error())
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -156,7 +157,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 		lp := signer.String()
 		seqNum := wdReq.ReqId
 
-		log.Infof("WithdrawLiquidity for refund, ReceiverAddr:%s, token:%s, Amount:%s, ChainId:%d, ReqId:%d", lp, token.GetToken().GetSymbol(), amt, chainId, seqNum)
+		log.Infof("WithdrawLiquidity for remove, ReceiverAddr:%s, token:%s, Amount:%s, ChainId:%d, ReqId:%d", lp, token.GetToken().GetSymbol(), amt, chainId, seqNum)
 		if dal.DB.HasSeqNumUsedForWithdraw(seqNum, lp) {
 			log.Errorf("invalid seq num, it has been used for current lp")
 			return &webapi.WithdrawLiquidityResponse{
@@ -166,7 +167,6 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				},
 			}, nil
 		}
-		log.Debugf("withdraw estimate amt:%s, addr:%s", amt, lp)
 		err = dal.DB.InsertLPWithSeqNumAndMethodType(lp, token.Token.Symbol, token.Token.Address, amt, strconv.Itoa(int(seqNum)), chainId, uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum, uint64(request.GetMethodType()))
 		if err != nil {
 			_ = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(types.LPHistoryStatus_LP_FAILED), lp)
@@ -183,6 +183,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			Creator:     tr.Key.GetAddress().String(),
 		})
 		if err != nil {
+			log.Errorf("init withdraw failed, err:%s", err.Error())
 			_ = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(types.LPHistoryStatus_LP_FAILED), lp)
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
@@ -197,15 +198,6 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 	}
 }
 
-func getLPStatusInDB(lpType webapi.LPType, txHash, addr string, seqNum, chainId uint64) (bool, uint64, uint64, string, time.Time) {
-	if lpType == webapi.LPType_LP_TYPE_ADD {
-		newSeqNum, status, lpUpdateTime, found, err := dal.DB.GetLPInfoByHash(uint64(lpType), chainId, addr, txHash)
-		return found && err == nil, status, newSeqNum, txHash, lpUpdateTime
-	} else {
-		newTxHash, status, lpUpdateTime, found, err := dal.DB.GetLPInfoBySeqNum(seqNum, uint64(lpType), chainId, addr)
-		return found && err == nil, status, seqNum, newTxHash, lpUpdateTime
-	}
-}
 func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *webapi.QueryLiquidityStatusRequest) (*webapi.QueryLiquidityStatusResponse, error) {
 	seqNum := request.GetSeqNum()
 	txHash := request.GetTxHash()
@@ -457,14 +449,13 @@ func (gs *GatewayService) EstimateWithdrawAmt(ctx context.Context, request *weba
 
 func (gs *GatewayService) initWithdraw(req *types.MsgInitWithdraw) error {
 	tr := gs.TP.GetTransactor()
-	log.Debugf("init withdraw, req:%+v", req)
 	_, err := cbrcli.InitWithdraw(tr, req)
 	return err
 }
 
 func (gs *GatewayService) signAgainWithdraw(req *types.MsgSignAgain) (uint64, error) {
 	tr := gs.TP.GetTransactor()
-	log.Debugf("sign again, req:%+v", req)
+	log.Debugf("sign again, req_id:%d", req.GetReqId())
 	_, err := cbrcli.SignAgain(tr, req)
 	return req.ReqId, err
 }
@@ -514,5 +505,15 @@ func (gs *GatewayService) updateLpStatusInHistory(lpHistory []*dal.LP) {
 			}
 			lp.Status = resp.GetStatus()
 		}
+	}
+}
+
+func getLPStatusInDB(lpType webapi.LPType, txHash, addr string, seqNum, chainId uint64) (bool, uint64, uint64, string, time.Time) {
+	if lpType == webapi.LPType_LP_TYPE_ADD {
+		newSeqNum, status, lpUpdateTime, found, err := dal.DB.GetLPInfoByHash(uint64(lpType), chainId, addr, txHash)
+		return found && err == nil, status, newSeqNum, txHash, lpUpdateTime
+	} else {
+		newTxHash, status, lpUpdateTime, found, err := dal.DB.GetLPInfoBySeqNum(seqNum, uint64(lpType), chainId, addr)
+		return found && err == nil, status, seqNum, newTxHash, lpUpdateTime
 	}
 }

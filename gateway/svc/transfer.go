@@ -66,7 +66,7 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 					},
 				}, nil
 			}
-			log.Debugf("get lp info for transfer, status is :%+v", detail.GetStatus())
+			log.Infof("get lp info for transfer:%s, lp status is :%s", transfer.TransferId, detail.GetStatus().String())
 			if detail.GetStatus() == types.LPHistoryStatus_LP_WAITING_FOR_LP && transfer.Status != types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED {
 				log.Warnf("update transfer:%s by seqNum: %d, from %s, to %s", transfer.TransferId, transfer.RefundSeqNum, transfer.Status, types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED)
 				dbErr := dal.DB.UpdateTransferStatus(transfer.TransferId, uint64(types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED))
@@ -358,10 +358,10 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 				continue // waiting for user confirmed but sgn doesn't know, skip
 			}
 			if status == transferStatusMap[transferId].GetGatewayStatus() {
-				log.Debugf("status not change in polling for transfer:%s, status:%s", transfer.TransferId, status)
+				//status not change in polling
 				continue
 			}
-			log.Debugf("update transfer refund status from sgn, current is %s, dst is %s", status.String(), transferStatusMap[transferId].String())
+			log.Infof("update transfer refund status from sgn, transfer:%s, current is %s, dst is %s", transferId, status.String(), transferStatusMap[transferId].String())
 			dbErr := dal.DB.UpdateTransferStatus(transferId, uint64(transferStatusMap[transferId].GetGatewayStatus()))
 			if dbErr != nil {
 				log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", srcChainId, txHash)
