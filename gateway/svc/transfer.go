@@ -131,7 +131,7 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 	}
 	addr := common.Hex2Addr(request.GetUsrAddr()).String()
 
-	resp, infoErr := gs.getEstimatedFeeInfo(addr, srcChainId, dstChainId, srcToken, dstToken, amt)
+	resp, infoErr := gs.getEstimatedFeeInfo(addr, srcChainId, dstChainId, srcToken, dstToken, amt, false)
 	if infoErr != nil {
 		return &webapi.EstimateAmtResponse{
 			Err: &webapi.ErrMsg{
@@ -388,16 +388,19 @@ func (gs *GatewayService) getTxHashForTransfer(transfer *dal.Transfer) (string, 
 	return srcTxHash, dstTxHash
 }
 
-func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainId uint32, srcToken, dstToken *webapi.TokenInfo, amt string) (*webapi.EstimateAmtResponse, error) {
+func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainId uint32, srcToken, dstToken *webapi.TokenInfo, amt string, useLp bool) (*webapi.EstimateAmtResponse, error) {
 	slippage := GetSlippage(addr)
 	tr := gs.TP.GetTransactor()
-	feeInfo, err := cbrcli.QueryFee(tr.CliCtx, &types.GetFeeRequest{
+	getFeeRequest := &types.GetFeeRequest{
 		SrcChainId:   uint64(srcChainId),
 		DstChainId:   uint64(dstChainId),
 		SrcTokenAddr: srcToken.Token.GetAddress(),
 		Amt:          amt,
-		LpAddr:       addr,
-	})
+	}
+	if useLp {
+		getFeeRequest.LpAddr = addr
+	}
+	feeInfo, err := cbrcli.QueryFee(tr.CliCtx, getFeeRequest)
 	if err != nil {
 		log.Warnf("cli.QueryFee error:%+v", err)
 		return nil, err

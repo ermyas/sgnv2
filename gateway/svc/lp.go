@@ -418,7 +418,7 @@ func (gs *GatewayService) EstimateWithdrawAmt(ctx context.Context, request *weba
 				},
 			}, nil
 		}
-		info, infoErr := gs.getEstimatedFeeInfo(addr, srcChainId, dstChainId, srcToken, dstToken, amt)
+		info, infoErr := gs.getEstimatedFeeInfo(addr, srcChainId, dstChainId, srcToken, dstToken, amt, true)
 		if infoErr != nil {
 			return &webapi.EstimateWithdrawAmtResponse{
 				Err: &webapi.ErrMsg{
