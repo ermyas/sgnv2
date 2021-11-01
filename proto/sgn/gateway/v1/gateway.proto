@@ -395,10 +395,11 @@ message GetFarmingRewardDetailsResponse {
 }
 
 message QueryLiquidityStatusRequest {
-    uint64 seq_num = 1;
-    string lp_addr = 2;
-    uint32 chain_id = 3;
-    LPType type = 4;
+    uint64 seq_num = 1; // used for withdraw
+    string tx_hash = 2; // used for add
+    string lp_addr = 3;
+    uint32 chain_id = 4;
+    LPType type = 5;
 }
 
 enum LPType {

@@ -61,7 +61,7 @@ func (d *DAL) UpdateLPStatusForWithdraw(chainId, seqNum, status uint64, lpAddr s
 	return d.UpdateLPStatus(seqNum, lpType, chainId, lpAddr, status)
 }
 
-func (d *DAL) GetLPInfo(seqNum, lpType, chainId uint64, lpAddr string) (string, uint64, time.Time, bool, error) {
+func (d *DAL) GetLPInfoBySeqNum(seqNum, lpType, chainId uint64, lpAddr string) (string, uint64, time.Time, bool, error) {
 	var status uint64
 	var txHash string
 	var ut time.Time
@@ -69,6 +69,15 @@ func (d *DAL) GetLPInfo(seqNum, lpType, chainId uint64, lpAddr string) (string, 
 	err := d.QueryRow(q, seqNum, chainId, lpAddr, lpType).Scan(&chainId, &txHash, &status, &ut)
 	found, err := sqldb.ChkQueryRow(err)
 	return txHash, status, ut, found, err
+}
+
+func (d *DAL) GetLPInfoByHash(lpType, chainId uint64, lpAddr, txHash string) (uint64, uint64, time.Time, bool, error) {
+	var status, seqNum uint64
+	var ut time.Time
+	q := `SELECT chain_id, seq_num, status, update_time FROM lp WHERE tx_hash = $1 and chain_id = $2 and usr_addr = $3 and lp_type = $4`
+	err := d.QueryRow(q, txHash, chainId, lpAddr, lpType).Scan(&chainId, &seqNum, &status, &ut)
+	found, err := sqldb.ChkQueryRow(err)
+	return seqNum, status, ut, found, err
 }
 
 func (d *DAL) HasSeqNumUsedForWithdraw(seqNum uint64, lpAddr string) bool {

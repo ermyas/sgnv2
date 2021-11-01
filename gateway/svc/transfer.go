@@ -236,11 +236,11 @@ func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.T
 		}
 		srcTxLink := ""
 		dstTxLink := ""
-		if common.IsValidTxHash(transfer.SrcTxHash) {
+		if srcChainUrl != "" && common.IsValidTxHash(transfer.SrcTxHash) {
 			srcTxLink = srcChainUrl + transfer.SrcTxHash
 		}
 
-		if common.IsValidTxHash(transfer.DstTxHash) {
+		if dstChainUrl != "" && common.IsValidTxHash(transfer.DstTxHash) {
 			dstTxLink = dstChainUrl + transfer.DstTxHash
 		}
 
