@@ -6,6 +6,7 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/distribution/client/cli"
 	"github.com/celer-network/sgn-v2/x/distribution/types"
@@ -23,6 +24,15 @@ func (gs *GatewayService) StakingConfig(ctx context.Context, request *webapi.Sta
 
 func (gs *GatewayService) UnlockStakingReward(ctx context.Context, request *webapi.UnlockStakingRewardRequest) (*webapi.UnlockStakingRewardResponse, error) {
 	tr := gs.TP.GetTransactor()
+	if !utils.CheckUnlockStakingRewardParams(request.GetDelegatorAddress()) {
+		log.Warnf("Unlock Staking Reward failed, param check failed")
+		return &webapi.UnlockStakingRewardResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "params checking failed",
+			},
+		}, nil
+	}
 	_, err := cli.ClaimAllStakingReward(tr, &types.MsgClaimAllStakingReward{
 		DelegatorAddress: eth.Addr2Hex(common.Hex2Addr(request.GetDelegatorAddress())),
 		Sender:           tr.Key.GetAddress().String(),

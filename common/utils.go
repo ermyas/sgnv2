@@ -20,10 +20,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Lengths of hashes and addresses in bytes.
 const (
-	retryTimeout = 500 * time.Millisecond
-
+	retryTimeout        = 500 * time.Millisecond
 	ERC20DenomSeparator = "/" // NOTE: Cosmos SDK only accepts "/" or "-"
+	// HashLength is the expected length of the hash
+	HashLength = 32
+	// AddressLength is the expected length of the address
+	AddressLength = 20
 )
 
 func ParseTransactorAddrs(ts []string) ([]sdk.AccAddress, error) {
@@ -202,12 +206,45 @@ func Bytes2Hash(b []byte) Hash {
 	return ec.BytesToHash(b)
 }
 
+// IsValidTxHash verifies whether a string can represent a valid hash or not.
 func IsValidTxHash(txHash string) bool {
 	if txHash == "" {
 		return false
 	}
-	num, err := strconv.Atoi(txHash)
-	notNum := num == 0 && err != nil
-	preFix0x := strings.HasPrefix(txHash, "0x")
-	return notNum || preFix0x
+	if has0xPrefix(txHash) {
+		txHash = txHash[2:]
+	}
+	return len(txHash) == 2*HashLength && isHex(txHash)
+}
+
+// IsHexAddress verifies whether a string can represent a valid hex-encoded
+// Ethereum address or not.
+func IsHexAddress(s string) bool {
+	if has0xPrefix(s) {
+		s = s[2:]
+	}
+	return len(s) == 2*AddressLength && isHex(s)
+}
+
+// isHex validates whether each byte is valid hexadecimal string.
+func isHex(str string) bool {
+	if len(str)%2 != 0 {
+		return false
+	}
+	for _, c := range []byte(str) {
+		if !isHexCharacter(c) {
+			return false
+		}
+	}
+	return true
+}
+
+// isHexCharacter returns bool of c being a valid hexadecimal.
+func isHexCharacter(c byte) bool {
+	return ('0' <= c && c <= '9') || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F')
+}
+
+// has0xPrefix validates str begins with '0x' or '0X'.
+func has0xPrefix(str string) bool {
+	return len(str) >= 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X')
 }

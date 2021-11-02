@@ -3,6 +3,7 @@ package gatewaysvc
 import (
 	"context"
 	"fmt"
+	"github.com/celer-network/sgn-v2/gateway/utils"
 	"math/big"
 	"strconv"
 	"time"
@@ -151,7 +152,16 @@ func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.Mark
 	receivedInfo := refineTokenInfo(request.GetDstMinReceivedInfo())
 	txHash := request.GetSrcTxHash()
 	txType := request.GetType()
-	log.Infof("MarkTransfer transfer, transferId: %s, addr:%s, txHash: %s, srcChainId:%d, txType:%d", transferId, addr, txHash, sendInfo.GetChain().GetId(), txType)
+	log.Infof("Mark transfer, transferId: %s, addr:%s, txHash: %s, srcChainId:%d, txType:%d", transferId, addr, txHash, sendInfo.GetChain().GetId(), txType)
+	if !utils.CheckMarkTransferParams(transferId, txHash, request.GetAddr(), sendInfo, receivedInfo) {
+		log.Warnf("Mark transfer failed, param check failed")
+		return &webapi.MarkTransferResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "params checking failed",
+			},
+		}, nil
+	}
 	if txType == webapi.TransferType_TRANSFER_TYPE_SEND {
 		srcChainId := uint64(sendInfo.GetChain().GetId())
 		dstChainId := uint64(receivedInfo.GetChain().GetId())

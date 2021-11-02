@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
-	"sort"
 	"strconv"
 	"testing"
 	"time"
@@ -560,13 +559,4 @@ func TestLPWithdraw(t *testing.T) {
 	errIsNil(t, err)
 	errMsgIsNil(t, lpHistory.Err)
 	checkLpStatus(t, lpHistory.History[0].Status, types.LPHistoryStatus_LP_COMPLETED)
-}
-
-func TestLPList(t *testing.T) {
-	var lps []int
-	lps = append(lps, 1, 2, 3, 4, 5)
-	sort.SliceStable(lps, func(i, j int) bool {
-		return lps[i] < lps[j]
-	})
-	t.Log(lps)
 }

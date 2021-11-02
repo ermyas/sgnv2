@@ -3,6 +3,7 @@ package gatewaysvc
 import (
 	"context"
 	"fmt"
+	"github.com/celer-network/sgn-v2/gateway/utils"
 	"math/big"
 	"strconv"
 	"time"
@@ -30,6 +31,15 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 	addr := common.Hex2Addr(request.GetLpAddr()).String()
 	tokenAddr := common.Hex2Addr(request.GetTokenAddr()).String()
 	log.Infof("Liquidity in mark api addr:%s, amt:%s, chainId:%d, type:%d", addr, amt, chainId, lpType)
+	if !utils.CheckMarkLiquidityParams(lpType, chainId, amt, request.GetLpAddr(), request.GetTokenAddr()) {
+		log.Warnf("Mark Liquidity failed, param check failed")
+		return &webapi.MarkLiquidityResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "params checking failed",
+			},
+		}, nil
+	}
 	token, found, err := dal.DB.GetTokenByAddr(tokenAddr, uint64(chainId))
 	if !found || err != nil {
 		return &webapi.MarkLiquidityResponse{
@@ -71,6 +81,15 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 		}, nil
 	}
 
+	if !utils.CheckWithdrawLiquidityParams(wdReq) {
+		log.Warnf("Withdraw Liquidity failed, param check failed")
+		return &webapi.WithdrawLiquidityResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "params checking failed",
+			},
+		}, nil
+	}
 	transferId := wdReq.GetXferId()
 	tr := gs.TP.GetTransactor()
 	if transferId != "" {

@@ -2,6 +2,7 @@ package gatewaysvc
 
 import (
 	"context"
+	"github.com/celer-network/sgn-v2/gateway/utils"
 	"math"
 
 	"github.com/celer-network/goutils/log"
@@ -41,6 +42,15 @@ func (gs *GatewayService) RewardingData(ctx context.Context, request *webapi.Rew
 
 func (gs *GatewayService) UnlockFarmingReward(ctx context.Context, request *webapi.UnlockFarmingRewardRequest) (*webapi.UnlockFarmingRewardResponse, error) {
 	tr := gs.TP.GetTransactor()
+	if !utils.CheckUnlockFarmingRewardParams(request.GetAddr()) {
+		log.Warnf("Unlock Farming Reward failed, param check failed")
+		return &webapi.UnlockFarmingRewardResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "params checking failed",
+			},
+		}, nil
+	}
 	_, err := farmingcli.ClaimAllRewards(tr, &farmingtypes.MsgClaimAllRewards{
 		Address: eth.Addr2Hex(common.Hex2Addr(request.GetAddr())),
 		Sender:  tr.Key.GetAddress().String(),
