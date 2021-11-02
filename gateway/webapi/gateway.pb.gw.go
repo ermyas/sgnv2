@@ -13,7 +13,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/golang/protobuf/descriptor"
 	"github.com/golang/protobuf/proto"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -637,7 +636,7 @@ var (
 )
 
 func request_Web_GetTotalLiquidityProviderTokenBalance_0(ctx context.Context, marshaler runtime.Marshaler, client WebClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq types.QueryTotalLiquidityRequest
+	var protoReq GetTotalLiquidityProviderTokenBalanceRequest
 	var metadata runtime.ServerMetadata
 
 	if err := req.ParseForm(); err != nil {
@@ -653,7 +652,7 @@ func request_Web_GetTotalLiquidityProviderTokenBalance_0(ctx context.Context, ma
 }
 
 func local_request_Web_GetTotalLiquidityProviderTokenBalance_0(ctx context.Context, marshaler runtime.Marshaler, server WebServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq types.QueryTotalLiquidityRequest
+	var protoReq GetTotalLiquidityProviderTokenBalanceRequest
 	var metadata runtime.ServerMetadata
 
 	if err := req.ParseForm(); err != nil {

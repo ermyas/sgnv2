@@ -101,6 +101,7 @@ func InitGateway(
 	// Using the gogo/gateway package with the gRPC-Gateway WithMarshaler option fixes the scalar field marshalling issue.
 	marshalerOption := &gateway.JSONPb{
 		EmitDefaults: true,
+		EnumsAsInts:  true,
 		Indent:       "  ",
 		OrigName:     true,
 		AnyResolver:  _interfaceRegistry,

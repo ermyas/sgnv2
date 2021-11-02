@@ -108,7 +108,6 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 			})
 		}
 	}
-
 	var lps []*webapi.LPInfo
 
 	userDetailMap := make(map[uint64]map[string]*cbrtypes.LiquidityDetail)
@@ -216,10 +215,47 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	}, nil
 }
 
-func (gs *GatewayService) GetTotalLiquidityProviderTokenBalance(ctx context.Context, request *cbrtypes.QueryTotalLiquidityRequest) (*cbrtypes.QueryTotalLiquidityResponse, error) {
+func (gs *GatewayService) GetTotalLiquidityProviderTokenBalance(ctx context.Context, request *webapi.GetTotalLiquidityProviderTokenBalanceRequest) (*webapi.GetTotalLiquidityProviderTokenBalanceResponse, error) {
+	tokenSymbol := common.Hex2Addr(request.GetTokenSymbol()).String()
+	chainIds := request.GetChainIds()
+	ret := make(map[uint64]string)
+	if len(chainIds) == 0 {
+		// all chains
+		chainTokenInfos, err := dal.DB.GetChainTokenList()
+		if err == nil || len(chainTokenInfos) > 0 {
+			for chainId, chainToken := range chainTokenInfos {
+				for _, token := range chainToken.GetToken() {
+					if token.GetToken().GetSymbol() == tokenSymbol {
+						ret[uint64(chainId)] = gs.getLiquidityOnChainToken(uint64(chainId), token.GetToken().GetAddress())
+						break
+					}
+				}
+			}
+		}
+	} else {
+		for _, chainId := range chainIds {
+			token, tokenFound, dberr := dal.DB.GetTokenBySymbol(tokenSymbol, uint64(chainId))
+			if tokenFound && dberr == nil {
+				ret[uint64(chainId)] = gs.getLiquidityOnChainToken(uint64(chainId), token.GetToken().GetAddress())
+			}
+		}
+	}
+	return &webapi.GetTotalLiquidityProviderTokenBalanceResponse{
+		TotalLiq: ret,
+	}, nil
+}
+
+func (gs *GatewayService) getLiquidityOnChainToken(chainId uint64, tokenAddr string) string {
 	tr := gs.TP.GetTransactor()
-	resp, detailErr := cbrcli.QueryTotalLiquidity(tr.CliCtx, request)
-	return resp, detailErr
+	resp, err := cbrcli.QueryTotalLiquidity(tr.CliCtx, &cbrtypes.QueryTotalLiquidityRequest{
+		ChainId:   chainId,
+		TokenAddr: tokenAddr,
+	})
+	if err != nil {
+		log.Errorf("getLiquidityOnChainToken err, chain:%d, token:%s, err:%+v", chainId, tokenAddr, err)
+		return "0"
+	}
+	return resp.GetTotalLiq()
 }
 
 func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[string]float64 {

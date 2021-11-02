@@ -145,7 +145,7 @@ service Web {
     }
 
     // Safeguarding apis
-    rpc GetTotalLiquidityProviderTokenBalance (cbridge.v1.QueryTotalLiquidityRequest) returns (cbridge.v1.QueryTotalLiquidityResponse) {
+    rpc GetTotalLiquidityProviderTokenBalance (GetTotalLiquidityProviderTokenBalanceRequest) returns (GetTotalLiquidityProviderTokenBalanceResponse) {
         option (google.api.http) = {
       get: "/v1/getTotalLiquidityProviderTokenBalance"
     };
@@ -501,6 +501,16 @@ message GetStakingRewardDetailsRequest {
 message GetStakingRewardDetailsResponse {
     ErrMsg err = 1;
     distribution.v1.StakingRewardClaimInfo detail = 2;
+}
+
+message GetTotalLiquidityProviderTokenBalanceRequest {
+    repeated uint32 chain_ids = 1; // if this list is empty, will return all chain liq balance
+    string token_symbol = 2;
+}
+
+message GetTotalLiquidityProviderTokenBalanceResponse {
+    ErrMsg err = 1;
+    map<uint64, string> total_liq = 2; //map<chain_id, total_liq>
 }
 
 enum WithdrawMethodType {
