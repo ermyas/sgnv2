@@ -65,6 +65,12 @@ func (ast *ChainAsset) Validate() error {
 	if !good {
 		return fmt.Errorf("max_fee_amount %s bad format", ast.MaxFeeAmount)
 	}
+	if ast.MaxOutAmt != "" {
+		maxSend, good := new(big.Int).SetString(ast.MaxOutAmt, 10)
+		if !good || maxSend.Sign() == -1 {
+			return fmt.Errorf("max_out_amt %s should be a non-negative number", ast.MaxOutAmt)
+		}
+	}
 	return nil
 }
 

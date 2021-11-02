@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math/big"
 	"sort"
 
 	ethutils "github.com/celer-network/goutils/eth"
@@ -67,6 +68,22 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 			return nil, err
 		}
 	}
+
+	// rate limit check
+	assetInfo := GetAssetInfo(kv, GetAssetSymbol(kv, &ChainIdTokenAddr{
+		ChId:      wdOnchain.Chainid,
+		TokenAddr: eth.Bytes2Addr(wdOnchain.Token),
+	}), wdOnchain.Chainid)
+	if assetInfo.GetMaxOutAmt() != "" {
+		maxSend, _ := new(big.Int).SetString(assetInfo.GetMaxOutAmt(), 10)
+		if isPos(maxSend) {
+			wdAmt := new(big.Int).SetBytes(wdOnchain.Amount)
+			if wdAmt.Cmp(maxSend) == 1 {
+				return nil, types.Error(types.ErrCode_INVALID_REQ, "withdrawal amount %s exceeds allowance", wdAmt)
+			}
+		}
+	}
+
 	wdOnChainRaw, _ := wdOnchain.Marshal()
 	SaveWithdrawDetail(
 		kv, signer, wdReq.ReqId,

@@ -107,6 +107,15 @@ func (k Keeper) transfer(
 		return
 	}
 	log.Info("perfxxx pickLPs took: ", time.Since(start))
+
+	// rate limit check
+	if destToken.GetMaxOutAmt() != "" {
+		maxSend, _ := new(big.Int).SetString(destToken.GetMaxOutAmt(), 10)
+		if isPos(maxSend) && userReceive.Cmp(maxSend) == 1 {
+			status = types.XferStatus_BAD_LIQUIDITY
+		}
+	}
+
 	// baseFee goes to sgn, if we ever want to support accurate baseFee attribution,
 	// we need to save baseFee in relay detail, and upon seeing the relay event, figure out
 	// its sender and add to that address. Note there is no way we can make baseFee equal the actual

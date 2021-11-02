@@ -85,6 +85,7 @@ message ChainAsset {
   uint32 decimal = 4; // to handle same asset has different decimal on different chains
   string max_fee_amount = 5; // max fee cap for percentage fee, use string to avoid uint64 not enough for 18 decimal
   bool xfer_disabled = 6; // if set to true, won't relay if this asset is src or dest
+  string max_out_amt = 7; // max amount that a withdrawal or a relay accepts, "0" or "" means no limit 
 }
 
 // chid1 must be smaller than chid2 order
