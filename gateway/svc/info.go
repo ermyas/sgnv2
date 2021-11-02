@@ -16,28 +16,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-func (gs *GatewayService) GetAdvancedInfo(ctx context.Context, request *webapi.GetAdvancedInfoRequest) (*webapi.GetAdvancedInfoResponse, error) {
-	addr := common.Hex2Addr(request.GetAddr()).String()
-	return &webapi.GetAdvancedInfoResponse{
-		SlippageTolerance: GetSlippage(addr),
-	}, nil
-}
-
-func (gs *GatewayService) SetAdvancedInfo(ctx context.Context, request *webapi.SetAdvancedInfoRequest) (*webapi.SetAdvancedInfoResponse, error) {
-	addr := common.Hex2Addr(request.GetAddr()).String()
-	err := dal.DB.UpsertSlippageSetting(addr, request.GetSlippageTolerance())
-	if err == nil {
-		return &webapi.SetAdvancedInfoResponse{}, nil
-	} else {
-		return &webapi.SetAdvancedInfoResponse{
-			Err: &webapi.ErrMsg{
-				Code: webapi.ErrCode_ERROR_CODE_COMMON,
-				Msg:  "update setting failed",
-			},
-		}, nil
-	}
-}
-
 func (gs *GatewayService) GetTransferConfigs(ctx context.Context, request *webapi.GetTransferConfigsRequest) (*webapi.GetTransferConfigsResponse, error) {
 	chainTokenList, err := dal.DB.GetEnabledChainTokenList()
 	if err != nil {
@@ -310,12 +288,4 @@ func (gs *GatewayService) get24hTx() map[uint64]map[string]*txData {
 	}
 	SetTx24hCache(resp)
 	return resp
-}
-
-func GetSlippage(addr string) uint32 {
-	slippageSetting, found, err := dal.DB.GetSlippageSetting(addr)
-	if !found || err != nil {
-		slippageSetting = 5000 //default 500
-	}
-	return slippageSetting
 }

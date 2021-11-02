@@ -254,12 +254,6 @@ func TestTransfer(t *testing.T) {
 	srcTxHash := "111111111"
 	transferId := "1"
 
-	tlrsResp, err := svc.SetAdvancedInfo(nil, &webapi.SetAdvancedInfoRequest{
-		Addr:              "0x25846D545a60A029E5C83f0FB96e41b408528e9E",
-		SlippageTolerance: 200,
-	})
-	errIsNil(t, err)
-	errMsgIsNil(t, tlrsResp.Err)
 	estimateAmt, err := svc.EstimateAmt(nil, &webapi.EstimateAmtRequest{
 		SrcChainId:  chain1,
 		DstChainId:  chain2,
@@ -344,13 +338,6 @@ func TestTransferRefund(t *testing.T) {
 	usrAddr := "0x25846D545a60A029E5C83f0FB96e41b408528e9E"
 	srcTxHash := "111111111"
 	transferId := "1"
-
-	tlrsResp, err := svc.SetAdvancedInfo(nil, &webapi.SetAdvancedInfoRequest{
-		Addr:              "0x25846D545a60A029E5C83f0FB96e41b408528e9E",
-		SlippageTolerance: 200,
-	})
-	errIsNil(t, err)
-	errMsgIsNil(t, tlrsResp.Err)
 
 	seqNum := uint64(1)
 

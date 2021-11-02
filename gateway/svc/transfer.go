@@ -17,6 +17,10 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
+const (
+	default_slippage = 5000
+)
+
 func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi.GetTransferStatusRequest) (*webapi.GetTransferStatusResponse, error) {
 	transfer, found, err := dal.DB.GetTransfer(request.GetTransferId())
 	if !found || err != nil {
@@ -104,6 +108,11 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 	srcChainId := request.GetSrcChainId()
 	dstChainId := request.GetDstChainId()
 	tokenSymbol := request.GetTokenSymbol()
+	slippage := request.GetSlippageTolerance()
+	if slippage == 0 {
+		slippage = default_slippage
+	}
+
 	if srcChainId == dstChainId {
 		return &webapi.EstimateAmtResponse{
 			Err: &webapi.ErrMsg{
@@ -132,7 +141,7 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 	}
 	addr := common.Hex2Addr(request.GetUsrAddr()).String()
 
-	resp, infoErr := gs.getEstimatedFeeInfo(addr, srcChainId, dstChainId, srcToken, dstToken, amt, false)
+	resp, infoErr := gs.getEstimatedFeeInfo(addr, srcChainId, dstChainId, slippage, srcToken, dstToken, amt, false)
 	if infoErr != nil {
 		return &webapi.EstimateAmtResponse{
 			Err: &webapi.ErrMsg{
@@ -398,8 +407,7 @@ func (gs *GatewayService) getTxHashForTransfer(transfer *dal.Transfer) (string, 
 	return srcTxHash, dstTxHash
 }
 
-func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainId uint32, srcToken, dstToken *webapi.TokenInfo, amt string, useLp bool) (*webapi.EstimateAmtResponse, error) {
-	slippage := GetSlippage(addr)
+func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainId, slippage uint32, srcToken, dstToken *webapi.TokenInfo, amt string, useLp bool) (*webapi.EstimateAmtResponse, error) {
 	tr := gs.TP.GetTransactor()
 	getFeeRequest := &types.GetFeeRequest{
 		SrcChainId:   uint64(srcChainId),

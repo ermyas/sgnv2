@@ -418,8 +418,12 @@ func (gs *GatewayService) EstimateWithdrawAmt(ctx context.Context, request *weba
 	resp := make(map[uint32]*webapi.EstimateWithdrawAmt)
 	addr := common.Hex2Addr(request.GetUsrAddr()).String()
 	for _, withdraw := range srcWithdraws {
-		srcChainId := withdraw.GetChain().GetId()
+		srcChainId := withdraw.GetChainId()
 		amt := withdraw.GetAmount()
+		slippage := withdraw.GetSlippageTolerance()
+		if slippage == 0 {
+			slippage = default_slippage
+		}
 		if srcChainId == dstChainId {
 			resp[srcChainId] = &webapi.EstimateWithdrawAmt{
 				EqValueTokenAmt:   amt,
@@ -440,7 +444,7 @@ func (gs *GatewayService) EstimateWithdrawAmt(ctx context.Context, request *weba
 				},
 			}, nil
 		}
-		info, infoErr := gs.getEstimatedFeeInfo(addr, srcChainId, dstChainId, srcToken, dstToken, amt, true)
+		info, infoErr := gs.getEstimatedFeeInfo(addr, srcChainId, dstChainId, slippage, srcToken, dstToken, amt, true)
 		if infoErr != nil {
 			return &webapi.EstimateWithdrawAmtResponse{
 				Err: &webapi.ErrMsg{

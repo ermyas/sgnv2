@@ -217,20 +217,6 @@ func (d *DAL) MarkTransferRequestingRefund(transferId string, withdrawSeqNum uin
 	return sqldb.ChkExec(res, err, 1, "MarkTransferRefund")
 }
 
-func (d *DAL) UpsertSlippageSetting(addr string, slippage uint32) error {
-	q := `INSERT INTO usr_slippage (addr, slippage) VALUES ($1, $2) ON CONFLICT (addr) DO UPDATE SET slippage=$2`
-	res, err := d.Exec(q, addr, slippage)
-	return sqldb.ChkExec(res, err, 1, "UpsertSlippageSetting")
-}
-
-func (d *DAL) GetSlippageSetting(addr string) (uint32, bool, error) {
-	var slippage uint32
-	q := `SELECT slippage FROM usr_slippage WHERE addr = $1`
-	err := d.QueryRow(q, addr).Scan(&slippage)
-	found, err := sqldb.ChkQueryRow(err)
-	return slippage, found, err
-}
-
 func (d *DAL) Get24hTx() ([]*Transfer, error) {
 	q := "SELECT dst_chain_id, token_symbol, volume, received_amt, fee_perc FROM transfer WHERE create_time > $1"
 	rows, err := d.Query(q, now().Add(-24*time.Hour))
