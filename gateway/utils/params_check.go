@@ -4,7 +4,7 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
-	"strconv"
+	"regexp"
 )
 
 func CheckMarkTransferParams(transferId, txHash, addr string, sendInfo, receivedInfo *webapi.TransferInfo) bool {
@@ -17,9 +17,8 @@ func CheckMarkTransferParams(transferId, txHash, addr string, sendInfo, received
 }
 
 func CheckMarkLiquidityParams(lpType webapi.LPType, chainId uint32, amt, lpAddr, tokenAddr string) bool {
-	amtNum, err := strconv.Atoi(amt)
 	return lpType != webapi.LPType_LP_TYPE_UNKNOWN &&
-		amtNum > 0 && err == nil &&
+		isValidNum(amt) &&
 		chainId > 0 &&
 		isValidAddr(lpAddr) &&
 		isValidAddr(tokenAddr)
@@ -50,9 +49,17 @@ func isValidHash(hash string) bool {
 }
 
 func isValidTxInfo(info *webapi.TransferInfo) bool {
-	amt, err := strconv.Atoi(info.GetAmount())
-	return amt > 0 && err == nil &&
+	return isValidNum(info.GetAmount()) &&
 		info.GetChain().GetId() > 0 &&
 		info.GetToken().GetSymbol() != "" &&
 		isValidAddr(info.GetToken().GetAddress())
+}
+
+func isValidNum(num string) bool {
+	if !regexp.MustCompile(`^[0-9]+$`).MatchString(num) {
+		// isNumeric
+		return false
+	}
+	n := common.Str2BigInt(num)
+	return n.Cmp(common.Str2BigInt("0")) > 0
 }

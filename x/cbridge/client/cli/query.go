@@ -337,6 +337,23 @@ func QueryLiquidityDetailList(cliCtx client.Context, request *types.LiquidityDet
 	return
 }
 
+func QueryTotalLiquidity(cliCtx client.Context, request *types.QueryTotalLiquidityRequest) (resp *types.QueryTotalLiquidityResponse, err error) {
+	data, err := cliCtx.LegacyAmino.MarshalJSON(request)
+	if err != nil {
+		return
+	}
+
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryTotalLiquidity)
+	res, err := common.RobustQueryWithData(cliCtx, route, data)
+	if err != nil {
+		return
+	}
+
+	resp = new(types.QueryTotalLiquidityResponse)
+	err = cliCtx.Codec.Unmarshal(res, resp)
+	return
+}
+
 func QueryAddLiquidityStatus(cliCtx client.Context, request *types.QueryAddLiquidityStatusRequest) (resp *types.QueryLiquidityStatusResponse, err error) {
 	data, err := cliCtx.LegacyAmino.MarshalJSON(request)
 	if err != nil {

@@ -34,6 +34,8 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 			return queryTransferStatus(ctx, req, k, legacyQuerierCdc)
 		case types.QueryLiquidityDetailList:
 			return queryLiquidityDetailList(ctx, req, k, legacyQuerierCdc)
+		case types.QueryTotalLiquidity:
+			return queryTotalLiquidity(ctx, req, k, legacyQuerierCdc)
 		case types.QueryAddLiquidityStatus:
 			return queryAddLiquidityStatus(ctx, req, k, legacyQuerierCdc)
 		case types.QueryWithdrawLiquidityStatus:
@@ -326,6 +328,27 @@ func queryLiquidityDetailList(ctx sdk.Context, req abci.RequestQuery, k Keeper, 
 	resp := types.LiquidityDetailListResponse{
 		LiquidityDetail: ldList,
 	}
+	res, err := k.cdc.Marshal(&resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func queryTotalLiquidity(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var params *types.QueryTotalLiquidityRequest
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse params: %s", err)
+	}
+
+	totalLiquidity := GetLiq(ctx.KVStore(k.storeKey), &ChainIdTokenAddr{
+		ChId:      params.GetChainId(),
+		TokenAddr: eth.Hex2Addr(params.GetTokenAddr()),
+	}).String()
+
+	resp := types.QueryTotalLiquidityResponse{TotalLiq: totalLiquidity}
 	res, err := k.cdc.Marshal(&resp)
 	if err != nil {
 		return nil, err

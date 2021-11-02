@@ -8,6 +8,7 @@ const (
 	QueryFeePerc                 = "fee-perc"
 	QueryTransferStatus          = "xfer-status"
 	QueryLiquidityDetailList     = "liquidity-detail-list"
+	QueryTotalLiquidity          = "total-liquidity"
 	QueryAddLiquidityStatus      = "add-liquidity-status"
 	QueryWithdrawLiquidityStatus = "withdraw-liquidity-status"
 	QueryChainSigners            = "chain-signers"

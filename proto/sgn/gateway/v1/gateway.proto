@@ -144,6 +144,13 @@ service Web {
     };
     }
 
+    // Safeguarding apis
+    rpc GetTotalLiquidityProviderTokenBalance (cbridge.v1.QueryTotalLiquidityRequest) returns (cbridge.v1.QueryTotalLiquidityResponse) {
+        option (google.api.http) = {
+      get: "/v1/getTotalLiquidityProviderTokenBalance"
+    };
+    }
+
     // configs api, apis in these service need sign valid addr
     rpc UpdateChain (UpdateChainRequest) returns (UpdateChainResponse) {
         option (google.api.http) = {

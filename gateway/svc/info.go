@@ -216,6 +216,12 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	}, nil
 }
 
+func (gs *GatewayService) GetTotalLiquidityProviderTokenBalance(ctx context.Context, request *cbrtypes.QueryTotalLiquidityRequest) (*cbrtypes.QueryTotalLiquidityResponse, error) {
+	tr := gs.TP.GetTransactor()
+	resp, detailErr := cbrcli.QueryTotalLiquidity(tr.CliCtx, request)
+	return resp, detailErr
+}
+
 func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[string]float64 {
 	cache := GetFarmingApyCache()
 	if cache != nil {

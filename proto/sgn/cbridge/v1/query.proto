@@ -23,6 +23,8 @@ service Query {
     //LP
     rpc LiquidityDetailList (LiquidityDetailListRequest) returns (LiquidityDetailListResponse) {
     }
+    rpc QueryTotalLiquidity (QueryTotalLiquidityRequest) returns (QueryTotalLiquidityResponse){
+    }
 
     rpc QueryAddLiquidityStatus (QueryAddLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {
     }
@@ -98,6 +100,16 @@ message LiquidityDetailListRequest {
 message LiquidityDetailListResponse {
     repeated LiquidityDetail liquidity_detail = 2;
 }
+
+message QueryTotalLiquidityRequest {
+    uint64 chain_id = 1;
+    string token_addr = 2;
+}
+
+message QueryTotalLiquidityResponse {
+    string total_liq = 1;
+}
+
 
 message QueryAddLiquidityStatusRequest {
     uint64 chain_id = 1;
