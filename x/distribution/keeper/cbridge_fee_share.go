@@ -7,27 +7,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func (k Keeper) AddCBridgeFeeShare(ctx sdk.Context, amount sdk.Coin) error {
-	// Mint coins to distribution module's fee collector account
-	if err := k.bankKeeper.MintCoins(ctx, k.feeCollectorName, sdk.NewCoins(amount)); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (k Keeper) BurnCBridgeFeeShare(ctx sdk.Context, delAddr eth.Addr, amount sdk.Coin) error {
-	derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, delAddr)
-	err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, derivedAccAddress, k.feeCollectorName, sdk.NewCoins(amount))
-	if err != nil {
-		return err
-	}
-	err = k.bankKeeper.BurnCoins(ctx, k.feeCollectorName, sdk.NewCoins(amount))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (k Keeper) GetWithdrawableCBridgeFeeShare(ctx sdk.Context, delAddr eth.Addr, coin sdk.Coin) sdk.Coin {
 	derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, delAddr)
 	return k.bankKeeper.GetBalance(ctx, derivedAccAddress, coin.Denom)

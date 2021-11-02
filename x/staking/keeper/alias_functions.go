@@ -8,6 +8,26 @@ import (
 
 // Validator Set
 
+// iterate through the validator set and perform the provided function
+func (k Keeper) IterateValidators(ctx sdk.Context, fn func(index int64, validator types.ValidatorI) (stop bool)) {
+	store := ctx.KVStore(k.storeKey)
+
+	iterator := sdk.KVStorePrefixIterator(store, types.ValidatorKey)
+	defer iterator.Close()
+
+	i := int64(0)
+
+	for ; iterator.Valid(); iterator.Next() {
+		validator := types.MustUnmarshalValidator(k.cdc, iterator.Value())
+		stop := fn(i, validator) // XXX is this safe will the validator unexposed fields be able to get written to?
+
+		if stop {
+			break
+		}
+		i++
+	}
+}
+
 // Validator gets the Validator interface for a particular address
 func (k Keeper) Validator(ctx sdk.Context, address eth.Addr) types.ValidatorI {
 	val, found := k.GetValidator(ctx, address)
@@ -63,4 +83,20 @@ func (k Keeper) IterateDelegations(ctx sdk.Context, delAddr eth.Addr,
 		}
 		i++
 	}
+}
+
+// return all delegations used during genesis dump
+// TODO: remove this func, change all usage for iterate functionality (follow upstream)
+func (k Keeper) GetAllSDKDelegations(ctx sdk.Context) (delegations []types.Delegation) {
+	store := ctx.KVStore(k.storeKey)
+
+	iterator := sdk.KVStorePrefixIterator(store, types.DelegationKey)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		delegation := types.MustUnmarshalDelegation(k.cdc, iterator.Value())
+		delegations = append(delegations, delegation)
+	}
+
+	return
 }

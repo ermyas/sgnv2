@@ -210,7 +210,7 @@ func (k Keeper) AddSgnFee(ctx sdk.Context, kv sdk.KVStore, chid uint64, token et
 	symbol := GetAssetSymbol(kv, &ChainIdTokenAddr{chid, token})
 	denom := fmt.Sprintf("%s%s/%d", types.CBridgeFeeDenomPrefix, symbol, chid)
 	coin := sdk.NewCoin(denom, sdk.NewIntFromBigInt(delta))
-	err := k.distrKeeper.AddCBridgeFeeShare(ctx, coin)
+	err := k.AddFeeShare(ctx, coin)
 	if err != nil {
 		panic(err)
 	}

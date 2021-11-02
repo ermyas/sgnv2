@@ -12,7 +12,6 @@ func (k Keeper) Stake(
 	poolName string,
 	address eth.Addr,
 	amount sdk.Coin,
-	mintStakes bool,
 ) error {
 	// 1.1 Get farming pool
 	pool, found := k.GetFarmingPool(ctx, poolName)
@@ -61,18 +60,12 @@ func (k Keeper) Stake(
 	// 4. Update stake info
 	k.UpdateStakeInfo(ctx, address, poolName, sdk.NewDecFromInt(amount.Amount))
 
-	// 5. Mint new stakes or send the staked tokens from its own account to farming module account
-	if mintStakes {
-		if err := k.bankKeeper.MintCoins(ctx, types.ModuleName, sdk.NewCoins(amount)); err != nil {
-			return types.WrapErrMintCoinsFailed(err.Error())
-		}
-	} else {
-		derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, address)
-		if err := k.bankKeeper.SendCoinsFromAccountToModule(
-			ctx, derivedAccAddress, types.ModuleName, sdk.NewCoins(amount),
-		); err != nil {
-			return types.WrapErrSendCoinsFromAccountToModuleFailed(err.Error())
-		}
+	// 5. Send the staked tokens from its own account to the farming module account
+	derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, address)
+	if err := k.bankKeeper.SendCoinsFromAccountToModule(
+		ctx, derivedAccAddress, types.ModuleName, sdk.NewCoins(amount),
+	); err != nil {
+		return types.WrapErrSendCoinsFromAccountToModuleFailed(err.Error())
 	}
 
 	// 6. Update farming pool
@@ -93,7 +86,6 @@ func (k Keeper) Unstake(
 	poolName string,
 	address eth.Addr,
 	amount sdk.Coin,
-	burnStakes bool,
 ) error {
 	// 1.1 Check if there are enough tokens to unstake
 	stakeInfo, found := k.GetStakeInfo(ctx, address, poolName)
@@ -131,16 +123,10 @@ func (k Keeper) Unstake(
 	// 4. Update the stake info
 	k.UpdateStakeInfo(ctx, address, poolName, sdk.NewDecFromInt(amount.Amount.Neg()))
 
-	// 5. Burn stakes or send the staked tokens from farming module account to its own account
-	if burnStakes {
-		if err := k.bankKeeper.BurnCoins(ctx, types.ModuleName, sdk.NewCoins(amount)); err != nil {
-			return types.WrapErrBurnCoinsFailed(err.Error())
-		}
-	} else {
-		derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, address)
-		if err = k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, derivedAccAddress, sdk.NewCoins(amount)); err != nil {
-			return types.WrapErrSendCoinsFromModuleToAccountFailed(err.Error())
-		}
+	// 5. Send the staked tokens from its own account back to the farming module account
+	derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, address)
+	if err = k.bankKeeper.SendCoinsFromAccountToModule(ctx, derivedAccAddress, types.ModuleName, sdk.NewCoins(amount)); err != nil {
+		return types.WrapErrSendCoinsFromAccountToModuleFailed(err.Error())
 	}
 
 	// 6. Update farming pool

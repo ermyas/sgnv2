@@ -5,8 +5,10 @@ import (
 	"math/big"
 
 	clog "github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	params "github.com/cosmos/cosmos-sdk/x/params/types"
@@ -16,25 +18,32 @@ type Keeper struct {
 	cdc           codec.BinaryCodec
 	storeKey      sdk.StoreKey
 	paramstore    params.Subspace
+	bankKeeper    types.BankKeeper
 	stakingKeeper types.StakingKeeper
 	farmingKeeper types.FarmingKeeper
 	distrKeeper   types.DistributionKeeper
+
+	feeCollectorName string // name of the FeeCollector ModuleAccount
 }
 
 func NewKeeper(
 	cdc codec.BinaryCodec,
 	storeKey sdk.StoreKey,
 	params params.Subspace,
+	bankKeeper types.BankKeeper,
 	stakingKeeper types.StakingKeeper,
 	farmingKeeper types.FarmingKeeper,
-	distrKeeper types.DistributionKeeper) Keeper {
+	distrKeeper types.DistributionKeeper,
+	feeCollectorName string) Keeper {
 	return Keeper{
-		cdc:           cdc,
-		storeKey:      storeKey,
-		paramstore:    params,
-		stakingKeeper: stakingKeeper,
-		farmingKeeper: farmingKeeper,
-		distrKeeper:   distrKeeper,
+		cdc:              cdc,
+		storeKey:         storeKey,
+		paramstore:       params,
+		bankKeeper:       bankKeeper,
+		stakingKeeper:    stakingKeeper,
+		farmingKeeper:    farmingKeeper,
+		distrKeeper:      distrKeeper,
+		feeCollectorName: feeCollectorName,
 	}
 }
 
@@ -51,16 +60,39 @@ func (k Keeper) SyncFarming(ctx sdk.Context, sym string, chid uint64, lpAddr eth
 			stake = stakeInfo.Amount.Amount.RoundInt()
 		}
 		if liquidity.GT(stake) {
-			err = k.farmingKeeper.Stake(
-				ctx, poolName, lpAddr, sdk.NewCoin(denom, liquidity.Sub(stake)), true)
+			amount := sdk.NewCoin(denom, liquidity.Sub(stake))
+			// Mint stakes and send to lp address in farming module
+			err := k.bankKeeper.MintCoins(ctx, types.ModuleName, sdk.NewCoins(amount))
+			if err != nil {
+				clog.Errorf("Failed to mint stake, poolName %s, lpAddr %s, liquidity %s, stake %s", poolName, lpAddr, liquidity, stake)
+			}
+			derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(farmingtypes.ModuleName, lpAddr)
+			err = k.bankKeeper.SendCoinsFromModuleToAccount(
+				ctx, types.ModuleName, derivedAccAddress, sdk.NewCoins(amount),
+			)
+			if err != nil {
+				clog.Errorf("Failed to send stake, poolName %s, lpAddr %s, liquidity %s, stake %s", poolName, lpAddr, liquidity, stake)
+			}
+			// Stake
+			err = k.farmingKeeper.Stake(ctx, poolName, lpAddr, amount)
 			if err != nil {
 				clog.Errorf("Failed to stake, poolName %s, lpAddr %s, liquidity %s, stake %s", poolName, lpAddr, liquidity, stake)
 			}
 		} else if liquidity.LT(stake) {
-			err = k.farmingKeeper.Unstake(
-				ctx, poolName, lpAddr, sdk.NewCoin(denom, stake.Sub(liquidity)), true)
+			amount := sdk.NewCoin(denom, stake.Sub(liquidity))
+			// Unstake
+			err := k.farmingKeeper.Unstake(ctx, poolName, lpAddr, amount)
 			if err != nil {
 				clog.Errorf("Failed to unstake, poolName %s, lpAddr %s, liquidity %s, stake %s", poolName, lpAddr, liquidity, stake)
+			}
+			// Burn stakes
+			err = k.bankKeeper.SendCoinsFromModuleToModule(ctx, farmingtypes.ModuleName, types.ModuleName, sdk.NewCoins(amount))
+			if err != nil {
+				clog.Errorf("Failed to send stake back, poolName %s, lpAddr %s, liquidity %s, stake %s", poolName, lpAddr, liquidity, stake)
+			}
+			err = k.bankKeeper.BurnCoins(ctx, types.ModuleName, sdk.NewCoins(amount))
+			if err != nil {
+				clog.Errorf("Failed to burn stake, poolName %s, lpAddr %s, liquidity %s, stake %s", poolName, lpAddr, liquidity, stake)
 			}
 		}
 	}

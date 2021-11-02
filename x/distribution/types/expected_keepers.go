@@ -28,8 +28,6 @@ type BankKeeper interface {
 	SendCoinsFromModuleToModule(ctx sdk.Context, senderModule string, recipientModule string, amt sdk.Coins) error
 	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
 	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error
-	MintCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) error
-	BurnCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) error
 }
 
 // StakingKeeper expected staking keeper (noalias)
@@ -44,6 +42,12 @@ type StakingKeeper interface {
 	// and delegator outside the scope of the staking module.
 	Delegation(sdk.Context, eth.Addr, eth.Addr) stakingtypes.DelegationI
 
+	// iterate through validators by operator address, execute func for each validator
+	IterateValidators(sdk.Context,
+		func(index int64, validator stakingtypes.ValidatorI) (stop bool))
+
 	IterateDelegations(ctx sdk.Context, delegator eth.Addr,
 		fn func(index int64, delegation stakingtypes.DelegationI) (stop bool))
+
+	GetAllSDKDelegations(ctx sdk.Context) []stakingtypes.Delegation
 }
