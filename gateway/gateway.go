@@ -4,11 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/celer-network/sgn-v2/relayer"
 	"net"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/celer-network/sgn-v2/relayer"
 
 	gatewaysvc "github.com/celer-network/sgn-v2/gateway/svc"
 	"github.com/gogo/gateway"
@@ -100,7 +101,6 @@ func InitGateway(
 	// Using the gogo/gateway package with the gRPC-Gateway WithMarshaler option fixes the scalar field marshalling issue.
 	marshalerOption := &gateway.JSONPb{
 		EmitDefaults: true,
-		EnumsAsInts:  true,
 		Indent:       "  ",
 		OrigName:     true,
 		AnyResolver:  _interfaceRegistry,
