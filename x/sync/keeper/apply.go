@@ -59,7 +59,7 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 		return false, err
 	}
 	if update.Proposer != v.SgnAddress {
-		return false, fmt.Errorf("Validator %s not msg sender: %s", v.EthAddress, update.Proposer)
+		return false, fmt.Errorf("validator %s not msg sender: %s", v.EthAddress, update.Proposer)
 	}
 	if v.ConsensusPubkey == nil {
 		return false, fmt.Errorf("empty consensus pub key")
@@ -76,7 +76,7 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 	val.ConsensusPubkey = v.ConsensusPubkey
 	val.CommissionRate = v.CommissionRate
 	k.stakingKeeper.SetValidatorParams(ctx, &val, !found)
-	//TODO: gas coins
+	// TODO: gas coins
 	return true, nil
 }
 
@@ -104,10 +104,19 @@ func (k Keeper) applyDelegatorShares(ctx sdk.Context, update *types.PendingUpdat
 		return false, err
 	}
 	log.Infof("Apply delegator shares valAddr %s delAddr %s shares %s", d.ValidatorAddress, d.DelegatorAddress, d.Shares)
-	k.stakingKeeper.SetDelegationShares(
-		ctx,
-		eth.Hex2Addr(d.DelegatorAddress),
-		eth.Hex2Addr(d.ValidatorAddress),
-		d.Shares)
-	return true, nil
+	valAddr := eth.Hex2Addr(d.ValidatorAddress)
+	_, found := k.stakingKeeper.GetValidator(ctx, valAddr)
+	if found {
+		err = k.stakingKeeper.SetDelegationShares(
+			ctx,
+			eth.Hex2Addr(d.DelegatorAddress),
+			eth.Hex2Addr(d.ValidatorAddress),
+			d.Shares)
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	}
+	// If validator not found, the delegation is processed before we have seen the validator, just try again later.
+	return false, nil
 }

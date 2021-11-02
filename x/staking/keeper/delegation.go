@@ -3,6 +3,7 @@ package keeper
 import (
 	"bytes"
 
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -87,10 +88,10 @@ func (k Keeper) GetDelegatorDelegations(ctx sdk.Context, delegator eth.Addr,
 
 func (k Keeper) SetDelegation(ctx sdk.Context, delegation types.Delegation) {
 	store := ctx.KVStore(k.storeKey)
-	delegatorKey := types.GetDelegationKey(
+	delegationKey := types.GetDelegationKey(
 		eth.Hex2Addr(delegation.DelegatorAddress),
 		eth.Hex2Addr(delegation.ValidatorAddress))
-	store.Set(delegatorKey, types.MustMarshalDelegation(k.cdc, delegation))
+	store.Set(delegationKey, types.MustMarshalDelegation(k.cdc, delegation))
 }
 
 func (k Keeper) RemoveDelegation(ctx sdk.Context, delegation types.Delegation) {
@@ -105,15 +106,13 @@ func (k Keeper) SetDelegationShares(
 	delAddr eth.Addr,
 	valAddr eth.Addr,
 	shares sdk.Int,
-) {
+) error {
 	store := ctx.KVStore(k.storeKey)
 	value := store.Get(types.GetDelegationKey(delAddr, valAddr))
 	if k.Validator(ctx, valAddr) == nil {
-		// The delegation happened before we have seen the validator. Add a placeholder for distribution.
-		k.SetValidator(ctx, &types.Validator{
-			EthAddress:      eth.Addr2Hex(valAddr),
-			DelegatorShares: shares,
-		})
+		// Caller should prevent this from happening.
+		log.Errorln(types.ErrValidatorNotFound)
+		return types.ErrValidatorNotFound
 	}
 	// call the appropriate hook if present
 	if value == nil {
@@ -131,4 +130,5 @@ func (k Keeper) SetDelegationShares(
 		// Call the after-modification hook
 		k.AfterDelegationModified(ctx, delAddr, valAddr)
 	}
+	return nil
 }

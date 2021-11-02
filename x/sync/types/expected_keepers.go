@@ -12,6 +12,6 @@ type StakingKeeper interface {
 	InitAccount(ctx sdk.Context, accAddress sdk.AccAddress) error
 	SetValidatorParams(ctx sdk.Context, val *stakingtypes.Validator, newValidator bool)
 	SetValidatorStates(ctx sdk.Context, val *stakingtypes.Validator)
-	SetDelegationShares(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr, shares sdk.Int)
+	SetDelegationShares(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr, shares sdk.Int) error
 	GetBondedValidators(ctx sdk.Context) (validators stakingtypes.Validators)
 }

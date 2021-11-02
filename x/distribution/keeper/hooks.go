@@ -81,10 +81,6 @@ func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, valAddr eth.Addr) {
 // increment period
 func (h Hooks) BeforeDelegationCreated(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr) {
 	val := h.k.stakingKeeper.Validator(ctx, valAddr)
-	// Special case for uninitialized validator
-	if h.k.GetValidatorHistoricalRewards(ctx, valAddr, 0).ReferenceCount == 0 {
-		h.k.initializeValidator(ctx, val)
-	}
 	h.k.IncrementValidatorPeriod(ctx, val)
 }
 
