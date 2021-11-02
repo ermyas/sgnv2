@@ -3,7 +3,6 @@ package ops
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"time"
 
@@ -95,7 +94,7 @@ func newOneChain(chainId uint64) (*CbrOneChain, error) {
 	if err != nil {
 		log.Fatalln("fail to load multichain configs err:", err)
 	}
-
+	signerKey, signerPass := viper.GetString(common.FlagEthSignerKeystore), viper.GetString(common.FlagEthSignerPassphrase)
 	for _, cfg := range mcc {
 		if cfg.ChainID == chainId {
 			fixCfg(cfg) // if cfg.chainid equals ethchainid, uses eth.xxx
@@ -114,16 +113,14 @@ func newOneChain(chainId uint64) (*CbrOneChain, error) {
 			if err != nil {
 				log.Fatalln("cbridge contract at", cfg.CBridge, "err:", err)
 			}
-
-			ksBytes, err := ioutil.ReadFile(viper.GetString(common.FlagEthSignerKeystore))
+			signer, addr, err := eth.CreateSigner(signerKey, signerPass, chid)
 			if err != nil {
-				log.Fatalln("ReadFile err:", err)
+				log.Fatalln("CreateSigner err:", err)
 			}
-			transactor, err := ethutils.NewTransactor(
-				string(ksBytes),
-				viper.GetString(common.FlagEthSignerPassphrase),
+			transactor := ethutils.NewTransactorByExternalSigner(
+				addr,
+				signer,
 				ec,
-				big.NewInt(int64(cfg.ChainID)),
 				ethutils.WithBlockDelay(cfg.BlkDelay),
 				ethutils.WithPollingInterval(time.Duration(cfg.BlkInterval)*time.Second),
 			)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"sync"
 	"time"
@@ -108,22 +107,19 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 	if err != nil {
 		log.Fatalln("cbridge contract at", cfg.CBridge, "err:", err)
 	}
-
-	ksBytes, err := ioutil.ReadFile(viper.GetString(common.FlagEthSignerKeystore))
+	signerKey, signerPass := viper.GetString(common.FlagEthSignerKeystore), viper.GetString(common.FlagEthSignerPassphrase)
+	signer, addr, err := eth.CreateSigner(signerKey, signerPass, chid)
 	if err != nil {
-		log.Fatalln("ReadFile err:", err)
+		log.Fatalln("CreateSigner err:", err)
 	}
-	transactor, err := ethutils.NewTransactor(
-		string(ksBytes),
-		viper.GetString(common.FlagEthSignerPassphrase),
+
+	transactor := ethutils.NewTransactorByExternalSigner(
+		addr,
+		signer,
 		ec,
-		big.NewInt(int64(cfg.ChainID)),
 		ethutils.WithBlockDelay(cfg.BlkDelay),
 		ethutils.WithPollingInterval(time.Duration(cfg.BlkInterval)*time.Second),
 	)
-	if err != nil {
-		log.Fatalln("NewTransactor err:", err)
-	}
 	ret := &CbrOneChain{
 		Client:     ec,
 		Transactor: transactor,

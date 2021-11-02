@@ -2,8 +2,10 @@ package eth
 
 import (
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"math/big"
+	"strings"
 	"time"
 
 	ethutils "github.com/celer-network/goutils/eth"
@@ -77,34 +79,21 @@ func NewEthClient(
 }
 
 func (ethClient *EthClient) setTransactor(ksfile string, passphrase string, tconfig *TransactorConfig) error {
-	ksBytes, err := ioutil.ReadFile(ksfile)
+	var err error
+	ethClient.Signer, ethClient.Address, err = CreateSigner(ksfile, passphrase, tconfig.ChainId)
 	if err != nil {
 		return err
 	}
-
-	key, err := keystore.DecryptKey(ksBytes, passphrase)
-	if err != nil {
-		return err
-	}
-
-	ethClient.Address = key.Address
-	ethClient.Signer, err = ethutils.NewSigner(hex.EncodeToString(crypto.FromECDSA(key.PrivateKey)), tconfig.ChainId)
-	if err != nil {
-		return err
-	}
-
-	ethClient.Transactor, err = ethutils.NewTransactor(
-		string(ksBytes),
-		passphrase,
+	ethClient.Transactor = ethutils.NewTransactorByExternalSigner(
+		ethClient.Address,
+		ethClient.Signer,
 		ethClient.Client,
-		tconfig.ChainId,
 		ethutils.WithBlockDelay(tconfig.BlockDelay),
 		ethutils.WithPollingInterval(time.Duration(tconfig.BlockPollingInterval)*time.Second),
 		ethutils.WithAddGasGwei(tconfig.AddGasPriceGwei),
 		ethutils.WithMinGasGwei(tconfig.MinGasPriceGwei),
 	)
-
-	return err
+	return nil
 }
 
 func (ethClient *EthClient) setContracts(
@@ -155,4 +144,41 @@ func (ethClient *EthClient) SignEthMessage(data []byte) ([]byte, error) {
 		sig[64] = sig[64] + 27
 	}
 	return sig, nil
+}
+
+// if ksfile is like awskms:us-west-2:alias/mytestkey, use KmsSigner
+// passphrase will be awsKey:awsSec or if empty, will use aws auto search env variable etc
+// otherwise normal ks json file based signer
+const awskmsPre = "awskms"
+
+// return signer, address
+func CreateSigner(ksfile, passphrase string, chainid *big.Int) (ethutils.Signer, Addr, error) {
+	if strings.HasPrefix(ksfile, awskmsPre) {
+		kmskeyinfo := strings.SplitN(ksfile, ":", 3)
+		if len(kmskeyinfo) != 3 {
+			return nil, ZeroAddr, fmt.Errorf("%s has wrong format", ksfile)
+		}
+		awskeysec := []string{"", ""}
+		if passphrase != "" {
+			awskeysec = strings.SplitN(passphrase, ":", 2)
+			if len(awskeysec) != 2 {
+				return nil, ZeroAddr, fmt.Errorf("%s has wrong format", passphrase)
+			}
+		}
+		kmsSigner, err := ethutils.NewKmsSigner(kmskeyinfo[1], kmskeyinfo[2], awskeysec[0], awskeysec[1], chainid)
+		if err != nil {
+			return nil, ZeroAddr, err
+		}
+		return kmsSigner, kmsSigner.Addr, nil
+	}
+	ksBytes, err := ioutil.ReadFile(ksfile)
+	if err != nil {
+		return nil, ZeroAddr, err
+	}
+	key, err := keystore.DecryptKey(ksBytes, passphrase)
+	if err != nil {
+		return nil, ZeroAddr, err
+	}
+	signer, err := ethutils.NewSigner(hex.EncodeToString(crypto.FromECDSA(key.PrivateKey)), chainid)
+	return signer, key.Address, err
 }
