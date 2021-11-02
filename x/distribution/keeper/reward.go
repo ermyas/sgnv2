@@ -2,8 +2,10 @@ package keeper
 
 import (
 	"github.com/armon/go-metrics"
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/distribution/types"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -13,6 +15,7 @@ func (k Keeper) withdrawDelegatorRewardForOneValidator(ctx sdk.Context, delAddrS
 	delAddr := eth.Hex2Addr(delAddrStr)
 	amount, err := k.WithdrawDelegationRewards(ctx, delAddr, valAddr)
 	if err != nil {
+		log.Errorln(err)
 		return err
 	}
 
@@ -36,5 +39,26 @@ func (k Keeper) withdrawDelegatorRewardForOneValidator(ctx sdk.Context, delAddrS
 		),
 	)
 
+	return nil
+}
+
+func (k Keeper) withdrawAllDelegatorRewards(ctx sdk.Context, delAddr eth.Addr) error {
+	var err error
+	k.stakingKeeper.IterateDelegations(
+		ctx, delAddr,
+		func(_ int64, del stakingtypes.DelegationI) (stop bool) {
+			valAddr := del.GetValidatorAddr()
+			withdrawErr := k.withdrawDelegatorRewardForOneValidator(ctx, delAddr.String(), valAddr.String())
+			if withdrawErr != nil {
+				err = withdrawErr
+				return true
+			}
+			return false
+		},
+	)
+	if err != nil {
+		log.Errorln(err)
+		return err
+	}
 	return nil
 }

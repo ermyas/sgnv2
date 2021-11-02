@@ -14,17 +14,9 @@ func (k Keeper) GetWithdrawableCBridgeFeeShare(ctx sdk.Context, delAddr eth.Addr
 
 func (k Keeper) ClaimCBridgeFeeShare(ctx sdk.Context, delAddr eth.Addr) error {
 	// 1. Withdraw reward for all validators
-	allValidators := k.stakingKeeper.GetAllValidators(ctx)
-	for _, validator := range allValidators {
-		valAddr := eth.Hex2Addr(validator.EthAddress)
-		// TODO: Check residual
-		delegation := k.stakingKeeper.Delegation(ctx, delAddr, valAddr)
-		if delegation != nil {
-			withdrawErr := k.withdrawDelegatorRewardForOneValidator(ctx, delAddr.String(), validator.EthAddress)
-			if withdrawErr != nil {
-				return withdrawErr
-			}
-		}
+	err := k.withdrawAllDelegatorRewards(ctx, delAddr)
+	if err != nil {
+		return err
 	}
 
 	// 2. Emit claim_cbridge_fee_share event

@@ -126,17 +126,9 @@ func (k msgServer) ClaimAllStakingReward(goCtx context.Context, msg *types.MsgCl
 
 	// 2. Withdraw reward for all validators
 	delAddr := eth.Hex2Addr(msg.DelegatorAddress)
-	allValidators := k.stakingKeeper.GetAllValidators(ctx)
-	for _, validator := range allValidators {
-		valAddr := eth.Hex2Addr(validator.EthAddress)
-		// TODO: Check residual
-		delegation := k.stakingKeeper.Delegation(ctx, delAddr, valAddr)
-		if delegation != nil {
-			withdrawErr := k.withdrawDelegatorRewardForOneValidator(ctx, msg.DelegatorAddress, validator.EthAddress)
-			if withdrawErr != nil {
-				return nil, withdrawErr
-			}
-		}
+	err = k.withdrawAllDelegatorRewards(ctx, delAddr)
+	if err != nil {
+		return nil, err
 	}
 
 	// 3. Accumulate staking rewards into claimInfo

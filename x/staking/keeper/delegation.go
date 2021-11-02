@@ -128,8 +128,7 @@ func (k Keeper) SetDelegationShares(
 		k.RemoveDelegation(ctx, delegation)
 	} else {
 		k.SetDelegation(ctx, delegation)
+		// Call the after-modification hook
+		k.AfterDelegationModified(ctx, delAddr, valAddr)
 	}
-
-	// Call the after-modification hook
-	k.AfterDelegationModified(ctx, delAddr, valAddr)
 }
