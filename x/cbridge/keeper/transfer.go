@@ -14,7 +14,7 @@ import (
 func (k Keeper) transfer(
 	ctx sdk.Context, token eth.Addr, amount *big.Int, srcChainId, dstChainId uint64,
 	maxSlippage uint32, lpSender eth.Addr, startLpPre []byte) (
-	status types.XferStatus, userReceive *big.Int, destTokenAddr eth.Addr, percFee, baseFee *big.Int) {
+	status types.XferStatus, userReceive *big.Int, destTokenAddr eth.Addr, percFee, baseFee *big.Int, err error) {
 
 	if srcChainId == dstChainId {
 		status = types.XferStatus_BAD_DEST_CHAIN
@@ -57,7 +57,8 @@ func (k Keeper) transfer(
 		return
 	}
 	// now we need to decide if this send can be completed by sgn, eg. has enough liquidity on dest chain etc
-	destAmount := CalcEqualOnDestChain(kv,
+	var destAmount *big.Int
+	destAmount, err = CalcEqualOnDestChain(kv,
 		&ChainIdTokenDecimal{
 			ChainIdTokenAddr: src,
 			Decimal:          srcToken.Decimal,
@@ -100,7 +101,7 @@ func (k Keeper) transfer(
 	// pick LPs, minus each's destChain liquidity, add src liquidity
 	// this func DOESN'T care baseFee BY DESIGN!
 	start := time.Now()
-	err := k.PickLPsAndAdjustLiquidity(ctx, kv, src, dest, amount, destAmount, percFee, destToken.Decimal, lpSender, startLpPre)
+	err = k.PickLPsAndAdjustLiquidity(ctx, kv, src, dest, amount, destAmount, percFee, destToken.Decimal, lpSender, startLpPre)
 	if err != nil {
 		log.Error(err)
 		status = types.XferStatus_BAD_LIQUIDITY

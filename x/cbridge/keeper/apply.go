@@ -71,12 +71,16 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		}
 
 		// must set to non-zero before return
-		sendStatus, userReceive, destTokenAddr, percFee, baseFee :=
+		sendStatus, userReceive, destTokenAddr, percFee, baseFee, err :=
 			k.transfer(ctx, ev.Token, ev.Amount, onchev.Chainid, ev.DstChainId, ev.MaxSlippage, eth.ZeroAddr, ev.TransferId[28:]) // last 4B of xfer id
 
 		defer func() {
-			log.Infof("x/cbr applied: %s, status: %s, recv %s, fee perc %s base %s",
+			logmsg := fmt.Sprintf("x/cbr applied: %s, status: %s, recv %s, fee perc %s base %s",
 				ev.PrettyLog(onchev.Chainid), sendStatus, userReceive, percFee, baseFee)
+			if err != nil {
+				logmsg = fmt.Sprintf("%s, err: %s", logmsg, err)
+			}
+			log.Info(logmsg)
 			SetEvSendStatus(kv, ev.TransferId, sendStatus)
 		}()
 

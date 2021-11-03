@@ -110,7 +110,6 @@ func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, le
 	for _, a := range mca.Assets {
 		occ, ok := mccMap[a.ChainId]
 		if !ok {
-			log.Errorf("chain with Id %d is not configured", a.ChainId)
 			return nil, fmt.Errorf("chain with Id %d is not configured", a.ChainId)
 		}
 
@@ -147,8 +146,7 @@ func queryFeePerc(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerie
 	var params types.GetFeePercentageRequest
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		log.Errorf("failed to parse params: %s", err)
-		return nil, fmt.Errorf("failed to parse params: %s", err)
+		return nil, fmt.Errorf("failed to parse params: %w", err)
 	}
 
 	kv := ctx.KVStore(k.storeKey)
@@ -158,8 +156,7 @@ func queryFeePerc(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerie
 	res, err := k.cdc.Marshal(&resp)
 
 	if err != nil {
-		log.Errorf("failed to marshal response: %s", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal response: %w", err)
 	}
 
 	return res, nil
@@ -169,8 +166,7 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 	var params types.GetFeeRequest
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		log.Errorf("failed to parse params: %s", err)
-		return nil, fmt.Errorf("failed to parse params: %s", err)
+		return nil, fmt.Errorf("failed to parse params: %w", err)
 	}
 
 	src := &ChainIdTokenAddr{
@@ -187,13 +183,16 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 	}
 	srcAmt, _ := big.NewInt(0).SetString(params.Amt, 10)
 	kv := ctx.KVStore(k.storeKey)
-	destAmt := CalcEqualOnDestChain(kv, &ChainIdTokenDecimal{
+	destAmt, err := CalcEqualOnDestChain(kv, &ChainIdTokenDecimal{
 		ChainIdTokenAddr: src,
 		Decimal:          srcToken.Decimal,
 	}, &ChainIdTokenDecimal{
 		ChainIdTokenAddr: dest,
 		Decimal:          destToken.Decimal,
 	}, srcAmt, eth.Hex2Addr(params.LpAddr))
+	if err != nil {
+		return nil, fmt.Errorf("failed to compute dest amt: %w", err)
+	}
 
 	resp := types.GetFeeResponse{
 		EqValueTokenAmt: destAmt.String(),
@@ -203,8 +202,7 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 	}
 	res, err := k.cdc.Marshal(&resp)
 	if err != nil {
-		log.Errorf("failed to marshal response: %s", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal response: %w", err)
 	}
 
 	return res, nil
@@ -214,8 +212,7 @@ func queryCheckTokenValid(ctx sdk.Context, req abci.RequestQuery, k Keeper, lega
 	var params types.CheckChainTokenValidRequest
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		log.Errorf("failed to parse params: %s", err)
-		return nil, fmt.Errorf("failed to parse params: %s", err)
+		return nil, fmt.Errorf("failed to parse params: %w", err)
 	}
 
 	src := &ChainIdTokenAddr{
@@ -231,8 +228,7 @@ func queryCheckTokenValid(ctx sdk.Context, req abci.RequestQuery, k Keeper, lega
 	}
 	res, err := k.cdc.Marshal(&resp)
 	if err != nil {
-		log.Errorf("failed to marshal response: %s", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal response: %w", err)
 	}
 
 	return res, nil
@@ -433,7 +429,6 @@ func queryChainSigners(
 	}
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, chainSigners)
 	if err != nil {
-		log.Error(err)
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 	return res, nil
@@ -447,7 +442,6 @@ func queryLatestSigners(
 	}
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, latestSigners)
 	if err != nil {
-		log.Error(err)
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 	return res, nil

@@ -25,25 +25,23 @@ const (
 // given src chain token amount, calculate how much token on dest chain
 // worth the same. pre-fee
 // note if decimals are different, extra careful
-func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmount *big.Int, lpAddr eth.Addr) *big.Int {
+func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmount *big.Int, lpAddr eth.Addr) (*big.Int, error) {
 	ret := new(big.Int)
 	if isNegOrZero(srcAmount) {
-		return ret
+		return ret, fmt.Errorf("invalid src amt")
 	}
 	// A,m,n are from chain pair config
 	A, m, n, err := GetAMN(kv, src.ChId, dest.ChId)
 	if err != nil {
-		log.Errorln("GetAMN err:", err)
-		return ret // 0 if not found chain pair
+		return ret, fmt.Errorf("GetAMN err: %w", err) // 0 if not found chain pair
 	}
 	srcLiqSum := GetLiq(kv, src.ChainIdTokenAddr)
 	if lpAddr != eth.ZeroAddr { // internal LP transfer for cross-chain withdrawal
 		// caller need to make sure srcAmount <= srcLiqSum
-		srcLiqSum.Sub(srcLiqSum, srcAmount)
-		if srcLiqSum.Sign() < 0 {
-			log.Errorln("srcLiqSum err:", srcLiqSum, srcAmount)
-			return ret
+		if srcLiqSum.Cmp(srcAmount) < 0 {
+			return ret, fmt.Errorf("insufficient balance, srcLiqSum %s < srcAmount %s", srcLiqSum, srcAmount)
 		}
+		srcLiqSum.Sub(srcLiqSum, srcAmount)
 	}
 	x := Epsilon // if srcLiqSum is 0, use Epsilon to avoid div by 0
 	if isPos(srcLiqSum) {
@@ -55,7 +53,7 @@ func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmo
 		destLiqSum.Sub(destLiqSum, balance)
 	}
 	if isZero(destLiqSum) {
-		return ret // no liq on dest chain
+		return ret, fmt.Errorf("no liqiudity on dest chain") // no liq on dest chain
 	}
 	log.Infoln("srcLiqSum:", srcLiqSum, "destLiqSum:", destLiqSum)
 	y := amt2float(destLiqSum, dest.Decimal) // y can't be 0
@@ -66,13 +64,12 @@ func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmo
 	log.Debugln("chpair:", src.ChId, dest.ChId, "A:", A, "m:", m, "n:", n, "x:", x, "y:", y, "D:", D, "newx:", newx, "newy:", newy)
 	if newy >= y {
 		// not possible
-		log.Errorf("newy %f > y %f", newy, y)
-		return ret
+		return ret, fmt.Errorf("newy %f > y %f", newy, y)
 	}
 	retFloat := big.NewFloat(y - newy)
 	retFloat.Mul(retFloat, big.NewFloat(math.Pow10(int(dest.Decimal))))
 	retFloat.Int(ret) // set int in ret, accuracy doesn't matter
-	return ret
+	return ret, nil
 }
 
 type AddrHexAmtInt struct {
