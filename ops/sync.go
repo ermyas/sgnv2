@@ -386,7 +386,7 @@ func verifyEvent(cliCtx client.Context, ev hasPrettyLog) error {
 			TransferId: []string{xferId},
 		})
 		if err != nil {
-			return fmt.Errorf("QueryAddLiquidityStatus err: %s", err)
+			return fmt.Errorf("QueryTransferStatus err: %s", err)
 		}
 		if resp.Status[xferId].SgnStatus != cbrtypes.XferStatus_UNKNOWN {
 			return fmt.Errorf("xfer with xferId %s from src chain %d already synced", xferId, chainid)

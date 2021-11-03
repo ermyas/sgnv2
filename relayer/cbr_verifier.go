@@ -38,6 +38,12 @@ func (r *Relayer) verifyCbrEventUpdate(update *synctypes.PendingUpdate) (done, a
 	// delete my local db event so this event won't be picked again when I become syncer
 	defer r.cbrMgr[onchev.Chainid].delEvent(onchev.Evtype, elog.BlockNumber, uint64(elog.Index))
 
+	skip, reason := r.cbrMgr[onchev.Chainid].skipEvent(onchev.Evtype, elog, r.Transactor.CliCtx, nil)
+	if skip {
+		log.Debugf("skip cbr event: %s, reason: %s", string(onchev.Elog), reason)
+		return true, false
+	}
+
 	logmsg := fmt.Sprintf("verify update %d cbr chain %d type %s", update.Id, onchev.Chainid, onchev.Evtype)
 	switch onchev.Evtype {
 	case cbrtypes.CbrEventLiqAdd:
@@ -83,7 +89,7 @@ func (r *Relayer) verifyUpdateCbrPrice(update *synctypes.PendingUpdate) (done, a
 		return true, false
 	}
 	p1, _ := priceIGot.Marshal()
-	if bytes.Compare(p1, update.Data) != 0 {
+	if !bytes.Equal(p1, update.Data) {
 		log.Errorln("price I got is different from price from syncer but has same update_epoch, price I got:", priceIGot,
 			" price from syncer:", priceFromSyncer)
 		return true, false

@@ -148,7 +148,7 @@ func (r *Relayer) requeueRelay(relayEvent RelayEvent) {
 // Note if syncer changes before EndBlock, new syncer may still propose again
 // the 2nd propose shouldn't get votes because when verify, sgn nodes will find it's already processed
 // even it is voted, apply will still fail because x/cbr will err
-func (c *CbrOneChain) pullEvents(chid uint64, CliCtx client.Context) []*synctypes.ProposeUpdate {
+func (c *CbrOneChain) pullEvents(chid uint64, cliCtx client.Context) []*synctypes.ProposeUpdate {
 	var ret []*synctypes.ProposeUpdate
 	// to make it simple we use "srcChainId-destChainId-srcTokenAddr" as key, and valid as val.
 	// this cache can only be used in only one pullEvents, if pull again, we should create and use a new cache.
@@ -183,15 +183,8 @@ func (c *CbrOneChain) pullEvents(chid uint64, CliCtx client.Context) []*synctype
 				log.Errorf("failed to unmarshal onchev elog, key:%s, err:%s", string(key), err.Error())
 				continue
 			}
-			var skip bool
-			var reason string
-			// TODO: other events
-			switch evn {
-			case cbrtypes.CbrEventSend:
-				skip, reason = c.skipSyncCbrSend(evlog, CliCtx, cbrSendValidCache)
-			case cbrtypes.CbrEventSignersUpdated:
-				skip, reason = c.skipSyncCbrSignerUdpate(evlog, CliCtx)
-			}
+
+			skip, reason := c.skipEvent(evn, evlog, cliCtx, cbrSendValidCache)
 			if skip {
 				log.Debugf("skip cbr event: %s, chid %d, reason: %s", string(key), c.chainid, reason)
 				continue
@@ -216,8 +209,25 @@ func (c *CbrOneChain) pullEvents(chid uint64, CliCtx client.Context) []*synctype
 	return ret
 }
 
+func (c *CbrOneChain) skipEvent(evn string, evlog *ethtypes.Log, cliCtx client.Context, checkedCache map[string]bool) (skip bool, reason string) {
+	switch evn {
+	case cbrtypes.CbrEventSend:
+		skip, reason = c.skipSyncCbrSend(evlog, cliCtx, checkedCache)
+	case cbrtypes.CbrEventSignersUpdated:
+		skip, reason = c.skipSyncCbrSignerUdpate(evlog, cliCtx)
+	case cbrtypes.CbrEventLiqAdd:
+		skip, reason = c.skipSyncCbrLiqAdd(evlog, cliCtx)
+	case cbrtypes.CbrEventRelay:
+		skip, reason = c.skipSyncCbrRelay(evlog, cliCtx)
+	case cbrtypes.CbrEventWithdraw:
+		skip, reason = c.skipSyncCbrWithdraw(evlog, cliCtx)
+	}
+
+	return
+}
+
 func (c *CbrOneChain) skipSyncCbrSend(
-	evlog *ethtypes.Log, CliCtx client.Context, validCache map[string]bool) (skip bool, reason string) {
+	evlog *ethtypes.Log, cliCtx client.Context, validCache map[string]bool) (skip bool, reason string) {
 
 	sendEv, err := c.contract.ParseSend(*evlog)
 	if err != nil {
@@ -225,16 +235,20 @@ func (c *CbrOneChain) skipSyncCbrSend(
 	}
 	// we should check cache first
 	cacheKey := fmt.Sprintf("%d-%d-%x", c.chainid, sendEv.DstChainId, sendEv.Token)
-	cacheValid, found := validCache[cacheKey]
-	if found && !cacheValid {
-		return true, "invalid cbr send"
+
+	if validCache != nil {
+		cacheValid, found := validCache[cacheKey]
+		if found && !cacheValid {
+			return true, "invalid cbr send"
+		}
 	}
+
 	checkReq := &cbrtypes.CheckChainTokenValidRequest{
 		SrcChainId:   c.chainid,
 		DestChainId:  sendEv.DstChainId,
 		SrcTokenAddr: eth.Addr2Hex(sendEv.Token),
 	}
-	checkResp, checkRespErr := cbrcli.QueryCheckChainTokenValid(CliCtx, checkReq)
+	checkResp, checkRespErr := cbrcli.QueryCheckChainTokenValid(cliCtx, checkReq)
 	if checkRespErr != nil {
 		// If request failed, we will not break this flow.
 		// As if invalid token send event go to the apply flow, sgn will also check it and set it to refund flow.
@@ -243,16 +257,31 @@ func (c *CbrOneChain) skipSyncCbrSend(
 		return
 	} else {
 		// cached and can reduce some cli call
-		validCache[cacheKey] = checkResp.GetValid()
+		if validCache != nil {
+			validCache[cacheKey] = checkResp.GetValid()
+		}
 		if !checkResp.GetValid() {
 			return true, "invalid cbr send"
 		}
 	}
-	// TODO: check is sendEv already snynced
+
+	xferId := common.Hash(sendEv.TransferId).String()
+	resp, err := cbrcli.QueryTransferStatus(cliCtx, &cbrtypes.QueryTransferStatusRequest{
+		TransferId: []string{xferId},
+	})
+	if err != nil {
+		// log only, will not skip if request failed
+		log.Errorf("QueryTransferStatus err: %s", err)
+		return
+	}
+	if resp.Status[xferId].SgnStatus != cbrtypes.XferStatus_UNKNOWN {
+		return true, fmt.Sprintf("xfer with xferId %s already synced", xferId)
+	}
+
 	return
 }
 
-func (c *CbrOneChain) skipSyncCbrSignerUdpate(evlog *ethtypes.Log, CliCtx client.Context) (skip bool, reason string) {
+func (c *CbrOneChain) skipSyncCbrSignerUdpate(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
 	ev, err := c.contract.ParseSignersUpdated(*evlog)
 	if err != nil {
 		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
@@ -266,13 +295,79 @@ func (c *CbrOneChain) skipSyncCbrSignerUdpate(evlog *ethtypes.Log, CliCtx client
 		return true, "not match onchain sshash, maybe outdated"
 	}
 
-	chainSigners, err := cbrcli.QueryChainSigners(CliCtx, c.chainid)
+	chainSigners, err := cbrcli.QueryChainSigners(cliCtx, c.chainid)
 	if err == nil {
 		addrs, powers := cbrtypes.SignersToEthArrays(chainSigners.SortedSigners)
 		if eth.Bytes2Hash(crypto.Keccak256(eth.SignerBytes(addrs, powers))) == ssHash {
 			return true, "chain signers already updated"
 		}
 	}
+	return
+}
+
+func (c *CbrOneChain) skipSyncCbrLiqAdd(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
+	ev, err := c.contract.ParseLiquidityAdded(*evlog)
+	if err != nil {
+		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+	}
+
+	resp, err := cbrcli.QueryAddLiquidityStatus(cliCtx, &cbrtypes.QueryAddLiquidityStatusRequest{
+		ChainId: c.chainid,
+		SeqNum:  ev.Seqnum,
+	})
+	if err != nil {
+		// log only, will not skip if request failed
+		log.Errorf("QueryAddLiquidityStatus err: %s", err)
+		return
+	}
+	if resp.Status == cbrtypes.LPHistoryStatus_LP_COMPLETED {
+		return true, fmt.Sprintf("LiquidityAdded with seqNum %d on chain %d already synced", ev.Seqnum, c.chainid)
+	}
+
+	return
+}
+
+func (c *CbrOneChain) skipSyncCbrRelay(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
+	ev, err := c.contract.ParseRelay(*evlog)
+	if err != nil {
+		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+	}
+
+	xferId := common.Hash(ev.SrcTransferId).String()
+	resp, err := cbrcli.QueryTransferStatus(cliCtx, &cbrtypes.QueryTransferStatusRequest{
+		TransferId: []string{xferId},
+	})
+	if err != nil {
+		// log only, will not skip if request failed
+		log.Errorf("QueryTransferStatus err: %s", err)
+		return
+	}
+	if resp.Status[xferId].SgnStatus == cbrtypes.XferStatus_SUCCESS {
+		return true, fmt.Sprintf("relay with xferId %s already synced", common.Hash(ev.TransferId).String())
+	}
+
+	return
+}
+
+func (c *CbrOneChain) skipSyncCbrWithdraw(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
+	ev, err := c.contract.ParseWithdrawDone(*evlog)
+	if err != nil {
+		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+	}
+
+	resp, err := cbrcli.QueryWithdrawLiquidityStatus(cliCtx, &cbrtypes.QueryWithdrawLiquidityStatusRequest{
+		SeqNum:  ev.Seqnum,
+		UsrAddr: ev.Receiver.String(),
+	})
+	if err != nil {
+		// log only, will not skip if request failed
+		log.Errorf("QueryWithdrawLiquidityStatus err: %s", err)
+		return
+	}
+	if resp.Status == cbrtypes.LPHistoryStatus_LP_COMPLETED {
+		return true, fmt.Sprintf("withdrawal with seqNum %d on chain %d already synced", ev.Seqnum, c.chainid)
+	}
+
 	return
 }
 
