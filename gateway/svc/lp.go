@@ -498,7 +498,7 @@ func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64, usrAddr string
 		sortedSigs = detail.GetDetail().GetSortedSigsBytes()
 		curss, signErr := cbrcli.QueryChainSigners(tr.CliCtx, chainId)
 		if signErr != nil {
-			log.Warnf("QueryChainSigners error:%+v", signErr)
+			log.Warnf("QueryChainSigners error, chain_id:%d, err:%+v", chainId, signErr)
 		} else {
 			ss, ps := types.SignersToEthArrays(curss.GetSortedSigners())
 			for i, s := range ss {

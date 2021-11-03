@@ -118,9 +118,6 @@ func (gs *GatewayService) getUnlockedCumulativeRewards(ctx context.Context, addr
 	var rewards []*webapi.Reward
 	// TODO: Properly handle the case of no unlocked amounts
 	if res == nil {
-		if err != nil {
-			log.Warnf("check failed, error:%+v", err)
-		}
 		// Populate with 0 amounts
 		rewards, _, err = gs.getHistoricalCumulativeRewards(ctx, address)
 		if err != nil {
