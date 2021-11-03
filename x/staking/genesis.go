@@ -15,6 +15,8 @@ func InitGenesis(ctx sdk.Context, keeper keeper.Keeper, data *types.GenesisState
 	}
 
 	for _, validator := range data.Validators {
+		validator.EthAddress = eth.FormatAddrHex(validator.EthAddress)
+		validator.EthSigner = eth.FormatAddrHex(validator.EthSigner)
 		keeper.SetValidatorParams(ctx, &validator, true)
 		keeper.SetValidatorStates(ctx, &validator)
 	}

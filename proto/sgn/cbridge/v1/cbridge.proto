@@ -144,6 +144,7 @@ message WithdrawOnchain {
   bytes receiver = 3;
   bytes token = 4; // token address
   bytes amount = 5;
+  bytes refid = 6; // // reference id, if refund, set as xfer_id
 }
 
 // ========== x/cbridge kv value types

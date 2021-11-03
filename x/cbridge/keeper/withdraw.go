@@ -28,6 +28,7 @@ func (k Keeper) refund(ctx sdk.Context, wdReq *types.WithdrawReq, signer eth.Add
 		return nil, types.Error(types.ErrCode_INVALID_SIG, "")
 	}
 	wdOnchain.Seqnum = wdReq.ReqId
+	wdOnchain.Refid = common.Hex2Bytes(wdReq.XferId)
 	log.Infof("x/cbr handle refund xferId %x, reqId %d, wdOnChain %s, creator %s",
 		xferId, wdReq.ReqId, wdOnchain.String(), creator)
 	// save this back to avoid dup initwithdraw for refund
