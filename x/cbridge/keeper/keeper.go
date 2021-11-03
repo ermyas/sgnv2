@@ -64,35 +64,41 @@ func (k Keeper) SyncFarming(ctx sdk.Context, sym string, chid uint64, lpAddr eth
 			// Mint stakes and send to lp address in farming module
 			err := k.bankKeeper.MintCoins(ctx, types.ModuleName, sdk.NewCoins(amount))
 			if err != nil {
-				clog.Errorf("Failed to mint stake, poolName %s, lpAddr %s, liquidity %s, stake %s", poolName, lpAddr, liquidity, stake)
+				clog.Errorf("Failed to mint stake, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
+					err, poolName, lpAddr, liquidity, stake)
 			}
 			derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(farmingtypes.ModuleName, lpAddr)
 			err = k.bankKeeper.SendCoinsFromModuleToAccount(
 				ctx, types.ModuleName, derivedAccAddress, sdk.NewCoins(amount),
 			)
 			if err != nil {
-				clog.Errorf("Failed to send stake, poolName %s, lpAddr %s, liquidity %s, stake %s", poolName, lpAddr, liquidity, stake)
+				clog.Errorf("Failed to send stake, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
+					err, poolName, lpAddr, liquidity, stake)
 			}
 			// Stake
 			err = k.farmingKeeper.Stake(ctx, poolName, lpAddr, amount)
 			if err != nil {
-				clog.Errorf("Failed to stake, poolName %s, lpAddr %s, liquidity %s, stake %s", poolName, lpAddr, liquidity, stake)
+				clog.Errorf("Failed to stake, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
+					err, poolName, lpAddr, liquidity, stake)
 			}
 		} else if liquidity.LT(stake) {
 			amount := sdk.NewCoin(denom, stake.Sub(liquidity))
 			// Unstake
 			err := k.farmingKeeper.Unstake(ctx, poolName, lpAddr, amount)
 			if err != nil {
-				clog.Errorf("Failed to unstake, poolName %s, lpAddr %s, liquidity %s, stake %s", poolName, lpAddr, liquidity, stake)
+				clog.Errorf("Failed to unstake, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
+					err, poolName, lpAddr, liquidity, stake)
 			}
 			// Burn stakes
 			err = k.bankKeeper.SendCoinsFromModuleToModule(ctx, farmingtypes.ModuleName, types.ModuleName, sdk.NewCoins(amount))
 			if err != nil {
-				clog.Errorf("Failed to send stake back, poolName %s, lpAddr %s, liquidity %s, stake %s", poolName, lpAddr, liquidity, stake)
+				clog.Errorf("Failed to send stake back, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
+					err, poolName, lpAddr, liquidity, stake)
 			}
 			err = k.bankKeeper.BurnCoins(ctx, types.ModuleName, sdk.NewCoins(amount))
 			if err != nil {
-				clog.Errorf("Failed to burn stake, poolName %s, lpAddr %s, liquidity %s, stake %s", poolName, lpAddr, liquidity, stake)
+				clog.Errorf("Failed to burn stake, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
+					err, poolName, lpAddr, liquidity, stake)
 			}
 		}
 	}
