@@ -123,9 +123,10 @@ func (k Keeper) Unstake(
 	// 4. Update the stake info
 	k.UpdateStakeInfo(ctx, address, poolName, sdk.NewDecFromInt(amount.Amount.Neg()))
 
-	// 5. Send the staked tokens from its own account back to the farming module account
+	// 5. Send the staked tokens from the farming module account back to its own account
 	derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, address)
-	if err = k.bankKeeper.SendCoinsFromAccountToModule(ctx, derivedAccAddress, types.ModuleName, sdk.NewCoins(amount)); err != nil {
+	if err = k.bankKeeper.SendCoinsFromModuleToAccount(
+		ctx, types.ModuleName, derivedAccAddress, sdk.NewCoins(amount)); err != nil {
 		return types.WrapErrSendCoinsFromAccountToModuleFailed(err.Error())
 	}
 

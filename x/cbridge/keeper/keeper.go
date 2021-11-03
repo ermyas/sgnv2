@@ -49,7 +49,7 @@ func NewKeeper(
 
 // SyncFarming attempts to sync liquidity with the stake in the farming module
 func (k Keeper) SyncFarming(ctx sdk.Context, sym string, chid uint64, lpAddr eth.Addr, liquidityBigInt *big.Int) error {
-	var err error
+	var farmingErr error
 	poolName, denom := derivePoolNameAndDenom(sym, chid)
 	// Only sync if the pool exists
 	if k.farmingKeeper.HasFarmingPool(ctx, poolName) {
@@ -62,47 +62,50 @@ func (k Keeper) SyncFarming(ctx sdk.Context, sym string, chid uint64, lpAddr eth
 		if liquidity.GT(stake) {
 			amount := sdk.NewCoin(denom, liquidity.Sub(stake))
 			// Mint stakes and send to lp address in farming module
-			err := k.bankKeeper.MintCoins(ctx, types.ModuleName, sdk.NewCoins(amount))
-			if err != nil {
+			farmingErr = k.bankKeeper.MintCoins(ctx, types.ModuleName, sdk.NewCoins(amount))
+			if farmingErr != nil {
 				clog.Errorf("Failed to mint stake, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
-					err, poolName, lpAddr, liquidity, stake)
+					farmingErr, poolName, lpAddr, liquidity, stake)
 			}
 			derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(farmingtypes.ModuleName, lpAddr)
-			err = k.bankKeeper.SendCoinsFromModuleToAccount(
+			farmingErr = k.bankKeeper.SendCoinsFromModuleToAccount(
 				ctx, types.ModuleName, derivedAccAddress, sdk.NewCoins(amount),
 			)
-			if err != nil {
+			if farmingErr != nil {
 				clog.Errorf("Failed to send stake, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
-					err, poolName, lpAddr, liquidity, stake)
+					farmingErr, poolName, lpAddr, liquidity, stake)
 			}
 			// Stake
-			err = k.farmingKeeper.Stake(ctx, poolName, lpAddr, amount)
-			if err != nil {
+			farmingErr = k.farmingKeeper.Stake(ctx, poolName, lpAddr, amount)
+			if farmingErr != nil {
 				clog.Errorf("Failed to stake, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
-					err, poolName, lpAddr, liquidity, stake)
+					farmingErr, poolName, lpAddr, liquidity, stake)
 			}
 		} else if liquidity.LT(stake) {
 			amount := sdk.NewCoin(denom, stake.Sub(liquidity))
 			// Unstake
-			err := k.farmingKeeper.Unstake(ctx, poolName, lpAddr, amount)
-			if err != nil {
+			farmingErr = k.farmingKeeper.Unstake(ctx, poolName, lpAddr, amount)
+			if farmingErr != nil {
 				clog.Errorf("Failed to unstake, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
-					err, poolName, lpAddr, liquidity, stake)
+					farmingErr, poolName, lpAddr, liquidity, stake)
 			}
 			// Burn stakes
-			err = k.bankKeeper.SendCoinsFromModuleToModule(ctx, farmingtypes.ModuleName, types.ModuleName, sdk.NewCoins(amount))
-			if err != nil {
+			derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(farmingtypes.ModuleName, lpAddr)
+			farmingErr = k.bankKeeper.SendCoinsFromAccountToModule(
+				ctx, derivedAccAddress, types.ModuleName, sdk.NewCoins(amount),
+			)
+			if farmingErr != nil {
 				clog.Errorf("Failed to send stake back, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
-					err, poolName, lpAddr, liquidity, stake)
+					farmingErr, poolName, lpAddr, liquidity, stake)
 			}
-			err = k.bankKeeper.BurnCoins(ctx, types.ModuleName, sdk.NewCoins(amount))
-			if err != nil {
+			farmingErr = k.bankKeeper.BurnCoins(ctx, types.ModuleName, sdk.NewCoins(amount))
+			if farmingErr != nil {
 				clog.Errorf("Failed to burn stake, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
-					err, poolName, lpAddr, liquidity, stake)
+					farmingErr, poolName, lpAddr, liquidity, stake)
 			}
 		}
 	}
-	return err
+	return farmingErr
 }
 
 func derivePoolNameAndDenom(symbol string, chainId uint64) (poolName string, denom string) {
