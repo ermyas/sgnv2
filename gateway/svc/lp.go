@@ -315,7 +315,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 				parseErr := wdReq.Unmarshal(wdOnchain)
 				if parseErr == nil {
 					amt = new(big.Int).SetBytes(wdReq.Amount).String()
-					log.Debugf("withdraw real amt:%s, addr:%s", amt, addr.String())
+					log.Debugf("withdraw real amt:%s, chainId:%d, seqNum:%d, addr:%s", amt, chainId, seqNum, addr.String())
 				}
 
 				if detail != nil && status == uint64(types.LPHistoryStatus_LP_WAITING_FOR_SGN) && detail.GetStatus() != resp.Status {

@@ -216,19 +216,17 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 }
 
 func (gs *GatewayService) GetTotalLiquidityProviderTokenBalance(ctx context.Context, request *webapi.GetTotalLiquidityProviderTokenBalanceRequest) (*webapi.GetTotalLiquidityProviderTokenBalanceResponse, error) {
-	tokenSymbol := common.Hex2Addr(request.GetTokenSymbol()).String()
+	tokenSymbol := request.GetTokenSymbol()
 	chainIds := request.GetChainIds()
 	ret := make(map[uint64]string)
 	if len(chainIds) == 0 {
 		// all chains
 		chainTokenInfos, err := dal.DB.GetChainTokenList()
-		log.Debugf("get balance for all chains, chainTokenInfos size%d, chainTokenInfos:%+v", len(chainTokenInfos), chainTokenInfos)
 		if err == nil && len(chainTokenInfos) > 0 {
 			for chainId, chainToken := range chainTokenInfos {
 				for _, token := range chainToken.GetToken() {
 					if token.GetToken().GetSymbol() == tokenSymbol {
 						ret[uint64(chainId)] = gs.getLiquidityOnChainToken(uint64(chainId), token.GetToken().GetAddress())
-						log.Debugf("balance for chain:%d, token:%s, balance:%s", chainId, tokenSymbol, ret[uint64(chainId)])
 						break
 					}
 				}
@@ -237,10 +235,8 @@ func (gs *GatewayService) GetTotalLiquidityProviderTokenBalance(ctx context.Cont
 	} else {
 		for _, chainId := range chainIds {
 			token, tokenFound, dberr := dal.DB.GetTokenBySymbol(tokenSymbol, uint64(chainId))
-			log.Debugf("get balance for one chain, chain:%d, tokenSymbol:%s, token:%+v", chainId, tokenSymbol, token)
 			if tokenFound && dberr == nil {
 				ret[uint64(chainId)] = gs.getLiquidityOnChainToken(uint64(chainId), token.GetToken().GetAddress())
-				log.Debugf("balance for chain:%d, token:%s, balance:%s", chainId, tokenSymbol, ret[uint64(chainId)])
 			}
 		}
 	}
