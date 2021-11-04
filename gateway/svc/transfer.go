@@ -3,7 +3,6 @@ package gatewaysvc
 import (
 	"context"
 	"fmt"
-	"github.com/celer-network/sgn-v2/gateway/utils"
 	"math/big"
 	"strconv"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
