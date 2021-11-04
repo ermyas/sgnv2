@@ -105,8 +105,8 @@ func (k Keeper) applyDelegatorShares(ctx sdk.Context, update *types.PendingUpdat
 	}
 	log.Infof("Apply delegator shares valAddr %s delAddr %s shares %s", d.ValidatorAddress, d.DelegatorAddress, d.Shares)
 	valAddr := eth.Hex2Addr(d.ValidatorAddress)
-	_, found := k.stakingKeeper.GetValidator(ctx, valAddr)
-	if found {
+	val, found := k.stakingKeeper.GetValidator(ctx, valAddr)
+	if found && !val.DelegatorShares.Equal(sdk.ZeroInt()) {
 		err = k.stakingKeeper.SetDelegationShares(
 			ctx,
 			eth.Hex2Addr(d.DelegatorAddress),
@@ -117,6 +117,7 @@ func (k Keeper) applyDelegatorShares(ctx sdk.Context, update *types.PendingUpdat
 		}
 		return true, nil
 	}
-	// If validator not found, the delegation is processed before we have seen the validator, just try again later.
+	// If validator not found or its DelegatorShares is zero, the delegation is processed before we have done the initial sync of the
+	// validator, just try again later.
 	return false, nil
 }
