@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/big"
 	"sort"
+	"strings"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -195,21 +196,7 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 			lps = append(lps, lp)
 		}
 	}
-	sort.SliceStable(lps, func(i, j int) bool {
-		if lps[i].HasFarmingSessions {
-			if lps[j].HasFarmingSessions {
-				return lps[i].GetVolume_24H() > lps[j].GetVolume_24H()
-			} else {
-				return true
-			}
-		} else {
-			if lps[j].HasFarmingSessions {
-				return false
-			} else {
-				return lps[i].GetVolume_24H() > lps[j].GetVolume_24H()
-			}
-		}
-	})
+	sortLpList(lps)
 	return &webapi.GetLPInfoListResponse{
 		LpInfo: lps,
 	}, nil
@@ -290,7 +277,6 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 	return apysByChainId
 }
 
-// todo cache this  @aric
 func (gs *GatewayService) get24hTx() map[uint64]map[string]*txData {
 	cache := GetTx24hCache()
 	if cache != nil {
@@ -330,4 +316,38 @@ func (gs *GatewayService) get24hTx() map[uint64]map[string]*txData {
 	}
 	SetTx24hCache(resp)
 	return resp
+}
+
+func sortLpList(lps []*webapi.LPInfo) {
+	sort.SliceStable(lps, func(i, j int) bool {
+		if lps[i].HasFarmingSessions {
+			if lps[j].HasFarmingSessions {
+				if lps[i].GetVolume_24H() == lps[j].GetVolume_24H() {
+					return cmpChainToken(lps[i], lps[j])
+				}
+				return lps[i].GetVolume_24H() > lps[j].GetVolume_24H()
+			} else {
+				return true
+			}
+		} else {
+			if lps[j].HasFarmingSessions {
+				return false
+			} else {
+				if lps[i].GetVolume_24H() == lps[j].GetVolume_24H() {
+					return cmpChainToken(lps[i], lps[j])
+				}
+				return lps[i].GetVolume_24H() > lps[j].GetVolume_24H()
+			}
+		}
+	})
+}
+
+func cmpChainToken(lp1, lp2 *webapi.LPInfo) bool {
+	cmpChain := strings.Compare(lp1.GetChain().GetName(), lp2.GetChain().GetName())
+	cmpToken := strings.Compare(lp1.GetToken().GetName(), lp2.GetToken().GetName())
+	if cmpChain == 0 {
+		return cmpToken > 0
+	} else {
+		return cmpChain > 0
+	}
 }
