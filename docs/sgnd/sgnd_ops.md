@@ -20,7 +20,7 @@ sgnd ops [flags]
 * [sgnd ops delegate](sgnd_ops_delegate.md)	 - Delegate tokens to a validator
 * [sgnd ops deploy](sgnd_ops_deploy.md)	 - Deploy contracts
 * [sgnd ops init-validator](sgnd_ops_init-validator.md)	 - Initialize a validator
-* [sgnd ops sync](sgnd_ops_sync.md)	 - Sync a change from onchain to sidechain
+* [sgnd ops sync](sgnd_ops_sync.md)	 - Sync an event from onchain to sidechain
 * [sgnd ops undelegate](sgnd_ops_undelegate.md)	 - Undelegate tokens from a validator
 * [sgnd ops view](sgnd_ops_view.md)	 - Operation subcommands
 

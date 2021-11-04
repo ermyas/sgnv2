@@ -7,7 +7,7 @@ Query all delegations made by one delegator
 Query delegations for an individual delegator on all validators.
 
 Example:
-$ <appd> query staking delegations 0xd0f2596d700c9bd4d605c938e586ec67b01c7364
+$ <appd> query staking delegator-delegations 0xd0f2596d700c9bd4d605c938e586ec67b01c7364
 
 ```
 sgnd query staking delegator-delegations [delegator-eth-addr] [flags]

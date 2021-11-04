@@ -24,9 +24,20 @@ halt-time = 0
 # InterBlockCache enables inter-block caching.
 inter-block-cache = true
 
-# Enable REST server
+# REST server
 [api]
 enable = true
 address = "tcp://0.0.0.0:1317"
 swagger = true
 enabled-unsafe-cors = true
+
+# gRPC server
+[grpc]
+enable = true
+address = "0.0.0.0:9090"
+
+# gRPC-web server
+[grpc-web]
+enable = true
+address = "0.0.0.0:9091"
+enable-unsafe-cors = true

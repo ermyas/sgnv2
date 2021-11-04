@@ -7,7 +7,7 @@ Query distribution outstanding (un-withdrawn) rewards for a validator and all th
 Query distribution outstanding (un-withdrawn) rewards for a validator and all their delegations.
 
 Example:
-$ <appd> query distribution validator-outstanding-rewards sgnvaloper1lwjmdnks33xwnmfayc64ycprww49n33mtm92ne
+$ <appd> query distribution validator-outstanding-rewards 0x00078b31fa8b29a76bce074b5ea0d515a6aeaee7
 
 ```
 sgnd query distribution validator-outstanding-rewards [validator] [flags]

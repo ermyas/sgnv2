@@ -28,7 +28,7 @@ sgnd query farming [flags]
 * [sgnd query farming params](sgnd_query_farming_params.md)	 - Query farming params
 * [sgnd query farming pool](sgnd_query_farming_pool.md)	 - query a pool
 * [sgnd query farming pools](sgnd_query_farming_pools.md)	 - query for all pools
-* [sgnd query farming reward-claim-info](sgnd_query_farming_reward-claim-info.md)	 - query the stake info of an account on a pool
+* [sgnd query farming reward-claim-info](sgnd_query_farming_reward-claim-info.md)	 - query the reward claim info of an account
 * [sgnd query farming stake-info](sgnd_query_farming_stake-info.md)	 - query the stake info of an account on a pool
 * [sgnd query farming token](sgnd_query_farming_token.md)	 - query a token
 * [sgnd query farming tokens](sgnd_query_farming_tokens.md)	 - query all tokens

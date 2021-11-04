@@ -7,7 +7,7 @@ Query distribution validator commission
 Query validator commission rewards from delegators to that validator.
 
 Example:
-$ <appd> query distribution commission sgnvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj
+$ <appd> query distribution commission 0x00078b31fa8b29a76bce074b5ea0d515a6aeaee7
 
 ```
 sgnd query distribution commission [validator] [flags]

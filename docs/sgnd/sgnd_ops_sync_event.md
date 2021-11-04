@@ -1,21 +1,21 @@
-## sgnd ops sync signers
+## sgnd ops sync event
 
-Sync signers from onchain
+Sync bridge event from onchain, automatically figure out which event based on elog
 
 ### Synopsis
 
 Example:
-$ <appd> ops sync signers --chainid=883 --txhash="0xxx"
+$ <appd> ops sync event --chainid=883 --txhash="0xxx"
 
 ```
-sgnd ops sync signers [flags]
+sgnd ops sync event [flags]
 ```
 
 ### Options
 
 ```
       --chainid uint    which chainid to query tx hash
-  -h, --help            help for signers
+  -h, --help            help for event
       --txhash string   tx hash, will parse last event
 ```
 
