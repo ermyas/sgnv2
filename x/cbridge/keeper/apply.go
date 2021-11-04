@@ -43,8 +43,9 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			return false, err
 		}
 		if HasEvLiqAdd(kv, onchev.Chainid, ev.Seqnum) {
-			// already processed, return error
-			return false, fmt.Errorf("already applied liq add event: chainid %d seq %d", onchev.Chainid, ev.Seqnum)
+			// already processed, could happen if two syncers both propose
+			log.Infof("skip already applied liq add event: chainid %d seq %d", onchev.Chainid, ev.Seqnum)
+			return false, nil
 		}
 		// note we don't check if config has this chid,token so in case someone addLiq *before* sgn supports it, it'll
 		// be accounted correctly (but can't be used for transfer as that requires asset info)
@@ -59,7 +60,8 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			return false, err
 		}
 		if HasEvSend(kv, ev.TransferId) {
-			return false, fmt.Errorf("already applied send event. chainid %d xferId %x", onchev.Chainid, ev.TransferId)
+			log.Infof("skip already applied send event. chainid %d xferId %x", onchev.Chainid, ev.TransferId)
+			return false, nil
 		}
 		// in case of bad_xxx, save info for later user refund, NO seqnum yet as it'll be set
 		// when user calls InitWithdraw
