@@ -76,7 +76,7 @@ func (r *Relayer) verifyUpdateCbrPrice(update *synctypes.PendingUpdate) (done, a
 	}
 	priceIGot, success := getCbrPriceFromUrl()
 	if !success {
-		log.Errorln("failed to get CbrPrice from s3", update.Data)
+		log.Errorln("failed to get CbrPrice from s3", priceFromSyncer)
 		return false, false
 	}
 	if priceIGot.GetUpdateEpoch() < priceFromSyncer.GetUpdateEpoch() {

@@ -4,22 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/celer-network/sgn-v2/gateway/dal"
 	"io/ioutil"
 	"math"
 	"math/big"
 	"strings"
 	"time"
 
-	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/spf13/viper"
-
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/lthibault/jitterbug"
+	"github.com/spf13/viper"
 	"gopkg.in/resty.v1"
 )
 
@@ -164,7 +163,7 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 	if err != nil {
 		return fmt.Errorf("failed to GetAllChainAndGasToken")
 	}
-	for sym, _ := range symbol2chainIds {
+	for sym := range symbol2chainIds {
 		token, found := t.allTokenIds[sym]
 		if found {
 			tokenIds = append(tokenIds, token.Id)

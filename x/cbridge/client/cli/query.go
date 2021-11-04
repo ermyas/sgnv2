@@ -128,7 +128,7 @@ var qDebugAnyCmd = &cobra.Command{
 		// now switch on key prefix to decode and print properly
 		switch {
 		// big.Int Bytes
-		case pre(key, "lm"), pre(key, "liqsum"), pre(key, "evliqadd"), pre(key, "withdrawSeqNum"), pre(key, "lpfee"), pre(key, "sgnfee"), pre(key, "cfg-feeperc"):
+		case pre(key, "lm"), pre(key, "liqsum"), pre(key, "evliqadd"), pre(key, "wdDetail"), pre(key, "lpfee"), pre(key, "sgnfee"), pre(key, "cfg-feeperc"):
 			return cliCtx.PrintString(new(big.Int).SetBytes(res).String())
 		case pre(key, "evsend"):
 			return cliCtx.PrintString(types.XferStatus(res[0]).String())
