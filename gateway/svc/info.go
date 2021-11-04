@@ -346,8 +346,8 @@ func cmpChainToken(lp1, lp2 *webapi.LPInfo) bool {
 	cmpChain := strings.Compare(lp1.GetChain().GetName(), lp2.GetChain().GetName())
 	cmpToken := strings.Compare(lp1.GetToken().GetName(), lp2.GetToken().GetName())
 	if cmpChain == 0 {
-		return cmpToken > 0
+		return cmpToken < 0
 	} else {
-		return cmpChain > 0
+		return cmpChain < 0
 	}
 }
