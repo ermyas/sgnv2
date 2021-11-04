@@ -9,26 +9,25 @@ import (
 	"strings"
 	"time"
 
-	"github.com/celer-network/sgn-v2/relayer"
-
-	gatewaysvc "github.com/celer-network/sgn-v2/gateway/svc"
-	"github.com/gogo/gateway"
-
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/gateway/fee"
+	gatewaysvc "github.com/celer-network/sgn-v2/gateway/svc"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
+	"github.com/celer-network/sgn-v2/relayer"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"github.com/rs/cors"
-
-	"github.com/celer-network/goutils/log"
 	grpctypes "github.com/cosmos/cosmos-sdk/types/grpc"
+	"github.com/gogo/gateway"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/improbable-eng/grpc-web/go/grpcweb"
+	"github.com/rs/cors"
 	"google.golang.org/grpc"
 )
 
 var (
-	port    = flag.Int("port", 8081, "Listening port")
-	rpcPort = flag.Int("rpc", 10000, "Listening port for rpc")
+	port       = flag.Int("port", 8081, "Listening port")
+	rpcWebPort = flag.Int("rpcweb", 8082, "Listening port for rpc web")
+	rpcPort    = flag.Int("rpc", 10000, "Listening port for rpc")
 )
 
 // CustomGRPCHeaderMatcher for mapping request headers to
@@ -94,6 +93,18 @@ func InitGateway(
 	go func() {
 		if err = grpcServer.Serve(lis); err != nil {
 			log.Fatal(err)
+		}
+	}()
+
+	// Add grpc web
+	wrappedServer := grpcweb.WrapServer(grpcServer, grpcweb.WithOriginFunc(func(origin string) bool { return true }))
+	grpcWebSrv := &http.Server{
+		Addr:    fmt.Sprintf(":%d", *rpcWebPort),
+		Handler: wrappedServer,
+	}
+	go func() {
+		if grpcWebSrvErr := grpcWebSrv.ListenAndServe(); grpcWebSrvErr != nil {
+			log.Fatal(grpcWebSrvErr)
 		}
 	}()
 
