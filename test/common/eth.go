@@ -239,6 +239,19 @@ func ConfirmUnbondedValidator(auth *bind.TransactOpts, valAddr eth.Addr) error {
 	return nil
 }
 
+func UpdateValidatorSigner(auth *bind.TransactOpts, signerAddr eth.Addr) error {
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
+
+	tx, err := Contracts.Staking.UpdateValidatorSigner(auth, signerAddr)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "UpdateValidatorSigner")
+	return nil
+}
+
 func prepareEtherBaseClient(gatewayAddr string, chainId int64) (
 	*ethclient.Client, *bind.TransactOpts, context.Context, eth.Addr, error) {
 	conn, err := ethclient.Dial(gatewayAddr)

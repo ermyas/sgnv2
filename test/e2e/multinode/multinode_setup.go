@@ -413,3 +413,13 @@ func ShutdownNode(node uint) {
 		log.Error(err)
 	}
 }
+
+func BringupNode(node uint) {
+	log.Infoln("Shutdown node", node)
+	cmd := exec.Command("docker-compose", "up", "-d", fmt.Sprintf("sgnnode%d", node))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		log.Error(err)
+	}
+}

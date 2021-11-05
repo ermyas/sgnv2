@@ -52,7 +52,7 @@ func (k Keeper) applyValidatorSgnAddr(ctx sdk.Context, update *types.PendingUpda
 	return true, nil
 }
 
-// TODO: handle/restrict sgnaddr/consaddr update
+// TODO: allow sgnaddr/consaddr update
 func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdate) (bool, error) {
 	v, err := stakingtypes.UnmarshalValidator(k.cdc, update.Data)
 	if err != nil {
@@ -64,12 +64,32 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 	if v.ConsensusPubkey == nil {
 		return false, fmt.Errorf("empty consensus pub key")
 	}
+	consAddr, err := v.GetConsAddr()
+	if err != nil {
+		return false, fmt.Errorf("validator %s failed to get consensus addr, err %s", v.EthAddress, err)
+	}
 	log.Infof("Apply validator params %s", v.String())
 	val, found := k.stakingKeeper.GetValidator(ctx, eth.Hex2Addr(v.EthAddress))
 	if !found {
 		val = *stakingtypes.NewValidator(v.EthAddress, v.EthSigner, v.SgnAddress)
 		val.Description = v.Description
 	} else {
+		if v.SgnAddress != val.SgnAddress {
+			return false, fmt.Errorf("update of sgnaddr is not supported: %s %s %s", v.EthAddress, v.SgnAddress, val.SgnAddress)
+		}
+		storedConsAddr, err := val.GetConsAddr()
+		if err != nil {
+			return false, fmt.Errorf("validator %s failed to get stored consensus addr, err %s", v.EthAddress, err)
+		}
+		if !consAddr.Equals(storedConsAddr) {
+			return false, fmt.Errorf("update of consaddr is not supported: %s %s %s", v.EthAddress, consAddr, storedConsAddr)
+		}
+		if val.Status == stakingtypes.Bonded {
+			if val.EthSigner != eth.FormatAddrHex(v.EthSigner) {
+				log.Infof("Update bonded validator %s signer from %s to %s", val.EthAddress, val.EthSigner, v.EthSigner)
+				k.cbrKeeper.UpdateLatestSigners(ctx, true)
+			}
+		}
 		val.EthSigner = eth.FormatAddrHex(v.EthSigner)
 		val.SgnAddress = v.SgnAddress
 	}
