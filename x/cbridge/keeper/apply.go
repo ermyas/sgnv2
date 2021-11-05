@@ -10,6 +10,7 @@ import (
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type ChainIdTokenAddr struct {
@@ -72,9 +73,10 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			Amount:   ev.Amount.Bytes(),
 		}
 
+		randBytes := crypto.Keccak256Hash([]byte(fmt.Sprintf("%x-%d", ev.TransferId, ctx.BlockTime().Unix())))
 		// must set to non-zero before return
 		sendStatus, userReceive, destTokenAddr, percFee, baseFee, err :=
-			k.transfer(ctx, ev.Token, ev.Amount, onchev.Chainid, ev.DstChainId, ev.MaxSlippage, eth.ZeroAddr, ev.TransferId[28:]) // last 4B of xfer id
+			k.transfer(ctx, ev.Token, ev.Amount, onchev.Chainid, ev.DstChainId, ev.MaxSlippage, eth.ZeroAddr, randBytes.Bytes()[0:4])
 
 		defer func() {
 			logmsg := fmt.Sprintf("x/cbr applied: %s, status: %s, recv %s, fee perc %s base %s",
