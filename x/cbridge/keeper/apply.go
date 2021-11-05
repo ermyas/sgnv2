@@ -121,7 +121,6 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		log.Infoln("x/cbr apply relay", ev.String())
 		SetEvSendStatus(kv, ev.SrcTransferId, types.XferStatus_SUCCESS)
 		// only set value when apply event, relay xferid -> src xferid only for debugging
 		SetEvRelay(kv, ev.TransferId, ev.SrcTransferId)

@@ -107,8 +107,9 @@ func cbridgeTest(t *testing.T) {
 		tc.ChkErr(err, fmt.Sprintf("u%d chain2 approve", i))
 		err = tc.CbrChain2.AddLiq(i, addAmt)
 		tc.ChkErr(err, fmt.Sprintf("u%d chain2 addliq", i))
-		tc.CheckAddLiquidityStatus(transactor, tc.CbrChain1.ChainId, i+1)
+		tc.CheckAddLiquidityStatus(transactor, tc.CbrChain2.ChainId, i+1)
 	}
+
 	res, err = cbrcli.QueryLiquidityDetailList(transactor.CliCtx, &cbrtypes.LiquidityDetailListRequest{
 		LpAddr:     tc.ClientEthAddrs[0].Hex(),
 		ChainToken: chainTokens,
@@ -124,6 +125,19 @@ func cbridgeTest(t *testing.T) {
 	tc.ChkErr(err, "u0 chain1 send")
 	tc.CheckXfer(transactor, xferId[:])
 
+	res, err = cbrcli.QueryLiquidityDetailList(transactor.CliCtx, &cbrtypes.LiquidityDetailListRequest{
+		LpAddr:     tc.ClientEthAddrs[0].Hex(),
+		ChainToken: chainTokens,
+	})
+	tc.ChkErr(err, "cli Query")
+	log.Infoln("QueryLiquidityDetailList resp:", res.String())
+	res, err = cbrcli.QueryLiquidityDetailList(transactor.CliCtx, &cbrtypes.LiquidityDetailListRequest{
+		LpAddr:     tc.ClientEthAddrs[1].Hex(),
+		ChainToken: chainTokens,
+	})
+	tc.ChkErr(err, "cli Query")
+	log.Infoln("QueryLiquidityDetailList resp:", res.String())
+
 	log.Infoln("======================== LP withdraw liquidity ===========================")
 	reqid := uint64(time.Now().Unix())
 	wdLq1 := tc.CbrChain1.GetWithdrawLq(20000000) // withdraw 20%
@@ -136,6 +150,14 @@ func cbridgeTest(t *testing.T) {
 	tc.ChkErr(err, "chain1 GetCurSortedSigners")
 	err = tc.CbrChain1.OnchainWithdraw(detail, curss)
 	tc.ChkErr(err, "chain1 onchain withdraw")
+
+	res, err = cbrcli.QueryLiquidityDetailList(transactor.CliCtx, &cbrtypes.LiquidityDetailListRequest{
+		LpAddr:     tc.ClientEthAddrs[0].Hex(),
+		ChainToken: chainTokens,
+	})
+	tc.ChkErr(err, "cli Query")
+	log.Infoln("QueryLiquidityDetailList resp:", res.String())
+
 	// todo: more cases, eg. lp2 withdraw from chain1 after xfer
 
 	log.Infoln("======================== LP claim farming reward on-chain ===========================")

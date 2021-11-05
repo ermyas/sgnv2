@@ -44,12 +44,14 @@ func (k Keeper) withdrawLP(ctx sdk.Context, wdReq *types.WithdrawReq, lpAddr eth
 	var recvToken eth.Addr
 	logmsg := fmt.Sprintf("lp:%x request_id:%d exit_chain_id:%d", lpAddr, wdReq.ReqId, wdReq.ExitChainId)
 	var wdmsgs string
-	reqAmt := big.NewInt(0)
-	recvAmt := big.NewInt(0)
+	reqAmt := big.NewInt(0)  // total request amount to be withdrawn from all chains
+	recvAmt := big.NewInt(0) // total actually recvd amount at exit chain, may be different from reqAmt due to slippage and fees
+	// process each withdrawLq request
 	for _, wd := range wdReq.Withdraws {
-		wdmsg := fmt.Sprintf("from_chain_id:%d token_addr:%s ratio:%f max_slippage:%f",
-			wd.FromChainId, eth.FormatAddrHex(wd.TokenAddr), float32(wd.Ratio)/types.WithdrawPercentageBase, float32(wd.MaxSlippage)/1000000)
 		token := eth.Hex2Addr(wd.TokenAddr)
+		wdmsg := fmt.Sprintf("from_chain_id:%d token_addr:%x ratio:%f max_slippage:%f",
+			wd.FromChainId, token, float32(wd.Ratio)/types.WithdrawPercentageBase, float32(wd.MaxSlippage)/1e6)
+		// get the LP's balance at the "from" chain
 		balance := GetLPBalance(kv, wd.FromChainId, token, lpAddr)
 		if balance.Sign() <= 0 {
 			return nil, types.Error(types.ErrCode_BAL_NOT_ENOUGH, "%s %s zero balance", logmsg, wdmsg)
@@ -58,13 +60,19 @@ func (k Keeper) withdrawLP(ctx sdk.Context, wdReq *types.WithdrawReq, lpAddr eth
 			return nil, types.Error(types.ErrCode_INVALID_REQ, "%s %s invalid ratio", logmsg, wdmsg)
 		}
 		var destToken eth.Addr
+		// compute the amount to be withdrawn from this chain
 		amt := new(big.Int).Div(new(big.Int).Mul(balance, big.NewInt(int64(wd.Ratio))), big.NewInt(int64(types.WithdrawPercentageBase)))
 		wdmsg = fmt.Sprintf("%s req_amt:%s", wdmsg, amt)
 		reqAmt.Add(reqAmt, amt)
 		if wd.FromChainId == wdReq.ExitChainId {
+			// if this is also the exit chain, directly withdraw
 			recvAmt.Add(recvAmt, amt)
 			destToken = token
 		} else {
+			// if this is not the exit chain, simulate the following behavior:
+			// 1. withdraw exact amt from this chain (no onchain submission)
+			// 2. transfer the withdrawn amt to the exit chain (similar to send/relay flow)
+			// 3. add the transfer recv amt (after slippage and fee) at exit chain to the total recvAmt
 			randBytes := crypto.Keccak256Hash([]byte(fmt.Sprintf("%x-%d-%d", lpAddr, wdReq.ReqId, ctx.BlockTime().Unix())))
 			status, recvAmount, destTk, _, _, err := k.transfer(
 				ctx, token, amt, wd.FromChainId, wdReq.ExitChainId, wd.MaxSlippage, lpAddr, randBytes.Bytes()[0:4])
@@ -75,9 +83,16 @@ func (k Keeper) withdrawLP(ctx sdk.Context, wdReq *types.WithdrawReq, lpAddr eth
 			if status != types.XferStatus_OK_TO_RELAY {
 				return nil, types.Error(types.ErrCode_WD_INTERNAL_XFER_FAILURE, "%s %s internal transfer failed %s", logmsg, wdmsg, status)
 			}
+			// add to total receive amount
 			recvAmt.Add(recvAmt, recvAmount)
 			destToken = destTk
 		}
+		negAmt := new(big.Int).Neg(amt)
+		// remove amt from lp map at this withdraw_from chain
+		k.ChangeLiquidity(ctx, kv, wd.FromChainId, token, lpAddr, negAmt)
+		// also remove liq from liqsum at this withdraw_from chain
+		ChangeLiqSum(kv, wd.FromChainId, token, negAmt)
+
 		if recvToken == eth.ZeroAddr {
 			recvToken = destToken
 		} else if recvToken != destToken {
@@ -87,10 +102,6 @@ func (k Keeper) withdrawLP(ctx sdk.Context, wdReq *types.WithdrawReq, lpAddr eth
 	}
 	logmsg = fmt.Sprintf("%s %srecv_token:%x, total_req_amt:%s total_recv_amt:%s", logmsg, wdmsgs, recvToken, reqAmt, recvAmt)
 	log.Infof("x/cbr handle lp withdraw: %s creator:%s", logmsg, creator)
-	negAmt := new(big.Int).Neg(recvAmt)
-	k.ChangeLiquidity(ctx, kv, wdReq.ExitChainId, recvToken, lpAddr, negAmt) // remove amt from lp map
-	// also remove liq from liqsum
-	ChangeLiqSum(kv, wdReq.ExitChainId, recvToken, negAmt)
 	return &types.WithdrawOnchain{
 		Chainid:  wdReq.ExitChainId,
 		Receiver: lpAddr.Bytes(),
