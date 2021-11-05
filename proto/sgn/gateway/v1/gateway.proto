@@ -165,6 +165,27 @@ service Web {
       body: "*"
     };
     }
+
+    rpc GetCampaignScores (GetCampaignScoresRequest) returns (GetCampaignScoresResponse) {
+        option (google.api.http) = {
+      get: "/v1/getCampaignLeaderBoard"
+    };
+    }
+}
+
+message GetCampaignScoresRequest {
+    uint32 date = 1; // 2021-11-x, if date==5, it means 2021-11-05 00:00:00 UTC
+    uint64 begin_block = 2; // staking begin block number
+    uint64 end_block = 3; // staking end block number
+}
+message GetCampaignScoresResponse {
+    repeated CampaignScore scores = 1;
+    ErrMsg err = 2;
+    uint64 begin = 3;
+}
+message CampaignScore {
+    string usr_addr = 1;
+    uint64 score = 2;
 }
 
 message QueryLiquidityStatusResponse {

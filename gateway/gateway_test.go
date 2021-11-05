@@ -185,7 +185,7 @@ func TestCampaign(t *testing.T) {
 
 	err = dal.DB.InsertClaimWithdrawRewardLog(usrAddr)
 
-	score, err := dal.DB.CalcCampaignScore()
+	score, err := dal.DB.CalcCampaignScore(time.Now())
 	errIsNil(t, err)
 	if score[0].UsrAddr != usrAddr {
 		t.Errorf("usrAddr wrong")
@@ -198,7 +198,7 @@ func TestCampaign(t *testing.T) {
 
 	err = dal.DB.InsertClaimWithdrawRewardLog(usrAddr)
 
-	score, err = dal.DB.CalcCampaignScore()
+	score, err = dal.DB.CalcCampaignScore(time.Now())
 	errIsNil(t, err)
 	if score[0].UsrAddr != usrAddr {
 		t.Errorf("usrAddr wrong")
@@ -221,7 +221,7 @@ func TestCampaign(t *testing.T) {
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
 	dal.DB.Exec(q, usrAddr, 33, "ddd", "ggg", "ggg", "ggg", time.Now(), time.Now(), 3, 1, 2)
 
-	score, err = dal.DB.CalcCampaignScore()
+	score, err = dal.DB.CalcCampaignScore(time.Now())
 	errIsNil(t, err)
 	if score[0].UsrAddr != usrAddr {
 		t.Errorf("usrAddr wrong")

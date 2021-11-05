@@ -182,7 +182,6 @@ func (gs *GatewayService) InitTransactors() error {
 		}
 	}
 	gs.EC = e
-
 	return nil
 }
 
