@@ -38,7 +38,7 @@ func SetupMainchain() {
 	cmd = exec.Command("make", "prepare-docker-env")
 	cmd.Dir = repoRoot
 	if err := cmd.Run(); err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 
 	log.Infoln("start geth container")

@@ -8,7 +8,7 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
-	"github.com/celer-network/sgn-v2/x/staking/types"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
@@ -54,7 +54,7 @@ func stakingTest(t *testing.T) {
 	err := tc.InitializeValidator(tc.ValAuths[0], tc.ValSignerAddrs[0], tc.ValSgnAddrs[0], vAmt, eth.CommissionRate(0.02))
 	require.NoError(t, err, "failed to initialize validator")
 	tc.Sleep(5)
-	expVal := &types.Validator{
+	expVal := &stakingtypes.Validator{
 		EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[0]),
 		EthSigner:       eth.Addr2Hex(tc.ValSignerAddrs[0]),
 		Status:          eth.Bonded,
@@ -65,7 +65,7 @@ func stakingTest(t *testing.T) {
 	}
 	tc.CheckValidator(t, transactor, expVal)
 	tc.CheckValidatorBySgnAddr(t, transactor, expVal)
-	expDel := &types.Delegation{
+	expDel := &stakingtypes.Delegation{
 		DelegatorAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
 		ValidatorAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
 		Shares:           sdk.NewIntFromBigInt(vAmt),
@@ -80,7 +80,7 @@ func stakingTest(t *testing.T) {
 	tc.Sleep(5)
 	tc.PrintTendermintValidators(t, transactor)
 	for i := 0; i < len(tc.DelEthKs); i++ {
-		expDel := &types.Delegation{
+		expDel := &stakingtypes.Delegation{
 			DelegatorAddress: eth.Addr2Hex(tc.DelEthAddrs[i]),
 			ValidatorAddress: eth.Addr2Hex(tc.ValEthAddrs[0]),
 			Shares:           sdk.NewIntFromBigInt(dAmts[i]),

@@ -111,6 +111,7 @@ func (k Keeper) withdrawLP(ctx sdk.Context, wdReq *types.WithdrawReq, lpAddr eth
 	}, nil
 }
 
+// TODO: Support multi-chain claim
 func (k Keeper) claimFeeShare(ctx sdk.Context, wdReq *types.WithdrawReq, delAddr eth.Addr, creator string) (*types.WithdrawOnchain, error) {
 	kv := ctx.KVStore(k.storeKey)
 	if len(wdReq.Withdraws) != 1 {
@@ -142,11 +143,15 @@ func (k Keeper) claimFeeShare(ctx sdk.Context, wdReq *types.WithdrawReq, delAddr
 	wdmsgs += fmt.Sprintf("<%s> ", wdmsg)
 	logmsg = fmt.Sprintf("%s %sfee_token:%x, amt:%s", logmsg, wdmsgs, feeTokenAddr, amount)
 	log.Infof("x/cbr handle claim fee share: %s creator:%s", logmsg, creator)
+	// Use 0x1 to represent fee share claims. Must be of length 32.
+	refId := [32]byte{}
+	refId[31] = 1
 	return &types.WithdrawOnchain{
 		Chainid:  wdReq.ExitChainId,
 		Receiver: delAddr.Bytes(),
 		Token:    feeTokenAddr.Bytes(),
 		Amount:   amount.Bytes(),
 		Seqnum:   wdReq.ReqId,
+		Refid:    refId[:],
 	}, nil
 }

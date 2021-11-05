@@ -420,3 +420,16 @@ $ %s query cbridge-fee-share-info 0xd0f2596d700c9bd4d605c938e586ec67b01c7364
 	flags.AddQueryFlagsToCmd(cmd)
 	return cmd
 }
+
+func QueryCBridgeFeeShareInfo(
+	goCtx context.Context, cliCtx client.Context, delAddr string) (*types.CBridgeFeeShareInfo, error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	res, err := queryClient.CBridgeFeeShareInfo(
+		goCtx,
+		&types.QueryCBridgeFeeShareInfoRequest{DelegatorAddress: delAddr},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &res.FeeShareInfo, nil
+}

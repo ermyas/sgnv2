@@ -12,6 +12,8 @@ import (
 	tc "github.com/celer-network/sgn-v2/test/common"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
@@ -60,12 +62,26 @@ func cbridgeTest(t *testing.T) {
 
 	log.Infoln("================== Setup validators and bridge signers ======================")
 	amts := []*big.Int{big.NewInt(2e18), big.NewInt(2e18), big.NewInt(2e18)}
+	numVals := len(amts)
 	tc.SetupValidators(t, transactor, amts)
 	tc.CbrChain1.SetInitSigners(amts)
 	tc.CbrChain2.SetInitSigners(amts)
 	expSigners := genSortedSigners([]eth.Addr{tc.ValSignerAddrs[0], tc.ValSignerAddrs[1], tc.ValSignerAddrs[2]}, amts)
 	tc.CheckChainSigners(t, transactor, tc.CbrChain1.ChainId, expSigners)
 	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
+
+	log.Infoln("================== Delegate from delegator 0 to all validators ======================")
+	for i := 0; i < numVals; i++ {
+		tc.Delegate(tc.DelAuths[0], tc.ValEthAddrs[i], amts[i])
+	}
+	for i := 0; i < numVals; i++ {
+		expDel := &stakingtypes.Delegation{
+			DelegatorAddress: eth.Addr2Hex(tc.DelEthAddrs[0]),
+			ValidatorAddress: eth.Addr2Hex(tc.ValEthAddrs[i]),
+			Shares:           sdk.NewIntFromBigInt(amts[i]),
+		}
+		tc.CheckDelegation(t, transactor, expDel)
+	}
 
 	log.Infoln("======================== Query ===========================")
 	resp, err := cbrcli.QueryChainTokensConfig(transactor.CliCtx, &cbrtypes.ChainTokensConfigRequest{})
@@ -142,7 +158,7 @@ func cbridgeTest(t *testing.T) {
 	reqid := uint64(time.Now().Unix())
 	wdLq1 := tc.CbrChain1.GetWithdrawLq(20000000) // withdraw 20%
 	wdLq2 := tc.CbrChain2.GetWithdrawLq(10000000) // withdraw 10%
-	err = tc.CbrChain1.StartWithdraw(transactor, reqid, 0, wdLq1, wdLq2)
+	err = tc.CbrChain1.StartWithdrawRemoveLiquidity(transactor, reqid, 0, wdLq1, wdLq2)
 	tc.ChkErr(err, "u0 chain1 start withdraw")
 	log.Infoln("withdraw reqid:", reqid)
 	detail := tc.GetWithdrawDetailWithSigs(transactor, tc.CbrChain1.Users[0].Address, reqid, 3)
@@ -158,6 +174,13 @@ func cbridgeTest(t *testing.T) {
 	tc.ChkErr(err, "cli Query")
 	log.Infoln("QueryLiquidityDetailList resp:", res.String())
 
+	log.Infoln("======================== Xfer back ===========================")
+	err = tc.CbrChain2.Approve(0, xferAmt)
+	tc.ChkErr(err, "u0 chain2 approve")
+	xferId, err = tc.CbrChain2.Send(0, xferAmt, tc.CbrChain1.ChainId, 1)
+	tc.ChkErr(err, "u0 chain2 send")
+	tc.CheckXfer(transactor, xferId[:])
+
 	// todo: more cases, eg. lp2 withdraw from chain1 after xfer
 
 	log.Infoln("======================== LP claim farming reward on-chain ===========================")
@@ -166,6 +189,33 @@ func cbridgeTest(t *testing.T) {
 	info := tc.GetFarmingRewardClaimInfoWithSigs(transactor, 0, 3)
 	err = tc.OnchainClaimFarmingRewards(&info.RewardClaimDetailsList[0])
 	tc.ChkErr(err, "u0 onchain claim farming rewards")
+
+	log.Infoln("======================== Delegator 0 claim fee share ===========================")
+	feeShareInfo, err := tc.GetCBridgeFeeShareInfo(transactor, 0)
+	tc.ChkErr(err, "del0 get fee share info before claim")
+	log.Infoln("feeShareInfo before claim:", feeShareInfo)
+	assert.Equal(t, 2, len(feeShareInfo.ClaimableFeeAmounts), "Should have 2 fees")
+
+	reqid = uint64(time.Now().Unix())
+	feeShareWdLq := &cbrtypes.WithdrawLq{
+		FromChainId: tc.CbrChain1.ChainId,
+		TokenAddr:   tc.CbrChain1.USDTAddr.Hex(),
+		Ratio:       100000000, // Only support 100% for now
+		// MaxSlippage unsupported for now
+	}
+	err = tc.CbrChain1.StartWithdrawClaimFeeShare(transactor, reqid, 0, feeShareWdLq)
+	tc.ChkErr(err, "del0 chain1 start claim fee share")
+	log.Infoln("claim fee share withdraw reqid:", reqid)
+	detail = tc.GetWithdrawDetailWithSigs(transactor, tc.CbrChain1.Delegators[0].Address, reqid, 3)
+	curss, err = tc.GetCurSortedSigners(transactor, tc.CbrChain1.ChainId)
+	tc.ChkErr(err, "chain1 GetCurSortedSigners")
+	err = tc.CbrChain1.OnchainWithdraw(detail, curss)
+	tc.ChkErr(err, "chain1 onchain withdraw fee share")
+
+	feeShareInfo, err = tc.GetCBridgeFeeShareInfo(transactor, 0)
+	tc.ChkErr(err, "del0 get fee share info after claim")
+	log.Infoln("feeShareInfo after claim:", feeShareInfo)
+	assert.Equal(t, 1, len(feeShareInfo.ClaimableFeeAmounts), "Should have 1 fee")
 }
 
 func cbrSignersTest(t *testing.T) {

@@ -119,17 +119,36 @@ func (c *CbrChain) GetWithdrawLq(ratio uint32) *cbrtypes.WithdrawLq {
 	}
 }
 
-func (c *CbrChain) StartWithdraw(transactor *transactor.Transactor, reqid, uid uint64, wdLqs ...*cbrtypes.WithdrawLq) error {
+func (c *CbrChain) StartWithdrawRemoveLiquidity(transactor *transactor.Transactor, reqid, uid uint64, wdLqs ...*cbrtypes.WithdrawLq) error {
 	withdrawReq := &cbrtypes.WithdrawReq{
-		Withdraws:   wdLqs,
-		ExitChainId: c.ChainId,
-		ReqId:       reqid,
+		Withdraws:    wdLqs,
+		ExitChainId:  c.ChainId,
+		ReqId:        reqid,
+		WithdrawType: cbrtypes.RemoveLiquidity,
 	}
 	wdBytes, _ := withdrawReq.Marshal()
 
 	_, err := cbrcli.InitWithdraw(transactor, &cbrtypes.MsgInitWithdraw{
 		WithdrawReq: wdBytes,
 		UserSig:     c.Users[uid].SignMsg(wdBytes),
+		Creator:     transactor.Key.GetAddress().String(),
+	})
+	return err
+}
+
+func (c *CbrChain) StartWithdrawClaimFeeShare(transactor *transactor.Transactor, reqid, uid uint64, wdLq *cbrtypes.WithdrawLq) error {
+	// NOTE: Only support single wdLq for now
+	withdrawReq := &cbrtypes.WithdrawReq{
+		Withdraws:    []*cbrtypes.WithdrawLq{wdLq},
+		ExitChainId:  c.ChainId,
+		ReqId:        reqid,
+		WithdrawType: cbrtypes.ClaimFeeShare,
+	}
+	wdBytes, _ := withdrawReq.Marshal()
+
+	_, err := cbrcli.InitWithdraw(transactor, &cbrtypes.MsgInitWithdraw{
+		WithdrawReq: wdBytes,
+		UserSig:     c.Delegators[uid].SignMsg(wdBytes),
 		Creator:     transactor.Key.GetAddress().String(),
 	})
 	return err
@@ -247,4 +266,8 @@ func GetStakingRewardClaimInfo(
 	transactor *transactor.Transactor, uid uint64) (*distrtypes.StakingRewardClaimInfo, error) {
 	return distrcli.QueryStakingRewardClaimInfo(
 		context.Background(), transactor.CliCtx, eth.Addr2Hex(DelEthAddrs[uid]))
+}
+
+func GetCBridgeFeeShareInfo(transactor *transactor.Transactor, delId uint64) (*distrtypes.CBridgeFeeShareInfo, error) {
+	return distrcli.QueryCBridgeFeeShareInfo(context.Background(), transactor.CliCtx, eth.Addr2Hex(DelEthAddrs[delId]))
 }

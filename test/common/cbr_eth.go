@@ -23,7 +23,7 @@ func InitCbrChainConfigs() {
 		Ec:      EthClient,
 		Auth:    EtherBaseAuth,
 	}
-	CbrChain1.SetUsers()
+	CbrChain1.SetUsersAndDelegators()
 
 	rpcClient, err := rpc.Dial(LocalGeth2)
 	if err != nil {
@@ -39,23 +39,28 @@ func InitCbrChainConfigs() {
 		Ec:      ethclient.NewClient(rpcClient),
 		Auth:    etherBaseAuth,
 	}
-	CbrChain2.SetUsers()
+	CbrChain2.SetUsersAndDelegators()
 }
 
-func (c *CbrChain) SetUsers() {
-	u0, err := SetupTestEthClient(ClientEthKs[0], c.ChainId)
-	if err != nil {
-		log.Fatal(err)
+func (c *CbrChain) SetUsersAndDelegators() {
+	users := []*TestEthClient{}
+	for _, clientKs := range ClientEthKs {
+		u, err := SetupTestEthClient(clientKs, c.ChainId)
+		if err != nil {
+			log.Fatal(err)
+		}
+		users = append(users, u)
 	}
-	u1, err := SetupTestEthClient(ClientEthKs[1], c.ChainId)
-	if err != nil {
-		log.Fatal(err)
+	c.Users = users
+	dels := []*TestEthClient{}
+	for _, delKs := range DelEthKs {
+		del, err := SetupTestEthClient(delKs, c.ChainId)
+		if err != nil {
+			log.Fatal(err)
+		}
+		dels = append(dels, del)
 	}
-	u2, err := SetupTestEthClient(ClientEthKs[2], c.ChainId)
-	if err != nil {
-		log.Fatal(err)
-	}
-	c.Users = []*TestEthClient{u0, u1, u2}
+	c.Delegators = dels
 }
 
 func (c *CbrChain) Approve(uid uint64, amt *big.Int) error {

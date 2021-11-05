@@ -165,7 +165,7 @@ func (k Keeper) AccountInfo(c context.Context, req *types.QueryAccountInfoReques
 	// CumulativeRewards (settled rewards + outstanding earnings)
 	derivedRewardAccount := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, addr)
 	// TODO: Avoid sorting?
-	cumulativeRewards := sdk.NewDecCoinsFromCoins(k.bankKeeper.GetAllBalances(ctx, derivedRewardAccount)...).Sort()
+	cumulativeRewards := sdk.NewDecCoinsFromCoins(k.bankKeeper.GetAllBalances(ctx, derivedRewardAccount)...) // sorted
 	for _, earnings := range earningsList {
 		cumulativeRewards = cumulativeRewards.Add(earnings.RewardAmounts.Sort()...)
 	}

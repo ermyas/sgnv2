@@ -324,15 +324,15 @@ func (k Keeper) CBridgeFeeShareInfo(
 
 	// Claimable fees (settled + outstanding fees)
 	derivedRewardAccount := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, delAddr)
-	balances := k.bankKeeper.GetAllBalances(ctx, derivedRewardAccount)
+	balances := k.bankKeeper.GetAllBalances(ctx, derivedRewardAccount) // sorted
 	settledFees := sdk.DecCoins{}
 	for _, coin := range balances {
 		if strings.HasPrefix(coin.Denom, cbrtypes.CBridgeFeeDenomPrefix) {
-			settledFees.Add(sdk.NewDecCoinFromCoin(coin))
+			settledFees = settledFees.Add(sdk.NewDecCoinFromCoin(coin))
 		}
 	}
 
-	claimableFees := settledFees.Sort().Add(totalOutstandingFees.Sort()...)
+	claimableFees := settledFees.Add(totalOutstandingFees.Sort()...)
 	feeShareInfo := types.CBridgeFeeShareInfo{
 		ClaimableFeeAmounts: claimableFees,
 	}
