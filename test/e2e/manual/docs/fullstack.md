@@ -7,7 +7,12 @@ Run the following command at [e2e/mnual](../) folder to to start a local testnet
 ```sh
 echo 12341234 | go run localnet.go -start -full
 ```
+Ignore the warning "# github.com/keybase/go-keychain
+cgo-gcc-prolog:203:11: warning: 'SecTrustedApplicationCreateFromPath' is deprecated: first deprecated in macOS 10.15 - No longer supported [-Wdeprecated-declarations]"
+Detailed discussion here:
+https://github.com/keybase/go-keychain/issues/54
 
+It will take at least 5 minutes. Rest assured when seeing "build dockers, get geth, build sgn binary" or "UpdateSgnAddr tx success", or anything that hangs for a few minutes. Wait for everything to finish. 
 Validator data, logs, and configs are located at `docker-volumes/nodeN` from the repo root folder. Logs of each validators are at
 
 ```sh
