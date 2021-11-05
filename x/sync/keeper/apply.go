@@ -10,27 +10,47 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func (k Keeper) ApplyUpdate(ctx sdk.Context, update *types.PendingUpdate) bool {
-	var applied bool
+func (k Keeper) ApplyUpdate(ctx sdk.Context, update *types.PendingUpdate) (applied bool) {
+	// Gracefully handle any panic when applying updates
+	defer func() {
+		if r := recover(); r != nil {
+			applied = false
+			log.Errorf("panic when applying update %d: %s", update.Id, r)
+		}
+	}()
+
+	cacheCtx, writeCache := ctx.CacheContext()
 	var err error
 	switch update.Type {
 	case types.DataType_ValidatorSgnAddr:
-		applied, err = k.applyValidatorSgnAddr(ctx, update)
+		applied, err = k.applyValidatorSgnAddr(cacheCtx, update)
 	case types.DataType_ValidatorParams:
-		applied, err = k.applyValidatorParams(ctx, update)
+		applied, err = k.applyValidatorParams(cacheCtx, update)
 	case types.DataType_ValidatorStates:
-		applied, err = k.applyValidatorStates(ctx, update)
+		applied, err = k.applyValidatorStates(cacheCtx, update)
 	case types.DataType_DelegatorShares:
-		applied, err = k.applyDelegatorShares(ctx, update)
+		applied, err = k.applyDelegatorShares(cacheCtx, update)
 	case types.DataType_CbrOnchainEvent:
-		applied, err = k.cbrKeeper.ApplyEvent(ctx, update.Data)
+		applied, err = k.cbrKeeper.ApplyEvent(cacheCtx, update.Data)
 	case types.DataType_CbrUpdateCbrPrice:
-		applied, err = k.cbrKeeper.ApplyUpdateCbrPrice(ctx, update.Data)
+		applied, err = k.cbrKeeper.ApplyUpdateCbrPrice(cacheCtx, update.Data)
 	}
 
 	if err != nil {
 		log.Errorln("Apply update err:", err)
 	}
+
+	if applied {
+		// The cached context is created with a new EventManager. However, since
+		// the application was successful, we want to track/keep
+		// any events emitted, so we re-emit to "merge" the events into the
+		// original Context's EventManager.
+		ctx.EventManager().EmitEvents(cacheCtx.EventManager().Events())
+
+		// write state to the underlying multi-store
+		writeCache()
+	}
+
 	return applied
 }
 
