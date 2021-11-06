@@ -6,17 +6,28 @@ import (
 )
 
 func TestCalcD(t *testing.T) {
-	A := 100.0
-	weight := 1.0
-	x := 10.0
-	y := 10.0
+	A := 2000.0
+	m := 1.25
+	n := 2 - m
+	x := 839571.827415
+	y := 777552.260981
 	now := time.Now()
-	D := solveD(A, x, y, weight, weight)
+	D := solveD(A, x, y, m, n)
 	elapsed := time.Now().Sub(now)
-	t.Error(elapsed, D, invarLeft(A, D, x, y), invarRight(A, D, x, y, weight, weight))
+	t.Error(elapsed, D, invarLeft(A, D, x, y), invarRight(A, D, x, y, m, n))
 
-	newx := x + 1
-	D = 20
-	newy := loopCalcNewY(A, D, newx, y, weight, weight)
-	t.Error(D, newy, invarLeft(A, D, newx, newy), invarRight(A, D, newx, newy, weight, weight))
+	newx := 4505472.157971
+	newy := loopCalcNewY(A, D, newx, y, m, n)
+	t.Error(D, newy, invarLeft(A, D, newx, newy), invarRight(A, D, newx, newy, m, n))
+}
+
+func TestLoopNewY(t *testing.T) {
+	A := 2000.0
+	m := 1.25
+	n := 2 - m
+	// x := 839571.827415
+	y := 777552.260981
+	D := 1.6171276365928054e+06
+	newx := 4505472.157971
+	t.Error(loopCalcNewY(A, D, newx, y, m, n))
 }

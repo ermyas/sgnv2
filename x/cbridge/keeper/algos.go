@@ -62,9 +62,21 @@ func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmo
 	newx := x + amt2float(srcAmount, src.Decimal)
 	newy := loopCalcNewY(A, D, newx, y, m, n)
 	log.Debugln("chpair:", src.ChId, dest.ChId, "A:", A, "m:", m, "n:", n, "x:", x, "y:", y, "D:", D, "newx:", newx, "newy:", newy)
+	if math.IsNaN(newy) {
+		// not possible as we already override negative ret in loopCalcNewY
+		// keep this check for extra caution
+		return ret, fmt.Errorf("newy is NaN")
+	}
+	if newy < 0 {
+		// cloopCalcNewY ould return negative result when
+		// ret = ret - fy/fyprime is neg and math.Abs(ret-retPrev) < 0.01
+		// if this ever becomes annoying for users, we could just set newy
+		// to 0
+		return ret, fmt.Errorf("newy %f < 0", newy)
+	}
 	if newy >= y {
-		// not possible
-		return ret, fmt.Errorf("newy %f > y %f", newy, y)
+		// newton's method failed
+		return ret, fmt.Errorf("newy %f >= y %f, newton method failed", newy, y)
 	}
 	retFloat := big.NewFloat(y - newy)
 	retFloat.Mul(retFloat, big.NewFloat(math.Pow10(int(dest.Decimal))))
@@ -410,13 +422,20 @@ func solveD(A, x, y, m, n float64) float64 {
 
 // given D and new xi, calculate xj, prev xj - new xj is equal amount
 // y is xj for simpler code, m is weight i, n is weight j
-// f(y) = 4Ay^(wj+1) + (4AX+D-4AD)y^wj - D^3/4(x^wi)
+// f(y) = 4Ay^(n+1) + (4Ax-4AD+D)y^n - D^3/(4x^m)
 func loopCalcNewY(A, D, x, y, m, n float64) float64 {
+	A4 := 4 * A
+	// pick initial guess as y as newy should usually be close to y. however, it's possible
+	// when curve are skewed and newy will be close to 0. we'll check ret and if it's negative,
+	// we'll choose Epsilon as initial guess and try again
 	ret := y
 	for i := 0; i < 100; i++ {
+		if ret < 0 {
+			log.Infoln("loopCalcNewY neg ret, use Epsilon.", A, D, x, y, m, n, ret, i)
+			ret = Epsilon
+		}
 		retPrev := ret
 		yPowN := math.Pow(ret, n)
-		A4 := 4 * A
 		fy := A4*yPowN*ret + (A4*x-A4*D+D)*yPowN - math.Pow(D, 3)/(4*math.Pow(x, m))
 		fyprime := (n+1)*A4*yPowN + n*(A4*x-A4*D+D)*math.Pow(ret, n-1)
 		ret = ret - fy/fyprime
@@ -424,7 +443,9 @@ func loopCalcNewY(A, D, x, y, m, n float64) float64 {
 			return ret
 		}
 	}
-	return ret
+	// in case newton method doesn't converge after 100 runs, consider it failed and
+	// return y so caller will return error
+	return y
 }
 
 func invarLeft(A, D, x, y float64) float64 {
