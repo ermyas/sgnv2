@@ -1,16 +1,16 @@
 package relayer
 
 import (
-	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/x/cbridge/types"
-	"github.com/gogo/protobuf/jsonpb"
-	"github.com/spf13/viper"
-	"gopkg.in/resty.v1"
 	"strings"
 	"time"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
+	"github.com/gogo/protobuf/jsonpb"
+	"github.com/spf13/viper"
+	"gopkg.in/resty.v1"
 )
 
 const (

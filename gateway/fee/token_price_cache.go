@@ -55,6 +55,7 @@ func NewTokenPriceCache(tr *transactor.Transactor) *TokenPriceCache {
 // StartTokenPricePolling starts a loop with the given interval and 3s stdev for polling price
 func (t *TokenPriceCache) StartTokenPricePolling(tr *transactor.Transactor, interval time.Duration) {
 	go func() {
+		time.Sleep(3 * time.Second)
 		ticker := jitterbug.New(
 			interval,
 			&jitterbug.Norm{Stdev: 3 * time.Second},

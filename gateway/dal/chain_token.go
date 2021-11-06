@@ -2,6 +2,7 @@ package dal
 
 import (
 	"fmt"
+
 	"github.com/celer-network/goutils/sqldb"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -172,6 +173,9 @@ func (d *DAL) GetAllChainAndGasToken() (symbol2chainIds map[string][]uint64, cha
 		err = rows.Scan(&id, &gasTokenSymbol)
 		if err != nil {
 			return nil, nil, err
+		}
+		if gasTokenSymbol == "" {
+			continue
 		}
 		chainId2Symbol[id] = gasTokenSymbol
 		if len(symbol2chainIds[gasTokenSymbol]) == 0 {

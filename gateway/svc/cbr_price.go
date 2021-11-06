@@ -3,6 +3,11 @@ package gatewaysvc
 import (
 	"context"
 	"fmt"
+	"math/big"
+	"net/url"
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -16,13 +21,13 @@ import (
 	"github.com/lthibault/jitterbug"
 	"github.com/spf13/viper"
 	"gopkg.in/resty.v1"
-	"math/big"
-	"net/url"
-	"strings"
-	"time"
 )
 
 func (gs *GatewayService) StartUpdateTokenPricePolling(interval time.Duration) {
+	if viper.GetString(common.FlagGatewayAwsKey) == "" {
+		log.Warn("aws key not configured, no price upload")
+		return
+	}
 	go func() {
 		// let fee model run 90 sec upfront
 		time.Sleep(90 * time.Second)
