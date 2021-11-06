@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -80,7 +79,7 @@ func queryRelay(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierC
 	copy(xferId[:], params.XrefId)
 	relay := GetXferRelay(ctx.KVStore(k.storeKey), xferId, k.cdc)
 	if relay == nil {
-		return nil, errors.New("relay does not exist")
+		return nil, sdkerrors.Wrap(types.ErrRecordNotFound, "relay does not exist")
 	}
 
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, relay)

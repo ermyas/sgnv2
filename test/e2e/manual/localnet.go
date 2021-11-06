@@ -17,6 +17,7 @@ import (
 	tc "github.com/celer-network/sgn-v2/test/common"
 	"github.com/celer-network/sgn-v2/test/e2e/multinode"
 	"github.com/celer-network/sgn-v2/transactor"
+	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
@@ -26,6 +27,7 @@ import (
 var (
 	start   = flag.Bool("start", false, "start local testnet")
 	cbr     = flag.Bool("cbr", false, "start with cbridge")
+	op      = flag.Bool("op", false, "proceed with sample operations")
 	gateway = flag.Bool("gateway", false, "start with gateway")
 	full    = flag.Bool("full", false, "start with full stack setup")
 	auto    = flag.Bool("auto", false, "auto-add all validators")
@@ -108,6 +110,10 @@ func main() {
 		if *auto {
 			time.Sleep(10 * time.Second)
 			addValidators()
+
+			if *cbr && *op {
+				cbrOps()
+			}
 		}
 	} else if *down {
 		log.Infoln("Tearing down all containers...")
@@ -279,4 +285,91 @@ func fundAddr() error {
 		}
 	}
 	return nil
+}
+
+func cbrOps() {
+	encodingConfig := app.MakeEncodingConfig()
+	txr, err := transactor.NewTransactor(
+		tc.SgnHomes[0],
+		tc.SgnChainID,
+		tc.SgnNodeURI,
+		tc.SgnValAcct,
+		tc.SgnPassphrase,
+		encodingConfig.Amino,
+		encodingConfig.Codec,
+		encodingConfig.InterfaceRegistry,
+	)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	log.Infoln("======================== Add liquidity on chain 1 ===========================")
+	addAmt := big.NewInt(5 * 1e10)
+	var i uint64
+	for i = 0; i < 2; i++ {
+		err = tc.CbrChain1.Approve(i, addAmt)
+		tc.ChkErr(err, fmt.Sprintf("u%d chain1 approve", i))
+		err = tc.CbrChain1.AddLiq(i, addAmt)
+		tc.ChkErr(err, fmt.Sprintf("u%d chain1 addliq", i))
+		tc.CheckAddLiquidityStatus(txr, tc.CbrChain1.ChainId, i+1)
+	}
+	log.Infoln("======================== Add liquidity on chain 2 ===========================")
+	for i = 0; i < 2; i++ {
+		err = tc.CbrChain2.Approve(i, addAmt)
+		tc.ChkErr(err, fmt.Sprintf("u%d chain2 approve", i))
+		err = tc.CbrChain2.AddLiq(i, addAmt)
+		tc.ChkErr(err, fmt.Sprintf("u%d chain2 addliq", i))
+		tc.CheckAddLiquidityStatus(txr, tc.CbrChain2.ChainId, i+1)
+	}
+
+	chainTokens := make([]*cbrtypes.ChainTokenAddrPair, 0)
+	chainTokens = append(chainTokens, &cbrtypes.ChainTokenAddrPair{
+		ChainId:   tc.CbrChain1.ChainId,
+		TokenAddr: tc.CbrChain1.USDTAddr.Hex(),
+	})
+	chainTokens = append(chainTokens, &cbrtypes.ChainTokenAddrPair{
+		ChainId:   tc.CbrChain2.ChainId,
+		TokenAddr: tc.CbrChain2.USDTAddr.Hex(),
+	})
+	res, err := cbrcli.QueryLiquidityDetailList(txr.CliCtx, &cbrtypes.LiquidityDetailListRequest{
+		LpAddr:     tc.ClientEthAddrs[0].Hex(),
+		ChainToken: chainTokens,
+	})
+	tc.ChkErr(err, "cli Query")
+	log.Infoln("QueryLiquidityDetailList resp:", res.String())
+
+	log.Infoln("======================== Xfer ===========================")
+	xferAmt := big.NewInt(1e10)
+	err = tc.CbrChain1.Approve(0, xferAmt)
+	tc.ChkErr(err, "u0 chain1 approve")
+	xferId, err := tc.CbrChain1.Send(0, xferAmt, tc.CbrChain2.ChainId, 1)
+	tc.ChkErr(err, "u0 chain1 send")
+	tc.CheckXfer(txr, xferId[:])
+
+	log.Infoln("======================== LP withdraw liquidity ===========================")
+	reqid := uint64(time.Now().Unix())
+	wdLq1 := tc.CbrChain1.GetWithdrawLq(20000000) // withdraw 20%
+	wdLq2 := tc.CbrChain2.GetWithdrawLq(10000000) // withdraw 10%
+	err = tc.CbrChain1.StartWithdrawRemoveLiquidity(txr, reqid, 0, wdLq1, wdLq2)
+	tc.ChkErr(err, "u0 chain1 start withdraw")
+	log.Infoln("withdraw reqid:", reqid)
+	detail := tc.GetWithdrawDetailWithSigs(txr, tc.CbrChain1.Users[0].Address, reqid, 4)
+	curss, err := tc.GetCurSortedSigners(txr, tc.CbrChain1.ChainId)
+	tc.ChkErr(err, "chain1 GetCurSortedSigners")
+	err = tc.CbrChain1.OnchainWithdraw(detail, curss)
+	tc.ChkErr(err, "chain1 onchain withdraw")
+
+	res, err = cbrcli.QueryLiquidityDetailList(txr.CliCtx, &cbrtypes.LiquidityDetailListRequest{
+		LpAddr:     tc.ClientEthAddrs[0].Hex(),
+		ChainToken: chainTokens,
+	})
+	tc.ChkErr(err, "cli Query")
+	log.Infoln("QueryLiquidityDetailList resp:", res.String())
+
+	log.Infoln("======================== LP claim farming reward on-chain ===========================")
+	err = tc.StartClaimFarmingRewards(txr, 0)
+	tc.ChkErr(err, "u0 start claim all farming rewards")
+	info := tc.GetFarmingRewardClaimInfoWithSigs(txr, 0, 4)
+	err = tc.OnchainClaimFarmingRewards(&info.RewardClaimDetailsList[0])
+	tc.ChkErr(err, "u0 onchain claim farming rewards")
 }

@@ -37,6 +37,14 @@ func (m *WithdrawDetail) GetSortedSigsBytes() [][]byte {
 	return nil
 }
 
+func (m *WithdrawDetail) SignersStr() string {
+	var signers string
+	for _, s := range m.SortedSigs {
+		signers += fmt.Sprintf("%x ", s.Addr)
+	}
+	return fmt.Sprintf("signers: < %s>", signers)
+}
+
 // basic check of config
 func (c *CbrConfig) Validate() error {
 	if c.LpFeePerc > 100 {
@@ -114,6 +122,6 @@ func (w *WithdrawOnchain) String() string {
 	if w == nil {
 		return ""
 	}
-	return fmt.Sprintf("chainid %d, seqnum %d, receiver %x, token %x, amount %d",
-		w.Chainid, w.Seqnum, w.Receiver, w.Token, big.NewInt(0).SetBytes(w.Amount))
+	return fmt.Sprintf("chainid %d, seqnum %d, receiver %x, token %x, amount %d, refid %x",
+		w.Chainid, w.Seqnum, w.Receiver, w.Token, big.NewInt(0).SetBytes(w.Amount), w.Refid)
 }

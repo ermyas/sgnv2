@@ -28,7 +28,8 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 	cmd.AddCommand(
 		GetCmdQueryConfig(),
 		GetCmdChainTokensConfig(),
-		GetCmdQueryRelay(),
+		GetCmdQueryTransfer(),
+		GetCmdQueryWithdraw(),
 		GetCmdQueryChainSigners(),
 		GetCmdQueryLatestSigners(),
 		qDebugAnyCmd,
@@ -38,28 +39,113 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 	return cmd
 }
 
-// relay and sigs about this xfer
-func GetCmdQueryRelay() *cobra.Command {
+// GetCmdQueryConfig implements the params query command.
+func GetCmdQueryConfig() *cobra.Command {
 	return &cobra.Command{
-		Use:   "relay",
-		Args:  cobra.ExactArgs(1),
-		Short: "Query relay for xfer id",
+		Use:   "config",
+		Args:  cobra.NoArgs,
+		Short: "Query the current cbridge config",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx, _ := client.GetClientQueryContext(cmd)
-			xfid := eth.Hex2Bytes(args[0])
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
 
-			resp, err := QueryRelay(cliCtx, xfid)
+			params, err := QueryParams(cliCtx)
 			if err != nil {
 				log.Errorln("query error", err)
+				return err
+			}
+
+			return cliCtx.PrintProto(&params)
+		},
+	}
+}
+
+func GetCmdChainTokensConfig() *cobra.Command {
+	return &cobra.Command{
+		Use:   "chaintokens",
+		Args:  cobra.NoArgs,
+		Short: "Query the chain tokens",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			resp, err := QueryChainTokensConfig(cliCtx, &types.ChainTokensConfigRequest{})
+			if err != nil {
+				log.Errorln("query error", err)
+				return err
+			}
+
+			return cliCtx.PrintProto(resp)
+		},
+	}
+}
+
+func GetCmdQueryTransfer() *cobra.Command {
+	return &cobra.Command{
+		Use:   "transfer [src-transfer-id]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Query transfer info",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, _ := client.GetClientQueryContext(cmd)
+
+			req := &types.QueryTransferStatusRequest{
+				TransferId: []string{args[0]},
+			}
+			res, err := QueryTransferStatus(cliCtx, req)
+			if err != nil {
+				return err
+			}
+			fmt.Println(res)
+
+			xferId := eth.Hex2Bytes(args[0])
+			resp, err := QueryRelay(cliCtx, xferId)
+			if err != nil {
 				return err
 			}
 			relayOnChain := new(types.RelayOnChain)
 			err = relayOnChain.Unmarshal(resp.Relay)
 			if err != nil {
-				log.Errorln("unmarshal relay error", err)
 				return err
 			}
-			fmt.Printf("Relay: %s, %s", relayOnChain.String(), resp.SignersStr())
+			fmt.Printf("relay message: %s, %s \n", relayOnChain.String(), resp.SignersStr())
+			return nil
+		},
+	}
+}
+
+func GetCmdQueryWithdraw() *cobra.Command {
+	return &cobra.Command{
+		Use:   "withdraw [eth-addr] [seq-num]",
+		Args:  cobra.ExactArgs(2),
+		Short: "Query withdraw info",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			seqNum, err := strconv.Atoi(args[1])
+			if err != nil {
+				return err
+			}
+			req := &types.QueryWithdrawLiquidityStatusRequest{
+				SeqNum:  uint64(seqNum),
+				UsrAddr: args[0],
+			}
+			resp, err := QueryWithdrawLiquidityStatus(cliCtx, req)
+			if err != nil {
+				return err
+			}
+			withdrawOnChain := new(types.WithdrawOnchain)
+			err = withdrawOnChain.Unmarshal(resp.Detail.WdOnchain)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("status: %s\n", resp.Status)
+			fmt.Printf("withdraw message: %s, %s \n", withdrawOnChain.String(), resp.Detail.SignersStr())
 			return nil
 		},
 	}
@@ -67,12 +153,18 @@ func GetCmdQueryRelay() *cobra.Command {
 
 func GetCmdQueryChainSigners() *cobra.Command {
 	return &cobra.Command{
-		Use:   "chain-signers",
+		Use:   "chain-signers [chain-id]",
 		Args:  cobra.ExactArgs(1),
 		Short: "Query signers for chainid",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx, _ := client.GetClientQueryContext(cmd)
-			chid, _ := strconv.Atoi(args[0])
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			chid, err := strconv.Atoi(args[0])
+			if err != nil {
+				return err
+			}
 
 			resp, err := QueryChainSigners(cliCtx, uint64(chid))
 			if err != nil {
@@ -110,7 +202,7 @@ func GetCmdQueryLatestSigners() *cobra.Command {
 
 // it's by design this doesn't have pkg level func so it can only be called via cmd line
 var qDebugAnyCmd = &cobra.Command{
-	Use:   "getany",
+	Use:   "getany [internal-db-key]",
 	Args:  cobra.ExactArgs(1),
 	Short: "Query any kv value for given full key",
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -165,51 +257,6 @@ var qDebugAnyCmd = &cobra.Command{
 
 func pre(a, pre string) bool {
 	return strings.HasPrefix(a, pre)
-}
-
-// GetCmdQueryConfig implements the params query command.
-func GetCmdQueryConfig() *cobra.Command {
-	return &cobra.Command{
-		Use:   "config",
-		Args:  cobra.NoArgs,
-		Short: "Query the current cbridge config",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
-
-			params, err := QueryParams(cliCtx)
-			if err != nil {
-				log.Errorln("query error", err)
-				return err
-			}
-
-			return cliCtx.PrintProto(&params)
-		},
-	}
-}
-
-func GetCmdChainTokensConfig() *cobra.Command {
-	return &cobra.Command{
-		Use:   "chaintokens",
-		Args:  cobra.NoArgs,
-		Short: "Query the chain tokens",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
-
-			resp, err := QueryChainTokensConfig(cliCtx, &types.ChainTokensConfigRequest{})
-			if err != nil {
-				log.Errorln("query error", err)
-				return err
-			}
-
-			return cliCtx.PrintProto(resp)
-		},
-	}
 }
 
 // Query params info
