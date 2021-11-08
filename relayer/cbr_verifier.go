@@ -76,7 +76,7 @@ func (r *Relayer) verifyUpdateCbrPrice(update *synctypes.PendingUpdate) (done, a
 	}
 	priceIGot, success := getCbrPriceFromUrl()
 	if !success {
-		log.Errorln("failed to get CbrPrice from s3", priceFromSyncer)
+		log.Warnln("failed to get CbrPrice from s3. priceFromSyncer:", priceFromSyncer)
 		return false, false
 	}
 	if priceIGot.GetUpdateEpoch() < priceFromSyncer.GetUpdateEpoch() {
@@ -113,7 +113,7 @@ func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, lo
 	// check on chain
 	receipt, err := c.TransactionReceipt(context.Background(), eLog.TxHash)
 	if err != nil {
-		log.Errorln(logmsg, "TransactionReceipt err:", err)
+		log.Warnln(logmsg, "TransactionReceipt err:", err)
 		return false, false
 	}
 	addLiqLog := receipt.Logs[len(receipt.Logs)-1]
@@ -137,7 +137,7 @@ func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, lo
 	// make sure addLiqLog.BlockNumber isn't too recent
 	blk := c.mon.GetCurrentBlockNumber().Uint64()
 	if addLiqLog.BlockNumber > blk-c.blkDelay {
-		log.Errorf("%s evblk %d too soon, should only up to blk %d", logmsg, addLiqLog.BlockNumber, blk-c.blkDelay)
+		log.Warnf("%s evblk %d too soon, should only up to blk %d", logmsg, addLiqLog.BlockNumber, blk-c.blkDelay)
 		return false, false
 	}
 	// addLiquidity must be last log
@@ -176,7 +176,7 @@ func (c *CbrOneChain) verifySend(eLog *ethtypes.Log, cliCtx client.Context, logm
 	// if only latest has, means too soon, if only latest-blkdelay has, means it has been reorg
 	exist, err := c.contract.Transfers(nil, xferId)
 	if err != nil {
-		log.Errorf("%s. query transfers err: %s", logmsg, err)
+		log.Warnf("%s. query transfers err: %s", logmsg, err)
 		return false, false
 	}
 	if !exist {
@@ -190,12 +190,12 @@ func (c *CbrOneChain) verifySend(eLog *ethtypes.Log, cliCtx client.Context, logm
 		BlockNumber: new(big.Int).SetUint64(safeBlkNum),
 	}, xferId)
 	if err != nil {
-		log.Errorf("%s. query safe transfers err: %s", logmsg, err)
+		log.Warnf("%s. query safe transfers err: %s", logmsg, err)
 		return false, false
 	}
 	if !exist {
 		// xfer doesn't exist in history, means too soon, allow retry later
-		log.Errorln(logmsg, "xferId:", xferId.String(), "not found in safeblk")
+		log.Infoln(logmsg, "xferId:", xferId.String(), "not found in safeblk")
 		return false, false
 	}
 	// now both latest and safeblk has the state, ok to vote yes
@@ -222,7 +222,7 @@ func (c *CbrOneChain) verifyRelay(eLog *ethtypes.Log, cliCtx client.Context, log
 	}
 	exist, err := c.contract.Transfers(nil, xferId)
 	if err != nil {
-		log.Errorf("%s. query transfers err: %s", logmsg, err)
+		log.Warnf("%s. query transfers err: %s", logmsg, err)
 		return false, false
 	}
 	if !exist {
@@ -255,7 +255,7 @@ func (c *CbrOneChain) verifyWithdraw(eLog *ethtypes.Log, cliCtx client.Context, 
 	}
 	exist, err := c.contract.Withdraws(nil, wdId)
 	if err != nil {
-		log.Errorf("%s. query withdraws err: %s", logmsg, err)
+		log.Warnf("%s. query withdraws err: %s", logmsg, err)
 		return false, false
 	}
 	if !exist {
@@ -290,7 +290,7 @@ func (c *CbrOneChain) verifySigners(eLog *ethtypes.Log, cliCtx client.Context, l
 	// check on chain
 	ssHash, err := c.contract.SsHash(&bind.CallOpts{})
 	if err != nil {
-		log.Errorf("%s. query ssHash err: %s", logmsg, err)
+		log.Warnf("%s. query ssHash err: %s", logmsg, err)
 		return false, false
 	}
 	curssHash := eth.Bytes2Hash(crypto.Keccak256(eth.SignerBytes(ev.Signers, ev.Powers)))
