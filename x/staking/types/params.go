@@ -10,7 +10,6 @@ import (
 // validator params default values
 const (
 	DefaultSyncerDuration uint64 = 10
-	DefaultEpochLength    uint64 = 5
 )
 
 var DefaultPowerReduction = sdk.NewIntFromUint64(1000000000000)
@@ -18,7 +17,6 @@ var DefaultPowerReduction = sdk.NewIntFromUint64(1000000000000)
 // nolint - Keys for parameter access
 var (
 	KeySyncerDuration = []byte("SyncerDuration")
-	KeyEpochLength    = []byte("EpochLength")
 )
 
 var _ sdk_params.ParamSet = (*Params)(nil)
@@ -28,11 +26,10 @@ func ParamKeyTable() sdk_params.KeyTable {
 }
 
 // NewParams creates a new Params instance
-func NewParams(syncerDuration, epochLength uint64) Params {
+func NewParams(syncerDuration uint64) Params {
 
 	return Params{
 		SyncerDuration: syncerDuration,
-		EpochLength:    epochLength,
 	}
 }
 
@@ -40,23 +37,18 @@ func NewParams(syncerDuration, epochLength uint64) Params {
 func (p *Params) ParamSetPairs() sdk_params.ParamSetPairs {
 	return sdk_params.ParamSetPairs{
 		sdk_params.NewParamSetPair(KeySyncerDuration, &p.SyncerDuration, validateSyncerDuration),
-		sdk_params.NewParamSetPair(KeyEpochLength, &p.EpochLength, validateEpochLength),
 	}
 }
 
 // DefaultParams returns a default set of parameters.
 func DefaultParams() Params {
-	return NewParams(DefaultSyncerDuration, DefaultEpochLength)
+	return NewParams(DefaultSyncerDuration)
 }
 
 // validate a set of params
 func (p *Params) Validate() error {
 	if p.SyncerDuration == 0 {
 		return fmt.Errorf("validator parameter SyncerDuration must be a positive integer")
-	}
-
-	if p.EpochLength == 0 {
-		return fmt.Errorf("validator parameter EpochLength must be a positive integer")
 	}
 
 	return nil
@@ -70,19 +62,6 @@ func validateSyncerDuration(i interface{}) error {
 
 	if v == 0 {
 		return fmt.Errorf("validator parameter SyncerDuration must be positive: %d", v)
-	}
-
-	return nil
-}
-
-func validateEpochLength(i interface{}) error {
-	v, ok := i.(uint64)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
-	}
-
-	if v == 0 {
-		return fmt.Errorf("validator parameter EpochLength must be positive: %d", v)
 	}
 
 	return nil

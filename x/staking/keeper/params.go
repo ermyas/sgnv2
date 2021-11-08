@@ -16,12 +16,6 @@ func (k Keeper) SyncerDuration(ctx sdk.Context) (res uint64) {
 	return
 }
 
-// EpochLength - epoch length
-func (k Keeper) EpochLength(ctx sdk.Context) (res uint64) {
-	k.paramstore.Get(ctx, types.KeyEpochLength, &res)
-	return
-}
-
 func (k Keeper) PowerReduction(ctx sdk.Context) sdk.Int {
 	return types.DefaultPowerReduction
 }
@@ -30,7 +24,6 @@ func (k Keeper) PowerReduction(ctx sdk.Context) sdk.Int {
 func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	return types.NewParams(
 		k.SyncerDuration(ctx),
-		k.EpochLength(ctx),
 	)
 }
 

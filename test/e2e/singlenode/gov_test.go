@@ -61,9 +61,9 @@ func govTest(t *testing.T) {
 	}
 	tc.CheckValidator(t, transactor, expVal)
 
-	log.Info("======================== Test change epochlength passed ===========================")
-	paramChanges := []govtypes.ParamChange{govtypes.NewParamChange("staking", "EpochLength", "\"2\"")}
-	content := govtypes.NewParameterProposal("Guard Param Change", "Update EpochLength", paramChanges)
+	log.Info("======================== Test change syncerDuration passed ===========================")
+	paramChanges := []govtypes.ParamChange{govtypes.NewParamChange("staking", "SyncerDuration", "\"2\"")}
+	content := govtypes.NewParameterProposal("Guard Param Change", "Update SyncerDuration", paramChanges)
 	submitProposalmsg, err := govtypes.NewMsgSubmitProposal(content, sdk.ZeroInt(), transactor.Key.GetAddress())
 	require.NoError(t, err, "failed to create MsgSubmitProposal")
 	transactor.AddTxMsg(submitProposalmsg)
@@ -90,11 +90,11 @@ func govTest(t *testing.T) {
 
 	stakingParams, err := stakingcli.QueryParams(transactor.CliCtx)
 	require.NoError(t, err, "failed to query staking params")
-	assert.Equal(t, uint64(2), stakingParams.EpochLength, "EpochLength params should be updated to 2")
+	assert.Equal(t, uint64(2), stakingParams.SyncerDuration, "SyncerDuration params should be updated to 2")
 
-	log.Info("======================== Test change epochlength rejected ===========================")
-	paramChanges = []govtypes.ParamChange{govtypes.NewParamChange("staking", "EpochLength", "\"5\"")}
-	content = govtypes.NewParameterProposal("Guard Param Change", "Update EpochLength", paramChanges)
+	log.Info("======================== Test change syncerDuration rejected ===========================")
+	paramChanges = []govtypes.ParamChange{govtypes.NewParamChange("staking", "SyncerDuration", "\"5\"")}
+	content = govtypes.NewParameterProposal("Guard Param Change", "Update SyncerDuration", paramChanges)
 	submitProposalmsg, err = govtypes.NewMsgSubmitProposal(content, sdk.NewInt(2e18), transactor.Key.GetAddress())
 	require.NoError(t, err, "failed to create MsgSubmitProposal")
 	transactor.AddTxMsg(submitProposalmsg)
@@ -112,5 +112,5 @@ func govTest(t *testing.T) {
 
 	stakingParams, err = stakingcli.QueryParams(transactor.CliCtx)
 	require.NoError(t, err, "failed to query staking params")
-	assert.Equal(t, uint64(2), stakingParams.EpochLength, "EpochLength params should stay 2")
+	assert.Equal(t, uint64(2), stakingParams.SyncerDuration, "SyncerDuration params should stay 2")
 }

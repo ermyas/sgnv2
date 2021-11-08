@@ -113,5 +113,4 @@ message Syncer {
 
 message Params {
   uint64 syncer_duration = 1;
-  uint64 epoch_length = 2;
 }

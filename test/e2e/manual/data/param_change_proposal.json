@@ -1,11 +1,11 @@
 {
   "title": "Staking Param Change",
-  "description": "Update staking epoch length",
+  "description": "Update staking syncer duration",
   "changes": [
     {
       "subspace": "staking",
-      "key": "EpochLength",
-      "value": "3"
+      "key": "SyncerDuration",
+      "value": "8"
     }
   ],
   "deposit": "100000000"

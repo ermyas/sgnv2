@@ -265,8 +265,7 @@
     "params": null,
     "staking": {
       "params": {
-        "syncer_duration": "10",
-        "epoch_length": "5"
+        "syncer_duration": "10"
       },
       "syncer": null,
       "validators": [
