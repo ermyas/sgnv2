@@ -4,10 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
-	"github.com/celer-network/sgn-v2/gateway/utils"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-
 	"math/big"
 	"strconv"
 	"time"
@@ -16,9 +12,11 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -134,7 +132,8 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 		}
 
 		if err != nil {
-			log.Errorf("init withdraw failed, err:%s", err.Error())
+			log.Warnf("init withdraw failed, transferId:%s, err:%s", transferId, err.Error())
+			// don't update db here, waiting for usr to operate refund again
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -182,7 +181,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 
 		log.Infof("WithdrawLiquidity for remove, ReceiverAddr:%s, token:%s, Amount:%s, ChainId:%d, ReqId:%d", lp, token.GetToken().GetSymbol(), amt, chainId, seqNum)
 		if dal.DB.HasSeqNumUsedForWithdraw(seqNum, lp) {
-			log.Errorf("invalid seq num, it has been used for current lp")
+			log.Warnf("invalid seq num, it has been used for current lp, seqNum:%d, lp:%s", seqNum, lp)
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -206,7 +205,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			Creator:     tr.Key.GetAddress().String(),
 		})
 		if err != nil {
-			log.Errorf("init withdraw failed, err:%s", err.Error())
+			log.Warnf("init withdraw failed, seqNum:%d, chainId:%d, err:%s", seqNum, chainId, err.Error())
 			_ = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(types.WithdrawStatus_WD_FAILED), lp)
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
@@ -323,14 +322,11 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 				}
 
 				if detail != nil && status == uint64(types.WithdrawStatus_WD_WAITING_FOR_SGN) && detail.GetStatus() != resp.Status {
-					var dberr error
+					// ignore db update err, it has logs in dal
 					if amt != "" {
-						dberr = dal.DB.UpdateWaitingForLPStatus(seqNum, lpType, chainId, addr.String(), amt, uint64(detail.Status))
+						dal.DB.UpdateWaitingForLPStatus(seqNum, lpType, chainId, addr.String(), amt, uint64(detail.Status))
 					} else {
-						dberr = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(detail.Status), addr.String())
-					}
-					if dberr != nil {
-						log.Errorf("db error:%+v", dberr)
+						dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(detail.Status), addr.String())
 					}
 					resp.Status = detail.GetStatus()
 				}
@@ -361,7 +357,6 @@ func (gs *GatewayService) LPHistory(ctx context.Context, request *webapi.LPHisto
 	}
 	lpHistory, currentPageSize, next, err := dal.DB.PaginateLpHistory(addr, endTime, request.GetPageSize())
 	if err != nil {
-		log.Error("db error", err)
 		return &webapi.LPHistoryResponse{}, nil
 	}
 	gs.updateLpStatusInHistory(lpHistory)
@@ -537,7 +532,6 @@ func (gs *GatewayService) updateLpStatusInHistory(lpHistory []*dal.LP) {
 				Type:    lp.LpType,
 			})
 			if err != nil {
-				log.Warn("updateLpStatusInHistory error", err)
 				continue
 			}
 			lp.Status = resp.GetStatus()

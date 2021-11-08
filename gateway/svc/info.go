@@ -239,7 +239,7 @@ func (gs *GatewayService) getLiquidityOnChainToken(chainId uint64, tokenAddr str
 		TokenAddr: tokenAddr,
 	})
 	if err != nil {
-		log.Errorf("getLiquidityOnChainToken err, chain:%d, token:%s, err:%+v", chainId, tokenAddr, err)
+		log.Warnf("getLiquidityOnChainToken err, chain:%d, token:%s, err:%+v", chainId, tokenAddr, err)
 		return "0"
 	}
 	return resp.GetTotalLiq()
@@ -257,15 +257,14 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 		&farmingtypes.QueryPoolsRequest{},
 	)
 	if err != nil {
-		log.Error("getFarmingApy error", err)
+		log.Warnf("getFarmingApy error:%+v", err)
 		return nil
 	}
 	apysByChainId := make(map[uint64]map[string]float64) // map<chain_id, map<token_symbol, apy>>
 	for _, pool := range res.GetPools() {
 		apy, calErr := gs.calcPoolApy(&pool)
 		if calErr != nil {
-			log.Error("getFarmingApy error", err)
-			return nil
+			continue
 		}
 		apysByToken := make(map[string]float64)
 		stakeToken := pool.StakeToken

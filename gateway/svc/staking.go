@@ -6,7 +6,6 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
-	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/distribution/client/cli"
@@ -46,10 +45,6 @@ func (gs *GatewayService) UnlockStakingReward(ctx context.Context, request *weba
 			},
 		}, nil
 	} else {
-		dberr := dal.DB.InsertClaimWithdrawRewardLog(request.GetDelegatorAddress())
-		if dberr != nil {
-			log.Errorf("InsertClaimWithdrawRewardLog failed, error:%+v", dberr)
-		}
 		return &webapi.UnlockStakingRewardResponse{}, nil
 	}
 }

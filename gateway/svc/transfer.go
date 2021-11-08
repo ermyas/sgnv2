@@ -163,7 +163,6 @@ func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.Mark
 	txType := request.GetType()
 	log.Infof("Mark transfer, transferId: %s, addr:%s, txHash: %s, srcChainId:%d, txType:%d", transferId, addr, txHash, sendInfo.GetChain().GetId(), txType)
 	if !utils.CheckMarkTransferParams(transferId, txHash, request.GetAddr(), sendInfo, receivedInfo) {
-		log.Warnf("Mark transfer failed, param check failed")
 		return &webapi.MarkTransferResponse{
 			Err: &webapi.ErrMsg{
 				Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -183,7 +182,7 @@ func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.Mark
 		if err == nil && perc != nil && perc.FeePerc > 0 {
 			percentage = perc.FeePerc
 		} else {
-			log.Warnf("get perc failed:%+v", perc)
+			log.Warnf("get perc failed:srcChain:%d, dstChain:%d, perc:%+v, err:%+v", srcChainId, dstChainId, perc, err)
 		}
 
 		err = dal.DB.MarkTransferSend(transferId, addr.String(), sendInfo.GetToken().GetSymbol(),
@@ -420,7 +419,7 @@ func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainI
 	}
 	feeInfo, err := cbrcli.QueryFee(tr.CliCtx, getFeeRequest)
 	if err != nil {
-		log.Warnf("cli.QueryFee error:%+v", err)
+		log.Warnf("cli.QueryFee error, srcChainId:%d, dstChainId:%d, srcTokenAddr:%s, amt:%s, err:%+v", srcChainId, dstChainId, srcToken.Token.GetAddress(), amt, err)
 		return nil, err
 	}
 	if feeInfo == nil {

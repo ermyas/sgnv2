@@ -123,13 +123,13 @@ func checkSigner(data []byte, sig []byte) bool {
 	}
 	pubKey, err := crypto.SigToPub(generatePrefixedHash(data), sig)
 	if err != nil {
-		log.Error("RecoverSigner err:", err)
+		log.Warnf("RecoverSigner err:%+v", err)
 		return false
 	}
 	recoveredAddr := crypto.PubkeyToAddress(*pubKey)
 	checked := dal.DB.IsAdminAddrValid(recoveredAddr.String())
 	if !checked {
-		log.Errorf("error addr:%s to use admin api:", recoveredAddr)
+		log.Warnf("error addr:%s to use admin api:", recoveredAddr)
 	}
 	return checked
 }

@@ -26,7 +26,7 @@ func (gs *GatewayService) GetCampaignScores(ctx context.Context, request *webapi
 	//time.Now().Truncate(time.day)
 	cbridgeScore, err := dal.DB.CalcCampaignScore(beginTime)
 	if err != nil {
-		log.Errorf("cal campaign err:%+v", err)
+		log.Warnf("cal campaign err:%+v", err)
 		return nil, nil
 	}
 

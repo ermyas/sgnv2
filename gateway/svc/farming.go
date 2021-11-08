@@ -2,8 +2,9 @@ package gatewaysvc
 
 import (
 	"context"
-	"github.com/celer-network/sgn-v2/gateway/utils"
 	"math"
+
+	"github.com/celer-network/sgn-v2/gateway/utils"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -27,11 +28,11 @@ func (gs *GatewayService) RewardingData(ctx context.Context, request *webapi.Rew
 	addr := common.Hex2Addr(request.GetAddr()).String()
 	unlockedCumulativeRewards, err := gs.getUnlockedCumulativeRewards(ctx, addr)
 	if err != nil {
-		log.Errorf("getUnlockedCumulativeRewards err:%+V", err)
+		log.Errorf("getUnlockedCumulativeRewards err:%+v", err)
 	}
 	historicalCumulativeRewards, usdPriceMap, err := gs.getHistoricalCumulativeRewards(ctx, addr)
 	if err != nil {
-		log.Errorf("getHistoricalCumulativeRewards err:%+V", err)
+		log.Errorf("getHistoricalCumulativeRewards err:%+v", err)
 	}
 	return &webapi.RewardingDataResponse{
 		UsdPrice:                    usdPriceMap,
