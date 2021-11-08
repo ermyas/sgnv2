@@ -1,9 +1,9 @@
 package dal
 
 import (
-	"github.com/celer-network/goutils/log"
 	"time"
 
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/goutils/sqldb"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -14,9 +14,9 @@ func (d *DAL) InsertLPWithSeqNumAndMethodType(usrAddr, tokenSymbol, tokenAddr, a
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
 	res, err := d.Exec(q, usrAddr, chainId, tokenSymbol, tokenAddr, amt, txHash, now(), now(), status, lpType, seqNum, methodType)
 	if err != nil {
-		log.Errorf("db err:%+v", err)
+		log.Errorf("InsertLPWithSeqNumAndMethodType db err, usrAddr:%s, hash:%s, chainId:%d, seqNum:%d, lpType:%d, err:%+v", usrAddr, txHash, chainId, seqNum, lpType, err)
 	}
-	return sqldb.ChkExec(res, err, 1, "UpsertLPWithMethodType")
+	return sqldb.ChkExec(res, err, 1, "InsertLPWithSeqNumAndMethodType")
 }
 
 func (d *DAL) UpsertLPWithSeqNum(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum uint64) error {
@@ -25,7 +25,7 @@ func (d *DAL) UpsertLPWithSeqNum(usrAddr, tokenSymbol, tokenAddr, amt, txHash st
 	SET status = $9, tx_hash=$6, update_time = $7`
 	res, err := d.Exec(q, usrAddr, chainId, tokenSymbol, tokenAddr, amt, txHash, now(), now(), status, lpType, seqNum)
 	if err != nil {
-		log.Errorf("db err:%+v", err)
+		log.Errorf("UpsertLPWithSeqNum db err, usrAddr:%s, hash:%s, chainId:%d, seqNum:%d, lpType:%d, err:%+v", usrAddr, txHash, chainId, seqNum, lpType, err)
 	}
 	return sqldb.ChkExec(res, err, 1, "UpsertLPWithSeqNum")
 }
@@ -36,7 +36,7 @@ func (d *DAL) UpsertLPWithTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash string
 	SET status = $9, seq_num = $11, update_time = $7`
 	res, err := d.Exec(q, usrAddr, chainId, tokenSymbol, tokenAddr, amt, txHash, now(), now(), status, lpType, seqNum)
 	if err != nil {
-		log.Errorf("db err, err:%+v", err)
+		log.Errorf("UpsertLPWithTx db err, usrAddr:%s, hash:%s, chainId:%d, seqNum:%d, lpType:%d, err:%+v", usrAddr, txHash, chainId, seqNum, lpType, err)
 	}
 	return sqldb.ChkExec(res, err, 1, "UpsertLPWithTx")
 }
@@ -45,18 +45,18 @@ func (d *DAL) UpdateWaitingForLPStatus(seqNum, lpType, chainId uint64, lpAddr, a
 	q := `UPDATE lp SET status=$5, update_time=$6, amt=$7 WHERE seq_num = $1 and chain_id = $2 and usr_addr = $3 and lp_type = $4`
 	res, err := d.Exec(q, seqNum, chainId, lpAddr, lpType, status, now(), amt)
 	if err != nil {
-		log.Errorf("UpdateLPStatus error:%+v", err)
+		log.Errorf("UpdateWaitingForLPStatus db err, usrAddr:%s, status:%d, chainId:%d, seqNum:%d, lpType:%d, err:%+v", lpAddr, status, chainId, seqNum, lpType, err)
 	}
-	return sqldb.ChkExec(res, err, 1, "UpdateLPStatusForAdd")
+	return sqldb.ChkExec(res, err, 1, "UpdateWaitingForLPStatus")
 }
 
 func (d *DAL) UpdateLPStatus(seqNum, lpType, chainId uint64, lpAddr string, status uint64) error {
 	q := `UPDATE lp SET status=$5, update_time=$6 WHERE seq_num = $1 and chain_id = $2 and usr_addr = $3 and lp_type = $4`
 	res, err := d.Exec(q, seqNum, chainId, lpAddr, lpType, status, now())
 	if err != nil {
-		log.Errorf("UpdateLPStatus error:%+v", err)
+		log.Errorf("UpdateLPStatus db err, usrAddr:%s, chainId:%d, seqNum:%d, lpType:%d, status:%d, err:%+v", lpAddr, chainId, seqNum, lpType, status, err)
 	}
-	return sqldb.ChkExec(res, err, 1, "UpdateLPStatusForAdd")
+	return sqldb.ChkExec(res, err, 1, "UpdateLPStatus")
 }
 
 func (d *DAL) UpdateLPStatusForWithdraw(chainId, seqNum, status uint64, lpAddr string) error {
@@ -88,7 +88,6 @@ func (d *DAL) HasSeqNumUsedForWithdraw(seqNum uint64, lpAddr string) bool {
 	q := `SELECT count(1) FROM lp WHERE seq_num = $1 and usr_addr = $2 and lp_type = $3`
 	err := d.QueryRow(q, seqNum, lpAddr, uint64(webapi.LPType_LP_TYPE_REMOVE)).Scan(&cnt)
 	if err != nil {
-		log.Errorf("run sql HasSeqNumUsedForWithdraw failed, err%+v", err)
 		return true
 	}
 	return cnt > 0
