@@ -200,22 +200,22 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 			if err != nil {
 				return err
 			}
-			storeVal, err := stakingcli.QueryValidator(cliCtx, valAddr)
-			if err != nil && !strings.Contains(err.Error(), "validator not found") {
-				return err
-			}
-
 			updates := make([]*synctypes.ProposeUpdate, 0)
 
-			// 1. compare validator sgn addr
-			log.Infoln("check sgn addr")
+			// 1. Check validator SGN address
+			log.Infoln("Check SGN address")
 			sgnAddr, err := ethClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, common.Hex2Addr(valAddr))
 			if err != nil {
-				log.Errorf("Failed to query contract sgn address err: %s", err)
+				log.Errorf("Failed to query contract SGN address err: %s", err)
 				return err
 			}
-			if storeVal == nil || !storeVal.GetSgnAddr().Equals(sdk.AccAddress(sgnAddr)) {
-				log.Infoln("sgn addr needs update")
+			exist, err := stakingcli.QuerySgnAccount(cliCtx, sdk.AccAddress(sgnAddr).String())
+			if err != nil {
+				log.Errorf("Failed to query SGN account address err: %s", err)
+				return err
+			}
+			if !exist {
+				log.Infoln("SGN address needs update")
 				updateVal := &stakingtypes.Validator{
 					EthAddress: valAddr,
 					SgnAddress: sdk.AccAddress(sgnAddr).String(),
@@ -225,21 +225,27 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 					Data: cliCtx.Codec.MustMarshal(updateVal),
 				})
 			} else {
-				log.Infoln("sgn addr needs no update")
+				log.Infoln("SGN address needs no update")
 			}
 
-			if storeVal == nil && len(updates) > 0 {
+			if len(updates) > 0 {
 				err = sendSgnTxMsg(cliCtx, updates)
 				if err != nil {
 					log.Errorf("sendSgnTxMsg err: %s", err)
 					return err
 				}
-				log.Infoln("Sync validator request submitted, please wait a little bit and try to execute command again to sync others...")
+				log.Infoln("Sync validator SGN address request submitted, please wait a little bit and try to execute command again to sync others...")
 				return nil
 			}
 
-			// 2. compare validator params
-			log.Infoln("check validator params")
+			storeVal, err := stakingcli.QueryValidator(cliCtx, valAddr)
+			if err != nil {
+				// NOTE: Assumes validator already exists in kv.
+				return err
+			}
+
+			// 2. Check validator params
+			log.Infoln("Check validator params")
 			ethVal, err := ethClient.Contracts.Staking.Validators(&bind.CallOpts{}, common.Hex2Addr(valAddr))
 			if err != nil {
 				log.Errorf("Failed to query contract validator info: %s", err)
@@ -247,7 +253,7 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 			}
 			if eth.Addr2Hex(ethVal.Signer) != storeVal.EthSigner ||
 				!sdk.NewDec(int64(ethVal.CommissionRate)).QuoInt64(eth.CommissionRateBase).Equal(storeVal.CommissionRate) {
-				log.Infoln("validator params needs update")
+				log.Infoln("Validator params need update")
 				updateVal := &stakingtypes.Validator{
 					EthAddress:      valAddr,
 					EthSigner:       eth.Addr2Hex(ethVal.Signer),
@@ -261,15 +267,15 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 					Data: cliCtx.Codec.MustMarshal(updateVal),
 				})
 			} else {
-				log.Infoln("validator params needs no update")
+				log.Infoln("Validator params need no update")
 			}
 
-			// 3. compare validator status
-			log.Infoln("check validator status")
+			// 3. Check validator states
+			log.Infoln("Check validator states")
 			if stakingtypes.BondStatus(ethVal.Status) != storeVal.Status ||
 				!sdk.NewIntFromBigInt(ethVal.Tokens).Equal(storeVal.Tokens) ||
 				!sdk.NewIntFromBigInt(ethVal.Shares).Equal(storeVal.DelegatorShares) {
-				log.Infoln("validator status needs update")
+				log.Infoln("Validator states need update")
 				updateVal := &stakingtypes.Validator{
 					EthAddress:      valAddr,
 					Status:          stakingtypes.BondStatus(ethVal.Status),
@@ -282,16 +288,16 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 					Data: cliCtx.Codec.MustMarshal(updateVal),
 				})
 			} else {
-				log.Infoln("validator status needs no update")
+				log.Infoln("Validator states need no update")
 			}
 
-			// 4. compare delegation info
+			// 4. Check delegation info
 			delAddr := viper.GetString(FlagDelAddr)
 			if delAddr != "" {
-				log.Infoln("check delegator shares")
+				log.Infoln("Check delegator shares")
 				ethDel, err := ethClient.Contracts.Staking.GetDelegatorInfo(&bind.CallOpts{}, common.Hex2Addr(valAddr), common.Hex2Addr(delAddr))
 				if err != nil {
-					log.Errorf("failed to query delegator info err: %s", err)
+					log.Errorf("Failed to query delegator info err: %s", err)
 					return nil
 				}
 
@@ -304,13 +310,13 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 				storeDel, _ := stakingcli.QueryDelegation(cliCtx, valAddr, delAddr)
 
 				if storeDel == nil || !updateDel.Shares.Equal(storeDel.Shares) {
-					log.Infoln("delegator shares needs update")
+					log.Infoln("Delegator shares need update")
 					updates = append(updates, &synctypes.ProposeUpdate{
 						Type: synctypes.DataType_DelegatorShares,
 						Data: cliCtx.Codec.MustMarshal(updateDel),
 					})
 				} else {
-					log.Infoln("delegator shares needs no update")
+					log.Infoln("Delegator shares need no update")
 				}
 			}
 
