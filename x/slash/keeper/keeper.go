@@ -125,13 +125,12 @@ func (k Keeper) Slash(ctx sdk.Context, reason string, failedValidator stakingtyp
 	slashExpireTime := uint64(blkTime.Unix()) + k.SlashTimeout(ctx)
 
 	slash := types.NewSlash(slashNonce, slashFactor, k.JailPeriod(ctx), slashExpireTime, reason, failedValidator.EthAddress, collectors)
+	log.Warnf("Slash validator: %s %x, reason: %s, nonce: %d, enabled: %t",
+		failedValidator.SgnAddress, failedValidator.GetEthAddress(), reason, slash.Nonce, enableSlash)
 
 	if enableSlash {
 		slash.GenerateEthSlashBytes()
 		k.SetSlash(ctx, slash)
-
-		log.Warnf("Slash validator: %s %x, reason: %s, nonce: %d, enabled: %t",
-			failedValidator.SgnAddress, failedValidator.GetEthAddress(), reason, slash.Nonce, enableSlash)
 
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
