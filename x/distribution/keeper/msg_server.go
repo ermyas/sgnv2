@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/armon/go-metrics"
+	"github.com/celer-network/goutils/log"
 	"github.com/gogo/protobuf/proto"
 
 	"github.com/celer-network/sgn-v2/common"
@@ -208,6 +209,7 @@ func (k msgServer) accumulateStakingReward(ctx sdk.Context, delAddr eth.Addr, cl
 	claimInfo.Signatures = []commontypes.Signature{}
 	// 3.2. Set RewardClaimInfo
 	k.SetStakingRewardClaimInfo(ctx, *claimInfo)
+	log.Infoln("x/distribution accumulateStakingReward set RewardClaimInfo", claimInfo)
 	return nil
 }
 
@@ -239,5 +241,6 @@ func (k msgServer) SignStakingReward(
 		return nil, fmt.Errorf("failed to add sig: %s", addSigErr)
 	}
 	k.SetStakingRewardClaimInfo(ctx, claimInfo)
+	log.Infoln("x/distribution SignStakingReward add sig", msg)
 	return &types.MsgSignStakingRewardResponse{}, nil
 }

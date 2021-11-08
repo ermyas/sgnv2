@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
@@ -221,6 +222,7 @@ func (k msgServer) accumulateRewards(ctx sdk.Context, addr eth.Addr, claimInfo *
 	}
 	// 4.3. Set RewardClaimInfo
 	k.SetRewardClaimInfo(ctx, *claimInfo)
+	log.Infoln("x/farming accumulateRewards set RewardClaimInfo", claimInfo)
 	return nil
 }
 
@@ -263,5 +265,6 @@ func (k msgServer) SignRewards(
 		}
 	}
 	k.SetRewardClaimInfo(ctx, claimInfo)
+	log.Infoln("x/farming SignRewards add sig", msg)
 	return &types.MsgSignRewardsResponse{}, nil
 }
