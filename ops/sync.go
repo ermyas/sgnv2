@@ -376,7 +376,7 @@ func verifyEvent(cliCtx client.Context, ev hasPrettyLog) error {
 		if err != nil {
 			return fmt.Errorf("QueryAddLiquidityStatus err: %s", err)
 		}
-		if resp.Status == cbrtypes.LPHistoryStatus_LP_COMPLETED {
+		if resp.Status == cbrtypes.WithdrawStatus_WD_COMPLETED {
 			return fmt.Errorf("LiquidityAdded with seqNum %d on chain %d already synced", e.Seqnum, chainid)
 		}
 		return nil
@@ -402,7 +402,7 @@ func verifyEvent(cliCtx client.Context, ev hasPrettyLog) error {
 		if err != nil {
 			return fmt.Errorf("QueryWithdrawLiquidityStatus err: %s", err)
 		}
-		if resp.Status == cbrtypes.LPHistoryStatus_LP_COMPLETED {
+		if resp.Status == cbrtypes.WithdrawStatus_WD_COMPLETED {
 			return fmt.Errorf("withdrawal with seqNum %d on chain %d already synced", e.Seqnum, chainid)
 		}
 		return nil

@@ -320,7 +320,7 @@ func (c *CbrOneChain) skipSyncCbrLiqAdd(evlog *ethtypes.Log, cliCtx client.Conte
 		log.Errorf("QueryAddLiquidityStatus err: %s", err)
 		return
 	}
-	if resp.Status == cbrtypes.LPHistoryStatus_LP_COMPLETED {
+	if resp.Status == cbrtypes.WithdrawStatus_WD_COMPLETED {
 		return true, fmt.Sprintf("LiquidityAdded with seqNum %d on chain %d already synced", ev.Seqnum, c.chainid)
 	}
 
@@ -364,7 +364,7 @@ func (c *CbrOneChain) skipSyncCbrWithdraw(evlog *ethtypes.Log, cliCtx client.Con
 		log.Errorf("QueryWithdrawLiquidityStatus err: %s", err)
 		return
 	}
-	if resp.Status == cbrtypes.LPHistoryStatus_LP_COMPLETED {
+	if resp.Status == cbrtypes.WithdrawStatus_WD_COMPLETED {
 		return true, fmt.Sprintf("withdrawal with seqNum %d on chain %d already synced", ev.Seqnum, c.chainid)
 	}
 

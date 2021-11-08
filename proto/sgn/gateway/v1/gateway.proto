@@ -190,7 +190,7 @@ message CampaignScore {
 
 message QueryLiquidityStatusResponse {
     ErrMsg err = 1;
-    cbridge.v1.LPHistoryStatus status = 2;
+    cbridge.v1.WithdrawStatus status = 2;
     bytes wd_onchain = 3; // for withdraw only
     repeated bytes sorted_sigs = 4; // for withdraw only
     repeated bytes signers = 5; // for withdraw only
@@ -425,7 +425,7 @@ message LPHistory {
     string amount = 3;
     uint64 ts = 4;
     string block_tx_link = 5;
-    cbridge.v1.LPHistoryStatus status = 6;
+    cbridge.v1.WithdrawStatus status = 6;
     LPType type = 7;
     uint64 seq_num = 8;
     WithdrawMethodType method_type = 9;

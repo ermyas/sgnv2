@@ -122,7 +122,7 @@ message QueryWithdrawLiquidityStatusRequest {
 }
 
 message QueryLiquidityStatusResponse {
-    LPHistoryStatus status = 1;
+    WithdrawStatus status = 1;
     WithdrawDetail detail = 2;
 }
 
@@ -148,21 +148,21 @@ message Token {
     bool xfer_disabled = 4; // if set to true, won't relay if this asset is src or dest
 }
 
-enum LPHistoryStatus {
-    LP_UNKNOWN = 0;
+enum WithdrawStatus {
+    WD_UNKNOWN = 0;
 
     // user for withdraw: after calling withdraw api
     // relayer for add: monitored add event
-    LP_WAITING_FOR_SGN = 1;
+    WD_WAITING_FOR_SGN = 1;
 
-    LP_WAITING_FOR_LP = 2; // x: sgn confirmed and submitting on chain(for withdraw only)
+    WD_WAITING_FOR_LP = 2; // x: sgn confirmed and submitting on chain(for withdraw only)
 
-    LP_SUBMITTING = 3; // user: after calling mark add or withdraw
-    LP_COMPLETED = 4; // relayer: on chain event monitored
+    WD_SUBMITTING = 3; // user: after calling mark add or withdraw
+    WD_COMPLETED = 4; // relayer: on chain event monitored
 
-    // user for add: check if tx reverted when shown status is LP_SUBMITTING
+    // user for add: check if tx reverted when shown status is WD_SUBMITTING
     // x for withdraw: sgn rejected
-    LP_FAILED = 5;
+    WD_FAILED = 5;
 }
 
 enum TransferHistoryStatus {

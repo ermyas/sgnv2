@@ -361,11 +361,11 @@ func queryAddLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keeper, l
 		return nil, fmt.Errorf("failed to parse params: %s", err)
 	}
 
-	var status types.LPHistoryStatus
+	var status types.WithdrawStatus
 	if HasEvLiqAdd(ctx.KVStore(k.storeKey), params.ChainId, params.SeqNum) {
-		status = types.LPHistoryStatus_LP_COMPLETED
+		status = types.WithdrawStatus_WD_COMPLETED
 	} else {
-		status = types.LPHistoryStatus_LP_WAITING_FOR_SGN
+		status = types.WithdrawStatus_WD_WAITING_FOR_SGN
 	}
 
 	resp := types.QueryLiquidityStatusResponse{
@@ -386,22 +386,22 @@ func queryWithdrawLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keep
 		return nil, fmt.Errorf("failed to parse params: %s", err)
 	}
 
-	var status types.LPHistoryStatus
+	var status types.WithdrawStatus
 	wd := GetWithdrawDetail(ctx.KVStore(k.storeKey), eth.Hex2Addr(params.UsrAddr), params.SeqNum)
 	if wd == nil {
 		return nil, fmt.Errorf("withdraw not exist, usr:%s seq: %d", params.UsrAddr, params.SeqNum)
 	}
 
 	if wd.Completed {
-		status = types.LPHistoryStatus_LP_COMPLETED
+		status = types.WithdrawStatus_WD_COMPLETED
 	} else {
 		wdOnchain := new(types.WithdrawOnchain)
 		wdOnchain.Unmarshal(wd.WdOnchain)
 		chainSigners, _ := k.GetChainSigners(ctx, wdOnchain.Chainid)
 		if types.ValidateSigQuorum(wd.GetSortedSigs(), chainSigners.GetSortedSigners()) {
-			status = types.LPHistoryStatus_LP_WAITING_FOR_LP
+			status = types.WithdrawStatus_WD_WAITING_FOR_LP
 		} else {
-			status = types.LPHistoryStatus_LP_WAITING_FOR_SGN
+			status = types.WithdrawStatus_WD_WAITING_FOR_SGN
 		}
 	}
 
