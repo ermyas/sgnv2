@@ -201,12 +201,8 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 				return err
 			}
 			storeVal, err := stakingcli.QueryValidator(cliCtx, valAddr)
-			if err != nil {
+			if err != nil && !strings.Contains(err.Error(), "validator not found") {
 				return err
-			}
-			if storeVal == nil {
-				log.Errorf("store validator info not exists, valAddr %s", valAddr)
-				return fmt.Errorf("store validator info not exists, valAddr %s", valAddr)
 			}
 
 			updates := make([]*synctypes.ProposeUpdate, 0)
@@ -218,7 +214,7 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 				log.Errorf("Failed to query contract sgn address err: %s", err)
 				return err
 			}
-			if !storeVal.GetSgnAddr().Equals(sdk.AccAddress(sgnAddr)) {
+			if storeVal == nil || !storeVal.GetSgnAddr().Equals(sdk.AccAddress(sgnAddr)) {
 				log.Infoln("sgn addr needs update")
 				updateVal := &stakingtypes.Validator{
 					EthAddress: valAddr,
@@ -230,6 +226,11 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 				})
 			} else {
 				log.Infoln("sgn addr needs no update")
+			}
+
+			if storeVal == nil {
+				log.Infoln("Sync validator request submitted, please wait a little bit and try to execute command again to sync others...")
+				return nil
 			}
 
 			// 2. compare validator params
