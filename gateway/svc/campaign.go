@@ -89,7 +89,7 @@ func getStakingCampaignData(ec *eth.EthClient, start, end uint64) (map[string]ui
 		return nil, err
 	}
 	for iterator.Next() {
-		if resp[iterator.Event.DelAddr.String()] <= 100 {
+		if resp[iterator.Event.DelAddr.String()] < 100 {
 			resp[iterator.Event.DelAddr.String()]++
 		}
 	}
@@ -117,7 +117,7 @@ func getStakingRewardCampaignData(ec *eth.EthClient, start, end uint64) (map[str
 		return nil, err
 	}
 	for iterator.Next() {
-		if resp[iterator.Event.Recipient.String()] <= 50 {
+		if resp[iterator.Event.Recipient.String()] < 50 {
 			resp[iterator.Event.Recipient.String()]++
 		}
 	}
