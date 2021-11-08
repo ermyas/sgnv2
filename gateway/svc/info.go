@@ -266,8 +266,11 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 		if calErr != nil {
 			continue
 		}
-		apysByToken := make(map[string]float64)
 		stakeToken := pool.StakeToken
+		apysByToken, exists := apysByChainId[stakeToken.GetChainId()]
+		if !exists {
+			apysByToken = make(map[string]float64)
+		}
 		stakeTokenSymbol := cbrtypes.GetSymbolFromStakeToken(stakeToken.GetSymbol())
 		apysByToken[stakeTokenSymbol] = apy
 		apysByChainId[stakeToken.GetChainId()] = apysByToken
