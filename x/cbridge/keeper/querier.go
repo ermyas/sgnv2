@@ -79,7 +79,7 @@ func queryRelay(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierC
 	copy(xferId[:], params.XrefId)
 	relay := GetXferRelay(ctx.KVStore(k.storeKey), xferId, k.cdc)
 	if relay == nil {
-		return nil, sdkerrors.Wrap(types.ErrRecordNotFound, "relay does not exist")
+		return nil, sdkerrors.ErrKeyNotFound.Wrap("relay does not exist")
 	}
 
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, relay)
@@ -389,7 +389,7 @@ func queryWithdrawLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keep
 	var status types.WithdrawStatus
 	wd := GetWithdrawDetail(ctx.KVStore(k.storeKey), eth.Hex2Addr(params.UsrAddr), params.SeqNum)
 	if wd == nil {
-		return nil, fmt.Errorf("withdraw not exist, usr:%s seq: %d", params.UsrAddr, params.SeqNum)
+		return nil, sdkerrors.ErrKeyNotFound.Wrap(fmt.Sprintf("withdraw not exist, usr:%s seq: %d", params.UsrAddr, params.SeqNum))
 	}
 
 	if wd.Completed {
@@ -426,7 +426,7 @@ func queryChainSigners(
 	}
 	chainSigners, found := k.GetChainSigners(ctx, params.ChainId)
 	if !found {
-		return nil, types.ErrRecordNotFound
+		return nil, sdkerrors.ErrKeyNotFound.Wrap(fmt.Sprintf("chain %d has no signers", params.ChainId))
 	}
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, chainSigners)
 	if err != nil {
@@ -439,7 +439,7 @@ func queryLatestSigners(
 	ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
 	latestSigners, found := k.GetLatestSigners(ctx)
 	if !found {
-		return nil, types.ErrRecordNotFound
+		return nil, sdkerrors.ErrKeyNotFound.Wrap("no current signers")
 	}
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, latestSigners)
 	if err != nil {

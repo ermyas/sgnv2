@@ -12,7 +12,6 @@ import (
 var (
 	ErrSample = sdkerrors.Register(ModuleName, 1100, "sample error")
 	// this line is used by starport scaffolding # ibc/errors
-	ErrRecordNotFound = sdkerrors.Register(ModuleName, 1101, "record not found")
 )
 
 func (e ErrMsg) Error() string {

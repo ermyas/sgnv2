@@ -67,6 +67,8 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 		if err != nil {
 			return nil, err
 		}
+	default:
+		return nil, types.Error(types.ErrCode_INVALID_REQ, "invalid withdraw type %d", wdReq.WithdrawType)
 	}
 
 	// rate limit check

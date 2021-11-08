@@ -2,8 +2,12 @@ package gatewaysvc
 
 import (
 	"context"
+	"errors"
 	"fmt"
+
 	"github.com/celer-network/sgn-v2/gateway/utils"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+
 	"math/big"
 	"strconv"
 	"time"
@@ -493,7 +497,19 @@ func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64, usrAddr string
 	var signers [][]byte
 	var powers [][]byte
 	var sortedSigs [][]byte
-	if detail != nil && err2 == nil {
+
+	if err2 != nil {
+		if errors.Is(err2, sdkerrors.ErrKeyNotFound) {
+			log.Warnf("ErrKeyNotFound error when QueryWithdrawLiquidityStatus, will update usrAddr:%s, seqNum:%d to failed status", usrAddr, seqNum)
+			_ = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(types.WithdrawStatus_WD_FAILED), usrAddr)
+			detail.Status = types.WithdrawStatus_WD_FAILED
+		} else {
+			log.Errorf("unknown error when QueryWithdrawLiquidityStatus, seqNum:%d, chainId:%d, error%+v", seqNum, chainId, err2)
+		}
+		return detail, wdOnchain, sortedSigs, signers, powers
+	}
+	if detail != nil {
+		// get chainSigner info for web
 		wdOnchain = detail.GetDetail().GetWdOnchain()
 		sortedSigs = detail.GetDetail().GetSortedSigsBytes()
 		curss, signErr := cbrcli.QueryChainSigners(tr.CliCtx, chainId)
@@ -506,8 +522,6 @@ func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64, usrAddr string
 				powers = append(powers, ps[i].Bytes())
 			}
 		}
-	} else {
-		log.Warnf("QueryWithdrawLiquidityStatus error for detail, error%+v", err2)
 	}
 	return detail, wdOnchain, sortedSigs, signers, powers
 }

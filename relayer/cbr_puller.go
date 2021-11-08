@@ -119,7 +119,7 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 		return
 	}
 	log.Infof("%s with signers %s", logmsg, relay.SignersStr())
-	txHash, err := r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, sigsBytes, curss)
+	txHash, err := r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, sigsBytes, curss, relayOnChain)
 	if err != nil {
 		r.requeueRelay(relayEvent)
 		log.Errorln("relay err", err)

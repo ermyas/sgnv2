@@ -194,22 +194,22 @@ func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 }
 
 // send relay tx onchain to cbridge contract, no wait mine
-func (c *CbrOneChain) SendRelay(relay []byte, sigs [][]byte, curss currentSigners) (string, error) {
+func (c *CbrOneChain) SendRelay(relayBytes []byte, sigs [][]byte, curss currentSigners, relayMsg *cbrtypes.RelayOnChain) (string, error) {
 	tx, err := c.Transactor.Transact(
 		&ethutils.TransactionStateHandler{
 			OnMined: func(receipt *ethtypes.Receipt) {
 				if receipt.Status == ethtypes.ReceiptStatusSuccessful {
-					log.Infof("Relay transaction %x succeeded", receipt.TxHash)
+					log.Infof("Relay transaction %x succeeded. msg: %s", receipt.TxHash, relayMsg)
 				} else {
-					log.Errorf("Relay transaction %x failed", receipt.TxHash)
+					log.Errorf("Relay transaction %x failed. msg: %s", receipt.TxHash, relayMsg)
 				}
 			},
 			OnError: func(tx *ethtypes.Transaction, err error) {
-				log.Errorf("Relay transaction %x err: %s", tx.Hash(), err)
+				log.Errorf("Relay transaction %x err: %s, msg: %s", tx.Hash(), err, relayMsg)
 			},
 		},
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
-			return c.contract.Relay(opts, relay, sigs, curss.addrs, curss.powers)
+			return c.contract.Relay(opts, relayBytes, sigs, curss.addrs, curss.powers)
 		},
 	)
 

@@ -3,6 +3,7 @@ package ops
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -18,6 +19,7 @@ import (
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -88,7 +90,7 @@ $ %s ops sync signers --chainid=883 --txhash="0xxx"
 
 			// check in store
 			storedChainSigners, err := cbrcli.QueryChainSigners(cliCtx, chainid)
-			if err != nil && !strings.Contains(err.Error(), "record not found") {
+			if err != nil && !errors.Is(err, sdkerrors.ErrKeyNotFound) {
 				log.Errorf("QueryChainSigners err: %s", err)
 				return err
 			}
