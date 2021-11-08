@@ -228,7 +228,12 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 				log.Infoln("sgn addr needs no update")
 			}
 
-			if storeVal == nil {
+			if storeVal == nil && len(updates) > 0 {
+				err = sendSgnTxMsg(cliCtx, updates)
+				if err != nil {
+					log.Errorf("sendSgnTxMsg err: %s", err)
+					return err
+				}
 				log.Infoln("Sync validator request submitted, please wait a little bit and try to execute command again to sync others...")
 				return nil
 			}
