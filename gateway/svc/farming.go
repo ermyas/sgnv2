@@ -240,8 +240,6 @@ func (gs *GatewayService) calcPoolApy(pool *farmingtypes.FarmingPool) (float64, 
 			}
 			totalApy += apyForToken
 		}
-	} else {
-		log.Debugf("farming totalStakedUsd is 0 on chain:%d, token: %s", pool.StakeToken.ChainId, pool.StakeToken.Symbol)
 	}
 	return totalApy, nil
 }

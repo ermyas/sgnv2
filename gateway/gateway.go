@@ -82,6 +82,7 @@ func InitGateway(
 	log.Infof(" token price cached")
 
 	gs.StartUpdateTokenPricePolling(relayer.Interval)
+	gs.StartAvgLpFeeEarningPolling(10 * time.Minute)
 
 	// start a rpc server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *rpcPort))

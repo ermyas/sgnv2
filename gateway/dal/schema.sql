@@ -91,3 +91,8 @@ CREATE TABLE IF NOT EXISTS claim_withdraw_reward_log (
 CREATE TABLE IF NOT EXISTS admin_addr (
      addr TEXT PRIMARY KEY NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS apy (
+    create_time TIMESTAMPTZ PRIMARY KEY NOT NULL DEFAULT now(),
+    apy TEXT NOT NULL
+);
