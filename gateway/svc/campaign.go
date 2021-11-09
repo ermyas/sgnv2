@@ -26,7 +26,7 @@ func (gs *GatewayService) GetCampaignScores(ctx context.Context, request *webapi
 
 	//time.Now().Truncate(time.day)
 	cbridgeScore, err := dal.DB.CalcCampaignScore(beginTime)
-	if err != nil {
+	if err != nil || cbridgeScore == nil {
 		log.Warnf("cal campaign err:%+v", err)
 		return nil, nil
 	}
@@ -35,7 +35,7 @@ func (gs *GatewayService) GetCampaignScores(ctx context.Context, request *webapi
 	log.Infof("score Map:%+v", scoreMap)
 
 	stakingMap, err := getStakingCampaignData(stakingEthClient, request.GetBeginBlock(), request.GetEndBlock())
-	if err != nil {
+	if err != nil || stakingMap == nil {
 		return &webapi.GetCampaignScoresResponse{
 			Err: &webapi.ErrMsg{
 				Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -45,7 +45,7 @@ func (gs *GatewayService) GetCampaignScores(ctx context.Context, request *webapi
 	}
 	log.Infof("staking Map:%+v", stakingMap)
 	rewardMap, err := getStakingRewardCampaignData(stakingEthClient, request.GetBeginBlock(), request.GetEndBlock())
-	if err != nil {
+	if err != nil || rewardMap == nil {
 		return &webapi.GetCampaignScoresResponse{
 			Err: &webapi.ErrMsg{
 				Code: webapi.ErrCode_ERROR_CODE_COMMON,

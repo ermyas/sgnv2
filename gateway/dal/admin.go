@@ -39,7 +39,7 @@ func (d *DAL) CalcCampaignScore(begin time.Time) ([]*webapi.CampaignScore, error
                          group by usr_addr) lp
                    group by usr_addr
                    union
-                   select usr_addr, sum(daily_total) as score， 'farming_reward' as name
+                   select usr_addr, sum(daily_total) as score, 'farming_reward' as name
                    from (select usr_addr, if(count(*) > 50, 50, count(*)) as daily_total
                          from claim_withdraw_reward_log
 						 where create_time>$1 and create_time<$2
@@ -49,7 +49,6 @@ func (d *DAL) CalcCampaignScore(begin time.Time) ([]*webapi.CampaignScore, error
              order by 2 desc`
 	rows, err := d.Query(q, begin, begin.Add(24*time.Hour))
 	if err != nil {
-		log.Errorf("db error:%v", err)
 		return nil, err
 	}
 	defer closeRows(rows)
