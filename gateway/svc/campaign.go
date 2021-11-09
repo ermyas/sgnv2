@@ -10,6 +10,7 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 )
@@ -89,6 +90,9 @@ func getStakingCampaignData(ec *eth.EthClient, start, end uint64) (map[string]ui
 		return nil, err
 	}
 	for iterator.Next() {
+		if utils.IsBot(iterator.Event.DelAddr.String()) {
+			continue
+		}
 		if resp[iterator.Event.DelAddr.String()] < 100 {
 			resp[iterator.Event.DelAddr.String()]++
 		}
@@ -117,6 +121,9 @@ func getStakingRewardCampaignData(ec *eth.EthClient, start, end uint64) (map[str
 		return nil, err
 	}
 	for iterator.Next() {
+		if utils.IsBot(iterator.Event.Recipient.String()) {
+			continue
+		}
 		if resp[iterator.Event.Recipient.String()] < 50 {
 			resp[iterator.Event.Recipient.String()]++
 		}

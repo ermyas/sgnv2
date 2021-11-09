@@ -5,6 +5,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/goutils/sqldb"
+	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 )
 
@@ -60,6 +61,9 @@ func (d *DAL) CalcCampaignScore(begin time.Time) ([]*webapi.CampaignScore, error
 		err = rows.Scan(&usrAddr, &score)
 		if err != nil {
 			return nil, err
+		}
+		if utils.IsBot(usrAddr) {
+			continue
 		}
 		r := &webapi.CampaignScore{
 			UsrAddr: usrAddr,
