@@ -72,7 +72,7 @@ func (r *Relayer) monitorSgnSlash() {
 				}
 
 				slashEvent := NewSlashEvent(nonce)
-				slash, err := slashcli.QuerySlash(r.Transactor.CliCtx, slashtypes.StoreKey, slashEvent.Nonce)
+				slash, err := slashcli.QuerySlash(r.Transactor.CliCtx, slashEvent.Nonce)
 				if err != nil {
 					log.Errorf("Query slash %d err %s", slashEvent.Nonce, err)
 					return

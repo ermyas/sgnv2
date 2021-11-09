@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"sort"
 
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
@@ -103,11 +104,17 @@ func (s *Slash) AddSig(sig []byte, expectedSigner string) error {
 	return nil
 }
 
-func (s *Slash) GetSigsBytes() [][]byte {
+func (s *Slash) GetSortedSigsBytes() [][]byte {
 	if s != nil {
 		sigs := make([][]byte, 0)
-		for i := range s.Sigs {
-			sigs = append(sigs, s.Sigs[i].Sig)
+
+		curSigs := s.Sigs
+		sort.Slice(curSigs, func(i int, j int) bool {
+			return curSigs[i].Signer < curSigs[j].Signer
+		})
+
+		for i := range curSigs {
+			sigs = append(sigs, curSigs[i].Sig)
 		}
 		return sigs
 	}

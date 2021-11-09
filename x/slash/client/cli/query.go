@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func GetQueryCmd(storeKey string) *cobra.Command {
+func GetQueryCmd() *cobra.Command {
 	slashQueryCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Querying commands for the slash module",
@@ -19,16 +19,16 @@ func GetQueryCmd(storeKey string) *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 	slashQueryCmd.AddCommand(common.GetCommands(
-		GetCmdSlash(storeKey),
-		GetCmdSlashes(storeKey),
-		GetCmdSlashRequest(storeKey),
-		GetCmdQueryParams(storeKey),
+		GetCmdSlash(),
+		GetCmdSlashes(),
+		GetCmdSlashRequest(),
+		GetCmdQueryParams(),
 	)...)
 	return slashQueryCmd
 }
 
 // GetCmdSlash queries slash info
-func GetCmdSlash(queryRoute string) *cobra.Command {
+func GetCmdSlash() *cobra.Command {
 	return &cobra.Command{
 		Use:   "slash [nonce]",
 		Short: "query slash info by nonce",
@@ -44,7 +44,7 @@ func GetCmdSlash(queryRoute string) *cobra.Command {
 				return err
 			}
 
-			slash, err := QuerySlash(cliCtx, queryRoute, nonce)
+			slash, err := QuerySlash(cliCtx, nonce)
 			if err != nil {
 				log.Errorln("query error", err)
 				return err
@@ -56,13 +56,13 @@ func GetCmdSlash(queryRoute string) *cobra.Command {
 }
 
 // Query slash info
-func QuerySlash(cliCtx client.Context, queryRoute string, nonce uint64) (slash types.Slash, err error) {
+func QuerySlash(cliCtx client.Context, nonce uint64) (slash types.Slash, err error) {
 	data, err := cliCtx.LegacyAmino.MarshalJSON(types.NewQuerySlashParams(nonce))
 	if err != nil {
 		return
 	}
 
-	route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QuerySlash)
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QuerySlash)
 	res, err := common.RobustQueryWithData(cliCtx, route, data)
 	if err != nil {
 		return
@@ -73,7 +73,7 @@ func QuerySlash(cliCtx client.Context, queryRoute string, nonce uint64) (slash t
 }
 
 // GetCmdSlashes queries slash info
-func GetCmdSlashes(queryRoute string) *cobra.Command {
+func GetCmdSlashes() *cobra.Command {
 	return &cobra.Command{
 		Use:   "slashes",
 		Short: "query slashes info",
@@ -83,7 +83,7 @@ func GetCmdSlashes(queryRoute string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			slashes, err := QuerySlashes(cliCtx, queryRoute)
+			slashes, err := QuerySlashes(cliCtx)
 			if err != nil {
 				log.Errorln("query error", err)
 				return err
@@ -95,8 +95,8 @@ func GetCmdSlashes(queryRoute string) *cobra.Command {
 }
 
 // Query slashes info
-func QuerySlashes(cliCtx client.Context, queryRoute string) (slashes []types.Slash, err error) {
-	route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QuerySlashes)
+func QuerySlashes(cliCtx client.Context) (slashes []types.Slash, err error) {
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QuerySlashes)
 	res, err := common.RobustQuery(cliCtx, route)
 	if err != nil {
 		return
@@ -107,7 +107,7 @@ func QuerySlashes(cliCtx client.Context, queryRoute string) (slashes []types.Sla
 }
 
 // GetCmdSlashRequest queries slash request proto
-func GetCmdSlashRequest(queryRoute string) *cobra.Command {
+func GetCmdSlashRequest() *cobra.Command {
 	return &cobra.Command{
 		Use:   "slash-request [nonce]",
 		Short: "query slash request proto by nonce",
@@ -123,7 +123,7 @@ func GetCmdSlashRequest(queryRoute string) *cobra.Command {
 				return err
 			}
 
-			slashRequest, err := QuerySlashRequest(cliCtx, queryRoute, nonce)
+			slashRequest, err := QuerySlashRequest(cliCtx, nonce)
 			if err != nil {
 				return err
 			}
@@ -134,8 +134,8 @@ func GetCmdSlashRequest(queryRoute string) *cobra.Command {
 }
 
 // Query slash info
-func QuerySlashRequest(cliCtx client.Context, queryRoute string, nonce uint64) (slashRequest []byte, err error) {
-	slash, err := QuerySlash(cliCtx, queryRoute, nonce)
+func QuerySlashRequest(cliCtx client.Context, nonce uint64) (slashRequest []byte, err error) {
+	slash, err := QuerySlash(cliCtx, nonce)
 	if err != nil {
 		return
 	}
@@ -145,7 +145,7 @@ func QuerySlashRequest(cliCtx client.Context, queryRoute string, nonce uint64) (
 }
 
 // GetCmdQueryParams implements the params query command.
-func GetCmdQueryParams(queryRoute string) *cobra.Command {
+func GetCmdQueryParams() *cobra.Command {
 	return &cobra.Command{
 		Use:   "params",
 		Args:  cobra.NoArgs,
@@ -156,15 +156,25 @@ func GetCmdQueryParams(queryRoute string) *cobra.Command {
 				return err
 			}
 
-			route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryParameters)
-			res, err := common.RobustQuery(cliCtx, route)
+			params, err := QueryParams(cliCtx)
 			if err != nil {
 				return err
 			}
 
-			var params types.Params
-			cliCtx.LegacyAmino.MustUnmarshalJSON(res, &params)
-			return cliCtx.PrintProto(&params)
+			return cliCtx.PrintProto(params)
 		},
 	}
+}
+
+func QueryParams(cliCtx client.Context) (*types.Params, error) {
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryParameters)
+	res, err := common.RobustQuery(cliCtx, route)
+	if err != nil {
+		return nil, err
+	}
+
+	params := new(types.Params)
+	cliCtx.LegacyAmino.MustUnmarshalJSON(res, params)
+
+	return params, nil
 }

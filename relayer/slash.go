@@ -9,7 +9,6 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	slashcli "github.com/celer-network/sgn-v2/x/slash/client/cli"
-	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	mapset "github.com/deckarep/golang-set"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -45,6 +44,12 @@ func (r *Relayer) processSlashQueue() {
 		iterator.Close()
 		r.lock.RUnlock()
 
+		enableSlash := true
+		params, err := slashcli.QueryParams(r.Transactor.CliCtx)
+		if err == nil {
+			enableSlash = params.EnableSlash
+		}
+
 		for i, key := range keys {
 			event := NewSlashEventFromBytes(vals[i])
 			err = r.dbDelete(key)
@@ -52,6 +57,12 @@ func (r *Relayer) processSlashQueue() {
 				log.Errorln("db Delete err", err)
 				continue
 			}
+
+			if !enableSlash {
+				// do nothing and also don't need to requeue the deleted key
+				continue
+			}
+
 			r.submitSlash(event)
 		}
 	}
@@ -71,7 +82,7 @@ func (r *Relayer) submitSlash(slashEvent SlashEvent) {
 		return
 	}
 
-	slash, err := slashcli.QuerySlash(r.Transactor.CliCtx, slashtypes.StoreKey, slashEvent.Nonce)
+	slash, err := slashcli.QuerySlash(r.Transactor.CliCtx, slashEvent.Nonce)
 	if err != nil {
 		log.Errorln("QuerySlash err", err)
 		return
@@ -102,7 +113,7 @@ func (r *Relayer) submitSlash(slashEvent SlashEvent) {
 			},
 		},
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
-			return r.EthClient.Contracts.Staking.Slash(opts, slash.GetEthSlashBytes(), slash.GetSigsBytes())
+			return r.EthClient.Contracts.Staking.Slash(opts, slash.GetEthSlashBytes(), slash.GetSortedSigsBytes())
 		},
 	)
 	if err != nil {

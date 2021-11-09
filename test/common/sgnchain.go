@@ -210,7 +210,7 @@ func QueryProposal(cliCtx client.Context, proposalID uint64, status govtypes.Pro
 
 func QuerySlash(cliCtx client.Context, nonce uint64, sigCount int) (slash slashtypes.Slash, err error) {
 	for retry := 0; retry < RetryLimit; retry++ {
-		slash, err = slashcli.QuerySlash(cliCtx, slashtypes.StoreKey, nonce)
+		slash, err = slashcli.QuerySlash(cliCtx, nonce)
 		if err == nil && len(slash.EthSlashBytes) > 0 && len(slash.Sigs) == sigCount {
 			break
 		}
