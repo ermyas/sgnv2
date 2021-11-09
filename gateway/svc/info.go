@@ -386,12 +386,15 @@ func (gs *GatewayService) getAvgLpFeeEarningApy() map[uint64]map[string]float64 
 
 func (gs *GatewayService) setAvgLpFeeEarningApy() {
 	latestApyUpdateTime := dal.DB.LatestApyUpdateTime()
-	if latestApyUpdateTime.Add(time.Hour).After(time.Now()) {
+	if latestApyUpdateTime.Add(time.Hour).Before(time.Now()) {
+		log.Debugf("update avg apy to db")
 		apy, _, _, err := gs.getLpFeeEarningApy("0")
 		if err != nil {
+			log.Warnf("update apy failed, apy:%+v, err:%+v", apy, err)
 			return
 		}
 		apyStr := marshalApy(apy)
+		log.Infof("update avg apy to db: %s", apyStr)
 		if apyStr != "" {
 			_ = dal.DB.InsertApy(apyStr)
 		}
