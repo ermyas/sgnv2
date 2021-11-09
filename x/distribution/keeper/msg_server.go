@@ -209,7 +209,7 @@ func (k msgServer) accumulateStakingReward(ctx sdk.Context, delAddr eth.Addr, cl
 	claimInfo.Signatures = []commontypes.Signature{}
 	// 3.2. Set RewardClaimInfo
 	k.SetStakingRewardClaimInfo(ctx, *claimInfo)
-	log.Infoln("x/distribution accumulateStakingReward set RewardClaimInfo", claimInfo)
+	log.Infoln("x/distribution accumulateStakingReward set RewardClaimInfo", claimInfo.LogStr())
 	return nil
 }
 
@@ -241,6 +241,7 @@ func (k msgServer) SignStakingReward(
 		return nil, fmt.Errorf("failed to add sig: %s", addSigErr)
 	}
 	k.SetStakingRewardClaimInfo(ctx, claimInfo)
-	log.Infoln("x/distribution SignStakingReward add sig", msg)
+	log.Infof("x/distribution SignStakingReward add sig delegator:%s signer:%x sender:%s",
+		msg.DelegatorAddress, validator.GetSignerAddr(), msg.Sender)
 	return &types.MsgSignStakingRewardResponse{}, nil
 }

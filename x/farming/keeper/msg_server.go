@@ -222,7 +222,7 @@ func (k msgServer) accumulateRewards(ctx sdk.Context, addr eth.Addr, claimInfo *
 	}
 	// 4.3. Set RewardClaimInfo
 	k.SetRewardClaimInfo(ctx, *claimInfo)
-	log.Infoln("x/farming accumulateRewards set RewardClaimInfo", claimInfo)
+	log.Infoln("x/farming accumulateRewards set RewardClaimInfo", claimInfo.LogStr())
 	return nil
 }
 
@@ -265,6 +265,6 @@ func (k msgServer) SignRewards(
 		}
 	}
 	k.SetRewardClaimInfo(ctx, claimInfo)
-	log.Infoln("x/farming SignRewards add sig", msg)
+	log.Infof("x/farming SignRewards add sig address:%s signer:%x :sender:%s", msg.Address, validator.GetSignerAddr(), msg.Sender)
 	return &types.MsgSignRewardsResponse{}, nil
 }

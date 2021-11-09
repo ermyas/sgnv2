@@ -135,7 +135,7 @@ func stakingTest(t *testing.T) {
 
 	log.Infoln("---------- It should correctly replace bonded validator 2 with validator 3 ----------")
 	err = tc.InitializeValidator(tc.ValAuths[3], tc.ValSignerAddrs[3], tc.ValSgnAddrs[3], amts[3], eth.CommissionRate(0.02))
-	tc.Sleep(5)
+	tc.Sleep(10)
 	require.NoError(t, err, "failed to initialize validator")
 	expVals[2].Status = eth.Unbonding
 	expVal = types.Validator{
