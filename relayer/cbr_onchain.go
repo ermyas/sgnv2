@@ -205,7 +205,7 @@ func (c *CbrOneChain) SendRelay(relayBytes []byte, sigs [][]byte, curss currentS
 				}
 			},
 			OnError: func(tx *ethtypes.Transaction, err error) {
-				log.Errorf("Relay transaction %x err: %s, msg: %s", tx.Hash(), err, relayMsg)
+				log.Warnf("Relay transaction %x err: %s, msg: %s", tx.Hash(), err, relayMsg)
 			},
 		},
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
