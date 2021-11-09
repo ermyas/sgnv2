@@ -35,14 +35,6 @@ const (
 	FlagDelAddr = "deladdr"
 )
 
-var (
-	chainid uint64
-	txhash  string
-	// receipt of the txhash
-	txReceipt *ethtypes.Receipt
-	cbr       *CbrOneChain
-)
-
 // GetSyncCmd
 func GetSyncCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -74,12 +66,14 @@ $ %s ops sync signers --chainid=883 --txhash="0xxx"
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			setupCbr()
-
 			cliCtx, err := client.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
 			}
+
+			chainid := viper.GetUint64(FlagChainId)
+			txhash := viper.GetString(FlagTxHash)
+			cbr, txReceipt := setupCbr(chainid, txhash)
 
 			elog := *txReceipt.Logs[len(txReceipt.Logs)-1]
 			ev, err := cbr.contract.ParseSignersUpdated(elog)
@@ -121,8 +115,8 @@ $ %s ops sync signers --chainid=883 --txhash="0xxx"
 		},
 	}
 
-	cmd.Flags().Uint64Var(&chainid, FlagChainId, 0, "which chainid to query tx hash")
-	cmd.Flags().StringVar(&txhash, FlagTxHash, "", "tx hash, will parse last event")
+	cmd.Flags().Uint64(FlagChainId, 0, "which chainid to query tx hash")
+	cmd.Flags().String(FlagTxHash, "", "tx hash, will parse last event")
 	cmd.MarkFlagRequired(FlagChainId)
 	cmd.MarkFlagRequired(FlagTxHash)
 
@@ -142,38 +136,47 @@ $ %s ops sync event --chainid=883 --txhash="0xxx"
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			setupCbr()
-
-			elog := *txReceipt.Logs[len(txReceipt.Logs)-1]
-			evname, ev := parseCbrEvAndName(cbr.contract, elog)
-			if ev == nil {
-				log.Fatalf("not a valid bridge event tx: %s", txhash)
-			}
-			log.Info(ev.PrettyLog(chainid))
 			cliCtx, err := client.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
 			}
-			err = verifyEvent(cliCtx, ev)
-			if err != nil {
-				log.Errorf("verifyEvent err: %s", err)
-				return err
-			}
-			err = sendCbrOnchainEvent(cliCtx, chainid, evname, elog)
-			if err != nil {
-				log.Errorf("sendCbrOnchainEvent err: %s", err)
-				return err
-			}
-			return nil
+
+			chainid := viper.GetUint64(FlagChainId)
+			txhash := viper.GetString(FlagTxHash)
+
+			return SyncCbrEvent(cliCtx, chainid, txhash)
 		},
 	}
 
-	cmd.Flags().Uint64Var(&chainid, FlagChainId, 0, "which chainid to query tx hash")
-	cmd.Flags().StringVar(&txhash, FlagTxHash, "", "tx hash, will parse last event")
+	cmd.Flags().Uint64(FlagChainId, 0, "which chainid to query tx hash")
+	cmd.Flags().String(FlagTxHash, "", "tx hash, will parse last event")
 	cmd.MarkFlagRequired(FlagChainId)
 	cmd.MarkFlagRequired(FlagTxHash)
 
 	return cmd
+}
+
+func SyncCbrEvent(cliCtx client.Context, chainid uint64, txhash string) error {
+	cbr, txReceipt := setupCbr(chainid, txhash)
+
+	elog := *txReceipt.Logs[len(txReceipt.Logs)-1]
+	evname, ev := parseCbrEvAndName(cbr.contract, elog)
+	if ev == nil {
+		log.Fatalf("not a valid bridge event tx: %s", txhash)
+	}
+	log.Info(ev.PrettyLog(chainid))
+
+	err := verifyEvent(cliCtx, ev, chainid)
+	if err != nil {
+		log.Errorf("verifyEvent err: %s", err)
+		return err
+	}
+	err = sendCbrOnchainEvent(cliCtx, chainid, evname, elog)
+	if err != nil {
+		log.Errorf("sendCbrOnchainEvent err: %s", err)
+		return err
+	}
+	return nil
 }
 
 func GetSyncStaking() *cobra.Command {
@@ -338,7 +341,7 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 	return cmd
 }
 
-func setupCbr() {
+func setupCbr(chainid uint64, txhash string) (cbr *CbrOneChain, txReceipt *ethtypes.Receipt) {
 	var err error
 	cbr, err = newOneChain(chainid)
 	if err != nil {
@@ -348,6 +351,7 @@ func setupCbr() {
 	if err != nil {
 		log.Fatal("TransactionReceipt err:", err)
 	}
+	return
 }
 
 /*
@@ -380,7 +384,7 @@ func parseCbrEvAndName(cbr *cbrContract, elog ethtypes.Log) (string, hasPrettyLo
 	return "", nil
 }
 
-func verifyEvent(cliCtx client.Context, ev hasPrettyLog) error {
+func verifyEvent(cliCtx client.Context, ev hasPrettyLog, chainid uint64) error {
 	switch e := ev.(type) {
 	case *eth.BridgeLiquidityAdded:
 		resp, err := cbrcli.QueryAddLiquidityStatus(cliCtx, &cbrtypes.QueryAddLiquidityStatusRequest{
