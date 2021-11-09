@@ -1,10 +1,11 @@
 package dal
 
 import (
+	"time"
+
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/goutils/sqldb"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
-	"time"
 )
 
 func (d *DAL) GetTransfer(transferId string) (*Transfer, bool, error) {
@@ -59,14 +60,6 @@ func (d *DAL) MarkTransferSend(transferId, usrAddr, tokenSymbol, amt, receivedAm
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
 	res, err := d.Exec(q, transferId, usrAddr, tokenSymbol, amt, receivedAmt, srcChainId, dsChainId, status, volume, now(), now(), txHash, feePerc)
 	return sqldb.ChkExec(res, err, 1, "MarkTransferSend")
-}
-
-func (d *DAL) UpdateTransferRelayedStatus(transferId, txHash string) error {
-	log.Debugf("UpdateTransferRelayedStatus transferId:%s, txHash:%s", transferId, txHash)
-	status := uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE)
-	q := `UPDATE transfer SET status=$2, update_time=$3, dst_tx_hash=$4 WHERE transfer_id=$1`
-	res, err := d.Exec(q, transferId, status, now(), txHash)
-	return sqldb.ChkExec(res, err, 1, "UpdateTransferRelayedStatus")
 }
 
 func (d *DAL) UpdateTransferStatus(transferId string, status uint64) error {

@@ -9,7 +9,6 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
-	"github.com/celer-network/sgn-v2/gateway/dal"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
@@ -119,15 +118,11 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 		return
 	}
 	log.Infof("%s with signers %s", logmsg, relay.SignersStr())
-	txHash, err := r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, sigsBytes, curss, relayOnChain)
+	_, err = r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, sigsBytes, curss, relayOnChain)
 	if err != nil {
 		r.requeueRelay(relayEvent)
 		log.Errorln("relay err", err)
 		return
-	}
-	err = dal.UpdateTransferRelayedStatus(common.Bytes2Hash(relayEvent.XferId).String(), txHash)
-	if err != nil {
-		log.Errorln("failed in UpdateTransferRelayedStatus:", err)
 	}
 }
 

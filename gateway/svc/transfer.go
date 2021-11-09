@@ -367,8 +367,10 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 			}
 		}
 
+		// only 3 status below will be updated by sgn query
 		if transferStatusMap[transferId].GetGatewayStatus() == types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED ||
-			transferStatusMap[transferId].GetGatewayStatus() == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED {
+			transferStatusMap[transferId].GetGatewayStatus() == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED ||
+			transferStatusMap[transferId].GetGatewayStatus() == types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE {
 			if status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND || status == types.TransferHistoryStatus_TRANSFER_CONFIRMING_YOUR_REFUND {
 				continue // user action, not updated by sgn
 			}

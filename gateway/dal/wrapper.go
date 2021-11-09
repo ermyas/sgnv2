@@ -2,6 +2,7 @@ package dal
 
 import (
 	"fmt"
+
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 )
 
@@ -24,16 +25,6 @@ func UpsertTransferOnSend(transferId, usrAddr, tokenSymbol, amt, sendTxHash stri
 		return nil
 	} else {
 		return DB.UpsertTransferOnSend(transferId, usrAddr, tokenSymbol, amt, sendTxHash, srcChainId, dsChainId)
-	}
-}
-
-// UpdateTransferRelayedStatus update api
-// called by relayer when relay tx sent successfully
-func UpdateTransferRelayedStatus(transferId, txHash string) error {
-	if DB == nil {
-		return nil
-	} else {
-		return DB.UpdateTransferRelayedStatus(transferId, txHash)
 	}
 }
 
