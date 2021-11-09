@@ -2,7 +2,6 @@ package gatewaysvc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -494,7 +493,7 @@ func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64, usrAddr string
 	var sortedSigs [][]byte
 
 	if err2 != nil {
-		if errors.Is(err2, sdkerrors.ErrKeyNotFound) {
+		if sdkerrors.ErrKeyNotFound.Is(err2) {
 			log.Warnf("ErrKeyNotFound error when QueryWithdrawLiquidityStatus, will update usrAddr:%s, seqNum:%d to failed status", usrAddr, seqNum)
 			_ = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(types.WithdrawStatus_WD_FAILED), usrAddr)
 			detail.Status = types.WithdrawStatus_WD_FAILED
