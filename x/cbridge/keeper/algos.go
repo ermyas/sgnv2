@@ -291,6 +291,7 @@ func pickLPs(kv sdk.KVStore, dstchid uint64, dstToken, sender eth.Addr, destAmou
 // caller need to check return value to handle 2 cases.
 func pickLpTillSize(kv sdk.KVStore, begin, end []byte, size int, sender string) (picked []*AddrHexAmtInt, iter sdk.Iterator) {
 	iter = kv.Iterator(begin, end)
+	defer iter.Close()
 	log.Infoln("pickTillSize:", string(begin), string(end), size)
 	for ; iter.Valid(); iter.Next() {
 		amt := new(big.Int).SetBytes(iter.Value())
