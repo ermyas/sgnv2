@@ -101,7 +101,9 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 	if sumLiq(pickedLPs).Cmp(destAmount) == -1 {
 		return fmt.Errorf("sumliq of picked LPs less than needed destAmt. %s < %s", sumLiq(pickedLPs), destAmount)
 	}
-
+	for _, lp := range pickedLPs {
+		log.Debugln("lp:", lp.AddrHex, "amt:", lp.AmtInt)
+	}
 	// calc fees
 	lpFeePerc := new(big.Int).SetBytes(kv.Get(types.CfgKeyFeePerc))
 	totalLpFee := new(big.Int).Mul(fee, lpFeePerc)
@@ -124,10 +126,18 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 		decDivisor := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(destDecimal)), nil)
 		wtList := getWeightSlice(pickedLPs, decDivisor)
 		totalWt := wtList[len(wtList)-1]
-		rand.Seed(new(big.Int).SetBytes(lpPre).Int64())
+		randSeed := new(big.Int).SetBytes(lpPre).Int64()
+		log.Debugln("seed:", randSeed, "wtList:", wtList)
+		rand.Seed(randSeed)
 		for isPos(toAllocate) {
-			lpIdx := searchInts(wtList, rand.Int63n(totalWt)+1)
-			lpIdx = nextNonZeroLp(pickedLPs, lpIdx)
+			x := rand.Int63n(totalWt) + 1
+			lpIdx := searchInts(wtList, x)
+			log.Debugln("x:", x, "lpIdx:", lpIdx)
+			lpIdx2 := nextNonZeroLp(pickedLPs, lpIdx) // need this because we may choose same LP again due to rand
+			if lpIdx2 != lpIdx {
+				log.Debugln("new lpIdx:", lpIdx2)
+				lpIdx = lpIdx2
+			}
 			negAmt, srcAdd := k.updateOneLP(ctx, kv, src, dest, pickedLPs[lpIdx], toAllocate, totalLpFee, srcAmount, destAmount)
 			log.Infoln("use lp:", pickedLPs[lpIdx].AddrHex, negAmt)
 			totalDestNeg.Add(totalDestNeg, negAmt) // negative!
@@ -260,6 +270,12 @@ func pickLPs(kv sdk.KVStore, dstchid uint64, dstToken, sender eth.Addr, destAmou
 	// first iter
 	pickedLPs, iter := pickLpTillSize(kv, startLpKey, endLpKey, pickLpSize, senderHex)
 	var iter2 sdk.Iterator
+	defer iter.Close()
+	defer func() {
+		if iter2 != nil {
+			iter2.Close()
+		}
+	}()
 	if len(pickedLPs) < pickLpSize {
 		// if iter.Valid() {panic()}. iter now must be invalid otherwise pickLpTillSize should return cnt == pickLpSize
 		// wrap around to iter from firstLp to pick pickLpSize-lpCnt
@@ -289,10 +305,10 @@ func pickLPs(kv sdk.KVStore, dstchid uint64, dstToken, sender eth.Addr, destAmou
 
 // iterator from begin to end, return early if has enough, otherwise reaches end and return (iter will be invalid).
 // caller need to check return value to handle 2 cases.
+// note iter can't be closed before return as we may need to resume iter
 func pickLpTillSize(kv sdk.KVStore, begin, end []byte, size int, sender string) (picked []*AddrHexAmtInt, iter sdk.Iterator) {
 	iter = kv.Iterator(begin, end)
-	defer iter.Close()
-	log.Infoln("pickTillSize:", string(begin), string(end), size)
+	log.Infoln("pickTillSize:", string(begin), string(end), "size:", size)
 	for ; iter.Valid(); iter.Next() {
 		amt := new(big.Int).SetBytes(iter.Value())
 		if isPos(amt) {
