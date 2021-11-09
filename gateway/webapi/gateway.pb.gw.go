@@ -1940,7 +1940,7 @@ var (
 
 	pattern_Web_WithdrawLiquidity_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "withdrawLiquidity"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_Web_EstimateWithdrawAmt_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "estimateAmt"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_Web_EstimateWithdrawAmt_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "estimateWithdrawAmt"}, "", runtime.AssumeColonVerbOpt(true)))
 
 	pattern_Web_QueryLiquidityStatus_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "queryLiquidityStatus"}, "", runtime.AssumeColonVerbOpt(true)))
 
