@@ -76,7 +76,7 @@ service Web {
     // front end need post method for this api
     rpc EstimateWithdrawAmt (EstimateWithdrawAmtRequest) returns (EstimateWithdrawAmtResponse) {
         option (google.api.http) = {
-      post: "/v1/estimateAmt"
+      post: "/v1/estimateWithdrawAmt"
       body: "*"
     };
     }
@@ -169,6 +169,19 @@ service Web {
     rpc GetCampaignScores (GetCampaignScoresRequest) returns (GetCampaignScoresResponse) {
         option (google.api.http) = {
       get: "/v1/getCampaignLeaderBoard"
+    };
+    }
+    // cs tools
+    rpc GetInfoByTxHash (GetInfoByTxHashRequest) returns (GetInfoByTxHashResponse) {
+        option (google.api.http) = {
+      get: "/v1/cs/getInfoByTxHash"
+    };
+    }
+
+    rpc FixEventMiss (FixEventMissRequest) returns (FixEventMissResponse) {
+        option (google.api.http) = {
+      post: "/v1/cs/fixEventMiss"
+      body: "*"
     };
     }
 }
@@ -534,6 +547,51 @@ message GetTotalLiquidityProviderTokenBalanceResponse {
     map<uint64, string> total_liq = 2; //map<chain_id, total_liq>
 }
 
+message GetInfoByTxHashRequest {
+    string tx_hash = 1;
+    UserCaseStatus type = 2;
+}
+message GetInfoByTxHashResponse {
+    CSOperation operation = 1;
+    string memo = 2;
+}
+
+message FixEventMissRequest {
+    string tx_hash = 1;
+    UserCaseStatus type = 2;
+}
+message FixEventMissResponse {
+    ErrMsg err = 1;
+}
+
+enum CSOperation {
+    CA_UNKNOWN = 0; // if tx not found or some else wrong, check memo for details
+    CA_NORMAL = 1; // normal case, ignore
+    CA_WAITING = 2; // waiting for result yet, please keep waiting for
+    CA_REPORT = 3; // cs can't handle this case, need report to tech
+    CA_MISS_EVENT = 4; // use FixEventMiss tools
+}
+enum UserCaseStatus {
+    CC_UNKNOWN = 0;
+
+    // transfer related cases
+    CC_TRANSFER_NO_HISTORY = 1;
+    CC_TRANSFER_SUBMITTING = 2;
+    CC_TRANSFER_WAITING_FOR_SGN_CONFIRMATION = 3;
+    CC_TRANSFER_WAITING_FOR_FUND_RELEASE = 4;
+    CC_TRANSFER_REQUESTING_REFUND = 5;
+    CC_TRANSFER_CONFIRMING_YOUR_REFUND = 6;
+
+    // add related cases
+    CC_ADD_NO_HISTORY = 7;
+    CC_ADD_SUBMITTING = 8;
+    CC_ADD_WAITING_FOR_SGN = 9;
+
+    //withdraw related cases
+    CC_WAITING_FOR_LP = 10;
+    CC_WITHDRAW_SUBMITTING = 11; // always this status
+    CC_WITHDRAW_WAITING_FOR_SGN = 12;
+}
 enum WithdrawMethodType {
     WD_METHOD_TYPE_UNDEFINED = 0;
     WD_METHOD_TYPE_ONE_RM = 1; // for lp one chain liquidity remove
