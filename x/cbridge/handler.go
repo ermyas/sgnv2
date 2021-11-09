@@ -21,7 +21,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		case *types.MsgInitWithdraw:
 			res, err := msgServer.InitWithdraw(sdk.WrapSDKContext(ctx), msg)
 			if err != nil {
-				log.Error(err)
+				log.Warn(err)
 			}
 			return sdk.WrapServiceResult(ctx, res, err)
 
@@ -35,7 +35,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		case *types.MsgSignAgain:
 			res, err := msgServer.SignAgain(sdk.WrapSDKContext(ctx), msg)
 			if err != nil {
-				log.Error(err)
+				log.Warn(err)
 			}
 			return sdk.WrapServiceResult(ctx, res, err)
 
