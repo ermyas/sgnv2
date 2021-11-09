@@ -76,7 +76,7 @@ service Web {
     // front end need post method for this api
     rpc EstimateWithdrawAmt (EstimateWithdrawAmtRequest) returns (EstimateWithdrawAmtResponse) {
         option (google.api.http) = {
-      post: "/v1/estimateWithdrawAmt"
+      post: "/v1/estimateAmt"
       body: "*"
     };
     }
