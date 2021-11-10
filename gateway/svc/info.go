@@ -2,6 +2,7 @@ package gatewaysvc
 
 import (
 	"context"
+	"encoding/json"
 	"math"
 	"math/big"
 	"sort"
@@ -96,73 +97,16 @@ func (gs *GatewayService) GetTokenInfo(ctx context.Context, request *webapi.GetT
 }
 
 func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.GetLPInfoListRequest) (*webapi.GetLPInfoListResponse, error) {
-	startT := time.Now()
 	userAddr := common.Hex2Addr(request.GetAddr()).String()
-	chainTokenInfos, err := dal.DB.GetChainTokenList()
+	_, chainTokenInfos, userDetailMap, err := gs.getLpFeeEarningApy(userAddr)
 	if err != nil || len(chainTokenInfos) == 0 {
 		return &webapi.GetLPInfoListResponse{}, nil
 	}
-	var chainTokens []*cbrtypes.ChainTokenAddrPair
-	for chainId, tokens := range chainTokenInfos {
-		for _, tokenInfo := range tokens.Token {
-			chainTokens = append(chainTokens, &cbrtypes.ChainTokenAddrPair{
-				ChainId:   uint64(chainId),
-				TokenAddr: tokenInfo.GetToken().Address,
-			})
-		}
-	}
 	var lps []*webapi.LPInfo
-
-	tc := time.Since(startT)
-	log.Debugf("performance: GetLPInfoList checkpoint 1 timecost %v", tc)
-	startT = time.Now()
-
-	userDetailMap := make(map[uint64]map[string]*cbrtypes.LiquidityDetail)
-	hasUsr := request.GetAddr() != ""
-	if hasUsr {
-		tr := gs.TP.GetTransactor()
-		detailList, detailErr := cbrcli.QueryLiquidityDetailList(tr.CliCtx, &cbrtypes.LiquidityDetailListRequest{
-			LpAddr:     userAddr,
-			ChainToken: chainTokens,
-		})
-
-		tc := time.Since(startT)
-		log.Debugf("performance: GetLPInfoList checkpoint 2 timecost %v", tc)
-		startT = time.Now()
-
-		if detailList == nil || detailErr != nil {
-			var emptyLiquidityDetail []*cbrtypes.LiquidityDetail
-			detailList = &cbrtypes.LiquidityDetailListResponse{LiquidityDetail: emptyLiquidityDetail}
-		}
-		for _, detail := range detailList.GetLiquidityDetail() {
-			chainId := detail.GetChainId()
-			tokenWithAddr := detail.GetToken() // only has addr field
-			token, found, dbErr := dal.DB.GetTokenByAddr(common.Hex2Addr(tokenWithAddr.GetAddress()).String(), chainId)
-			if !found || dbErr != nil {
-				log.Debugf("data, token not found in lp list, token addr:%s, chainId:%d", tokenWithAddr.GetAddress(), chainId)
-				continue
-			}
-			detail.Token = token.Token
-			chainInfo, found := userDetailMap[chainId]
-			if !found {
-				chainInfo = make(map[string]*cbrtypes.LiquidityDetail)
-			}
-			chainInfo[token.Token.Symbol] = detail
-			userDetailMap[chainId] = chainInfo
-		}
-	}
-
-	tc = time.Since(startT)
-	log.Debugf("performance: GetLPInfoList checkpoint 3 timecost %v", tc)
-	startT = time.Now()
-
 	farmingApyMap := gs.getFarmingApy(ctx)
 	data24h := gs.get24hTx()
 
-	tc = time.Since(startT)
-	log.Debugf("performance: GetLPInfoList checkpoint 4 timecost %v", tc)
-	startT = time.Now()
-
+	feeEarningApyMap := gs.getAvgLpFeeEarningApy()
 	for chainId32, chainToken := range chainTokenInfos {
 		chainId := uint64(chainId32)
 		for _, token := range chainToken.Token {
@@ -189,16 +133,11 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 			}
 
 			data := data24h[chainId][tokenSymbol]
-			lpFeeEarningApy := 0.0
 			volume24h := 0.0
 			if data != nil {
-				if common.Str2BigInt(totalLiquidity).Cmp(new(big.Int).SetInt64(0)) > 0 {
-					rate, _ := new(big.Float).Quo(new(big.Float).SetInt(data.fee), new(big.Float).SetInt(common.Str2BigInt(totalLiquidity))).Float64()
-					lpFeeEarningApy = math.Pow(1+rate, 365) - 1
-				}
 				volume24h = data.volume
 			}
-			farmingApy, hasSession := farmingApyMap[chainId][token.Token.GetSymbol()]
+			fApy, hasSession := farmingApyMap[chainId][token.Token.GetSymbol()]
 			lp := &webapi.LPInfo{
 				Chain:              chain,
 				Token:              token,
@@ -209,20 +148,95 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 				Volume_24H:         volume24h,
 				TotalLiquidity:     gs.F.GetUsdVolume(token.Token, common.Str2BigInt(totalLiquidity)),
 				TotalLiquidityAmt:  totalLiquidity,
-				LpFeeEarningApy:    lpFeeEarningApy,
-				FarmingApy:         farmingApy,
+				LpFeeEarningApy:    feeEarningApyMap[chainId][tokenSymbol],
+				FarmingApy:         fApy,
 			}
 			lps = append(lps, lp)
 		}
 	}
-
-	tc = time.Since(startT)
-	log.Debugf("performance: GetLPInfoList checkpoint 5 timecost %v", tc)
-
 	sortLpList(lps)
 	return &webapi.GetLPInfoListResponse{
 		LpInfo: lps,
 	}, nil
+}
+
+// return map[chainId]map[tokenSymbol]apy
+func (gs *GatewayService) getLpFeeEarningApy(usrAddr string) (map[uint64]map[string]float64, map[uint32]*webapi.ChainTokenInfo, map[uint64]map[string]*cbrtypes.LiquidityDetail, error) {
+	data24h := gs.get24hTx()
+	chainTokenInfos, err := dal.DB.GetChainTokenList()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	var chainTokens []*cbrtypes.ChainTokenAddrPair
+	for chainId, tokens := range chainTokenInfos {
+		for _, tokenInfo := range tokens.Token {
+			chainTokens = append(chainTokens, &cbrtypes.ChainTokenAddrPair{
+				ChainId:   uint64(chainId),
+				TokenAddr: tokenInfo.GetToken().Address,
+			})
+		}
+	}
+	userDetailMap := make(map[uint64]map[string]*cbrtypes.LiquidityDetail)
+	hasUsr := usrAddr != ""
+	if hasUsr {
+		tr := gs.TP.GetTransactor()
+		detailList, detailErr := cbrcli.QueryLiquidityDetailList(tr.CliCtx, &cbrtypes.LiquidityDetailListRequest{
+			LpAddr:     usrAddr,
+			ChainToken: chainTokens,
+		})
+		if detailList == nil || detailErr != nil {
+			var emptyLiquidityDetail []*cbrtypes.LiquidityDetail
+			detailList = &cbrtypes.LiquidityDetailListResponse{LiquidityDetail: emptyLiquidityDetail}
+		}
+		for _, detail := range detailList.GetLiquidityDetail() {
+			chainId := detail.GetChainId()
+			tokenWithAddr := detail.GetToken() // only has addr field
+			token, found, dbErr := dal.DB.GetTokenByAddr(common.Hex2Addr(tokenWithAddr.GetAddress()).String(), chainId)
+			if !found || dbErr != nil {
+				log.Debugf("data, token not found in lp list, token addr:%s, chainId:%d", tokenWithAddr.GetAddress(), chainId)
+				continue
+			}
+			detail.Token = token.Token
+			chainInfo, found := userDetailMap[chainId]
+			if !found {
+				chainInfo = make(map[string]*cbrtypes.LiquidityDetail)
+			}
+			chainInfo[token.Token.Symbol] = detail
+			userDetailMap[chainId] = chainInfo
+		}
+	}
+
+	chainMap := make(map[uint64]map[string]float64)
+	for chainId32, chainToken := range chainTokenInfos {
+		chainId := uint64(chainId32)
+		tokenMap, tokenMapFound := chainMap[chainId]
+		if !tokenMapFound {
+			tokenMap = make(map[string]float64)
+		}
+		for _, token := range chainToken.Token {
+			tokenSymbol := token.Token.Symbol
+			totalLiquidity := "0"
+			_, found1 := userDetailMap[chainId]
+			if found1 {
+				detail, found2 := userDetailMap[chainId][tokenSymbol]
+				if found2 {
+					totalLiquidity = detail.GetTotalLiquidity()
+				}
+			}
+			data := data24h[chainId][tokenSymbol]
+			lpFeeEarningApy := 0.0
+			if data != nil {
+				if common.Str2BigInt(totalLiquidity).Cmp(new(big.Int).SetInt64(0)) > 0 {
+					rate, _ := new(big.Float).Quo(new(big.Float).SetInt(data.fee), new(big.Float).SetInt(common.Str2BigInt(totalLiquidity))).Float64()
+					lpFeeEarningApy = math.Pow(1+rate, 365) - 1
+				}
+			}
+			tokenMap[tokenSymbol] = lpFeeEarningApy
+
+		}
+		chainMap[chainId] = tokenMap
+	}
+	return chainMap, chainTokenInfos, userDetailMap, nil
 }
 
 func (gs *GatewayService) GetTotalLiquidityProviderTokenBalance(ctx context.Context, request *webapi.GetTotalLiquidityProviderTokenBalanceRequest) (*webapi.GetTotalLiquidityProviderTokenBalanceResponse, error) {
@@ -289,8 +303,11 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 		if calErr != nil {
 			continue
 		}
-		apysByToken := make(map[string]float64)
 		stakeToken := pool.StakeToken
+		apysByToken, exists := apysByChainId[stakeToken.GetChainId()]
+		if !exists {
+			apysByToken = make(map[string]float64)
+		}
 		stakeTokenSymbol := cbrtypes.GetSymbolFromStakeToken(stakeToken.GetSymbol())
 		apysByToken[stakeTokenSymbol] = apy
 		apysByChainId[stakeToken.GetChainId()] = apysByToken
@@ -306,13 +323,25 @@ func (gs *GatewayService) get24hTx() map[uint64]map[string]*txData {
 	}
 	txs, err := dal.DB.Get24hTx()
 	resp := make(map[uint64]map[string]*txData) // map<chain_id, map<token_symbol, txData>>
+	chainTokenMap := make(map[uint64]map[string]*webapi.TokenInfo)
 	if err == nil {
 		for _, tx := range txs {
 			tokenSymbol := tx.TokenSymbol
-			dstToken, found, dbErr := dal.DB.GetTokenBySymbol(tokenSymbol, tx.DstChainId)
-			if !found || dbErr != nil {
-				continue
+			tokenMap, chainFound := chainTokenMap[tx.DstChainId]
+			if !chainFound {
+				tokenMap = make(map[string]*webapi.TokenInfo)
 			}
+			dstToken, tokenFound := tokenMap[tokenSymbol]
+			if !tokenFound {
+				tokenInDb, found, dbErr := dal.DB.GetTokenBySymbol(tokenSymbol, tx.DstChainId)
+				if !found || dbErr != nil {
+					continue
+				}
+				tokenMap[tokenSymbol] = tokenInDb
+				dstToken = tokenInDb
+			}
+			chainTokenMap[tx.DstChainId] = tokenMap
+
 			dstChainId := tx.DstChainId
 			data, found := resp[dstChainId]
 			if !found || data == nil {
@@ -338,6 +367,67 @@ func (gs *GatewayService) get24hTx() map[uint64]map[string]*txData {
 	}
 	SetTx24hCache(resp)
 	return resp
+}
+
+func (gs *GatewayService) getAvgLpFeeEarningApy() map[uint64]map[string]float64 {
+	avgApy := make(map[uint64]map[string]float64)
+	apyList := dal.DB.GetApyList(7 * 24)
+	if apyList == nil {
+		return avgApy
+	}
+	for _, apyStr := range apyList {
+		apyEntry := unMarshalApy(apyStr)
+		for chainId, tokenMap := range apyEntry {
+			avgTokenMap, found := avgApy[chainId]
+			if !found {
+				avgTokenMap = make(map[string]float64)
+			}
+			for token, apy := range tokenMap {
+				avgTokenMap[token] += apy
+			}
+			avgApy[chainId] = avgTokenMap
+		}
+	}
+	n := float64(len(apyList))
+	for chainId, avgTokenMap := range avgApy {
+		for token, avg := range avgTokenMap {
+			avgApy[chainId][token] = avg / n
+		}
+	}
+	return avgApy
+}
+
+func (gs *GatewayService) setAvgLpFeeEarningApy() {
+	latestApyUpdateTime := dal.DB.LatestApyUpdateTime()
+	if latestApyUpdateTime.Add(time.Hour).Before(time.Now()) {
+		apy, _, _, err := gs.getLpFeeEarningApy("0")
+		if err != nil {
+			log.Warnf("update apy failed, apy:%+v, err:%+v", apy, err)
+			return
+		}
+		apyStr := marshalApy(apy)
+		log.Infof("update avg apy to db: %s", apyStr)
+		if apyStr != "" {
+			_ = dal.DB.InsertApy(apyStr)
+		}
+	}
+}
+
+func marshalApy(apyMap map[uint64]map[string]float64) string {
+	b, err := json.Marshal(apyMap)
+	if err != nil {
+		return ""
+	}
+	return string(b)
+}
+
+func unMarshalApy(apyStr string) map[uint64]map[string]float64 {
+	var dataConv map[uint64]map[string]float64
+	err := json.Unmarshal([]byte(apyStr), &dataConv)
+	if err != nil {
+		return nil
+	}
+	return dataConv
 }
 
 func sortLpList(lps []*webapi.LPInfo) {
