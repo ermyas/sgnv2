@@ -94,21 +94,21 @@ func (gs *GatewayService) StartChainTokenPolling(interval time.Duration) {
 
 // StartAvgLpFeeEarningPolling starts a loop with the given interval and 3s stdev for polling avg apy
 func (gs *GatewayService) StartAvgLpFeeEarningPolling(interval time.Duration) {
-	gs.setAvgLpFeeEarningApy() // make sure run at least once before return
-	polledInside := false
-	go func() {
-		ticker := jitterbug.New(
-			interval,
-			&jitterbug.Norm{Stdev: 3 * time.Second},
-		)
-		defer ticker.Stop()
-		for ; true; <-ticker.C {
-			if polledInside {
-				gs.setAvgLpFeeEarningApy()
-			}
-			polledInside = true
-		}
-	}()
+	//gs.setAvgLpFeeEarningApy() // make sure run at least once before return
+	//polledInside := false
+	//go func() {
+	//	ticker := jitterbug.New(
+	//		interval,
+	//		&jitterbug.Norm{Stdev: 3 * time.Second},
+	//	)
+	//	defer ticker.Stop()
+	//	for ; true; <-ticker.C {
+	//		if polledInside {
+	//			gs.setAvgLpFeeEarningApy()
+	//		}
+	//		polledInside = true
+	//	}
+	//}()
 }
 
 func (gs *GatewayService) pollChainToken() {
