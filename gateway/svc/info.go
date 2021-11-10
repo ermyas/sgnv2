@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -95,6 +96,7 @@ func (gs *GatewayService) GetTokenInfo(ctx context.Context, request *webapi.GetT
 }
 
 func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.GetLPInfoListRequest) (*webapi.GetLPInfoListResponse, error) {
+	startT := time.Now()
 	userAddr := common.Hex2Addr(request.GetAddr()).String()
 	chainTokenInfos, err := dal.DB.GetChainTokenList()
 	if err != nil || len(chainTokenInfos) == 0 {
@@ -111,6 +113,10 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	}
 	var lps []*webapi.LPInfo
 
+	tc := time.Since(startT)
+	log.Debugf("performance: GetLPInfoList checkpoint 1 timecost %v", tc)
+	startT = time.Now()
+
 	userDetailMap := make(map[uint64]map[string]*cbrtypes.LiquidityDetail)
 	hasUsr := request.GetAddr() != ""
 	if hasUsr {
@@ -119,6 +125,11 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 			LpAddr:     userAddr,
 			ChainToken: chainTokens,
 		})
+
+		tc := time.Since(startT)
+		log.Debugf("performance: GetLPInfoList checkpoint 2 timecost %v", tc)
+		startT = time.Now()
+
 		if detailList == nil || detailErr != nil {
 			var emptyLiquidityDetail []*cbrtypes.LiquidityDetail
 			detailList = &cbrtypes.LiquidityDetailListResponse{LiquidityDetail: emptyLiquidityDetail}
@@ -141,8 +152,16 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 		}
 	}
 
+	tc = time.Since(startT)
+	log.Debugf("performance: GetLPInfoList checkpoint 3 timecost %v", tc)
+	startT = time.Now()
+
 	farmingApyMap := gs.getFarmingApy(ctx)
 	data24h := gs.get24hTx()
+
+	tc = time.Since(startT)
+	log.Debugf("performance: GetLPInfoList checkpoint 4 timecost %v", tc)
+	startT = time.Now()
 
 	for chainId32, chainToken := range chainTokenInfos {
 		chainId := uint64(chainId32)
@@ -196,6 +215,10 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 			lps = append(lps, lp)
 		}
 	}
+
+	tc = time.Since(startT)
+	log.Debugf("performance: GetLPInfoList checkpoint 5 timecost %v", tc)
+
 	sortLpList(lps)
 	return &webapi.GetLPInfoListResponse{
 		LpInfo: lps,
