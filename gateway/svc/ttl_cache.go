@@ -1,9 +1,11 @@
 package gatewaysvc
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
-const cacheTTL = 10 * time.Second
-const cacheTTL10Min = 10 * time.Minute
+const cacheTTL = 5 * time.Minute
 
 type farmingApy struct {
 	data      map[uint64]map[string]float64
@@ -15,10 +17,17 @@ type tx24h struct {
 	expiredAt time.Time
 }
 
-var farmingApyCache *farmingApy
-var tx24hCache *tx24h
+var (
+	farmingApyCache *farmingApy
+	tx24hCache      *tx24h
+
+	farmingApyLock sync.Mutex
+	tx24hLock      sync.Mutex
+)
 
 func SetFarmingApyCache(cache map[uint64]map[string]float64) {
+	farmingApyLock.Lock()
+	defer farmingApyLock.Unlock()
 	if farmingApyCache == nil {
 		farmingApyCache = &farmingApy{
 			data:      cache,
@@ -39,14 +48,16 @@ func GetFarmingApyCache() map[uint64]map[string]float64 {
 }
 
 func SetTx24hCache(cache map[uint64]map[string]*txData) {
+	tx24hLock.Lock()
+	defer tx24hLock.Unlock()
 	if tx24hCache == nil {
 		tx24hCache = &tx24h{
 			data:      cache,
-			expiredAt: time.Now().Add(5 * time.Minute),
+			expiredAt: time.Now().Add(cacheTTL),
 		}
 	} else {
 		tx24hCache.data = cache
-		tx24hCache.expiredAt = time.Now().Add(5 * time.Minute)
+		tx24hCache.expiredAt = time.Now().Add(cacheTTL)
 	}
 }
 

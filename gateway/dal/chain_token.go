@@ -65,16 +65,28 @@ func (d *DAL) UpdateTokenUIInfo(symbol string, chainId uint64, name, icon string
 }
 
 func (d *DAL) GetTokenBySymbol(symbol string, chainId uint64) (*webapi.TokenInfo, bool, error) {
+	cache := GetTokenCacheBySymbol(chainId, symbol)
+	if cache != nil {
+		return cache, true, nil
+	}
+	token, found, err := d.getTokenBySymbol(symbol, chainId)
+	if found && err == nil {
+		SetTokenCache(chainId, token)
+	}
+	return token, found, err
+}
+
+func (d *DAL) getTokenBySymbol(symbol string, chainId uint64) (*webapi.TokenInfo, bool, error) {
 	q := `SELECT address, decimal, name, icon FROM token WHERE symbol = $1 AND chain_id=$2`
-	return d.getTokenBySymbol(q, symbol, chainId)
+	return d.getTokenBySymbolWithQ(q, symbol, chainId)
 }
 
 func (d *DAL) GetTokenBySymbolForTransfer(symbol string, chainId uint64) (*webapi.TokenInfo, bool, error) {
 	q := `SELECT address, decimal, name, icon FROM token WHERE symbol = $1 AND chain_id=$2 AND disabled = false`
-	return d.getTokenBySymbol(q, symbol, chainId)
+	return d.getTokenBySymbolWithQ(q, symbol, chainId)
 }
 
-func (d *DAL) getTokenBySymbol(q, symbol string, chainId uint64) (*webapi.TokenInfo, bool, error) {
+func (d *DAL) getTokenBySymbolWithQ(q, symbol string, chainId uint64) (*webapi.TokenInfo, bool, error) {
 	var addr string
 	var decimal uint64
 	var name, icon string
@@ -92,6 +104,18 @@ func (d *DAL) getTokenBySymbol(q, symbol string, chainId uint64) (*webapi.TokenI
 }
 
 func (d *DAL) GetTokenByAddr(addr string, chainId uint64) (*webapi.TokenInfo, bool, error) {
+	cache := GetTokenCacheByAddr(chainId, addr)
+	if cache != nil {
+		return cache, true, nil
+	}
+	token, found, err := d.getTokenByAddr(addr, chainId)
+	if found && err == nil {
+		SetTokenCache(chainId, token)
+	}
+	return token, found, err
+}
+
+func (d *DAL) getTokenByAddr(addr string, chainId uint64) (*webapi.TokenInfo, bool, error) {
 	var symbol string
 	var decimal uint64
 	var name, icon string
@@ -239,12 +263,16 @@ func (d *DAL) UpsertChainBaseInfo(id uint64, blockDelay uint32, contractAddr str
 }
 
 func (d *DAL) GetChain(id uint64) (*webapi.Chain, string, bool, error) {
+	cache, url := GetChainCache(id)
+	if cache != nil {
+		return cache, url, true, nil
+	}
 	var name, icon, txUrl, gasTokenSymbol, exploreUrl, rpcUrl, contract string
 	var blockDelay uint32
 	q := `SELECT name, icon, tx_url, block_delay, gas_token_symbol, explore_url, rpc_url, contract FROM chain where id=$1`
 	err := d.QueryRow(q, id).Scan(&name, &icon, &txUrl, &blockDelay, &gasTokenSymbol, &exploreUrl, &rpcUrl, &contract)
 	found, err := sqldb.ChkQueryRow(err)
-	return &webapi.Chain{
+	chain := &webapi.Chain{
 		Id:             uint32(id),
 		Name:           name,
 		Icon:           icon,
@@ -253,7 +281,11 @@ func (d *DAL) GetChain(id uint64) (*webapi.Chain, string, bool, error) {
 		ExploreUrl:     exploreUrl,
 		RpcUrl:         rpcUrl,
 		ContractAddr:   contract,
-	}, txUrl, found, err
+	}
+	if found && err == nil {
+		SetChainCache(chain, txUrl)
+	}
+	return chain, txUrl, found, err
 }
 
 func (d *DAL) GetChainBlockDelay(id uint64) (uint32, bool, error) {
