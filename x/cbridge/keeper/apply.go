@@ -122,9 +122,6 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			return false, err
 		}
 		SetEvSendStatus(kv, ev.SrcTransferId, types.XferStatus_SUCCESS)
-		// only set value when apply event, relay xferid -> src xferid only for debugging
-		SetEvRelay(kv, ev.TransferId, ev.SrcTransferId)
-		// relay-%x %x is srcTransferId
 		log.Infoln("x/cbr applied:", ev.PrettyLog(onchev.Chainid))
 	case types.CbrEventWithdraw:
 		ev, err := cbrContract.ParseWithdrawDone(*elog)

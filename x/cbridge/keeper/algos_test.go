@@ -23,11 +23,11 @@ func TestCalcD(t *testing.T) {
 
 func TestLoopNewY(t *testing.T) {
 	A := 2000.0
-	m := 1.25
+	m := 1.0
 	n := 2 - m
 	// x := 839571.827415
 	y := 777552.260981
 	D := 1.6171276365928054e+06
 	newx := 4505472.157971
-	t.Error(loopCalcNewY(A, D, newx, y, m, n))
+	t.Error(loopCalcNewY(A, D, newx, y, m, n), solveY(A, D, newx, y))
 }

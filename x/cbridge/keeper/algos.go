@@ -60,7 +60,13 @@ func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmo
 
 	D := solveD(A, x, y, m, n)
 	newx := x + amt2float(srcAmount, src.Decimal)
-	newy := loopCalcNewY(A, D, newx, y, m, n)
+	var newy float64
+	if m == n {
+		// m and n both 1 because m + n = 2
+		newy = solveY(A, D, newx, y)
+	} else {
+		newy = loopCalcNewY(A, D, newx, y, m, n)
+	}
 	log.Debugln("chpair:", src.ChId, dest.ChId, "A:", A, "m:", m, "n:", n, "x:", x, "y:", y, "D:", D, "newx:", newx, "newy:", newy)
 	if math.IsNaN(newy) {
 		// not possible as we already override negative ret in loopCalcNewY
@@ -435,6 +441,15 @@ func solveD(A, x, y, m, n float64) float64 {
 	q := -4 * A * (x + y) * xtimesy
 	pqrt := math.Sqrt(math.Pow(q/2, 2) + math.Pow(p/3, 3))
 	return math.Cbrt(pqrt-q/2) + math.Cbrt(-pqrt-q/2)
+}
+
+// when m = n = 1, solve y directly as f(y) is quadratic
+// f(y) = 4Ay^2 + (4Ax-4AD+D)y - D^3/(4x)
+func solveY(A, D, x, y float64) float64 {
+	a := 4 * A
+	b := a*x - a*D + D
+	c := -math.Pow(D, 3) / (4 * x)
+	return (-b + math.Sqrt(b*b-4*a*c)) / (2 * a)
 }
 
 // given D and new xi, calculate xj, prev xj - new xj is equal amount

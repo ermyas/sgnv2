@@ -224,9 +224,6 @@ var qDebugAnyCmd = &cobra.Command{
 			return cliCtx.PrintString(new(big.Int).SetBytes(res).String())
 		case pre(key, "evsend"):
 			return cliCtx.PrintString(types.XferStatus(res[0]).String())
-		case pre(key, "evrelay"):
-			// val is src transfer id
-			return cliCtx.PrintString(eth.Bytes2Hex(res))
 		case pre(key, "xferRelay"):
 			pbmsg := new(types.XferRelay)
 			pbmsg.Unmarshal(res)

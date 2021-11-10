@@ -130,17 +130,6 @@ func SetXferRelay(kv sdk.KVStore, xferId [32]byte, xferRelay *types.XferRelay, c
 	kv.Set(types.XferRelayKey(xferId), cdc.MustMarshal(xferRelay))
 }
 
-// only set when apply relay event
-func SetEvRelay(kv sdk.KVStore, relayXferId, srcXferId [32]byte) {
-	kv.Set(types.EvRelayKey(relayXferId), srcXferId[:])
-}
-
-// given relay xfer id, get EvRelayKey and return src xfer id.
-// if not found, return nil
-func GetSrcXferId(kv sdk.KVStore, relayXferId [32]byte) []byte {
-	return kv.Get(types.EvRelayKey(relayXferId))
-}
-
 func SaveWithdrawDetail(kv sdk.KVStore, userAddr eth.Addr, reqid uint64, wdd *types.WithdrawDetail) {
 	raw, _ := wdd.Marshal()
 	kv.Set(types.WdDetailKey(userAddr, reqid), raw)

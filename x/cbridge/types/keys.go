@@ -52,7 +52,7 @@ func GetChainSignersKey(chid uint64) []byte {
 1. liquidity map, lm-chid-token-lp -> amount big.Int.Bytes
 2. processed add liquidity event, evliqadd-chid-seq -> true, to avoid process same event again
 3. send event, evsend-%x transferid, module has seen this event, value is enum status
-4. relay event, evrelay-%x relay transferid -> srcTransferid
+4. no longer save evrelay # relay event, evrelay-%x relay transferid -> srcTransferid
 5. xfer relay: xferRelay-%x, src transfer id, relay msg and sigs
 6. no longer need withdrawSeq
 7. withdraw detail, wdDetail-%x-%d user addr and reqid, value is onchain msg and sigs
@@ -89,11 +89,6 @@ func EvLiqAddKey(chid, seq uint64) []byte {
 // tid is user's transfer if. value is enum xfer status
 func EvSendKey(tid [32]byte) []byte {
 	return []byte(fmt.Sprintf("evsend-%x", tid))
-}
-
-// key is relay transfer id, value is ev.srcTransferId. only for debugging to connect full path
-func EvRelayKey(tid [32]byte) []byte {
-	return []byte(fmt.Sprintf("evrelay-%x", tid))
 }
 
 // serialized relay msg and sigs, add sig when receive msg
