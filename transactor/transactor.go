@@ -32,6 +32,7 @@ const (
 	maxSignRetry      = 10
 	signRetryDelay    = 100 * time.Millisecond
 	maxWaitMinedRetry = 5
+	maxMsgsPerTx      = 10
 )
 
 var errGasCode = fmt.Errorf("code %d", sdkerrors.ErrOutOfGas.ABCICode())
@@ -163,13 +164,13 @@ func (t *Transactor) start() {
 			continue
 		}
 
-		t.drainTxMsgQueue()
+		t.consumeTxMsgQueue()
 	}
 }
 
-func (t *Transactor) drainTxMsgQueue() {
+func (t *Transactor) consumeTxMsgQueue() {
 	var msgs []sdk.Msg
-	for t.msgQueue.Len() != 0 {
+	for t.msgQueue.Len() != 0 && len(msgs) < maxMsgsPerTx {
 		msg := t.msgQueue.PopFront().(sdk.Msg)
 		msgs = append(msgs, msg)
 	}

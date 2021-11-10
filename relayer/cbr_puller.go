@@ -21,8 +21,9 @@ import (
 )
 
 const (
-	maxRelayRetry = 5
-	maxSigRetry   = 10
+	maxRelayRetry      = 5
+	maxSigRetry        = 10
+	maxEventsPerUpdate = 50
 )
 
 // sleep, check if syncer, if yes, go over cbr dbs to send tx
@@ -157,7 +158,7 @@ func (c *CbrOneChain) pullEvents(chid uint64, cliCtx client.Context) []*synctype
 			c.lock.RUnlock()
 			continue
 		}
-		for ; iterator.Valid(); iterator.Next() {
+		for ; iterator.Valid() && len(keys) < maxEventsPerUpdate; iterator.Next() {
 			keys = append(keys, iterator.Key())
 			vals = append(vals, iterator.Value())
 		}
