@@ -156,7 +156,7 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	log.Debugf("performance: GetLPInfoList checkpoint 3 timecost %v", tc)
 	startT = time.Now()
 
-	//farmingApyMap := gs.getFarmingApy(ctx)
+	farmingApyMap := gs.getFarmingApy(ctx)
 	data24h := gs.get24hTx()
 
 	tc = time.Since(startT)
@@ -198,19 +198,19 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 				}
 				volume24h = data.volume
 			}
-			//farmingApy, hasSession := farmingApyMap[chainId][token.Token.GetSymbol()]
+			farmingApy, hasSession := farmingApyMap[chainId][token.Token.GetSymbol()]
 			lp := &webapi.LPInfo{
 				Chain:              chain,
 				Token:              token,
 				Liquidity:          gs.F.GetUsdVolume(token.Token, common.Str2BigInt(usrLiquidity)),
 				LiquidityAmt:       usrLiquidity,
-				HasFarmingSessions: true,
+				HasFarmingSessions: hasSession,
 				LpFeeEarning:       gs.F.GetUsdVolume(token.Token, common.Str2BigInt(usrLpFeeEarning)),
 				Volume_24H:         volume24h,
 				TotalLiquidity:     gs.F.GetUsdVolume(token.Token, common.Str2BigInt(totalLiquidity)),
 				TotalLiquidityAmt:  totalLiquidity,
 				LpFeeEarningApy:    lpFeeEarningApy,
-				FarmingApy:         0,
+				FarmingApy:         farmingApy,
 			}
 			lps = append(lps, lp)
 		}

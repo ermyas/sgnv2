@@ -41,11 +41,11 @@ func SetTx24hCache(cache map[uint64]map[string]*txData) {
 	if tx24hCache == nil {
 		tx24hCache = &tx24h{
 			data:      cache,
-			expiredAt: time.Now().Add(cacheTTL),
+			expiredAt: time.Now().Add(3600 * time.Second),
 		}
 	} else {
 		tx24hCache.data = cache
-		tx24hCache.expiredAt = time.Now().Add(cacheTTL)
+		tx24hCache.expiredAt = time.Now().Add(3600 * time.Second)
 	}
 }
 
