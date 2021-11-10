@@ -82,7 +82,7 @@ func (k Keeper) transfer(
 	percFee = CalcPercFee(kv, src, dest, destAmount)
 	userReceive = new(big.Int).Sub(destAmount, percFee)
 	baseFee = big.NewInt(0)
-	if lpSender != eth.ZeroAddr { // charge base fee if not internal transfer by LP
+	if lpSender == eth.ZeroAddr { // charge base fee if not internal transfer by LP
 		baseFee = CalcBaseFee(kv, assetSym, dest.ChId)
 		userReceive.Sub(userReceive, baseFee)
 	}
