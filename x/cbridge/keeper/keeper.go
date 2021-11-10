@@ -66,6 +66,7 @@ func (k Keeper) SyncFarming(ctx sdk.Context, sym string, chid uint64, lpAddr eth
 			if farmingErr != nil {
 				clog.Errorf("Failed to mint stake, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
 					farmingErr, poolName, lpAddr, liquidity, stake)
+				return farmingErr
 			}
 			derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(farmingtypes.ModuleName, lpAddr)
 			farmingErr = k.bankKeeper.SendCoinsFromModuleToAccount(
@@ -74,12 +75,14 @@ func (k Keeper) SyncFarming(ctx sdk.Context, sym string, chid uint64, lpAddr eth
 			if farmingErr != nil {
 				clog.Errorf("Failed to send stake, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
 					farmingErr, poolName, lpAddr, liquidity, stake)
+				return farmingErr
 			}
 			// Stake
 			farmingErr = k.farmingKeeper.Stake(ctx, poolName, lpAddr, amount)
 			if farmingErr != nil {
 				clog.Errorf("Failed to stake, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
 					farmingErr, poolName, lpAddr, liquidity, stake)
+				return farmingErr
 			}
 		} else if liquidity.LT(stake) {
 			amount := sdk.NewCoin(denom, stake.Sub(liquidity))
@@ -88,6 +91,7 @@ func (k Keeper) SyncFarming(ctx sdk.Context, sym string, chid uint64, lpAddr eth
 			if farmingErr != nil {
 				clog.Errorf("Failed to unstake, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
 					farmingErr, poolName, lpAddr, liquidity, stake)
+				return farmingErr
 			}
 			// Burn stakes
 			derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(farmingtypes.ModuleName, lpAddr)
@@ -97,15 +101,17 @@ func (k Keeper) SyncFarming(ctx sdk.Context, sym string, chid uint64, lpAddr eth
 			if farmingErr != nil {
 				clog.Errorf("Failed to send stake back, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
 					farmingErr, poolName, lpAddr, liquidity, stake)
+				return farmingErr
 			}
 			farmingErr = k.bankKeeper.BurnCoins(ctx, types.ModuleName, sdk.NewCoins(amount))
 			if farmingErr != nil {
 				clog.Errorf("Failed to burn stake, error %s, poolName %s, lpAddr %s, liquidity %s, stake %s",
 					farmingErr, poolName, lpAddr, liquidity, stake)
+				return farmingErr
 			}
 		}
 	}
-	return farmingErr
+	return nil
 }
 
 func derivePoolNameAndDenom(symbol string, chainId uint64) (poolName string, denom string) {
