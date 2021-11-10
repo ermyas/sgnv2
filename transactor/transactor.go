@@ -197,6 +197,7 @@ func (t *Transactor) SendTxMsgsWaitMined(msgs []sdk.Msg) (*sdk.TxResponse, error
 		}
 		if err != nil {
 			logEntry.Error = append(logEntry.Error, err.Error())
+			logEntry.Msgs = fmt.Sprintf("%s", msgs)
 			logEntry.Status = seal.TxMsgStatus_FAILED
 			seal.CommitTransactorLog(logEntry)
 			return txResponse, err
@@ -219,6 +220,7 @@ func (t *Transactor) SendTxMsgsWaitMined(msgs []sdk.Msg) (*sdk.TxResponse, error
 				logEntry.Warn = append(logEntry.Warn, err.Error()+". will retry...")
 				retry = true
 			} else {
+				logEntry.Msgs = fmt.Sprintf("%s", msgs)
 				logEntry.Error = append(logEntry.Error, err.Error())
 			}
 			logEntry.Status = seal.TxMsgStatus_FAILED

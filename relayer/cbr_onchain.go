@@ -194,30 +194,28 @@ func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 }
 
 // send relay tx onchain to cbridge contract, no wait mine
-func (c *CbrOneChain) SendRelay(relayBytes []byte, sigs [][]byte, curss currentSigners, relayMsg *cbrtypes.RelayOnChain) (string, error) {
+func (c *CbrOneChain) SendRelay(relayBytes []byte, sigs [][]byte, curss currentSigners, srcTransferId []byte) (string, error) {
 	tx, err := c.Transactor.Transact(
 		&ethutils.TransactionStateHandler{
 			OnMined: func(receipt *ethtypes.Receipt) {
 				if receipt.Status == ethtypes.ReceiptStatusSuccessful {
-					log.Infof("Relay transaction %x succeeded. msg: %s", receipt.TxHash, relayMsg)
+					log.Infof("Relay transaction %x succeeded. srcTransferId %x", receipt.TxHash, srcTransferId)
 				} else {
-					log.Errorf("Relay transaction %x failed. msg: %s", receipt.TxHash, relayMsg)
+					log.Errorf("Relay transaction %x failed. srcTransferId %x", receipt.TxHash, srcTransferId)
 				}
 			},
 			OnError: func(tx *ethtypes.Transaction, err error) {
-				log.Warnf("Relay transaction %x err: %s, msg: %s", tx.Hash(), err, relayMsg)
+				log.Warnf("Relay transaction %x err: %s, srcTransferId %x", tx.Hash(), err, srcTransferId)
 			},
 		},
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
 			return c.contract.Relay(opts, relayBytes, sigs, curss.addrs, curss.powers)
 		},
 	)
-
 	if err != nil {
 		return "", err
 	}
 
-	log.Infoln("Relay tx submitted", tx.Hash().Hex())
 	return tx.Hash().Hex(), nil
 }
 

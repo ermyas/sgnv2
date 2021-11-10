@@ -18,6 +18,7 @@ message TransactorLog {
     TxMsgStatus status = 6;
     int64 gas_wanted = 7;
     int64 gas_used = 8;
+    string msgs = 9;
 
     int64 start_timestamp = 99;
     double execution_time_ms = 100;

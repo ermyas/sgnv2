@@ -84,7 +84,7 @@ func (r *Relayer) processCbridgeQueue() {
 }
 
 func (r *Relayer) submitRelay(relayEvent RelayEvent) {
-	logmsg := fmt.Sprintf("Process relay %x", relayEvent.XferId)
+	logmsg := fmt.Sprintf("Process relay srcId %x", relayEvent.XferId)
 
 	relay, err := cbrcli.QueryRelay(r.Transactor.CliCtx, relayEvent.XferId)
 	if err != nil {
@@ -107,23 +107,22 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 		return
 	}
 	relayTransferId := relayOnChain.GetRelayOnChainTransferId()
+	logmsg = fmt.Sprintf("%s dstId %x", logmsg, relayTransferId)
 	existRelay, existRelayErr := r.cbrMgr[relayOnChain.DstChainId].existTransferId(relayTransferId)
 	if existRelayErr != nil {
 		// if fail to query, continue to send this relay, because we can not make sure whether the relay already exist.
-		log.Warnf("fail to query this relay by transfer id, relay src transfer id:%x, dest transfer id:%x, err:%s",
-			relayOnChain.SrcChainId, relayTransferId, existRelayErr.Error())
+		log.Warnln("fail to query transefer err:", existRelayErr)
 	} else if existRelay {
-		log.Infof("relay already exist on chain, skip it, relay src transfer id:%x, dest transfer id:%x",
-			relayOnChain.SrcChainId, relayTransferId)
+		log.Infof("%s. dest transfer already exist on chain, skip it", logmsg)
 		return
 	}
-	log.Infof("%s with signers %s", logmsg, relay.SignersStr())
-	_, err = r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, sigsBytes, curss, relayOnChain)
+	txHash, err := r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, sigsBytes, curss, relayEvent.XferId)
 	if err != nil {
 		r.requeueRelay(relayEvent)
-		log.Errorln("relay err", err)
+		log.Errorf("%s. err %s", logmsg, err)
 		return
 	}
+	log.Infof("%s. tx hash %s", logmsg, txHash)
 }
 
 func (r *Relayer) requeueRelay(relayEvent RelayEvent) {
