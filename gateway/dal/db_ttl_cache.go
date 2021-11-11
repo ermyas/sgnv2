@@ -25,8 +25,8 @@ var (
 	tokenAddrCache   map[uint64]map[string]*Token
 	chainCache       map[uint64]*Chain
 
-	tokenLock sync.Mutex
-	chainLock sync.Mutex
+	tokenLock sync.RWMutex
+	chainLock sync.RWMutex
 )
 
 func SetTokenCache(chainId uint64, token *webapi.TokenInfo) {
@@ -59,6 +59,8 @@ func GetTokenCacheBySymbol(chainId uint64, symbol string) *webapi.TokenInfo {
 	if tokenSymbolCache == nil {
 		return nil
 	}
+	tokenLock.RLock()
+	defer tokenLock.RUnlock()
 	cache, found := tokenSymbolCache[chainId][symbol]
 	if !found {
 		return nil
@@ -74,6 +76,8 @@ func GetTokenCacheByAddr(chainId uint64, symbol string) *webapi.TokenInfo {
 	if tokenAddrCache == nil {
 		return nil
 	}
+	tokenLock.RLock()
+	defer tokenLock.RUnlock()
 	cache, found := tokenAddrCache[chainId][symbol]
 	if !found {
 		return nil
@@ -106,6 +110,8 @@ func GetChainCache(chainId uint64) (*webapi.Chain, string) {
 	if chainCache == nil {
 		return nil, ""
 	}
+	chainLock.RLock()
+	defer chainLock.RUnlock()
 	cache, found := chainCache[chainId]
 	if !found {
 		return nil, ""
