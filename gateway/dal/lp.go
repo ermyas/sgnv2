@@ -175,3 +175,72 @@ func (d *DAL) PaginateLpHistory(sender string, end time.Time, size uint64) ([]*L
 
 	return tps, len(tps), minTime, nil
 }
+
+func (d *DAL) GetAllLpHistory(sender string) ([]*LP, error) {
+	q := "SELECT chain_id, token_symbol, amt, lp_type FROM lp WHERE usr_addr = $1 and withdraw_method_type in (1,2)"
+	rows, err := d.Query(q, sender)
+	if err != nil {
+		log.Warnf("db err:%+v", err)
+		return nil, err
+	}
+	defer closeRows(rows)
+
+	var tps []*LP
+	var tokenSymbol, amt string
+	var chainId, lpType uint64
+	for rows.Next() {
+		err = rows.Scan(&chainId, &tokenSymbol, &amt, &lpType)
+		if err != nil {
+			return nil, err
+		}
+
+		tp := &LP{
+			ChainId:     chainId,
+			TokenSymbol: tokenSymbol,
+			Amt:         amt,
+			LpType:      webapi.LPType(lpType),
+		}
+		tps = append(tps, tp)
+	}
+
+	return tps, nil
+}
+
+func (d *DAL) PaginateLpAmt(end time.Time, size uint64) ([]*LP, int, time.Time, error) {
+	q := "SELECT usr_addr, chain_id, token_symbol, amt, create_time, lp_type FROM lp WHERE create_time < $1 and withdraw_method_type in (1,2) limit $2"
+	rows, err := d.Query(q, end, size)
+	if err != nil {
+		log.Warnf("db err:%+v", err)
+		return nil, 0, time.Unix(0, 0), err
+	}
+	defer closeRows(rows)
+
+	var tps []*LP
+	var tokenSymbol, amt, addr string
+	var chainId, lpType uint64
+	var ct time.Time
+	minTime := now()
+	for rows.Next() {
+		err = rows.Scan(&addr, &chainId, &tokenSymbol, &amt, &ct, &lpType)
+		if err != nil {
+			return nil, 0, time.Unix(0, 0), err
+		}
+
+		tp := &LP{
+			ChainId:     chainId,
+			TokenSymbol: tokenSymbol,
+			Amt:         amt,
+			Addr:        addr,
+			LpType:      webapi.LPType(lpType),
+		}
+		if minTime.After(ct) {
+			minTime = ct
+		}
+		tps = append(tps, tp)
+	}
+	if len(tps) == 0 {
+		minTime = time.Unix(0, 0)
+	}
+
+	return tps, len(tps), minTime, nil
+}

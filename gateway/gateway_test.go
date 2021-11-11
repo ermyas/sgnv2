@@ -17,6 +17,7 @@ import (
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/fee"
 	gatewaysvc "github.com/celer-network/sgn-v2/gateway/svc"
+	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/relayer"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -546,4 +547,8 @@ func TestLPWithdraw(t *testing.T) {
 	errIsNil(t, err)
 	errMsgIsNil(t, lpHistory.Err)
 	checkLpStatus(t, lpHistory.History[0].Status, types.WithdrawStatus_WD_COMPLETED)
+}
+func TestAlert(t *testing.T) {
+	utils.SendWithdrawAlert("0x2147F049De1D68bC8265B260760AbA6eda614367", "900", "800", "100")
+	utils.SendBalanceAlert("300", "0x2147F049De1D68bC8265B260760AbA6eda614367", "1000", "800")
 }

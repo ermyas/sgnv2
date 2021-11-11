@@ -239,36 +239,6 @@ func (gs *GatewayService) getLpFeeEarningApy(usrAddr string) (map[uint64]map[str
 	return chainMap, chainTokenInfos, userDetailMap, nil
 }
 
-func (gs *GatewayService) GetTotalLiquidityProviderTokenBalance(ctx context.Context, request *webapi.GetTotalLiquidityProviderTokenBalanceRequest) (*webapi.GetTotalLiquidityProviderTokenBalanceResponse, error) {
-	tokenSymbol := request.GetTokenSymbol()
-	chainIds := request.GetChainIds()
-	ret := make(map[uint64]string)
-	if len(chainIds) == 0 {
-		// all chains
-		chainTokenInfos, err := dal.DB.GetChainTokenList()
-		if err == nil && len(chainTokenInfos) > 0 {
-			for chainId, chainToken := range chainTokenInfos {
-				for _, token := range chainToken.GetToken() {
-					if token.GetToken().GetSymbol() == tokenSymbol {
-						ret[uint64(chainId)] = gs.getLiquidityOnChainToken(uint64(chainId), token.GetToken().GetAddress())
-						break
-					}
-				}
-			}
-		}
-	} else {
-		for _, chainId := range chainIds {
-			token, tokenFound, dberr := dal.DB.GetTokenBySymbol(tokenSymbol, uint64(chainId))
-			if tokenFound && dberr == nil {
-				ret[uint64(chainId)] = gs.getLiquidityOnChainToken(uint64(chainId), token.GetToken().GetAddress())
-			}
-		}
-	}
-	return &webapi.GetTotalLiquidityProviderTokenBalanceResponse{
-		TotalLiq: ret,
-	}, nil
-}
-
 func (gs *GatewayService) getLiquidityOnChainToken(chainId uint64, tokenAddr string) string {
 	tr := gs.TP.GetTransactor()
 	resp, err := cbrcli.QueryTotalLiquidity(tr.CliCtx, &cbrtypes.QueryTotalLiquidityRequest{

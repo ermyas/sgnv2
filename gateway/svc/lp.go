@@ -178,7 +178,16 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 		lp := signer.String()
 		seqNum := wdReq.ReqId
 
-		log.Infof("WithdrawLiquidity for remove, ReceiverAddr:%s, token:%s, Amount:%s, ChainId:%d, ReqId:%d, type:%s, withdraws num:%d, withdraws:%+v", lp, token.GetToken().GetSymbol(), amt, chainId, seqNum, wdReq.WithdrawType.String(), len(wdReq.Withdraws), wdReq.Withdraws)
+		if !gs.IsWithdrawNormal(lp, amt, int(token.GetToken().GetDecimal())) {
+			return &webapi.WithdrawLiquidityResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  "withdraw refused",
+				},
+			}, nil
+		}
+
+		log.Infof("WithdrawLiquidity for remove, ReceiverAddr:%s, token:%s, Amount:%s, ChainId:%d, ReqId:%d", lp, token.GetToken().GetSymbol(), amt, chainId, seqNum)
 		if dal.DB.HasSeqNumUsedForWithdraw(seqNum, lp) {
 			log.Warnf("invalid seq num, it has been used for current lp, seqNum:%d, lp:%s", seqNum, lp)
 			return &webapi.WithdrawLiquidityResponse{
