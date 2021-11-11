@@ -58,7 +58,11 @@
           "coins": [
             {
               "denom": "CELR/883",
-              "amount": "10000000000000000000000"
+              "amount": "1000000000000000000000000"
+            },
+            {
+              "denom": "USDT/883",
+              "amount": "1000000000000"
             }
           ]
         }
@@ -66,7 +70,11 @@
       "supply": [
         {
           "denom": "CELR/883",
-          "amount": "10000000000000000000000"
+          "amount": "1000000000000000000000000"
+        },
+        {
+          "denom": "USDT/883",
+          "amount": "1000000000000"
         },
         {
           "denom": "CELR/stake",
@@ -184,6 +192,12 @@
               "symbol": "CELR",
               "address": "58712219a4bdbb0e581dcaf6f5c4c2b2d2f42158",
               "decimals": 18
+            },
+            {
+              "chain_id": 883,
+              "symbol": "USDT",
+              "address": "daa38d17ff77ae7c26a4afc0bea9c7156ed7af27",
+              "decimals": 6
             }
           ],
           "total_staked_amount": {
@@ -194,10 +208,18 @@
             {
               "remaining_amount": {
                 "denom": "CELR/883",
-                "amount": "10000000000000000000000.000000000000000000"
+                "amount": "1000000000000000000000000"
               },
               "reward_start_block_height": 1,
-              "reward_amount_per_block": "10.000000000000000000"
+              "reward_amount_per_block": "1000000000000000000"
+            },
+            {
+              "remaining_amount": {
+                "denom": "USDT/883",
+                "amount": "1000000000000"
+              },
+              "reward_start_block_height": 1,
+              "reward_amount_per_block": "1000000"
             }
           ],
           "total_accumulated_rewards": []

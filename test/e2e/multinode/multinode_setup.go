@@ -22,6 +22,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/spf13/viper"
 )
 
@@ -219,6 +220,7 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool, gateway boo
 		DeployUsdtForBridge()
 		DeployBridgeContract()
 		CreateFarmingPools()
+		FundUsdtFarmingReward()
 	}
 
 	if gateway {
@@ -334,7 +336,7 @@ func CreateFarmingPools() {
 		// Set claim_cooldown
 		genesisViper.Set("app_state.farming.params.claim_cooldown", "1s")
 
-		// Add a pool
+		// Add a farming pool with two reward tokens
 		poolName := "cbridge-USDT/883"
 		var pools farmingtypes.FarmingPools
 		pool := farmingtypes.NewFarmingPool(
@@ -350,16 +352,29 @@ func CreateFarmingPools() {
 					Symbol:  "CELR",
 					Address: eth.Addr2Hex(tc.CelrAddr),
 				},
+				{
+					ChainId: 883,
+					Symbol:  "USDT",
+					Address: eth.Addr2Hex(tc.CbrChain1.USDTAddr),
+				},
 			},
 			sdk.NewDecCoin("CB-USDT/883", sdk.ZeroInt()),
 			[]farmingtypes.RewardTokenInfo{
 				{
-					RemainingAmount:        sdk.NewDecCoin("CELR/883", sdk.NewInt(10000).Mul(sdk.NewInt(1e18))),
+					RemainingAmount:        sdk.NewDecCoin("CELR/883", sdk.NewInt(1000000).Mul(sdk.NewInt(1e18))),
 					RewardStartBlockHeight: 1,
-					RewardAmountPerBlock:   sdk.NewDec(10),
+					RewardAmountPerBlock:   sdk.NewDec(1e18),
+				},
+				{
+					RemainingAmount:        sdk.NewDecCoin("USDT/883", sdk.NewInt(1000000).Mul(sdk.NewInt(1e6))),
+					RewardStartBlockHeight: 1,
+					RewardAmountPerBlock:   sdk.NewDec(1e6),
 				},
 			},
-			sdk.NewDecCoins(sdk.NewDecCoin("CELR/883", sdk.ZeroInt())),
+			sdk.NewDecCoins(
+				sdk.NewDecCoin("CELR/883", sdk.ZeroInt()),
+				sdk.NewDecCoin("USDT/883", sdk.ZeroInt()),
+			),
 		)
 		pools = append(pools, pool)
 		genesisViper.Set("app_state.farming.pools", pools)
@@ -381,27 +396,58 @@ func CreateFarmingPools() {
 			"app_state.farming.pool_current_rewards",
 			[]farmingtypes.PoolCurrentRewardsRecord{poolCurrentRewardsRecord})
 
-		// Fund reward module account
-		rewardCoins := sdk.NewCoins(sdk.NewCoin("CELR/883", sdk.NewInt(10000).Mul(sdk.NewInt(1e18))))
+		// Ensure reward module account balances
+		rewardCoins := sdk.NewCoins(
+			sdk.NewCoin("CELR/883", sdk.NewInt(1000000).Mul(sdk.NewInt(1e18))),
+			sdk.NewCoin("USDT/883", sdk.NewInt(1000000).Mul(sdk.NewInt(1e6))),
+		).Sort()
 		var balances []banktypes.Balance
 		jsonByte, _ := json.Marshal(genesisViper.Get("app_state.bank.balances"))
 		json.Unmarshal(jsonByte, &balances)
-		balances = append(balances, banktypes.Balance{
-			Address: authtypes.NewModuleAddress(farmingtypes.RewardModuleAccountName).String(),
-			Coins:   rewardCoins,
-		})
+		rewardModuleAccountAddress := authtypes.NewModuleAddress(farmingtypes.RewardModuleAccountName).String()
+		hasBalance := false
+		for _, balance := range balances {
+			if balance.Address == rewardModuleAccountAddress {
+				hasBalance = true
+				balance.Coins = rewardCoins
+				break
+			}
+		}
+		if !hasBalance {
+			balances = append(balances, banktypes.Balance{
+				Address: rewardModuleAccountAddress,
+				Coins:   rewardCoins,
+			})
+		}
 		genesisViper.Set("app_state.bank.balances", balances)
 
-		// Change genesis supply
+		// Ensure genesis supply
 		var supply sdk.Coins
 		jsonByte, _ = json.Marshal(genesisViper.Get("app_state.bank.supply"))
 		json.Unmarshal(jsonByte, &supply)
-		supply = supply.Add(rewardCoins...)
+		supply.Sort()
+		for _, reward := range rewardCoins {
+			existingAmount := supply.AmountOf(reward.Denom)
+			existingCoin := sdk.NewCoin(reward.Denom, existingAmount)
+			supply = supply.Sub(sdk.NewCoins(existingCoin)).Add(sdk.NewCoins(reward)...)
+		}
 		genesisViper.Set("app_state.bank.supply", supply)
 
 		err = genesisViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write genesis")
 	}
+}
+
+func FundUsdtFarmingReward() {
+	amt := tc.NewBigInt(1, 13)
+	usdtContract := tc.CbrChain1.USDTContract
+	approveTx, err := usdtContract.Approve(tc.EtherBaseAuth, tc.Contracts.FarmingRewards.Address, amt)
+	tc.ChkErr(err, "failed to approve USDT to FarmingRewards")
+	tc.WaitMinedWithChk(context.Background(), tc.EthClient, approveTx, tc.BlockDelay, tc.PollingInterval, "approve USDT")
+	allowance, _ := usdtContract.Allowance(&bind.CallOpts{}, tc.EtherBaseAuth.From, tc.Contracts.FarmingRewards.Address)
+	log.Infoln("allowance to FarmingRewards", allowance.String())
+	_, err = tc.Contracts.FarmingRewards.ContributeToRewardPool(tc.EtherBaseAuth, tc.CbrChain1.USDTAddr, amt)
+	tc.ChkErr(err, "failed to contribute USDT to FarmingRewards")
 }
 
 func ShutdownNode(node uint) {
