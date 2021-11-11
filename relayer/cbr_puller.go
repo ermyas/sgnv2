@@ -3,6 +3,7 @@ package relayer
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	ethutils "github.com/celer-network/goutils/eth"
@@ -120,7 +121,11 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 	txHash, err := r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, sigsBytes, curss, relayOnChain)
 	if err != nil {
 		r.requeueRelay(relayEvent)
-		log.Errorf("%s. err %s", logmsg, err)
+		if !strings.Contains(err.Error(), "Pausable: paused") {
+			log.Errorf("%s. err %s", logmsg, err)
+		} else {
+			log.Infof("%s. err %s", logmsg, err)
+		}
 		return
 	}
 	log.Infof("%s. tx hash %s", logmsg, txHash)
