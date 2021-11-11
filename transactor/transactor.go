@@ -22,17 +22,18 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/gammazero/deque"
+	"github.com/gogo/protobuf/proto"
 	"github.com/spf13/viper"
 )
 
 const (
-	maxTxRetry        = 15
-	maxTxQueryRetry   = 30
-	txRetryDelay      = 1 * time.Second
-	maxSignRetry      = 10
-	signRetryDelay    = 100 * time.Millisecond
-	maxWaitMinedRetry = 5
-	maxMsgsPerTx      = 10
+	maxTxRetry         = 15
+	maxTxQueryRetry    = 30
+	txRetryDelay       = 1 * time.Second
+	maxSignRetry       = 10
+	signRetryDelay     = 100 * time.Millisecond
+	maxWaitMinedRetry  = 5
+	maxRawMsgBytesInTx = 500000
 )
 
 var errGasCode = fmt.Errorf("code %d", sdkerrors.ErrOutOfGas.ABCICode())
@@ -170,12 +171,28 @@ func (t *Transactor) start() {
 
 func (t *Transactor) consumeTxMsgQueue() {
 	var msgs []sdk.Msg
-	for t.msgQueue.Len() != 0 && len(msgs) < maxMsgsPerTx {
+	var msgsCount int
+	var msgsBytesLen int
+	for t.msgQueue.Len() != 0 {
 		msg := t.msgQueue.PopFront().(sdk.Msg)
+
+		msgBytes, _ := proto.Marshal(msg)
+		msgsBytesLen += len(msgBytes)
+		if msgsBytesLen > maxRawMsgBytesInTx {
+			t.msgQueue.PushFront(msg) // adds back to the queue
+			break
+		}
+
 		msgs = append(msgs, msg)
+		msgsCount++
 	}
 
-	t.SendTxMsgsWaitMined(msgs)
+	if msgsCount > 0 {
+		t.SendTxMsgsWaitMined(msgs)
+		log.Debugln("Current tx msgs count:", msgsCount)
+	} else {
+		log.Errorln("Single msg too large!")
+	}
 }
 
 func (t *Transactor) SendTxMsgsWaitMined(msgs []sdk.Msg) (*sdk.TxResponse, error) {
