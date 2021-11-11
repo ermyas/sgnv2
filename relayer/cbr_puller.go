@@ -18,13 +18,14 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/gogo/protobuf/proto"
 	"github.com/spf13/viper"
 )
 
 const (
-	maxRelayRetry      = 5
-	maxSigRetry        = 10
-	maxEventsPerUpdate = 50
+	maxRelayRetry     = 5
+	maxSigRetry       = 10
+	maxBytesPerUpdate = 400000
 )
 
 // sleep, check if syncer, if yes, go over cbr dbs to send tx
@@ -48,6 +49,7 @@ func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
 		if len(msg.Updates) > 0 {
 			// or we should call cbridge grpc here?
 			r.Transactor.AddTxMsg(msg)
+			log.Debugln("CbridgeEvent updates count in one msg:", len(msg.Updates))
 		}
 
 		r.processCbridgeQueue()
@@ -168,13 +170,14 @@ func (c *CbrOneChain) pullEvents(chid uint64, cliCtx client.Context) []*synctype
 			c.lock.RUnlock()
 			continue
 		}
-		for ; iterator.Valid() && len(keys) < maxEventsPerUpdate; iterator.Next() {
+		for ; iterator.Valid(); iterator.Next() {
 			keys = append(keys, iterator.Key())
 			vals = append(vals, iterator.Value())
 		}
 		iterator.Close()
 		c.lock.RUnlock()
 
+		var updatesBytesLen int
 		for i, key := range keys {
 			err = c.db.Delete(key) // TODO: lock protection?
 			if err != nil {
@@ -195,20 +198,29 @@ func (c *CbrOneChain) pullEvents(chid uint64, cliCtx client.Context) []*synctype
 				continue
 			}
 
+			evlog.Data = nil //it's useless during verification, remove to save msg space
+			evlogJson, _ := json.Marshal(evlog)
 			onchev := &cbrtypes.OnChainEvent{
 				Chainid: chid,
 				Evtype:  evn,
-				Elog:    vals[i],
+				Elog:    evlogJson,
 			}
 			data, _ := onchev.Marshal()
-			ret = append(ret,
-				&synctypes.ProposeUpdate{
-					Type:       synctypes.DataType_CbrOnchainEvent,
-					ChainId:    chid,
-					ChainBlock: 0, // why do we need this in ProposeUpdate?
-					Data:       data,
-				},
-			)
+			update := &synctypes.ProposeUpdate{
+				Type:       synctypes.DataType_CbrOnchainEvent,
+				ChainId:    chid,
+				ChainBlock: 0, // why do we need this in ProposeUpdate?
+				Data:       data,
+			}
+
+			updateBytes, _ := proto.Marshal(update)
+			updatesBytesLen += len(updateBytes)
+			if updatesBytesLen > maxBytesPerUpdate {
+				c.db.Set(key, vals[i]) // adds back to db
+				break
+			}
+
+			ret = append(ret, update)
 		}
 	}
 	return ret
