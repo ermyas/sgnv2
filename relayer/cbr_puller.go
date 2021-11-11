@@ -44,7 +44,11 @@ func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
 
 		for chid, onech := range cbrMgr {
 			// go over each chain db events, send msg
-			msg.Updates = append(msg.Updates, onech.pullEvents(chid, r.Transactor.CliCtx)...)
+			ret, isUpdateMsgFull := onech.pullEvents(chid, r.Transactor.CliCtx)
+			msg.Updates = append(msg.Updates, ret...)
+			if isUpdateMsgFull {
+				break
+			}
 		}
 		if len(msg.Updates) > 0 {
 			// or we should call cbridge grpc here?
@@ -155,13 +159,13 @@ func (r *Relayer) requeueRelay(relayEvent RelayEvent) {
 // Note if syncer changes before EndBlock, new syncer may still propose again
 // the 2nd propose shouldn't get votes because when verify, sgn nodes will find it's already processed
 // even it is voted, apply will still fail because x/cbr will err
-func (c *CbrOneChain) pullEvents(chid uint64, cliCtx client.Context) []*synctypes.ProposeUpdate {
-	var ret []*synctypes.ProposeUpdate
+func (c *CbrOneChain) pullEvents(chid uint64, cliCtx client.Context) (ret []*synctypes.ProposeUpdate, isUpdateMsgFull bool) {
 	// to make it simple we use "srcChainId-destChainId-srcTokenAddr" as key, and valid as val.
 	// this cache can only be used in only one pullEvents, if pull again, we should create and use a new cache.
 	cbrSendValidCache := make(map[string]bool)
 	// 1st loop over event names, then go over iter
 	var updatesBytesLen int
+	isUpdateMsgFull = false
 	for _, evn := range evNames {
 		var keys, vals [][]byte
 		c.lock.RLock()
@@ -178,7 +182,6 @@ func (c *CbrOneChain) pullEvents(chid uint64, cliCtx client.Context) []*synctype
 		iterator.Close()
 		c.lock.RUnlock()
 
-		isUpdateMsgFull := false
 		for i, key := range keys {
 			err = c.db.Delete(key) // TODO: lock protection?
 			if err != nil {
@@ -226,7 +229,7 @@ func (c *CbrOneChain) pullEvents(chid uint64, cliCtx client.Context) []*synctype
 			break
 		}
 	}
-	return ret
+	return
 }
 
 func (c *CbrOneChain) skipEvent(evn string, evlog *ethtypes.Log, cliCtx client.Context, checkedCache map[string]bool) (skip bool, reason string) {
