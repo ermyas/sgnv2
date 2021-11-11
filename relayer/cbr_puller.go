@@ -161,6 +161,7 @@ func (c *CbrOneChain) pullEvents(chid uint64, cliCtx client.Context) []*synctype
 	// this cache can only be used in only one pullEvents, if pull again, we should create and use a new cache.
 	cbrSendValidCache := make(map[string]bool)
 	// 1st loop over event names, then go over iter
+	var updatesBytesLen int
 	for _, evn := range evNames {
 		var keys, vals [][]byte
 		c.lock.RLock()
@@ -177,7 +178,7 @@ func (c *CbrOneChain) pullEvents(chid uint64, cliCtx client.Context) []*synctype
 		iterator.Close()
 		c.lock.RUnlock()
 
-		var updatesBytesLen int
+		isUpdateMsgFull := false
 		for i, key := range keys {
 			err = c.db.Delete(key) // TODO: lock protection?
 			if err != nil {
@@ -216,11 +217,15 @@ func (c *CbrOneChain) pullEvents(chid uint64, cliCtx client.Context) []*synctype
 			updateBytes, _ := proto.Marshal(update)
 			updatesBytesLen += len(updateBytes)
 			if updatesBytesLen > maxBytesPerUpdate {
+				isUpdateMsgFull = true
 				c.db.Set(key, vals[i]) // adds back to db
 				break
 			}
 
 			ret = append(ret, update)
+		}
+		if isUpdateMsgFull {
+			break
 		}
 	}
 	return ret

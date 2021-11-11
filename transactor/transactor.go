@@ -179,7 +179,9 @@ func (t *Transactor) consumeTxMsgQueue() {
 		msgBytes, _ := proto.Marshal(msg)
 		msgsBytesLen += len(msgBytes)
 		if msgsBytesLen > maxRawMsgBytesInTx {
-			t.msgQueue.PushFront(msg) // adds back to the queue
+			if msgsCount != 0 {
+				t.msgQueue.PushFront(msg) // adds back to the queue, if it's not the first msg, otherwise, drop the msg as single one cannot be processed
+			}
 			break
 		}
 
