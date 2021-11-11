@@ -217,7 +217,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			_ = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(types.WithdrawStatus_WD_FAILED), lp)
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
-					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Code: webapi.ErrCode_ERROR_INIT_WITHDRAW_FAILED,
 					Msg:  err.Error(),
 				},
 			}, nil

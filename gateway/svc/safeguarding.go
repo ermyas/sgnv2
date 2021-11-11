@@ -180,7 +180,11 @@ func getUsrWithdrawAndDeposit(addr string) *TotalIO {
 	amtMap := make(map[int32]*big.Float)
 	for _, entry := range lpHistory {
 		lpType := entry.LpType
-		amtMap[int32(lpType)] = new(big.Float).Add(amtMap[int32(lpType)], getAmtFromLpHistory(entry))
+		preValue, found := amtMap[int32(lpType)]
+		if !found {
+			preValue = new(big.Float)
+		}
+		amtMap[int32(lpType)] = new(big.Float).Add(preValue, getAmtFromLpHistory(entry))
 	}
 	return &TotalIO{
 		withdraw: amtMap[int32(webapi.LPType_LP_TYPE_REMOVE)],

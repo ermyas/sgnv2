@@ -409,6 +409,9 @@ func (gs *GatewayService) getTxHashForTransfer(transfer *dal.Transfer) (string, 
 }
 
 func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainId, slippage uint32, srcToken, dstToken *webapi.TokenInfo, amt string, useLp bool) (*webapi.EstimateAmtResponse, error) {
+	if !utils.IsvalidAmt(amt) {
+		return nil, fmt.Errorf("invalid amt, params checking failed")
+	}
 	tr := gs.TP.GetTransactor()
 	getFeeRequest := &types.GetFeeRequest{
 		SrcChainId:   uint64(srcChainId),
