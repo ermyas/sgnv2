@@ -199,12 +199,10 @@ func (c *CbrOneChain) pullEvents(chid uint64, cliCtx client.Context) []*synctype
 				continue
 			}
 
-			evlog.Data = nil //it's useless during verification, remove to save msg space
-			evlogJson, _ := json.Marshal(evlog)
 			onchev := &cbrtypes.OnChainEvent{
 				Chainid: chid,
 				Evtype:  evn,
-				Elog:    evlogJson,
+				Elog:    vals[i],
 			}
 			data, _ := onchev.Marshal()
 			update := &synctypes.ProposeUpdate{
