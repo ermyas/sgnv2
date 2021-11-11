@@ -117,7 +117,7 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 		log.Infof("%s. dest transfer already exist on chain, skip it", logmsg)
 		return
 	}
-	txHash, err := r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, sigsBytes, curss, relayEvent.XferId)
+	txHash, err := r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, sigsBytes, curss, relayOnChain)
 	if err != nil {
 		r.requeueRelay(relayEvent)
 		log.Errorf("%s. err %s", logmsg, err)
