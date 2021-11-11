@@ -120,11 +120,16 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 	}
 	txHash, err := r.cbrMgr[relayOnChain.DstChainId].SendRelay(relay.Relay, sigsBytes, curss, relayOnChain)
 	if err != nil {
+		if strings.Contains(err.Error(), "transfer exists") {
+			log.Infof("%s. err %s, skip it", logmsg, err)
+			return
+		}
+
 		r.requeueRelay(relayEvent)
-		if !strings.Contains(err.Error(), "Pausable: paused") {
-			log.Errorf("%s. err %s", logmsg, err)
+		if strings.Contains(err.Error(), "Pausable: paused") || strings.Contains(err.Error(), "volume exceeds cap") {
+			log.Warnf("%s. err %s", logmsg, err)
 		} else {
-			log.Infof("%s. err %s", logmsg, err)
+			log.Errorf("%s. err %s", logmsg, err)
 		}
 		return
 	}
@@ -133,7 +138,7 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 
 func (r *Relayer) requeueRelay(relayEvent RelayEvent) {
 	if relayEvent.RetryCount >= maxRelayRetry {
-		log.Infof("relay %x hits retry limit", relayEvent.XferId)
+		log.Warnf("relay %x hits retry limit", relayEvent.XferId)
 		return
 	}
 
