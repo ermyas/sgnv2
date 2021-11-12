@@ -119,6 +119,8 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 		ec,
 		ethutils.WithBlockDelay(cfg.BlkDelay),
 		ethutils.WithPollingInterval(time.Duration(cfg.BlkInterval)*time.Second),
+		ethutils.WithAddGasGwei(cfg.AddGasGwei),
+		ethutils.WithAddGasEstimateRatio(cfg.AddGasEstimateRatio),
 	)
 	ret := &CbrOneChain{
 		Client:     ec,
