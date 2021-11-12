@@ -331,7 +331,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 
 				if detail != nil && status == uint64(types.WithdrawStatus_WD_WAITING_FOR_SGN) && detail.GetStatus() != resp.Status {
 					// ignore db update err, it has logs in dal
-					if amt != "" {
+					if amt != "" && amt != "0" {
 						dal.DB.UpdateWaitingForLPStatus(seqNum, lpType, chainId, addr.String(), amt, uint64(detail.Status))
 					} else {
 						dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(detail.Status), addr.String())
