@@ -3,6 +3,7 @@ package transactor
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/seal"
+	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clienttx "github.com/cosmos/cosmos-sdk/client/tx"
@@ -170,30 +172,66 @@ func (t *Transactor) start() {
 }
 
 func (t *Transactor) consumeTxMsgQueue() {
-	var msgs []sdk.Msg
-	var msgsCount int
+	msgs := make([]sdk.Msg, 0)
 	var msgsBytesLen int
+	var msgType string
 	for t.msgQueue.Len() != 0 {
 		msg := t.msgQueue.PopFront().(sdk.Msg)
 
 		msgBytes, _ := proto.Marshal(msg)
 		msgsBytesLen += len(msgBytes)
 		if msgsBytesLen > maxRawMsgBytesInTx {
-			if msgsCount != 0 {
+			if len(msgs) != 0 {
 				t.msgQueue.PushFront(msg) // adds back to the queue, if it's not the first msg, otherwise, drop the msg as single one cannot be processed
+			} else { // for first msg, try to split the msg into smaller ones
+				switch m := msg.(type) {
+				case *synctypes.MsgProposeUpdates:
+					tmp := *m //copy one
+					for {
+						half := len(tmp.Updates) / 2
+						if half == 0 {
+							break
+						}
+						tmp.Updates = tmp.Updates[:half] //get half
+						tmpMsgBytes, _ := proto.Marshal(&tmp)
+						if len(tmpMsgBytes) <= maxRawMsgBytesInTx {
+							msgs = append(msgs, &tmp)
+							m.Updates = m.Updates[half:]
+							t.msgQueue.PushFront(m) // push back the left
+							break
+						}
+					}
+				case *synctypes.MsgVoteUpdates:
+					tmp := *m //copy one
+					for {
+						half := len(tmp.Votes) / 2
+						if half == 0 {
+							break
+						}
+						tmp.Votes = tmp.Votes[:half] //get half
+						tmpMsgBytes, _ := proto.Marshal(&tmp)
+						if len(tmpMsgBytes) <= maxRawMsgBytesInTx {
+							msgs = append(msgs, &tmp)
+							m.Votes = m.Votes[half:]
+							t.msgQueue.PushFront(m) // push back the left
+							break
+						}
+					}
+				default:
+					msgType = reflect.TypeOf(msg).String()
+				}
 			}
 			break
 		}
 
 		msgs = append(msgs, msg)
-		msgsCount++
 	}
 
-	if msgsCount > 0 {
+	if len(msgs) > 0 {
 		t.SendTxMsgsWaitMined(msgs)
-		log.Debugln("Current tx msgs count:", msgsCount)
+		log.Debugln("Current msgs count in one tx:", len(msgs))
 	} else {
-		log.Errorln("Single msg too large!")
+		log.Errorf("Single msg too large, msg type is: %s!", msgType)
 	}
 }
 
@@ -265,6 +303,7 @@ func (t *Transactor) sendTxMsgs(msgs []sdk.Msg, gas uint64) (*sdk.TxResponse, er
 		if err != nil {
 			return nil, fmt.Errorf("buildAndSignTx err: %w", err)
 		}
+		log.Debugln("tx msg bytes size:", len(txBytes))
 		txResponse, err := t.CliCtx.BroadcastTx(txBytes)
 		if err != nil {
 			return nil, fmt.Errorf("BroadcastTx err: %w", err)
