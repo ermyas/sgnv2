@@ -139,17 +139,18 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 			}
 			fApy, hasSession := farmingApyMap[chainId][token.Token.GetSymbol()]
 			lp := &webapi.LPInfo{
-				Chain:              chain,
-				Token:              token,
-				Liquidity:          gs.F.GetUsdVolume(token.Token, common.Str2BigInt(usrLiquidity)),
-				LiquidityAmt:       usrLiquidity,
-				HasFarmingSessions: hasSession,
-				LpFeeEarning:       gs.F.GetUsdVolume(token.Token, common.Str2BigInt(usrLpFeeEarning)),
-				Volume_24H:         volume24h,
-				TotalLiquidity:     gs.F.GetUsdVolume(token.Token, common.Str2BigInt(totalLiquidity)),
-				TotalLiquidityAmt:  totalLiquidity,
-				LpFeeEarningApy:    feeEarningApyMap[chainId][tokenSymbol],
-				FarmingApy:         fApy,
+				Chain:                chain,
+				Token:                token,
+				Liquidity:            gs.F.GetUsdVolume(token.Token, common.Str2BigInt(usrLiquidity)),
+				LiquidityAmt:         usrLiquidity,
+				HasFarmingSessions:   hasSession,
+				LpFeeEarning:         gs.F.GetUsdVolume(token.Token, common.Str2BigInt(usrLpFeeEarning)),
+				Volume_24H:           volume24h,
+				TotalLiquidity:       gs.F.GetUsdVolume(token.Token, common.Str2BigInt(totalLiquidity)),
+				TotalLiquidityAmt:    totalLiquidity,
+				LpFeeEarningApy:      feeEarningApyMap[chainId][tokenSymbol],
+				FarmingApy:           fApy.apy,
+				FarmingSessionTokens: fApy.rewardTokens,
 			}
 			lps = append(lps, lp)
 		}
@@ -252,7 +253,12 @@ func (gs *GatewayService) getLiquidityOnChainToken(chainId uint64, tokenAddr str
 	return resp.GetTotalLiq()
 }
 
-func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[string]float64 {
+type FarmingInfo struct {
+	apy          float64
+	rewardTokens []*webapi.TokenInfo
+}
+
+func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[string]*FarmingInfo {
 	cache := GetFarmingApyCache()
 	if cache != nil {
 		return cache
@@ -267,7 +273,7 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 		log.Warnf("getFarmingApy error:%+v", err)
 		return nil
 	}
-	apysByChainId := make(map[uint64]map[string]float64) // map<chain_id, map<token_symbol, apy>>
+	apysByChainId := make(map[uint64]map[string]*FarmingInfo) // map<chain_id, map<token_symbol, apy>>
 	for _, pool := range res.GetPools() {
 		apy, calErr := gs.calcPoolApy(&pool)
 		if calErr != nil {
@@ -276,14 +282,37 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 		stakeToken := pool.StakeToken
 		apysByToken, exists := apysByChainId[stakeToken.GetChainId()]
 		if !exists {
-			apysByToken = make(map[string]float64)
+			apysByToken = make(map[string]*FarmingInfo)
 		}
 		stakeTokenSymbol := cbrtypes.GetSymbolFromStakeToken(stakeToken.GetSymbol())
-		apysByToken[stakeTokenSymbol] = apy
+		apysByToken[stakeTokenSymbol] = &FarmingInfo{
+			apy:          apy,
+			rewardTokens: getRewardTokensFromPool(pool),
+		}
 		apysByChainId[stakeToken.GetChainId()] = apysByToken
 	}
 	SetFarmingApyCache(apysByChainId)
 	return apysByChainId
+}
+
+func getRewardTokensFromPool(pool farmingtypes.FarmingPool) []*webapi.TokenInfo {
+	var tokens []*webapi.TokenInfo
+	for _, rewardToken := range pool.RewardTokens {
+		tokenSymbol := rewardToken.GetSymbol()
+		chainId := rewardToken.GetChainId()
+		tokenSymbol = cbrtypes.GetSymbolFromStakeToken(tokenSymbol)
+		token, found, dbErr := dal.DB.GetTokenBySymbol(tokenSymbol, chainId)
+		if token != nil && found && dbErr == nil {
+			tokens = append(tokens, token)
+		} else {
+			token = &webapi.TokenInfo{
+				Name: tokenSymbol,
+			}
+			enrichUnknownToken(token)
+			tokens = append(tokens, token)
+		}
+	}
+	return tokens
 }
 
 func (gs *GatewayService) get24hTx() map[uint64]map[string]*txData {

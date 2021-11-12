@@ -229,10 +229,10 @@ func (gs *GatewayService) calcPoolApy(pool *farmingtypes.FarmingPool) (float64, 
 			rewardPerBlock := info.RewardAmountPerBlock.MustFloat64()
 			rewardPerDay := rewardPerBlock * secondsPerDay / float64(sgnBlockTime)
 			rewardToken := &pool.RewardTokens[i]
-			rewardUsdPerDay, err := gs.calcUsdValue(rewardToken.Symbol, int(rewardToken.Decimals), rewardPerDay)
-			if err != nil {
-				log.Errorf("calcUsdValue %s error %s", rewardToken.Symbol, err)
-				return 0.0, err
+			rewardUsdPerDay, calErr := gs.calcUsdValue(rewardToken.Symbol, int(rewardToken.Decimals), rewardPerDay)
+			if calErr != nil {
+				log.Errorf("calcUsdValue %s error %s", rewardToken.Symbol, calErr)
+				return 0.0, calErr
 			}
 			apyForToken := math.Pow(1+rewardUsdPerDay/totalStakedUsd, n) - 1
 			if apyForToken >= 9999999 { // limit the max to make it more sense and also to avoid +Inf in case

@@ -358,6 +358,7 @@ message LPInfo {
     string total_liquidity_amt = 10; // total liquidity of user in token
     double lp_fee_earning_apy = 11;
     double farming_apy = 12;
+    repeated TokenInfo farming_session_tokens = 13;
 }
 message GetLPInfoListResponse {
     ErrMsg err = 1;
