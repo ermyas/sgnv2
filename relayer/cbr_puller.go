@@ -162,7 +162,7 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 	existRelay, existRelayErr := r.cbrMgr[relayOnChain.DstChainId].existTransferId(relayTransferId)
 	if existRelayErr != nil {
 		// if fail to query, continue to send this relay, because we can not make sure whether the relay already exist.
-		log.Warnln("fail to query transefer err:", existRelayErr)
+		log.Warnln("fail to query transfer err:", existRelayErr)
 	} else if existRelay {
 		log.Infof("%s. dest transfer already exist on chain, skip it", logmsg)
 		return
@@ -279,7 +279,7 @@ func (c *CbrOneChain) skipEvent(evn string, evlog *ethtypes.Log, cliCtx client.C
 	case cbrtypes.CbrEventSend:
 		skip, reason = c.skipSyncCbrSend(evlog, cliCtx, checkedCache)
 	case cbrtypes.CbrEventSignersUpdated:
-		skip, reason = c.skipSyncCbrSignerUdpate(evlog, cliCtx)
+		skip, reason = c.skipSyncCbrSignerUpdate(evlog, cliCtx)
 	case cbrtypes.CbrEventLiqAdd:
 		skip, reason = c.skipSyncCbrLiqAdd(evlog, cliCtx)
 	case cbrtypes.CbrEventRelay:
@@ -346,7 +346,7 @@ func (c *CbrOneChain) skipSyncCbrSend(
 	return
 }
 
-func (c *CbrOneChain) skipSyncCbrSignerUdpate(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
+func (c *CbrOneChain) skipSyncCbrSignerUpdate(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
 	ev, err := c.contract.ParseSignersUpdated(*evlog)
 	if err != nil {
 		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)

@@ -19,11 +19,11 @@ func init() {
 	rootCmd.AddCommand(ownerCmd)
 	// owner sub cmds
 	ownerCmd.AddCommand(
-		resetSignerCmd,
-		notifyResetSignerCmd,
-		wrapCmd,
-		minSendCmd,
-		minSlipCmd,
+		resetSignersCmd,
+		notifyResetSignersCmd,
+		setWrapCmd,
+		setMinSendCmd,
+		setMinimalMaxSlippageCmd,
 	)
 }
 
@@ -38,8 +38,8 @@ var ownerCmd = &cobra.Command{
 	},
 }
 
-var resetSignerCmd = &cobra.Command{
-	Use:   "resetSigner",
+var resetSignersCmd = &cobra.Command{
+	Use:   "resetSigners",
 	Short: "call resetSigners, args are sorted by eth signer1Eth,power signer2Eth,power",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -56,8 +56,8 @@ var resetSignerCmd = &cobra.Command{
 	},
 }
 
-var notifyResetSignerCmd = &cobra.Command{
-	Use:   "notifyResetSigner",
+var notifyResetSignersCmd = &cobra.Command{
+	Use:   "notifyResetSigners",
 	Short: "call NotifyResetSigners",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -66,8 +66,8 @@ var notifyResetSignerCmd = &cobra.Command{
 	},
 }
 
-var wrapCmd = &cobra.Command{
-	Use:   "warp",
+var setWrapCmd = &cobra.Command{
+	Use:   "setWrap",
 	Short: "call setWrap, arg is weth address",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -77,8 +77,8 @@ var wrapCmd = &cobra.Command{
 	},
 }
 
-var minSendCmd = &cobra.Command{
-	Use:   "minSend",
+var setMinSendCmd = &cobra.Command{
+	Use:   "setMinSend",
 	Short: "call setMinSend, tokenaddr,minsend token2addr,minsend",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -95,13 +95,13 @@ var minSendCmd = &cobra.Command{
 	},
 }
 
-var minSlipCmd = &cobra.Command{
-	Use:   "minSlip",
+var setMinimalMaxSlippageCmd = &cobra.Command{
+	Use:   "setMinimalMaxSlippage",
 	Short: "call setMinimalMaxSlippage x, x is slippage *1e6",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		minSlip, _ := strconv.Atoi(args[0])
-		tx, err := cbrContract.SetMinimalMaxSlippage(auth, uint32(minSlip))
+		minimalMaxSlippage, _ := strconv.Atoi(args[0])
+		tx, err := cbrContract.SetMinimalMaxSlippage(auth, uint32(minimalMaxSlippage))
 		chkTxErr(tx, err)
 	},
 }

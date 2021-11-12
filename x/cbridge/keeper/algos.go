@@ -53,7 +53,7 @@ func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmo
 		destLiqSum.Sub(destLiqSum, balance)
 	}
 	if isZero(destLiqSum) {
-		return ret, fmt.Errorf("no liqiudity on dest chain") // no liq on dest chain
+		return ret, fmt.Errorf("no liquidity on dest chain") // no liq on dest chain
 	}
 	log.Infoln("srcLiqSum:", srcLiqSum, "destLiqSum:", destLiqSum)
 	y := amt2float(destLiqSum, dest.Decimal) // y can't be 0
