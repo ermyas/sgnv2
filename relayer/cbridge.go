@@ -161,12 +161,14 @@ func fixCfg(cfg *common.OneChainConfig, ethchainid uint64) {
 type RelayEvent struct {
 	XferId     []byte `json:"xfer_id"`
 	RetryCount uint64 `json:"retry_count"`
+	DstChainId uint64 `json:"dst_chain_id"`
 }
 
-func NewRelayEvent(xferId []byte) RelayEvent {
+func NewRelayEvent(xferId []byte, dstChainId uint64) RelayEvent {
 	return RelayEvent{
 		XferId:     xferId,
 		RetryCount: 0,
+		DstChainId: dstChainId,
 	}
 }
 

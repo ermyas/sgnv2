@@ -99,6 +99,6 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 
 	r.cbrMgr = NewCbridgeMgr(db, r.Transactor.CliCtx) // do we need to save mgr somewhere?
 	go r.doCbridgeSync(r.cbrMgr)
-	go r.doCbridgeOnchain()
+	r.doCbridgeOnchain(r.cbrMgr) // internal use gorouting
 	go r.pullPriceChange()
 }

@@ -91,7 +91,7 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 		if CurRelayerInstance == nil {
 			log.Errorln("CurRelayerInstance not initialized", err)
 		} else {
-			CurRelayerInstance.dbDelete(GetCbrXferKey(ev.TransferId[:]))
+			CurRelayerInstance.dbDelete(GetCbrXferKey(ev.TransferId[:], c.chainid))
 		}
 
 		err = c.saveEvent(cbrtypes.CbrEventRelay, eLog)

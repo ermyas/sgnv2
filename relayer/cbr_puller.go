@@ -64,23 +64,30 @@ func (r *Relayer) doCbridgeSync(cbrMgr CbrMgr) {
 }
 
 // sleep, check if syncer, if yes, go over cbr dbs to send tx
-func (r *Relayer) doCbridgeOnchain() {
+func (r *Relayer) doCbridgeOnchain(cbrMgr CbrMgr) {
+	for chid := range cbrMgr {
+		go r.doCbridgeOnchainByChain(chid)
+	}
+}
+
+func (r *Relayer) doCbridgeOnchainByChain(chid uint64) {
 	interval := time.Duration(viper.GetUint64(common.FlagSgnCheckIntervalCbridge)) * time.Second
-	log.Infoln("start process cbridge onchain, interval:", interval)
+	log.Infof("start process cbridge onchain, interval:%d, chainId: %d", interval, chid)
 	for {
 		time.Sleep(interval)
 		if !r.isSyncer() {
 			continue
 		}
 
-		r.processCbridgeQueue()
+		r.processCbridgeQueue(chid)
 	}
 }
 
-func (r *Relayer) processCbridgeQueue() {
+func (r *Relayer) processCbridgeQueue(chid uint64) {
 	var keys, vals [][]byte
 	r.lock.RLock()
-	iterator, err := r.db.Iterator(CbrXferKeyPrefix, storetypes.PrefixEndBytes(CbrXferKeyPrefix))
+	prefix := GetCbrChainXferPrefix(chid)
+	iterator, err := r.db.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
 	if err != nil {
 		log.Errorln("Create db iterator err", err)
 		r.lock.RUnlock()
@@ -93,20 +100,12 @@ func (r *Relayer) processCbridgeQueue() {
 	iterator.Close()
 	r.lock.RUnlock()
 
-	queueSize := len(keys)
-	log.Debugf("start process relay queue，current timestamp: %d, queue size: %d", time.Now().Unix(), queueSize)
-	if queueSize > 500 {
-		log.Errorln("Relay queue exceeds 500 items!") //temp code (for testnet only)
-	}
+	log.Debugf("start process relay queue，current timestamp: %d, queue size: %d", time.Now().Unix(), len(keys))
 	for i, key := range keys {
 		event := NewRelayEventFromBytes(vals[i])
 		err = r.dbDelete(key)
 		if err != nil {
 			log.Errorln("db Delete err", err)
-			continue
-		}
-
-		if queueSize > 500 { //temp code (for testnet only): the system is stuck on too many items in the queue, return directly without requeue msg
 			continue
 		}
 
@@ -193,7 +192,7 @@ func (r *Relayer) requeueRelay(relayEvent RelayEvent) {
 	}
 
 	relayEvent.RetryCount = relayEvent.RetryCount + 1
-	err := r.dbSet(GetCbrXferKey(relayEvent.XferId), relayEvent.MustMarshal())
+	err := r.dbSet(GetCbrXferKey(relayEvent.XferId, relayEvent.DstChainId), relayEvent.MustMarshal())
 	if err != nil {
 		log.Errorln("db Set err", err)
 	}

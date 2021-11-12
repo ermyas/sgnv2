@@ -1,6 +1,7 @@
 package relayer
 
 import (
+	"fmt"
 	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -28,6 +29,10 @@ func GetSlashKey(nonce uint64) []byte {
 }
 
 // get cbridge transfer key from xferId
-func GetCbrXferKey(xferId []byte) []byte {
-	return append(CbrXferKeyPrefix, xferId...)
+func GetCbrXferKey(xferId []byte, destChid uint64) []byte {
+	return append(GetCbrChainXferPrefix(destChid), xferId...)
+}
+
+func GetCbrChainXferPrefix(destChid uint64) []byte {
+	return append(CbrXferKeyPrefix, []byte(fmt.Sprintf("-%d-", destChid))...)
 }
