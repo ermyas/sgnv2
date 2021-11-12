@@ -42,7 +42,7 @@ func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
 			Sender: r.Transactor.Key.GetAddress().String(),
 		}
 
-		log.Debugln("start pulling cbridge events，current timestmap:", time.Now().Unix())
+		log.Debugln("start pulling cbridge events，current timestamp:", time.Now().Unix())
 		var updatesBytesLen int
 		for chid, onech := range cbrMgr {
 			// go over each chain db events, send msg
@@ -58,14 +58,14 @@ func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
 			log.Debugln("CbridgeEvent updates count in one msg:", len(msg.Updates))
 		}
 
-		log.Debugln("start process cbridge queue, current timestmap:", time.Now().Unix())
+		log.Debugln("start process cbridge queue, current timestamp:", time.Now().Unix())
 		r.processCbridgeQueue()
 
-		log.Debugln("start check signer update, current timestmap:", time.Now().Unix())
+		log.Debugln("start check signer update, current timestamp:", time.Now().Unix())
 		if r.isCbrSsUpdating() {
 			r.updateSigners()
 		}
-		log.Debugln("finish process cycle，current timestmap:", time.Now().Unix())
+		log.Debugln("finish process cycle，current timestamp:", time.Now().Unix())
 	}
 }
 
@@ -85,6 +85,7 @@ func (r *Relayer) processCbridgeQueue() {
 	iterator.Close()
 	r.lock.RUnlock()
 
+	log.Debugf("start process relay queue，current timestamp: %d, queue size: %d", time.Now().Unix(), len(keys))
 	for i, key := range keys {
 		event := NewRelayEventFromBytes(vals[i])
 		err = r.dbDelete(key)
