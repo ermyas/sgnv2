@@ -42,6 +42,7 @@ func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
 			Sender: r.Transactor.Key.GetAddress().String(),
 		}
 
+		log.Debugln("start pulling cbridge events...")
 		var updatesBytesLen int
 		for chid, onech := range cbrMgr {
 			// go over each chain db events, send msg
