@@ -42,7 +42,7 @@ func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
 			Sender: r.Transactor.Key.GetAddress().String(),
 		}
 
-		log.Debugln("start pulling cbridge events...")
+		log.Debugln("start pulling cbridge events，current timestmap:", time.Now().Unix())
 		var updatesBytesLen int
 		for chid, onech := range cbrMgr {
 			// go over each chain db events, send msg
@@ -58,11 +58,14 @@ func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
 			log.Debugln("CbridgeEvent updates count in one msg:", len(msg.Updates))
 		}
 
+		log.Debugln("start process cbridge queue, current timestmap:", time.Now().Unix())
 		r.processCbridgeQueue()
 
+		log.Debugln("start check signer update, current timestmap:", time.Now().Unix())
 		if r.isCbrSsUpdating() {
 			r.updateSigners()
 		}
+		log.Debugln("finish process cycle，current timestmap:", time.Now().Unix())
 	}
 }
 
