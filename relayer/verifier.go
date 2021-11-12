@@ -3,6 +3,7 @@ package relayer
 import (
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/celer-network/goutils/log"
@@ -33,35 +34,56 @@ func (r *Relayer) verifyPendingUpdates() {
 			continue
 		}
 
-		msgs := synctypes.MsgVoteUpdates{
-			Votes:  make([]*synctypes.VoteUpdate, 0),
-			Sender: r.Transactor.Key.GetAddress().String(),
+		puSize := len(pendingUpdates)
+		batchSize := 100
+		if puSize > 0 {
+			var wg sync.WaitGroup
+			for i := 0; i < puSize; i += batchSize {
+				wg.Add(1)
+				j := i
+				go func() {
+					defer wg.Done()
+					end := j + batchSize
+					if end > puSize {
+						end = puSize
+					}
+					r.verifyUpdates(pendingUpdates[j:end])
+				}()
+			}
+			wg.Wait()
 		}
-		for _, update := range pendingUpdates {
-			_, err = r.verifiedUpdates.Get(strconv.Itoa(int(update.Id)))
-			if err == nil {
+	}
+}
+
+func (r *Relayer) verifyUpdates(pendingUpdates []*synctypes.PendingUpdate) {
+	msgs := synctypes.MsgVoteUpdates{
+		Votes:  make([]*synctypes.VoteUpdate, 0),
+		Sender: r.Transactor.Key.GetAddress().String(),
+	}
+	for _, update := range pendingUpdates {
+		_, err := r.verifiedUpdates.Get(strconv.Itoa(int(update.Id)))
+		if err == nil {
+			continue
+		}
+
+		done, approve := r.verifyUpdate(update)
+		if done {
+			err = r.verifiedUpdates.Set(strconv.Itoa(int(update.Id)), []byte{})
+			if err != nil {
+				log.Errorln("verifiedUpdates Set err", err)
 				continue
 			}
-
-			done, approve := r.verifyUpdate(update)
-			if done {
-				err = r.verifiedUpdates.Set(strconv.Itoa(int(update.Id)), []byte{})
-				if err != nil {
-					log.Errorln("verifiedUpdates Set err", err)
-					continue
-				}
-				if approve {
-					msgs.Votes = append(msgs.Votes, &synctypes.VoteUpdate{
-						Id:     update.Id,
-						Option: synctypes.VoteOption_Yes,
-					})
-				}
+			if approve {
+				msgs.Votes = append(msgs.Votes, &synctypes.VoteUpdate{
+					Id:     update.Id,
+					Option: synctypes.VoteOption_Yes,
+				})
 			}
 		}
+	}
 
-		if len(msgs.Votes) > 0 {
-			r.Transactor.AddTxMsg(&msgs)
-		}
+	if len(msgs.Votes) > 0 {
+		r.Transactor.AddTxMsg(&msgs)
 	}
 }
 
