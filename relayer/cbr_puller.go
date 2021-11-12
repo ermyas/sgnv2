@@ -85,7 +85,11 @@ func (r *Relayer) processCbridgeQueue() {
 	iterator.Close()
 	r.lock.RUnlock()
 
-	log.Debugf("start process relay queue，current timestamp: %d, queue size: %d", time.Now().Unix(), len(keys))
+	queueSize := len(keys)
+	log.Debugf("start process relay queue，current timestamp: %d, queue size: %d", time.Now().Unix(), queueSize)
+	if queueSize > 500 {
+		log.Errorln("Relay queue exceeds 500 items!") //temp code (for testnet only)
+	}
 	for i, key := range keys {
 		event := NewRelayEventFromBytes(vals[i])
 		err = r.dbDelete(key)
@@ -93,6 +97,11 @@ func (r *Relayer) processCbridgeQueue() {
 			log.Errorln("db Delete err", err)
 			continue
 		}
+
+		if queueSize > 500 { //temp code (for testnet only): the system is stuck on too many items in the queue, return directly without requeue msg
+			return
+		}
+
 		r.submitRelay(event)
 	}
 }
