@@ -23,6 +23,7 @@ func OpsCommand() *cobra.Command {
 		CompleteUndelegateCommand(),
 		tc.DeployCommand(),
 		GetSyncCmd(),
+		SubmitRelayCmd(),
 		EthViewerCommand(),
 	)
 
