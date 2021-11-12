@@ -98,6 +98,7 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 	go r.verifyPendingUpdates()
 
 	r.cbrMgr = NewCbridgeMgr(db, r.Transactor.CliCtx) // do we need to save mgr somewhere?
-	go r.doCbridge(r.cbrMgr)
+	go r.doCbridgeSync(r.cbrMgr)
+	go r.doCbridgeOnchain()
 	go r.pullPriceChange()
 }

@@ -29,9 +29,9 @@ const (
 )
 
 // sleep, check if syncer, if yes, go over cbr dbs to send tx
-func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
+func (r *Relayer) doCbridgeSync(cbrMgr CbrMgr) {
 	interval := time.Duration(viper.GetUint64(common.FlagSgnCheckIntervalCbridge)) * time.Second
-	log.Infoln("start process cbridge queue, interval:", interval)
+	log.Infoln("start process cbridge sync, interval:", interval)
 	for {
 		time.Sleep(interval)
 		if !r.isSyncer() {
@@ -42,7 +42,6 @@ func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
 			Sender: r.Transactor.Key.GetAddress().String(),
 		}
 
-		log.Debugln("start pulling cbridge events，current timestamp:", time.Now().Unix())
 		var updatesBytesLen int
 		for chid, onech := range cbrMgr {
 			// go over each chain db events, send msg
@@ -58,14 +57,23 @@ func (r *Relayer) doCbridge(cbrMgr CbrMgr) {
 			log.Debugln("CbridgeEvent updates count in one msg:", len(msg.Updates))
 		}
 
-		log.Debugln("start process cbridge queue, current timestamp:", time.Now().Unix())
-		r.processCbridgeQueue()
-
-		log.Debugln("start check signer update, current timestamp:", time.Now().Unix())
 		if r.isCbrSsUpdating() {
 			r.updateSigners()
 		}
-		log.Debugln("finish process cycle，current timestamp:", time.Now().Unix())
+	}
+}
+
+// sleep, check if syncer, if yes, go over cbr dbs to send tx
+func (r *Relayer) doCbridgeOnchain() {
+	interval := time.Duration(viper.GetUint64(common.FlagSgnCheckIntervalCbridge)) * time.Second
+	log.Infoln("start process cbridge onchain, interval:", interval)
+	for {
+		time.Sleep(interval)
+		if !r.isSyncer() {
+			continue
+		}
+
+		r.processCbridgeQueue()
 	}
 }
 
