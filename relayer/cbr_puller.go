@@ -113,6 +113,19 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 		return
 	}
 
+	xferId := common.Bytes2Hex(relayOnChain.SrcTransferId)
+	resp, err := cbrcli.QueryTransferStatus(r.Transactor.CliCtx, &cbrtypes.QueryTransferStatusRequest{
+		TransferId: []string{xferId},
+	})
+	if err != nil {
+		log.Errorf("QueryTransferStatus err: %s", err)
+		return
+	}
+	if resp.Status[xferId].SgnStatus == cbrtypes.XferStatus_SUCCESS {
+		log.Infof("%s. transfer already completed, skip it", logmsg)
+		return
+	}
+
 	curss := r.cbrMgr[relayOnChain.DstChainId].getCurss()
 	curssList := make([]*cbrtypes.Signer, 0)
 	for i, addr := range curss.addrs {
