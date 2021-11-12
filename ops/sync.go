@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	ethutils "github.com/celer-network/goutils/eth"
+	"math/big"
 	"strings"
 
 	"github.com/celer-network/goutils/log"
@@ -33,6 +35,7 @@ const (
 	FlagTxHash  = "txhash"
 	FlagValAddr = "valaddr"
 	FlagDelAddr = "deladdr"
+	FlagXFerId  = "XferId"
 )
 
 // GetSyncCmd
@@ -47,6 +50,7 @@ func GetSyncCmd() *cobra.Command {
 	cmd.AddCommand(common.PostCommands(
 		GetSyncSigners(),
 		GetSyncCbrEvent(),
+		SubmitRelay(),
 		GetSyncStaking(),
 	)...)
 
@@ -152,6 +156,126 @@ $ %s ops sync event --chainid=883 --txhash="0xxx"
 	cmd.Flags().String(FlagTxHash, "", "tx hash, will parse last event")
 	cmd.MarkFlagRequired(FlagChainId)
 	cmd.MarkFlagRequired(FlagTxHash)
+
+	return cmd
+}
+
+func SubmitRelay() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "submit-relay",
+		Short: "submit relay using XferId",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`
+Example:
+$ %s ops sync submit-relay --XferId=xxxxx"
+`,
+				version.AppName,
+			),
+		),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			xFerId := eth.Hex2Bytes(viper.GetString(FlagXFerId))
+			txr, err := transactor.NewTransactor(
+				cliCtx.HomeDir,
+				viper.GetString(common.FlagSgnChainId),
+				viper.GetString(common.FlagSgnNodeURI),
+				viper.GetString(common.FlagSgnValidatorAccount),
+				viper.GetString(common.FlagSgnPassphrase),
+				cliCtx.LegacyAmino,
+				cliCtx.Codec,
+				cliCtx.InterfaceRegistry,
+			)
+			if err != nil {
+				return fmt.Errorf("NewTransactor err: %w", err)
+			}
+
+			// logic below is very much like relayer/cbr_puller.go:88 submitRelay
+			logmsg := fmt.Sprintf("Process relay srcId %x", xFerId)
+
+			relay, err := cbrcli.QueryRelay(txr.CliCtx, xFerId)
+			if err != nil {
+				return fmt.Errorf("%s. QueryRelay err: %s", logmsg, err)
+			}
+
+			relayOnChain := new(cbrtypes.RelayOnChain)
+			err = relayOnChain.Unmarshal(relay.Relay)
+			if err != nil {
+				return fmt.Errorf("%s. Unmarshal relay.Relay err %s", logmsg, err)
+			}
+
+			chainSigners, err := cbrcli.QueryChainSigners(cliCtx, relayOnChain.GetDstChainId())
+			if err != nil && !errors.Is(err, sdkerrors.ErrKeyNotFound) {
+				log.Errorf("QueryChainSigners err: %s", err)
+				return err
+			}
+			curss := chainSigners.GetSortedSigners()
+			pass, sigsBytes := cbrtypes.ValidateSigQuorum(relay.SortedSigs, curss)
+			if !pass {
+				log.Warnf("%s. Not have enough sigs %s, curss %x", logmsg, relay.SignersStr(), curss)
+				return nil
+			}
+			relayTransferId := relayOnChain.GetRelayOnChainTransferId()
+			logmsg = fmt.Sprintf("%s dstId %x", logmsg, relayTransferId)
+			cbr, err := newOneChain(relayOnChain.GetDstChainId())
+			if err != nil {
+				log.Fatal("newOneChain err:", err)
+			}
+			existRelay, existRelayErr := cbr.contract.BridgeCaller.Transfers(&bind.CallOpts{}, relayTransferId)
+			if existRelayErr != nil {
+				// if fail to query, continue to send this relay, because we can not make sure whether the relay already exist.
+				log.Warnln("fail to query transefer err:", existRelayErr)
+			} else if existRelay {
+				log.Infof("%s. dest transfer already exist on chain, skip it", logmsg)
+				return nil
+			}
+			logmsg = fmt.Sprintf("srcXferId %x chain %d->%d", relayOnChain.GetSrcTransferId(), relayOnChain.GetSrcChainId(), relayOnChain.GetDstChainId())
+			tx, err := cbr.Transactor.Transact(
+				&ethutils.TransactionStateHandler{
+					OnMined: func(receipt *ethtypes.Receipt) {
+						if receipt.Status == ethtypes.ReceiptStatusSuccessful {
+							log.Infof("Relay transaction succeeded, tx %x. %s", receipt.TxHash, logmsg)
+						} else {
+							log.Errorf("Relay transaction failed, tx %x. %s", receipt.TxHash, logmsg)
+						}
+					},
+					OnError: func(tx *ethtypes.Transaction, err error) {
+						log.Warnf("Relay transaction err: %s. %s", err, logmsg)
+					},
+				},
+				func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+					var curssAddrs []common.Addr
+					var curssPowers []*big.Int
+					for _, signer := range curss {
+						curssAddrs = append(curssAddrs, common.Bytes2Addr(signer.GetAddr()))
+						curssPowers = append(curssPowers, new(big.Int).SetBytes(signer.GetPower()))
+					}
+					return cbr.contract.Relay(opts, relay.Relay, sigsBytes, curssAddrs, curssPowers)
+				},
+			)
+			if err != nil {
+				if strings.Contains(err.Error(), "transfer exists") {
+					log.Infof("%s. err %s, skip it", logmsg, err)
+					return nil
+				}
+
+				if strings.Contains(err.Error(), "Pausable: paused") || strings.Contains(err.Error(), "volume exceeds cap") {
+					log.Warnf("%s. err %s", logmsg, err)
+				} else {
+					log.Errorf("%s. err %s", logmsg, err)
+				}
+				return nil
+			}
+			log.Infof("%s. tx hash %s", logmsg, tx.Hash().Hex())
+			return nil
+		},
+	}
+
+	cmd.Flags().String(FlagXFerId, "", "transferId, used to retry submit relay")
+	cmd.MarkFlagRequired(FlagXFerId)
 
 	return cmd
 }

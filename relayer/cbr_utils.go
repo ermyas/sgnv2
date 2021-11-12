@@ -1,12 +1,10 @@
 package relayer
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"sort"
 	"time"
 
 	"github.com/celer-network/goutils/log"
@@ -68,52 +66,6 @@ func (c *CbrOneChain) getTokenFromDB(tokenAddr string) (*webapi.TokenInfo, uint6
 		return nil, 0, false
 	}
 	return token, chainId.Uint64(), true
-}
-
-func validateSigQuorum(sortedSigs []*cbrtypes.AddrSig, curss currentSigners) (pass bool, sigsBytes [][]byte) {
-	if len(curss.addrs) == 0 {
-		return false, nil
-	}
-	totalPower := big.NewInt(0)
-	signerPowers := make(map[eth.Addr]*big.Int)
-	for i, power := range curss.powers {
-		totalPower.Add(totalPower, power)
-		signerPowers[curss.addrs[i]] = power
-	}
-	quorumStake := big.NewInt(0).Mul(totalPower, big.NewInt(2))
-	quorumStake = quorumStake.Quo(quorumStake, big.NewInt(3))
-
-	var filteredSigs []*cbrtypes.AddrSig
-	for _, sig := range sortedSigs {
-		if _, ok := signerPowers[eth.Bytes2Addr(sig.GetAddr())]; ok {
-			filteredSigs = append(filteredSigs, sig)
-		}
-	}
-	// sort signer by power
-	var quorumSigners []*cbrtypes.AddrSig
-	sort.Slice(filteredSigs, func(i, j int) bool {
-		return signerPowers[eth.Bytes2Addr(filteredSigs[i].GetAddr())].Cmp(signerPowers[eth.Bytes2Addr(filteredSigs[j].GetAddr())]) > 0
-	})
-
-	signedPower := big.NewInt(0)
-	for _, s := range filteredSigs {
-		if power, ok := signerPowers[eth.Bytes2Addr(s.Addr)]; ok {
-			signedPower.Add(signedPower, power)
-			quorumSigners = append(quorumSigners, s)
-			if signedPower.Cmp(quorumStake) > 0 {
-				sort.Slice(quorumSigners, func(i, j int) bool {
-					return bytes.Compare(eth.Pad20Bytes(quorumSigners[i].Addr), eth.Pad20Bytes(quorumSigners[j].Addr)) == -1
-				})
-				for _, signer := range quorumSigners {
-					sigsBytes = append(sigsBytes, signer.Sig)
-				}
-				return true, sigsBytes
-			}
-			delete(signerPowers, eth.Bytes2Addr(s.Addr))
-		}
-	}
-
-	return false, nil
 }
 
 func GatewayOnSend(transferId, usrAddr, tokenSymbol, amt, sendTxHash string, srcChainId, dsChainId uint64) error {

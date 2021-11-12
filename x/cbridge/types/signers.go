@@ -133,33 +133,51 @@ func UnmarshalLatestSigners(cdc codec.BinaryCodec, value []byte) (s LatestSigner
 
 // ------------------------------------ Utils ------------------------------------
 
-func ValidateSigQuorum(sortedSigs []*AddrSig, curss []*Signer) bool {
+func ValidateSigQuorum(sortedSigs []*AddrSig, curss []*Signer) (pass bool, sigsBytes [][]byte) {
 	if len(curss) == 0 {
-		return false
+		return false, nil
 	}
 	totalPower := big.NewInt(0)
-	curssMap := make(map[eth.Addr]*Signer)
+	signerPowers := make(map[eth.Addr]*big.Int)
 	for _, s := range curss {
 		power := big.NewInt(0).SetBytes(s.Power)
 		totalPower.Add(totalPower, power)
-		curssMap[eth.Bytes2Addr(s.Addr)] = s
+		signerPowers[eth.Bytes2Addr(s.GetAddr())] = power
 	}
 	quorumStake := big.NewInt(0).Mul(totalPower, big.NewInt(2))
 	quorumStake = quorumStake.Quo(quorumStake, big.NewInt(3))
 
+	var filteredSigs []*AddrSig
+	for _, sig := range sortedSigs {
+		if _, ok := signerPowers[eth.Bytes2Addr(sig.GetAddr())]; ok {
+			filteredSigs = append(filteredSigs, sig)
+		}
+	}
+	// sort signer by power
+	sort.Slice(filteredSigs, func(i, j int) bool {
+		return signerPowers[eth.Bytes2Addr(filteredSigs[i].GetAddr())].Cmp(signerPowers[eth.Bytes2Addr(filteredSigs[j].GetAddr())]) > 0
+	})
+
 	signedPower := big.NewInt(0)
-	for _, s := range sortedSigs {
-		if signer, ok := curssMap[eth.Bytes2Addr(s.Addr)]; ok {
-			power := big.NewInt(0).SetBytes(signer.Power)
+	var quorumSigners []*AddrSig
+	for _, s := range filteredSigs {
+		if power, ok := signerPowers[eth.Bytes2Addr(s.Addr)]; ok {
 			signedPower.Add(signedPower, power)
+			quorumSigners = append(quorumSigners, s)
 			if signedPower.Cmp(quorumStake) > 0 {
-				return true
+				sort.Slice(quorumSigners, func(i, j int) bool {
+					return bytes.Compare(eth.Pad20Bytes(quorumSigners[i].Addr), eth.Pad20Bytes(quorumSigners[j].Addr)) == -1
+				})
+				for _, signer := range quorumSigners {
+					sigsBytes = append(sigsBytes, signer.Sig)
+				}
+				return true, sigsBytes
 			}
-			delete(curssMap, eth.Bytes2Addr(s.Addr))
+			delete(signerPowers, eth.Bytes2Addr(s.Addr))
 		}
 	}
 
-	return false
+	return false, nil
 }
 
 func MinSigsForQuorum(signers []*Signer) uint32 {
