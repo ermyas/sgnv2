@@ -97,11 +97,11 @@ var minSendCmd = &cobra.Command{
 
 var minSlipCmd = &cobra.Command{
 	Use:   "minSlip",
-	Short: "call setMinSlippage x, x is slippage *1e6",
+	Short: "call setMinimalMaxSlippage x, x is slippage *1e6",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		minSlip, _ := strconv.Atoi(args[0])
-		tx, err := cbrContract.SetMinSlippage(auth, uint32(minSlip))
+		tx, err := cbrContract.SetMinimalMaxSlippage(auth, uint32(minSlip))
 		chkTxErr(tx, err)
 	},
 }
