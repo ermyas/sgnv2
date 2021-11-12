@@ -99,7 +99,7 @@ func (r *Relayer) processCbridgeQueue() {
 		}
 
 		if queueSize > 500 { //temp code (for testnet only): the system is stuck on too many items in the queue, return directly without requeue msg
-			return
+			continue
 		}
 
 		r.submitRelay(event)
