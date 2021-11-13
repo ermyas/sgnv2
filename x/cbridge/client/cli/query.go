@@ -27,6 +27,7 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 
 	cmd.AddCommand(
 		GetCmdQueryConfig(),
+		GetCmdQueryParams(),
 		GetCmdChainTokensConfig(),
 		GetCmdQueryTransfer(),
 		GetCmdQueryWithdraw(),
@@ -51,12 +52,32 @@ func GetCmdQueryConfig() *cobra.Command {
 				return err
 			}
 
-			params, err := QueryParams(cliCtx)
+			params, err := QueryConfig(cliCtx)
 			if err != nil {
 				log.Errorln("query error", err)
 				return err
 			}
 
+			return cliCtx.PrintProto(&params)
+		},
+	}
+}
+
+func GetCmdQueryParams() *cobra.Command {
+	return &cobra.Command{
+		Use:   "params",
+		Args:  cobra.NoArgs,
+		Short: "Query the current cbridge parameters information",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			params, err := QueryParams(cliCtx)
+			if err != nil {
+				log.Errorln("query error", err)
+				return err
+			}
 			return cliCtx.PrintProto(&params)
 		},
 	}
@@ -256,8 +277,20 @@ func pre(a, pre string) bool {
 	return strings.HasPrefix(a, pre)
 }
 
+// Query config info
+func QueryConfig(cliCtx client.Context) (config types.CbrConfig, err error) {
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryConfig)
+	res, err := common.RobustQuery(cliCtx, route)
+	if err != nil {
+		return
+	}
+
+	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &config)
+	return
+}
+
 // Query params info
-func QueryParams(cliCtx client.Context) (params types.CbrConfig, err error) {
+func QueryParams(cliCtx client.Context) (params types.Params, err error) {
 	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryParams)
 	res, err := common.RobustQuery(cliCtx, route)
 	if err != nil {

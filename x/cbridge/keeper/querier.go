@@ -19,6 +19,8 @@ import (
 func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 	return func(ctx sdk.Context, path []string, req abci.RequestQuery) ([]byte, error) {
 		switch path[0] {
+		case types.QueryConfig:
+			return queryConfig(ctx, k, legacyQuerierCdc)
 		case types.QueryParams:
 			return queryParams(ctx, k, legacyQuerierCdc)
 		case types.QueryRelay:
@@ -59,9 +61,18 @@ func queryDebugAny(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, er
 	return kv.Get(req.Data), nil
 }
 
-func queryParams(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+func queryConfig(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
 	cfg := k.GetCbrConfig(ctx)
 	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, cfg)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+	return res, nil
+}
+
+func queryParams(ctx sdk.Context, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	params := k.GetParams(ctx)
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, params)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}

@@ -2,6 +2,7 @@ package types
 
 const (
 	QueryParams                  = "params"
+	QueryConfig                  = "config"
 	QueryRelay                   = "relay"
 	QueryChainTokensConfig       = "chain-tokens-config"
 	QueryFee                     = "fee"
