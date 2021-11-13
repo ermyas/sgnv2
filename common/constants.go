@@ -5,9 +5,6 @@ import (
 )
 
 const (
-	QuotaCoinName = "quota"
-	TokenDec      = 1000000000000000000
-
 	Bech32MainPrefix = "sgn"
 
 	// Bech32PrefixAccAddr defines the Bech32 prefix of an account's address
@@ -28,5 +25,12 @@ const (
 	// NOTE: In the SDK, the default value is 255.
 	MaxAddrLen = 20
 
-	CelrDenom = "CELR"
+	QuotaCoinName = "quota"
+
+	CelrDenom     = "CELR"
+	CelrPrecision = 1e18
+)
+
+var (
+	StakingScaleFactor = sdk.NewDec(1e12)
 )

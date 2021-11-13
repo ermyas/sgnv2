@@ -68,9 +68,6 @@ func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, valAddr eth.Addr) {
 	// remove commission record
 	h.k.DeleteValidatorAccumulatedCommission(ctx, valAddr)
 
-	// clear slashes
-	h.k.DeleteValidatorSlashEvents(ctx, valAddr)
-
 	// clear historical rewards
 	h.k.DeleteValidatorHistoricalRewards(ctx, valAddr)
 

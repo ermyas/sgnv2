@@ -243,8 +243,7 @@
       "validator_accumulated_commissions": [],
       "validator_historical_rewards": [],
       "validator_current_rewards": [],
-      "delegator_starting_infos": [],
-      "validator_slash_events": []
+      "delegator_starting_infos": []
     },
     "gov": {
       "starting_proposal_id": "1",

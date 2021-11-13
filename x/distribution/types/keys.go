@@ -33,7 +33,7 @@ const (
 //
 // - 0x02<valAddrLen (1 Byte)><valAddr_Bytes>: ValidatorOutstandingRewards
 //
-// - 0x03<accAddrLen (1 Byte)><accAddr_Bytes>: sdk.AccAddress
+// - 0x03<accAddrLen (1 Byte)><accAddr_Bytes>: eth.Addr
 //
 // - 0x04<valAddrLen (1 Byte)><valAddr_Bytes><accAddrLen (1 Byte)><accAddr_Bytes>: DelegatorStartingInfo
 //
@@ -43,7 +43,7 @@ const (
 //
 // - 0x07<valAddrLen (1 Byte)><valAddr_Bytes>: ValidatorCurrentCommission
 //
-// - 0x08<valAddrLen (1 Byte)><valAddr_Bytes><height>: ValidatorSlashEvent
+// - 0x08<delAddr_Bytes>: StakingRewardClaimInfo
 var (
 	FeePoolKey                        = []byte{0x00} // key for global distribution state
 	ProposerKey                       = []byte{0x01} // key for the proposer operator address
@@ -54,9 +54,8 @@ var (
 	ValidatorHistoricalRewardsPrefix     = []byte{0x05} // key for historical validators rewards / stake
 	ValidatorCurrentRewardsPrefix        = []byte{0x06} // key for current validator rewards
 	ValidatorAccumulatedCommissionPrefix = []byte{0x07} // key for accumulated validator commission
-	ValidatorSlashEventPrefix            = []byte{0x08} // key for validator slash fraction
 
-	StakingRewardClaimInfoPrefix = []byte{0x09}
+	StakingRewardClaimInfoPrefix = []byte{0x08}
 )
 
 // GetValidatorOutstandingRewardsAddress creates an address from a validator's outstanding rewards key.
@@ -191,31 +190,6 @@ func GetValidatorCurrentRewardsKey(v eth.Addr) []byte {
 // GetValidatorAccumulatedCommissionKey creates the key for a validator's current commission.
 func GetValidatorAccumulatedCommissionKey(v eth.Addr) []byte {
 	return append(ValidatorAccumulatedCommissionPrefix, address.MustLengthPrefix(v.Bytes())...)
-}
-
-// GetValidatorSlashEventPrefix creates the prefix key for a validator's slash fractions.
-func GetValidatorSlashEventPrefix(v eth.Addr) []byte {
-	return append(ValidatorSlashEventPrefix, address.MustLengthPrefix(v.Bytes())...)
-}
-
-// GetValidatorSlashEventKeyPrefix creates the prefix key for a validator's slash fraction (ValidatorSlashEventPrefix + height).
-func GetValidatorSlashEventKeyPrefix(v eth.Addr, height uint64) []byte {
-	heightBz := make([]byte, 8)
-	binary.BigEndian.PutUint64(heightBz, height)
-
-	return append(
-		ValidatorSlashEventPrefix,
-		append(address.MustLengthPrefix(v.Bytes()), heightBz...)...,
-	)
-}
-
-// GetValidatorSlashEventKey creates the key for a validator's slash fraction.
-func GetValidatorSlashEventKey(v eth.Addr, height, period uint64) []byte {
-	periodBz := make([]byte, 8)
-	binary.BigEndian.PutUint64(periodBz, period)
-	prefix := GetValidatorSlashEventKeyPrefix(v, height)
-
-	return append(prefix, periodBz...)
 }
 
 // GetStakingRewardClaimInfoKey gets staking reward claim info key from an Ethereum address

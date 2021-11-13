@@ -61,24 +61,42 @@ func cbridgeTest(t *testing.T) {
 	)
 
 	log.Infoln("================== Setup validators and bridge signers ======================")
-	amts := []*big.Int{big.NewInt(2e18), big.NewInt(2e18), big.NewInt(2e18)}
-	numVals := len(amts)
-	tc.SetupValidators(t, transactor, amts)
-	tc.CbrChain1.SetInitSigners(amts)
-	tc.CbrChain2.SetInitSigners(amts)
-	expSigners := genSortedSigners([]eth.Addr{tc.ValSignerAddrs[0], tc.ValSignerAddrs[1], tc.ValSignerAddrs[2]}, amts)
+	// Make the stake amounts more realistic to test precision handling when distributing fee share
+	vAmts := []*big.Int{
+		new(big.Int).Mul(big.NewInt(2e8), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(2e8), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(2e8), big.NewInt(1e18)),
+	}
+	vAddrs := []eth.Addr{
+		tc.ValEthAddrs[0], tc.ValEthAddrs[1], tc.ValEthAddrs[2],
+	}
+	err := tc.FundAddrsErc20(tc.CelrAddr, vAddrs, vAmts[0], tc.EthClient, tc.EtherBaseAuth)
+	tc.ChkErr(err, "fund validator accounts")
+	numVals := len(vAmts)
+	tc.SetupValidators(t, transactor, vAmts)
+	tc.CbrChain1.SetInitSigners(vAmts)
+	tc.CbrChain2.SetInitSigners(vAmts)
+	expSigners := genSortedSigners([]eth.Addr{tc.ValSignerAddrs[0], tc.ValSignerAddrs[1], tc.ValSignerAddrs[2]}, vAmts)
 	tc.CheckChainSigners(t, transactor, tc.CbrChain1.ChainId, expSigners)
 	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
 
 	log.Infoln("================== Delegate from delegator 0 to all validators ======================")
+	dAmts := []*big.Int{
+		new(big.Int).Mul(big.NewInt(1e6), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(1e6), big.NewInt(1e18)),
+		new(big.Int).Mul(big.NewInt(1e6), big.NewInt(1e18)),
+	}
+	dAddrs := []eth.Addr{tc.DelEthAddrs[0]}
+	err = tc.FundAddrsErc20(tc.CelrAddr, dAddrs, new(big.Int).Mul(big.NewInt(3), dAmts[0]), tc.EthClient, tc.EtherBaseAuth)
+	tc.ChkErr(err, "und delegator account")
 	for i := 0; i < numVals; i++ {
-		tc.Delegate(tc.DelAuths[0], tc.ValEthAddrs[i], amts[i])
+		tc.Delegate(tc.DelAuths[0], tc.ValEthAddrs[i], dAmts[i])
 	}
 	for i := 0; i < numVals; i++ {
 		expDel := &stakingtypes.Delegation{
 			DelegatorAddress: eth.Addr2Hex(tc.DelEthAddrs[0]),
 			ValidatorAddress: eth.Addr2Hex(tc.ValEthAddrs[i]),
-			Shares:           sdk.NewIntFromBigInt(amts[i]),
+			Shares:           sdk.NewIntFromBigInt(dAmts[i]),
 		}
 		tc.CheckDelegation(t, transactor, expDel)
 	}
@@ -107,7 +125,7 @@ func cbridgeTest(t *testing.T) {
 	log.Infoln("QueryLiquidityDetailList resp:", res.String())
 
 	log.Infoln("======================== Add liquidity on chain 1 ===========================")
-	addAmt := big.NewInt(5 * 1e10)
+	addAmt := big.NewInt(50000 * 1e6)
 	var i uint64
 	for i = 0; i < 2; i++ {
 		err = tc.CbrChain1.Approve(i, addAmt)
@@ -134,7 +152,7 @@ func cbridgeTest(t *testing.T) {
 	log.Infoln("QueryLiquidityDetailList resp:", res.String())
 
 	log.Infoln("======================== Xfer ===========================")
-	xferAmt := big.NewInt(1e10)
+	xferAmt := big.NewInt(10000 * 1e6)
 	err = tc.CbrChain1.Approve(0, xferAmt)
 	tc.ChkErr(err, "u0 chain1 approve")
 	xferId, err := tc.CbrChain1.Send(0, xferAmt, tc.CbrChain2.ChainId, 1)
@@ -187,14 +205,33 @@ func cbridgeTest(t *testing.T) {
 	err = tc.StartClaimFarmingRewards(transactor, 0)
 	tc.ChkErr(err, "u0 start claim all farming rewards")
 	info := tc.GetFarmingRewardClaimInfoWithSigs(transactor, 0, 3)
+	assert.Equal(t, len(info.RewardClaimDetailsList), 1)
+	rewardClaimDetail := info.RewardClaimDetailsList[0]
+	log.Infoln("rewardClaimDetail.CumulativeRewardAmounts", rewardClaimDetail.CumulativeRewardAmounts)
+	assert.Equal(t, tc.CbrChain1.ChainId, rewardClaimDetail.ChainId)
+	assert.Equal(t, 2, len(rewardClaimDetail.CumulativeRewardAmounts))
+	reward0 := rewardClaimDetail.CumulativeRewardAmounts[0]
+	reward1 := rewardClaimDetail.CumulativeRewardAmounts[1]
+	assert.Equal(t, fmt.Sprintf("CELR/%d", tc.CbrChain1.ChainId), reward0.Denom)
+	assert.Equal(t, fmt.Sprintf("USDT/%d", tc.CbrChain1.ChainId), reward1.Denom)
+	// TODO: Check reward amounts are reasonable
+
 	err = tc.OnchainClaimFarmingRewards(&info.RewardClaimDetailsList[0])
 	tc.ChkErr(err, "u0 onchain claim farming rewards")
 
 	log.Infoln("======================== Delegator 0 claim fee share ===========================")
 	feeShareInfo, err := tc.GetCBridgeFeeShareInfo(transactor, 0)
 	tc.ChkErr(err, "del0 get fee share info before claim")
-	log.Infoln("feeShareInfo before claim:", feeShareInfo)
+	log.Infoln("feeShareInfo.ClaimableFeeAmounts before claim", feeShareInfo.ClaimableFeeAmounts)
 	assert.Equal(t, 2, len(feeShareInfo.ClaimableFeeAmounts), "Should have 2 fees")
+	fee0 := feeShareInfo.ClaimableFeeAmounts[0]
+	fee1 := feeShareInfo.ClaimableFeeAmounts[1]
+	assert.Equal(t, fmt.Sprintf("CBF-USDT/%d", tc.CbrChain1.ChainId), fee0.Denom)
+	assert.Equal(t, fmt.Sprintf("CBF-USDT/%d", tc.CbrChain2.ChainId), fee1.Denom)
+	assert.True(t, fee0.Amount.GT(sdk.NewDec(1e5)))
+	assert.True(t, fee0.Amount.LT(sdk.NewDec(2e5)))
+	assert.True(t, fee1.Amount.GT(sdk.NewDec(1e5)))
+	assert.True(t, fee1.Amount.LT(sdk.NewDec(2e5)))
 
 	reqid = uint64(time.Now().Unix())
 	feeShareWdLq := &cbrtypes.WithdrawLq{
@@ -214,8 +251,12 @@ func cbridgeTest(t *testing.T) {
 
 	feeShareInfo, err = tc.GetCBridgeFeeShareInfo(transactor, 0)
 	tc.ChkErr(err, "del0 get fee share info after claim")
-	log.Infoln("feeShareInfo after claim:", feeShareInfo)
+	log.Infoln("feeShareInfo.ClaimableFeeAmounts after claim", feeShareInfo.ClaimableFeeAmounts)
 	assert.Equal(t, 1, len(feeShareInfo.ClaimableFeeAmounts), "Should have 1 fee")
+	fee0 = feeShareInfo.ClaimableFeeAmounts[0]
+	assert.Equal(t, fmt.Sprintf("CBF-USDT/%d", tc.CbrChain2.ChainId), fee0.Denom)
+	assert.True(t, fee0.Amount.GT(sdk.NewDec(1e5)))
+	assert.True(t, fee0.Amount.LT(sdk.NewDec(2e5)))
 }
 
 func cbrSignersTest(t *testing.T) {

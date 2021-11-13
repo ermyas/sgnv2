@@ -12,10 +12,8 @@ import (
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/celer-network/sgn-v2/x/distribution/types"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
-	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/types/query"
 )
 
 var _ types.QueryServer = Keeper{}
@@ -63,51 +61,6 @@ func (k Keeper) ValidatorCommission(c context.Context, req *types.QueryValidator
 	commission := k.GetValidatorAccumulatedCommission(ctx, valAdr)
 
 	return &types.QueryValidatorCommissionResponse{Commission: commission}, nil
-}
-
-// ValidatorSlashes queries slash events of a validator
-func (k Keeper) ValidatorSlashes(c context.Context, req *types.QueryValidatorSlashesRequest) (*types.QueryValidatorSlashesResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid request")
-	}
-
-	if req.ValidatorAddress == "" {
-		return nil, status.Error(codes.InvalidArgument, "empty validator address")
-	}
-
-	if req.EndingHeight < req.StartingHeight {
-		return nil, status.Errorf(codes.InvalidArgument, "starting height greater than ending height (%d > %d)", req.StartingHeight, req.EndingHeight)
-	}
-
-	ctx := sdk.UnwrapSDKContext(c)
-	events := make([]types.ValidatorSlashEvent, 0)
-	store := ctx.KVStore(k.storeKey)
-	valAddr := eth.Hex2Addr(req.ValidatorAddress)
-	slashesStore := prefix.NewStore(store, types.GetValidatorSlashEventPrefix(valAddr))
-
-	pageRes, err := query.FilteredPaginate(slashesStore, req.Pagination, func(key []byte, value []byte, accumulate bool) (bool, error) {
-		var result types.ValidatorSlashEvent
-		err := k.cdc.Unmarshal(value, &result)
-
-		if err != nil {
-			return false, err
-		}
-
-		if result.ValidatorPeriod < req.StartingHeight || result.ValidatorPeriod > req.EndingHeight {
-			return false, nil
-		}
-
-		if accumulate {
-			events = append(events, result)
-		}
-		return true, nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &types.QueryValidatorSlashesResponse{Slashes: events, Pagination: pageRes}, nil
 }
 
 // DelegationRewards the total rewards accrued by a delegation

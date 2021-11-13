@@ -90,7 +90,9 @@ func (k Keeper) IncrementPoolPeriod(
 	if totalStakedAmount.IsZero() {
 		currentRatio = sdk.DecCoins{}
 	} else {
-		currentRatio = rewards.Rewards.QuoDecTruncate(totalStakedAmount.Amount)
+		// NOTE: first multiply by StakingScaleFactor (1e12) to support reward tokens with much smaller decimals than
+		// the stake token. Necessary to truncate so we don't allow withdrawing more rewards than owed.
+		currentRatio = rewards.Rewards.MulDec(common.StakingScaleFactor).QuoDecTruncate(totalStakedAmount.Amount)
 	}
 
 	// 3.1. Get the previous pool historical rewards
@@ -111,8 +113,8 @@ func (k Keeper) IncrementPoolPeriod(
 // incrementReferenceCount increments the reference count for a historical rewards value
 func (k Keeper) incrementReferenceCount(ctx sdk.Context, poolName string, period uint64) {
 	historical := k.GetPoolHistoricalRewards(ctx, poolName, period)
-	if historical.ReferenceCount > 2 {
-		panic("reference count should never exceed 2")
+	if historical.ReferenceCount > 1 {
+		panic("reference count should never exceed 1")
 	}
 	historical.ReferenceCount++
 	k.SetPoolHistoricalRewards(ctx, poolName, period, historical)
@@ -159,11 +161,12 @@ func (k Keeper) calculateStakeRewardsBetween(ctx sdk.Context, poolName string, s
 		panic("amount should not be negative")
 	}
 
-	// return amount * (ending - starting)
+	// return amount * (ending - starting) / StakingScaleFactor
 	starting := k.GetPoolHistoricalRewards(ctx, poolName, startingPeriod)
 	ending := k.GetPoolHistoricalRewards(ctx, poolName, endingPeriod)
 	difference := ending.CumulativeRewardRatio.Sub(starting.CumulativeRewardRatio)
-	rewards = difference.MulDecTruncate(amount.Amount)
+	// NOTE: necessary to truncate so we don't allow withdrawing more rewards than owed
+	rewards = difference.MulDec(amount.Amount).QuoDecTruncate(common.StakingScaleFactor)
 	return
 }
 

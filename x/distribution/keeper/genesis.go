@@ -54,10 +54,6 @@ func (k Keeper) InitGenesis(ctx sdk.Context, data types.GenesisState) {
 		delegatorAddress := eth.Hex2Addr(del.DelegatorAddress)
 		k.SetDelegatorStartingInfo(ctx, valAddr, delegatorAddress, del.StartingInfo)
 	}
-	for _, evt := range data.ValidatorSlashEvents {
-		valAddr := eth.Hex2Addr(evt.ValidatorAddress)
-		k.SetValidatorSlashEvent(ctx, valAddr, evt.Height, evt.Period, evt.ValidatorSlashEvent)
-	}
 
 	moduleHoldings = moduleHoldings.Add(data.FeePool.CommunityPool...)
 	moduleHoldingsInt, _ := moduleHoldings.TruncateDecimal()
@@ -150,18 +146,5 @@ func (k Keeper) ExportGenesis(ctx sdk.Context) *types.GenesisState {
 		},
 	)
 
-	slashes := make([]types.ValidatorSlashEventRecord, 0)
-	k.IterateValidatorSlashEvents(ctx,
-		func(val eth.Addr, height uint64, event types.ValidatorSlashEvent) (stop bool) {
-			slashes = append(slashes, types.ValidatorSlashEventRecord{
-				ValidatorAddress:    val.String(),
-				Height:              height,
-				Period:              event.ValidatorPeriod,
-				ValidatorSlashEvent: event,
-			})
-			return false
-		},
-	)
-
-	return types.NewGenesisState(params, feePool, dwi, pp, outstanding, acc, his, cur, dels, slashes)
+	return types.NewGenesisState(params, feePool, dwi, pp, outstanding, acc, his, cur, dels)
 }

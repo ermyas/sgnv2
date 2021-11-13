@@ -17,7 +17,6 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
-	"github.com/celer-network/sgn-v2/x/farming/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -387,7 +386,7 @@ func CreateFarmingPools() {
 		}
 		poolCurrentRewardsRecord := farmingtypes.PoolCurrentRewardsRecord{
 			PoolName: poolName,
-			Rewards:  types.NewPoolCurrentRewards(0, 1, sdk.DecCoins{}),
+			Rewards:  farmingtypes.NewPoolCurrentRewards(0, 1, sdk.DecCoins{}),
 		}
 		genesisViper.Set(
 			"app_state.farming.pool_historical_rewards",

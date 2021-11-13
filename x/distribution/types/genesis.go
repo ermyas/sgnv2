@@ -11,7 +11,7 @@ import (
 func NewGenesisState(
 	params Params, fp FeePool, dwis []DelegatorWithdrawInfo, pp sdk.ConsAddress, r []ValidatorOutstandingRewardsRecord,
 	acc []ValidatorAccumulatedCommissionRecord, historical []ValidatorHistoricalRewardsRecord,
-	cur []ValidatorCurrentRewardsRecord, dels []DelegatorStartingInfoRecord, slashes []ValidatorSlashEventRecord,
+	cur []ValidatorCurrentRewardsRecord, dels []DelegatorStartingInfoRecord,
 ) *GenesisState {
 
 	return &GenesisState{
@@ -24,7 +24,6 @@ func NewGenesisState(
 		ValidatorHistoricalRewards:      historical,
 		ValidatorCurrentRewards:         cur,
 		DelegatorStartingInfos:          dels,
-		ValidatorSlashEvents:            slashes,
 	}
 }
 
@@ -40,7 +39,6 @@ func DefaultGenesisState() *GenesisState {
 		ValidatorHistoricalRewards:      []ValidatorHistoricalRewardsRecord{},
 		ValidatorCurrentRewards:         []ValidatorCurrentRewardsRecord{},
 		DelegatorStartingInfos:          []DelegatorStartingInfoRecord{},
-		ValidatorSlashEvents:            []ValidatorSlashEventRecord{},
 	}
 }
 

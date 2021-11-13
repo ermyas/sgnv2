@@ -7,7 +7,6 @@ const (
 	QueryParams                      = "params"
 	QueryValidatorOutstandingRewards = "validator_outstanding_rewards"
 	QueryValidatorCommission         = "validator_commission"
-	QueryValidatorSlashes            = "validator_slashes"
 	QueryDelegationRewards           = "delegation_rewards"
 	QueryDelegatorTotalRewards       = "delegator_total_rewards"
 	QueryDelegatorValidators         = "delegator_validators"
@@ -36,22 +35,6 @@ type QueryValidatorCommissionParams struct {
 func NewQueryValidatorCommissionParams(validatorAddr eth.Addr) QueryValidatorCommissionParams {
 	return QueryValidatorCommissionParams{
 		ValidatorAddress: validatorAddr,
-	}
-}
-
-// params for query 'custom/distr/validator_slashes'
-type QueryValidatorSlashesParams struct {
-	ValidatorAddress eth.Addr `json:"validator_address" yaml:"validator_address"`
-	StartingHeight   uint64   `json:"starting_height" yaml:"starting_height"`
-	EndingHeight     uint64   `json:"ending_height" yaml:"ending_height"`
-}
-
-// creates a new instance of QueryValidatorSlashesParams
-func NewQueryValidatorSlashesParams(validatorAddr eth.Addr, startingHeight uint64, endingHeight uint64) QueryValidatorSlashesParams {
-	return QueryValidatorSlashesParams{
-		ValidatorAddress: validatorAddr,
-		StartingHeight:   startingHeight,
-		EndingHeight:     endingHeight,
 	}
 }
 

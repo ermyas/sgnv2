@@ -47,7 +47,7 @@ func newEthClient() (*eth.EthClient, error) {
 func calcRawAmount(amount string) *big.Int {
 	rawAmount := new(big.Int)
 	rawAmount.SetString(amount, 10)
-	return new(big.Int).Mul(rawAmount, big.NewInt(common.TokenDec))
+	return new(big.Int).Mul(rawAmount, big.NewInt(common.CelrPrecision))
 }
 
 func approveCelr(ethClient *eth.EthClient, spender eth.Addr, amount *big.Int) error {

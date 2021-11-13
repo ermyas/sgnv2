@@ -127,6 +127,7 @@ func stakingTest(t *testing.T) {
 
 	log.Infoln("---------- It should add back bonded validator 2 with enough delegation ----------")
 	err = tc.Delegate(tc.ValAuths[2], tc.ValEthAddrs[2], newAmt)
+	require.NoError(t, err, "failed to delegate")
 	tc.Sleep(5)
 	expVals[2].Status = eth.Bonded
 	expVals[2].Tokens = sdk.NewIntFromBigInt(amts[2])
@@ -135,8 +136,8 @@ func stakingTest(t *testing.T) {
 
 	log.Infoln("---------- It should correctly replace bonded validator 2 with validator 3 ----------")
 	err = tc.InitializeValidator(tc.ValAuths[3], tc.ValSignerAddrs[3], tc.ValSgnAddrs[3], amts[3], eth.CommissionRate(0.02))
-	tc.Sleep(10)
 	require.NoError(t, err, "failed to initialize validator")
+	tc.Sleep(10)
 	expVals[2].Status = eth.Unbonding
 	expVal = types.Validator{
 		EthAddress:      eth.Addr2Hex(tc.ValEthAddrs[3]),

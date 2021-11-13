@@ -25,9 +25,6 @@ func NewLegacyQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier
 		case types.QueryValidatorCommission:
 			return queryValidatorCommission(ctx, path[1:], req, k, legacyQuerierCdc)
 
-		case types.QueryValidatorSlashes:
-			return queryValidatorSlashes(ctx, path[1:], req, k, legacyQuerierCdc)
-
 		case types.QueryDelegationRewards:
 			return queryDelegationRewards(ctx, path[1:], req, k, legacyQuerierCdc)
 
@@ -93,29 +90,6 @@ func queryValidatorCommission(ctx sdk.Context, _ []string, req abci.RequestQuery
 	}
 
 	bz, err := codec.MarshalJSONIndent(legacyQuerierCdc, commission)
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
-	}
-
-	return bz, nil
-}
-
-func queryValidatorSlashes(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
-	var params types.QueryValidatorSlashesParams
-	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
-	}
-
-	events := make([]types.ValidatorSlashEvent, 0)
-	k.IterateValidatorSlashEventsBetween(ctx, params.ValidatorAddress, params.StartingHeight, params.EndingHeight,
-		func(height uint64, event types.ValidatorSlashEvent) (stop bool) {
-			events = append(events, event)
-			return false
-		},
-	)
-
-	bz, err := codec.MarshalJSONIndent(legacyQuerierCdc, events)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}

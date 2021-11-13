@@ -114,23 +114,17 @@ func ReferenceCountInvariant(k Keeper) sdk.Invariant {
 			return false
 		})
 		dels := k.stakingKeeper.GetAllSDKDelegations(ctx)
-		slashCount := uint64(0)
-		k.IterateValidatorSlashEvents(ctx,
-			func(_ eth.Addr, _ uint64, _ types.ValidatorSlashEvent) (stop bool) {
-				slashCount++
-				return false
-			})
 
 		// one record per validator (last tracked period), one record per
-		// delegation (previous period), one record per slash (previous period)
-		expected := valCount + uint64(len(dels)) + slashCount
+		// delegation (previous period)
+		expected := valCount + uint64(len(dels))
 		count := k.GetValidatorHistoricalReferenceCount(ctx)
 		broken := count != expected
 
 		return sdk.FormatInvariant(types.ModuleName, "reference count",
-			fmt.Sprintf("expected historical reference count: %d = %v validators + %v delegations + %v slashes\n"+
+			fmt.Sprintf("expected historical reference count: %d = %v validators + %v delegations\n"+
 				"total validator historical reference count: %d\n",
-				expected, valCount, len(dels), slashCount, count)), broken
+				expected, valCount, len(dels), count)), broken
 	}
 }
 

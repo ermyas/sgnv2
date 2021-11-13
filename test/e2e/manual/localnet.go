@@ -191,10 +191,10 @@ func addValidators() {
 	txr.Run()
 
 	valAmts := []*big.Int{
-		new(big.Int).Mul(big.NewInt(16000), big.NewInt(common.TokenDec)),
-		new(big.Int).Mul(big.NewInt(20000), big.NewInt(common.TokenDec)),
-		new(big.Int).Mul(big.NewInt(15000), big.NewInt(common.TokenDec)),
-		new(big.Int).Mul(big.NewInt(18000), big.NewInt(common.TokenDec)),
+		new(big.Int).Mul(big.NewInt(16000), big.NewInt(common.CelrPrecision)),
+		new(big.Int).Mul(big.NewInt(20000), big.NewInt(common.CelrPrecision)),
+		new(big.Int).Mul(big.NewInt(15000), big.NewInt(common.CelrPrecision)),
+		new(big.Int).Mul(big.NewInt(18000), big.NewInt(common.CelrPrecision)),
 	}
 	commissions := []uint64{eth.CommissionRate(0.15), eth.CommissionRate(0.2), eth.CommissionRate(0.12), eth.CommissionRate(0.1)}
 

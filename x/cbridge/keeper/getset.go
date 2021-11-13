@@ -26,10 +26,16 @@ func (k Keeper) ChangeLiquidity(ctx sdk.Context, kv sdk.KVStore, chid uint64, to
 	}
 	kv.Set(lqKey, had.Bytes())
 
+	// Run SyncFarming in a separate cached context so farming errors won't affect the main flow
 	sym := GetAssetSymbol(kv, &ChainIdTokenAddr{chid, token})
-	err := k.SyncFarming(ctx, sym, chid, lp, had)
+	cacheCtx, writeCache := ctx.CacheContext()
+	err := k.SyncFarming(cacheCtx, sym, chid, lp, had)
 	if err != nil {
-		panic("Failed to sync farming" + err.Error())
+		// Only log error, don't panic
+		log.Errorln("Failed to sync farming", err)
+	} else {
+		ctx.EventManager().EmitEvents(cacheCtx.EventManager().Events())
+		writeCache()
 	}
 
 	return had

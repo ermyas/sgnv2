@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -28,7 +27,6 @@ func GetQueryCmd() *cobra.Command {
 		GetCmdQueryParams(),
 		GetCmdQueryValidatorOutstandingRewards(),
 		GetCmdQueryValidatorCommission(),
-		GetCmdQueryValidatorSlashes(),
 		GetCmdQueryDelegatorRewards(),
 		GetCmdQueryCommunityPool(),
 		GetCmdQueryStakingRewardInfo(),
@@ -139,65 +137,6 @@ $ %s query distribution commission 0x00078b31fa8b29a76bce074b5ea0d515a6aeaee7
 	}
 
 	flags.AddQueryFlagsToCmd(cmd)
-	return cmd
-}
-
-// GetCmdQueryValidatorSlashes implements the query validator slashes command.
-func GetCmdQueryValidatorSlashes() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "slashes [validator] [start-height] [end-height]",
-		Args:  cobra.ExactArgs(3),
-		Short: "Query distribution validator slashes",
-		Long: strings.TrimSpace(
-			fmt.Sprintf(`Query all slashes of a validator for a given block range.
-
-Example:
-$ %s query distribution slashes 0x00078b31fa8b29a76bce074b5ea0d515a6aeaee7 0 100
-`,
-				version.AppName,
-			),
-		),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
-			queryClient := types.NewQueryClient(clientCtx)
-
-			startHeight, err := strconv.ParseUint(args[1], 10, 64)
-			if err != nil {
-				return fmt.Errorf("start-height %s not a valid uint, please input a valid start-height", args[1])
-			}
-
-			endHeight, err := strconv.ParseUint(args[2], 10, 64)
-			if err != nil {
-				return fmt.Errorf("end-height %s not a valid uint, please input a valid end-height", args[2])
-			}
-
-			pageReq, err := client.ReadPageRequest(cmd.Flags())
-			if err != nil {
-				return err
-			}
-
-			res, err := queryClient.ValidatorSlashes(
-				cmd.Context(),
-				&types.QueryValidatorSlashesRequest{
-					ValidatorAddress: args[0],
-					StartingHeight:   startHeight,
-					EndingHeight:     endHeight,
-					Pagination:       pageReq,
-				},
-			)
-			if err != nil {
-				return err
-			}
-
-			return clientCtx.PrintProto(res)
-		},
-	}
-
-	flags.AddQueryFlagsToCmd(cmd)
-	flags.AddPaginationFlagsToCmd(cmd, "validator slashes")
 	return cmd
 }
 

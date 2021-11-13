@@ -3,6 +3,7 @@ package keeper
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/distribution/types"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
@@ -43,8 +44,9 @@ func (k Keeper) IncrementValidatorPeriod(ctx sdk.Context, val stakingtypes.Valid
 
 		current = sdk.DecCoins{}
 	} else {
-		// note: necessary to truncate so we don't allow withdrawing more rewards than owed
-		current = rewards.Rewards.QuoDecTruncate(val.GetTokens().ToDec())
+		// NOTE: first multiply by StakingScaleFactor (1e12) to support reward tokens with much smaller decimals than
+		// the stake token. Necessary to truncate so we don't allow withdrawing more rewards than owed.
+		current = rewards.Rewards.MulDec(common.StakingScaleFactor).QuoDecTruncate(val.GetTokens().ToDec())
 	}
 
 	// fetch historical rewards for last period
@@ -65,8 +67,8 @@ func (k Keeper) IncrementValidatorPeriod(ctx sdk.Context, val stakingtypes.Valid
 // increment the reference count for a historical rewards value
 func (k Keeper) incrementReferenceCount(ctx sdk.Context, valAddr eth.Addr, period uint64) {
 	historical := k.GetValidatorHistoricalRewards(ctx, valAddr, period)
-	if historical.ReferenceCount > 2 {
-		panic("reference count should never exceed 2")
+	if historical.ReferenceCount > 1 {
+		panic("reference count should never exceed 1")
 	}
 	historical.ReferenceCount++
 	k.SetValidatorHistoricalRewards(ctx, valAddr, period, historical)
