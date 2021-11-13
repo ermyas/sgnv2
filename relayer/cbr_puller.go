@@ -175,7 +175,8 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 		}
 
 		r.requeueRelay(relayEvent)
-		if strings.Contains(err.Error(), "Pausable: paused") || strings.Contains(err.Error(), "volume exceeds cap") {
+		if strings.Contains(err.Error(), "Pausable: paused") || strings.Contains(err.Error(), "volume exceeds cap") ||
+			strings.Contains(err.Error(), "Mismatch current signers") {
 			log.Warnf("%s. err %s", logmsg, err)
 		} else {
 			log.Errorf("%s. err %s", logmsg, err)

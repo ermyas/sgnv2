@@ -203,7 +203,7 @@ func (c *CbrOneChain) SendRelay(relayBytes []byte, sigs [][]byte, curss currentS
 				if receipt.Status == ethtypes.ReceiptStatusSuccessful {
 					log.Infof("Relay transaction succeeded, tx %x. %s", receipt.TxHash, logmsg)
 				} else {
-					log.Errorf("Relay transaction failed, tx %x. %s", receipt.TxHash, logmsg)
+					log.Warnf("Relay transaction failed, tx %x. %s", receipt.TxHash, logmsg)
 				}
 			},
 			OnError: func(tx *ethtypes.Transaction, err error) {
