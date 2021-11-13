@@ -1,12 +1,12 @@
-package slash
+package slashing
 
 import (
 	"fmt"
 
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/seal"
-	"github.com/celer-network/sgn-v2/x/slash/keeper"
-	"github.com/celer-network/sgn-v2/x/slash/types"
+	"github.com/celer-network/sgn-v2/x/slashing/keeper"
+	"github.com/celer-network/sgn-v2/x/slashing/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )

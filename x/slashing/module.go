@@ -1,4 +1,4 @@
-package slash
+package slashing
 
 // DONTCOVER
 
@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/celer-network/sgn-v2/x/slash/client/cli"
-	"github.com/celer-network/sgn-v2/x/slash/keeper"
-	"github.com/celer-network/sgn-v2/x/slash/types"
+	"github.com/celer-network/sgn-v2/x/slashing/client/cli"
+	"github.com/celer-network/sgn-v2/x/slashing/keeper"
+	"github.com/celer-network/sgn-v2/x/slashing/types"
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"

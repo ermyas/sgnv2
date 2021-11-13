@@ -16,8 +16,8 @@ import (
 	"github.com/celer-network/sgn-v2/transactor"
 	govcli "github.com/celer-network/sgn-v2/x/gov/client/cli"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
-	slashcli "github.com/celer-network/sgn-v2/x/slash/client/cli"
-	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
+	slashingcli "github.com/celer-network/sgn-v2/x/slashing/client/cli"
+	slashingtypes "github.com/celer-network/sgn-v2/x/slashing/types"
 	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -208,10 +208,10 @@ func QueryProposal(cliCtx client.Context, proposalID uint64, status govtypes.Pro
 	return
 }
 
-func QuerySlash(cliCtx client.Context, nonce uint64, sigCount int) (slash slashtypes.Slash, err error) {
+func QuerySlash(cliCtx client.Context, nonce uint64, sigCount int) (slash slashingtypes.Slash, err error) {
 	for retry := 0; retry < RetryLimit; retry++ {
-		slash, err = slashcli.QuerySlash(cliCtx, nonce)
-		if err == nil && len(slash.EthSlashBytes) > 0 && len(slash.Sigs) == sigCount {
+		slash, err = slashingcli.QuerySlash(cliCtx, nonce)
+		if err == nil && len(slash.EthSlashBytes) > 0 && len(slash.Signatures) == sigCount {
 			break
 		}
 		time.Sleep(RetryPeriod)
@@ -225,7 +225,7 @@ func QuerySlash(cliCtx client.Context, nonce uint64, sigCount int) (slash slasht
 		err = errors.New("EthSlashBytes cannot be zero")
 	}
 
-	if len(slash.Sigs) != sigCount {
+	if len(slash.Signatures) != sigCount {
 		err = errors.New("signature count does not match expectation")
 	}
 

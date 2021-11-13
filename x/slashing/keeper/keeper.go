@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/x/slash/types"
+	"github.com/celer-network/sgn-v2/x/slashing/types"
 	stakingkeeper "github.com/celer-network/sgn-v2/x/staking/keeper"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/codec"

@@ -1,7 +1,7 @@
 package keeper
 
 import (
-	"github.com/celer-network/sgn-v2/x/slash/types"
+	"github.com/celer-network/sgn-v2/x/slashing/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 

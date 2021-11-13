@@ -1,11 +1,11 @@
 syntax = "proto3";
-package sgn.slash.v1;
+package sgn.slashing.v1;
 
-option go_package = "github.com/celer-network/sgn-v2/x/slash/types";
+option go_package = "github.com/celer-network/sgn-v2/x/slashing/types";
 
 import "gogoproto/gogo.proto";
 
-import "sgn/slash/v1/slash.proto";
+import "sgn/slashing/v1/slashing.proto";
 
 // GenesisState defines the slash module's genesis state.
 message GenesisState {

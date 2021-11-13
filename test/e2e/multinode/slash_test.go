@@ -74,7 +74,7 @@ func slashTest(t *testing.T) {
 	log.Infoln("Query sgn about slash info:", slash.String())
 	assert.Equal(t, slashingtypes.AttributeValueMissingSignature, slash.Reason)
 	assert.Equal(t, eth.Addr2Hex(tc.ValEthAddrs[1]), slash.Validator)
-	assert.Equal(t, eth.Addr2Hex(tc.ValSignerAddrs[0]), slash.Sigs[0].Signer)
+	assert.Equal(t, eth.Addr2Hex(tc.ValSignerAddrs[0]), slash.Signatures[0].Signer)
 
 	time.Sleep(5 * time.Second) // wait for onchain call mined
 	current, _ := tc.Contracts.Staking.Validators(&bind.CallOpts{}, tc.ValEthAddrs[1])

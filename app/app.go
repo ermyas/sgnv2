@@ -31,9 +31,9 @@ import (
 	"github.com/celer-network/sgn-v2/x/mint"
 	mintkeeper "github.com/celer-network/sgn-v2/x/mint/keeper"
 	minttypes "github.com/celer-network/sgn-v2/x/mint/types"
-	"github.com/celer-network/sgn-v2/x/slash"
-	slashkeeper "github.com/celer-network/sgn-v2/x/slash/keeper"
-	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
+	"github.com/celer-network/sgn-v2/x/slashing"
+	slashingkeeper "github.com/celer-network/sgn-v2/x/slashing/keeper"
+	slashingtypes "github.com/celer-network/sgn-v2/x/slashing/types"
 	staking "github.com/celer-network/sgn-v2/x/staking"
 	stakingkeeper "github.com/celer-network/sgn-v2/x/staking/keeper"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
@@ -109,7 +109,7 @@ var (
 			farmingclient.AddTokensProposalHandler,
 			farmingclient.AdjustRewardProposalHandler,
 		),
-		slash.AppModule{},
+		slashing.AppModule{},
 		sync.AppModule{},
 		staking.AppModuleBasic{},
 		cbridge.AppModuleBasic{},
@@ -154,18 +154,18 @@ type SgnApp struct {
 	tKeys map[string]*sdk.TransientStoreKey
 
 	// keepers
-	AccountKeeper authkeeper.AccountKeeper
-	BankKeeper    bankkeeper.Keeper
-	UpgradeKeeper upgradekeeper.Keeper
-	ParamsKeeper  paramskeeper.Keeper
-	MintKeeper    mintkeeper.Keeper
-	DistrKeeper   distrkeeper.Keeper
-	FarmingKeeper farmingkeeper.Keeper
-	GovKeeper     govkeeper.Keeper
-	SlashKeeper   slashkeeper.Keeper
-	SyncKeeper    synckeeper.Keeper
-	StakingKeeper stakingkeeper.Keeper
-	CbridgeKeeper cbridgekeeper.Keeper
+	AccountKeeper  authkeeper.AccountKeeper
+	BankKeeper     bankkeeper.Keeper
+	UpgradeKeeper  upgradekeeper.Keeper
+	ParamsKeeper   paramskeeper.Keeper
+	MintKeeper     mintkeeper.Keeper
+	DistrKeeper    distrkeeper.Keeper
+	FarmingKeeper  farmingkeeper.Keeper
+	GovKeeper      govkeeper.Keeper
+	Slashingkeeper slashingkeeper.Keeper
+	SyncKeeper     synckeeper.Keeper
+	StakingKeeper  stakingkeeper.Keeper
+	CbridgeKeeper  cbridgekeeper.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -235,7 +235,7 @@ func NewSgnApp(
 		authtypes.StoreKey, banktypes.StoreKey,
 		paramstypes.StoreKey, upgradetypes.StoreKey,
 		minttypes.StoreKey, distrtypes.StoreKey, farmingtypes.StoreKey,
-		govtypes.StoreKey, slashtypes.StoreKey, synctypes.StoreKey, stakingtypes.StoreKey,
+		govtypes.StoreKey, slashingtypes.StoreKey, synctypes.StoreKey, stakingtypes.StoreKey,
 		cbrtypes.MemStoreKey, cbrtypes.StoreKey,
 	)
 	tKeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
@@ -314,11 +314,11 @@ func NewSgnApp(
 	app.StakingKeeper = *stakingKeeper.SetHooks(
 		stakingtypes.NewMultiStakingHooks(app.DistrKeeper.Hooks(), app.CbridgeKeeper.Hooks()),
 	)
-	app.SlashKeeper = slashkeeper.NewKeeper(
-		keys[slashtypes.StoreKey],
+	app.Slashingkeeper = slashingkeeper.NewKeeper(
+		keys[slashingtypes.StoreKey],
 		appCodec,
 		app.StakingKeeper,
-		app.GetSubspace(slashtypes.ModuleName),
+		app.GetSubspace(slashingtypes.ModuleName),
 	)
 
 	/****  Module Options ****/
@@ -336,7 +336,7 @@ func NewSgnApp(
 		farming.NewAppModule(appCodec, app.FarmingKeeper),
 		staking.NewAppModule(appCodec, app.StakingKeeper),
 		gov.NewAppModule(app.GovKeeper, app.AccountKeeper),
-		slash.NewAppModule(app.SlashKeeper),
+		slashing.NewAppModule(app.Slashingkeeper),
 		sync.NewAppModule(app.SyncKeeper),
 		cbridge.NewAppModule(appCodec, app.CbridgeKeeper),
 	)
@@ -350,7 +350,7 @@ func NewSgnApp(
 		stakingtypes.ModuleName,
 		minttypes.ModuleName,
 		distrtypes.ModuleName,
-		slashtypes.ModuleName,
+		slashingtypes.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
 		synctypes.ModuleName, govtypes.ModuleName, stakingtypes.ModuleName,
@@ -370,7 +370,7 @@ func NewSgnApp(
 		minttypes.ModuleName,
 		stakingtypes.ModuleName,
 		govtypes.ModuleName,
-		slashtypes.ModuleName,
+		slashingtypes.ModuleName,
 		synctypes.ModuleName,
 		cbrtypes.ModuleName,
 	)
@@ -597,7 +597,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(distrtypes.ModuleName).WithKeyTable(distrtypes.ParamKeyTable())
 	paramsKeeper.Subspace(farmingtypes.ModuleName).WithKeyTable(farmingtypes.ParamKeyTable())
 	paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable())
-	paramsKeeper.Subspace(slashtypes.ModuleName).WithKeyTable(slashtypes.ParamKeyTable())
+	paramsKeeper.Subspace(slashingtypes.ModuleName).WithKeyTable(slashingtypes.ParamKeyTable())
 	paramsKeeper.Subspace(stakingtypes.ModuleName).WithKeyTable(stakingtypes.ParamKeyTable())
 	paramsKeeper.Subspace(synctypes.ModuleName).WithKeyTable(synctypes.ParamKeyTable())
 	paramsKeeper.Subspace(cbrtypes.ModuleName).WithKeyTable(cbrtypes.ParamKeyTable())

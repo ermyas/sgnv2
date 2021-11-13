@@ -1,7 +1,6 @@
 package types
 
 import (
-	"bytes"
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -69,13 +68,6 @@ func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
 		paramtypes.NewParamSetPair(KeyJailPeriod, &p.JailPeriod, validateJailPeriod),
 		paramtypes.NewParamSetPair(KeyMinSignedPerWindow, &p.MinSignedPerWindow, validateMinSignedPerWindow),
 	}
-}
-
-// Equal returns a boolean determining if two Param types are identical.
-func (p Params) Equal(p2 Params) bool {
-	bz1 := ModuleCdc.MustMarshalLengthPrefixed(&p)
-	bz2 := ModuleCdc.MustMarshalLengthPrefixed(&p2)
-	return bytes.Equal(bz1, bz2)
 }
 
 // validate a set of params

@@ -6,7 +6,7 @@ import (
 
 const (
 	// module name
-	ModuleName = "slash"
+	ModuleName = "slashing"
 
 	// StoreKey to be used when creating the KVStore
 	StoreKey = ModuleName
@@ -20,7 +20,7 @@ var (
 	SlashNonceKey  = []byte{0x12} // Key for slash nonce
 )
 
-// get slash key from nonce
+// GetSlashKey gets slash key from nonce
 func GetSlashKey(nonce uint64) []byte {
 	return append(SlashKeyPrefix, sdk.Uint64ToBigEndian(nonce)...)
 }

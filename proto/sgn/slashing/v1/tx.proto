@@ -1,16 +1,16 @@
 syntax = "proto3";
-package sgn.slash.v1;
+package sgn.slashing.v1;
 
-import "sgn/slash/v1/slash.proto";
+import "sgn/slashing/v1/slashing.proto";
 import "gogoproto/gogo.proto";
 
-option go_package = "github.com/celer-network/sgn-v2/x/slash/types";
+option go_package = "github.com/celer-network/sgn-v2/x/slashing/types";
 
 message MsgSignSlash {
-  option (gogoproto.equal)            = false;
+  option (gogoproto.equal) = false;
   option (gogoproto.goproto_stringer) = false;
-  option (gogoproto.stringer)         = true;
-  option (gogoproto.goproto_getters)  = false;
+  option (gogoproto.stringer) = true;
+  option (gogoproto.goproto_getters) = false;
 
   uint64 nonce = 1;
   bytes sig = 2;

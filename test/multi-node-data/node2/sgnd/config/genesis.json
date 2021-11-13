@@ -263,7 +263,7 @@
         "veto": "0.334000000000000000"
       }
     },
-    "slash": {
+    "slashing": {
       "params": {
         "enable_slash": true,
         "signed_blocks_window": "20",

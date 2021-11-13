@@ -27,7 +27,6 @@ level = "debug"
 [sgnd]
 base_gas_price = 0
 chain_id = "sgn-localnet-1000"
-execute_slash = true
 gas_adjustment = 1.5
 keyring_backend = "file"
 node_uri = "tcp://localhost:26657"

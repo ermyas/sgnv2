@@ -5,7 +5,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
-	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
+	slashingtypes "github.com/celer-network/sgn-v2/x/slashing/types"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 )
@@ -39,7 +39,7 @@ func NewMsgLog(module string) *MsgLog {
 	switch module {
 	case stakingtypes.ModuleName:
 		msgLog.Staking = &Staking{}
-	case slashtypes.ModuleName:
+	case slashingtypes.ModuleName:
 		msgLog.Slash = &Slash{}
 	case synctypes.ModuleName:
 		msgLog.Sync = &Sync{}

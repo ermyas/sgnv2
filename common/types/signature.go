@@ -17,10 +17,7 @@ func NewSignature(signer string, sigBytes []byte) Signature {
 }
 
 func AddSig(sigs []Signature, msg []byte, sigBytes []byte, expectedSigner string) ([]Signature, error) {
-	// make sure sig won't be changed by callee
-	tmpSig := make([]byte, len(sigBytes))
-	copy(tmpSig, sigBytes)
-	signer, err := ethutils.RecoverSigner(msg, tmpSig)
+	signer, err := ethutils.RecoverSigner(msg, sigBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -31,17 +28,27 @@ func AddSig(sigs []Signature, msg []byte, sigBytes []byte, expectedSigner string
 		return nil, err
 	}
 
-	for i, s := range sigs {
-		if s.Signer == signerAddr {
-			if bytes.Equal(s.SigBytes, sigBytes) {
-				// already signed with the same sig
+	newSig := NewSignature(signerAddr, sigBytes)
+	// Keep sigs sorted in ascending order by signer address and check for duplicates
+	for i, sig := range sigs {
+		if sig.Signer == signerAddr {
+			// Overwriting existing sig
+			if bytes.Equal(sig.SigBytes, sigBytes) {
+				// no-op, already signed with the same sig
 				return sigs, nil
 			}
 			log.Debugf("repeated signer %s overwite existing sig", signerAddr)
-			sigs[i] = NewSignature(signerAddr, sigBytes)
+			sigs[i] = newSig
 			return sigs, nil
+		}
+		if signerAddr < sig.Signer {
+			// Found the spot, do insertion
+			newSigs := append(sigs[:i+1], sigs[i:]...)
+			newSigs[i] = newSig
+			return newSigs, nil
 		}
 	}
 
-	return append(sigs, NewSignature(signerAddr, sigBytes)), nil
+	// Address larger than all existing signers, append to the end
+	return append(sigs, newSig), nil
 }

@@ -10,8 +10,8 @@ import (
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
-	slashcli "github.com/celer-network/sgn-v2/x/slash/client/cli"
-	slashtypes "github.com/celer-network/sgn-v2/x/slash/types"
+	slashingcli "github.com/celer-network/sgn-v2/x/slashing/client/cli"
+	slashingtypes "github.com/celer-network/sgn-v2/x/slashing/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	tmquery "github.com/tendermint/tendermint/libs/pubsub/query"
 	"github.com/tendermint/tendermint/rpc/client/http"
@@ -20,7 +20,7 @@ import (
 
 var (
 	EventQuerySlash = tmquery.MustParse(
-		fmt.Sprintf("tm.event='NewBlock' AND %s.%s EXISTS", slashtypes.EventTypeSlash, slashtypes.AttributeKeyNonce)).String()
+		fmt.Sprintf("tm.event='NewBlock' AND %s.%s EXISTS", slashingtypes.EventTypeSlash, slashingtypes.AttributeKeyNonce)).String()
 	EventQueryCbridge = tmquery.MustParse(
 		fmt.Sprintf("%s.%s='%s'", cbrtypes.EventTypeDataToSign, sdk.AttributeKeyModule, cbrtypes.ModuleName)).String()
 	EventQueryFarmingClaimAll = tmquery.MustParse(
@@ -64,7 +64,7 @@ func (r *Relayer) monitorSgnSlash() {
 			if !r.isBonded() {
 				return
 			}
-			for _, nonceStr := range events[fmt.Sprintf("%s.%s", slashtypes.EventTypeSlash, slashtypes.AttributeKeyNonce)] {
+			for _, nonceStr := range events[fmt.Sprintf("%s.%s", slashingtypes.EventTypeSlash, slashingtypes.AttributeKeyNonce)] {
 				nonce, err := strconv.ParseUint(nonceStr, 10, 64)
 				if err != nil {
 					log.Errorln("Parse slash nonce error", err)
@@ -72,7 +72,7 @@ func (r *Relayer) monitorSgnSlash() {
 				}
 
 				slashEvent := NewSlashEvent(nonce)
-				slash, err := slashcli.QuerySlash(r.Transactor.CliCtx, slashEvent.Nonce)
+				slash, err := slashingcli.QuerySlash(r.Transactor.CliCtx, slashEvent.Nonce)
 				if err != nil {
 					log.Errorf("Query slash %d err %s", slashEvent.Nonce, err)
 					return
@@ -85,7 +85,7 @@ func (r *Relayer) monitorSgnSlash() {
 					return
 				}
 
-				msg := slashtypes.NewMsgSignSlash(slashEvent.Nonce, sig, r.Transactor.Key.GetAddress())
+				msg := slashingtypes.NewMsgSignSlash(slashEvent.Nonce, sig, r.Transactor.Key.GetAddress())
 				r.Transactor.AddTxMsg(&msg)
 
 				err = r.dbSet(GetSlashKey(slashEvent.Nonce), slashEvent.MustMarshal())

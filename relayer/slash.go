@@ -8,7 +8,7 @@ import (
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
-	slashcli "github.com/celer-network/sgn-v2/x/slash/client/cli"
+	slashingcli "github.com/celer-network/sgn-v2/x/slashing/client/cli"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	mapset "github.com/deckarep/golang-set"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -45,7 +45,7 @@ func (r *Relayer) processSlashQueue() {
 		r.lock.RUnlock()
 
 		enableSlash := true
-		params, err := slashcli.QueryParams(r.Transactor.CliCtx)
+		params, err := slashingcli.QueryParams(r.Transactor.CliCtx)
 		if err == nil {
 			enableSlash = params.EnableSlash
 		}
@@ -82,14 +82,14 @@ func (r *Relayer) submitSlash(slashEvent SlashEvent) {
 		return
 	}
 
-	slash, err := slashcli.QuerySlash(r.Transactor.CliCtx, slashEvent.Nonce)
+	slash, err := slashingcli.QuerySlash(r.Transactor.CliCtx, slashEvent.Nonce)
 	if err != nil {
 		log.Errorln("QuerySlash err", err)
 		return
 	}
 
 	signedValidators := mapset.NewSet()
-	for _, sig := range slash.Sigs {
+	for _, sig := range slash.Signatures {
 		signedValidators.Add(sig.Signer)
 	}
 	pass := r.validateSigs(signedValidators)
@@ -113,7 +113,7 @@ func (r *Relayer) submitSlash(slashEvent SlashEvent) {
 			},
 		},
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
-			return r.EthClient.Contracts.Staking.Slash(opts, slash.GetEthSlashBytes(), slash.GetSortedSigsBytes())
+			return r.EthClient.Contracts.Staking.Slash(opts, slash.GetEthSlashBytes(), slash.GetSigsBytes())
 		},
 	)
 	if err != nil {

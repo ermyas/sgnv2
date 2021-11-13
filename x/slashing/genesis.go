@@ -1,8 +1,8 @@
-package slash
+package slashing
 
 import (
-	"github.com/celer-network/sgn-v2/x/slash/keeper"
-	"github.com/celer-network/sgn-v2/x/slash/types"
+	"github.com/celer-network/sgn-v2/x/slashing/keeper"
+	"github.com/celer-network/sgn-v2/x/slashing/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
