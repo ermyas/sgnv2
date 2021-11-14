@@ -128,11 +128,11 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 			return true // ask to recreate to process event again
 		}
 		// todo: use cbr query to get symbol to avoid query db, as we already have all other info
-		token, chainId, found := c.getTokenFromDB(ev.Token.String())
+		token, found := c.getTokenFromDB(ev.Token.String())
 		if !found {
 			return false
 		}
-		err = GatewayOnLiqAdd(ev.Provider.String(), token.Token.Symbol, token.Token.Address, ev.Amount.String(), eLog.TxHash.String(), chainId, ev.Seqnum)
+		err = GatewayOnLiqAdd(ev.Provider.String(), token.Token.Symbol, token.Token.Address, ev.Amount.String(), eLog.TxHash.String(), c.chainid, ev.Seqnum)
 		if err != nil {
 			log.Errorln("UpsertLP db err:", err)
 			return false

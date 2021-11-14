@@ -34,6 +34,10 @@ func (r *Relayer) verifyCbrEventUpdate(update *synctypes.PendingUpdate) (done, a
 		log.Errorf("failed to unmarshal %x to eth Log", onchev.Elog)
 		return true, false
 	}
+	if elog == nil {
+		log.Errorf("unmarshal %x to to nil", onchev.Elog)
+		return true, false
+	}
 
 	// delete my local db event so this event won't be picked again when I become syncer
 	defer r.cbrMgr[onchev.Chainid].delEvent(onchev.Evtype, elog.BlockNumber, uint64(elog.Index))

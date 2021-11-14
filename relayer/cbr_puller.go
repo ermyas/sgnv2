@@ -104,7 +104,7 @@ func (r *Relayer) processCbridgeQueue(chid uint64) {
 		log.Debugf("start process relay queue，current timestamp: %d, queue size: %d", time.Now().Unix(), len(keys))
 	}
 	for i, key := range keys {
-		event := NewRelayEventFromBytes(vals[i])
+		event := NewRelayRequestFromBytes(vals[i])
 		err = r.dbDelete(key)
 		if err != nil {
 			log.Errorln("db Delete err", err)
@@ -115,12 +115,12 @@ func (r *Relayer) processCbridgeQueue(chid uint64) {
 	}
 }
 
-func (r *Relayer) submitRelay(relayEvent RelayEvent) {
-	logmsg := fmt.Sprintf("Process relay srcId %x dstChain %d", relayEvent.XferId, relayEvent.DstChainId)
+func (r *Relayer) submitRelay(relayRequest RelayRequest) {
+	logmsg := fmt.Sprintf("Process relay srcId %x dstChain %d", relayRequest.XferId, relayRequest.DstChainId)
 
-	relay, err := cbrcli.QueryRelay(r.Transactor.CliCtx, relayEvent.XferId)
+	relay, err := cbrcli.QueryRelay(r.Transactor.CliCtx, relayRequest.XferId)
 	if err != nil {
-		r.requeueRelay(relayEvent, fmt.Sprintf("%s. QueryRelay err: %s", logmsg, err), true)
+		r.requeueRelay(relayRequest, fmt.Sprintf("%s. QueryRelay err: %s", logmsg, err), true)
 		return
 	}
 
@@ -136,7 +136,7 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 		TransferId: []string{xferId},
 	})
 	if err != nil {
-		r.requeueRelay(relayEvent, fmt.Sprintf("%s. QueryTransferStatus err: %s", logmsg, err), true)
+		r.requeueRelay(relayRequest, fmt.Sprintf("%s. QueryTransferStatus err: %s", logmsg, err), true)
 		return
 	}
 	if resp.Status[xferId].SgnStatus == cbrtypes.XferStatus_SUCCESS {
@@ -155,7 +155,7 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 	}
 	pass, sigsBytes := cbrtypes.ValidateSigQuorum(relay.SortedSigs, curssList)
 	if !pass {
-		r.requeueRelay(relayEvent,
+		r.requeueRelay(relayRequest,
 			fmt.Sprintf("%s. Not have enough sigs %s, curss %s", logmsg, relay.SignersStr(), curss.String()), false)
 		return
 	}
@@ -179,23 +179,23 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 		if strings.Contains(err.Error(), "Pausable: paused") ||
 			strings.Contains(err.Error(), "volume exceeds cap") ||
 			strings.Contains(err.Error(), "Mismatch current signers") {
-			if relayEvent.RetryCount > 0 {
-				relayEvent.RetryCount -= 1
+			if relayRequest.RetryCount > 0 {
+				relayRequest.RetryCount -= 1
 			}
 		}
-		r.requeueRelay(relayEvent, fmt.Sprintf("%s. err %s", logmsg, err), true)
+		r.requeueRelay(relayRequest, fmt.Sprintf("%s. err %s", logmsg, err), true)
 		return
 	}
 	log.Infof("%s. tx hash %s", logmsg, txHash)
 }
 
-func (r *Relayer) requeueRelay(relayEvent RelayEvent, logmsg string, warn bool) {
-	if relayEvent.RetryCount >= maxRelayRetry {
+func (r *Relayer) requeueRelay(relayRequest RelayRequest, logmsg string, warn bool) {
+	if relayRequest.RetryCount >= maxRelayRetry {
 		log.Errorf("%s. hits retry limit", logmsg)
 		return
 	}
-	relayEvent.RetryCount += 1
-	err := r.dbSet(GetCbrXferKey(relayEvent.XferId, relayEvent.DstChainId), relayEvent.MustMarshal())
+	relayRequest.RetryCount += 1
+	err := r.dbSet(GetCbrXferKey(relayRequest.XferId, relayRequest.DstChainId), relayRequest.MustMarshal())
 	if err != nil {
 		log.Errorf("%s. db Set err: %s", logmsg, err)
 	}

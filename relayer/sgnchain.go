@@ -130,11 +130,11 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 					relay := new(cbrtypes.RelayOnChain)
 					err = relay.Unmarshal(data)
 					if err != nil {
-						log.Errorf("%s, failed to unmarshal XrefRelay: %s", logmsg, err)
+						log.Errorf("%s, failed to unmarshal RelayOnChain: %s", logmsg, err)
 						return
 					}
-					relayEvent := NewRelayEvent(relay.SrcTransferId, relay.DstChainId)
-					err = r.dbSet(GetCbrXferKey(relayEvent.XferId, relay.DstChainId), relayEvent.MustMarshal())
+					relayRequest := NewRelayRequest(relay.SrcTransferId, relay.DstChainId)
+					err = r.dbSet(GetCbrXferKey(relayRequest.XferId, relay.DstChainId), relayRequest.MustMarshal())
 					if err != nil {
 						log.Errorf("%s, db Set err: %s", logmsg, err)
 					}

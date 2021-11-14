@@ -159,29 +159,31 @@ func fixCfg(cfg *common.OneChainConfig, ethchainid uint64) {
 	cfg.MaxBlkDelta = viper.GetUint64(common.FlagEthMaxBlockDelta)
 }
 
-type RelayEvent struct {
-	XferId     []byte `json:"xfer_id"`
-	RetryCount uint64 `json:"retry_count"`
-	DstChainId uint64 `json:"dst_chain_id"`
+type RelayRequest struct {
+	XferId     []byte    `json:"xfer_id"` // src transfer id
+	RetryCount uint64    `json:"retry_count"`
+	DstChainId uint64    `json:"dst_chain_id"`
+	CreateTime time.Time `json:"create_time"`
 }
 
-func NewRelayEvent(xferId []byte, dstChainId uint64) RelayEvent {
-	return RelayEvent{
+func NewRelayRequest(xferId []byte, dstChainId uint64) RelayRequest {
+	return RelayRequest{
 		XferId:     xferId,
 		RetryCount: 0,
 		DstChainId: dstChainId,
+		CreateTime: time.Now(),
 	}
 }
 
-func NewRelayEventFromBytes(input []byte) RelayEvent {
-	event := RelayEvent{}
-	event.MustUnMarshal(input)
-	return event
+func NewRelayRequestFromBytes(input []byte) RelayRequest {
+	relay := RelayRequest{}
+	relay.MustUnMarshal(input)
+	return relay
 }
 
-// Marshal event into json bytes
-func (e RelayEvent) MustMarshal() []byte {
-	res, err := json.Marshal(&e)
+// Marshal RelayRequest into json bytes
+func (r RelayRequest) MustMarshal() []byte {
+	res, err := json.Marshal(&r)
 	if err != nil {
 		panic(err)
 	}
@@ -189,9 +191,9 @@ func (e RelayEvent) MustMarshal() []byte {
 	return res
 }
 
-// Unmarshal json bytes to relay event
-func (e *RelayEvent) MustUnMarshal(input []byte) {
-	err := json.Unmarshal(input, e)
+// Unmarshal json bytes to RelayRequest
+func (r *RelayRequest) MustUnMarshal(input []byte) {
+	err := json.Unmarshal(input, r)
 	if err != nil {
 		panic(err)
 	}

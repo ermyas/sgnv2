@@ -1,11 +1,9 @@
 package relayer
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
@@ -53,19 +51,12 @@ func (c *CbrOneChain) delEvent(name string, blknum, idx uint64) error {
 	return c.db.Delete([]byte(fmt.Sprintf("%s-%d-%d", name, blknum, idx)))
 }
 
-func (c *CbrOneChain) getTokenFromDB(tokenAddr string) (*webapi.TokenInfo, uint64, bool) {
-	newContext, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	chainId, err := c.ChainID(newContext)
-	if err != nil {
-		log.Errorln("get chain id err:", err)
-		return nil, 0, false
-	}
-	token, found, err := dal.GetTokenByAddr(tokenAddr, chainId.Uint64())
+func (c *CbrOneChain) getTokenFromDB(tokenAddr string) (*webapi.TokenInfo, bool) {
+	token, found, err := dal.GetTokenByAddr(tokenAddr, c.chainid)
 	if err != nil || !found {
-		return nil, 0, false
+		return nil, false
 	}
-	return token, chainId.Uint64(), true
+	return token, true
 }
 
 func GatewayOnSend(transferId, usrAddr, tokenSymbol, amt, sendTxHash string, srcChainId, dsChainId uint64) error {
