@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	maxRelayRetry     = 5
+	maxRelayRetry     = 15
 	maxSigRetry       = 10
 	maxBytesPerUpdate = 400000
 )
@@ -116,11 +116,12 @@ func (r *Relayer) processCbridgeQueue(chid uint64) {
 }
 
 func (r *Relayer) submitRelay(relayEvent RelayEvent) {
-	logmsg := fmt.Sprintf("Process relay srcId %x", relayEvent.XferId)
+	logmsg := fmt.Sprintf("Process relay srcId %x dstChain %d", relayEvent.XferId, relayEvent.DstChainId)
 
 	relay, err := cbrcli.QueryRelay(r.Transactor.CliCtx, relayEvent.XferId)
 	if err != nil {
 		log.Errorf("%s. QueryRelay err: %s", logmsg, err)
+		r.requeueRelay(relayEvent) // in case of transit query error
 		return
 	}
 
@@ -136,7 +137,7 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 		TransferId: []string{xferId},
 	})
 	if err != nil {
-		log.Errorf("QueryTransferStatus err: %s", err)
+		log.Errorf("%s. QueryTransferStatus err: %s", err, logmsg)
 		return
 	}
 	if resp.Status[xferId].SgnStatus == cbrtypes.XferStatus_SUCCESS {
@@ -176,12 +177,16 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 			return
 		}
 
-		r.requeueRelay(relayEvent)
 		if strings.Contains(err.Error(), "Pausable: paused") || strings.Contains(err.Error(), "volume exceeds cap") ||
 			strings.Contains(err.Error(), "Mismatch current signers") {
 			log.Warnf("%s. err %s", logmsg, err)
+			if relayEvent.RetryCount > 0 {
+				relayEvent.RetryCount -= 1
+			}
+			r.requeueRelay(relayEvent)
 		} else {
 			log.Errorf("%s. err %s", logmsg, err)
+			r.requeueRelay(relayEvent)
 		}
 		return
 	}
@@ -190,11 +195,10 @@ func (r *Relayer) submitRelay(relayEvent RelayEvent) {
 
 func (r *Relayer) requeueRelay(relayEvent RelayEvent) {
 	if relayEvent.RetryCount >= maxRelayRetry {
-		log.Warnf("relay %x hits retry limit", relayEvent.XferId)
+		log.Errorf("relay %x hits retry limit", relayEvent.XferId)
 		return
 	}
-
-	relayEvent.RetryCount = relayEvent.RetryCount + 1
+	relayEvent.RetryCount += 1
 	err := r.dbSet(GetCbrXferKey(relayEvent.XferId, relayEvent.DstChainId), relayEvent.MustMarshal())
 	if err != nil {
 		log.Errorln("db Set err", err)
