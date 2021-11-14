@@ -6,7 +6,7 @@ require (
 	github.com/allegro/bigcache v1.2.1
 	github.com/armon/go-metrics v0.3.9
 	github.com/aws/aws-sdk-go v1.41.15
-	github.com/celer-network/goutils v0.1.38
+	github.com/celer-network/goutils v0.1.39
 	github.com/cosmos/cosmos-sdk v0.44.3
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/deckarep/golang-set v1.7.1

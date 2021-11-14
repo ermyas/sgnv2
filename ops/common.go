@@ -121,6 +121,7 @@ func newOneChain(chainId uint64) (*CbrOneChain, error) {
 				addr,
 				signer,
 				ec,
+				big.NewInt(int64(cfg.ChainID)),
 				ethutils.WithBlockDelay(cfg.BlkDelay),
 				ethutils.WithPollingInterval(time.Duration(cfg.BlkInterval)*time.Second),
 			)

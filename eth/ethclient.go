@@ -88,6 +88,7 @@ func (ethClient *EthClient) setTransactor(ksfile string, passphrase string, tcon
 		ethClient.Address,
 		ethClient.Signer,
 		ethClient.Client,
+		tconfig.ChainId,
 		ethutils.WithBlockDelay(tconfig.BlockDelay),
 		ethutils.WithPollingInterval(time.Duration(tconfig.BlockPollingInterval)*time.Second),
 		ethutils.WithAddGasGwei(tconfig.AddGasPriceGwei),

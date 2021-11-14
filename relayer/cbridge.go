@@ -117,6 +117,7 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 		addr,
 		signer,
 		ec,
+		big.NewInt(int64(cfg.ChainID)),
 		ethutils.WithBlockDelay(cfg.BlkDelay),
 		ethutils.WithPollingInterval(time.Duration(cfg.BlkInterval)*time.Second),
 		ethutils.WithAddGasGwei(cfg.AddGasGwei),
