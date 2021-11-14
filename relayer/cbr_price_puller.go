@@ -58,7 +58,7 @@ func getCbrPriceFromUrl() (cp *types.CbrPrice, success bool) {
 		return nil, false
 	}
 	// rough check
-	if common.TsToTime(cp.GetUpdateEpoch()).Add(Interval).Add(-30 * time.Second).Before(time.Now()) {
+	if common.TsToTime(cp.GetUpdateEpoch()).Add(2 * Interval).Before(time.Now()) {
 		log.Errorln("seems like oracle stopped working, latest cbrPrice update time ", common.TsToTime(cp.GetUpdateEpoch()))
 		return nil, false
 	}
