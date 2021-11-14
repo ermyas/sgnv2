@@ -3,11 +3,13 @@ package cli
 import (
 	"fmt"
 
-	"github.com/spf13/cobra"
-
+	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/spf13/cobra"
 )
 
 // GetTxCmd returns the transaction commands for this module
@@ -20,8 +22,43 @@ func GetTxCmd() *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 
-	// this line is used by starport scaffolding # 1
+	cmd.AddCommand(common.PostCommands(
+		GetCmdUpdateLatestSigners(),
+	)...)
 
+	return cmd
+}
+
+func GetCmdUpdateLatestSigners() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "update-latest-signers",
+		Short: "Trigger update of latest signers",
+		Args:  cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+			home, err := cmd.Flags().GetString(flags.FlagHome)
+			if err != nil {
+				return err
+			}
+			txr, err := transactor.NewCliTransactor(home, clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
+			if err != nil {
+				log.Error(err)
+				return err
+			}
+			msg := types.NewMsgUpdateLatestSigners(txr.Key.GetAddress().String())
+			err = msg.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			txr.CliSendTxMsgWaitMined(msg)
+
+			return nil
+		},
+	}
 	return cmd
 }
 

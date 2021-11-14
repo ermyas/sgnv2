@@ -64,13 +64,14 @@ func (k Keeper) SetValidatorStates(ctx sdk.Context, val *types.Validator) {
 	} else if oldPower > 0 {
 		k.DeleteValidatorPower(ctx, val)
 	}
-	if newPower != oldPower {
-		k.SetValidatorPowerUpdate(ctx, eth.Hex2Addr(val.EthAddress), newPower)
-	}
 	if oldPower == 0 && val.GetStatus() == types.Bonded {
 		k.AfterValidatorBonded(ctx, val.GetEthAddr())
 	} else if newPower == 0 && oldPower > 0 {
 		k.AfterValidatorBeginUnbonding(ctx, val.GetEthAddr())
+	}
+	if newPower != oldPower {
+		k.SetValidatorPowerUpdate(ctx, eth.Hex2Addr(val.EthAddress), newPower)
+		k.AfterValidatorPowerUpdated(ctx, val.GetEthAddr())
 	}
 }
 

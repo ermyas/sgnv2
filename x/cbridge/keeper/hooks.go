@@ -15,15 +15,15 @@ var _ stakingtypes.StakingHooks = Hooks{}
 
 func (k Keeper) Hooks() Hooks { return Hooks{k} }
 
-func (h Hooks) AfterValidatorBonded(ctx sdk.Context, valAddr eth.Addr) {
+func (h Hooks) AfterValidatorBonded(ctx sdk.Context, _ eth.Addr) {
 	h.k.UpdateLatestSigners(ctx, true)
 }
 
-func (h Hooks) AfterValidatorBeginUnbonding(ctx sdk.Context, valAddr eth.Addr) {
+func (h Hooks) AfterValidatorBeginUnbonding(ctx sdk.Context, _ eth.Addr) {
 	h.k.UpdateLatestSigners(ctx, true)
 }
 
-func (h Hooks) AfterDelegationModified(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr) {
+func (h Hooks) AfterValidatorPowerUpdated(ctx sdk.Context, _ eth.Addr) {
 	h.k.UpdateLatestSigners(ctx, false)
 }
 
@@ -31,3 +31,4 @@ func (h Hooks) AfterValidatorCreated(_ sdk.Context, _ eth.Addr)                {
 func (h Hooks) AfterValidatorRemoved(_ sdk.Context, valAddr eth.Addr)          {}
 func (h Hooks) BeforeDelegationCreated(_ sdk.Context, _ eth.Addr, _ eth.Addr)  {}
 func (h Hooks) BeforeDelegationModified(_ sdk.Context, _ eth.Addr, _ eth.Addr) {}
+func (h Hooks) AfterDelegationModified(_ sdk.Context, _ eth.Addr, _ eth.Addr)  {}

@@ -114,3 +114,38 @@ func (msg *MsgSignAgain) ValidateBasic() error {
 	}
 	return nil
 }
+
+func NewMsgUpdateLatestSigners(creator string) *MsgUpdateLatestSigners {
+	return &MsgUpdateLatestSigners{
+		Creator: creator,
+	}
+}
+
+func (msg *MsgUpdateLatestSigners) Route() string {
+	return RouterKey
+}
+
+func (msg *MsgUpdateLatestSigners) Type() string {
+	return "UpdateLatestSigners"
+}
+
+func (msg *MsgUpdateLatestSigners) GetSigners() []sdk.AccAddress {
+	creator, err := sdk.AccAddressFromBech32(msg.Creator)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{creator}
+}
+
+func (msg *MsgUpdateLatestSigners) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+func (msg *MsgUpdateLatestSigners) ValidateBasic() error {
+	_, err := sdk.AccAddressFromBech32(msg.Creator)
+	if err != nil {
+		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid creator address (%s)", err)
+	}
+	return nil
+}

@@ -89,6 +89,7 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 		return false, fmt.Errorf("validator %s failed to get consensus addr, err %s", v.EthAddress, err)
 	}
 	log.Infof("Apply validator params %s", v.String())
+	var prevSigner string
 	val, found := k.stakingKeeper.GetValidator(ctx, eth.Hex2Addr(v.EthAddress))
 	if !found {
 		val = *stakingtypes.NewValidator(v.EthAddress, v.EthSigner, v.SgnAddress)
@@ -104,11 +105,8 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 		if !consAddr.Equals(storedConsAddr) {
 			return false, fmt.Errorf("update of consaddr is not supported: %s %s %s", v.EthAddress, consAddr, storedConsAddr)
 		}
-		if val.Status == stakingtypes.Bonded {
-			if val.EthSigner != eth.FormatAddrHex(v.EthSigner) {
-				log.Infof("Update bonded validator %s signer from %s to %s", val.EthAddress, val.EthSigner, v.EthSigner)
-				k.cbrKeeper.UpdateLatestSigners(ctx, true)
-			}
+		if val.Status == stakingtypes.Bonded && val.EthSigner != eth.FormatAddrHex(v.EthSigner) {
+			prevSigner = val.EthSigner
 		}
 		val.EthSigner = eth.FormatAddrHex(v.EthSigner)
 		val.SgnAddress = v.SgnAddress
@@ -116,6 +114,10 @@ func (k Keeper) applyValidatorParams(ctx sdk.Context, update *types.PendingUpdat
 	val.ConsensusPubkey = v.ConsensusPubkey
 	val.CommissionRate = v.CommissionRate
 	k.stakingKeeper.SetValidatorParams(ctx, &val, !found)
+	if prevSigner != "" {
+		log.Infof("Update bonded validator %s signer from %s to %s", val.EthAddress, prevSigner, val.EthSigner)
+		k.cbrKeeper.UpdateLatestSigners(ctx, true)
+	}
 	// TODO: gas coins
 	return true, nil
 }

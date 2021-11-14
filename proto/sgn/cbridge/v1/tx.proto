@@ -17,6 +17,8 @@ service Msg {
 
   // sgn validator send its sig, so the msg can be later submitted onchain
   rpc SendMySig(MsgSendMySig) returns (MsgSendMySigResp);
+
+  rpc UpdateLatestSigners(MsgUpdateLatestSigners) returns (MsgUpdateLatestSignersRsep);
 }
 
 enum SignDataType {
@@ -79,6 +81,12 @@ message MsgSignAgain {
 }
 
 message MsgSignAgainResp {}
+
+message MsgUpdateLatestSigners {
+  string creator = 1;
+}
+
+message MsgUpdateLatestSignersRsep {}
 
 message ErrMsg {
   ErrCode code = 1;

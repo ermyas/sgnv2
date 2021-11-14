@@ -82,14 +82,14 @@ func main() {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 
 		log.Infoln("copy config files")
 		cmd2 := exec.Command("make", "copy-manual-test-data")
 		cmd2.Dir = repoRoot
 		if err := cmd2.Run(); err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 		log.Infoln("update config files")
 		for i := 0; i < len(tc.ValEthKs); i++ {
@@ -97,14 +97,14 @@ func main() {
 			configFileViper := viper.New()
 			configFileViper.SetConfigFile(configPath)
 			if err := configFileViper.ReadInConfig(); err != nil {
-				log.Error(err)
+				log.Fatal(err)
 			}
 			ksPath, _ := filepath.Abs(fmt.Sprintf("./data/node%d/keys/vsigner%d.json", i, i))
 			configFileViper.Set(common.FlagEthSignerKeystore, ksPath)
 			configFileViper.Set(common.FlagEthGateway, tc.LocalGeth)
 			configFileViper.Set(common.FlagSgnNodeURI, tc.SgnNodeURIs[i])
 			if err := configFileViper.WriteConfig(); err != nil {
-				log.Error(err)
+				log.Fatal(err)
 			}
 		}
 		if *auto {
@@ -120,7 +120,7 @@ func main() {
 		cmd := exec.Command("make", "localnet-down")
 		cmd.Dir = repoRoot
 		if err := cmd.Run(); err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 		os.Exit(0)
 	} else if *up != -1 {
@@ -129,7 +129,7 @@ func main() {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 	} else if *stop != -1 {
 		log.Infoln("Stop node", *stop)
@@ -137,14 +137,14 @@ func main() {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 	} else if *upall {
 		log.Infoln("Start all nodes ...")
 		cmd := exec.Command("make", "localnet-up-nodes")
 		cmd.Dir = repoRoot
 		if err := cmd.Run(); err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 		os.Exit(0)
 	} else if *stopall {
@@ -152,7 +152,7 @@ func main() {
 		cmd := exec.Command("make", "localnet-down-nodes")
 		cmd.Dir = repoRoot
 		if err := cmd.Run(); err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 		os.Exit(0)
 	} else if *rebuild {
@@ -160,13 +160,23 @@ func main() {
 		cmd := exec.Command("make", "build-node")
 		cmd.Dir = repoRoot
 		if err := cmd.Run(); err != nil {
-			log.Error(err)
+			log.Fatal(err)
+		}
+		log.Infoln("install sgnd in host machine ...")
+		cmd = exec.Command("make", "install")
+		cmd.Dir = repoRoot
+		cmd.Env = os.Environ()
+		cmd.Env = append(cmd.Env, "WITH_CLEVELDB=yes")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			log.Fatal(err)
 		}
 		os.Exit(0)
 	} else if *fund != "" {
 		err := fundAddr()
 		if err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 		os.Exit(0)
 	}
@@ -185,7 +195,7 @@ func addValidators() {
 		encodingConfig.InterfaceRegistry,
 	)
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 		return
 	}
 	txr.Run()
@@ -202,7 +212,7 @@ func addValidators() {
 		log.Infoln("Adding validator", i, tc.ValEthAddrs[i].Hex())
 		err := tc.InitializeValidator(tc.ValAuths[i], tc.ValSignerAddrs[i], tc.ValSgnAddrs[i], valAmts[i], commissions[i])
 		if err != nil {
-			log.Errorln("failed to initialize validator: ", err)
+			log.Fatalln("failed to initialize validator: ", err)
 		}
 
 		for retry := 0; retry < tc.RetryLimit; retry++ {
@@ -220,13 +230,13 @@ func addValidators() {
 			configFileViper := viper.New()
 			configFileViper.SetConfigFile("./data/node0/sgnd/config/sgn.toml")
 			if err := configFileViper.ReadInConfig(); err != nil {
-				log.Error(err)
+				log.Fatal(err)
 			}
 			transactors := configFileViper.GetStringSlice(common.FlagSgnTransactors)
 			msg1 := stakingtypes.NewMsgSetTransactors(stakingtypes.SetTransactorsOp_Overwrite, transactors, txr.Key.GetAddress().String())
 			err = msg1.ValidateBasic()
 			if err != nil {
-				log.Error(err)
+				log.Fatal(err)
 				return
 			}
 			txr.AddTxMsg(&msg1)
@@ -235,7 +245,7 @@ func addValidators() {
 			msg2 := stakingtypes.NewMsgEditDescription(description, txr.Key.GetAddress().String())
 			err = msg2.ValidateBasic()
 			if err != nil {
-				log.Error(err)
+				log.Fatal(err)
 				return
 			}
 			txr.AddTxMsg(&msg2)
@@ -300,7 +310,7 @@ func cbrOps() {
 		encodingConfig.InterfaceRegistry,
 	)
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 		return
 	}
 	log.Infoln("======================== Add liquidity on chain 1 ===========================")

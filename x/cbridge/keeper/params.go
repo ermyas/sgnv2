@@ -21,7 +21,10 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 }
 
 func (k Keeper) GetSignerUpdateDuration(ctx sdk.Context) (duration time.Duration) {
-	k.paramstore.Get(ctx, types.KeySignerUpdateDuration, &duration)
+	k.paramstore.GetIfExists(ctx, types.KeySignerUpdateDuration, &duration)
+	if duration == 0 {
+		duration = types.DefaultSignerUpdateDuration
+	}
 	return
 }
 

@@ -42,6 +42,7 @@ type StakingHooks interface {
 
 	AfterValidatorBonded(ctx sdk.Context, valAddr eth.Addr)         // Must be called when a validator is bonded
 	AfterValidatorBeginUnbonding(ctx sdk.Context, valAddr eth.Addr) // Must be called when a validator begins unbonding
+	AfterValidatorPowerUpdated(ctx sdk.Context, valAddr eth.Addr)
 
 	BeforeDelegationCreated(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr)  // Must be called when a delegation is created
 	BeforeDelegationModified(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr) // Must be called when a delegation's shares are modified

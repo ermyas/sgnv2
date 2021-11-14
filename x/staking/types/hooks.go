@@ -32,6 +32,11 @@ func (h MultiStakingHooks) AfterValidatorBeginUnbonding(ctx sdk.Context, valAddr
 		h[i].AfterValidatorBeginUnbonding(ctx, valAddr)
 	}
 }
+func (h MultiStakingHooks) AfterValidatorPowerUpdated(ctx sdk.Context, valAddr eth.Addr) {
+	for i := range h {
+		h[i].AfterValidatorPowerUpdated(ctx, valAddr)
+	}
+}
 func (h MultiStakingHooks) BeforeDelegationCreated(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr) {
 	for i := range h {
 		h[i].BeforeDelegationCreated(ctx, delAddr, valAddr)

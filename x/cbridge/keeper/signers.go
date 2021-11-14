@@ -49,12 +49,12 @@ func (k Keeper) SetLatestSigners(ctx sdk.Context, s *types.LatestSigners) {
 	store.Set(types.LatestSignersKey, types.MustMarshalLatestSigners(k.cdc, s))
 }
 
-func (k Keeper) UpdateLatestSigners(ctx sdk.Context, force bool) {
+func (k Keeper) UpdateLatestSigners(ctx sdk.Context, force bool) bool {
 	latestSigners, found := k.GetLatestSigners(ctx)
 	if found && !force {
 		duration := k.GetSignerUpdateDuration(ctx)
-		if latestSigners.GetUpdateTime().Add(duration).Before(ctx.BlockHeader().Time) {
-			return
+		if latestSigners.GetUpdateTime().Add(duration).After(ctx.BlockHeader().Time) {
+			return false
 		}
 	}
 
@@ -71,7 +71,7 @@ func (k Keeper) UpdateLatestSigners(ctx sdk.Context, force bool) {
 	newSigners.GenerateSignersBytes()
 
 	if bytes.Equal(latestSigners.GetSignersBytes(), newSigners.SignersBytes) {
-		return
+		return false
 	}
 
 	log.Infoln("Update latest signers:", newSigners.String())
@@ -83,4 +83,5 @@ func (k Keeper) UpdateLatestSigners(ctx sdk.Context, force bool) {
 		sdk.NewAttribute(types.AttributeKeyData, eth.Bytes2Hex(newSigners.SignersBytes)),
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 	))
+	return true
 }

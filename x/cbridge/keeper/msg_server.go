@@ -147,9 +147,6 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 		return nil, fmt.Errorf("nil msg")
 	}
 	logmsg := fmt.Sprintf("x/cbr handle MsgSendMySig type %s", msg.Datatype.String())
-	if msg == nil {
-		return nil, fmt.Errorf("%s, nil msg", logmsg)
-	}
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	kv := sdkCtx.KVStore(k.storeKey)
 
@@ -236,6 +233,34 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 	}
 	log.Info(logmsg)
 	return ret, nil
+}
+
+func (k msgServer) UpdateLatestSigners(ctx context.Context, msg *types.MsgUpdateLatestSigners) (*types.MsgUpdateLatestSignersRsep, error) {
+	if msg == nil {
+		return nil, fmt.Errorf("nil msg")
+	}
+	logmsg := "x/cbr handle MsgSendMySig"
+	senderAcct, err := sdk.AccAddressFromBech32(msg.Creator)
+	if err != nil {
+		return nil, fmt.Errorf("%s err %w", logmsg, err)
+	}
+	logmsg = fmt.Sprintf("%s, creator %s", logmsg, senderAcct.String())
+
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	validator, found := k.stakingKeeper.GetValidatorBySgnAddr(sdkCtx, senderAcct)
+	if !found {
+		return nil, fmt.Errorf("%s, sender is not a validator", logmsg)
+	}
+	if !validator.IsBonded() {
+		return nil, fmt.Errorf("%s, validator is not bonded", logmsg)
+	}
+
+	updated := k.Keeper.UpdateLatestSigners(sdkCtx, false)
+	if !updated {
+		return nil, fmt.Errorf("%s, signers not (need to be) updated", logmsg)
+	}
+
+	return &types.MsgUpdateLatestSignersRsep{}, nil
 }
 
 // sort curSigs in place and return it. if newsig.Addr equals one already in curSigs, only update sig

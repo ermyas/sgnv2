@@ -37,6 +37,13 @@ func (k Keeper) AfterValidatorBeginUnbonding(ctx sdk.Context, valAddr eth.Addr) 
 	}
 }
 
+// AfterValidatorPowerUpdated - call hook if registered
+func (k Keeper) AfterValidatorPowerUpdated(ctx sdk.Context, valAddr eth.Addr) {
+	if k.hooks != nil {
+		k.hooks.AfterValidatorPowerUpdated(ctx, valAddr)
+	}
+}
+
 // BeforeDelegationCreated - call hook if registered
 func (k Keeper) BeforeDelegationCreated(ctx sdk.Context, delAddr eth.Addr, valAddr eth.Addr) {
 	if k.hooks != nil {

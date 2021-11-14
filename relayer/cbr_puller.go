@@ -72,7 +72,7 @@ func (r *Relayer) doCbridgeOnchain(cbrMgr CbrMgr) {
 
 func (r *Relayer) doCbridgeOnchainByChain(chid uint64) {
 	interval := time.Duration(viper.GetUint64(common.FlagSgnCheckIntervalCbridge)) * time.Second
-	log.Infof("start process cbridge onchain, interval:%d, chainId: %d", interval, chid)
+	log.Infof("start process cbridge onchain, interval:%s, chainId: %d", interval, chid)
 	for {
 		time.Sleep(interval)
 		if !r.isSyncer() {
@@ -100,7 +100,9 @@ func (r *Relayer) processCbridgeQueue(chid uint64) {
 	iterator.Close()
 	r.lock.RUnlock()
 
-	log.Debugf("start process relay queue，current timestamp: %d, queue size: %d", time.Now().Unix(), len(keys))
+	if len(keys) > 0 {
+		log.Debugf("start process relay queue，current timestamp: %d, queue size: %d", time.Now().Unix(), len(keys))
+	}
 	for i, key := range keys {
 		event := NewRelayEventFromBytes(vals[i])
 		err = r.dbDelete(key)

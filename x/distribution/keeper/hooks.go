@@ -98,3 +98,4 @@ func (h Hooks) AfterDelegationModified(ctx sdk.Context, delAddr eth.Addr, valAdd
 
 func (h Hooks) AfterValidatorBonded(_ sdk.Context, _ eth.Addr)         {}
 func (h Hooks) AfterValidatorBeginUnbonding(_ sdk.Context, _ eth.Addr) {}
+func (h Hooks) AfterValidatorPowerUpdated(_ sdk.Context, _ eth.Addr)   {}
