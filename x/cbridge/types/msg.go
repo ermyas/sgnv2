@@ -80,12 +80,6 @@ func (msg *MsgSendMySig) ValidateBasic() error {
 	return nil
 }
 
-func NewMsgSignAgain(creator string) *MsgSignAgain {
-	return &MsgSignAgain{
-		Creator: creator,
-	}
-}
-
 func (msg *MsgSignAgain) Route() string {
 	return RouterKey
 }

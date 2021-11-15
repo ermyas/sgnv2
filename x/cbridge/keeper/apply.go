@@ -107,7 +107,13 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			SrcTransferId: ev.TransferId[:],
 		}
 		relayRaw, _ := relayOnchain.Marshal()
-		SetXferRelay(kv, ev.TransferId, &types.XferRelay{Relay: relayRaw}, k.cdc)
+		SetXferRelay(kv, ev.TransferId,
+			&types.XferRelay{
+				Relay:       relayRaw,
+				LastReqTime: ctx.BlockTime().Unix(),
+				PercFee:     percFee.Bytes(),
+				BaseFee:     baseFee.Bytes(),
+			})
 		ctx.EventManager().EmitEvent(sdk.NewEvent(
 			types.EventTypeDataToSign,
 			sdk.NewAttribute(types.AttributeKeyType, types.SignDataType_RELAY.String()),

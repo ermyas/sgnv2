@@ -55,6 +55,7 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 			if transfer.Status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND && time.Now().Add(-15*time.Minute).After(transfer.UT) {
 				tr := gs.TP.GetTransactor()
 				gs.signAgainWithdraw(&types.MsgSignAgain{
+					DataType: types.SignDataType_WITHDRAW,
 					Creator:  tr.Key.GetAddress().String(),
 					ReqId:    transfer.RefundSeqNum,
 					UserAddr: common.Hex2Addr(transfer.UsrAddr).Bytes(),

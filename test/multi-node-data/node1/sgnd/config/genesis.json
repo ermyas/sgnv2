@@ -86,7 +86,7 @@
     "cbridge": {
       "params": {
         "signer_update_duration": "30s",
-        "sign_again_cool_down_duration": "600s"
+        "sign_again_cool_down_duration": "30s"
       },
       "config": {
         "lp_fee_perc": 80,

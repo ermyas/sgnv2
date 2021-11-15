@@ -112,31 +112,61 @@ func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*typ
 	}
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	kv := sdkCtx.KVStore(k.storeKey)
-	// resp.errmsg is nil if accepted
-	usrAddr := eth.Bytes2Addr(req.UserAddr)
-	wdDetail := GetWithdrawDetail(kv, usrAddr, req.ReqId)
-	if wdDetail == nil {
-		// (addr, reqid) not found
-		return nil, types.Error(types.ErrCode_NOT_FOUND, "withdraw %x %d not found", usrAddr, req.ReqId)
+	switch req.DataType {
+	case types.SignDataType_WITHDRAW:
+		// resp.errmsg is nil if accepted
+		usrAddr := eth.Bytes2Addr(req.UserAddr)
+		wdDetail := GetWithdrawDetail(kv, usrAddr, req.ReqId)
+		if wdDetail == nil {
+			// (addr, reqid) not found
+			return nil, types.Error(types.ErrCode_NOT_FOUND, "withdraw %x %d not found", usrAddr, req.ReqId)
+		}
+		if wdDetail.Completed {
+			return nil, types.Error(types.ErrCode_INVALID_STATUS, "withdraw  %x %d  already completed", usrAddr, req.ReqId)
+		}
+		now := sdkCtx.BlockTime()
+		if now.Before(common.TsToTime(uint64(wdDetail.LastReqTime)).Add(k.Keeper.GetSignAgainCoolDownDuration(sdkCtx))) {
+			return nil, types.Error(types.ErrCode_REQ_TOO_SOON, "")
+		}
+		// remove all previous sigs
+		wdDetail.SortedSigs = nil
+		wdDetail.LastReqTime = now.Unix()
+		SaveWithdrawDetail(kv, usrAddr, req.ReqId, wdDetail)
+		sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
+			types.EventTypeDataToSign,
+			sdk.NewAttribute(types.AttributeKeyType, types.SignDataType_WITHDRAW.String()),
+			sdk.NewAttribute(types.AttributeKeyData, eth.Bytes2Hex(wdDetail.WdOnchain)),
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		))
+	case types.SignDataType_RELAY:
+		xferId := eth.Bytes2Hash(req.XferId)
+		xferStatus := GetEvSendStatus(kv, xferId)
+		if xferStatus != types.XferStatus_OK_TO_RELAY {
+			return nil, types.Error(types.ErrCode_INVALID_STATUS, "invalid transfer %x status %s", xferId, xferStatus)
+		}
+		relay := GetXferRelay(kv, xferId)
+		if relay == nil {
+			// this should never happen
+			return nil, types.Error(types.ErrCode_NOT_FOUND, "xfer %x not found", xferId)
+		}
+		now := sdkCtx.BlockTime()
+		if now.Before(common.TsToTime(uint64(relay.LastReqTime)).Add(k.Keeper.GetSignAgainCoolDownDuration(sdkCtx))) {
+			return nil, types.Error(types.ErrCode_REQ_TOO_SOON, "")
+		}
+		// remove all previous sigs
+		relay.SortedSigs = nil
+		relay.LastReqTime = now.Unix()
+		SetXferRelay(kv, xferId, relay)
+		sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
+			types.EventTypeDataToSign,
+			sdk.NewAttribute(types.AttributeKeyType, types.SignDataType_RELAY.String()),
+			sdk.NewAttribute(types.AttributeKeyData, eth.Bytes2Hex(relay.Relay)),
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		))
+	default:
+		return nil, types.Error(types.ErrCode_INVALID_REQ, "invalid sign data type %d", req.DataType)
 	}
-	if wdDetail.Completed {
-		return nil, types.Error(types.ErrCode_INVALID_STATUS, "withdraw  %x %d  already completed", usrAddr, req.ReqId)
-	}
-	nowTime := sdkCtx.BlockTime()
-	now := nowTime.Unix()
-	if nowTime.Before(common.TsToTime(uint64(wdDetail.LastReqTime)).Add(k.Keeper.GetSignAgainCoolDownDuration(sdkCtx))) {
-		return nil, types.Error(types.ErrCode_REQ_TOO_SOON, "")
-	}
-	// remove all previous sigs
-	wdDetail.SortedSigs = nil
-	wdDetail.LastReqTime = now
-	SaveWithdrawDetail(kv, usrAddr, req.ReqId, wdDetail)
-	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
-		types.EventTypeDataToSign,
-		sdk.NewAttribute(types.AttributeKeyType, types.SignDataType_WITHDRAW.String()),
-		sdk.NewAttribute(types.AttributeKeyData, eth.Bytes2Hex(wdDetail.WdOnchain)),
-		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
-	))
+
 	return new(types.MsgSignAgainResp), nil
 }
 
@@ -188,7 +218,7 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 		xferId := eth.Bytes2Hash(relay.SrcTransferId)
 		logmsg = fmt.Sprintf("%s, xferId %x", logmsg, xferId)
 
-		xferRelay := GetXferRelay(kv, xferId, k.cdc)
+		xferRelay := GetXferRelay(kv, xferId)
 		if xferRelay == nil {
 			return nil, fmt.Errorf("%s xfer not found", logmsg)
 		}
@@ -197,7 +227,7 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 			Addr: signer[:],
 			Sig:  msg.MySig,
 		})
-		SetXferRelay(kv, xferId, xferRelay, k.cdc)
+		SetXferRelay(kv, xferId, xferRelay)
 		return ret, nil
 	} else if msg.Datatype == types.SignDataType_WITHDRAW {
 		onchain := new(types.WithdrawOnchain)

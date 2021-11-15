@@ -5,6 +5,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -24,8 +25,46 @@ func GetTxCmd() *cobra.Command {
 
 	cmd.AddCommand(common.PostCommands(
 		GetCmdUpdateLatestSigners(),
+		GetCmdSignAgainRelay(),
 	)...)
 
+	return cmd
+}
+
+func GetCmdSignAgainRelay() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "sign-again-relay",
+		Short: "Trigger sign again of relay msg",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+			home, err := cmd.Flags().GetString(flags.FlagHome)
+			if err != nil {
+				return err
+			}
+			txr, err := transactor.NewCliTransactor(home, clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
+			if err != nil {
+				log.Error(err)
+				return err
+			}
+			msg := &types.MsgSignAgain{
+				DataType: types.SignDataType_RELAY,
+				XferId:   eth.Hex2Bytes(args[0]),
+				Creator:  txr.Key.GetAddress().String(),
+			}
+			err = msg.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			txr.CliSendTxMsgWaitMined(msg)
+
+			return nil
+		},
+	}
 	return cmd
 }
 

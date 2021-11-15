@@ -7,7 +7,6 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
-	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -122,18 +121,19 @@ func HasEnoughLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr, needed *big.Int, sen
 	return false
 }
 
-func GetXferRelay(kv sdk.KVStore, xferId [32]byte, cdc codec.BinaryCodec) *types.XferRelay {
-	bz := kv.Get(types.XferRelayKey(xferId))
-	if bz == nil {
+func GetXferRelay(kv sdk.KVStore, xferId [32]byte) *types.XferRelay {
+	raw := kv.Get(types.XferRelayKey(xferId))
+	if raw == nil {
 		return nil
 	}
 	res := new(types.XferRelay)
-	cdc.MustUnmarshal(bz, res)
+	res.Unmarshal(raw)
 	return res
 }
 
-func SetXferRelay(kv sdk.KVStore, xferId [32]byte, xferRelay *types.XferRelay, cdc codec.BinaryCodec) {
-	kv.Set(types.XferRelayKey(xferId), cdc.MustMarshal(xferRelay))
+func SetXferRelay(kv sdk.KVStore, xferId [32]byte, xferRelay *types.XferRelay) {
+	raw, _ := xferRelay.Marshal()
+	kv.Set(types.XferRelayKey(xferId), raw)
 }
 
 func SaveWithdrawDetail(kv sdk.KVStore, userAddr eth.Addr, reqid uint64, wdd *types.WithdrawDetail) {

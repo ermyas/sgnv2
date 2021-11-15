@@ -132,7 +132,10 @@ func GetCmdQueryTransfer() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Printf("relay message: %s, %s \n", relayOnChain.String(), resp.SignersStr())
+			fmt.Printf("relay message: %s, %s, fee base %s perc %s, last req time %s \n",
+				relayOnChain.String(), resp.SignersStr(),
+				big.NewInt(0).SetBytes(resp.BaseFee), big.NewInt(0).SetBytes(resp.PercFee),
+				common.TsToTime(uint64(resp.LastReqTime)))
 			return nil
 		},
 	}

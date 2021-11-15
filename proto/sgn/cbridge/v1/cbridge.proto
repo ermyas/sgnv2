@@ -177,6 +177,9 @@ message XferRelay {
   // each sgn node send SendMySig and x/cbridge add to sigs,
   // NOTE sigs need to be sorted by recovered signer address
   repeated AddrSig sorted_sigs = 2;
+  int64 last_req_time = 3; // to anti-dos, avoid constant re-signing.
+  bytes perc_fee = 4; // percentage fee
+  bytes base_fee = 5; // base fee
 }
 
 message WithdrawDetail {

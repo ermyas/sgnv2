@@ -73,9 +73,14 @@ message MsgInitWithdraw {
 
 message MsgInitWithdrawResp {}
 
+// Next tag: 6
 message MsgSignAgain {
+  SignDataType data_type = 4; // relay, withdraw, signer
+  // for withdraw
   bytes user_addr = 1;  // user eth address
   uint64 req_id = 2;    // req_id in previous InitWithdraw
+  // for relay
+  bytes xfer_id = 5;
 
   string creator = 3;  // for log only
 }

@@ -88,7 +88,7 @@ func queryRelay(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierC
 
 	var xferId [32]byte
 	copy(xferId[:], params.XrefId)
-	relay := GetXferRelay(ctx.KVStore(k.storeKey), xferId, k.cdc)
+	relay := GetXferRelay(ctx.KVStore(k.storeKey), xferId)
 	if relay == nil {
 		return nil, sdkerrors.ErrKeyNotFound.Wrap("relay does not exist")
 	}

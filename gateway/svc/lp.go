@@ -309,6 +309,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 		if status == uint64(types.WithdrawStatus_WD_WAITING_FOR_SGN) || status == uint64(types.WithdrawStatus_WD_WAITING_FOR_LP) {
 			if status == uint64(types.WithdrawStatus_WD_WAITING_FOR_SGN) && time.Now().Add(-15*time.Minute).After(lpUpdateTime) {
 				seqNum, _ = gs.signAgainWithdraw(&types.MsgSignAgain{
+					DataType: types.SignDataType_WITHDRAW,
 					Creator:  tr.Key.GetAddress().String(),
 					ReqId:    seqNum,
 					UserAddr: addr.Bytes(),
