@@ -26,11 +26,12 @@ sgnd tx [flags]
 * [sgnd tx encode](sgnd_tx_encode.md)	 - Encode transactions generated offline
 * [sgnd tx farming](sgnd_tx_farming.md)	 - farming transactions subcommands
 * [sgnd tx gov](sgnd_tx_gov.md)	 - Governance transactions subcommands
+* [sgnd tx mint](sgnd_tx_mint.md)	 - mint transactions subcommands
 * [sgnd tx multisign](sgnd_tx_multisign.md)	 - Generate multisig signatures for transactions generated offline
 * [sgnd tx multisign-batch](sgnd_tx_multisign-batch.md)	 - Assemble multisig transactions in batch from batch signatures
 * [sgnd tx sign](sgnd_tx_sign.md)	 - Sign a transaction generated offline
 * [sgnd tx sign-batch](sgnd_tx_sign-batch.md)	 - Sign transaction batch files
-* [sgnd tx slash](sgnd_tx_slash.md)	 - Slash transaction subcommands
+* [sgnd tx slashing](sgnd_tx_slashing.md)	 - Slash transaction subcommands
 * [sgnd tx staking](sgnd_tx_staking.md)	 - Validator transaction subcommands
 * [sgnd tx sync](sgnd_tx_sync.md)	 - Validator transaction subcommands
 * [sgnd tx validate-signatures](sgnd_tx_validate-signatures.md)	 - validate transactions signatures

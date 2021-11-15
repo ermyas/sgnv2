@@ -92,7 +92,7 @@ func (arp AdjustRewardProposal) String() string {
  Description:       		%s
  Type:              		%s
  PoolName:					%s
- RewardAdjustmentInputs:	%v,
+ RewardAdjustmentInputs:	%v
 `, arp.Title, arp.Description, arp.ProposalType(), arp.PoolName, arp.RewardAdjustmentInputs))
 	return b.String()
 }

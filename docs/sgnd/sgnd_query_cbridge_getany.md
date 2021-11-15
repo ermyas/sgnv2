@@ -3,7 +3,7 @@
 Query any kv value for given full key
 
 ```
-sgnd query cbridge getany [flags]
+sgnd query cbridge getany [internal-db-key] [flags]
 ```
 
 ### Options

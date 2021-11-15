@@ -1,15 +1,15 @@
-## sgnd tx slash
+## sgnd tx slashing
 
 Slash transaction subcommands
 
 ```
-sgnd tx slash [flags]
+sgnd tx slashing [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for slash
+  -h, --help   help for slashing
 ```
 
 ### Options inherited from parent commands

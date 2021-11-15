@@ -2,12 +2,12 @@
 
 ### Start local testnet
 
-Run the following command at [e2e/mnual](../) folder to to start a local testnet with full stack setup, which includes four validators and four delegators for staking tests, and two chains with mock USDT for cBridge tests. Gateway is started in node 0. Nodes IP and port mappings can be found at [docker-compose.yml](../../../../docker-compose.yml).
+Run the following command at [e2e/manual](../) folder to to start a local testnet with full stack setup, which includes four validators and four delegators for staking tests, and two chains with mock USDT for cBridge tests. Gateway is started in node 0. Nodes IP and port mappings can be found at [docker-compose.yml](../../../../docker-compose.yml).
 
 ```sh
 echo 12341234 | go run localnet.go -start -full
 ```
-Wait for a few minutes till the setup process is done. Ignore the `go-keychain cgo-gcc-prolog` warning at the beginning, as discussed [here](https://github.com/keybase/go-keychain/issues/54). Rest assured when seeing `build dockers`, `UpdateSgnAddr tx success`, or anything that hangs for a while. 
+Wait for a few minutes till the setup process is done. Ignore the `go-keychain cgo-gcc-prolog` warning at the beginning, as discussed [here](https://github.com/keybase/go-keychain/issues/54). Rest assured when seeing `build dockers`, `UpdateSgnAddr tx success`, or anything that hangs for a while.
 
 Validator data, logs, and configs are located at `docker-volumes/nodeN` from the repo root folder. Logs of each validators are at
 

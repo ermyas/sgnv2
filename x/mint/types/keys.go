@@ -10,6 +10,9 @@ const (
 	// StoreKey is the default store key for mint
 	StoreKey = ModuleName
 
+	// RouterKey to be used for routing msgs
+	RouterKey = ModuleName
+
 	// QuerierRoute is the querier route for the minting store.
 	QuerierRoute = StoreKey
 

@@ -1135,7 +1135,7 @@ func (m *AddTokensProposal) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_AddTokensProposal proto.InternalMessageInfo
 
-// AddTokensProposalWithDeposit defines a AddTokensProposal with a deposit, for CLI usage.
+// AddTokensProposalWithDeposit defines an AddTokensProposal with a deposit, for CLI usage.
 type AddTokensProposalWithDeposit struct {
 	Title       string       `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty" yaml:"title"`
 	Description string       `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty" yaml:"description"`

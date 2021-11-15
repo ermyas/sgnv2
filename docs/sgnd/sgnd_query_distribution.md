@@ -26,7 +26,6 @@ sgnd query distribution [flags]
 * [sgnd query distribution community-pool](sgnd_query_distribution_community-pool.md)	 - Query the amount of coins in the community pool
 * [sgnd query distribution params](sgnd_query_distribution_params.md)	 - Query distribution params
 * [sgnd query distribution rewards](sgnd_query_distribution_rewards.md)	 - Query all distribution delegator rewards or rewards from a particular validator
-* [sgnd query distribution slashes](sgnd_query_distribution_slashes.md)	 - Query distribution validator slashes
 * [sgnd query distribution staking-reward-claim-info](sgnd_query_distribution_staking-reward-claim-info.md)	 - query the staking reward claim info of an account
 * [sgnd query distribution staking-reward-info](sgnd_query_distribution_staking-reward-info.md)	 - query the staking reward info of an account
 * [sgnd query distribution validator-outstanding-rewards](sgnd_query_distribution_validator-outstanding-rewards.md)	 - Query distribution outstanding (un-withdrawn) rewards for a validator and all their delegations

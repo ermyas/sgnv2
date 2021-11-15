@@ -167,8 +167,7 @@ func startMainchain(outRootDir string) (*os.Process, error) {
 	// if geth is killed by ethProc.Signal, it exits w/ 0
 	go func() {
 		if err := cmd.Wait(); err != nil {
-			log.Errorln("geth process failed:", err)
-			os.Exit(1)
+			log.Fatalln("geth process failed:", err)
 		}
 	}()
 	return cmd.Process, nil

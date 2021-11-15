@@ -1,15 +1,15 @@
-## sgnd query cbridge relay
+## sgnd query cbridge withdraw
 
-Query relay for xfer id
+Query withdraw info
 
 ```
-sgnd query cbridge relay [flags]
+sgnd query cbridge withdraw [eth-addr] [seq-num] [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for relay
+  -h, --help   help for withdraw
 ```
 
 ### Options inherited from parent commands

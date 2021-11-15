@@ -157,7 +157,7 @@ func (k Keeper) calculateStakeRewardsBetween(ctx sdk.Context, poolName string, s
 		panic("startingPeriod cannot be greater than endingPeriod")
 	}
 
-	if amount.Amount.LT(sdk.ZeroDec()) {
+	if amount.Amount.IsNegative() {
 		panic("amount should not be negative")
 	}
 

@@ -8,8 +8,8 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
-// NewAddPoolProposalHandler returns a gov handler for AddPoolProposal
-func NewAddPoolProposalHandler(k keeper.Keeper) govtypes.Handler {
+// NewProposalHandler returns a gov handler for x/farming
+func NewProposalHandler(k keeper.Keeper) govtypes.Handler {
 	return func(ctx sdk.Context, content govtypes.Content) (err error) {
 		switch c := content.(type) {
 		case *types.AddPoolProposal:

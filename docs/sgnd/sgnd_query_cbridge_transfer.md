@@ -1,15 +1,15 @@
-## sgnd query cbridge chain-signers
+## sgnd query cbridge transfer
 
-Query signers for chainid
+Query transfer info
 
 ```
-sgnd query cbridge chain-signers [chain-id] [flags]
+sgnd query cbridge transfer [src-transfer-id] [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for chain-signers
+  -h, --help   help for transfer
 ```
 
 ### Options inherited from parent commands

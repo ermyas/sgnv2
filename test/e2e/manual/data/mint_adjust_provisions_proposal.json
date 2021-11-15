@@ -1,0 +1,6 @@
+{
+  "title": "Adjust CELR/reward provisions",
+  "description": "Adjust CELR staking reward provisions",
+  "new_annual_provisions": "10000000000000000000000000",
+  "deposit": "10000000CELR/stake"
+}

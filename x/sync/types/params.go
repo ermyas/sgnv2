@@ -44,7 +44,7 @@ func (p *Params) Validate() error {
 		return fmt.Errorf("validator parameter VotingPeriod must be a positive integer")
 	}
 
-	if p.TallyThreshold.LTE(sdk.ZeroDec()) {
+	if !p.TallyThreshold.IsPositive() {
 		return fmt.Errorf("validator parameter TallyThreshold must be a positive integer")
 	}
 
@@ -70,7 +70,7 @@ func validateTallyThreshold(i interface{}) error {
 		return fmt.Errorf("invalid parameter type: %T", i)
 	}
 
-	if v.LTE(sdk.ZeroDec()) {
+	if !v.IsPositive() {
 		return fmt.Errorf("sync parameter TallyThreshold must be positive: %s", v)
 	}
 	if v.GTE(sdk.OneDec()) {
