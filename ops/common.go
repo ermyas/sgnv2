@@ -97,7 +97,6 @@ func newOneChain(chainId uint64) (*CbrOneChain, error) {
 	signerKey, signerPass := viper.GetString(common.FlagEthSignerKeystore), viper.GetString(common.FlagEthSignerPassphrase)
 	for _, cfg := range mcc {
 		if cfg.ChainID == chainId {
-			fixCfg(cfg) // if cfg.chainid equals ethchainid, uses eth.xxx
 			ec, err := ethclient.Dial(cfg.Gateway)
 			if err != nil {
 				log.Fatalln("dial", cfg.Gateway, "err:", err)
@@ -141,17 +140,4 @@ func newOneChain(chainId uint64) (*CbrOneChain, error) {
 	}
 
 	return nil, fmt.Errorf("chainId %d not exist", chainId)
-}
-
-func fixCfg(cfg *common.OneChainConfig) {
-	ethchainid := viper.GetUint64(common.FlagEthChainId)
-	if cfg.ChainID != ethchainid {
-		return
-	}
-	if cfg.Gateway == "" {
-		cfg.Gateway = viper.GetString(common.FlagEthGateway)
-	}
-	cfg.BlkDelay = viper.GetUint64(common.FlagEthBlockDelay)
-	cfg.BlkInterval = viper.GetUint64(common.FlagEthPollInterval)
-	cfg.MaxBlkDelta = viper.GetUint64(common.FlagEthMaxBlockDelta)
 }

@@ -78,9 +78,7 @@ func NewCbridgeMgr(db dbm.DB, cliCtx client.Context) CbrMgr {
 	// watcherDal is shared because monitor adds chainID automatically
 	watcherDal := newWatcherDAL(cbrDb)
 	ret := make(CbrMgr)
-	ethChainID := viper.GetUint64(common.FlagEthChainId)
 	for _, onecfg := range mcc {
-		fixCfg(onecfg, ethChainID) // if cfg.chainid equals ethchainid, uses eth.xxx
 		log.Infof("Add cbridge chain: %+v", onecfg)
 		ret[onecfg.ChainID] = newOneChain(onecfg, watcherDal, cbrDb, cliCtx)
 	}
@@ -145,18 +143,6 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 	}
 	ret.startMon()
 	return ret
-}
-
-func fixCfg(cfg *common.OneChainConfig, ethchainid uint64) {
-	if cfg.ChainID != ethchainid {
-		return
-	}
-	if cfg.Gateway == "" {
-		cfg.Gateway = viper.GetString(common.FlagEthGateway)
-	}
-	cfg.BlkDelay = viper.GetUint64(common.FlagEthBlockDelay)
-	cfg.BlkInterval = viper.GetUint64(common.FlagEthPollInterval)
-	cfg.MaxBlkDelta = viper.GetUint64(common.FlagEthMaxBlockDelta)
 }
 
 type RelayRequest struct {
