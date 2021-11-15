@@ -101,7 +101,7 @@ func (r *Relayer) processCbridgeQueue(chid uint64) {
 	r.lock.RUnlock()
 
 	if len(keys) > 0 {
-		log.Debugf("start process relay queue，current timestamp: %d, queue size: %d", time.Now().Unix(), len(keys))
+		log.Debugf("start process relay queue，current timestamp: %d, queue size: %d, chainid: %d", time.Now().Unix(), len(keys), chid)
 	}
 	for i, key := range keys {
 		event := NewRelayRequestFromBytes(vals[i])
