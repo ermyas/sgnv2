@@ -507,13 +507,6 @@ func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64, usrAddr string
 			log.Warnf("ErrKeyNotFound error when QueryWithdrawLiquidityStatus, will update usrAddr:%s, seqNum:%d to failed status", usrAddr, seqNum)
 		} else {
 			log.Errorf("unknown error when QueryWithdrawLiquidityStatus, seqNum:%d, chainId:%d, error%+v", seqNum, chainId, err2)
-			_ = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(types.WithdrawStatus_WD_FAILED), usrAddr)
-			if detail == nil {
-				detail = &types.QueryLiquidityStatusResponse{
-					Status: types.WithdrawStatus_WD_FAILED,
-				}
-			}
-			detail.Status = types.WithdrawStatus_WD_FAILED
 		}
 		return detail, wdOnchain, sortedSigs, signers, powers
 	}
