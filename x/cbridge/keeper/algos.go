@@ -103,12 +103,10 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 	// don't write to kv before possible return error because it'll cause wrong state
 	start := time.Now()
 	pickedLPs, useByRatio := pickLPs(kv, dest.ChId, dest.TokenAddr, sender, destAmount, lpPre)
-	log.Infoln("perfxxx picked", len(pickedLPs), "lps, byratio:", useByRatio, "took:", time.Since(start))
+	numLPs := len(pickedLPs)
+	log.Infoln("perfxxx picked", numLPs, "lps, byratio:", useByRatio, "took:", time.Since(start))
 	if sumLiq(pickedLPs).Cmp(destAmount) == -1 {
 		return fmt.Errorf("sumliq of picked LPs less than needed destAmt. %s < %s", sumLiq(pickedLPs), destAmount)
-	}
-	for _, lp := range pickedLPs {
-		log.Debugln("lp:", lp.AddrHex, "amt:", lp.AmtInt)
 	}
 	// calc fees
 	lpFeePerc := new(big.Int).SetBytes(kv.Get(types.CfgKeyFeePerc))
@@ -131,21 +129,33 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 		// weight slice
 		decDivisor := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(destDecimal)), nil)
 		wtList := getWeightSlice(pickedLPs, decDivisor)
-		totalWt := wtList[len(wtList)-1]
+		if numLPs != len(wtList) {
+			// should never happen, only possible kv change before this is addsgn fee
+			// we could add negative sgn fee but unfortunately AddSgnFee also calls distribution module
+			// which may not handle negative delta properly, so we just leave sgnfee added
+			return fmt.Errorf("wtList len %d != numLPs %d", len(wtList), numLPs)
+		}
+		totalWt := wtList[numLPs-1]
 		randSeed := new(big.Int).SetBytes(lpPre).Int64()
 		log.Debugln("seed:", randSeed, "wtList:", wtList)
-		rand.Seed(randSeed)
+		r := rand.New(rand.NewSource(randSeed)) // must use own source to avoid interference by other code use rand.Xxx
+		// which lp idx we have used, so we can find next unused
+		usedLPs := make(map[int]bool)
 		for isPos(toAllocate) {
-			x := rand.Int63n(totalWt) + 1
+			x := r.Int63()%totalWt + 1 // Int63n has internal loop, so we use Int63 directly and does mod ourselves
 			lpIdx := searchInts(wtList, x)
 			log.Debugln("x:", x, "lpIdx:", lpIdx)
-			lpIdx2 := nextNonZeroLp(pickedLPs, lpIdx) // need this because we may choose same LP again due to rand
-			if lpIdx2 != lpIdx {
-				log.Debugln("new lpIdx:", lpIdx2)
-				lpIdx = lpIdx2
+			if len(usedLPs) == numLPs {
+				// all LPs have been used, have to panic because no way we can fulfill
+				panic("all LPs have been used but still have positive toAllocate")
+			}
+			// check if already used, move to next unused idx. loop must exit as we already check map isn't full
+			for usedLPs[lpIdx] {
+				lpIdx = (lpIdx + 1) % numLPs
 			}
 			negAmt, srcAdd := k.updateOneLP(ctx, kv, src, dest, pickedLPs[lpIdx], toAllocate, totalLpFee, srcAmount, destAmount)
-			log.Infoln("use lp:", pickedLPs[lpIdx].AddrHex, negAmt)
+			usedLPs[lpIdx] = true
+			log.Infoln("use lpIdx", lpIdx, pickedLPs[lpIdx].AddrHex, negAmt)
 			totalDestNeg.Add(totalDestNeg, negAmt) // negative!
 			totalSrcAdd.Add(totalSrcAdd, srcAdd)
 			if isZero(toAllocate) {
@@ -205,19 +215,6 @@ func (k Keeper) updateOneLP(ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdT
 		k.ChangeLiquidity(ctx, kv, src.ChId, src.TokenAddr, lpAddr, addOnSrc)
 	}
 	return negAmt, addOnSrc
-}
-
-// return idx for next positive liquidity lp, wrap around if pass last
-// if all lps are 0, panic
-func nextNonZeroLp(lps []*AddrHexAmtInt, begin int) int {
-	lpCnt := len(lps)
-	for cnt := 0; cnt < lpCnt; cnt++ {
-		idx := (cnt + begin) % lpCnt
-		if isPos(lps[idx].AmtInt) {
-			return idx
-		}
-	}
-	panic("lps are all zero liquidity")
 }
 
 // modified from sort.Search
