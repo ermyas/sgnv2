@@ -76,6 +76,7 @@ func NewGatewayService(dbUrl string) (*GatewayService, error) {
 // StartTokenPricePolling starts a loop with the given interval and 3s stdev for polling price
 func (gs *GatewayService) StartChainTokenPolling(interval time.Duration) {
 	gs.pollChainToken() // make sure run at least once before return
+	go gs.makeSureHasChainToken()
 	polledInside := false
 	go func() {
 		ticker := jitterbug.New(
@@ -90,6 +91,18 @@ func (gs *GatewayService) StartChainTokenPolling(interval time.Duration) {
 			polledInside = true
 		}
 	}()
+}
+func (gs *GatewayService) makeSureHasChainToken() {
+	list, _ := dal.DB.GetChainTokenList()
+	pollingNeed := list == nil || len(list) == 0
+	attempts := 10
+	for pollingNeed {
+		time.Sleep(3 * time.Second)
+		gs.pollChainToken() // make sure run at least once before return
+		list, _ = dal.DB.GetChainTokenList()
+		attempts--
+		pollingNeed = (list == nil || len(list) == 0) && attempts > 0
+	}
 }
 
 // StartAvgLpFeeEarningPolling starts a loop with the given interval and 3s stdev for polling avg apy

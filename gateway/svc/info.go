@@ -12,6 +12,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -106,7 +107,7 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 	farmingApyMap := gs.getFarmingApy(ctx)
 	data24h := gs.get24hTx()
 
-	feeEarningApyMap := gs.getAvgLpFeeEarningApy()
+	feeEarningApyMap := gs.getMidLpFeeEarningApy()
 	for chainId32, chainToken := range chainTokenInfos {
 		chainId := uint64(chainId32)
 		for _, token := range chainToken.Token {
@@ -368,6 +369,7 @@ func (gs *GatewayService) get24hTx() map[uint64]map[string]*txData {
 	return resp
 }
 
+// use mid instead of avg now, see getMidLpFeeEarningApy
 func (gs *GatewayService) getAvgLpFeeEarningApy() map[uint64]map[string]float64 {
 	avgApy := make(map[uint64]map[string]float64)
 	apyList := dal.DB.GetApyList(7 * 24)
@@ -394,6 +396,36 @@ func (gs *GatewayService) getAvgLpFeeEarningApy() map[uint64]map[string]float64 
 		}
 	}
 	return avgApy
+}
+
+func (gs *GatewayService) getMidLpFeeEarningApy() map[uint64]map[string]float64 {
+	midApyList := make(map[uint64]map[string][]float64)
+	midApy := make(map[uint64]map[string]float64)
+
+	apyList := dal.DB.GetApyList(7 * 24)
+	if apyList == nil {
+		return midApy
+	}
+	for _, apyStr := range apyList {
+		apyEntry := unMarshalApy(apyStr)
+		for chainId, tokenMap := range apyEntry {
+			midTokenMap, found := midApyList[chainId]
+			if !found {
+				midTokenMap = make(map[string][]float64)
+			}
+			for token, apy := range tokenMap {
+				midTokenMap[token] = append(midTokenMap[token], apy)
+			}
+			midApyList[chainId] = midTokenMap
+		}
+	}
+	for chainId := range midApyList {
+		midApy[chainId] = make(map[string]float64)
+		for token := range midApyList[chainId] {
+			midApy[chainId][token] = utils.SelectMid(midApyList[chainId][token])
+		}
+	}
+	return midApy
 }
 
 func (gs *GatewayService) setAvgLpFeeEarningApy() {

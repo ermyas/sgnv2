@@ -75,7 +75,7 @@ func InitGateway(
 		return
 	}
 
-	gs.StartChainTokenPolling(10 * time.Second)
+	gs.StartChainTokenPolling(1 * time.Hour)
 	log.Infof("chain token cached")
 
 	gs.F = fee.NewTokenPriceCache(gs.TP.GetTransactor())
