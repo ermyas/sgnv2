@@ -34,7 +34,7 @@ func (d *DAL) GetTransfer(transferId string) (*Transfer, bool, error) {
 }
 
 func (d *DAL) GetTransferBySrcTxHash(srcTxHash string, chainId uint32) (*Transfer, bool, error) {
-	q := `SELECT create_time, update_time, status, src_chain_id, dst_chain_id, transfer_id, dst_tx_hash, token_symbol, amt, received_amt, refund_seq_num, usr_addr, refund_tx FROM transfer WHERE src_tx_hash = $1 and chain_id=$2`
+	q := `SELECT create_time, update_time, status, src_chain_id, dst_chain_id, transfer_id, dst_tx_hash, token_symbol, amt, received_amt, refund_seq_num, usr_addr, refund_tx FROM transfer WHERE src_tx_hash = $1 and src_chain_id=$2`
 	var transferId, dstTxHash, tokenSymbol, srcAmt, dstAmt, usrAddr, refundTx string
 	var srcChainId, status, dstChainId, refundSeqNum uint64
 	var ct, ut time.Time
