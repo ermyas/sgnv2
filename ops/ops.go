@@ -1,7 +1,6 @@
 package ops
 
 import (
-	tc "github.com/celer-network/sgn-v2/test/common"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +20,6 @@ func OpsCommand() *cobra.Command {
 		DelegateCommand(),
 		UndelegateCommand(),
 		CompleteUndelegateCommand(),
-		tc.DeployCommand(),
 		GetSyncCmd(),
 		SubmitRelayCmd(),
 		EthViewerCommand(),

@@ -178,6 +178,7 @@ service Web {
     };
     }
 
+    // only CA_USE_RESYNC_TOOL and CA_USE_RESIGN_TOOL will be handled
     rpc FixEventMiss (FixEventMissRequest) returns (FixEventMissResponse) {
         option (google.api.http) = {
       post: "/v1/cs/fixEventMiss"
@@ -560,11 +561,11 @@ message GetInfoByTxHashResponse {
     string info = 4;
 }
 
+
 message FixEventMissRequest {
     uint32 chain_id = 1;
     string tx_hash = 2;
-    CSOperation operation = 3; // only CA_USE_RESYNC_TOOL and CA_USE_RESUMBIT_TOOL will be handled
-    UserCaseStatus type = 4;
+    CSType type = 3;
 }
 message FixEventMissResponse {
     ErrMsg err = 1;

@@ -8,6 +8,7 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
+	"github.com/celer-network/sgn-v2/ops"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
@@ -19,7 +20,6 @@ const (
 	ToolMsg       = "try to use miss event tools, if problem not fixed after using tools report it to eng team"
 	WaitingMsg    = "too short time after user operation, keep waiting for a few minutes"
 	CheckInputMsg = "can not find any result, check your input txHash and chain. If input is correct, waiting for 15 min. if you have waited longer than 15 min, report it to eng team"
-	ReportMsg     = "unknown issues, report to eng"
 )
 
 func (gs *GatewayService) GetInfoByTxHash(ctx context.Context, request *webapi.GetInfoByTxHashRequest) (*webapi.GetInfoByTxHashResponse, error) {
@@ -27,26 +27,47 @@ func (gs *GatewayService) GetInfoByTxHash(ctx context.Context, request *webapi.G
 }
 
 func (gs *GatewayService) FixEventMiss(ctx context.Context, request *webapi.FixEventMissRequest) (*webapi.FixEventMissResponse, error) {
-	request.GetTxHash()
-	switch request.GetType() {
-	// transfer related cases
-	case webapi.UserCaseStatus_CC_TRANSFER_NO_HISTORY:
+	txHash := request.GetTxHash()
+	chainId := request.GetChainId()
+	status := request.GetType()
+	switch status {
+	case webapi.CSType_CT_TX:
+		err := gs.fixTx(txHash, chainId)
+		if err != nil {
+			return &webapi.FixEventMissResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  err.Error(),
+				},
+			}, nil
+		}
+	case webapi.CSType_CT_LP_ADD:
+		lpAddr, err := gs.getAddrFromHash(txHash, uint64(chainId))
+		if err == nil {
+			err = gs.fixLp(txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_REMOVE)
+		}
+		if err != nil {
+			return &webapi.FixEventMissResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  err.Error(),
+				},
+			}, nil
+		}
+	case webapi.CSType_CT_LP_RM:
+		lpAddr, err := gs.getAddrFromHash(txHash, uint64(chainId))
+		if err == nil {
+			err = gs.fixLp(txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_REMOVE)
+		}
 
-	case webapi.UserCaseStatus_CC_TRANSFER_SUBMITTING:
-		// update数据库waiting for sgn， 更新状态
-		// 根据状态决定是否走下一条
-	case webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_SGN_CONFIRMATION:
-	case webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_FUND_RELEASE:
-	// add related cases
-	case webapi.UserCaseStatus_CC_ADD_NO_HISTORY:
-	case webapi.UserCaseStatus_CC_ADD_SUBMITTING:
-	case webapi.UserCaseStatus_CC_ADD_WAITING_FOR_SGN:
-	//withdraw related cases
-	case webapi.UserCaseStatus_CC_WAITING_FOR_LP:
-	case webapi.UserCaseStatus_CC_WITHDRAW_SUBMITTING:
-	case webapi.UserCaseStatus_CC_WITHDRAW_WAITING_FOR_SGN:
-	case webapi.UserCaseStatus_CC_TRANSFER_REQUESTING_REFUND:
-	case webapi.UserCaseStatus_CC_TRANSFER_CONFIRMING_YOUR_REFUND:
+		if err != nil {
+			return &webapi.FixEventMissResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  err.Error(),
+				},
+			}, nil
+		}
 	}
 	return &webapi.FixEventMissResponse{}, nil
 }
@@ -84,15 +105,12 @@ func diagnosisTx(txHash string, chainId uint32) *webapi.GetInfoByTxHashResponse 
 	if txFound && dbErr == nil {
 		caseStatus := mapTxStatus2CaseStatus(tx.Status)
 		if tx.UT.Add(OnChainTime).Before(time.Now()) {
-			if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_FUND_RELEASE {
+			if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_FUND_RELEASE || caseStatus == webapi.UserCaseStatus_CC_TRANSFER_REQUESTING_REFUND {
 				resp = newInfoResponse(webapi.CSOperation_CA_USE_RESIGN_TOOL, ToolMsg, caseStatus)
 			} else if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_SUBMITTING ||
 				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_SGN_CONFIRMATION ||
 				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_CONFIRMING_YOUR_REFUND {
 				resp = newInfoResponse(webapi.CSOperation_CA_USE_RESYNC_TOOL, ToolMsg, caseStatus)
-			} else if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_REQUESTING_REFUND {
-				// todo whether report to eng?? note: it will auto signAgain after 15 min
-				resp = newInfoResponse(webapi.CSOperation_CA_REPORT, ReportMsg, caseStatus)
 			} else {
 				resp = newInfoResponse(webapi.CSOperation_CA_NORMAL, NormalMsg, caseStatus)
 			}
@@ -111,20 +129,18 @@ func diagnosisLp(txHash, lpAddr string, chainId uint32, lpType webapi.LPType) *w
 		Operation: webapi.CSOperation_CA_NORMAL,
 		Memo:      NormalMsg,
 	}
-
 	seqNum, status, ut, lpFound, dbErr := dal.DB.GetLPInfoByHash(uint64(lpType), uint64(chainId), lpAddr, txHash)
 	if lpFound && dbErr == nil {
 		caseStatus := mapLpStatus2CaseStatus(types.WithdrawStatus(status), lpType)
 		if ut.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_WAITING_FOR_LP {
 				resp = newInfoResponse(webapi.CSOperation_CA_NORMAL, NormalMsg, caseStatus)
+			} else if caseStatus == webapi.UserCaseStatus_CC_WITHDRAW_WAITING_FOR_SGN {
+				resp = newInfoResponse(webapi.CSOperation_CA_USE_RESIGN_TOOL, ToolMsg, caseStatus)
 			} else if caseStatus == webapi.UserCaseStatus_CC_ADD_SUBMITTING ||
 				caseStatus == webapi.UserCaseStatus_CC_ADD_WAITING_FOR_SGN ||
 				caseStatus == webapi.UserCaseStatus_CC_WITHDRAW_SUBMITTING {
 				resp = newInfoResponse(webapi.CSOperation_CA_USE_RESYNC_TOOL, ToolMsg, caseStatus)
-			} else if caseStatus == webapi.UserCaseStatus_CC_WITHDRAW_WAITING_FOR_SGN {
-				// todo whether report to eng?? note: it will auto signAgain after 15 min
-				resp = newInfoResponse(webapi.CSOperation_CA_REPORT, ReportMsg, caseStatus)
 			}
 		} else {
 			resp = newInfoResponse(webapi.CSOperation_CA_WAITING, WaitingMsg, caseStatus)
@@ -134,6 +150,57 @@ func diagnosisLp(txHash, lpAddr string, chainId uint32, lpType webapi.LPType) *w
 		resp = newInfoResponse(webapi.CSOperation_CA_MORE_INFO_NEEDED, CheckInputMsg, webapi.UserCaseStatus_CC_TRANSFER_NO_HISTORY)
 	}
 	return resp
+}
+
+func (gs *GatewayService) fixTx(txHash string, chainId uint32) error {
+	tx, txFound, dbErr := dal.DB.GetTransferBySrcTxHash(txHash, chainId)
+	if txFound && dbErr == nil {
+		caseStatus := mapTxStatus2CaseStatus(tx.Status)
+		if tx.UT.Add(OnChainTime).Before(time.Now()) {
+			if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_FUND_RELEASE || caseStatus == webapi.UserCaseStatus_CC_TRANSFER_REQUESTING_REFUND {
+				gs.signAgainWithdraw(&types.MsgSignAgain{
+					DataType: types.SignDataType_WITHDRAW,
+					Creator:  gs.TP.GetTransactor().Key.GetAddress().String(),
+					ReqId:    tx.RefundSeqNum,
+					UserAddr: eth.Hex2Addr(tx.UsrAddr).Bytes(),
+				})
+			} else if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_SUBMITTING ||
+				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_SGN_CONFIRMATION ||
+				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_CONFIRMING_YOUR_REFUND {
+				err := ops.SyncCbrEvent(gs.TP.GetTransactor().CliCtx, uint64(chainId), txHash)
+				if err != nil {
+					return err
+				}
+
+			}
+		}
+	}
+	return nil
+}
+
+func (gs *GatewayService) fixLp(txHash, lpAddr string, chainId uint32, lpType webapi.LPType) error {
+	seqNum, status, ut, lpFound, dbErr := dal.DB.GetLPInfoByHash(uint64(lpType), uint64(chainId), lpAddr, txHash)
+	if lpFound && dbErr == nil {
+		caseStatus := mapLpStatus2CaseStatus(types.WithdrawStatus(status), lpType)
+		if ut.Add(OnChainTime).Before(time.Now()) {
+			if caseStatus == webapi.UserCaseStatus_CC_WITHDRAW_WAITING_FOR_SGN {
+				gs.signAgainWithdraw(&types.MsgSignAgain{
+					DataType: types.SignDataType_WITHDRAW,
+					Creator:  gs.TP.GetTransactor().Key.GetAddress().String(),
+					ReqId:    seqNum,
+					UserAddr: eth.Hex2Addr(lpAddr).Bytes(),
+				})
+			} else if caseStatus == webapi.UserCaseStatus_CC_ADD_SUBMITTING ||
+				caseStatus == webapi.UserCaseStatus_CC_ADD_WAITING_FOR_SGN ||
+				caseStatus == webapi.UserCaseStatus_CC_WITHDRAW_SUBMITTING {
+				err := ops.SyncCbrEvent(gs.TP.GetTransactor().CliCtx, uint64(chainId), txHash)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (gs *GatewayService) getAddrFromHash(txHash string, chainId uint64) (string, error) {
