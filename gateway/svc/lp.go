@@ -364,7 +364,11 @@ func (gs *GatewayService) LPHistory(ctx context.Context, request *webapi.LPHisto
 		}
 		endTime = common.TsMilliToTime(uint64(ts))
 	}
-	lpHistory, currentPageSize, next, err := dal.DB.PaginateLpHistory(addr, endTime, request.GetPageSize())
+	pageSize := uint64(50)
+	if request.GetPageSize() < pageSize {
+		pageSize = request.GetPageSize()
+	}
+	lpHistory, currentPageSize, next, err := dal.DB.PaginateLpHistory(addr, endTime, pageSize)
 	if err != nil {
 		return &webapi.LPHistoryResponse{}, nil
 	}

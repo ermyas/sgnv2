@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
@@ -75,7 +76,7 @@ func (gs *GatewayService) FixEventMiss(ctx context.Context, request *webapi.FixE
 func (gs *GatewayService) checkCaseStatus(status webapi.CSType, txHash string, chainId uint32) *webapi.GetInfoByTxHashResponse {
 	switch status {
 	case webapi.CSType_CT_TX:
-		return diagnosisTx(txHash, chainId)
+		return gs.diagnosisTx(txHash, chainId)
 	case webapi.CSType_CT_LP_ADD:
 		lpAddr, err := gs.getAddrFromHash(txHash, uint64(chainId))
 		if err != nil {
@@ -83,7 +84,7 @@ func (gs *GatewayService) checkCaseStatus(status webapi.CSType, txHash string, c
 				Memo: "can not find lp addr from txHash and chainId",
 			}
 		}
-		return diagnosisLp(txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_ADD)
+		return gs.diagnosisLp(txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_ADD)
 	case webapi.CSType_CT_LP_RM:
 		lpAddr, err := gs.getAddrFromHash(txHash, uint64(chainId))
 		if err != nil {
@@ -91,20 +92,26 @@ func (gs *GatewayService) checkCaseStatus(status webapi.CSType, txHash string, c
 				Memo: "can not find lp addr from txHash and chainId",
 			}
 		}
-		return diagnosisLp(txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_REMOVE)
+		return gs.diagnosisLp(txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_REMOVE)
 	}
 	return &webapi.GetInfoByTxHashResponse{}
 }
 
-func diagnosisTx(txHash string, chainId uint32) *webapi.GetInfoByTxHashResponse {
+func (gs *GatewayService) diagnosisTx(txHash string, chainId uint32) *webapi.GetInfoByTxHashResponse {
 	resp := &webapi.GetInfoByTxHashResponse{
 		Operation: webapi.CSOperation_CA_NORMAL,
 		Memo:      NormalMsg,
 	}
-	tx, txFound, dbErr := dal.DB.GetTransferBySrcTxHash(txHash, chainId)
+	tx0, txFound, dbErr := dal.DB.GetTransferBySrcTxHash(txHash, chainId)
 	if txFound && dbErr == nil {
+		_, _ = gs.GetTransferStatus(context.Background(), &webapi.GetTransferStatusRequest{TransferId: tx0.TransferId})
+		tx, _, _ := dal.DB.GetTransferBySrcTxHash(txHash, chainId)
 		caseStatus := mapTxStatus2CaseStatus(tx.Status)
-		if tx.UT.Add(OnChainTime).Before(time.Now()) {
+		if tx.Status == types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED ||
+			tx.Status == types.TransferHistoryStatus_TRANSFER_FAILED ||
+			tx.Status == types.TransferHistoryStatus_TRANSFER_COMPLETED {
+			resp = newInfoResponse(webapi.CSOperation_CA_NORMAL, NormalMsg, caseStatus)
+		} else if tx.UT.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_FUND_RELEASE || caseStatus == webapi.UserCaseStatus_CC_TRANSFER_REQUESTING_REFUND {
 				resp = newInfoResponse(webapi.CSOperation_CA_USE_RESIGN_TOOL, ToolMsg, caseStatus)
 			} else if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_SUBMITTING ||
@@ -117,20 +124,28 @@ func diagnosisTx(txHash string, chainId uint32) *webapi.GetInfoByTxHashResponse 
 		} else {
 			resp = newInfoResponse(webapi.CSOperation_CA_WAITING, WaitingMsg, caseStatus)
 		}
-		resp.Info = fmt.Sprintf("transferId:%s, status:%s, updateTime:%s", tx.TransferId, tx.Status.String(), tx.UT.String())
+		resp.Info = fmt.Sprintf("transferId:%s, status:%s, addr:%s, updateTime:%s", tx.TransferId, tx.Status.String(), tx.UsrAddr, tx.UT.String())
 	} else {
 		resp = newInfoResponse(webapi.CSOperation_CA_MORE_INFO_NEEDED, CheckInputMsg, webapi.UserCaseStatus_CC_TRANSFER_NO_HISTORY)
 	}
 	return resp
 }
 
-func diagnosisLp(txHash, lpAddr string, chainId uint32, lpType webapi.LPType) *webapi.GetInfoByTxHashResponse {
+func (gs *GatewayService) diagnosisLp(txHash, lpAddr string, chainId uint32, lpType webapi.LPType) *webapi.GetInfoByTxHashResponse {
 	resp := &webapi.GetInfoByTxHashResponse{
 		Operation: webapi.CSOperation_CA_NORMAL,
 		Memo:      NormalMsg,
 	}
-	seqNum, status, ut, lpFound, dbErr := dal.DB.GetLPInfoByHash(uint64(lpType), uint64(chainId), lpAddr, txHash)
+	seqNum0, _, _, lpFound, dbErr := dal.DB.GetLPInfoByHash(uint64(lpType), uint64(chainId), lpAddr, txHash)
 	if lpFound && dbErr == nil {
+		_, _ = gs.QueryLiquidityStatus(context.Background(), &webapi.QueryLiquidityStatusRequest{
+			SeqNum:  seqNum0,
+			TxHash:  txHash,
+			LpAddr:  lpAddr,
+			ChainId: chainId,
+			Type:    lpType,
+		})
+		seqNum, status, ut, _, _ := dal.DB.GetLPInfoByHash(uint64(lpType), uint64(chainId), lpAddr, txHash)
 		caseStatus := mapLpStatus2CaseStatus(types.WithdrawStatus(status), lpType)
 		if ut.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_WAITING_FOR_LP {
@@ -145,7 +160,7 @@ func diagnosisLp(txHash, lpAddr string, chainId uint32, lpType webapi.LPType) *w
 		} else {
 			resp = newInfoResponse(webapi.CSOperation_CA_WAITING, WaitingMsg, caseStatus)
 		}
-		resp.Info = fmt.Sprintf("seqNum:%d, status:%s, updateTime:%s", seqNum, types.WithdrawStatus(status).String(), ut.String())
+		resp.Info = fmt.Sprintf("seqNum:%d, status:%s,addr:%s, updateTime:%s", seqNum, types.WithdrawStatus(status).String(), lpAddr, ut.String())
 	} else {
 		resp = newInfoResponse(webapi.CSOperation_CA_MORE_INFO_NEEDED, CheckInputMsg, webapi.UserCaseStatus_CC_TRANSFER_NO_HISTORY)
 	}
@@ -158,15 +173,19 @@ func (gs *GatewayService) fixTx(txHash string, chainId uint32) error {
 		caseStatus := mapTxStatus2CaseStatus(tx.Status)
 		if tx.UT.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_FUND_RELEASE || caseStatus == webapi.UserCaseStatus_CC_TRANSFER_REQUESTING_REFUND {
+				log.Infof("cs fix tx by resign, txHash:%s, chainId:%d", txHash, chainId)
 				gs.signAgainWithdraw(&types.MsgSignAgain{
 					DataType: types.SignDataType_WITHDRAW,
 					Creator:  gs.TP.GetTransactor().Key.GetAddress().String(),
-					ReqId:    tx.RefundSeqNum,
-					UserAddr: eth.Hex2Addr(tx.UsrAddr).Bytes(),
+					XferId:   []byte(tx.TransferId),
 				})
 			} else if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_SUBMITTING ||
 				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_SGN_CONFIRMATION ||
 				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_CONFIRMING_YOUR_REFUND {
+				if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_SUBMITTING {
+					dal.DB.UpdateTransferStatus(tx.TransferId, uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION))
+				}
+				log.Infof("cs fix tx by resync, txHash:%s, chainId:%d", txHash, chainId)
 				err := ops.SyncCbrEvent(gs.TP.GetTransactor().CliCtx, uint64(chainId), txHash)
 				if err != nil {
 					return err
@@ -184,6 +203,7 @@ func (gs *GatewayService) fixLp(txHash, lpAddr string, chainId uint32, lpType we
 		caseStatus := mapLpStatus2CaseStatus(types.WithdrawStatus(status), lpType)
 		if ut.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_WITHDRAW_WAITING_FOR_SGN {
+				log.Infof("cs fix lp by resign, ReqId:%d, UserAddr:%s", seqNum, lpAddr)
 				gs.signAgainWithdraw(&types.MsgSignAgain{
 					DataType: types.SignDataType_WITHDRAW,
 					Creator:  gs.TP.GetTransactor().Key.GetAddress().String(),
@@ -193,6 +213,7 @@ func (gs *GatewayService) fixLp(txHash, lpAddr string, chainId uint32, lpType we
 			} else if caseStatus == webapi.UserCaseStatus_CC_ADD_SUBMITTING ||
 				caseStatus == webapi.UserCaseStatus_CC_ADD_WAITING_FOR_SGN ||
 				caseStatus == webapi.UserCaseStatus_CC_WITHDRAW_SUBMITTING {
+				log.Infof("cs fix lp by resync, txHash:%s, chainId:%d", txHash, chainId)
 				err := ops.SyncCbrEvent(gs.TP.GetTransactor().CliCtx, uint64(chainId), txHash)
 				if err != nil {
 					return err
