@@ -125,18 +125,12 @@ func ParseERC20TokenDenom(denom string) (chainId uint64, symbol string, err erro
 	return uint64(chainIdInt64), splitted[0], nil
 }
 
-func TsMilliToTime(ms uint64) time.Time {
-	sec := int64(ms / 1000)
-	nsec := int64((ms % 1000) * 1000000)
-	return time.Unix(sec, nsec).UTC()
-}
-
 func TsMilli(t time.Time) uint64 {
 	ts := uint64(t.UnixNano())
 	return ts / uint64(time.Millisecond)
 }
 
-func TsToTime(ts uint64) time.Time {
+func TsMilliToTime(ts uint64) time.Time {
 	return time.Unix(0, int64(ts*1000000))
 }
 

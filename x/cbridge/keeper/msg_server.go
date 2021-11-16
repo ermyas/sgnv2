@@ -125,7 +125,7 @@ func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*typ
 			return nil, types.Error(types.ErrCode_INVALID_STATUS, "withdraw  %x %d  already completed", usrAddr, req.ReqId)
 		}
 		now := sdkCtx.BlockTime()
-		if now.Before(common.TsToTime(uint64(wdDetail.LastReqTime)).Add(k.Keeper.GetSignAgainCoolDownDuration(sdkCtx))) {
+		if now.Before(common.TsSecToTime(uint64(wdDetail.LastReqTime)).Add(k.Keeper.GetSignAgainCoolDownDuration(sdkCtx))) {
 			return nil, types.Error(types.ErrCode_REQ_TOO_SOON, "")
 		}
 		// remove all previous sigs
@@ -150,7 +150,7 @@ func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*typ
 			return nil, types.Error(types.ErrCode_NOT_FOUND, "xfer %x not found", xferId)
 		}
 		now := sdkCtx.BlockTime()
-		if now.Before(common.TsToTime(uint64(relay.LastReqTime)).Add(k.Keeper.GetSignAgainCoolDownDuration(sdkCtx))) {
+		if now.Before(common.TsSecToTime(uint64(relay.LastReqTime)).Add(k.Keeper.GetSignAgainCoolDownDuration(sdkCtx))) {
 			return nil, types.Error(types.ErrCode_REQ_TOO_SOON, "")
 		}
 		// remove all previous sigs

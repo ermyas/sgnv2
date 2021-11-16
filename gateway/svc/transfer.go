@@ -221,7 +221,7 @@ func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.T
 		if err != nil {
 			return &webapi.TransferHistoryResponse{}, nil
 		}
-		endTime = common.TsToTime(uint64(ts))
+		endTime = common.TsMilliToTime(uint64(ts))
 	}
 	transferList, currentPageSize, next, err := dal.DB.PaginateTransferList(addr, endTime, request.GetPageSize())
 	if err != nil {

@@ -20,7 +20,6 @@ func (r *Relayer) monitorEthValidatorNotice() {
 			EventName:     eth.EventValidatorNotice,
 			Contract:      r.EthClient.Contracts.Staking,
 			StartBlock:    r.startEthBlock,
-			Reset:         true,
 			CheckInterval: getEventCheckInterval(eth.EventValidatorNotice),
 		},
 		func(cb monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
