@@ -88,17 +88,17 @@ func GatewayOnLiqWithdraw(chainId, seqNum uint64, usrAddr string) {
 	}
 	transferId, found, err := dal.GetTransferByRefundSeqNum(chainId, seqNum, usrAddr)
 	if err != nil {
-		log.Errorln("error when get transfer by seq num:", err)
+		log.Warnf("error when get transfer, usr:%s chainId:%d, seqNum:%d, err:%+v", usrAddr, chainId, seqNum, err)
 	}
 	if found {
 		dbErr := dal.UpdateTransferStatus(transferId, uint64(cbrtypes.TransferHistoryStatus_TRANSFER_REFUNDED))
 		if dbErr != nil {
-			log.Errorln("db when UpdateTransferStatus to TRANSFER_REFUNDED err:", dbErr)
+			log.Warnf("db when UpdateTransferStatus to TRANSFER_REFUNDED, transferId:%s, err:%+v", transferId, dbErr)
 		}
 	} else {
 		dbErr := dal.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(cbrtypes.WithdrawStatus_WD_COMPLETED), usrAddr)
 		if dbErr != nil {
-			log.Errorln("db when UpdateLPStatus to WD_COMPLETED err:", dbErr)
+			log.Warnf("db when UpdateLPStatus to WD_COMPLETED, transferId:%s, err:%+v", transferId, dbErr)
 		}
 	}
 }
