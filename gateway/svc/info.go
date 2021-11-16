@@ -140,18 +140,20 @@ func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.Get
 			}
 			fApy, hasSession := farmingApyMap[chainId][token.Token.GetSymbol()]
 			lp := &webapi.LPInfo{
-				Chain:                chain,
-				Token:                token,
-				Liquidity:            gs.F.GetUsdVolume(token.Token, common.Str2BigInt(usrLiquidity)),
-				LiquidityAmt:         usrLiquidity,
-				HasFarmingSessions:   hasSession,
-				LpFeeEarning:         gs.F.GetUsdVolume(token.Token, common.Str2BigInt(usrLpFeeEarning)),
-				Volume_24H:           volume24h,
-				TotalLiquidity:       gs.F.GetUsdVolume(token.Token, common.Str2BigInt(totalLiquidity)),
-				TotalLiquidityAmt:    totalLiquidity,
-				LpFeeEarningApy:      feeEarningApyMap[chainId][tokenSymbol],
-				FarmingApy:           fApy.apy,
-				FarmingSessionTokens: fApy.rewardTokens,
+				Chain:              chain,
+				Token:              token,
+				Liquidity:          gs.F.GetUsdVolume(token.Token, common.Str2BigInt(usrLiquidity)),
+				LiquidityAmt:       usrLiquidity,
+				HasFarmingSessions: hasSession,
+				LpFeeEarning:       gs.F.GetUsdVolume(token.Token, common.Str2BigInt(usrLpFeeEarning)),
+				Volume_24H:         volume24h,
+				TotalLiquidity:     gs.F.GetUsdVolume(token.Token, common.Str2BigInt(totalLiquidity)),
+				TotalLiquidityAmt:  totalLiquidity,
+				LpFeeEarningApy:    feeEarningApyMap[chainId][tokenSymbol],
+			}
+			if fApy != nil {
+				lp.FarmingApy = fApy.apy
+				lp.FarmingSessionTokens = fApy.rewardTokens
 			}
 			lps = append(lps, lp)
 		}
@@ -264,6 +266,7 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 	if cache != nil {
 		return cache
 	}
+	apysByChainId := make(map[uint64]map[string]*FarmingInfo) // map<chain_id, map<token_symbol, apy>>
 	tr := gs.TP.GetTransactor()
 	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
 	res, err := queryClient.Pools(
@@ -272,9 +275,8 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 	)
 	if err != nil {
 		log.Warnf("getFarmingApy error:%+v", err)
-		return nil
+		return apysByChainId
 	}
-	apysByChainId := make(map[uint64]map[string]*FarmingInfo) // map<chain_id, map<token_symbol, apy>>
 	for _, pool := range res.GetPools() {
 		apy, calErr := gs.calcPoolApy(&pool)
 		if calErr != nil {
