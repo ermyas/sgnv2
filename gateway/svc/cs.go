@@ -103,7 +103,6 @@ func diagnosisTx(txHash string, chainId uint32) *webapi.GetInfoByTxHashResponse 
 		resp.Info = fmt.Sprintf("transferId:%s, status:%s, updateTime:%s", tx.TransferId, tx.Status.String(), tx.UT.String())
 	} else {
 		resp = newInfoResponse(webapi.CSOperation_CA_MORE_INFO_NEEDED, CheckInputMsg, webapi.UserCaseStatus_CC_TRANSFER_NO_HISTORY)
-		return nil
 	}
 	return resp
 }
@@ -134,7 +133,6 @@ func diagnosisLp(txHash, lpAddr string, chainId uint32, lpType webapi.LPType) *w
 		resp.Info = fmt.Sprintf("seqNum:%d, status:%s, updateTime:%s", seqNum, types.WithdrawStatus(status).String(), ut.String())
 	} else {
 		resp = newInfoResponse(webapi.CSOperation_CA_MORE_INFO_NEEDED, CheckInputMsg, webapi.UserCaseStatus_CC_TRANSFER_NO_HISTORY)
-		return nil
 	}
 	return resp
 }
