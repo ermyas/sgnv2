@@ -33,6 +33,31 @@ func (d *DAL) GetTransfer(transferId string) (*Transfer, bool, error) {
 	}, found, err
 }
 
+func (d *DAL) GetTransferBySrcTxHash(srcTxHash string, chainId uint32) (*Transfer, bool, error) {
+	q := `SELECT create_time, update_time, status, src_chain_id, dst_chain_id, transfer_id, dst_tx_hash, token_symbol, amt, received_amt, refund_seq_num, usr_addr, refund_tx FROM transfer WHERE src_tx_hash = $1 and chain_id=$2`
+	var transferId, dstTxHash, tokenSymbol, srcAmt, dstAmt, usrAddr, refundTx string
+	var srcChainId, status, dstChainId, refundSeqNum uint64
+	var ct, ut time.Time
+	err := d.QueryRow(q, srcTxHash, chainId).Scan(&ct, &ut, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum, &usrAddr, &refundTx)
+	found, err := sqldb.ChkQueryRow(err)
+	return &Transfer{
+		TransferId:   transferId,
+		SrcChainId:   srcChainId,
+		DstChainId:   dstChainId,
+		CT:           ct,
+		UT:           ut,
+		SrcTxHash:    srcTxHash,
+		DstTxHash:    dstTxHash,
+		Status:       types.TransferHistoryStatus(int32(status)),
+		TokenSymbol:  tokenSymbol,
+		SrcAmt:       srcAmt,
+		DstAmt:       dstAmt,
+		RefundSeqNum: refundSeqNum,
+		UsrAddr:      usrAddr,
+		RefundTx:     refundTx,
+	}, found, err
+}
+
 func (d *DAL) CheckTransferStatusNotIn(transferId string, statusList []uint64) bool {
 	var status uint64
 	q := `SELECT status FROM transfer WHERE transfer_id = $1`

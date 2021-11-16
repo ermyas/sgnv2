@@ -549,20 +549,32 @@ message GetTotalLiquidityProviderTokenBalanceResponse {
 }
 
 message GetInfoByTxHashRequest {
-    string tx_hash = 1;
-    UserCaseStatus type = 2;
+    uint32 chain_id = 1;
+    string tx_hash = 2;
+    CSType type = 3;
 }
 message GetInfoByTxHashResponse {
     CSOperation operation = 1;
-    string memo = 2;
+    UserCaseStatus status = 2;
+    string memo = 3;
+    string info = 4;
 }
 
 message FixEventMissRequest {
-    string tx_hash = 1;
-    UserCaseStatus type = 2;
+    uint32 chain_id = 1;
+    string tx_hash = 2;
+    CSOperation operation = 3; // only CA_USE_RESYNC_TOOL and CA_USE_RESUMBIT_TOOL will be handled
+    UserCaseStatus type = 4;
 }
 message FixEventMissResponse {
     ErrMsg err = 1;
+}
+
+enum CSType {
+    CT_UNKNOWN = 0;
+    CT_TX = 1; // transfer
+    CT_LP_ADD = 2; // liquidity add
+    CT_LP_RM = 3; // liquidity rm
 }
 
 enum CSOperation {
@@ -570,7 +582,10 @@ enum CSOperation {
     CA_NORMAL = 1; // normal case, ignore
     CA_WAITING = 2; // waiting for result yet, please keep waiting for
     CA_REPORT = 3; // cs can't handle this case, need report to tech
-    CA_MISS_EVENT = 4; // use FixEventMiss tools
+    CA_USE_RESYNC_TOOL = 4; // use RESYNC tools
+    CA_USE_RESIGN_TOOL = 5; // use RESIGN tools
+    CA_USE_RESUMBIT_TOOL = 6; // use RESUMBIT tools
+    CA_MORE_INFO_NEEDED = 7; // more information need, see memo
 }
 enum UserCaseStatus {
     CC_UNKNOWN = 0;

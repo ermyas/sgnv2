@@ -26,6 +26,7 @@ CREATE INDEX IF NOT EXISTS tsf_addr_idx ON transfer (usr_addr);
 CREATE INDEX IF NOT EXISTS tsf_tid_idx ON transfer (transfer_id);
 CREATE INDEX IF NOT EXISTS tsf_dtid_idx ON transfer (dst_transfer_id);
 CREATE INDEX IF NOT EXISTS tsf_sqn_idx ON transfer (refund_seq_num);
+CREATE INDEX IF NOT EXISTS tsf_shs_idx ON transfer (src_tx_hash);
 
 CREATE TABLE IF NOT EXISTS lp (
     usr_addr TEXT NOT NULL,

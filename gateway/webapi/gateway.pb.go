@@ -89,14 +89,48 @@ func (LPType) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_4ec1f1e4252d2467, []int{1}
 }
 
+type CSType int32
+
+const (
+	CSType_CT_UNKNOWN CSType = 0
+	CSType_CT_TX      CSType = 1
+	CSType_CT_LP_ADD  CSType = 2
+	CSType_CT_LP_RM   CSType = 3
+)
+
+var CSType_name = map[int32]string{
+	0: "CT_UNKNOWN",
+	1: "CT_TX",
+	2: "CT_LP_ADD",
+	3: "CT_LP_RM",
+}
+
+var CSType_value = map[string]int32{
+	"CT_UNKNOWN": 0,
+	"CT_TX":      1,
+	"CT_LP_ADD":  2,
+	"CT_LP_RM":   3,
+}
+
+func (x CSType) String() string {
+	return proto.EnumName(CSType_name, int32(x))
+}
+
+func (CSType) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_4ec1f1e4252d2467, []int{2}
+}
+
 type CSOperation int32
 
 const (
-	CSOperation_CA_UNKNOWN    CSOperation = 0
-	CSOperation_CA_NORMAL     CSOperation = 1
-	CSOperation_CA_WAITING    CSOperation = 2
-	CSOperation_CA_REPORT     CSOperation = 3
-	CSOperation_CA_MISS_EVENT CSOperation = 4
+	CSOperation_CA_UNKNOWN           CSOperation = 0
+	CSOperation_CA_NORMAL            CSOperation = 1
+	CSOperation_CA_WAITING           CSOperation = 2
+	CSOperation_CA_REPORT            CSOperation = 3
+	CSOperation_CA_USE_RESYNC_TOOL   CSOperation = 4
+	CSOperation_CA_USE_RESIGN_TOOL   CSOperation = 5
+	CSOperation_CA_USE_RESUMBIT_TOOL CSOperation = 6
+	CSOperation_CA_MORE_INFO_NEEDED  CSOperation = 7
 )
 
 var CSOperation_name = map[int32]string{
@@ -104,15 +138,21 @@ var CSOperation_name = map[int32]string{
 	1: "CA_NORMAL",
 	2: "CA_WAITING",
 	3: "CA_REPORT",
-	4: "CA_MISS_EVENT",
+	4: "CA_USE_RESYNC_TOOL",
+	5: "CA_USE_RESIGN_TOOL",
+	6: "CA_USE_RESUMBIT_TOOL",
+	7: "CA_MORE_INFO_NEEDED",
 }
 
 var CSOperation_value = map[string]int32{
-	"CA_UNKNOWN":    0,
-	"CA_NORMAL":     1,
-	"CA_WAITING":    2,
-	"CA_REPORT":     3,
-	"CA_MISS_EVENT": 4,
+	"CA_UNKNOWN":           0,
+	"CA_NORMAL":            1,
+	"CA_WAITING":           2,
+	"CA_REPORT":            3,
+	"CA_USE_RESYNC_TOOL":   4,
+	"CA_USE_RESIGN_TOOL":   5,
+	"CA_USE_RESUMBIT_TOOL": 6,
+	"CA_MORE_INFO_NEEDED":  7,
 }
 
 func (x CSOperation) String() string {
@@ -120,7 +160,7 @@ func (x CSOperation) String() string {
 }
 
 func (CSOperation) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_4ec1f1e4252d2467, []int{2}
+	return fileDescriptor_4ec1f1e4252d2467, []int{3}
 }
 
 type UserCaseStatus int32
@@ -181,7 +221,7 @@ func (x UserCaseStatus) String() string {
 }
 
 func (UserCaseStatus) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_4ec1f1e4252d2467, []int{3}
+	return fileDescriptor_4ec1f1e4252d2467, []int{4}
 }
 
 type WithdrawMethodType int32
@@ -212,7 +252,7 @@ func (x WithdrawMethodType) String() string {
 }
 
 func (WithdrawMethodType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_4ec1f1e4252d2467, []int{4}
+	return fileDescriptor_4ec1f1e4252d2467, []int{5}
 }
 
 type ErrCode int32
@@ -246,7 +286,7 @@ func (x ErrCode) String() string {
 }
 
 func (ErrCode) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_4ec1f1e4252d2467, []int{5}
+	return fileDescriptor_4ec1f1e4252d2467, []int{6}
 }
 
 type GetCampaignScoresRequest struct {
@@ -3766,8 +3806,9 @@ func (m *GetTotalLiquidityProviderTokenBalanceResponse) GetTotalLiq() map[uint64
 }
 
 type GetInfoByTxHashRequest struct {
-	TxHash string         `protobuf:"bytes,1,opt,name=tx_hash,json=txHash,proto3" json:"tx_hash,omitempty"`
-	Type   UserCaseStatus `protobuf:"varint,2,opt,name=type,proto3,enum=sgn.gateway.v1.UserCaseStatus" json:"type,omitempty"`
+	ChainId uint32 `protobuf:"varint,1,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
+	TxHash  string `protobuf:"bytes,2,opt,name=tx_hash,json=txHash,proto3" json:"tx_hash,omitempty"`
+	Type    CSType `protobuf:"varint,3,opt,name=type,proto3,enum=sgn.gateway.v1.CSType" json:"type,omitempty"`
 }
 
 func (m *GetInfoByTxHashRequest) Reset()         { *m = GetInfoByTxHashRequest{} }
@@ -3803,6 +3844,13 @@ func (m *GetInfoByTxHashRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_GetInfoByTxHashRequest proto.InternalMessageInfo
 
+func (m *GetInfoByTxHashRequest) GetChainId() uint32 {
+	if m != nil {
+		return m.ChainId
+	}
+	return 0
+}
+
 func (m *GetInfoByTxHashRequest) GetTxHash() string {
 	if m != nil {
 		return m.TxHash
@@ -3810,16 +3858,18 @@ func (m *GetInfoByTxHashRequest) GetTxHash() string {
 	return ""
 }
 
-func (m *GetInfoByTxHashRequest) GetType() UserCaseStatus {
+func (m *GetInfoByTxHashRequest) GetType() CSType {
 	if m != nil {
 		return m.Type
 	}
-	return UserCaseStatus_CC_UNKNOWN
+	return CSType_CT_UNKNOWN
 }
 
 type GetInfoByTxHashResponse struct {
-	Operation CSOperation `protobuf:"varint,1,opt,name=operation,proto3,enum=sgn.gateway.v1.CSOperation" json:"operation,omitempty"`
-	Memo      string      `protobuf:"bytes,2,opt,name=memo,proto3" json:"memo,omitempty"`
+	Operation CSOperation    `protobuf:"varint,1,opt,name=operation,proto3,enum=sgn.gateway.v1.CSOperation" json:"operation,omitempty"`
+	Status    UserCaseStatus `protobuf:"varint,2,opt,name=status,proto3,enum=sgn.gateway.v1.UserCaseStatus" json:"status,omitempty"`
+	Memo      string         `protobuf:"bytes,3,opt,name=memo,proto3" json:"memo,omitempty"`
+	Info      string         `protobuf:"bytes,4,opt,name=info,proto3" json:"info,omitempty"`
 }
 
 func (m *GetInfoByTxHashResponse) Reset()         { *m = GetInfoByTxHashResponse{} }
@@ -3862,6 +3912,13 @@ func (m *GetInfoByTxHashResponse) GetOperation() CSOperation {
 	return CSOperation_CA_UNKNOWN
 }
 
+func (m *GetInfoByTxHashResponse) GetStatus() UserCaseStatus {
+	if m != nil {
+		return m.Status
+	}
+	return UserCaseStatus_CC_UNKNOWN
+}
+
 func (m *GetInfoByTxHashResponse) GetMemo() string {
 	if m != nil {
 		return m.Memo
@@ -3869,9 +3926,18 @@ func (m *GetInfoByTxHashResponse) GetMemo() string {
 	return ""
 }
 
+func (m *GetInfoByTxHashResponse) GetInfo() string {
+	if m != nil {
+		return m.Info
+	}
+	return ""
+}
+
 type FixEventMissRequest struct {
-	TxHash string         `protobuf:"bytes,1,opt,name=tx_hash,json=txHash,proto3" json:"tx_hash,omitempty"`
-	Type   UserCaseStatus `protobuf:"varint,2,opt,name=type,proto3,enum=sgn.gateway.v1.UserCaseStatus" json:"type,omitempty"`
+	ChainId   uint32         `protobuf:"varint,1,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
+	TxHash    string         `protobuf:"bytes,2,opt,name=tx_hash,json=txHash,proto3" json:"tx_hash,omitempty"`
+	Operation CSOperation    `protobuf:"varint,3,opt,name=operation,proto3,enum=sgn.gateway.v1.CSOperation" json:"operation,omitempty"`
+	Type      UserCaseStatus `protobuf:"varint,4,opt,name=type,proto3,enum=sgn.gateway.v1.UserCaseStatus" json:"type,omitempty"`
 }
 
 func (m *FixEventMissRequest) Reset()         { *m = FixEventMissRequest{} }
@@ -3907,11 +3973,25 @@ func (m *FixEventMissRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_FixEventMissRequest proto.InternalMessageInfo
 
+func (m *FixEventMissRequest) GetChainId() uint32 {
+	if m != nil {
+		return m.ChainId
+	}
+	return 0
+}
+
 func (m *FixEventMissRequest) GetTxHash() string {
 	if m != nil {
 		return m.TxHash
 	}
 	return ""
+}
+
+func (m *FixEventMissRequest) GetOperation() CSOperation {
+	if m != nil {
+		return m.Operation
+	}
+	return CSOperation_CA_UNKNOWN
 }
 
 func (m *FixEventMissRequest) GetType() UserCaseStatus {
@@ -4020,6 +4100,7 @@ func (m *ErrMsg) GetMsg() string {
 func init() {
 	proto.RegisterEnum("sgn.gateway.v1.TransferType", TransferType_name, TransferType_value)
 	proto.RegisterEnum("sgn.gateway.v1.LPType", LPType_name, LPType_value)
+	proto.RegisterEnum("sgn.gateway.v1.CSType", CSType_name, CSType_value)
 	proto.RegisterEnum("sgn.gateway.v1.CSOperation", CSOperation_name, CSOperation_value)
 	proto.RegisterEnum("sgn.gateway.v1.UserCaseStatus", UserCaseStatus_name, UserCaseStatus_value)
 	proto.RegisterEnum("sgn.gateway.v1.WithdrawMethodType", WithdrawMethodType_name, WithdrawMethodType_value)
@@ -8176,14 +8257,19 @@ func (m *GetInfoByTxHashRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) 
 	if m.Type != 0 {
 		i = encodeVarintGateway(dAtA, i, uint64(m.Type))
 		i--
-		dAtA[i] = 0x10
+		dAtA[i] = 0x18
 	}
 	if len(m.TxHash) > 0 {
 		i -= len(m.TxHash)
 		copy(dAtA[i:], m.TxHash)
 		i = encodeVarintGateway(dAtA, i, uint64(len(m.TxHash)))
 		i--
-		dAtA[i] = 0xa
+		dAtA[i] = 0x12
+	}
+	if m.ChainId != 0 {
+		i = encodeVarintGateway(dAtA, i, uint64(m.ChainId))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -8208,12 +8294,24 @@ func (m *GetInfoByTxHashResponse) MarshalToSizedBuffer(dAtA []byte) (int, error)
 	_ = i
 	var l int
 	_ = l
+	if len(m.Info) > 0 {
+		i -= len(m.Info)
+		copy(dAtA[i:], m.Info)
+		i = encodeVarintGateway(dAtA, i, uint64(len(m.Info)))
+		i--
+		dAtA[i] = 0x22
+	}
 	if len(m.Memo) > 0 {
 		i -= len(m.Memo)
 		copy(dAtA[i:], m.Memo)
 		i = encodeVarintGateway(dAtA, i, uint64(len(m.Memo)))
 		i--
-		dAtA[i] = 0x12
+		dAtA[i] = 0x1a
+	}
+	if m.Status != 0 {
+		i = encodeVarintGateway(dAtA, i, uint64(m.Status))
+		i--
+		dAtA[i] = 0x10
 	}
 	if m.Operation != 0 {
 		i = encodeVarintGateway(dAtA, i, uint64(m.Operation))
@@ -8246,14 +8344,24 @@ func (m *FixEventMissRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	if m.Type != 0 {
 		i = encodeVarintGateway(dAtA, i, uint64(m.Type))
 		i--
-		dAtA[i] = 0x10
+		dAtA[i] = 0x20
+	}
+	if m.Operation != 0 {
+		i = encodeVarintGateway(dAtA, i, uint64(m.Operation))
+		i--
+		dAtA[i] = 0x18
 	}
 	if len(m.TxHash) > 0 {
 		i -= len(m.TxHash)
 		copy(dAtA[i:], m.TxHash)
 		i = encodeVarintGateway(dAtA, i, uint64(len(m.TxHash)))
 		i--
-		dAtA[i] = 0xa
+		dAtA[i] = 0x12
+	}
+	if m.ChainId != 0 {
+		i = encodeVarintGateway(dAtA, i, uint64(m.ChainId))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -9611,6 +9719,9 @@ func (m *GetInfoByTxHashRequest) Size() (n int) {
 	}
 	var l int
 	_ = l
+	if m.ChainId != 0 {
+		n += 1 + sovGateway(uint64(m.ChainId))
+	}
 	l = len(m.TxHash)
 	if l > 0 {
 		n += 1 + l + sovGateway(uint64(l))
@@ -9630,7 +9741,14 @@ func (m *GetInfoByTxHashResponse) Size() (n int) {
 	if m.Operation != 0 {
 		n += 1 + sovGateway(uint64(m.Operation))
 	}
+	if m.Status != 0 {
+		n += 1 + sovGateway(uint64(m.Status))
+	}
 	l = len(m.Memo)
+	if l > 0 {
+		n += 1 + l + sovGateway(uint64(l))
+	}
+	l = len(m.Info)
 	if l > 0 {
 		n += 1 + l + sovGateway(uint64(l))
 	}
@@ -9643,9 +9761,15 @@ func (m *FixEventMissRequest) Size() (n int) {
 	}
 	var l int
 	_ = l
+	if m.ChainId != 0 {
+		n += 1 + sovGateway(uint64(m.ChainId))
+	}
 	l = len(m.TxHash)
 	if l > 0 {
 		n += 1 + l + sovGateway(uint64(l))
+	}
+	if m.Operation != 0 {
+		n += 1 + sovGateway(uint64(m.Operation))
 	}
 	if m.Type != 0 {
 		n += 1 + sovGateway(uint64(m.Type))
@@ -18324,6 +18448,25 @@ func (m *GetInfoByTxHashRequest) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChainId", wireType)
+			}
+			m.ChainId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGateway
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ChainId |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TxHash", wireType)
 			}
@@ -18355,7 +18498,7 @@ func (m *GetInfoByTxHashRequest) Unmarshal(dAtA []byte) error {
 			}
 			m.TxHash = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 2:
+		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
 			}
@@ -18369,7 +18512,7 @@ func (m *GetInfoByTxHashRequest) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Type |= UserCaseStatus(b&0x7F) << shift
+				m.Type |= CSType(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -18444,6 +18587,25 @@ func (m *GetInfoByTxHashResponse) Unmarshal(dAtA []byte) error {
 				}
 			}
 		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			m.Status = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGateway
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Status |= UserCaseStatus(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Memo", wireType)
 			}
@@ -18474,6 +18636,38 @@ func (m *GetInfoByTxHashResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Memo = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Info", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGateway
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGateway
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGateway
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Info = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -18526,6 +18720,25 @@ func (m *FixEventMissRequest) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ChainId", wireType)
+			}
+			m.ChainId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGateway
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.ChainId |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TxHash", wireType)
 			}
@@ -18557,7 +18770,26 @@ func (m *FixEventMissRequest) Unmarshal(dAtA []byte) error {
 			}
 			m.TxHash = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 2:
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Operation", wireType)
+			}
+			m.Operation = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGateway
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Operation |= CSOperation(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
 			}
