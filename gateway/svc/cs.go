@@ -174,11 +174,14 @@ func (gs *GatewayService) fixTx(txHash string, chainId uint32) error {
 		if tx.UT.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_FUND_RELEASE || caseStatus == webapi.UserCaseStatus_CC_TRANSFER_REQUESTING_REFUND {
 				log.Infof("cs fix tx by resign, txHash:%s, chainId:%d", txHash, chainId)
-				gs.signAgainWithdraw(&types.MsgSignAgain{
-					DataType: types.SignDataType_WITHDRAW,
+				_, err := gs.signAgainWithdraw(&types.MsgSignAgain{
+					DataType: types.SignDataType_RELAY,
 					Creator:  gs.TP.GetTransactor().Key.GetAddress().String(),
 					XferId:   []byte(tx.TransferId),
 				})
+				if err != nil {
+					return err
+				}
 			} else if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_SUBMITTING ||
 				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_SGN_CONFIRMATION ||
 				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_CONFIRMING_YOUR_REFUND {
@@ -204,12 +207,15 @@ func (gs *GatewayService) fixLp(txHash, lpAddr string, chainId uint32, lpType we
 		if ut.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_WITHDRAW_WAITING_FOR_SGN {
 				log.Infof("cs fix lp by resign, ReqId:%d, UserAddr:%s", seqNum, lpAddr)
-				gs.signAgainWithdraw(&types.MsgSignAgain{
+				_, err := gs.signAgainWithdraw(&types.MsgSignAgain{
 					DataType: types.SignDataType_WITHDRAW,
 					Creator:  gs.TP.GetTransactor().Key.GetAddress().String(),
 					ReqId:    seqNum,
 					UserAddr: eth.Hex2Addr(lpAddr).Bytes(),
 				})
+				if err != nil {
+					return err
+				}
 			} else if caseStatus == webapi.UserCaseStatus_CC_ADD_SUBMITTING ||
 				caseStatus == webapi.UserCaseStatus_CC_ADD_WAITING_FOR_SGN ||
 				caseStatus == webapi.UserCaseStatus_CC_WITHDRAW_SUBMITTING {
