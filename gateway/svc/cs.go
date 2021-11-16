@@ -83,10 +83,9 @@ func diagnosisTx(txHash string, chainId uint32) *webapi.GetInfoByTxHashResponse 
 	tx, txFound, dbErr := dal.DB.GetTransferBySrcTxHash(txHash, chainId)
 	if txFound && dbErr == nil {
 		caseStatus := mapTxStatus2CaseStatus(tx.Status)
-		if tx.UT.Add(OnChainTime).After(time.Now()) {
+		if tx.UT.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_FUND_RELEASE {
-				// todo resign?
-				resp = newInfoResponse(webapi.CSOperation_CA_USE_RESUMBIT_TOOL, ToolMsg, caseStatus)
+				resp = newInfoResponse(webapi.CSOperation_CA_USE_RESIGN_TOOL, ToolMsg, caseStatus)
 			} else if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_SUBMITTING ||
 				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_SGN_CONFIRMATION ||
 				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_CONFIRMING_YOUR_REFUND {
@@ -116,7 +115,7 @@ func diagnosisLp(txHash, lpAddr string, chainId uint32, lpType webapi.LPType) *w
 	seqNum, status, ut, lpFound, dbErr := dal.DB.GetLPInfoByHash(uint64(lpType), uint64(chainId), lpAddr, txHash)
 	if lpFound && dbErr == nil {
 		caseStatus := mapLpStatus2CaseStatus(types.WithdrawStatus(status), lpType)
-		if ut.Add(OnChainTime).After(time.Now()) {
+		if ut.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_WAITING_FOR_LP {
 				resp = newInfoResponse(webapi.CSOperation_CA_NORMAL, NormalMsg, caseStatus)
 			} else if caseStatus == webapi.UserCaseStatus_CC_ADD_SUBMITTING ||
