@@ -186,13 +186,15 @@ func (gs *GatewayService) fixTx(txHash string, chainId uint32) error {
 			} else if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_SUBMITTING ||
 				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_SGN_CONFIRMATION ||
 				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_CONFIRMING_YOUR_REFUND {
-				if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_SUBMITTING {
-					dal.DB.UpdateTransferStatus(tx.TransferId, uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION))
-				}
 				log.Infof("cs fix tx by resync, txHash:%s, chainId:%d", txHash, chainId)
 				// refresh update time
 				dal.DB.UpdateTransferStatus(tx.TransferId, uint64(tx.Status))
-				err := ops.SyncCbrEvent(gs.TP.GetTransactor().CliCtx, uint64(chainId), txHash)
+				var err error
+				if tx.DstTxHash == "" {
+					err = ops.SyncCbrEvent(gs.TP.GetTransactor().CliCtx, uint64(chainId), txHash, types.CbrEventSend)
+				} else {
+					err = ops.SyncCbrEvent(gs.TP.GetTransactor().CliCtx, uint64(chainId), tx.DstTxHash, types.CbrEventRelay)
+				}
 				if err != nil {
 					return err
 				}
@@ -229,7 +231,14 @@ func (gs *GatewayService) fixLp(txHash, lpAddr string, chainId uint32, lpType we
 				log.Infof("cs fix lp by resync, txHash:%s, chainId:%d, lpAddr:%s, lpType:%s", txHash, chainId, lpAddr, lpType.String())
 				// refresh update time
 				dal.DB.UpdateLPStatus(seqNum, uint64(lpType), uint64(chainId), lpAddr, status)
-				err := ops.SyncCbrEvent(gs.TP.GetTransactor().CliCtx, uint64(chainId), txHash)
+				var err error
+				if lpType == webapi.LPType_LP_TYPE_ADD {
+					err = ops.SyncCbrEvent(gs.TP.GetTransactor().CliCtx, uint64(chainId), txHash, types.CbrEventLiqAdd)
+				} else if lpType == webapi.LPType_LP_TYPE_REMOVE {
+					err = ops.SyncCbrEvent(gs.TP.GetTransactor().CliCtx, uint64(chainId), txHash, types.CbrEventWithdraw)
+				} else {
+					err = fmt.Errorf("unknown lp type:%s", lpType.String())
+				}
 				if err != nil {
 					return err
 				}

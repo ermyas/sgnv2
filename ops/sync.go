@@ -31,6 +31,7 @@ import (
 const (
 	FlagChainId = "chainid"
 	FlagTxHash  = "txhash"
+	FlagEvName  = "evname"
 	FlagValAddr = "valaddr"
 	FlagDelAddr = "deladdr"
 )
@@ -126,11 +127,11 @@ $ %s ops sync signers --chainid=883 --txhash="0xxx"
 func GetSyncCbrEvent() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "event",
-		Short: "Sync bridge event from onchain, automatically figure out which event based on elog",
+		Short: "Sync bridge event from onchain",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`
 Example:
-$ %s ops sync event --chainid=883 --txhash="0xxx"
+$ %s ops sync event --chainid=883 --txhash="0xxx" --evname="Send"
 `,
 				version.AppName,
 			),
@@ -143,26 +144,30 @@ $ %s ops sync event --chainid=883 --txhash="0xxx"
 
 			chainid := viper.GetUint64(FlagChainId)
 			txhash := viper.GetString(FlagTxHash)
+			evname := viper.GetString(FlagEvName)
 
-			return SyncCbrEvent(cliCtx, chainid, txhash)
+			return SyncCbrEvent(cliCtx, chainid, txhash, evname)
 		},
 	}
 
 	cmd.Flags().Uint64(FlagChainId, 0, "which chainid to query tx hash")
 	cmd.Flags().String(FlagTxHash, "", "tx hash, will parse last event")
+	cmd.Flags().String(FlagEvName, "", "ev name, the name of the parsed event")
 	cmd.MarkFlagRequired(FlagChainId)
 	cmd.MarkFlagRequired(FlagTxHash)
+	cmd.MarkFlagRequired(FlagEvName)
 
 	return cmd
 }
 
-func SyncCbrEvent(cliCtx client.Context, chainid uint64, txhash string) error {
+func SyncCbrEvent(cliCtx client.Context, chainid uint64, txhash string, evname string) error {
 	cbr, txReceipt := setupCbr(chainid, txhash)
 
 	elog := *txReceipt.Logs[len(txReceipt.Logs)-1]
-	evname, ev := parseCbrEvAndName(cbr.contract, elog)
+	ev := parseCbrEv(cbr.contract, elog, evname)
 	if ev == nil {
-		log.Fatalf("not a valid bridge event tx: %s", txhash)
+		log.Errorf("not a valid bridge event tx: %s", txhash)
+		return fmt.Errorf("not a valid bridge event tx: %s", txhash)
 	}
 	log.Info(ev.PrettyLog(chainid))
 
@@ -354,34 +359,22 @@ func setupCbr(chainid uint64, txhash string) (cbr *CbrOneChain, txReceipt *ethty
 	return
 }
 
-/*
-another way is to use abi and event.Sig and compare to elog.Topics
-cbrabi, _ := abi.JSON(strings.NewReader(eth.BridgeABI))
-for evname, v := range cbrabi.Events {
-	if eth.Hex2Hash(v.Sig) == elog.Topics[0] {
-		// evname found
-	}
-}
-*/
-func parseCbrEvAndName(cbr *cbrContract, elog ethtypes.Log) (string, hasPrettyLog) {
+func parseCbrEv(cbr *cbrContract, elog ethtypes.Log, evname string) hasPrettyLog {
 	var ev hasPrettyLog
-	ev, err := cbr.ParseLiquidityAdded(elog)
-	if err == nil {
-		return cbrtypes.CbrEventLiqAdd, ev
+	switch evname {
+	case cbrtypes.CbrEventLiqAdd:
+		ev, _ = cbr.ParseLiquidityAdded(elog)
+	case cbrtypes.CbrEventSend:
+		ev, _ = cbr.ParseSend(elog)
+	case cbrtypes.CbrEventRelay:
+		ev, _ = cbr.ParseRelay(elog)
+	case cbrtypes.CbrEventWithdraw:
+		ev, _ = cbr.ParseWithdrawDone(elog)
+	default:
+		ev = nil
 	}
-	ev, err = cbr.ParseSend(elog)
-	if err == nil {
-		return cbrtypes.CbrEventSend, ev
-	}
-	ev, err = cbr.ParseRelay(elog)
-	if err == nil {
-		return cbrtypes.CbrEventRelay, ev
-	}
-	ev, err = cbr.ParseWithdrawDone(elog)
-	if err == nil {
-		return cbrtypes.CbrEventWithdraw, ev
-	}
-	return "", nil
+
+	return ev
 }
 
 func verifyEvent(cliCtx client.Context, ev hasPrettyLog, chainid uint64) error {
