@@ -124,7 +124,7 @@ func (gs *GatewayService) diagnosisTx(txHash string, chainId uint32) *webapi.Get
 		} else {
 			resp = newInfoResponse(webapi.CSOperation_CA_WAITING, WaitingMsg, caseStatus)
 		}
-		resp.Info = fmt.Sprintf("transferId:%s, status:%s, addr:%s, updateTime:%s", tx.TransferId, tx.Status.String(), tx.UsrAddr, tx.UT.String())
+		resp.Info = fmt.Sprintf("transferId:%s, status:%s, addr:%s, updateTime:%s, createTime:%s,srcAmt:%s, dstAmt:%s,, refundTx:%s, refundSeqNum:%d", tx.TransferId, tx.Status.String(), tx.UsrAddr, tx.UT.String(), tx.CT.String(), tx.SrcAmt, tx.DstAmt, tx.RefundTx, tx.RefundSeqNum)
 	} else {
 		resp = newInfoResponse(webapi.CSOperation_CA_MORE_INFO_NEEDED, CheckInputMsg, webapi.UserCaseStatus_CC_TRANSFER_NO_HISTORY)
 	}
@@ -173,12 +173,14 @@ func (gs *GatewayService) fixTx(txHash string, chainId uint32) error {
 		caseStatus := mapTxStatus2CaseStatus(tx.Status)
 		if tx.UT.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_FUND_RELEASE || caseStatus == webapi.UserCaseStatus_CC_TRANSFER_REQUESTING_REFUND {
-				log.Infof("cs fix tx by resign, txHash:%s, chainId:%d", txHash, chainId)
-				_, err := gs.signAgainWithdraw(&types.MsgSignAgain{
+				log.Infof("cs fix tx by resign, txHash:%s, chainId:%d, tx_id:%s", txHash, chainId, tx.TransferId)
+				req := &types.MsgSignAgain{
 					DataType: types.SignDataType_RELAY,
 					Creator:  gs.TP.GetTransactor().Key.GetAddress().String(),
 					XferId:   eth.Hex2Hash(tx.TransferId).Bytes(),
-				})
+				}
+				log.Debugf("cs fix tx by resign, request:%+v", req)
+				_, err := gs.signAgainWithdraw(req)
 				if err != nil {
 					return err
 				}
