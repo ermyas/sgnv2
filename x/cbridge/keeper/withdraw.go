@@ -101,6 +101,24 @@ func (k Keeper) withdrawLP(ctx sdk.Context, wdReq *types.WithdrawReq, lpAddr eth
 		wdmsgs += fmt.Sprintf("<%s> ", wdmsg)
 	}
 	logmsg = fmt.Sprintf("%s %srecv_token:%x, total_req_amt:%s total_recv_amt:%s", logmsg, wdmsgs, recvToken, reqAmt, recvAmt)
+
+	// rate limit check
+	assetSym := GetAssetSymbol(kv, &ChainIdTokenAddr{
+		ChId:      wdReq.ExitChainId,
+		TokenAddr: recvToken,
+	})
+	destAssetInfo := GetAssetInfo(kv, assetSym, wdReq.ExitChainId)
+	if destAssetInfo == nil {
+		// should not happen
+		return nil, types.Error(types.ErrCode_INVALID_REQ, "%s. failed to get asset info", logmsg)
+	}
+	if destAssetInfo.GetMaxOutAmt() != "" {
+		maxOut, ok := new(big.Int).SetString(destAssetInfo.GetMaxOutAmt(), 10)
+		if ok && isPos(maxOut) && recvAmt.Cmp(maxOut) == 1 {
+			return nil, types.Error(types.ErrCode_WD_EXCEED_MAX_OUT_AMOUNT, "%s. exceeds max out amount %s", logmsg, maxOut)
+		}
+	}
+
 	log.Infof("x/cbr handle lp withdraw: %s creator:%s", logmsg, creator)
 	return &types.WithdrawOnchain{
 		Chainid:  wdReq.ExitChainId,

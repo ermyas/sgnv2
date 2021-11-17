@@ -98,6 +98,15 @@ func (k Keeper) transfer(
 		return
 	}
 
+	// rate limit check
+	if destToken.GetMaxOutAmt() != "" {
+		maxOut, ok := new(big.Int).SetString(destToken.GetMaxOutAmt(), 10)
+		if ok && isPos(maxOut) && userReceive.Cmp(maxOut) == 1 {
+			status = types.XferStatus_EXCEED_MAX_OUT_AMOUNT
+			return
+		}
+	}
+
 	// pick LPs, minus each's destChain liquidity, add src liquidity
 	// this func DOESN'T care baseFee BY DESIGN!
 	start := time.Now()
@@ -108,14 +117,6 @@ func (k Keeper) transfer(
 		return
 	}
 	log.Info("perfxxx pickLPs took: ", time.Since(start))
-
-	// rate limit check
-	if destToken.GetMaxOutAmt() != "" {
-		maxSend, _ := new(big.Int).SetString(destToken.GetMaxOutAmt(), 10)
-		if isPos(maxSend) && userReceive.Cmp(maxSend) == 1 {
-			status = types.XferStatus_BAD_LIQUIDITY
-		}
-	}
 
 	// baseFee goes to sgn, if we ever want to support accurate baseFee attribution,
 	// we need to save baseFee in relay detail, and upon seeing the relay event, figure out
