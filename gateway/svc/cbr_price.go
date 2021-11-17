@@ -187,7 +187,7 @@ func GetEthGasPrice() *big.Int {
 		log.Errorln("fail to get eth gas price from https://api.blocknative.com/gasprices/blockprices. ", err, r)
 		return new(big.Int)
 	}
-	resp := r.Result().(BlockNativeResp)
+	resp := r.Result().(*BlockNativeResp)
 	if len(resp.BlockPrices) == 0 || len(resp.BlockPrices[0].EstimatedPrices) == 0 {
 		log.Errorln("fail to get eth gas price from https://api.blocknative.com/gasprices/blockprices. ", r)
 		return new(big.Int)
