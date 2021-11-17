@@ -38,7 +38,7 @@ func (d *DAL) GetTransferBySrcTxHash(srcTxHash string, chainId uint32) (*Transfe
 	var transferId, dstTxHash, tokenSymbol, srcAmt, dstAmt, usrAddr, refundTx string
 	var srcChainId, status, dstChainId, refundSeqNum uint64
 	var ct, ut time.Time
-	err := d.QueryRow(q, srcTxHash, chainId).Scan(&ct, &ut, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum, &usrAddr, &refundTx)
+	err := d.QueryRow(q, srcTxHash, chainId).Scan(&ct, &ut, &status, &srcChainId, &dstChainId, &transferId, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum, &usrAddr, &refundTx)
 	found, err := sqldb.ChkQueryRow(err)
 	return &Transfer{
 		TransferId:   transferId,
