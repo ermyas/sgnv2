@@ -131,7 +131,7 @@
         ]
       },
       "price": {
-        "update_epoch": 1634786000,
+        "update_epoch": 1634786000000,
         "asset_price": [
           {
             "symbol": "USDT",

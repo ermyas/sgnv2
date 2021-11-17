@@ -43,7 +43,7 @@ message CbrConfig {
 // needed for base fee calculation. the value set in genesis is only used when first start.
 // then there'll be propose/vote and new price will be saved in x/cbrige kv
 message CbrPrice {
-  uint64 update_epoch = 1; // epoch sec of this snapshot, as implicit version
+  uint64 update_epoch = 1; // epoch millis sec of this snapshot, as implicit version
   repeated AssetPrice asset_price = 5; // per asset symbol
   repeated GasPrice gas_price = 6; // per chain_id
 }
