@@ -27,13 +27,13 @@ func CheckAddLiquidityStatus(transactor *transactor.Transactor, chainId, seqNum 
 			ChainId: chainId,
 			SeqNum:  seqNum,
 		})
-		if err == nil && resp.Status == cbrtypes.WithdrawStatus_WD_COMPLETED {
+		if err == nil && resp.Status == cbrtypes.LiqStatus_LIQ_COMPLETED {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
 	ChkErr(err, "failed to QueryAddLiquidityStatus")
-	if resp.Status != cbrtypes.WithdrawStatus_WD_COMPLETED {
+	if resp.Status != cbrtypes.LiqStatus_LIQ_COMPLETED {
 		log.Fatalln("incorrect status")
 	}
 }

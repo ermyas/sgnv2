@@ -126,7 +126,7 @@ type LP struct {
 	Amt         string
 	TxHash      string
 	Ct          time.Time
-	Status      types.WithdrawStatus
+	Status      types.LiqStatus
 	LpType      webapi.LPType
 	SeqNum      uint64
 	Addr        string
@@ -158,7 +158,7 @@ func (d *DAL) PaginateLpHistory(sender string, end time.Time, size uint64) ([]*L
 			Amt:         amt,
 			TxHash:      txHash,
 			Ct:          ct,
-			Status:      types.WithdrawStatus(status),
+			Status:      types.LiqStatus(status),
 			LpType:      webapi.LPType(lpType),
 			SeqNum:      seqnum,
 			Addr:        addr,
