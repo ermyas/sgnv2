@@ -254,7 +254,11 @@ func (gs *GatewayService) getAddrFromHash(txHash string, chainId uint64) (string
 }
 
 func (gs *GatewayService) getTransactionByHash(txHash string, chainId uint64) (*ethtypes.Transaction, bool, error) {
-	return gs.EC[chainId].TransactionByHash(context.Background(), eth.Hex2Hash(txHash))
+	ec := gs.EC[chainId]
+	if ec == nil {
+		return nil, false, fmt.Errorf("eth client not found for chainId:%d", chainId)
+	}
+	return ec.TransactionByHash(context.Background(), eth.Hex2Hash(txHash))
 }
 
 func mapLpStatus2CaseStatus(status types.WithdrawStatus, lpType webapi.LPType) webapi.UserCaseStatus {
