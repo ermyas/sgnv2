@@ -173,7 +173,8 @@ func (gs *GatewayService) fixTx(txHash string, chainId uint32) error {
 		caseStatus := mapTxStatus2CaseStatus(tx.Status)
 		if tx.UT.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_FUND_RELEASE || caseStatus == webapi.UserCaseStatus_CC_TRANSFER_REQUESTING_REFUND {
-				log.Infof("cs fix tx by resign, txHash:%s, chainId:%d, tx_id:%s", txHash, chainId, tx.TransferId)
+				log.Infof("cs fix tx by resign, txHash:%s, chainId:%d", txHash, chainId)
+				dal.DB.UpdateTransferStatus(tx.TransferId, uint64(tx.Status))
 				_, err := gs.signAgainWithdraw(&types.MsgSignAgain{
 					DataType: types.SignDataType_RELAY,
 					Creator:  gs.TP.GetTransactor().Key.GetAddress().String(),
@@ -189,12 +190,16 @@ func (gs *GatewayService) fixTx(txHash string, chainId uint32) error {
 					dal.DB.UpdateTransferStatus(tx.TransferId, uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION))
 				}
 				log.Infof("cs fix tx by resync, txHash:%s, chainId:%d", txHash, chainId)
+				// refresh update time
+				dal.DB.UpdateTransferStatus(tx.TransferId, uint64(tx.Status))
 				err := ops.SyncCbrEvent(gs.TP.GetTransactor().CliCtx, uint64(chainId), txHash)
 				if err != nil {
 					return err
 				}
 
 			}
+		} else {
+			return fmt.Errorf("frequence limited, please operate after until:%s", tx.UT.Add(OnChainTime).String())
 		}
 	}
 	return nil
@@ -206,7 +211,9 @@ func (gs *GatewayService) fixLp(txHash, lpAddr string, chainId uint32, lpType we
 		caseStatus := mapLpStatus2CaseStatus(types.WithdrawStatus(status), lpType)
 		if ut.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_WITHDRAW_WAITING_FOR_SGN {
-				log.Infof("cs fix lp by resign, ReqId:%d, UserAddr:%s", seqNum, lpAddr)
+				log.Infof("cs fix lp by resign, ReqId:%d, UserAddr:%s, chainId:%d, lpType:%s", seqNum, lpAddr, chainId, lpType.String())
+				// refresh update time
+				dal.DB.UpdateLPStatus(seqNum, uint64(lpType), uint64(chainId), lpAddr, status)
 				_, err := gs.signAgainWithdraw(&types.MsgSignAgain{
 					DataType: types.SignDataType_WITHDRAW,
 					Creator:  gs.TP.GetTransactor().Key.GetAddress().String(),
@@ -219,12 +226,16 @@ func (gs *GatewayService) fixLp(txHash, lpAddr string, chainId uint32, lpType we
 			} else if caseStatus == webapi.UserCaseStatus_CC_ADD_SUBMITTING ||
 				caseStatus == webapi.UserCaseStatus_CC_ADD_WAITING_FOR_SGN ||
 				caseStatus == webapi.UserCaseStatus_CC_WITHDRAW_SUBMITTING {
-				log.Infof("cs fix lp by resync, txHash:%s, chainId:%d", txHash, chainId)
+				log.Infof("cs fix lp by resync, txHash:%s, chainId:%d, lpAddr:%s, lpType:%s", txHash, chainId, lpAddr, lpType.String())
+				// refresh update time
+				dal.DB.UpdateLPStatus(seqNum, uint64(lpType), uint64(chainId), lpAddr, status)
 				err := ops.SyncCbrEvent(gs.TP.GetTransactor().CliCtx, uint64(chainId), txHash)
 				if err != nil {
 					return err
 				}
 			}
+		} else {
+			return fmt.Errorf("frequence limited, please operate after until:%s", ut.Add(OnChainTime).String())
 		}
 	}
 	return nil
