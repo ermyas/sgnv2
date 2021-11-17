@@ -111,15 +111,13 @@ func (gs *GatewayService) diagnosisTx(txHash string, chainId uint32) *webapi.Get
 			tx.Status == types.TransferHistoryStatus_TRANSFER_FAILED ||
 			tx.Status == types.TransferHistoryStatus_TRANSFER_COMPLETED {
 			resp = newInfoResponse(webapi.CSOperation_CA_NORMAL, NormalMsg, caseStatus)
-		} else if tx.UT.Add(OnChainTime).Before(time.Now()) {
+		} else if tx0.UT.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_FUND_RELEASE || caseStatus == webapi.UserCaseStatus_CC_TRANSFER_REQUESTING_REFUND {
 				resp = newInfoResponse(webapi.CSOperation_CA_USE_RESIGN_TOOL, ToolMsg, caseStatus)
 			} else if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_SUBMITTING ||
 				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_SGN_CONFIRMATION ||
 				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_CONFIRMING_YOUR_REFUND {
 				resp = newInfoResponse(webapi.CSOperation_CA_USE_RESYNC_TOOL, ToolMsg, caseStatus)
-			} else {
-				resp = newInfoResponse(webapi.CSOperation_CA_NORMAL, NormalMsg, caseStatus)
 			}
 		} else {
 			resp = newInfoResponse(webapi.CSOperation_CA_WAITING, WaitingMsg, caseStatus)
@@ -136,7 +134,7 @@ func (gs *GatewayService) diagnosisLp(txHash, lpAddr string, chainId uint32, lpT
 		Operation: webapi.CSOperation_CA_NORMAL,
 		Memo:      NormalMsg,
 	}
-	seqNum0, _, _, lpFound, dbErr := dal.DB.GetLPInfoByHash(uint64(lpType), uint64(chainId), lpAddr, txHash)
+	seqNum0, _, ut, lpFound, dbErr := dal.DB.GetLPInfoByHash(uint64(lpType), uint64(chainId), lpAddr, txHash)
 	if lpFound && dbErr == nil {
 		_, _ = gs.QueryLiquidityStatus(context.Background(), &webapi.QueryLiquidityStatusRequest{
 			SeqNum:  seqNum0,
@@ -145,7 +143,7 @@ func (gs *GatewayService) diagnosisLp(txHash, lpAddr string, chainId uint32, lpT
 			ChainId: chainId,
 			Type:    lpType,
 		})
-		seqNum, status, ut, _, _ := dal.DB.GetLPInfoByHash(uint64(lpType), uint64(chainId), lpAddr, txHash)
+		seqNum, status, _, _, _ := dal.DB.GetLPInfoByHash(uint64(lpType), uint64(chainId), lpAddr, txHash)
 		caseStatus := mapLpStatus2CaseStatus(types.WithdrawStatus(status), lpType)
 		if ut.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_WAITING_FOR_LP {
