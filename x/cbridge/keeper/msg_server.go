@@ -77,11 +77,11 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 		TokenAddr: eth.Bytes2Addr(wdOnchain.Token),
 	}), wdOnchain.Chainid)
 	if assetInfo.GetMaxOutAmt() != "" {
-		maxSend, _ := new(big.Int).SetString(assetInfo.GetMaxOutAmt(), 10)
-		if isPos(maxSend) {
+		maxSend, ok := new(big.Int).SetString(assetInfo.GetMaxOutAmt(), 10)
+		if ok && isPos(maxSend) {
 			wdAmt := new(big.Int).SetBytes(wdOnchain.Amount)
 			if wdAmt.Cmp(maxSend) == 1 {
-				return nil, types.Error(types.ErrCode_INVALID_REQ, "withdrawal amount %s exceeds allowance", wdAmt)
+				return nil, types.Error(types.ErrCode_WD_EXCEED_MAX_OUT_AMOUNT, "withdrawal amount %s exceeds allowance %s", wdAmt, maxSend)
 			}
 		}
 	}
