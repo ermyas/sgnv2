@@ -73,7 +73,7 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 				}, nil
 			}
 			log.Infof("get lp info for transfer:%s, lp status is :%s", transfer.TransferId, detail.GetStatus().String())
-			if detail.GetStatus() == types.LiqStatus_LIQ_WAITING_FOR_LP && transfer.Status != types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED {
+			if detail.GetStatus() == types.WithdrawStatus_WD_WAITING_FOR_LP && transfer.Status != types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED {
 				log.Warnf("update transfer:%s by seqNum: %d, from %s, to %s", transfer.TransferId, transfer.RefundSeqNum, transfer.Status, types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED)
 				dbErr := dal.DB.UpdateTransferStatus(transfer.TransferId, uint64(types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED))
 				if dbErr != nil {

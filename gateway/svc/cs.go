@@ -144,7 +144,7 @@ func (gs *GatewayService) diagnosisLp(txHash, lpAddr string, chainId uint32, lpT
 			Type:    lpType,
 		})
 		seqNum, status, _, _, _ := dal.DB.GetLPInfoByHash(uint64(lpType), uint64(chainId), lpAddr, txHash)
-		caseStatus := mapLpStatus2CaseStatus(types.LiqStatus(status), lpType)
+		caseStatus := mapLpStatus2CaseStatus(types.WithdrawStatus(status), lpType)
 		if ut.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_WAITING_FOR_LP {
 				resp = newInfoResponse(webapi.CSOperation_CA_NORMAL, NormalMsg, caseStatus)
@@ -158,7 +158,7 @@ func (gs *GatewayService) diagnosisLp(txHash, lpAddr string, chainId uint32, lpT
 		} else {
 			resp = newInfoResponse(webapi.CSOperation_CA_WAITING, WaitingMsg, caseStatus)
 		}
-		resp.Info = fmt.Sprintf("seqNum:%d, status:%s,addr:%s, updateTime:%s", seqNum, types.LiqStatus(status).String(), lpAddr, ut.String())
+		resp.Info = fmt.Sprintf("seqNum:%d, status:%s,addr:%s, updateTime:%s", seqNum, types.WithdrawStatus(status).String(), lpAddr, ut.String())
 	} else {
 		resp = newInfoResponse(webapi.CSOperation_CA_MORE_INFO_NEEDED, CheckInputMsg, webapi.UserCaseStatus_CC_TRANSFER_NO_HISTORY)
 	}
@@ -208,7 +208,7 @@ func (gs *GatewayService) fixTx(txHash string, chainId uint32) error {
 func (gs *GatewayService) fixLp(txHash, lpAddr string, chainId uint32, lpType webapi.LPType) error {
 	seqNum, status, ut, lpFound, dbErr := dal.DB.GetLPInfoByHash(uint64(lpType), uint64(chainId), lpAddr, txHash)
 	if lpFound && dbErr == nil {
-		caseStatus := mapLpStatus2CaseStatus(types.LiqStatus(status), lpType)
+		caseStatus := mapLpStatus2CaseStatus(types.WithdrawStatus(status), lpType)
 		if ut.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_WITHDRAW_WAITING_FOR_SGN {
 				log.Infof("cs fix lp by resign, ReqId:%d, UserAddr:%s, chainId:%d, lpType:%s", seqNum, lpAddr, chainId, lpType.String())
@@ -268,27 +268,27 @@ func (gs *GatewayService) getTransactionByHash(txHash string, chainId uint64) (*
 	return ec.TransactionByHash(context.Background(), eth.Hex2Hash(txHash))
 }
 
-func mapLpStatus2CaseStatus(status types.LiqStatus, lpType webapi.LPType) webapi.UserCaseStatus {
+func mapLpStatus2CaseStatus(status types.WithdrawStatus, lpType webapi.LPType) webapi.UserCaseStatus {
 	switch status {
-	case types.LiqStatus_LIQ_UNKNOWN:
+	case types.WithdrawStatus_WD_UNKNOWN:
 		if lpType == webapi.LPType_LP_TYPE_ADD {
 			return webapi.UserCaseStatus_CC_ADD_NO_HISTORY
 		} else {
 			return webapi.UserCaseStatus_CC_UNKNOWN
 		}
-	case types.LiqStatus_LIQ_WAITING_FOR_SGN:
+	case types.WithdrawStatus_WD_WAITING_FOR_SGN:
 		if lpType == webapi.LPType_LP_TYPE_ADD {
 			return webapi.UserCaseStatus_CC_ADD_WAITING_FOR_SGN
 		} else {
 			return webapi.UserCaseStatus_CC_WITHDRAW_WAITING_FOR_SGN
 		}
-	case types.LiqStatus_LIQ_SUBMITTING:
+	case types.WithdrawStatus_WD_SUBMITTING:
 		if lpType == webapi.LPType_LP_TYPE_ADD {
 			return webapi.UserCaseStatus_CC_ADD_SUBMITTING
 		} else {
 			return webapi.UserCaseStatus_CC_WITHDRAW_SUBMITTING
 		}
-	case types.LiqStatus_LIQ_WAITING_FOR_LP:
+	case types.WithdrawStatus_WD_WAITING_FOR_LP:
 		return webapi.UserCaseStatus_CC_WAITING_FOR_LP
 	default:
 		return webapi.UserCaseStatus_CC_UNKNOWN

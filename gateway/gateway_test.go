@@ -127,7 +127,7 @@ func checkTransferStatus(t *testing.T, status types.TransferHistoryStatus, dest 
 	}
 }
 
-func checkLpStatus(t *testing.T, status types.LiqStatus, dest types.LiqStatus) {
+func checkLpStatus(t *testing.T, status types.WithdrawStatus, dest types.WithdrawStatus) {
 	if status != dest {
 		t.Errorf("invalid status, current is:%d,  expect: %d", status, dest)
 	}
@@ -442,7 +442,7 @@ func TestLPAdd(t *testing.T) {
 	})
 	errIsNil(t, err)
 	errMsgIsNil(t, lpHistory.Err)
-	checkLpStatus(t, lpHistory.History[0].Status, types.LiqStatus_LIQ_SUBMITTING)
+	checkLpStatus(t, lpHistory.History[0].Status, types.WithdrawStatus_WD_SUBMITTING)
 
 	// onchain status
 	relayer.GatewayOnLiqAdd(addr, token.Token.Symbol, tokenAddr, amt, txHash, uint64(chainId), seqNum)
@@ -454,7 +454,7 @@ func TestLPAdd(t *testing.T) {
 	}) //polling
 
 	errIsNil(t, err)
-	checkLpStatus(t, liquidityStatus.Status, types.LiqStatus_LIQ_WAITING_FOR_SGN)
+	checkLpStatus(t, liquidityStatus.Status, types.WithdrawStatus_WD_WAITING_FOR_SGN)
 
 	// skip complete check without on chain sgn running
 }
@@ -504,18 +504,18 @@ func TestLPWithdraw(t *testing.T) {
 	})
 	errIsNil(t, err)
 	errMsgIsNil(t, lpHistory.Err)
-	checkLpStatus(t, lpHistory.History[0].Status, types.LiqStatus_LIQ_WAITING_FOR_SGN)
+	checkLpStatus(t, lpHistory.History[0].Status, types.WithdrawStatus_WD_WAITING_FOR_SGN)
 
 	////polling can not used for testing
-	//var status types.LiqStatus
-	//for i := 1; i < 10 && status != types.LiqStatus_LIQ_WAITING_FOR_LP; i++ {
+	//var status types.WithdrawStatus
+	//for i := 1; i < 10 && status != types.WithdrawStatus_WD_WAITING_FOR_LP; i++ {
 	//	t.Log("polling ", i)
 	//	liquidityStatus, err := svc.QueryLiquidityStatus(nil, &webapi.QueryLiquidityStatusRequest{SeqNum: seqNum}) //polling
 	//	errIsNil(t, err)
 	//	status = liquidityStatus.Status
 	//	time.Sleep(1 * time.Second)
 	//}
-	//checkLpStatus(t, status, types.LiqStatus_LIQ_WAITING_FOR_LP)
+	//checkLpStatus(t, status, types.WithdrawStatus_WD_WAITING_FOR_LP)
 
 	markLiquidityResponse, err := svc.MarkLiquidity(nil, &webapi.MarkLiquidityRequest{
 		LpAddr:    addr,
@@ -535,7 +535,7 @@ func TestLPWithdraw(t *testing.T) {
 	})
 	errIsNil(t, err)
 	errMsgIsNil(t, lpHistory.Err)
-	checkLpStatus(t, lpHistory.History[0].Status, types.LiqStatus_LIQ_SUBMITTING)
+	checkLpStatus(t, lpHistory.History[0].Status, types.WithdrawStatus_WD_SUBMITTING)
 
 	// onchain status
 	relayer.GatewayOnLiqWithdraw(uint64(chainId), seqNum, addr)
@@ -546,7 +546,7 @@ func TestLPWithdraw(t *testing.T) {
 	})
 	errIsNil(t, err)
 	errMsgIsNil(t, lpHistory.Err)
-	checkLpStatus(t, lpHistory.History[0].Status, types.LiqStatus_LIQ_COMPLETED)
+	checkLpStatus(t, lpHistory.History[0].Status, types.WithdrawStatus_WD_COMPLETED)
 }
 func TestAlert(t *testing.T) {
 	utils.SendWithdrawAlert("0x2147F049De1D68bC8265B260760AbA6eda614367", "900", "800", "100")
