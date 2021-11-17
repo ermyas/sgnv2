@@ -76,7 +76,12 @@ $ %s ops sync signers --chainid=883 --txhash="0xxx"
 			txhash := viper.GetString(FlagTxHash)
 			cbr, txReceipt := setupCbr(chainid, txhash)
 
-			elog := *txReceipt.Logs[len(txReceipt.Logs)-1]
+			var elog ethtypes.Log
+			if chainid == 137 && len(txReceipt.Logs) > 1 {
+				elog = *txReceipt.Logs[len(txReceipt.Logs)-2]
+			} else {
+				elog = *txReceipt.Logs[len(txReceipt.Logs)-1]
+			}
 			ev, err := cbr.contract.ParseSignersUpdated(elog)
 			if err != nil {
 				log.Errorf("ParseSignersUpdated err: %s", err)
@@ -163,7 +168,12 @@ $ %s ops sync event --chainid=883 --txhash="0xxx" --evname="Send"
 func SyncCbrEvent(cliCtx client.Context, chainid uint64, txhash string, evname string) error {
 	cbr, txReceipt := setupCbr(chainid, txhash)
 
-	elog := *txReceipt.Logs[len(txReceipt.Logs)-1]
+	var elog ethtypes.Log
+	if chainid == 137 && len(txReceipt.Logs) > 1 {
+		elog = *txReceipt.Logs[len(txReceipt.Logs)-2]
+	} else {
+		elog = *txReceipt.Logs[len(txReceipt.Logs)-1]
+	}
 	ev := parseCbrEv(cbr.contract, elog, evname)
 	if ev == nil {
 		log.Errorf("not a valid bridge event tx: %s", txhash)

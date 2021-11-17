@@ -120,7 +120,12 @@ func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, lo
 		log.Warnln(logmsg, "TransactionReceipt err:", err)
 		return false, false
 	}
-	addLiqLog := receipt.Logs[len(receipt.Logs)-1]
+	var addLiqLog *ethtypes.Log
+	if c.chainid == 137 && len(receipt.Logs) > 1 {
+		addLiqLog = receipt.Logs[len(receipt.Logs)-2]
+	} else {
+		addLiqLog = receipt.Logs[len(receipt.Logs)-1]
+	}
 	if addLiqLog.Removed {
 		log.Errorln(logmsg, "log removed")
 		return true, false
@@ -144,8 +149,8 @@ func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, lo
 		log.Warnf("%s evblk %d too soon, should only up to blk %d", logmsg, addLiqLog.BlockNumber, blk-c.blkDelay)
 		return false, false
 	}
-	// addLiquidity must be last log
-	addLiqEv, err := c.contract.ParseLiquidityAdded(*receipt.Logs[len(receipt.Logs)-1])
+	// addLiquidity must be last log, polygon is the last 2nd
+	addLiqEv, err := c.contract.ParseLiquidityAdded(*addLiqLog)
 	if err != nil {
 		log.Errorln(logmsg, "parse log err:", err)
 		return true, false
