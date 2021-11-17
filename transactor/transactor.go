@@ -109,7 +109,8 @@ func NewTransactor(
 		WithLegacyAmino(legacyAmino).
 		WithAccountRetriever(authtypes.AccountRetriever{}).
 		WithInterfaceRegistry(interfaceRegistry).
-		WithClient(cli)
+		WithClient(cli).
+		WithHomeDir(homeDir)
 
 	f := clienttx.Factory{}.
 		WithKeybase(cliCtx.Keyring).
