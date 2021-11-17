@@ -173,7 +173,7 @@ func (gs *GatewayService) fixTx(txHash string, chainId uint32) error {
 		caseStatus := mapTxStatus2CaseStatus(tx.Status)
 		if tx.UT.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_FUND_RELEASE || caseStatus == webapi.UserCaseStatus_CC_TRANSFER_REQUESTING_REFUND {
-				log.Infof("cs fix tx by resign, txHash:%s, chainId:%d", txHash, chainId)
+				log.Infof("cs fix tx by resign, txHash:%s, chainId:%d, txId:%s", txHash, chainId, tx.TransferId)
 				dal.DB.UpdateTransferStatus(tx.TransferId, uint64(tx.Status))
 				_, err := gs.signAgainWithdraw(&types.MsgSignAgain{
 					DataType: types.SignDataType_RELAY,
