@@ -177,7 +177,7 @@ func (gs *GatewayService) fixTx(txHash string, chainId uint32) error {
 				_, err := gs.signAgainWithdraw(&types.MsgSignAgain{
 					DataType: types.SignDataType_RELAY,
 					Creator:  gs.TP.GetTransactor().Key.GetAddress().String(),
-					XferId:   []byte(tx.TransferId),
+					XferId:   eth.Hex2Hash(tx.TransferId).Bytes(),
 				})
 				if err != nil {
 					return err

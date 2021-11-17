@@ -8,13 +8,18 @@ import (
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 )
 
-func CheckMarkTransferParams(transferId, txHash, addr string, sendInfo, receivedInfo *webapi.TransferInfo) bool {
-	return isValidHash(transferId) &&
-		isValidHash(txHash) &&
-		isValidAddr(addr) &&
-		isValidTxInfo(sendInfo) &&
-		isValidTxInfo(receivedInfo) &&
-		sendInfo.GetChain().GetId() != receivedInfo.GetChain().GetId()
+func CheckMarkTransferParams(transferId, txHash, addr string, sendInfo, receivedInfo *webapi.TransferInfo, txType webapi.TransferType) bool {
+	isValidIndex := isValidHash(transferId) &&
+		isValidHash(txHash)
+	if txType == webapi.TransferType_TRANSFER_TYPE_REFUND {
+		return isValidIndex
+	} else {
+		return isValidIndex &&
+			isValidAddr(addr) &&
+			isValidTxInfo(sendInfo) &&
+			isValidTxInfo(receivedInfo) &&
+			sendInfo.GetChain().GetId() != receivedInfo.GetChain().GetId()
+	}
 }
 
 func CheckMarkLiquidityParams(lpType webapi.LPType, chainId uint32, amt, lpAddr, tokenAddr string) bool {

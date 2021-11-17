@@ -62,7 +62,7 @@ func NewGatewayService(dbUrl string) (*GatewayService, error) {
 		config.Seal()
 	}
 	// Make a private config copy.
-	_db, err := dal.NewDAL("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", dbUrl), 10)
+	_db, err := dal.NewDAL("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", dbUrl), 20)
 	if err != nil {
 		return nil, err
 	}

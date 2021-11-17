@@ -163,7 +163,7 @@ func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.Mark
 	txHash := request.GetSrcTxHash()
 	txType := request.GetType()
 	log.Infof("Mark transfer, transferId: %s, addr:%s, txHash: %s, srcChainId:%d, txType:%d", transferId, addr, txHash, sendInfo.GetChain().GetId(), txType)
-	if !utils.CheckMarkTransferParams(transferId, txHash, request.GetAddr(), sendInfo, receivedInfo) {
+	if !utils.CheckMarkTransferParams(transferId, txHash, request.GetAddr(), sendInfo, receivedInfo, txType) {
 		return &webapi.MarkTransferResponse{
 			Err: &webapi.ErrMsg{
 				Code: webapi.ErrCode_ERROR_CODE_COMMON,
