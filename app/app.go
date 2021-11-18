@@ -208,6 +208,7 @@ func NewSgnApp(
 	viper.SetDefault(common.FlagSgnCheckIntervalSlash, 60)
 	viper.SetDefault(common.FlagSgnCheckIntervalCbridge, 15)
 	viper.SetDefault(common.FlagSgnCheckIntervalVerifier, 15)
+	viper.SetDefault(common.FlagSgnCheckIntervalCbrPrice, 900)
 
 	err := common.SetupUserPassword()
 	if err != nil {
