@@ -553,6 +553,8 @@ message GetInfoByTxHashRequest {
     uint32 chain_id = 1;
     string tx_hash = 2;
     CSType type = 3;
+    bytes sig = 4;
+    string addr = 5;
 }
 message GetInfoByTxHashResponse {
     CSOperation operation = 1;
@@ -566,6 +568,8 @@ message FixEventMissRequest {
     uint32 chain_id = 1;
     string tx_hash = 2;
     CSType type = 3;
+    bytes sig = 4;
+    string addr = 5;
 }
 message FixEventMissResponse {
     ErrMsg err = 1;

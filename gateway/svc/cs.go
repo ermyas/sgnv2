@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
@@ -24,10 +25,23 @@ const (
 )
 
 func (gs *GatewayService) GetInfoByTxHash(ctx context.Context, request *webapi.GetInfoByTxHashRequest) (*webapi.GetInfoByTxHashResponse, error) {
+	if !checkSigner(common.Hex2Addr(request.GetAddr()).Bytes(), request.GetSig()) {
+		return &webapi.GetInfoByTxHashResponse{
+			Memo: "invalid operator",
+		}, nil
+	}
 	return gs.checkCaseStatus(request.GetType(), request.GetTxHash(), request.GetChainId()), nil
 }
 
 func (gs *GatewayService) FixEventMiss(ctx context.Context, request *webapi.FixEventMissRequest) (*webapi.FixEventMissResponse, error) {
+	if !checkSigner(common.Hex2Addr(request.GetAddr()).Bytes(), request.GetSig()) {
+		return &webapi.FixEventMissResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "invalid operator",
+			},
+		}, nil
+	}
 	txHash := request.GetTxHash()
 	chainId := request.GetChainId()
 	status := request.GetType()
