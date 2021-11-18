@@ -85,6 +85,7 @@ func (c *CbrChain) AddLiq(uid uint64, amt *big.Int) error {
 	return nil
 }
 
+// only used for test
 func (c *CbrChain) Send(uid uint64, amt *big.Int, dstChainId, nonce uint64) ([32]byte, error) {
 	return c.SendAny(uid, uid, amt, dstChainId, nonce, 100000) //10% slippage
 }
@@ -99,7 +100,7 @@ func (c *CbrChain) SendAny(fromUid, toUid uint64, amt *big.Int, dstChainId, nonc
 	if err != nil {
 		return eth.ZeroCid, err
 	}
-	sendLog := receipt.Logs[len(receipt.Logs)-1] // last log is Send event
+	sendLog := receipt.Logs[len(receipt.Logs)-1] // last log is Send event (NOTE Polygon breaks this assumption)
 	sendEv, err := c.CbrContract.ParseSend(*sendLog)
 	if err != nil {
 		return eth.ZeroCid, fmt.Errorf("parse log %+v err: %w", sendLog, err)

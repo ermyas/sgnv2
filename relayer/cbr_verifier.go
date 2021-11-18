@@ -120,16 +120,19 @@ func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, lo
 		log.Warnln(logmsg, "TransactionReceipt err:", err)
 		return false, false
 	}
-	var addLiqLog *ethtypes.Log
-	if c.chainid == 137 && len(receipt.Logs) > 1 {
-		addLiqLog = receipt.Logs[len(receipt.Logs)-2]
-	} else {
-		addLiqLog = receipt.Logs[len(receipt.Logs)-1]
+	// We MUST be extra careful dealing with log as attacker could generate same topics using their own contract
+	// WARNING: must check log Address!!! other projects have been hacked by missing the check
+	addLiqLog := eth.FindMatchCbrEvent(cbrtypes.CbrEventLiqAdd, c.contract.Address, receipt.Logs)
+
+	if addLiqLog == nil { // no match event in the tx, could be forged tx
+		log.Errorln(logmsg, "no match event found in tx:", eLog.TxHash)
+		return true, false
 	}
 	if addLiqLog.Removed {
 		log.Errorln(logmsg, "log removed")
 		return true, false
 	}
+	// not possible as we check addr in FindMatchCbrEvent, keep here for extra safety
 	if addLiqLog.Address != c.contract.Address {
 		log.Errorln(logmsg, "mismatch contract addr. log has:", addLiqLog.Address, "expect:", c.contract.Address)
 		return true, false
@@ -149,7 +152,6 @@ func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, lo
 		log.Warnf("%s evblk %d too soon, should only up to blk %d", logmsg, addLiqLog.BlockNumber, blk-c.blkDelay)
 		return false, false
 	}
-	// addLiquidity must be last log, polygon is the last 2nd
 	addLiqEv, err := c.contract.ParseLiquidityAdded(*addLiqLog)
 	if err != nil {
 		log.Errorln(logmsg, "parse log err:", err)

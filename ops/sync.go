@@ -76,13 +76,13 @@ $ %s ops sync signers --chainid=883 --txhash="0xxx"
 			txhash := viper.GetString(FlagTxHash)
 			cbr, txReceipt := setupCbr(chainid, txhash)
 
-			var elog ethtypes.Log
-			if chainid == 137 && len(txReceipt.Logs) > 1 {
-				elog = *txReceipt.Logs[len(txReceipt.Logs)-2]
-			} else {
-				elog = *txReceipt.Logs[len(txReceipt.Logs)-1]
+			elog := eth.FindMatchCbrEvent(cbrtypes.CbrEventSignersUpdated, cbr.contract.Address, txReceipt.Logs)
+
+			if elog == nil {
+				log.Errorln("no match event found in tx:", txhash)
+				return fmt.Errorf("no match event found in tx: %s", txhash)
 			}
-			ev, err := cbr.contract.ParseSignersUpdated(elog)
+			ev, err := cbr.contract.ParseSignersUpdated(*elog)
 			if err != nil {
 				log.Errorf("ParseSignersUpdated err: %s", err)
 				return err
@@ -112,7 +112,7 @@ $ %s ops sync signers --chainid=883 --txhash="0xxx"
 				return err
 			}
 
-			err = sendCbrOnchainEvent(cliCtx, chainid, cbrtypes.CbrEventSignersUpdated, elog)
+			err = sendCbrOnchainEvent(cliCtx, chainid, cbrtypes.CbrEventSignersUpdated, *elog)
 			if err != nil {
 				log.Errorf("sendCbrOnchainEvent err: %s", err)
 				return err
@@ -122,7 +122,7 @@ $ %s ops sync signers --chainid=883 --txhash="0xxx"
 	}
 
 	cmd.Flags().Uint64(FlagChainId, 0, "which chainid to query tx hash")
-	cmd.Flags().String(FlagTxHash, "", "tx hash, will parse last event")
+	cmd.Flags().String(FlagTxHash, "", "tx hash, will parse event with same ID as SignersUpdated")
 	cmd.MarkFlagRequired(FlagChainId)
 	cmd.MarkFlagRequired(FlagTxHash)
 
@@ -156,7 +156,7 @@ $ %s ops sync event --chainid=883 --txhash="0xxx" --evname="Send"
 	}
 
 	cmd.Flags().Uint64(FlagChainId, 0, "which chainid to query tx hash")
-	cmd.Flags().String(FlagTxHash, "", "tx hash, will parse last event")
+	cmd.Flags().String(FlagTxHash, "", "tx hash, will parse event with same ID as evname")
 	cmd.Flags().String(FlagEvName, "", "ev name, the name of the parsed event")
 	cmd.MarkFlagRequired(FlagChainId)
 	cmd.MarkFlagRequired(FlagTxHash)
@@ -167,14 +167,14 @@ $ %s ops sync event --chainid=883 --txhash="0xxx" --evname="Send"
 
 func SyncCbrEvent(cliCtx client.Context, chainid uint64, txhash string, evname string) error {
 	cbr, txReceipt := setupCbr(chainid, txhash)
+	elog := eth.FindMatchCbrEvent(evname, cbr.contract.Address, txReceipt.Logs)
 
-	var elog ethtypes.Log
-	if chainid == 137 && len(txReceipt.Logs) > 1 {
-		elog = *txReceipt.Logs[len(txReceipt.Logs)-2]
-	} else {
-		elog = *txReceipt.Logs[len(txReceipt.Logs)-1]
+	if elog == nil {
+		log.Errorln("no match event found in tx:", txhash)
+		return fmt.Errorf("no match event found in tx: %s", txhash)
 	}
-	ev := parseCbrEv(cbr.contract, elog, evname)
+
+	ev := parseCbrEv(cbr.contract, *elog, evname)
 	if ev == nil {
 		log.Errorf("not a valid bridge event tx: %s", txhash)
 		return fmt.Errorf("not a valid bridge event tx: %s", txhash)
@@ -186,7 +186,7 @@ func SyncCbrEvent(cliCtx client.Context, chainid uint64, txhash string, evname s
 		log.Errorf("verifyEvent err: %s", err)
 		return err
 	}
-	err = sendCbrOnchainEvent(cliCtx, chainid, evname, elog)
+	err = sendCbrOnchainEvent(cliCtx, chainid, evname, *elog)
 	if err != nil {
 		log.Errorf("sendCbrOnchainEvent err: %s", err)
 		return err

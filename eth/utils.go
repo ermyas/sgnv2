@@ -6,7 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 
+	"github.com/celer-network/goutils/log"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -71,6 +74,43 @@ func SignerBytes(addrs []Addr, powers []*big.Int) []byte {
 		packed = append(packed, Pad32Bytes(power.Bytes())...)
 	}
 	return packed
+}
+
+// given evname like LiquidityAdded, return its event ID, aka. topics[0]
+// if evname not found, all 0 hash (default value) will be returned
+// as this func parse abi internally, caller should call once and save the return
+// instead of keep calling it.
+func GetBridgeEventID(evname string) HashType {
+	cbrabi, _ := abi.JSON(strings.NewReader(BridgeABI))
+	return cbrabi.Events[evname].ID
+}
+
+// given list of logs, find matching event (log.topics[0] == GetBridgeEventID(cbrEvName) && log.Address == expAddr)
+// from last to first, return first matched log. if evname not found in GetBridgeEventID or no match, return nil
+// if found, return pointer from logs directly so be careful not changing logs after this call
+// per eth design, event ID must match event topics[0]
+// We MUST be extra careful dealing with log as attacker could generate same topics using their own contract
+// why search backwards in logs: we were assuming our event is the last so just do receipt.Logs[len(receipt.Logs)-1],
+// but Polygon adds its own event and breaks this assumption. So now we go backwards and search for first matched event.
+// WARNING: must check log Address!!! other projects have been hacked by missing the check
+func FindMatchCbrEvent(cbrEvName string, expAddr Addr, logs []*ethtypes.Log) *ethtypes.Log {
+	evID := GetBridgeEventID(cbrEvName)
+	if evID == ZeroCid {
+		return nil
+	}
+	for idx := len(logs) - 1; idx >= 0; idx-- {
+		if logs[idx].Topics[0] == evID {
+			// event ID matches and from expected contract
+			if logs[idx].Address == expAddr {
+				return logs[idx]
+			} else {
+				log.Warnln("topic match but contract addr mismatch, hack or misconfig. log has:", logs[idx].Address, "expect:", expAddr)
+				return nil
+			}
+		}
+	}
+	// go over all logs, no match
+	return nil
 }
 
 // return human friendly string for logging
