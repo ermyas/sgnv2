@@ -115,6 +115,18 @@ func (d *DAL) GetLPInfoByHash(lpType, chainId uint64, lpAddr, txHash string) (ui
 	return seqNum, status, ut, found, err
 }
 
+func (d *DAL) GetCsInfoByHash(lpType, chainId uint64, lpAddr, txHash string) (webapi.WithdrawMethodType, string, string) {
+	var wdType uint64
+	var tokenSymbol, amt string
+	q := `SELECT withdraw_method_type, token_symbol, amt FROM lp WHERE tx_hash = $1 and chain_id = $2 and usr_addr = $3 and lp_type = $4`
+	err := d.QueryRow(q, txHash, chainId, lpAddr, lpType).Scan(&wdType, &tokenSymbol, &amt)
+	found, err := sqldb.ChkQueryRow(err)
+	if !found || err != nil {
+		wdType = 0
+	}
+	return webapi.WithdrawMethodType(wdType), tokenSymbol, amt
+}
+
 func (d *DAL) HasSeqNumUsedForWithdraw(seqNum uint64, lpAddr string) bool {
 	var cnt uint64
 	q := `SELECT count(1) FROM lp WHERE seq_num = $1 and usr_addr = $2 and lp_type = $3`

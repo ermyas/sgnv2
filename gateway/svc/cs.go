@@ -3,6 +3,8 @@ package gatewaysvc
 import (
 	"context"
 	"fmt"
+	"math"
+	"math/big"
 	"time"
 
 	"github.com/celer-network/goutils/log"
@@ -19,7 +21,7 @@ const (
 	OnChainTime = 15 * time.Minute
 
 	NormalMsg     = "normal case, open history and operate according to tips, or report it to eng team if has more problems"
-	ToolMsg       = "try to use miss event tools, if problem not fixed after using tools report it to eng team"
+	ToolMsg       = "try to use fix tools(click fix button) and search again, if problem not fixed after using tools report it to eng team"
 	WaitingMsg    = "too short time after user operation, keep waiting for a few minutes"
 	CheckInputMsg = "can not find any result, check your input txHash and chain. If input is correct, waiting for 15 min. if you have waited longer than 15 min, report it to eng team"
 )
@@ -136,11 +138,32 @@ func (gs *GatewayService) diagnosisTx(txHash string, chainId uint32) *webapi.Get
 		} else {
 			resp = newInfoResponse(webapi.CSOperation_CA_WAITING, WaitingMsg, caseStatus)
 		}
-		resp.Info = fmt.Sprintf("transferId:%s, status:%s, addr:%s, updateTime:%s, createTime:%s,srcAmt:%s, dstAmt:%s,, refundTx:%s, refundSeqNum:%d", tx.TransferId, tx.Status.String(), tx.UsrAddr, tx.UT.String(), tx.CT.String(), tx.SrcAmt, tx.DstAmt, tx.RefundTx, tx.RefundSeqNum)
+		srcToken, _, _ := dal.DB.GetTokenBySymbol(tx.TokenSymbol, tx.SrcChainId)
+		dstToken, _, _ := dal.DB.GetTokenBySymbol(tx.TokenSymbol, tx.SrcChainId)
+		srcAmt := rmAmtDec(tx.SrcAmt, int(srcToken.GetToken().Decimal))
+		dstAmt := rmAmtDec(tx.DstAmt, int(dstToken.GetToken().Decimal))
+		resp.Info = fmt.Sprintf(
+			"transferId: %s, \n"+
+				"token: %s, \n"+
+				"dstChainId: %d, \n"+
+				"status: %s, \n"+
+				"addr: %s, \n"+
+				"updateTime: %s, \n"+
+				"createTime: %s, \n"+
+				"srcAmt: %.6f, \n"+
+				"dstAmt: %.6f, \n"+
+				"refundTx: %s, \n"+
+				"refundSeqNum: %d",
+			tx.TransferId, tx.TokenSymbol, tx.DstChainId, tx.Status.String(), tx.UsrAddr, tx.UT.String(), tx.CT.String(), srcAmt, dstAmt, tx.RefundTx, tx.RefundSeqNum)
 	} else {
 		resp = newInfoResponse(webapi.CSOperation_CA_MORE_INFO_NEEDED, CheckInputMsg, webapi.UserCaseStatus_CC_TRANSFER_NO_HISTORY)
 	}
 	return resp
+}
+
+func rmAmtDec(amt string, decimal int) float64 {
+	f, _ := new(big.Float).Quo(new(big.Float).SetInt(common.Str2BigInt(amt)), big.NewFloat(math.Pow10(decimal))).Float64()
+	return f
 }
 
 func (gs *GatewayService) diagnosisLp(txHash, lpAddr string, chainId uint32, lpType webapi.LPType) *webapi.GetInfoByTxHashResponse {
@@ -172,7 +195,26 @@ func (gs *GatewayService) diagnosisLp(txHash, lpAddr string, chainId uint32, lpT
 		} else {
 			resp = newInfoResponse(webapi.CSOperation_CA_WAITING, WaitingMsg, caseStatus)
 		}
-		resp.Info = fmt.Sprintf("seqNum:%d, status:%s,addr:%s, updateTime:%s", seqNum, types.WithdrawStatus(status).String(), lpAddr, ut.String())
+		methodType, tokenSymbol, amt := dal.DB.GetCsInfoByHash(uint64(lpType), uint64(chainId), lpAddr, txHash)
+		token, _, _ := dal.DB.GetTokenBySymbol(tokenSymbol, uint64(chainId))
+		amtF := rmAmtDec(amt, int(token.GetToken().Decimal))
+		t := ""
+		if methodType == webapi.WithdrawMethodType_WD_METHOD_TYPE_ONE_RM {
+			t = "common remove liquidity"
+		} else if methodType == webapi.WithdrawMethodType_WD_METHOD_TYPE_ONE_RM {
+			t = "single chain remove liquidity"
+		}
+		resp.Info = fmt.Sprintf(
+			"seqNum: %d, \n"+
+				"status: %s, \n"+
+				"addr: %s, \n"+
+				"token: %s, \n"+
+				"amt: %.6f, \n"+
+				"updateTime: %s\n",
+			seqNum, types.WithdrawStatus(status).String(), lpAddr, tokenSymbol, amtF, ut.String())
+		if lpType == webapi.LPType_LP_TYPE_REMOVE {
+			resp.Info = resp.Info + fmt.Sprintf("type: %s", t)
+		}
 	} else {
 		resp = newInfoResponse(webapi.CSOperation_CA_MORE_INFO_NEEDED, CheckInputMsg, webapi.UserCaseStatus_CC_TRANSFER_NO_HISTORY)
 	}
