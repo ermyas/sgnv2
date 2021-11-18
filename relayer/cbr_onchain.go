@@ -133,12 +133,13 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 		if !found {
 			return false
 		}
-		nonce := ev.Seqnum
+		var nonce uint64
 		tx, _, err := c.TransactionByHash(context.Background(), eLog.TxHash)
 		if tx != nil && err == nil {
 			nonce = tx.Nonce()
 		} else {
-			log.Warnf("get nonce failed, use seqNum:%d instead, TxHash:%s, err: %s", ev.Seqnum, eLog.TxHash.String(), err)
+			nonce = common.TsMilli(time.Now())
+			log.Warnf("get nonce failed, use ts:%d instead, TxHash:%s, err: %s", nonce, eLog.TxHash.String(), err)
 		}
 		err = GatewayOnLiqAdd(ev.Provider.String(), token.Token.Symbol, token.Token.Address, ev.Amount.String(), eLog.TxHash.String(), c.chainid, nonce)
 		if err != nil {
