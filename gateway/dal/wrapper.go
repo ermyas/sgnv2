@@ -11,11 +11,11 @@ import (
 // for update api, will return error==nil if DB is nil
 
 // UpdateTransferStatus update api
-func UpdateTransferStatus(transferId string, status uint64) error {
+func UpdateTransferStatus(transferId string, status uint64, txHash string) error {
 	if DB == nil {
 		return nil
 	} else {
-		return DB.UpdateTransferStatus(transferId, status)
+		return DB.UpdateTransferRefundStatus(transferId, status, txHash)
 	}
 }
 
@@ -65,11 +65,11 @@ func GetTransferByRefundSeqNum(chainId, seqNum uint64, usrAddr string) (string, 
 }
 
 // UpdateLPStatusForWithdraw update api
-func UpdateLPStatusForWithdraw(chainId, seqNum, status uint64, addr string) error {
+func UpdateLPStatusForWithdraw(chainId, seqNum, status uint64, addr, txHash string) error {
 	if DB == nil {
 		return nil
 	} else {
-		return DB.UpdateLPStatusForWithdraw(chainId, seqNum, status, addr)
+		return DB.UpdateLPStatusForWithdrawWithTx(chainId, seqNum, status, addr, txHash)
 	}
 }
 

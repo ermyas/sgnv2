@@ -87,6 +87,11 @@ func (d *DAL) MarkTransferSend(transferId, usrAddr, tokenSymbol, amt, receivedAm
 	return sqldb.ChkExec(res, err, 1, "MarkTransferSend")
 }
 
+func (d *DAL) UpdateTransferRefundStatus(transferId string, status uint64, refundTx string) error {
+	q := `UPDATE transfer SET status=$2, update_time=$3, refund_tx=$4 WHERE transfer_id=$1`
+	res, err := d.Exec(q, transferId, status, now(), refundTx)
+	return sqldb.ChkExec(res, err, 1, "UpdateTransferRefundStatus")
+}
 func (d *DAL) UpdateTransferStatus(transferId string, status uint64) error {
 	var checked bool
 	switch status {

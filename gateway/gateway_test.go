@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/spf13/viper"
 	"io"
 	"math/big"
 	"math/rand"
@@ -13,6 +12,8 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/spf13/viper"
 
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
@@ -400,7 +401,7 @@ func TestTransferRefund(t *testing.T) {
 	errMsgIsNil(t, statusRsp.Err)
 	checkTransferStatus(t, statusRsp.GetStatus(), types.TransferHistoryStatus_TRANSFER_CONFIRMING_YOUR_REFUND)
 
-	relayer.GatewayOnLiqWithdraw(uint64(chain1), seqNum, usrAddr)
+	relayer.GatewayOnLiqWithdraw(uint64(chain1), seqNum, usrAddr, "123")
 	statusRsp, err = svc.GetTransferStatus(nil, &webapi.GetTransferStatusRequest{TransferId: transferId})
 	errIsNil(t, err)
 	errMsgIsNil(t, statusRsp.Err)
@@ -539,7 +540,7 @@ func TestLPWithdraw(t *testing.T) {
 	checkLpStatus(t, lpHistory.History[0].Status, types.WithdrawStatus_WD_SUBMITTING)
 
 	// onchain status
-	relayer.GatewayOnLiqWithdraw(uint64(chainId), seqNum, addr)
+	relayer.GatewayOnLiqWithdraw(uint64(chainId), seqNum, addr, "123")
 	lpHistory, err = svc.LPHistory(nil, &webapi.LPHistoryRequest{
 		NextPageToken: "",
 		PageSize:      10,
