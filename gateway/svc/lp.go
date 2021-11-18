@@ -51,10 +51,13 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 		}, nil
 	}
 	txHash := request.GetTxHash()
+	seqNum := request.GetSeqNum()
 	if lpType == webapi.LPType_LP_TYPE_ADD {
-		err = dal.DB.UpsertLPWithTx(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, uint64(chainId), uint64(types.WithdrawStatus_WD_SUBMITTING), uint64(lpType), common.TsMilli(time.Now()))
+		if seqNum == 0 {
+			seqNum = common.TsMilli(time.Now())
+		}
+		err = dal.DB.UpsertLPWithTx(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, uint64(chainId), uint64(types.WithdrawStatus_WD_SUBMITTING), uint64(lpType), seqNum)
 	} else if lpType == webapi.LPType_LP_TYPE_REMOVE {
-		seqNum := request.GetSeqNum()
 		err = dal.DB.UpsertLPWithSeqNum(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, uint64(chainId), uint64(types.WithdrawStatus_WD_SUBMITTING), uint64(lpType), seqNum)
 	}
 	if err == nil {
