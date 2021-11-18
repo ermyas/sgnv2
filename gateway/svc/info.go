@@ -236,7 +236,6 @@ func (gs *GatewayService) getLpFeeEarningApy(usrAddr string) (map[uint64]map[str
 				}
 			}
 			tokenMap[tokenSymbol] = lpFeeEarningApy
-
 		}
 		chainMap[chainId] = tokenMap
 	}

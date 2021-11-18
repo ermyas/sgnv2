@@ -551,6 +551,21 @@ func TestLPWithdraw(t *testing.T) {
 	checkLpStatus(t, lpHistory.History[0].Status, types.WithdrawStatus_WD_COMPLETED)
 }
 func TestAlert(t *testing.T) {
-	utils.SendWithdrawAlert("0x2147F049De1D68bC8265B260760AbA6eda614367", "900", "800", "100")
-	utils.SendBalanceAlert("300", "0x2147F049De1D68bC8265B260760AbA6eda614367", "1000", "800")
+	//utils.SendWithdrawAlert("0x2147F049De1D68bC8265B260760AbA6eda614367", "900", "800", "100")
+	var alerts []*utils.BalanceAlert
+	alerts = append(alerts, &utils.BalanceAlert{
+		Token:    "test1",
+		Balance:  "300",
+		Addr:     "0x2147F049De1D68bC8265B260760AbA6eda614367",
+		Withdraw: "1000",
+		Deposit:  "800",
+	})
+	alerts = append(alerts, &utils.BalanceAlert{
+		Token:    "test2",
+		Balance:  "300",
+		Addr:     "0x3147F049De1D68bC8265B260760AbA6eda614367",
+		Withdraw: "1200",
+		Deposit:  "700",
+	})
+	utils.SendBalanceAlert(alerts)
 }

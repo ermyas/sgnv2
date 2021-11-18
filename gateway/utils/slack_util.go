@@ -15,8 +15,19 @@ func SendWithdrawAlert(addr, withdraw, deposit, delta string) {
 	log.Warnf(msg)
 }
 
-func SendBalanceAlert(balance, addr, withdraw, deposit string) {
-	msg := fmt.Sprintf("find abnormal lp balance, balance: `%s`, usr_addr: `%s`, total withdraw: `%s`, total deposit:`%s` ", balance, addr, withdraw, deposit)
+type BalanceAlert struct {
+	Token    string
+	Balance  string
+	Addr     string
+	Withdraw string
+	Deposit  string
+}
+
+func SendBalanceAlert(alerts []*BalanceAlert) {
+	msg := "find abnormal lp balance:\n"
+	for _, alert := range alerts {
+		msg = msg + fmt.Sprintf("token:`%s`, balance: `%s`, usr_addr: `%s`, total withdraw: `%s`, total deposit:`%s`. \n", alert.Token, alert.Balance, alert.Addr, alert.Withdraw, alert.Deposit)
+	}
 	sendSlackP1Alert("Abnormal LP Balance Alert", msg)
 	log.Warnf(msg)
 }
@@ -24,7 +35,7 @@ func SendBalanceAlert(balance, addr, withdraw, deposit string) {
 func sendSlackP1Alert(title string, msg string) {
 	url := "https://hooks.slack.com/services/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"
 	body := `{
-		"channel": "#cbridge-v2-alert-p1",
+		"channel": "#cbridge-v2-testnet-p1",
 			"username": "%s",
 			"text": "%s",
 			"icon_emoji": "https://svblockchain.slack.com/services/BRARCSVU3?settings=1"

@@ -201,7 +201,7 @@ func (gs *GatewayService) diagnosisLp(txHash, lpAddr string, chainId uint32, lpT
 		t := ""
 		if methodType == webapi.WithdrawMethodType_WD_METHOD_TYPE_ONE_RM {
 			t = "common remove liquidity"
-		} else if methodType == webapi.WithdrawMethodType_WD_METHOD_TYPE_ONE_RM {
+		} else if methodType == webapi.WithdrawMethodType_WD_METHOD_TYPE_ALL_IN_ONE {
 			t = "single chain remove liquidity"
 		}
 		resp.Info = fmt.Sprintf(

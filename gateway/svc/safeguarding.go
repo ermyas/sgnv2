@@ -50,14 +50,25 @@ func (gs *GatewayService) IsWithdrawNormal(addr, amt string, decimal int) bool {
 	usrWithdrawAndDeposit := getUsrWithdrawAndDeposit(addr)
 	withdrawAmt := rmAmtDecimal(amt, decimal)
 
+	if usrWithdrawAndDeposit == nil {
+		usrWithdrawAndDeposit = &TotalIO{}
+	}
+	w := usrWithdrawAndDeposit.withdraw
+	d := usrWithdrawAndDeposit.deposit
+	if w == nil {
+		w = new(big.Float).SetInt64(0)
+	}
+	if d == nil {
+		d = new(big.Float).SetInt64(0)
+	}
 	// cmp with amt added and get bool result
-	cmpWd := new(big.Float).Add(usrWithdrawAndDeposit.withdraw, withdrawAmt)
-	cmpDp := new(big.Float).Mul(usrWithdrawAndDeposit.deposit, new(big.Float).SetFloat64(1.2))
+	cmpWd := new(big.Float).Add(w, withdrawAmt)
+	cmpDp := new(big.Float).Mul(d, new(big.Float).SetFloat64(1.2))
 	if cmpWd.Cmp(cmpDp) > 0 {
 		//Gateway should raise alert and block any withdrawal request that will make the total withdrawal more than 120% of the total deposit
 		// alert
-		wd, _ := usrWithdrawAndDeposit.withdraw.Float64()
-		dp, _ := usrWithdrawAndDeposit.deposit.Float64()
+		wd, _ := w.Float64()
+		dp, _ := d.Float64()
 		dt, _ := withdrawAmt.Float64()
 		utils.SendWithdrawAlert(addr, fmt.Sprintf("%.2f", wd), fmt.Sprintf("%.2f", dp), fmt.Sprintf("%.2f", dt))
 		return false
@@ -67,41 +78,62 @@ func (gs *GatewayService) IsWithdrawNormal(addr, amt string, decimal int) bool {
 
 func (gs *GatewayService) AlertAbnormalBalance() {
 	allDepositAndWithdraw := getTotalWithdrawAndDeposit()
-	for usrAddr, dw := range allDepositAndWithdraw {
-		// cli: get balance
-		chainTokens, tokenMap, err := getChainTokens()
-		if err != nil {
-			log.Errorf("getChainTokens failed, err:%+v", err)
+	// cli: get balance
+	chainTokens, tokenMap, err := getChainTokens()
+	if err != nil {
+		log.Errorf("getChainTokens failed, err:%+v", err)
+	}
+	var alerts []*utils.BalanceAlert
+	for usrAddr, dwTokenMap := range allDepositAndWithdraw {
+		tokenBalance := gs.getUsrBalance(usrAddr, chainTokens, tokenMap)
+		for tokenSymbol, dw := range dwTokenMap {
+			// cmp and alert
+			balance := tokenBalance[tokenSymbol]
+			if balance == nil {
+				balance = new(big.Float).SetInt64(0)
+			}
+			cmpIO := new(big.Float).Sub(dw.deposit, dw.withdraw)
+			cmpBlc := new(big.Float).Mul(balance, new(big.Float).SetFloat64(0.95))
+			if cmpIO.Cmp(cmpBlc) < 0 {
+				wd, _ := dw.withdraw.Float64()
+				dp, _ := dw.deposit.Float64()
+				blc, _ := balance.Float64()
+				alerts = append(alerts, &utils.BalanceAlert{
+					Token:    tokenSymbol,
+					Balance:  fmt.Sprintf("%.2f", blc),
+					Addr:     usrAddr,
+					Withdraw: fmt.Sprintf("%.2f", wd),
+					Deposit:  fmt.Sprintf("%.2f", dp),
+				})
+			}
 		}
-		balance := gs.getUsrBalance(usrAddr, chainTokens, tokenMap)
-		// cmp and alert
-		cmpIO := new(big.Float).Sub(dw.deposit, dw.withdraw)
-		cmpBlc := new(big.Float).Mul(balance, new(big.Float).SetFloat64(0.95))
-		if cmpIO.Cmp(cmpBlc) < 0 {
-			wd, _ := dw.withdraw.Float64()
-			dp, _ := dw.deposit.Float64()
-			blc, _ := balance.Float64()
-			utils.SendBalanceAlert(fmt.Sprintf("%.2f", blc), usrAddr, fmt.Sprintf("%.2f", wd), fmt.Sprintf("%.2f", dp))
-		}
+	}
+	if alerts != nil && len(alerts) > 0 {
+		utils.SendBalanceAlert(alerts)
 	}
 }
 
-func (gs *GatewayService) getUsrBalance(usrAddr string, chainTokens []*cbrtypes.ChainTokenAddrPair, chainTokenAddrMap map[uint64]map[string]*webapi.TokenInfo) *big.Float {
-	balance := new(big.Float).SetInt64(0)
+func (gs *GatewayService) getUsrBalance(usrAddr string, chainTokens []*cbrtypes.ChainTokenAddrPair, chainTokenAddrMap map[uint64]map[string]*webapi.TokenInfo) map[string]*big.Float {
+	balanceMap := make(map[string]*big.Float)
 	tr := gs.TP.GetTransactor()
 	detailList, detailErr := cbrcli.QueryLiquidityDetailList(tr.CliCtx, &cbrtypes.LiquidityDetailListRequest{
 		LpAddr:     usrAddr,
 		ChainToken: chainTokens,
 	})
 	if detailList == nil || detailErr != nil || detailList.LiquidityDetail == nil {
-		return balance
+		return balanceMap
 	}
 
 	for _, liq := range detailList.LiquidityDetail {
+		balance := balanceMap[liq.GetToken().GetSymbol()]
+		if balance == nil {
+			balance = new(big.Float).SetInt64(0)
+		}
 		decimal := chainTokenAddrMap[liq.GetChainId()][liq.GetToken().GetAddress()].GetToken().GetDecimal()
 		balance = new(big.Float).Add(balance, rmAmtDecimal(liq.GetUsrLiquidity(), int(decimal)))
+		balanceMap[liq.GetToken().GetSymbol()] = balance
 	}
-	return balance
+	return balanceMap
 }
 
 func getChainTokens() ([]*cbrtypes.ChainTokenAddrPair, map[uint64]map[string]*webapi.TokenInfo, error) {
@@ -137,11 +169,12 @@ type TotalIO struct {
 	deposit  *big.Float
 }
 
-func getTotalWithdrawAndDeposit() map[string]*TotalIO {
+// return map[addr][token_symbol]totalIO
+func getTotalWithdrawAndDeposit() map[string]map[string]*TotalIO {
 	pageSize := uint64(5000)
 	end := time.Now()
 	hasNextPage := true
-	usrIOMap := make(map[string]*TotalIO)
+	usrIOMap := make(map[string]map[string]*TotalIO)
 	for hasNextPage {
 		lps, size, nextTime, err := dal.DB.PaginateLpAmt(end, pageSize)
 		if err != nil {
@@ -151,16 +184,21 @@ func getTotalWithdrawAndDeposit() map[string]*TotalIO {
 		for _, entry := range lps {
 			lpType := entry.LpType
 			addr := entry.Addr
+			tokenSymbol := entry.TokenSymbol
 			if usrIOMap[addr] == nil {
-				usrIOMap[addr] = &TotalIO{
+				usrIOMap[addr] = make(map[string]*TotalIO)
+			}
+			if usrIOMap[addr][tokenSymbol] == nil {
+				usrIOMap[addr][tokenSymbol] = &TotalIO{
 					withdraw: new(big.Float).SetInt64(0),
 					deposit:  new(big.Float).SetInt64(0),
 				}
 			}
+
 			if lpType == webapi.LPType_LP_TYPE_REMOVE {
-				usrIOMap[addr].withdraw = new(big.Float).Add(usrIOMap[addr].withdraw, getAmtFromLpHistory(entry))
+				usrIOMap[addr][entry.TokenSymbol].withdraw = new(big.Float).Add(usrIOMap[addr][entry.TokenSymbol].withdraw, getAmtFromLpHistory(entry))
 			} else if lpType == webapi.LPType_LP_TYPE_ADD {
-				usrIOMap[addr].deposit = new(big.Float).Add(usrIOMap[addr].deposit, getAmtFromLpHistory(entry))
+				usrIOMap[addr][entry.TokenSymbol].deposit = new(big.Float).Add(usrIOMap[addr][entry.TokenSymbol].deposit, getAmtFromLpHistory(entry))
 			}
 		}
 		end = nextTime
