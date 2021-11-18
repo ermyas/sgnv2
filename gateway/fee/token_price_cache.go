@@ -74,6 +74,10 @@ func (t *TokenPriceCache) StartTokenPricePolling(tr *transactor.Transactor, inte
 
 // GetUsdPrice gets the token/USD price by token symbol. e.g. "ETH", "DAI", "USDT"
 func (t *TokenPriceCache) GetUsdPrice(tokenSymbol string) (float64, error) {
+	if tokenSymbol == "WETH" {
+		// will always use ETH price
+		tokenSymbol = "ETH"
+	}
 	token, ok := t.allTokenIds[tokenSymbol]
 	if !ok {
 		return 0, fmt.Errorf("unsupported token %s", tokenSymbol)

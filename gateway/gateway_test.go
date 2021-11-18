@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/spf13/viper"
 	"io"
 	"math/big"
 	"math/rand"
@@ -139,7 +140,7 @@ func newTestSvc(t *testing.T) *gatewaysvc.GatewayService {
 	err = gs.InitTransactors()
 	require.NoError(t, err, "failed to initialize gateway transactors", err)
 	gs.StartChainTokenPolling(1 * time.Hour)
-	gs.StartUpdateTokenPricePolling(relayer.Interval)
+	gs.StartUpdateTokenPricePolling(time.Duration(viper.GetInt32(common.FlagSgnCheckIntervalCbrPrice)) * time.Second)
 	gs.F = fee.NewTokenPriceCache(gs.TP.GetTransactor())
 	return gs
 }

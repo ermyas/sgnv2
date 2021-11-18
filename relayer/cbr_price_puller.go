@@ -13,15 +13,12 @@ import (
 	"gopkg.in/resty.v1"
 )
 
-const (
-	Interval = time.Duration(5) * time.Minute
-)
-
 // sleep, check if syncer, if yes, check if update_epoch is newer
 func (r *Relayer) pullPriceChange() {
-	log.Infoln("start pull cbr price change, interval:", Interval)
+	interval := viper.GetInt32(common.FlagSgnCheckIntervalCbrPrice)
+	log.Infoln("start pull cbr price change, interval:", interval)
 	for {
-		time.Sleep(Interval)
+		time.Sleep(time.Second * time.Duration(interval))
 		if !r.isSyncer() {
 			continue
 		}
@@ -58,7 +55,7 @@ func getCbrPriceFromUrl() (cp *types.CbrPrice, success bool) {
 		return nil, false
 	}
 	// rough check
-	if common.TsMilliToTime(cp.GetUpdateEpoch()).Add(2 * Interval).Before(time.Now()) {
+	if common.TsMilliToTime(cp.GetUpdateEpoch()).Add(time.Duration(2*viper.GetInt32(common.FlagSgnCheckIntervalCbrPrice)) * time.Second).Before(time.Now()) {
 		log.Errorln("seems like oracle stopped working, latest cbrPrice update time ", common.TsMilliToTime(cp.GetUpdateEpoch()))
 		return nil, false
 	}

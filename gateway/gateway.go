@@ -4,6 +4,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/celer-network/sgn-v2/common"
+	"github.com/spf13/viper"
 	"net"
 	"net/http"
 	"strings"
@@ -13,7 +15,6 @@ import (
 	"github.com/celer-network/sgn-v2/gateway/fee"
 	gatewaysvc "github.com/celer-network/sgn-v2/gateway/svc"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
-	"github.com/celer-network/sgn-v2/relayer"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	grpctypes "github.com/cosmos/cosmos-sdk/types/grpc"
@@ -81,7 +82,7 @@ func InitGateway(
 	gs.F = fee.NewTokenPriceCache(gs.TP.GetTransactor())
 	log.Infof(" token price cached")
 
-	gs.StartUpdateTokenPricePolling(relayer.Interval)
+	gs.StartUpdateTokenPricePolling(time.Duration(viper.GetInt32(common.FlagSgnCheckIntervalCbrPrice)) * time.Second)
 	gs.StartAvgLpFeeEarningPolling(10 * time.Minute)
 	gs.StartAbnormalBalanceCheckPolling(1 * time.Hour)
 

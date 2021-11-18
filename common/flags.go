@@ -39,6 +39,7 @@ const (
 	FlagSgnCheckIntervalSlash    = "sgnd.check_interval.slash"
 	FlagSgnCheckIntervalCbridge  = "sgnd.check_interval.cbridge"
 	FlagSgnCheckIntervalVerifier = "sgnd.check_interval.verifier"
+	FlagSgnCheckIntervalCbrPrice = "sgnd.check_interval.cbr_price"
 
 	FlagConsensusTimeoutCommit = "consensus.timeout_commit"
 

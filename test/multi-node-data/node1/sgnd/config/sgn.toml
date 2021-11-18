@@ -39,3 +39,4 @@ price_update_url = "https://cbridge-stat.s3.us-west-2.amazonaws.com/test/cbridge
 slash = 2
 cbridge = 2
 verifier = 1
+cbr_price = 900
