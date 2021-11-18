@@ -1,7 +1,6 @@
 package relayer
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 	"time"
@@ -133,17 +132,9 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 		if !found {
 			return false
 		}
-		var nonce uint64
-		tx, _, err := c.TransactionByHash(context.Background(), eLog.TxHash)
-		if tx != nil && err == nil {
-			nonce = tx.Nonce()
-		} else {
-			nonce = common.TsMilli(time.Now())
-			log.Warnf("get nonce failed, use ts:%d instead, TxHash:%s, err: %s", nonce, eLog.TxHash.String(), err)
-		}
-		err = GatewayOnLiqAdd(ev.Provider.String(), token.Token.Symbol, token.Token.Address, ev.Amount.String(), eLog.TxHash.String(), c.chainid, nonce)
+		err = GatewayOnLiqAdd(ev.Provider.String(), token.Token.Symbol, token.Token.Address, ev.Amount.String(), eLog.TxHash.String(), c.chainid, ev.Seqnum)
 		if err != nil {
-			log.Warnf("UpsertLP err: %s, nonce %d, amt %s, txHash %x, chainId %d", err, nonce, ev.Amount.String(), eLog.TxHash, c.chainid)
+			log.Warnf("UpsertLP err: %s, seqNum %d, amt %s, txHash %x, chainId %d", err, ev.Seqnum, ev.Amount.String(), eLog.TxHash, c.chainid)
 			return false
 		}
 		return false
