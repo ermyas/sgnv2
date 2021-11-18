@@ -82,7 +82,7 @@ func GatewayOnLiqAdd(lpAddr, token, tokenAddr, amt, txHash string, chainId uint6
 	return dal.UpsertLPForLiqAdd(lpAddr, token, tokenAddr, amt, txHash, chainId, uint64(status), uint64(lpType), seqNum)
 }
 
-func GatewayOnLiqWithdraw(chainId, seqNum uint64, usrAddr, txHash string) {
+func GatewayOnLiqWithdraw(chainId, seqNum uint64, usrAddr string) {
 	if dal.DB == nil {
 		return
 	}
@@ -91,12 +91,12 @@ func GatewayOnLiqWithdraw(chainId, seqNum uint64, usrAddr, txHash string) {
 		log.Warnf("error when get transfer, usr:%s chainId:%d, seqNum:%d, err:%+v", usrAddr, chainId, seqNum, err)
 	}
 	if found {
-		dbErr := dal.UpdateTransferStatus(transferId, uint64(cbrtypes.TransferHistoryStatus_TRANSFER_REFUNDED), txHash)
+		dbErr := dal.UpdateTransferStatus(transferId, uint64(cbrtypes.TransferHistoryStatus_TRANSFER_REFUNDED))
 		if dbErr != nil {
 			log.Warnf("db when UpdateTransferStatus to TRANSFER_REFUNDED, transferId:%s, err:%+v", transferId, dbErr)
 		}
 	} else {
-		dbErr := dal.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(cbrtypes.WithdrawStatus_WD_COMPLETED), usrAddr, txHash)
+		dbErr := dal.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(cbrtypes.WithdrawStatus_WD_COMPLETED), usrAddr)
 		if dbErr != nil {
 			log.Warnf("db when UpdateLPStatus to WD_COMPLETED, transferId:%s, err:%+v", transferId, dbErr)
 		}

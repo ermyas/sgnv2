@@ -171,7 +171,7 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
 		}
-		GatewayOnLiqWithdraw(c.chainid, ev.Seqnum, ev.Receiver.String(), eLog.TxHash.String())
+		GatewayOnLiqWithdraw(c.chainid, ev.Seqnum, ev.Receiver.String())
 		return false
 	})
 }

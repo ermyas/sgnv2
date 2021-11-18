@@ -30,29 +30,7 @@ func (d *DAL) UpsertLPWithSeqNum(usrAddr, tokenSymbol, tokenAddr, amt, txHash st
 	return sqldb.ChkExec(res, err, 1, "UpsertLPWithSeqNum")
 }
 
-func (d *DAL) UpsertLPWithSeqNumNotUpdateTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum uint64) error {
-	q := `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (usr_addr, chain_id, seq_num, lp_type) DO UPDATE
-	SET status = $9, update_time = $7`
-	res, err := d.Exec(q, usrAddr, chainId, tokenSymbol, tokenAddr, amt, txHash, now(), now(), status, lpType, seqNum)
-	if err != nil {
-		log.Errorf("UpsertLPWithSeqNum db err, usrAddr:%s, hash:%s, chainId:%d, seqNum:%d, lpType:%d, err:%+v", usrAddr, txHash, chainId, seqNum, lpType, err)
-	}
-	return sqldb.ChkExec(res, err, 1, "UpsertLPWithSeqNum")
-}
-
 func (d *DAL) UpsertLPWithTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum uint64) error {
-	oldTx, _, _, found, _ := d.GetLPInfoBySeqNum(seqNum, lpType, chainId, usrAddr)
-	if found {
-		if oldTx != txHash {
-			// if seqnum has used by current lp, it's replacing instead of new add-liq
-			log.Infof("tx may be replaced, lp updated by seqNum, usrAddr:%s, hash:%s, chainId:%d, seqNum:%d, lpType:%d", usrAddr, txHash, chainId, seqNum, lpType)
-			return d.UpsertLPWithSeqNum(usrAddr, tokenSymbol, tokenAddr, amt, txHash, chainId, status, lpType, seqNum)
-		} else {
-			// seqnum and txHash are the same, not update the both for unique key constrain
-			return d.UpsertLPWithSeqNumNotUpdateTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash, chainId, status, lpType, seqNum)
-		}
-	}
 	q := `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (usr_addr, chain_id, tx_hash, lp_type) DO UPDATE
 	SET status = $9, seq_num = $11, update_time = $7`
@@ -79,16 +57,6 @@ func (d *DAL) UpdateLPStatus(seqNum, lpType, chainId uint64, lpAddr string, stat
 		log.Errorf("UpdateLPStatus db err, usrAddr:%s, chainId:%d, seqNum:%d, lpType:%d, status:%d, err:%+v", lpAddr, chainId, seqNum, lpType, status, err)
 	}
 	return sqldb.ChkExec(res, err, 1, "UpdateLPStatus")
-}
-
-func (d *DAL) UpdateLPStatusForWithdrawWithTx(chainId, seqNum, status uint64, lpAddr, txHash string) error {
-	lpType := uint64(webapi.LPType_LP_TYPE_REMOVE)
-	q := `UPDATE lp SET status=$5, update_time=$6, tx_hash=$7 WHERE seq_num = $1 and chain_id = $2 and usr_addr = $3 and lp_type = $4`
-	res, err := d.Exec(q, seqNum, chainId, lpAddr, lpType, status, now(), txHash)
-	if err != nil {
-		log.Errorf("UpdateLPStatusForWithdrawWithTx db err, usrAddr:%s, chainId:%d, seqNum:%d, lpType:%d, status:%d, txHash:%s, err:%+v", lpAddr, chainId, seqNum, lpType, status, txHash, err)
-	}
-	return sqldb.ChkExec(res, err, 1, "UpdateLPStatusForWithdrawWithTx")
 }
 
 func (d *DAL) UpdateLPStatusForWithdraw(chainId, seqNum, status uint64, lpAddr string) error {
