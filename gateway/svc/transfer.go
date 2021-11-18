@@ -158,8 +158,12 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.MarkTransferRequest) (*webapi.MarkTransferResponse, error) {
 	transferId := request.GetTransferId()
 	addr := common.Hex2Addr(request.GetAddr())
-	sendInfo := refineTokenInfo(request.GetSrcSendInfo())
-	receivedInfo := refineTokenInfo(request.GetDstMinReceivedInfo())
+	sendInfo := request.GetSrcSendInfo()
+	receivedInfo := request.GetDstMinReceivedInfo()
+	if request.Type == webapi.TransferType_TRANSFER_TYPE_SEND {
+		sendInfo = refineTokenInfo(request.GetSrcSendInfo())
+		receivedInfo = refineTokenInfo(request.GetDstMinReceivedInfo())
+	}
 	txHash := request.GetSrcTxHash()
 	txType := request.GetType()
 	log.Infof("Mark transfer, transferId: %s, addr:%s, txHash: %s, srcChainId:%d, txType:%d", transferId, addr, txHash, sendInfo.GetChain().GetId(), txType)
