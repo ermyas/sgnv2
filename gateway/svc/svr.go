@@ -121,16 +121,16 @@ func (gs *GatewayService) StartAvgLpFeeEarningPolling(interval time.Duration) {
 
 // StartAbnormalBalanceCheckPolling starts a loop with the given interval and 3s stdev for polling avg apy
 func (gs *GatewayService) StartAbnormalBalanceCheckPolling(interval time.Duration) {
-	//go func() {
-	//	ticker := jitterbug.New(
-	//		interval,
-	//		&jitterbug.Norm{Stdev: 3 * time.Second},
-	//	)
-	//	defer ticker.Stop()
-	//	for ; true; <-ticker.C {
-	//		gs.AlertAbnormalBalance()
-	//	}
-	//}()
+	go func() {
+		ticker := jitterbug.New(
+			interval,
+			&jitterbug.Norm{Stdev: 3 * time.Second},
+		)
+		defer ticker.Stop()
+		for ; true; <-ticker.C {
+			gs.AlertAbnormalBalance()
+		}
+	}()
 }
 
 func (gs *GatewayService) pollChainToken() {
