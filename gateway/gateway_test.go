@@ -567,5 +567,5 @@ func TestAlert(t *testing.T) {
 		Withdraw: "1200",
 		Deposit:  "700",
 	})
-	utils.SendBalanceAlert(alerts)
+	utils.SendBalanceAlert(alerts, "local")
 }

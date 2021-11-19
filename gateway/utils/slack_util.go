@@ -9,9 +9,13 @@ import (
 	"github.com/celer-network/goutils/log"
 )
 
-func SendWithdrawAlert(addr, withdraw, deposit, delta string) {
+func SendWithdrawAlert(addr, withdraw, deposit, delta, env string) {
 	msg := fmt.Sprintf("withdraw refused, total withdraw more than %s of total deposit, usr_addr: `%s`, has deposited:`%s`, has withdrawt: `%s`, want to withdraw:`%s`", "120%", addr, deposit, withdraw, delta)
-	sendSlackP1Alert("Withdraw 120% Deposit Alert", msg)
+	if env == "prod" {
+		sendSlackP1AlertProd("Withdraw 120% Deposit Alert", msg)
+	} else if env == "test" {
+		sendSlackP1AlertTest("Withdraw 120% Deposit Alert", msg)
+	}
 	log.Warnf(msg)
 }
 
@@ -23,19 +27,38 @@ type BalanceAlert struct {
 	Deposit  string
 }
 
-func SendBalanceAlert(alerts []*BalanceAlert) {
+func SendBalanceAlert(alerts []*BalanceAlert, env string) {
 	msg := "find abnormal lp balance:\n"
 	for _, alert := range alerts {
 		msg = msg + fmt.Sprintf("token:`%s`, balance: `%s`, usr_addr: `%s`, total withdraw: `%s`, total deposit:`%s`. \n", alert.Token, alert.Balance, alert.Addr, alert.Withdraw, alert.Deposit)
 	}
-	sendSlackP1Alert("Abnormal LP Balance Alert", msg)
 	log.Warnf(msg)
+	if env == "prod" {
+		sendSlackP1AlertProd("Abnormal LP Balance Alert", msg)
+	} else if env == "test" {
+		sendSlackP1AlertTest("Abnormal LP Balance Alert", msg)
+	}
 }
 
-func sendSlackP1Alert(title string, msg string) {
+func sendSlackP1AlertTest(title string, msg string) {
 	url := "https://hooks.slack.com/services/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"
 	body := `{
 		"channel": "#cbridge-v2-testnet-p1",
+			"username": "%s",
+			"text": "%s",
+			"icon_emoji": "https://svblockchain.slack.com/services/BRARCSVU3?settings=1"
+	}`
+
+	err := httpDoPost(url, fmt.Sprintf(body, title, msg))
+	if err != nil {
+		log.Error("send alert error:", err)
+	}
+}
+
+func sendSlackP1AlertProd(title string, msg string) {
+	url := "https://hooks.slack.com/services/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"
+	body := `{
+		"channel": "#cbridge-v2-alert-p1",
 			"username": "%s",
 			"text": "%s",
 			"icon_emoji": "https://svblockchain.slack.com/services/BRARCSVU3?settings=1"

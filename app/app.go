@@ -438,13 +438,21 @@ func NewSgnApp(
 		if dbUrl == "" {
 			dbUrl = "127.0.0.1:26257"
 		}
+		env := "local"
+		chainEnv := viper.GetString(common.FlagSgnChainId)
+		if chainEnv == "sgn-2" {
+			env = "prod"
+		} else if chainEnv == "sgn-testnet-4000" {
+			env = "test"
+		}
 		go gateway.InitGateway(
 			homePath,
 			app.legacyAmino,
 			app.appCodec,
 			app.interfaceRegistry,
 			false,
-			dbUrl)
+			dbUrl,
+			env)
 	}
 
 	return app

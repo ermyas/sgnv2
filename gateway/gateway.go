@@ -4,14 +4,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/celer-network/sgn-v2/common"
-	"github.com/spf13/viper"
 	"net"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/fee"
 	gatewaysvc "github.com/celer-network/sgn-v2/gateway/svc"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
@@ -22,6 +21,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/rs/cors"
+	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 )
 
@@ -51,13 +51,15 @@ func InitGateway(
 	_cdc codec.Codec,
 	_interfaceRegistry codectypes.InterfaceRegistry,
 	_selfStart bool,
-	_dbUrl string) {
+	_dbUrl string,
+	_env string) {
 
 	gatewaysvc.RootDir = _homeDir
 	gatewaysvc.LegacyAmino = _legacyAmino
 	gatewaysvc.Cdc = _cdc
 	gatewaysvc.InterfaceRegistry = _interfaceRegistry
 	gatewaysvc.SelfStart = _selfStart
+	gatewaysvc.Env = _env
 
 	flag.Parse()
 	log.Infof("Starting gateway at rest:%d, grpc:%d", *port, *rpcPort)
@@ -68,7 +70,7 @@ func InitGateway(
 		return
 	}
 	defer gs.Close()
-	log.Infof(" gateway svc started")
+	log.Infof(" gateway svc started, env:%s", gatewaysvc.Env)
 
 	err = gs.InitTransactors()
 	if err != nil {

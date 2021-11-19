@@ -31,6 +31,7 @@ var (
 	LegacyAmino       *codec.LegacyAmino
 	Cdc               codec.Codec
 	InterfaceRegistry codectypes.InterfaceRegistry
+	Env               string
 )
 
 // ================================= new gateway method below =====================================
