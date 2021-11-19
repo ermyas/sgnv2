@@ -106,27 +106,57 @@ func UploadFile(content string) {
 
 func (gs *GatewayService) PrepareGasPrice(chainId2Symbol map[uint64]string) (gp []*types.GasPrice) {
 	for chainId := range chainId2Symbol {
-		if chainId == 1 {
-			// mainnet
-			price := GetEthGasPrice()
-			gp = append(gp, &types.GasPrice{
-				ChainId: chainId,
-				Price:   price.String(),
-			})
-		} else {
+		var price *big.Int
+		var err error
+		switch chainId {
+		case 1:
+			// Ethereum mainnet
+			price = GetEthGasPrice()
+		case 10:
+			// Optimistic Ethereum
+			price, err = gs.calcOptimismEffectiveGasPrice(1, 10)
+			if err != nil {
+				continue
+			}
+		case 69:
+			// Optimistic Kovan
+			// NOTE: Requires Kovan to be in the list of clients
+			price, err = gs.calcOptimismEffectiveGasPrice(42, 69)
+			if err != nil {
+				continue
+			}
+		default:
 			client := gs.EC[chainId]
-			price, err := client.SuggestGasPrice(context.Background())
+			price, err = client.SuggestGasPrice(context.Background())
 			if err != nil {
 				log.Errorln("failed to SuggestGasPrice: chainId: ", chainId, ", error:", err)
 				continue
 			}
-			gp = append(gp, &types.GasPrice{
-				ChainId: chainId,
-				Price:   price.String(),
-			})
 		}
+		gp = append(gp, &types.GasPrice{
+			ChainId: chainId,
+			Price:   price.String(),
+		})
 	}
 	return gp
+}
+
+// calcOptimismEffectiveGasPrice calculates the effective gas price using the heuristic
+// effectiveGasPrice = L1GasPrice / 14 + L2GasPrice
+func (gs *GatewayService) calcOptimismEffectiveGasPrice(l1ChainId uint64, l2ChainId uint64) (*big.Int, error) {
+	l1Client := gs.EC[l1ChainId]
+	l1Price, err := l1Client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Errorln("failed to SuggestGasPrice: chainId: ", l1ChainId, ", error:", err)
+		return big.NewInt(0), err
+	}
+	l2Client := gs.EC[l2ChainId]
+	l2Price, err := l2Client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Errorln("failed to SuggestGasPrice: chainId: ", l2ChainId, ", error:", err)
+		return big.NewInt(0), err
+	}
+	return new(big.Int).Add(new(big.Int).Div(l1Price, big.NewInt(14)), l2Price), nil
 }
 
 func (gs *GatewayService) PrepareAssetPrice(tokenMap map[string]bool, symbol2chainIds map[string][]uint64) (ap []*types.AssetPrice) {
