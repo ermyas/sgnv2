@@ -70,7 +70,7 @@ func (gs *GatewayService) IsWithdrawNormal(addr, amt string, decimal int) bool {
 		wd, _ := w.Float64()
 		dp, _ := d.Float64()
 		dt, _ := withdrawAmt.Float64()
-		utils.SendWithdrawAlert(addr, fmt.Sprintf("%.2f", wd), fmt.Sprintf("%.2f", dp), fmt.Sprintf("%.2f", dt))
+		utils.SendWithdrawAlert(addr, fmt.Sprintf("%.6f", wd), fmt.Sprintf("%.6f", dp), fmt.Sprintf("%.6f", dt))
 		return false
 	}
 	return true
@@ -100,10 +100,10 @@ func (gs *GatewayService) AlertAbnormalBalance() {
 				blc, _ := balance.Float64()
 				alerts = append(alerts, &utils.BalanceAlert{
 					Token:    tokenSymbol,
-					Balance:  fmt.Sprintf("%.2f", blc),
+					Balance:  fmt.Sprintf("%.6f", blc),
 					Addr:     usrAddr,
-					Withdraw: fmt.Sprintf("%.2f", wd),
-					Deposit:  fmt.Sprintf("%.2f", dp),
+					Withdraw: fmt.Sprintf("%.6f", wd),
+					Deposit:  fmt.Sprintf("%.6f", dp),
 				})
 			}
 		}

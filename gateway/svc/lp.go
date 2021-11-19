@@ -153,20 +153,19 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				},
 			}, nil
 		}
-		chainId := wdReq.ExitChainId
-		amt := request.GetEstimatedReceivedAmt()
-		tokenFound := false
-		var token *webapi.TokenInfo
-		for _, wd := range wdReq.Withdraws {
-			if !tokenFound {
-				cid := wd.FromChainId
-				tokenAddr := common.Hex2Addr(wd.TokenAddr).String()
-				tokenIndb, found, dbErr := dal.DB.GetTokenByAddr(tokenAddr, cid)
-				tokenFound = found && dbErr == nil && tokenIndb != nil
-				token = tokenIndb
-			}
+		exitChainId := wdReq.ExitChainId
+
+		srcToken, cErr := gs.chooseOneTokenFromSrcChains(wdReq)
+		if cErr != nil {
+			return &webapi.WithdrawLiquidityResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  cErr.Error(),
+				},
+			}, nil
 		}
-		if !tokenFound || token == nil {
+		exitToken, exitTokenFound, dbErr := dal.DB.GetTokenBySymbol(srcToken.GetToken().Symbol, wdReq.ExitChainId)
+		if !exitTokenFound || exitToken == nil || dbErr != nil {
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -178,7 +177,8 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 		lp := signer.String()
 		seqNum := wdReq.ReqId
 
-		if !gs.IsWithdrawNormal(lp, amt, int(token.GetToken().GetDecimal())) {
+		receivedAmt := request.GetEstimatedReceivedAmt()
+		if !gs.IsWithdrawNormal(lp, receivedAmt, int(exitToken.GetToken().Decimal)) {
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -187,7 +187,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			}, nil
 		}
 
-		log.Infof("WithdrawLiquidity for remove, ReceiverAddr:%s, token:%s, Amount:%s, ChainId:%d, ReqId:%d", lp, token.GetToken().GetSymbol(), amt, chainId, seqNum)
+		log.Infof("WithdrawLiquidity for remove, ReceiverAddr:%s, token:%s, Amount:%s, ChainId:%d, ReqId:%d", lp, exitToken.GetToken().GetSymbol(), receivedAmt, exitChainId, seqNum)
 		if dal.DB.HasSeqNumUsedForWithdraw(seqNum, lp) {
 			log.Warnf("invalid seq num, it has been used for current lp, seqNum:%d, lp:%s", seqNum, lp)
 			return &webapi.WithdrawLiquidityResponse{
@@ -197,9 +197,9 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				},
 			}, nil
 		}
-		err = dal.DB.InsertLPWithSeqNumAndMethodType(lp, token.Token.Symbol, token.Token.Address, amt, strconv.Itoa(int(seqNum)), chainId, uint64(types.WithdrawStatus_WD_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum, uint64(request.GetMethodType()))
+		err = dal.DB.InsertLPWithSeqNumAndMethodType(lp, exitToken.Token.Symbol, exitToken.Token.Address, receivedAmt, strconv.Itoa(int(seqNum)), exitChainId, uint64(types.WithdrawStatus_WD_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum, uint64(request.GetMethodType()))
 		if err != nil {
-			_ = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(types.WithdrawStatus_WD_FAILED), lp)
+			_ = dal.DB.UpdateLPStatusForWithdraw(exitChainId, seqNum, uint64(types.WithdrawStatus_WD_FAILED), lp)
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -213,8 +213,8 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			Creator:     tr.Key.GetAddress().String(),
 		})
 		if err != nil {
-			log.Warnf("init withdraw failed, seqNum:%d, chainId:%d, err:%s", seqNum, chainId, err.Error())
-			_ = dal.DB.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(types.WithdrawStatus_WD_FAILED), lp)
+			log.Warnf("init withdraw failed, seqNum:%d, chainId:%d, err:%s", seqNum, exitChainId, err.Error())
+			_ = dal.DB.UpdateLPStatusForWithdraw(exitChainId, seqNum, uint64(types.WithdrawStatus_WD_FAILED), lp)
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_INIT_WITHDRAW_FAILED,
@@ -226,6 +226,24 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			SeqNum: seqNum,
 		}, nil
 	}
+}
+
+func (gs *GatewayService) chooseOneTokenFromSrcChains(wdReq *types.WithdrawReq) (*webapi.TokenInfo, error) {
+	tokenFound := false
+	var token *webapi.TokenInfo
+	for _, wd := range wdReq.Withdraws {
+		if !tokenFound {
+			cid := wd.FromChainId
+			tokenAddr := common.Hex2Addr(wd.TokenAddr).String()
+			tokenIndb, found, dbErr := dal.DB.GetTokenByAddr(tokenAddr, cid)
+			tokenFound = found && dbErr == nil && tokenIndb != nil
+			token = tokenIndb
+		}
+	}
+	if !tokenFound || token == nil {
+		return nil, fmt.Errorf("token not found in gateway DB")
+	}
+	return token, nil
 }
 
 func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *webapi.QueryLiquidityStatusRequest) (*webapi.QueryLiquidityStatusResponse, error) {
