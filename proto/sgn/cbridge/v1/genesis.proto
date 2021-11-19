@@ -12,8 +12,20 @@ option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
 message GenesisState {
     Params params = 1 [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"params\""];
 
+    // saved kvs from previous system export, INCLUDING config and price! so
+    // if this is set, meaning we're importing a previous run exported genesis and should NOT
+    // check config and price because they are already included in this kv
+    // DON'T ever set this manually in genesis.json when start a system for the first time ever
+    repeated KV kvs = 4;
+
     CbrConfig config = 2 [(gogoproto.nullable) = false];
     // only used when first start, x/cbr kv will be updated via propose/vote
     // if not set, basefee will be 0
     CbrPrice price = 3;
+}
+
+// generic k/v for all kv state in x/cbr
+message KV {
+    bytes key = 1;
+    bytes val = 2;
 }

@@ -119,3 +119,26 @@ func derivePoolNameAndDenom(symbol string, chainId uint64) (poolName string, den
 	poolName = fmt.Sprintf("%s-%s/%d", types.ModuleName, symbol, chainId)
 	return poolName, denom
 }
+
+// below for genesis export/import kv
+func (k Keeper) StoreKey() sdk.StoreKey {
+	return k.storeKey
+}
+
+func (k Keeper) ExportAllKV(kv sdk.KVStore) (ret []*types.KV) {
+	iter := kv.Iterator(nil, nil)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		ret = append(ret, &types.KV{
+			Key: iter.Key(),
+			Val: iter.Value(),
+		})
+	}
+	return
+}
+
+func (k Keeper) ImportAllKV(kv sdk.KVStore, kvs []*types.KV) {
+	for _, one := range kvs {
+		kv.Set(one.Key, one.Val)
+	}
+}
