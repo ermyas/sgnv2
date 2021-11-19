@@ -153,7 +153,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				},
 			}, nil
 		}
-		exitChainId := wdReq.ExitChainId
+		exitChainId := wdReq.GetExitChainId()
 
 		srcToken, cErr := gs.chooseOneTokenFromSrcChains(wdReq)
 		if cErr != nil {
@@ -164,7 +164,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				},
 			}, nil
 		}
-		exitToken, exitTokenFound, dbErr := dal.DB.GetTokenBySymbol(srcToken.GetToken().Symbol, wdReq.ExitChainId)
+		exitToken, exitTokenFound, dbErr := dal.DB.GetTokenBySymbol(srcToken.GetToken().GetSymbol(), exitChainId)
 		if !exitTokenFound || exitToken == nil || dbErr != nil {
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
@@ -173,12 +173,12 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				},
 			}, nil
 		}
-		signer, err := ethutils.RecoverSigner(request.WithdrawReq, request.Sig)
+		signer, err := ethutils.RecoverSigner(request.GetWithdrawReq(), request.GetSig())
 		lp := signer.String()
-		seqNum := wdReq.ReqId
+		seqNum := wdReq.GetReqId()
 
 		receivedAmt := request.GetEstimatedReceivedAmt()
-		if !gs.IsWithdrawNormal(lp, receivedAmt, int(exitToken.GetToken().Decimal)) {
+		if !gs.IsWithdrawNormal(lp, receivedAmt, int(exitToken.GetToken().GetDecimal())) {
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -197,7 +197,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				},
 			}, nil
 		}
-		err = dal.DB.InsertLPWithSeqNumAndMethodType(lp, exitToken.Token.Symbol, exitToken.Token.Address, receivedAmt, strconv.Itoa(int(seqNum)), exitChainId, uint64(types.WithdrawStatus_WD_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum, uint64(request.GetMethodType()))
+		err = dal.DB.InsertLPWithSeqNumAndMethodType(lp, exitToken.GetToken().GetSymbol(), exitToken.GetToken().GetAddress(), receivedAmt, strconv.Itoa(int(seqNum)), exitChainId, uint64(types.WithdrawStatus_WD_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum, uint64(request.GetMethodType()))
 		if err != nil {
 			_ = dal.DB.UpdateLPStatusForWithdraw(exitChainId, seqNum, uint64(types.WithdrawStatus_WD_FAILED), lp)
 			return &webapi.WithdrawLiquidityResponse{
@@ -208,8 +208,8 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			}, nil
 		}
 		err = gs.initWithdraw(&types.MsgInitWithdraw{
-			WithdrawReq: request.WithdrawReq,
-			UserSig:     request.Sig,
+			WithdrawReq: request.GetWithdrawReq(),
+			UserSig:     request.GetSig(),
 			Creator:     tr.Key.GetAddress().String(),
 		})
 		if err != nil {
