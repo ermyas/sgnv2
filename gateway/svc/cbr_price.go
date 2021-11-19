@@ -125,6 +125,16 @@ func (gs *GatewayService) PrepareGasPrice(chainId2Symbol map[uint64]string) (gp 
 			if err != nil {
 				continue
 			}
+		case 42161:
+			// Arbitrum
+			// SuggestGasPrice tends to overestimate gasPriceUsed by a factor of 2
+			client := gs.EC[chainId]
+			price, err = client.SuggestGasPrice(context.Background())
+			if err != nil {
+				log.Errorln("failed to SuggestGasPrice: chainId: ", chainId, ", error:", err)
+				continue
+			}
+			price.Div(price, big.NewInt(2))
 		default:
 			client := gs.EC[chainId]
 			price, err = client.SuggestGasPrice(context.Background())
