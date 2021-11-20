@@ -171,6 +171,7 @@ enum XferStatus {
   BAD_DEST_CHAIN = 9; // dest chain is same to src chain, relayer will ignore it.
 
   EXCEED_MAX_OUT_AMOUNT = 10; // amount larger than max out allowance
+  BAD_ADDRESS = 11;
 }
 
 // saved and updated when new sig is added
