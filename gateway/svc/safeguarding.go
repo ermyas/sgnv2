@@ -92,9 +92,10 @@ func (gs *GatewayService) AlertAbnormalBalance() {
 			if balance == nil {
 				balance = new(big.Float).SetInt64(0)
 			}
-			cmpIO := new(big.Float).Sub(dw.deposit, dw.withdraw)
-			cmpBlc := new(big.Float).Mul(balance, new(big.Float).SetFloat64(0.95))
-			if cmpIO.Cmp(cmpBlc) < 0 {
+			cmpIO := dw.deposit
+			cmpBlc := new(big.Float).Mul(new(big.Float).Add(balance, dw.withdraw), new(big.Float).SetFloat64(0.95))
+			if cmpIO.Cmp(cmpBlc) > 0 {
+				// total_deposit > 0.95 * (total_withdrawal + current_lp_balance)
 				wd, _ := dw.withdraw.Float64()
 				dp, _ := dw.deposit.Float64()
 				blc, _ := balance.Float64()

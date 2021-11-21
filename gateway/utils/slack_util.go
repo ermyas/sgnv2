@@ -30,7 +30,7 @@ type BalanceAlert struct {
 func SendBalanceAlert(alerts []*BalanceAlert, env string) {
 	msg := "find abnormal lp balance:\n"
 	for _, alert := range alerts {
-		msg = msg + fmt.Sprintf("token:`%s`, balance: `%s`, usr_addr: `%s`, total withdraw: `%s`, total deposit:`%s`. \n", alert.Token, alert.Balance, alert.Addr, alert.Withdraw, alert.Deposit)
+		msg = msg + fmt.Sprintf("token:`%s`, balance: `%s`, usr_addr: `%s`, total withdraw: `%s`, total deposit:`%s` \n", alert.Token, alert.Balance, alert.Addr, alert.Withdraw, alert.Deposit)
 	}
 	log.Warnf(msg)
 	if env == "prod" {
