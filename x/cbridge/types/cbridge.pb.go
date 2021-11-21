@@ -34,8 +34,8 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 // for src transfer id
 // normal status flow: after sgn applied user's Send event, status is OK_TO_RELAY. then after apply Relay event
 // status is SUCCESS
-// can't relay flow: after apply send, status will be BAD_xxx, and there'll be no relay. so user need to InitWithdraw, status becomes refund_requested
-// when sgn apply withdrawDone event, status becomes REFUND_DONE
+// can't relay flow: after apply send, status will be BAD_xxx, and there'll be no relay. so user need to InitWithdraw, status becomes
+// refund_requested when sgn apply withdrawDone event, status becomes REFUND_DONE
 type XferStatus int32
 
 const (
@@ -48,9 +48,10 @@ const (
 	XferStatus_BAD_SLIPPAGE  XferStatus = 4
 	XferStatus_BAD_TOKEN     XferStatus = 5
 	// refund, using withdraw flow
-	XferStatus_REFUND_REQUESTED      XferStatus = 6
-	XferStatus_REFUND_DONE           XferStatus = 7
-	XferStatus_BAD_XFER_DISABLED     XferStatus = 8
+	XferStatus_REFUND_REQUESTED  XferStatus = 6
+	XferStatus_REFUND_DONE       XferStatus = 7
+	XferStatus_BAD_XFER_DISABLED XferStatus = 8
+	// come, we should go to refund flow.
 	XferStatus_BAD_DEST_CHAIN        XferStatus = 9
 	XferStatus_EXCEED_MAX_OUT_AMOUNT XferStatus = 10
 	XferStatus_BAD_ADDRESS           XferStatus = 11
@@ -231,7 +232,7 @@ func (m *CbrConfig) GetChainPairs() []*ChainPair {
 }
 
 // needed for base fee calculation. the value set in genesis is only used when first start.
-// then there'll be propose/vote and new price will be saved in x/cbrige kv
+// then there'll be propose/vote and new price will be saved in x/cbridge kv
 type CbrPrice struct {
 	UpdateEpoch uint64        `protobuf:"varint,1,opt,name=update_epoch,json=updateEpoch,proto3" json:"update_epoch,omitempty"`
 	AssetPrice  []*AssetPrice `protobuf:"bytes,5,rep,name=asset_price,json=assetPrice,proto3" json:"asset_price,omitempty"`
@@ -364,7 +365,7 @@ func (m *RelayGasCostParam) GetPerSig() uint32 {
 }
 
 // if an asset is not used by any chain as native gas token, no need to set chain_id. eg. USDT
-// if an asset is native gas token for some chains, set the chainids
+// if an asset is native gas token for some chains, set the chain_ids
 // it's possible an asset is only native gas token but NOT used for transfers (ie. not in CbrConfig.assets)
 // price is in int(USD float * 1e4)
 type AssetPrice struct {
@@ -431,8 +432,8 @@ func (m *AssetPrice) GetPrice() uint32 {
 // each chainid's gas price, as it's very dynamic, the goal is only to avoid off too much
 type GasPrice struct {
 	ChainId uint64 `protobuf:"varint,1,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
-	// ethclient.SuggestGasPrice big.Int.String(). but what about the chains whose suggest is off?
-	// we could put an s3 file somewhere for relayer to read and update s3 via a separate service
+	// price is generally ethclient.SuggestGasPrice big.Int.String(), with special handling for chains whose suggest is off.
+	// Will be uploaded somewhere (eg. S3) via a separate service for relayer to read.
 	Price string `protobuf:"bytes,2,opt,name=price,proto3" json:"price,omitempty"`
 }
 

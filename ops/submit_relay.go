@@ -3,6 +3,9 @@ package ops
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"strings"
+
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
@@ -16,8 +19,6 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"math/big"
-	"strings"
 )
 
 const (
@@ -91,7 +92,7 @@ $ %s ops submit-relay --xferid=xxxxx"
 			existRelay, existRelayErr := cbr.contract.BridgeCaller.Transfers(&bind.CallOpts{}, relayTransferId)
 			if existRelayErr != nil {
 				// if fail to query, continue to send this relay, because we can not make sure whether the relay already exist.
-				log.Warnln("fail to query transefer err:", existRelayErr)
+				log.Warnln("fail to query transfer err:", existRelayErr)
 			} else if existRelay {
 				log.Infof("%s. dest transfer already exist on chain, skip it", logmsg)
 				return nil

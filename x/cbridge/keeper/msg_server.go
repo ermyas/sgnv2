@@ -251,7 +251,7 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 		if !found {
 			return nil, fmt.Errorf("%s, latest signers not found", logmsg)
 		}
-		if bytes.Compare(latestSigners.GetSignersBytes(), msg.Data) != 0 {
+		if !bytes.Equal(latestSigners.GetSignersBytes(), msg.Data) {
 			return nil, fmt.Errorf("%s, signed latest signers not match stored data", logmsg)
 		}
 		latestSigners.SortedSigs = UpdateSortedSigs(latestSigners.SortedSigs, &types.AddrSig{
@@ -265,7 +265,7 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 	return ret, nil
 }
 
-func (k msgServer) UpdateLatestSigners(ctx context.Context, msg *types.MsgUpdateLatestSigners) (*types.MsgUpdateLatestSignersRsep, error) {
+func (k msgServer) UpdateLatestSigners(ctx context.Context, msg *types.MsgUpdateLatestSigners) (*types.MsgUpdateLatestSignersResp, error) {
 	if msg == nil {
 		return nil, fmt.Errorf("nil msg")
 	}
@@ -290,7 +290,7 @@ func (k msgServer) UpdateLatestSigners(ctx context.Context, msg *types.MsgUpdate
 		return nil, fmt.Errorf("%s, signers not (need to be) updated", logmsg)
 	}
 
-	return &types.MsgUpdateLatestSignersRsep{}, nil
+	return &types.MsgUpdateLatestSignersResp{}, nil
 }
 
 // sort curSigs in place and return it. if newsig.Addr equals one already in curSigs, only update sig

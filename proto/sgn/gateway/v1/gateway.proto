@@ -11,624 +11,621 @@ import "cosmos/base/v1beta1/coin.proto";
 option go_package = "github.com/celer-network/sgn-v2/gateway/webapi";
 
 service Web {
-    // get chain and token selector
-    // after getting these info, remember to record them(especially decimal)
-    rpc GetTransferConfigs (GetTransferConfigsRequest) returns (GetTransferConfigsResponse) {
-        option (google.api.http) = {
+  // get chain and token selector
+  // after getting these info, remember to record them(especially decimal)
+  rpc GetTransferConfigs(GetTransferConfigsRequest) returns (GetTransferConfigsResponse) {
+    option (google.api.http) = {
       get: "/v1/getTransferConfigs"
     };
-    }
+  }
 
-    // get chain and token info
-    rpc GetTokenInfo (GetTokenInfoRequest) returns (GetTokenInfoResponse) {
-        option (google.api.http) = {
+  // get chain and token info
+  rpc GetTokenInfo(GetTokenInfoRequest) returns (GetTokenInfoResponse) {
+    option (google.api.http) = {
       get: "/v1/getTokenInfo"
     };
-    }
+  }
 
-    // estimate transfer fee
-    rpc EstimateAmt (EstimateAmtRequest) returns (EstimateAmtResponse) {
-        option (google.api.http) = {
+  // estimate transfer fee
+  rpc EstimateAmt(EstimateAmtRequest) returns (EstimateAmtResponse) {
+    option (google.api.http) = {
       get: "/v1/estimateAmt"
     };
-    }
+  }
 
-    // same as V1, call this api after user confirm transfer on metamask
-    rpc MarkTransfer (MarkTransferRequest) returns (MarkTransferResponse) {
-        option (google.api.http) = {
+  // same as V1, call this api after user confirm transfer on metamask
+  rpc MarkTransfer(MarkTransferRequest) returns (MarkTransferResponse) {
+    option (google.api.http) = {
       post: "/v1/markTransfer"
       body: "*"
     };
-    }
+  }
 
-    rpc GetTransferStatus (GetTransferStatusRequest) returns (GetTransferStatusResponse) {
-        option (google.api.http) = {
+  rpc GetTransferStatus(GetTransferStatusRequest) returns (GetTransferStatusResponse) {
+    option (google.api.http) = {
       post: "/v1/getTransferStatus"
       body: "*"
     };
-    }
+  }
 
-    //LP
-    // get LP table info
-    rpc GetLPInfoList (GetLPInfoListRequest) returns (GetLPInfoListResponse) {
-        option (google.api.http) = {
+  // LP
+  //  get LP table info
+  rpc GetLPInfoList(GetLPInfoListRequest) returns (GetLPInfoListResponse) {
+    option (google.api.http) = {
       get: "/v1/getLPInfoList"
     };
-    }
+  }
 
-    rpc MarkLiquidity (MarkLiquidityRequest) returns (MarkLiquidityResponse) {
-        option (google.api.http) = {
+  rpc MarkLiquidity(MarkLiquidityRequest) returns (MarkLiquidityResponse) {
+    option (google.api.http) = {
       post: "/v1/markLiquidity"
       body: "*"
     };
-    }
+  }
 
-    //https://github.com/celer-network/sgn-v2/blob/main/proto/sgn/cbridge/v1/tx.proto#L10
-    // remove liquidity or refund transfer calling this api
-    rpc WithdrawLiquidity (WithdrawLiquidityRequest) returns (WithdrawLiquidityResponse) {
-        option (google.api.http) = {
+  // https://github.com/celer-network/sgn-v2/blob/main/proto/sgn/cbridge/v1/tx.proto#L10
+  //  remove liquidity or refund transfer calling this api
+  rpc WithdrawLiquidity(WithdrawLiquidityRequest) returns (WithdrawLiquidityResponse) {
+    option (google.api.http) = {
       post: "/v1/withdrawLiquidity"
       body: "*"
     };
-    }
+  }
 
-    // estimate transfer fee
-    // front end need post method for this api
-    rpc EstimateWithdrawAmt (EstimateWithdrawAmtRequest) returns (EstimateWithdrawAmtResponse) {
-        option (google.api.http) = {
+  // estimate transfer fee
+  // front end need post method for this api
+  rpc EstimateWithdrawAmt(EstimateWithdrawAmtRequest) returns (EstimateWithdrawAmtResponse) {
+    option (google.api.http) = {
       post: "/v1/estimateWithdrawAmt"
       body: "*"
     };
-    }
+  }
 
-    // bcz it's time cost for sgn voting, so we need a polling api to check the status
-    rpc QueryLiquidityStatus (QueryLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {
-        option (google.api.http) = {
+  // bcz it's time cost for sgn voting, so we need a polling api to check the status
+  rpc QueryLiquidityStatus(QueryLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {
+    option (google.api.http) = {
       get: "/v1/queryLiquidityStatus"
     };
-    }
+  }
 
-    // web will use this api to init reward cliam
-    rpc UnlockFarmingReward (UnlockFarmingRewardRequest) returns (UnlockFarmingRewardResponse) {
-        option (google.api.http) = {
+  // web will use this api to init reward claim
+  rpc UnlockFarmingReward(UnlockFarmingRewardRequest) returns (UnlockFarmingRewardResponse) {
+    option (google.api.http) = {
       post: "/v1/unlockFarmingReward"
       body: "*"
     };
-    }
+  }
 
-    // web polling this api after UnlockFarmingReward
-    rpc GetFarmingRewardDetails (GetFarmingRewardDetailsRequest) returns (GetFarmingRewardDetailsResponse) {
-        option (google.api.http) = {
+  // web polling this api after UnlockFarmingReward
+  rpc GetFarmingRewardDetails(GetFarmingRewardDetailsRequest) returns (GetFarmingRewardDetailsResponse) {
+    option (google.api.http) = {
       get: "/v1/getFarmingRewardDetails"
     };
-    }
+  }
 
-    //History
-    rpc TransferHistory (TransferHistoryRequest) returns (TransferHistoryResponse) {
-        option (google.api.http) = {
+  // History
+  rpc TransferHistory(TransferHistoryRequest) returns (TransferHistoryResponse) {
+    option (google.api.http) = {
       get: "/v1/transferHistory"
     };
-    }
+  }
 
-    rpc LPHistory (LPHistoryRequest) returns (LPHistoryResponse) {
-        option (google.api.http) = {
+  rpc LPHistory(LPHistoryRequest) returns (LPHistoryResponse) {
+    option (google.api.http) = {
       get: "/v1/lpHistory"
     };
-    }
+  }
 
-    rpc RewardingData (RewardingDataRequest) returns (RewardingDataResponse) {
-        option (google.api.http) = {
+  rpc RewardingData(RewardingDataRequest) returns (RewardingDataResponse) {
+    option (google.api.http) = {
       get: "/v1/rewardingData"
     };
-    }
+  }
 
-    // staking api
-    rpc StakingConfig (StakingConfigRequest) returns (StakingConfigResponse) {
-        option (google.api.http) = {
+  // staking api
+  rpc StakingConfig(StakingConfigRequest) returns (StakingConfigResponse) {
+    option (google.api.http) = {
       get: "/v1/staking/stakingConfig"
     };
-    }
+  }
 
-    // web will use this api to init distribution reward claim
-    rpc UnlockStakingReward (UnlockStakingRewardRequest) returns (UnlockStakingRewardResponse) {
-        option (google.api.http) = {
+  // web will use this api to init distribution reward claim
+  rpc UnlockStakingReward(UnlockStakingRewardRequest) returns (UnlockStakingRewardResponse) {
+    option (google.api.http) = {
       post: "/v1/staking/unlockStakingReward"
       body: "*"
     };
-    }
+  }
 
-    // web polling this api after UnlockStakingReward
-    rpc GetStakingRewardDetails (GetStakingRewardDetailsRequest) returns (GetStakingRewardDetailsResponse) {
-        option (google.api.http) = {
+  // web polling this api after UnlockStakingReward
+  rpc GetStakingRewardDetails(GetStakingRewardDetailsRequest) returns (GetStakingRewardDetailsResponse) {
+    option (google.api.http) = {
       get: "/v1/staking/getStakingRewardDetails"
     };
-    }
+  }
 
-    // Safeguarding apis
-    rpc GetTotalLiquidityProviderTokenBalance (GetTotalLiquidityProviderTokenBalanceRequest) returns (GetTotalLiquidityProviderTokenBalanceResponse) {
-        option (google.api.http) = {
+  // Safeguarding apis
+  rpc GetTotalLiquidityProviderTokenBalance(GetTotalLiquidityProviderTokenBalanceRequest)
+      returns (GetTotalLiquidityProviderTokenBalanceResponse) {
+    option (google.api.http) = {
       get: "/v1/getTotalLiquidityProviderTokenBalance"
     };
-    }
+  }
 
-    // configs api, apis in these service need sign valid addr
-    rpc UpdateChain (UpdateChainRequest) returns (UpdateChainResponse) {
-        option (google.api.http) = {
+  // configs api, apis in these service need sign valid addr
+  rpc UpdateChain(UpdateChainRequest) returns (UpdateChainResponse) {
+    option (google.api.http) = {
       post: "/v1/config/updateChain"
       body: "*"
     };
-    }
+  }
 
-    rpc UpdateToken (UpdateTokenRequest) returns (UpdateTokenResponse) {
-        option (google.api.http) = {
+  rpc UpdateToken(UpdateTokenRequest) returns (UpdateTokenResponse) {
+    option (google.api.http) = {
       post: "/v1/config/updateToken"
       body: "*"
     };
-    }
+  }
 
-    rpc GetCampaignScores (GetCampaignScoresRequest) returns (GetCampaignScoresResponse) {
-        option (google.api.http) = {
+  rpc GetCampaignScores(GetCampaignScoresRequest) returns (GetCampaignScoresResponse) {
+    option (google.api.http) = {
       get: "/v1/getCampaignLeaderBoard"
     };
-    }
-    // cs tools
-    rpc GetInfoByTxHash (GetInfoByTxHashRequest) returns (GetInfoByTxHashResponse) {
-        option (google.api.http) = {
+  }
+  // cs tools
+  rpc GetInfoByTxHash(GetInfoByTxHashRequest) returns (GetInfoByTxHashResponse) {
+    option (google.api.http) = {
       get: "/v1/cs/getInfoByTxHash"
     };
-    }
+  }
 
-    // only CA_USE_RESYNC_TOOL and CA_USE_RESIGN_TOOL will be handled
-    rpc FixEventMiss (FixEventMissRequest) returns (FixEventMissResponse) {
-        option (google.api.http) = {
+  // only CA_USE_RESYNC_TOOL and CA_USE_RESIGN_TOOL will be handled
+  rpc FixEventMiss(FixEventMissRequest) returns (FixEventMissResponse) {
+    option (google.api.http) = {
       post: "/v1/cs/fixEventMiss"
       body: "*"
     };
-    }
+  }
 }
 
 message GetCampaignScoresRequest {
-    uint32 date = 1; // 2021-11-x, if date==5, it means 2021-11-05 00:00:00 UTC
-    uint64 begin_block = 2; // staking begin block number
-    uint64 end_block = 3; // staking end block number
+  uint32 date = 1;         // 2021-11-x, if date==5, it means 2021-11-05 00:00:00 UTC
+  uint64 begin_block = 2;  // staking begin block number
+  uint64 end_block = 3;    // staking end block number
 }
 message GetCampaignScoresResponse {
-    repeated CampaignScore scores = 1;
-    ErrMsg err = 2;
-    uint64 begin = 3;
+  repeated CampaignScore scores = 1;
+  ErrMsg err = 2;
+  uint64 begin = 3;
 }
 message CampaignScore {
-    string usr_addr = 1;
-    uint64 score = 2;
+  string usr_addr = 1;
+  uint64 score = 2;
 }
 
 message QueryLiquidityStatusResponse {
-    ErrMsg err = 1;
-    cbridge.v1.WithdrawStatus status = 2;
-    bytes wd_onchain = 3; // for withdraw only
-    repeated bytes sorted_sigs = 4; // for withdraw only
-    repeated bytes signers = 5; // for withdraw only
-    repeated bytes powers = 6; // for withdraw only
-    string block_tx_link = 7;
-    uint32 block_delay = 8; // ui shows "waiting for X block"
+  ErrMsg err = 1;
+  cbridge.v1.WithdrawStatus status = 2;
+  bytes wd_onchain = 3;            // for withdraw only
+  repeated bytes sorted_sigs = 4;  // for withdraw only
+  repeated bytes signers = 5;      // for withdraw only
+  repeated bytes powers = 6;       // for withdraw only
+  string block_tx_link = 7;
+  uint32 block_delay = 8;  // ui shows "waiting for X block"
 }
 
 message Chain {
-    uint32 id = 1;
-    string name = 2;
-    string icon = 3;
-    uint32 block_delay = 4;
-    string gas_token_symbol = 5;
-    string explore_url = 6;
-    string rpc_url = 7;
-    string contract_addr = 8; // bridge contract addr
+  uint32 id = 1;
+  string name = 2;
+  string icon = 3;
+  uint32 block_delay = 4;
+  string gas_token_symbol = 5;
+  string explore_url = 6;
+  string rpc_url = 7;
+  string contract_addr = 8;  // bridge contract addr
 }
 
 message ChainTokenInfo {
-    repeated TokenInfo token = 1;
+  repeated TokenInfo token = 1;
 }
 
 message TokenInfo {
-    cbridge.v1.Token token = 1;
-    string name = 2;
-    string icon = 3;
+  cbridge.v1.Token token = 1;
+  string name = 2;
+  string icon = 3;
 }
 
 message TransferInfo {
-    Chain chain = 1;
-    cbridge.v1.Token token = 2;
-    string amount = 3;
+  Chain chain = 1;
+  cbridge.v1.Token token = 2;
+  string amount = 3;
 }
 
 message GetTransferStatusRequest {
-    string transfer_id = 1;
+  string transfer_id = 1;
 }
 
 message GetTransferStatusResponse {
-    ErrMsg err = 1;
-    cbridge.v1.TransferHistoryStatus status = 2;
-    bytes wd_onchain = 3; // for refund only
-    repeated bytes sorted_sigs = 4; // for refund only
-    repeated bytes signers = 5; // for refund only
-    repeated bytes powers = 6; // for refund only
-    cbridge.v1.XferStatus refund_reason = 7; // used only for to_be_refund TransferStatus. BAD_LIQUIDITY, BAD_SLIPPAGE and BAD_TOKEN are used here
-    uint32 block_delay = 8; // waiting
-    string src_block_tx_link = 9;
-    string dst_block_tx_link = 10;
+  ErrMsg err = 1;
+  cbridge.v1.TransferHistoryStatus status = 2;
+  bytes wd_onchain = 3;            // for refund only
+  repeated bytes sorted_sigs = 4;  // for refund only
+  repeated bytes signers = 5;      // for refund only
+  repeated bytes powers = 6;       // for refund only
+  cbridge.v1.XferStatus refund_reason =
+      7;                   // used only for to_be_refund TransferStatus. BAD_LIQUIDITY, BAD_SLIPPAGE and BAD_TOKEN are used here
+  uint32 block_delay = 8;  // waiting
+  string src_block_tx_link = 9;
+  string dst_block_tx_link = 10;
 }
 
-message GetTransferConfigsRequest {
-
-}
+message GetTransferConfigsRequest {}
 
 message GetTransferConfigsResponse {
-    ErrMsg err = 1;
-    repeated Chain chains = 2;
-    map<uint32, ChainTokenInfo> chain_token = 3; //map<chain_id, ChainTokenInfo>
-    string farming_reward_contract_addr = 4;
+  ErrMsg err = 1;
+  repeated Chain chains = 2;
+  map<uint32, ChainTokenInfo> chain_token = 3;  // map<chain_id, ChainTokenInfo>
+  string farming_reward_contract_addr = 4;
 }
 
-
 message GetTokenInfoRequest {
-    uint32 chain_id = 1;
-    string token_symbol = 2;
+  uint32 chain_id = 1;
+  string token_symbol = 2;
 }
 
 message GetTokenInfoResponse {
-    ErrMsg err = 1;
-    TokenInfo token_info = 2;
+  ErrMsg err = 1;
+  TokenInfo token_info = 2;
 }
 
 message EstimateAmtRequest {
-    uint32 src_chain_id = 1;
-    uint32 dst_chain_id = 2;
-    string token_symbol = 3;
-    string amt = 4;
-    string usr_addr = 5;
-    uint32 slippage_tolerance = 6; // user setting, for ui only, slippage * 1M, eg. 0.5% is 5000
+  uint32 src_chain_id = 1;
+  uint32 dst_chain_id = 2;
+  string token_symbol = 3;
+  string amt = 4;
+  string usr_addr = 5;
+  uint32 slippage_tolerance = 6;  // user setting, for ui only, slippage * 1M, eg. 0.5% is 5000
 }
 
 message EstimateAmtResponse {
-    ErrMsg err = 1;
-    string eq_value_token_amt = 2; //on_dst_chain, to cal minimum_received_amt = eq_value_token_amt*(1-slippage_tolerance) -  fee
-    float bridge_rate = 3;
-    string perc_fee = 4; //on_dst_chain, percentage fee based on amount
-    string base_fee = 7; //on_dest_chain, independent of amount, to cover relay onchain tx gas cost
-    uint32 slippage_tolerance = 5; // user setting, from request, slippage * 1M, eg. 0.5% is 5000
-    uint32 max_slippage = 6; // param for requesting on chain, slippage * 1M, eg. 0.5% is 5000
+  ErrMsg err = 1;
+  string eq_value_token_amt = 2;  // on_dst_chain, to cal minimum_received_amt = eq_value_token_amt*(1-slippage_tolerance) -  fee
+  float bridge_rate = 3;
+  string perc_fee = 4;            // on_dst_chain, percentage fee based on amount
+  string base_fee = 7;            // on_dest_chain, independent of amount, to cover relay onchain tx gas cost
+  uint32 slippage_tolerance = 5;  // user setting, from request, slippage * 1M, eg. 0.5% is 5000
+  uint32 max_slippage = 6;        // param for requesting on chain, slippage * 1M, eg. 0.5% is 5000
 }
 
 message WithdrawInfo {
-    uint32 chain_id = 1;
-    string amount = 2;
-    uint32 slippage_tolerance = 3; // user setting, for ui only, slippage * 1M, eg. 0.5% is 5000
+  uint32 chain_id = 1;
+  string amount = 2;
+  uint32 slippage_tolerance = 3;  // user setting, for ui only, slippage * 1M, eg. 0.5% is 5000
 }
 message EstimateWithdrawAmtRequest {
-    repeated WithdrawInfo src_withdraws = 1;
-    uint32 dst_chain_id = 2;
-    string token_symbol = 3;
-    string usr_addr = 4;
+  repeated WithdrawInfo src_withdraws = 1;
+  uint32 dst_chain_id = 2;
+  string token_symbol = 3;
+  string usr_addr = 4;
 }
 
 message EstimateWithdrawAmtResponse {
-    ErrMsg err = 1;
-    map<uint32, EstimateWithdrawAmt> req_amt = 2; // map<src_chain_id, EstimateWithdrawAmt>
+  ErrMsg err = 1;
+  map<uint32, EstimateWithdrawAmt> req_amt = 2;  // map<src_chain_id, EstimateWithdrawAmt>
 }
 
 message EstimateWithdrawAmt {
-    string eq_value_token_amt = 1; //on_dst_chain, to cal minimum_received_amt = eq_value_token_amt*(1-slippage_tolerance) -  fee
-    float bridge_rate = 2;
-    string perc_fee = 3; //on_dst_chain, percentage fee based on amount
-    string base_fee = 4; //on_dest_chain, independent of amount, to cover relay onchain tx gas cost
-    uint32 slippage_tolerance = 5; // user setting, for ui only, slippage * 1M, eg. 0.5% is 5000
-    uint32 max_slippage = 6; // param for requesting on chain, slippage * 1M, eg. 0.5% is 5000
+  string eq_value_token_amt = 1;  // on_dst_chain, to cal minimum_received_amt = eq_value_token_amt*(1-slippage_tolerance) -  fee
+  float bridge_rate = 2;
+  string perc_fee = 3;            // on_dst_chain, percentage fee based on amount
+  string base_fee = 4;            // on_dest_chain, independent of amount, to cover relay onchain tx gas cost
+  uint32 slippage_tolerance = 5;  // user setting, for ui only, slippage * 1M, eg. 0.5% is 5000
+  uint32 max_slippage = 6;        // param for requesting on chain, slippage * 1M, eg. 0.5% is 5000
 }
 
 enum TransferType {
-    TRANSFER_TYPE_UNKNOWN = 0;
-    TRANSFER_TYPE_SEND = 1;
-    TRANSFER_TYPE_REFUND = 2;
+  TRANSFER_TYPE_UNKNOWN = 0;
+  TRANSFER_TYPE_SEND = 1;
+  TRANSFER_TYPE_REFUND = 2;
 }
 message MarkTransferRequest {
-    string transfer_id = 1;
-    TransferInfo src_send_info = 2;
-    TransferInfo dst_min_received_info = 3;
-    string addr = 4;
-    string src_tx_hash = 5;
-    TransferType type = 6;
+  string transfer_id = 1;
+  TransferInfo src_send_info = 2;
+  TransferInfo dst_min_received_info = 3;
+  string addr = 4;
+  string src_tx_hash = 5;
+  TransferType type = 6;
 }
 
 message MarkTransferResponse {
-    ErrMsg err = 1;
+  ErrMsg err = 1;
 }
 
 message GetLPInfoListRequest {
-    string addr = 1;
+  string addr = 1;
 }
 
 message LPInfo {
-    Chain chain = 1;
-    TokenInfo token = 2;
-    double liquidity = 3; // current liquidity of user in usd
-    string liquidity_amt = 4; // current liquidity of user in token
-    bool has_farming_sessions = 5;
-    double lp_fee_earning = 6; // in usd
-    double farming_reward_earning = 7; // in usd
-    double volume_24h = 8; //gateway cal this based on local db
-    double total_liquidity = 9; // total liquidity of user in usd
-    string total_liquidity_amt = 10; // total liquidity of user in token
-    double lp_fee_earning_apy = 11;
-    double farming_apy = 12;
-    repeated TokenInfo farming_session_tokens = 13;
+  Chain chain = 1;
+  TokenInfo token = 2;
+  double liquidity = 3;      // current liquidity of user in usd
+  string liquidity_amt = 4;  // current liquidity of user in token
+  bool has_farming_sessions = 5;
+  double lp_fee_earning = 6;          // in usd
+  double farming_reward_earning = 7;  // in usd
+  double volume_24h = 8;              // gateway cal this based on local db
+  double total_liquidity = 9;         // total liquidity of user in usd
+  string total_liquidity_amt = 10;    // total liquidity of user in token
+  double lp_fee_earning_apy = 11;
+  double farming_apy = 12;
+  repeated TokenInfo farming_session_tokens = 13;
 }
 message GetLPInfoListResponse {
-    ErrMsg err = 1;
-    repeated LPInfo lp_info = 2;
+  ErrMsg err = 1;
+  repeated LPInfo lp_info = 2;
 }
 
 message WithdrawLiquidityRequest {
-    bytes withdraw_req = 1; // seralized WithdrawReq in sgn/cbridge/v1/tx.proto
-    bytes sig = 2;
-    string estimated_received_amt = 3; // on dst chain
-    WithdrawMethodType method_type = 4; // record which type it is
+  bytes withdraw_req = 1;  // serialized WithdrawReq in sgn/cbridge/v1/tx.proto
+  bytes sig = 2;
+  string estimated_received_amt = 3;   // on dst chain
+  WithdrawMethodType method_type = 4;  // record which type it is
 }
 
 message WithdrawLiquidityResponse {
-    ErrMsg err = 1;
-    uint64 seq_num = 2; // same as WithdrawLiquidityRequest.reqid
+  ErrMsg err = 1;
+  uint64 seq_num = 2;  // same as WithdrawLiquidityRequest.reqid
 }
 
 message MarkLiquidityRequest {
-    string lp_addr = 1;
-    string amt = 2;
-    string token_addr = 3;
-    uint32 chain_id = 4;
-    uint64 seq_num = 5; // used for withdraw only
-    string tx_hash = 6;
-    LPType type = 7;
+  string lp_addr = 1;
+  string amt = 2;
+  string token_addr = 3;
+  uint32 chain_id = 4;
+  uint64 seq_num = 5;  // used for withdraw only
+  string tx_hash = 6;
+  LPType type = 7;
 }
 
 message MarkLiquidityResponse {
-    ErrMsg err = 1;
+  ErrMsg err = 1;
 }
 
-
 message UnlockFarmingRewardRequest {
-    string addr = 1;
+  string addr = 1;
 }
 
 message UnlockFarmingRewardResponse {
-    ErrMsg err = 1;
+  ErrMsg err = 1;
 }
 message GetFarmingRewardDetailsRequest {
-    string addr = 1;
+  string addr = 1;
 }
 
 message GetFarmingRewardDetailsResponse {
-    ErrMsg err = 1;
-    repeated farming.v1.RewardClaimDetails details = 2;
+  ErrMsg err = 1;
+  repeated farming.v1.RewardClaimDetails details = 2;
 }
 
 message QueryLiquidityStatusRequest {
-    uint64 seq_num = 1; // used for withdraw
-    string tx_hash = 2; // used for add
-    string lp_addr = 3;
-    uint32 chain_id = 4;
-    LPType type = 5;
+  uint64 seq_num = 1;  // used for withdraw
+  string tx_hash = 2;  // used for add
+  string lp_addr = 3;
+  uint32 chain_id = 4;
+  LPType type = 5;
 }
 
 enum LPType {
-    LP_TYPE_UNKNOWN = 0;
-    LP_TYPE_ADD = 1;
-    LP_TYPE_REMOVE = 2;
+  LP_TYPE_UNKNOWN = 0;
+  LP_TYPE_ADD = 1;
+  LP_TYPE_REMOVE = 2;
 }
 
 message TransferHistory {
-    string transfer_id = 1;
-    TransferInfo src_send_info = 2;
-    TransferInfo dst_received_info = 3;
-    uint64 ts = 4;
-    string src_block_tx_link = 5;
-    string dst_block_tx_link = 6;
-    cbridge.v1.TransferHistoryStatus status = 7;
-    cbridge.v1.XferStatus refund_reason = 8; // used only for to_be_refund TransferStatus. BAD_LIQUIDITY, BAD_SLIPPAGE and BAD_TOKEN are used here
+  string transfer_id = 1;
+  TransferInfo src_send_info = 2;
+  TransferInfo dst_received_info = 3;
+  uint64 ts = 4;
+  string src_block_tx_link = 5;
+  string dst_block_tx_link = 6;
+  cbridge.v1.TransferHistoryStatus status = 7;
+  cbridge.v1.XferStatus refund_reason =
+      8;  // used only for to_be_refund TransferStatus. BAD_LIQUIDITY, BAD_SLIPPAGE and BAD_TOKEN are used here
 }
 
 message LPHistory {
-    Chain chain = 1;
-    TokenInfo token = 2;
-    string amount = 3;
-    uint64 ts = 4;
-    string block_tx_link = 5;
-    cbridge.v1.WithdrawStatus status = 6;
-    LPType type = 7;
-    uint64 seq_num = 8;
-    WithdrawMethodType method_type = 9;
+  Chain chain = 1;
+  TokenInfo token = 2;
+  string amount = 3;
+  uint64 ts = 4;
+  string block_tx_link = 5;
+  cbridge.v1.WithdrawStatus status = 6;
+  LPType type = 7;
+  uint64 seq_num = 8;
+  WithdrawMethodType method_type = 9;
 }
 
 message TransferHistoryRequest {
-    string next_page_token = 1; // for first page, it's ""
-    uint64 page_size = 2;
-    string addr = 3;
+  string next_page_token = 1;  // for first page, it's ""
+  uint64 page_size = 2;
+  string addr = 3;
 }
 
 message TransferHistoryResponse {
-    ErrMsg err = 1;
-    repeated TransferHistory history = 2;
-    string next_page_token = 3;
-    uint64 current_size = 4;
+  ErrMsg err = 1;
+  repeated TransferHistory history = 2;
+  string next_page_token = 3;
+  uint64 current_size = 4;
 }
 
 message LPHistoryRequest {
-    string next_page_token = 1; // for first page, it's ""
-    uint64 page_size = 2;
-    string addr = 3;
+  string next_page_token = 1;  // for first page, it's ""
+  uint64 page_size = 2;
+  string addr = 3;
 }
 
 message LPHistoryResponse {
-    ErrMsg err = 1;
-    repeated LPHistory history = 2;
-    string next_page_token = 3;
-    uint64 current_size = 4;
+  ErrMsg err = 1;
+  repeated LPHistory history = 2;
+  string next_page_token = 3;
+  uint64 current_size = 4;
 }
 
 message RewardingDataRequest {
-    string addr = 1;
+  string addr = 1;
 }
 
 message Reward {
-    double amt = 1;
-    cbridge.v1.Token token = 2;
+  double amt = 1;
+  cbridge.v1.Token token = 2;
 }
 message RewardingDataResponse {
-    ErrMsg err = 1;
-    map<string, double> usd_price = 2; // map<token_symbol, usd_price>, token scope: HistoricalCumulativeRewards
-    repeated Reward historical_cumulative_rewards = 3;
-    repeated Reward unlocked_cumulative_rewards = 4;
+  ErrMsg err = 1;
+  map<string, double> usd_price = 2;  // map<token_symbol, usd_price>, token scope: HistoricalCumulativeRewards
+  repeated Reward historical_cumulative_rewards = 3;
+  repeated Reward unlocked_cumulative_rewards = 4;
 }
 
 message UpdateChainRequest {
-    Chain chain = 1;
-    string tx_url_prefix = 2;
-    bytes sig = 3;
-    string addr = 4;
+  Chain chain = 1;
+  string tx_url_prefix = 2;
+  bytes sig = 3;
+  string addr = 4;
 }
 
 message UpdateChainResponse {
-    ErrMsg err = 1;
-    Chain chain = 2;
-    string tx_url_prefix = 3;
+  ErrMsg err = 1;
+  Chain chain = 2;
+  string tx_url_prefix = 3;
 }
 
 message UpdateTokenRequest {
-    uint32 chain_id = 1;
-    string token_symbol = 2;
-    string token_name = 3;
-    string token_icon = 4;
-    bytes sig = 5;
-    string addr = 6;
+  uint32 chain_id = 1;
+  string token_symbol = 2;
+  string token_name = 3;
+  string token_icon = 4;
+  bytes sig = 5;
+  string addr = 6;
 }
 
 message UpdateTokenResponse {
-    ErrMsg err = 1;
-    TokenInfo token = 2;
+  ErrMsg err = 1;
+  TokenInfo token = 2;
 }
 
-message StakingConfigRequest {
-}
+message StakingConfigRequest {}
 message StakingConfigResponse {
-    string viewer_contract = 1;
-    string staking_contract = 2;
-    string staking_reward_contract = 3;
-    string celr_contract = 4;
+  string viewer_contract = 1;
+  string staking_contract = 2;
+  string staking_reward_contract = 3;
+  string celr_contract = 4;
 }
 
 message UnlockStakingRewardRequest {
-    string delegator_address = 1;
+  string delegator_address = 1;
 }
 
 message UnlockStakingRewardResponse {
-    ErrMsg err = 1;
+  ErrMsg err = 1;
 }
 message GetStakingRewardDetailsRequest {
-    string delegator_address = 1;
+  string delegator_address = 1;
 }
 
 message GetStakingRewardDetailsResponse {
-    ErrMsg err = 1;
-    distribution.v1.StakingRewardClaimInfo detail = 2;
+  ErrMsg err = 1;
+  distribution.v1.StakingRewardClaimInfo detail = 2;
 }
 
 message GetTotalLiquidityProviderTokenBalanceRequest {
-    repeated uint32 chain_ids = 1; // if this list is empty, will return all chain liq balance
-    string token_symbol = 2;
+  repeated uint32 chain_ids = 1;  // if this list is empty, will return all chain liq balance
+  string token_symbol = 2;
 }
 
 message GetTotalLiquidityProviderTokenBalanceResponse {
-    ErrMsg err = 1;
-    map<uint64, string> total_liq = 2; //map<chain_id, total_liq>
+  ErrMsg err = 1;
+  map<uint64, string> total_liq = 2;  // map<chain_id, total_liq>
 }
 
 message GetInfoByTxHashRequest {
-    uint32 chain_id = 1;
-    string tx_hash = 2;
-    CSType type = 3;
-    bytes sig = 4;
-    string addr = 5;
+  uint32 chain_id = 1;
+  string tx_hash = 2;
+  CSType type = 3;
+  bytes sig = 4;
+  string addr = 5;
 }
 message GetInfoByTxHashResponse {
-    CSOperation operation = 1;
-    UserCaseStatus status = 2;
-    string memo = 3;
-    string info = 4;
+  CSOperation operation = 1;
+  UserCaseStatus status = 2;
+  string memo = 3;
+  string info = 4;
 }
-
 
 message FixEventMissRequest {
-    uint32 chain_id = 1;
-    string tx_hash = 2;
-    CSType type = 3;
-    bytes sig = 4;
-    string addr = 5;
+  uint32 chain_id = 1;
+  string tx_hash = 2;
+  CSType type = 3;
+  bytes sig = 4;
+  string addr = 5;
 }
 message FixEventMissResponse {
-    ErrMsg err = 1;
+  ErrMsg err = 1;
 }
 
 enum CSType {
-    CT_UNKNOWN = 0;
-    CT_TX = 1; // transfer
-    CT_LP_ADD = 2; // liquidity add
-    CT_LP_RM = 3; // liquidity rm
+  CT_UNKNOWN = 0;
+  CT_TX = 1;      // transfer
+  CT_LP_ADD = 2;  // liquidity add
+  CT_LP_RM = 3;   // liquidity rm
 }
 
 enum CSOperation {
-    CA_UNKNOWN = 0; // if tx not found or some else wrong, check memo for details
-    CA_NORMAL = 1; // normal case, ignore
-    CA_WAITING = 2; // waiting for result yet, please keep waiting for
-    CA_REPORT = 3; // cs can't handle this case, need report to tech
-    CA_USE_RESYNC_TOOL = 4; // use RESYNC tools
-    CA_USE_RESIGN_TOOL = 5; // use RESIGN tools
-    CA_USE_RESUMBIT_TOOL = 6; // use RESUMBIT tools
-    CA_MORE_INFO_NEEDED = 7; // more information need, see memo
+  CA_UNKNOWN = 0;            // if tx not found or some else wrong, check memo for details
+  CA_NORMAL = 1;             // normal case, ignore
+  CA_WAITING = 2;            // waiting for result yet, please keep waiting for
+  CA_REPORT = 3;             // cs can't handle this case, need report to tech
+  CA_USE_RESYNC_TOOL = 4;    // use RESYNC tools
+  CA_USE_RESIGN_TOOL = 5;    // use RESIGN tools
+  CA_USE_RESUMBIT_TOOL = 6;  // use RESUMBIT tools
+  CA_MORE_INFO_NEEDED = 7;   // more information need, see memo
 }
 enum UserCaseStatus {
-    CC_UNKNOWN = 0;
+  CC_UNKNOWN = 0;
 
-    // transfer related cases
-    CC_TRANSFER_NO_HISTORY = 1;
-    CC_TRANSFER_SUBMITTING = 2;
-    CC_TRANSFER_WAITING_FOR_SGN_CONFIRMATION = 3;
-    CC_TRANSFER_WAITING_FOR_FUND_RELEASE = 4;
-    CC_TRANSFER_REQUESTING_REFUND = 5;
-    CC_TRANSFER_CONFIRMING_YOUR_REFUND = 6;
+  // transfer related cases
+  CC_TRANSFER_NO_HISTORY = 1;
+  CC_TRANSFER_SUBMITTING = 2;
+  CC_TRANSFER_WAITING_FOR_SGN_CONFIRMATION = 3;
+  CC_TRANSFER_WAITING_FOR_FUND_RELEASE = 4;
+  CC_TRANSFER_REQUESTING_REFUND = 5;
+  CC_TRANSFER_CONFIRMING_YOUR_REFUND = 6;
 
-    // add related cases
-    CC_ADD_NO_HISTORY = 7;
-    CC_ADD_SUBMITTING = 8;
-    CC_ADD_WAITING_FOR_SGN = 9;
+  // add related cases
+  CC_ADD_NO_HISTORY = 7;
+  CC_ADD_SUBMITTING = 8;
+  CC_ADD_WAITING_FOR_SGN = 9;
 
-    //withdraw related cases
-    CC_WAITING_FOR_LP = 10;
-    CC_WITHDRAW_SUBMITTING = 11; // always this status
-    CC_WITHDRAW_WAITING_FOR_SGN = 12;
+  // withdraw related cases
+  CC_WAITING_FOR_LP = 10;
+  CC_WITHDRAW_SUBMITTING = 11;  // always this status
+  CC_WITHDRAW_WAITING_FOR_SGN = 12;
 }
 enum WithdrawMethodType {
-    WD_METHOD_TYPE_UNDEFINED = 0;
-    WD_METHOD_TYPE_ONE_RM = 1; // for lp one chain liquidity remove
-    WD_METHOD_TYPE_ALL_IN_ONE = 2; // for lp multi-chain -> one chain liquidity remove
-    WD_METHOD_TYPE_STAKING_CLAIM = 3; // for staking claim lp reward, these entries will not be shown in lp history
+  WD_METHOD_TYPE_UNDEFINED = 0;
+  WD_METHOD_TYPE_ONE_RM = 1;         // for lp one chain liquidity remove
+  WD_METHOD_TYPE_ALL_IN_ONE = 2;     // for lp multi-chain -> one chain liquidity remove
+  WD_METHOD_TYPE_STAKING_CLAIM = 3;  // for staking claim lp reward, these entries will not be shown in lp history
 }
 
 message ErrMsg {
-    ErrCode code = 1;
-    string msg = 2;
+  ErrCode code = 1;
+  string msg = 2;
 }
 
 enum ErrCode {
-    ERROR_CODE_UNDEFINED = 0;
-    ERROR_CODE_COMMON = 500;
-    ERROR_NO_TOKEN_ON_DST_CHAIN = 1001;
-    ERROR_NO_TOKEN_ON_SRC_CHAIN = 1002;
-    ERROR_INIT_WITHDRAW_FAILED = 1003;
+  ERROR_CODE_UNDEFINED = 0;
+  ERROR_CODE_COMMON = 500;
+  ERROR_NO_TOKEN_ON_DST_CHAIN = 1001;
+  ERROR_NO_TOKEN_ON_SRC_CHAIN = 1002;
+  ERROR_INIT_WITHDRAW_FAILED = 1003;
 }

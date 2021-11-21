@@ -11,23 +11,23 @@ option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
 // ========== params
 message Params {
   google.protobuf.Duration signer_update_duration = 1 [
-    (gogoproto.nullable)    = false,
+    (gogoproto.nullable) = false,
     (gogoproto.stdduration) = true,
-    (gogoproto.jsontag)     = "signer_update_duration,omitempty",
-    (gogoproto.moretags)    = "yaml:\"signer_update_duration\""
+    (gogoproto.jsontag) = "signer_update_duration,omitempty",
+    (gogoproto.moretags) = "yaml:\"signer_update_duration\""
   ];
   google.protobuf.Duration sign_again_cool_down_duration = 2 [
-    (gogoproto.nullable)    = false,
+    (gogoproto.nullable) = false,
     (gogoproto.stdduration) = true,
-    (gogoproto.jsontag)     = "sign_again_cool_down_duration,omitempty",
-    (gogoproto.moretags)    = "yaml:\"sign_again_cool_down_duration\""
+    (gogoproto.jsontag) = "sign_again_cool_down_duration,omitempty",
+    (gogoproto.moretags) = "yaml:\"sign_again_cool_down_duration\""
   ];
 }
 
 // ========== configs
 // use configs to avoid confusion w/ cosmos param
 message CbrConfig {
-  uint32 lp_fee_perc = 1; // eg. 80 means 80% fee goes to cbridge lp, 20% goes to sgn
+  uint32 lp_fee_perc = 1;  // eg. 80 means 80% fee goes to cbridge lp, 20% goes to sgn
   // to improve scalability, we'll first pick this many LPs to see if their total liquidity is enough
   // if yes, we'll use weighted random sampling among them until xfer can be fulfilled.
   // if not, we'll continue choose next LPs until we have enough and use all
@@ -36,16 +36,16 @@ message CbrConfig {
   // onchain relay tx gas cost param to compute base fee
   repeated RelayGasCostParam relay_gas_cost = 5;
 
-  repeated ChainAsset assets = 2; // multi-asset, multi-chain
-  repeated ChainPair chain_pairs = 3; // per chain pair configs
+  repeated ChainAsset assets = 2;      // multi-asset, multi-chain
+  repeated ChainPair chain_pairs = 3;  // per chain pair configs
 }
 
 // needed for base fee calculation. the value set in genesis is only used when first start.
-// then there'll be propose/vote and new price will be saved in x/cbrige kv
+// then there'll be propose/vote and new price will be saved in x/cbridge kv
 message CbrPrice {
-  uint64 update_epoch = 1; // epoch millis sec of this snapshot, as implicit version
-  repeated AssetPrice asset_price = 5; // per asset symbol
-  repeated GasPrice gas_price = 6; // per chain_id
+  uint64 update_epoch = 1;              // epoch millisecond of this snapshot, as implicit version
+  repeated AssetPrice asset_price = 5;  // per asset symbol
+  repeated GasPrice gas_price = 6;      // per chain_id
 }
 
 // needed for gas cost calculation for different chain.
@@ -53,49 +53,49 @@ message CbrPrice {
 // and Sigs stands for the number of signs needed for quorum
 message RelayGasCostParam {
   uint64 chain_id = 1;
-  uint32 cost_base = 2 ;
+  uint32 cost_base = 2;
   uint32 per_validator = 3;
   uint32 per_sig = 4;
 }
 
 // if an asset is not used by any chain as native gas token, no need to set chain_id. eg. USDT
-// if an asset is native gas token for some chains, set the chainids
+// if an asset is native gas token for some chains, set the chain_ids
 // it's possible an asset is only native gas token but NOT used for transfers (ie. not in CbrConfig.assets)
 // price is in int(USD float * 1e4)
 message AssetPrice {
   string symbol = 1;
   // these chains uses this asset as native gas token, eg. ETH is gas token for both ethereum and Arbitrum
   repeated uint64 chain_ids = 2;
-  uint32 price = 3; // int(USD float * 1e4), eg. $12.34 -> 123400
+  uint32 price = 3;  // int(USD float * 1e4), eg. $12.34 -> 123400
 }
 
 // each chainid's gas price, as it's very dynamic, the goal is only to avoid off too much
 message GasPrice {
   uint64 chain_id = 1;
-  // ethclient.SuggestGasPrice big.Int.String(). but what about the chains whose suggest is off?
-  // we could put an s3 file somewhere for relayer to read and update s3 via a separate service
+  // price is generally ethclient.SuggestGasPrice big.Int.String(), with special handling for chains whose suggest is off.
+  // Will be uploaded somewhere (eg. S3) via a separate service for relayer to read.
   string price = 2;
 }
 
 // represent asset detail on one chain.
 message ChainAsset {
-  string symbol = 1; // eg. "USDT"
+  string symbol = 1;  // eg. "USDT"
   uint64 chain_id = 2;
-  string addr = 3; // hex string of erc20 address, use string for easier json integration
-  uint32 decimal = 4; // to handle same asset has different decimal on different chains
-  string max_fee_amount = 5; // max fee cap for percentage fee, use string to avoid uint64 not enough for 18 decimal
-  bool xfer_disabled = 6; // if set to true, won't relay if this asset is src or dest
-  string max_out_amt = 7; // max amount that a withdrawal or a relay accepts, "0" or "" means no limit 
+  string addr = 3;            // hex string of erc20 address, use string for easier json integration
+  uint32 decimal = 4;         // to handle same asset has different decimal on different chains
+  string max_fee_amount = 5;  // max fee cap for percentage fee, use string to avoid uint64 not enough for 18 decimal
+  bool xfer_disabled = 6;     // if set to true, won't relay if this asset is src or dest
+  string max_out_amt = 7;     // max amount that a withdrawal or a relay accepts, "0" or "" means no limit
 }
 
 // chid1 must be smaller than chid2 order
 message ChainPair {
   uint64 chid1 = 1;
   uint64 chid2 = 2;
-  uint32 weight1 = 3; // chid1's weight * 100, chid2's weight is (200 - weight1)/100
-  uint32 fee1to2 = 4; // fee percentage when xfer from ch1 to ch2 * 1M, eg. value 10 means 0.001% fee
-  uint32 fee2to1 = 5; // fee percentage when xfer from ch2 to ch1 * 1M, eg. value 10 means 0.001% fee
-  uint32 const_a = 6; // constant A in price formula, if not set, will use 100 default
+  uint32 weight1 = 3;  // chid1's weight * 100, chid2's weight is (200 - weight1)/100
+  uint32 fee1to2 = 4;  // fee percentage when xfer from ch1 to ch2 * 1M, eg. value 10 means 0.001% fee
+  uint32 fee2to1 = 5;  // fee percentage when xfer from ch2 to ch1 * 1M, eg. value 10 means 0.001% fee
+  uint32 const_a = 6;  // constant A in price formula, if not set, will use 100 default
 }
 
 // propose new cbr config, note it must be a whole json
@@ -103,7 +103,7 @@ message CbrProposal {
   option (cosmos_proto.implements_interface) = "Content";
   option (gogoproto.equal) = false;
 
-  string title       = 1;
+  string title = 1;
   string description = 2;
   CbrConfig cbr_config = 3;
   // deposit amount for MsgSubmitProposal
@@ -116,8 +116,8 @@ message CbrProposal {
 // propose update also has it
 message OnChainEvent {
   uint64 chainid = 1;
-  string evtype = 2; // see cbr_monitor.go for const strings
-  bytes elog = 3; // serialized json string, use bytes for easier marshal/unmarshal
+  string evtype = 2;  // see cbr_monitor.go for const strings
+  bytes elog = 3;     // serialized json string, use bytes for easier marshal/unmarshal
 }
 
 // ========== onchain tx data
@@ -140,35 +140,36 @@ message WithdrawOnchain {
   option (gogoproto.goproto_stringer) = false;
 
   uint64 chainid = 1;
-  uint64 seqnum = 2; // user request id, sgn ensure unique(addr, reqid)
+  uint64 seqnum = 2;  // user request id, sgn ensure unique(addr, reqid)
   bytes receiver = 3;
-  bytes token = 4; // token address
+  bytes token = 4;  // token address
   bytes amount = 5;
-  bytes refid = 6; // // reference id, if refund, set as xfer_id
+  bytes refid = 6;  // // reference id, if refund, set as xfer_id
 }
 
 // ========== x/cbridge kv value types
 // for src transfer id
 // normal status flow: after sgn applied user's Send event, status is OK_TO_RELAY. then after apply Relay event
 // status is SUCCESS
-// can't relay flow: after apply send, status will be BAD_xxx, and there'll be no relay. so user need to InitWithdraw, status becomes refund_requested
-// when sgn apply withdrawDone event, status becomes REFUND_DONE
+// can't relay flow: after apply send, status will be BAD_xxx, and there'll be no relay. so user need to InitWithdraw, status becomes
+// refund_requested when sgn apply withdrawDone event, status becomes REFUND_DONE
 enum XferStatus {
-  UNKNOWN = 0; // use as default for unknown xfer
+  UNKNOWN = 0;  // use as default for unknown xfer
   // normal flow only has ok then success
-  OK_TO_RELAY = 1; // x/cbrige emit relay, waiting for sgn nodes to send sig, then sgn will submit relay tx onchain
-  SUCCESS = 2; // applied onchain relay event
+  OK_TO_RELAY = 1;  // x/cbridge emit relay, waiting for sgn nodes to send sig, then sgn will submit relay tx onchain
+  SUCCESS = 2;      // applied onchain relay event
 
   // can't relay flow status
-  BAD_LIQUIDITY = 3; // can't complete xfer due to low dst chain liquidity or equal value dest amount is 0
-  BAD_SLIPPAGE = 4; // slippage larger than user specified max
-  BAD_TOKEN = 5; // src or dest token are not supported
+  BAD_LIQUIDITY = 3;  // can't complete xfer due to low dst chain liquidity or equal value dest amount is 0
+  BAD_SLIPPAGE = 4;   // slippage larger than user specified max
+  BAD_TOKEN = 5;      // src or dest token are not supported
 
   // refund, using withdraw flow
-  REFUND_REQUESTED = 6; // user/gateway called InitWithdraw, XferRefundKey has withdraw seq num
-  REFUND_DONE = 7; // applied onchain withdrawdone event
-  BAD_XFER_DISABLED = 8; // asset is in config, but it is xfer_disabled, so this asset should not be used for transfer. If any transfer come, we should go to refund flow.
-  BAD_DEST_CHAIN = 9; // dest chain is same to src chain, relayer will ignore it.
+  REFUND_REQUESTED = 6;   // user/gateway called InitWithdraw, XferRefundKey has withdraw seq num
+  REFUND_DONE = 7;        // applied onchain WithdrawDown event
+  BAD_XFER_DISABLED = 8;  // asset is in config, but it is xfer_disabled, so this asset should not be used for transfer. If any transfer
+                          // come, we should go to refund flow.
+  BAD_DEST_CHAIN = 9;     // dest chain is same to src chain, relayer will ignore it.
 
   EXCEED_MAX_OUT_AMOUNT = 10; // amount larger than max out allowance
   BAD_ADDRESS = 11;
@@ -176,25 +177,25 @@ enum XferStatus {
 
 // saved and updated when new sig is added
 message XferRelay {
-  bytes relay = 1; //serialized RelayOnChain
+  bytes relay = 1;  // serialized RelayOnChain
   // each sgn node send SendMySig and x/cbridge add to sigs,
   // NOTE sigs need to be sorted by recovered signer address
   repeated AddrSig sorted_sigs = 2;
-  int64 last_req_time = 3; // to anti-dos, avoid constant re-signing.
-  bytes perc_fee = 4; // percentage fee
-  bytes base_fee = 5; // base fee
+  int64 last_req_time = 3;  // to anti-dos, avoid constant re-signing.
+  bytes perc_fee = 4;       // percentage fee
+  bytes base_fee = 5;       // base fee
 }
 
 message WithdrawDetail {
-  bytes wd_onchain = 1; //serialized WithdrawOnchain
-  repeated AddrSig sorted_sigs = 2; // sorted sigs
-  bool completed = 3; // if set to true, means applied withdrawDone event
-  int64 last_req_time = 4; // to anti-dos, avoid constant re-signing. if last_req_time is still within x seconds of now, won't resign
-  bytes xferId = 5; // if refund user transfer, add xfer id here so when we see withdraw done, we'll update xfer status
+  bytes wd_onchain = 1;              // serialized WithdrawOnchain
+  repeated AddrSig sorted_sigs = 2;  // sorted sigs
+  bool completed = 3;                // if set to true, means applied withdrawDone event
+  int64 last_req_time = 4;  // to anti-dos, avoid constant re-signing. if last_req_time is still within x seconds of now, won't resign
+  bytes xferId = 5;         // if refund user transfer, add xfer id here so when we see withdraw done, we'll update xfer status
 }
 
 message AddrSig {
-  bytes addr = 1; // eth address recovered from sig and data in x/cbridge, eth.Addr[:], not hex string!
+  bytes addr = 1;  // eth address recovered from sig and data in x/cbridge, eth.Addr[:], not hex string!
   bytes sig = 2;
 }
 
@@ -203,8 +204,8 @@ message AddrSig {
 message Signer {
   option (gogoproto.goproto_stringer) = false;
 
-  bytes addr = 1; // eth address, NOT hex string
-  bytes power = 2; // big.Int.Bytes(), NO negative!
+  bytes addr = 1;   // eth address, NOT hex string
+  bytes power = 2;  // big.Int.Bytes(), NO negative!
 }
 
 message ChainSigners {
@@ -221,5 +222,5 @@ message LatestSigners {
   bytes signers_bytes = 2;
   repeated AddrSig sorted_sigs = 3;
   google.protobuf.Timestamp update_time = 4
-    [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"update_time\""];
+      [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"update_time\""];
 }

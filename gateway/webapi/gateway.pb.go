@@ -178,7 +178,7 @@ const (
 	UserCaseStatus_CC_ADD_NO_HISTORY      UserCaseStatus = 7
 	UserCaseStatus_CC_ADD_SUBMITTING      UserCaseStatus = 8
 	UserCaseStatus_CC_ADD_WAITING_FOR_SGN UserCaseStatus = 9
-	//withdraw related cases
+	// withdraw related cases
 	UserCaseStatus_CC_WAITING_FOR_LP           UserCaseStatus = 10
 	UserCaseStatus_CC_WITHDRAW_SUBMITTING      UserCaseStatus = 11
 	UserCaseStatus_CC_WITHDRAW_WAITING_FOR_SGN UserCaseStatus = 12
@@ -4486,23 +4486,23 @@ type WebClient interface {
 	// same as V1, call this api after user confirm transfer on metamask
 	MarkTransfer(ctx context.Context, in *MarkTransferRequest, opts ...grpc.CallOption) (*MarkTransferResponse, error)
 	GetTransferStatus(ctx context.Context, in *GetTransferStatusRequest, opts ...grpc.CallOption) (*GetTransferStatusResponse, error)
-	//LP
-	// get LP table info
+	// LP
+	//  get LP table info
 	GetLPInfoList(ctx context.Context, in *GetLPInfoListRequest, opts ...grpc.CallOption) (*GetLPInfoListResponse, error)
 	MarkLiquidity(ctx context.Context, in *MarkLiquidityRequest, opts ...grpc.CallOption) (*MarkLiquidityResponse, error)
-	//https://github.com/celer-network/sgn-v2/blob/main/proto/sgn/cbridge/v1/tx.proto#L10
-	// remove liquidity or refund transfer calling this api
+	// https://github.com/celer-network/sgn-v2/blob/main/proto/sgn/cbridge/v1/tx.proto#L10
+	//  remove liquidity or refund transfer calling this api
 	WithdrawLiquidity(ctx context.Context, in *WithdrawLiquidityRequest, opts ...grpc.CallOption) (*WithdrawLiquidityResponse, error)
 	// estimate transfer fee
 	// front end need post method for this api
 	EstimateWithdrawAmt(ctx context.Context, in *EstimateWithdrawAmtRequest, opts ...grpc.CallOption) (*EstimateWithdrawAmtResponse, error)
 	// bcz it's time cost for sgn voting, so we need a polling api to check the status
 	QueryLiquidityStatus(ctx context.Context, in *QueryLiquidityStatusRequest, opts ...grpc.CallOption) (*QueryLiquidityStatusResponse, error)
-	// web will use this api to init reward cliam
+	// web will use this api to init reward claim
 	UnlockFarmingReward(ctx context.Context, in *UnlockFarmingRewardRequest, opts ...grpc.CallOption) (*UnlockFarmingRewardResponse, error)
 	// web polling this api after UnlockFarmingReward
 	GetFarmingRewardDetails(ctx context.Context, in *GetFarmingRewardDetailsRequest, opts ...grpc.CallOption) (*GetFarmingRewardDetailsResponse, error)
-	//History
+	// History
 	TransferHistory(ctx context.Context, in *TransferHistoryRequest, opts ...grpc.CallOption) (*TransferHistoryResponse, error)
 	LPHistory(ctx context.Context, in *LPHistoryRequest, opts ...grpc.CallOption) (*LPHistoryResponse, error)
 	RewardingData(ctx context.Context, in *RewardingDataRequest, opts ...grpc.CallOption) (*RewardingDataResponse, error)
@@ -4760,23 +4760,23 @@ type WebServer interface {
 	// same as V1, call this api after user confirm transfer on metamask
 	MarkTransfer(context.Context, *MarkTransferRequest) (*MarkTransferResponse, error)
 	GetTransferStatus(context.Context, *GetTransferStatusRequest) (*GetTransferStatusResponse, error)
-	//LP
-	// get LP table info
+	// LP
+	//  get LP table info
 	GetLPInfoList(context.Context, *GetLPInfoListRequest) (*GetLPInfoListResponse, error)
 	MarkLiquidity(context.Context, *MarkLiquidityRequest) (*MarkLiquidityResponse, error)
-	//https://github.com/celer-network/sgn-v2/blob/main/proto/sgn/cbridge/v1/tx.proto#L10
-	// remove liquidity or refund transfer calling this api
+	// https://github.com/celer-network/sgn-v2/blob/main/proto/sgn/cbridge/v1/tx.proto#L10
+	//  remove liquidity or refund transfer calling this api
 	WithdrawLiquidity(context.Context, *WithdrawLiquidityRequest) (*WithdrawLiquidityResponse, error)
 	// estimate transfer fee
 	// front end need post method for this api
 	EstimateWithdrawAmt(context.Context, *EstimateWithdrawAmtRequest) (*EstimateWithdrawAmtResponse, error)
 	// bcz it's time cost for sgn voting, so we need a polling api to check the status
 	QueryLiquidityStatus(context.Context, *QueryLiquidityStatusRequest) (*QueryLiquidityStatusResponse, error)
-	// web will use this api to init reward cliam
+	// web will use this api to init reward claim
 	UnlockFarmingReward(context.Context, *UnlockFarmingRewardRequest) (*UnlockFarmingRewardResponse, error)
 	// web polling this api after UnlockFarmingReward
 	GetFarmingRewardDetails(context.Context, *GetFarmingRewardDetailsRequest) (*GetFarmingRewardDetailsResponse, error)
-	//History
+	// History
 	TransferHistory(context.Context, *TransferHistoryRequest) (*TransferHistoryResponse, error)
 	LPHistory(context.Context, *LPHistoryRequest) (*LPHistoryResponse, error)
 	RewardingData(context.Context, *RewardingDataRequest) (*RewardingDataResponse, error)
