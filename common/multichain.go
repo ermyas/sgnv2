@@ -5,8 +5,11 @@ type OneChainConfig struct {
 	ChainID                                             uint64
 	Name, Gateway                                       string
 	BlkInterval, BlkDelay, MaxBlkDelta, ForwardBlkDelay uint64
-	AddGasGwei                                          uint64
 	AddGasEstimateRatio                                 float64
+	// Legacy gas price flag
+	AddGasGwei uint64
+	// EIP-1559 gas price flag
+	MaxFeePerGasGwei uint64
 	// cbridge contract address
 	CBridge string
 }

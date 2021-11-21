@@ -29,11 +29,14 @@ func newEthClient() (*eth.EthClient, error) {
 		viper.GetString(FlagKeystore),
 		viper.GetString(FlagPassphrase),
 		&eth.TransactorConfig{
-			BlockDelay:           viper.GetUint64(common.FlagEthBlockDelay),
-			BlockPollingInterval: viper.GetUint64(common.FlagEthPollInterval),
-			ChainId:              big.NewInt(viper.GetInt64(common.FlagEthChainId)),
-			AddGasPriceGwei:      viper.GetUint64(common.FlagEthAddGasPriceGwei),
-			MinGasPriceGwei:      viper.GetUint64(common.FlagEthMinGasPriceGwei),
+			BlockDelay:               viper.GetUint64(common.FlagEthBlockDelay),
+			BlockPollingInterval:     viper.GetUint64(common.FlagEthPollInterval),
+			ChainId:                  big.NewInt(viper.GetInt64(common.FlagEthChainId)),
+			AddGasPriceGwei:          viper.GetUint64(common.FlagEthAddGasPriceGwei),
+			MinGasPriceGwei:          viper.GetUint64(common.FlagEthMinGasPriceGwei),
+			MaxGasPriceGwei:          viper.GetUint64(common.FlagEthMaxGasPriceGwei),
+			MaxFeePerGasGwei:         viper.GetUint64(common.FlagEthMaxFeePerGasGwei),
+			MaxPriorityFeePerGasGwei: viper.GetUint64(common.FlagEthMaxPriorityFeePerGasGwei),
 		},
 		viper.GetString(common.FlagEthContractStaking),
 		viper.GetString(common.FlagEthContractSgn),
@@ -123,6 +126,9 @@ func newOneChain(chainId uint64) (*CbrOneChain, error) {
 				big.NewInt(int64(cfg.ChainID)),
 				ethutils.WithBlockDelay(cfg.BlkDelay),
 				ethutils.WithPollingInterval(time.Duration(cfg.BlkInterval)*time.Second),
+				ethutils.WithAddGasEstimateRatio(cfg.AddGasEstimateRatio),
+				ethutils.WithAddGasGwei(cfg.AddGasGwei),
+				ethutils.WithMaxFeePerGasGwei(cfg.MaxFeePerGasGwei),
 			)
 			if err != nil {
 				log.Fatalln("NewTransactor err:", err)

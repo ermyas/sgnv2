@@ -8,6 +8,7 @@ blkinterval = 1
 blkdelay = 1
 maxblkdelta = 5000
 cbridge = ""
+maxfeepergasgwei = 2
 
 [[multichain]]
 chainID = 884
@@ -17,3 +18,4 @@ blkinterval = 1
 blkdelay = 1
 maxblkdelta = 5000
 cbridge = ""
+addgasgwei = 2

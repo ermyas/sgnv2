@@ -8,6 +8,7 @@ signer_keystore = "./keys/vsigner2.json"
 signer_passphrase = ""
 validator_address = ""
 poll_interval = 1
+max_priority_fee_per_gas_gwei = 2
 
 [eth.check_interval]
 

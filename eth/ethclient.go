@@ -40,6 +40,10 @@ type TransactorConfig struct {
 	ChainId              *big.Int
 	AddGasPriceGwei      uint64
 	MinGasPriceGwei      uint64
+	MaxGasPriceGwei      uint64
+
+	MaxFeePerGasGwei         uint64
+	MaxPriorityFeePerGasGwei uint64
 }
 
 func NewEthClient(
@@ -93,6 +97,9 @@ func (ethClient *EthClient) setTransactor(ksfile string, passphrase string, tcon
 		ethutils.WithPollingInterval(time.Duration(tconfig.BlockPollingInterval)*time.Second),
 		ethutils.WithAddGasGwei(tconfig.AddGasPriceGwei),
 		ethutils.WithMinGasGwei(tconfig.MinGasPriceGwei),
+		ethutils.WithMaxGasGwei(tconfig.MaxGasPriceGwei),
+		ethutils.WithMaxFeePerGasGwei(tconfig.MaxFeePerGasGwei),
+		ethutils.WithMaxPriorityFeePerGasGwei(tconfig.MaxPriorityFeePerGasGwei),
 	)
 	return nil
 }

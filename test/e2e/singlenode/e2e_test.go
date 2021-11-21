@@ -14,15 +14,6 @@ import (
 	tc "github.com/celer-network/sgn-v2/test/common"
 )
 
-var (
-	NodeHome = os.ExpandEnv("$HOME/.sgnd")
-
-	// root dir with ending / for all files, OutRootDirPrefix + epoch seconds
-	// due to testframework etc in a different testing package, we have to define
-	// same var in testframework.go and expose a set api
-	outRootDir string
-)
-
 // TestMain handles common setup (start mainchain, deploy, start sgnchain etc)
 // and teardown. Test specific setup should be done in TestXxx
 func TestMain(m *testing.M) {

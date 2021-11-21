@@ -15,6 +15,15 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	NodeHome = os.ExpandEnv("$HOME/.sgnd")
+
+	// root dir with ending / for all files, OutRootDirPrefix + epoch seconds
+	// due to testframework etc in a different testing package, we have to define
+	// same var in testframework.go and expose a set api
+	outRootDir string
+)
+
 func setupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool) []tc.Killable {
 	if contractParams == nil {
 		contractParams = &tc.ContractParams{
@@ -104,10 +113,15 @@ func updateSgnConfig(cbridge bool) {
 
 // startSgnChain starts SGN chain with the data in test/data
 func startSgnChain() (*os.Process, error) {
+	tendermintLogFname := outRootDir + "tendermint.log"
+	appLogFname := outRootDir + "app.log"
+	tendermintLogF, _ := os.Create(tendermintLogFname)
+	appLogF, _ := os.Create(appLogFname)
+
 	cmd := exec.Command("sgnd", "start")
 	cmd.Dir, _ = filepath.Abs("../../..")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = tendermintLogF
+	cmd.Stderr = appLogF
 	if err := cmd.Start(); err != nil {
 		log.Errorln("Failed to run \"sgnd start\": ", err)
 		return nil, err
