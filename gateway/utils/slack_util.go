@@ -33,11 +33,11 @@ func SendBalanceAlert(alerts []*BalanceAlert, env string) {
 		msg = msg + fmt.Sprintf("token:`%s`, balance: `%s`, usr_addr: `%s`, total withdraw: `%s`, total deposit:`%s` \n", alert.Token, alert.Balance, alert.Addr, alert.Withdraw, alert.Deposit)
 	}
 	log.Warnf(msg)
-	if env == "prod" {
-		sendSlackP1AlertProd("Abnormal LP Balance Alert", msg)
-	} else if env == "test" {
-		sendSlackP1AlertTest("Abnormal LP Balance Alert", msg)
-	}
+	//if env == "prod" {
+	//	sendSlackP1AlertProd("Abnormal LP Balance Alert", msg)
+	//} else if env == "test" {
+	//	sendSlackP1AlertTest("Abnormal LP Balance Alert", msg)
+	//}
 }
 
 func sendSlackP1AlertTest(title string, msg string) {
