@@ -29,7 +29,12 @@ const (
 func (gs *GatewayService) GetInfoByTxHash(ctx context.Context, request *webapi.GetInfoByTxHashRequest) (*webapi.GetInfoByTxHashResponse, error) {
 	if !checkSigner(common.Hex2Addr(request.GetAddr()).Bytes(), request.GetSig()) {
 		return &webapi.GetInfoByTxHashResponse{
-			Memo: "invalid operator",
+			Info: "invalid operator",
+		}, nil
+	}
+	if !gs.checkTxExits(request.GetTxHash(), request.GetChainId()) {
+		return &webapi.GetInfoByTxHashResponse{
+			Info: "can not find tx or error tx status, please check again",
 		}, nil
 	}
 	return gs.checkCaseStatus(request.GetType(), request.GetTxHash(), request.GetChainId()), nil
@@ -41,6 +46,14 @@ func (gs *GatewayService) FixEventMiss(ctx context.Context, request *webapi.FixE
 			Err: &webapi.ErrMsg{
 				Code: webapi.ErrCode_ERROR_CODE_COMMON,
 				Msg:  "invalid operator",
+			},
+		}, nil
+	}
+	if !gs.checkTxExits(request.GetTxHash(), request.GetChainId()) {
+		return &webapi.FixEventMissResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "can not find tx or error tx status, please check again",
 			},
 		}, nil
 	}
@@ -97,7 +110,7 @@ func (gs *GatewayService) checkCaseStatus(status webapi.CSType, txHash string, c
 		lpAddr, err := gs.getAddrFromHash(txHash, uint64(chainId))
 		if err != nil {
 			return &webapi.GetInfoByTxHashResponse{
-				Memo: "can not find lp addr from txHash and chainId",
+				Info: "can not find lp addr from txHash and chainId",
 			}
 		}
 		return gs.diagnosisLp(txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_ADD)
@@ -105,7 +118,7 @@ func (gs *GatewayService) checkCaseStatus(status webapi.CSType, txHash string, c
 		lpAddr, err := gs.getAddrFromHash(txHash, uint64(chainId))
 		if err != nil {
 			return &webapi.GetInfoByTxHashResponse{
-				Memo: "can not find lp addr from txHash and chainId",
+				Info: "can not find lp addr from txHash and chainId",
 			}
 		}
 		return gs.diagnosisLp(txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_REMOVE)
@@ -322,6 +335,18 @@ func (gs *GatewayService) getTransactionByHash(txHash string, chainId uint64) (*
 		return nil, false, fmt.Errorf("eth client not found for chainId:%d", chainId)
 	}
 	return ec.TransactionByHash(context.Background(), eth.Hex2Hash(txHash))
+}
+
+func (gs *GatewayService) checkTxExits(txHash string, chainId uint32) bool {
+	client := gs.EC[uint64(chainId)]
+	if client == nil {
+		return false
+	}
+	receipt, recErr := client.TransactionReceipt(context.Background(), common.Bytes2Hash(common.Hex2Bytes(txHash)))
+	if receipt == nil || recErr != nil || receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return false
+	}
+	return true
 }
 
 func mapLpStatus2CaseStatus(status types.WithdrawStatus, lpType webapi.LPType) webapi.UserCaseStatus {
