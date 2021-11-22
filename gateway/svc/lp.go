@@ -176,9 +176,10 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 		signer, err := ethutils.RecoverSigner(request.GetWithdrawReq(), request.GetSig())
 		lp := signer.String()
 		seqNum := wdReq.GetReqId()
-
 		receivedAmt := request.GetEstimatedReceivedAmt()
-		if !gs.IsWithdrawNormal(lp, receivedAmt, int(exitToken.GetToken().GetDecimal())) {
+
+		log.Infof("WithdrawLiquidity for remove, ReceiverAddr:%s, token:%s, Amount:%s, ChainId:%d, ReqId:%d", lp, exitToken.GetToken().GetSymbol(), receivedAmt, exitChainId, seqNum)
+		if !gs.IsWithdrawNormal(lp, receivedAmt, exitToken.GetToken().GetSymbol(), int(exitToken.GetToken().GetDecimal())) {
 			return &webapi.WithdrawLiquidityResponse{
 				Err: &webapi.ErrMsg{
 					Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -187,7 +188,6 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 			}, nil
 		}
 
-		log.Infof("WithdrawLiquidity for remove, ReceiverAddr:%s, token:%s, Amount:%s, ChainId:%d, ReqId:%d", lp, exitToken.GetToken().GetSymbol(), receivedAmt, exitChainId, seqNum)
 		if dal.DB.HasSeqNumUsedForWithdraw(seqNum, lp) {
 			log.Warnf("invalid seq num, it has been used for current lp, seqNum:%d, lp:%s", seqNum, lp)
 			return &webapi.WithdrawLiquidityResponse{

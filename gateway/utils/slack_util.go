@@ -9,12 +9,12 @@ import (
 	"github.com/celer-network/goutils/log"
 )
 
-func SendWithdrawAlert(addr, withdraw, deposit, delta, env string) {
-	msg := fmt.Sprintf("withdraw refused, total withdraw more than %s of total deposit, usr_addr: `%s`, has deposited:`%s`, has withdrawt: `%s`, want to withdraw:`%s`", "120%", addr, deposit, withdraw, delta)
+func SendWithdrawAlert(addr, withdraw, deposit, delta, token, env string) {
+	msg := fmt.Sprintf("withdraw refused, total withdraw more than %s of total deposit, token:`%s`, usr_addr: `%s`, has deposited:`%s`, has withdrawt: `%s`, want to withdraw:`%s`", "105%", token, addr, deposit, withdraw, delta)
 	if env == "prod" {
-		sendSlackP1AlertProd("Withdraw 120% Deposit Alert", msg)
+		sendSlackP1AlertProd("Withdraw 105% Deposit Alert", msg)
 	} else if env == "test" {
-		sendSlackP1AlertTest("Withdraw 120% Deposit Alert", msg)
+		sendSlackP1AlertTest("Withdraw 105% Deposit Alert", msg)
 	}
 	log.Warnf(msg)
 }

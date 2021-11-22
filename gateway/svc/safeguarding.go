@@ -46,7 +46,7 @@ func (gs *GatewayService) GetTotalLiquidityProviderTokenBalance(ctx context.Cont
 	}, nil
 }
 
-func (gs *GatewayService) IsWithdrawNormal(addr, amt string, decimal int) bool {
+func (gs *GatewayService) IsWithdrawNormal(addr, amt, tokenSymbol string, decimal int) bool {
 	usrWithdrawAndDeposit := getUsrWithdrawAndDeposit(addr)
 	withdrawAmt := rmAmtDecimal(amt, decimal)
 
@@ -63,14 +63,14 @@ func (gs *GatewayService) IsWithdrawNormal(addr, amt string, decimal int) bool {
 	}
 	// cmp with amt added and get bool result
 	cmpWd := new(big.Float).Add(w, withdrawAmt)
-	cmpDp := new(big.Float).Mul(d, new(big.Float).SetFloat64(1.2))
+	cmpDp := new(big.Float).Mul(d, new(big.Float).SetFloat64(1.05))
 	if cmpWd.Cmp(cmpDp) > 0 {
 		//Gateway should raise alert and block any withdrawal request that will make the total withdrawal more than 120% of the total deposit
 		// alert
 		wd, _ := w.Float64()
 		dp, _ := d.Float64()
 		dt, _ := withdrawAmt.Float64()
-		utils.SendWithdrawAlert(addr, fmt.Sprintf("%.6f", wd), fmt.Sprintf("%.6f", dp), fmt.Sprintf("%.6f", dt), Env)
+		utils.SendWithdrawAlert(addr, fmt.Sprintf("%.6f", wd), fmt.Sprintf("%.6f", dp), fmt.Sprintf("%.6f", dt), tokenSymbol, Env)
 		return false
 	}
 	return true
