@@ -74,7 +74,10 @@ $ %s ops sync signers --chainid=883 --txhash="0xxx"
 
 			chainid := viper.GetUint64(FlagChainId)
 			txhash := viper.GetString(FlagTxHash)
-			cbr, txReceipt := setupCbr(chainid, txhash)
+			cbr, txReceipt, err := setupCbr(chainid, txhash)
+			if err != nil {
+				return err
+			}
 
 			elog := eth.FindMatchCbrEvent(cbrtypes.CbrEventSignersUpdated, cbr.contract.Address, txReceipt.Logs)
 
@@ -166,7 +169,11 @@ $ %s ops sync event --chainid=883 --txhash="0xxx" --evname="Send"
 }
 
 func SyncCbrEvent(cliCtx client.Context, chainid uint64, txhash string, evname string) error {
-	cbr, txReceipt := setupCbr(chainid, txhash)
+	cbr, txReceipt, err := setupCbr(chainid, txhash)
+	if err != nil {
+		return err
+	}
+
 	elog := eth.FindMatchCbrEvent(evname, cbr.contract.Address, txReceipt.Logs)
 
 	if elog == nil {
@@ -181,7 +188,7 @@ func SyncCbrEvent(cliCtx client.Context, chainid uint64, txhash string, evname s
 	}
 	log.Info(ev.PrettyLog(chainid))
 
-	err := verifyEvent(cliCtx, ev, chainid)
+	err = verifyEvent(cliCtx, ev, chainid)
 	if err != nil {
 		log.Errorf("verifyEvent err: %s", err)
 		return err
@@ -356,15 +363,15 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 	return cmd
 }
 
-func setupCbr(chainid uint64, txhash string) (cbr *CbrOneChain, txReceipt *ethtypes.Receipt) {
-	var err error
+func setupCbr(chainid uint64, txhash string) (cbr *CbrOneChain, txReceipt *ethtypes.Receipt, err error) {
 	cbr, err = newOneChain(chainid)
 	if err != nil {
 		log.Fatal("newOneChain err:", err)
 	}
 	txReceipt, err = cbr.TransactionReceipt(context.Background(), eth.Hex2Hash(txhash))
 	if err != nil {
-		log.Fatal("TransactionReceipt err:", err)
+		log.Errorln("TransactionReceipt err:", err)
+		return
 	}
 	return
 }
