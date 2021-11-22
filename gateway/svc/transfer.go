@@ -453,6 +453,7 @@ func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainI
 		return nil, fmt.Errorf("amount should > 0")
 	}
 	minReceiveVolume := dstVolume*(1-float64(slippage)/1e6) - gs.F.GetUsdVolume(dstToken.Token, feeAmt)
+	minReceiveVolume = math.Max(minReceiveVolume, 0)
 	return &webapi.EstimateAmtResponse{
 		EqValueTokenAmt:   eqValueTokenAmt,
 		BridgeRate:        float32(bridgeRate),

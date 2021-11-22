@@ -130,9 +130,12 @@ func (gs *GatewayService) getUsrBalance(usrAddr string, chainTokens []*cbrtypes.
 		if balance == nil {
 			balance = new(big.Float).SetInt64(0)
 		}
-		decimal := chainTokenAddrMap[liq.GetChainId()][liq.GetToken().GetAddress()].GetToken().GetDecimal()
-		balance = new(big.Float).Add(balance, rmAmtDecimal(liq.GetUsrLiquidity(), int(decimal)))
-		balanceMap[liq.GetToken().GetSymbol()] = balance
+		token := chainTokenAddrMap[liq.GetChainId()][liq.GetToken().GetAddress()]
+		if token == nil {
+			continue
+		}
+		balance = new(big.Float).Add(balance, rmAmtDecimal(liq.GetUsrLiquidity(), int(token.GetToken().GetDecimal())))
+		balanceMap[token.GetToken().GetSymbol()] = balance
 	}
 	return balanceMap
 }
