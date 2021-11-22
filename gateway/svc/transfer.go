@@ -3,6 +3,7 @@ package gatewaysvc
 import (
 	"context"
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
 	"time"
@@ -416,7 +417,7 @@ func (gs *GatewayService) getTxHashForTransfer(transfer *dal.Transfer) (string, 
 }
 
 func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainId, slippage uint32, srcToken, dstToken *webapi.TokenInfo, amt string, useLp bool) (*webapi.EstimateAmtResponse, error) {
-	if !utils.IsvalidAmt(amt) {
+	if !utils.IsvalidAmt(amt) || slippage == 0 {
 		return nil, fmt.Errorf("invalid amt, params checking failed")
 	}
 	tr := gs.TP.GetTransactor()
@@ -456,6 +457,6 @@ func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainI
 		PercFee:           percFee,
 		BaseFee:           baseFee,
 		SlippageTolerance: slippage,
-		MaxSlippage:       uint32((srcVolume - minReceiveVolume) * 1e6 / srcVolume),
+		MaxSlippage:       uint32(math.Max((srcVolume-minReceiveVolume)*1e6/srcVolume, 0)),
 	}, nil
 }
