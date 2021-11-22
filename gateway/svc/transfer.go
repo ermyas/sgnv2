@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	default_slippage = 5000
+	default_slippage   = 5000
+	minimalMaxSlippage = 500 // set 500 as default value, change it to contract value after gateway has CrbOneChain configs
 )
 
 func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi.GetTransferStatusRequest) (*webapi.GetTransferStatusResponse, error) {
@@ -458,6 +459,6 @@ func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainI
 		PercFee:           percFee,
 		BaseFee:           baseFee,
 		SlippageTolerance: slippage,
-		MaxSlippage:       uint32(math.Max((srcVolume-minReceiveVolume)*1e6/srcVolume, 0)),
+		MaxSlippage:       uint32(math.Max((srcVolume-minReceiveVolume)*1e6/srcVolume, minimalMaxSlippage)),
 	}, nil
 }
