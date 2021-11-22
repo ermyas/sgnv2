@@ -86,7 +86,7 @@ func InitGateway(
 
 	gs.StartUpdateTokenPricePolling(time.Duration(viper.GetInt32(common.FlagSgnCheckIntervalCbrPrice)) * time.Second)
 	gs.StartAvgLpFeeEarningPolling(10 * time.Minute)
-	//gs.StartAbnormalBalanceCheckPolling(1 * time.Hour)
+	gs.StartAbnormalBalanceCheckPolling(1 * time.Hour)
 
 	// start a rpc server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *rpcPort))
