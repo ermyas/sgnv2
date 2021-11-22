@@ -6,8 +6,10 @@ const (
 	CbrEventSend  = "Send"
 	CbrEventRelay = "Relay"
 	// from pool.sol
-	CbrEventLiqAdd   = "LiquidityAdded"
-	CbrEventWithdraw = "WithdrawDone" // could be LP or user
+	CbrEventLiqAdd        = "LiquidityAdded"
+	CbrEventWithdraw      = "WithdrawDone" // could be LP or user
+	CbrEventDelayXferAdd  = "DelayedTransferAdded"
+	CbrEventDelayXferExec = "DelayedTransferExecuted"
 	// from signers.sol
 	CbrEventSignersUpdated = "SignersUpdated"
 )

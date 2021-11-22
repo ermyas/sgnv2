@@ -8,6 +8,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -82,23 +83,72 @@ func GatewayOnLiqAdd(lpAddr, token, tokenAddr, amt, txHash string, chainId uint6
 	return dal.UpsertLPForLiqAdd(lpAddr, token, tokenAddr, amt, txHash, chainId, uint64(status), uint64(lpType), seqNum)
 }
 
-func GatewayOnLiqWithdraw(chainId, seqNum uint64, usrAddr string) {
+func GatewayOnLiqWithdraw(id string, chid, seq uint64, addr string) {
 	if dal.DB == nil {
 		return
 	}
-	transferId, found, err := dal.GetTransferByRefundSeqNum(chainId, seqNum, usrAddr)
+	_, isDelayed, err := dal.DB.GetDelayedOp(id)
 	if err != nil {
-		log.Warnf("error when get transfer, usr:%s chainId:%d, seqNum:%d, err:%+v", usrAddr, chainId, seqNum, err)
+		log.Warnf("Unable to fetch record from delayed_ops, id %s err %s", id, err.Error())
+	}
+	/*
+		the "refund" kind of withdrawal
+	*/
+	transferId, found, err := dal.GetTransferByRefundSeqNum(chid, seq, addr)
+	if err != nil {
+		log.Warnf("error when get transfer, usr:%s chainId:%d, seqNum:%d, err:%+v", addr, chid, seq, err)
 	}
 	if found {
-		dbErr := dal.UpdateTransferStatus(transferId, uint64(cbrtypes.TransferHistoryStatus_TRANSFER_REFUNDED))
-		if dbErr != nil {
-			log.Warnf("db when UpdateTransferStatus to TRANSFER_REFUNDED, transferId:%s, err:%+v", transferId, dbErr)
+		toStatus := uint64(cbrtypes.TransferHistoryStatus_TRANSFER_REFUNDED)
+		if isDelayed {
+			toStatus = uint64(cbrtypes.TransferHistoryStatus_TRANSFER_DELAYED)
 		}
-	} else {
-		dbErr := dal.UpdateLPStatusForWithdraw(chainId, seqNum, uint64(cbrtypes.WithdrawStatus_WD_COMPLETED), usrAddr)
-		if dbErr != nil {
-			log.Warnf("db when UpdateLPStatus to WD_COMPLETED, transferId:%s, err:%+v", transferId, dbErr)
+		// update delayed operation type so that when receiving the DelayedTransferExecuted we know that it's a refund not a withdrawal
+		dal.DB.UpdateDelayedOpType(id, dal.DelayedOpRefund)
+		// save refund_id so if we later receive DelayedTransferExecuted, the handler can find this record
+		err := dal.UpdateTransferForRefund(transferId, toStatus, id)
+		if err != nil {
+			log.Warnf("db when UpdateTransferStatus to TRANSFER_REFUNDED, transferId:%s, err:%+v", transferId, err)
 		}
+		return
 	}
+	/*
+		liquidity withdrawal
+	*/
+	toStatus := uint64(cbrtypes.WithdrawStatus_WD_COMPLETED)
+	if isDelayed {
+		toStatus = uint64(cbrtypes.WithdrawStatus_WD_DELAYED)
+	}
+	logmsg := fmt.Sprintf("cannot process WithdrawDone with id %s, chid %d, seq %d, addr %s:", id, chid, seq, addr)
+	// update delayed operation type so that when receiving the DelayedTransferExecuted we know that it's a withdrawal not a refund
+	dal.DB.UpdateDelayedOpType(id, dal.DelayedOpWithdraw)
+	l, found, err := dal.DB.GetLPInfo(seq, uint64(webapi.LPType_LP_TYPE_REMOVE), chid, addr)
+	if err != nil {
+		log.Errorln(logmsg, err.Error())
+		return
+	}
+	if !found {
+		log.Errorln(logmsg, "record not found in lp")
+		return
+	}
+	// calculate withdraw id
+	wdid := utils.GenWithdrawId(chid, seq, l.UsrAddr, l.TokenAddr, l.Amt)
+	err = dal.UpdateLP(chid, seq, toStatus, addr, wdid.Hex())
+	if err != nil {
+		log.Errorln(logmsg, err)
+	}
+}
+
+func GatewayOnDelayXferAdd(xferId, txHash string) error {
+	if dal.DB == nil {
+		return nil
+	}
+	return dal.DelayXferAdd(xferId, txHash)
+}
+
+func GatewayOnDelayXferExec(xferId string) error {
+	if dal.DB == nil {
+		return nil
+	}
+	return dal.DelayXferExec(xferId)
 }

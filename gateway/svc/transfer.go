@@ -350,7 +350,8 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 
 		if status == types.TransferHistoryStatus_TRANSFER_FAILED ||
 			status == types.TransferHistoryStatus_TRANSFER_COMPLETED ||
-			status == types.TransferHistoryStatus_TRANSFER_REFUNDED {
+			status == types.TransferHistoryStatus_TRANSFER_REFUNDED ||
+			status == types.TransferHistoryStatus_TRANSFER_DELAYED {
 			continue // finial status, not updated by sgn
 		}
 

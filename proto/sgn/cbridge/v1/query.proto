@@ -163,6 +163,8 @@ enum WithdrawStatus {
     // user for add: check if tx reverted when shown status is WD_SUBMITTING
     // x for withdraw: sgn rejected
     WD_FAILED = 5;
+
+    WD_DELAYED = 6; // relayer has succesfully called onchain relay() but the onchain contract decides that the amt is greater than its delayThreshold
 }
 
 enum TransferHistoryStatus {
@@ -177,4 +179,5 @@ enum TransferHistoryStatus {
     TRANSFER_REFUND_TO_BE_CONFIRMED = 8; // x: withdraw is approved by sgn
     TRANSFER_CONFIRMING_YOUR_REFUND = 9; // user: mark refund has been submitted on chain
     TRANSFER_REFUNDED = 10; //relayer: on refund(withdraw liquidity actually) tx event
+    TRANSFER_DELAYED = 11; // relayer has succesfully called onchain relay() but the onchain contract decides that the amt is greater than its delayThreshold
 }

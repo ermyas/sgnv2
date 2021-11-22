@@ -1,6 +1,8 @@
 package dal
 
 import (
+	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/celer-network/goutils/log"
@@ -8,6 +10,22 @@ import (
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 )
+
+type LPInfo struct {
+	UsrAddr            string
+	ChainId            uint64
+	TokenSymbol        string
+	TokenAddr          string
+	Amt                string
+	TxHash             string
+	UpdateTime         time.Time
+	CreateTime         time.Time
+	Status             uint64
+	LpType             uint64
+	SeqNum             uint64
+	WithdrawMethodType uint64
+	WithdrawId         sql.NullString
+}
 
 func (d *DAL) InsertLPWithSeqNumAndMethodType(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum, methodType uint64) error {
 	q := `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num, withdraw_method_type)
@@ -59,19 +77,58 @@ func (d *DAL) UpdateLPStatus(seqNum, lpType, chainId uint64, lpAddr string, stat
 	return sqldb.ChkExec(res, err, 1, "UpdateLPStatus")
 }
 
+func (d *DAL) UpdateLPStatusByWithdrawId(wdid string, status types.WithdrawStatus) error {
+	q := `UPDATE lp SET status=$2, update_time=now() WHERE withdraw_id=$1`
+	res, err := d.Exec(q, wdid, status)
+	if err != nil {
+		log.Errorf("UpdateLPStatus db err, wdid %s, status %d, err:%+v", wdid, uint64(status), err)
+	}
+	return sqldb.ChkExec(res, err, 1, "UpdateLPStatusByWithdrawId")
+}
+
 func (d *DAL) UpdateLPStatusForWithdraw(chainId, seqNum, status uint64, lpAddr string) error {
 	lpType := uint64(webapi.LPType_LP_TYPE_REMOVE)
 	return d.UpdateLPStatus(seqNum, lpType, chainId, lpAddr, status)
 }
 
-func (d *DAL) GetLPInfoBySeqNum(seqNum, lpType, chainId uint64, lpAddr string) (string, uint64, time.Time, bool, error) {
-	var status uint64
-	var txHash string
-	var ut time.Time
+func (d *DAL) GetLPInfoBySeqNum(seqNum, lpType, chainId uint64, lpAddr string) (txHash string, status uint64, ut time.Time, found bool, err error) {
 	q := `SELECT chain_id, tx_hash, status, update_time FROM lp WHERE seq_num = $1 and chain_id = $2 and usr_addr = $3 and lp_type = $4`
-	err := d.QueryRow(q, seqNum, chainId, lpAddr, lpType).Scan(&chainId, &txHash, &status, &ut)
-	found, err := sqldb.ChkQueryRow(err)
-	return txHash, status, ut, found, err
+	err = d.QueryRow(q, seqNum, chainId, lpAddr, lpType).Scan(&chainId, &txHash, &status, &ut)
+	found, err = sqldb.ChkQueryRow(err)
+	return
+}
+
+func (d *DAL) GetLPInfo(seq, lptype, chid uint64, lpaddr string) (*LPInfo, bool, error) {
+	l := &LPInfo{}
+	q := `select * from lp where seq_num = $1 and chain_id = $2 and usr_addr = $3 and lp_type = $4`
+	err := d.QueryRow(q, seq, chid, lpaddr, lptype).Scan(
+		&l.UsrAddr, &l.ChainId, &l.TokenSymbol, &l.TokenAddr, &l.Amt, &l.TxHash, &l.UpdateTime,
+		&l.CreateTime, &l.Status, &l.LpType, &l.SeqNum, &l.WithdrawMethodType, &l.WithdrawId)
+	if err == sqldb.ErrNoRows {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return l, true, nil
+}
+
+func (d *DAL) UpdateLP(chid, seq, status uint64, addr, wdid string) error {
+	t := uint64(webapi.LPType_LP_TYPE_REMOVE)
+	q := `UPDATE lp SET status=$5, update_time=now(), withdraw_id=$6 WHERE seq_num = $1 and chain_id = $2 and usr_addr = $3 and lp_type = $4`
+	res, err := d.Exec(q, seq, chid, addr, t, status, wdid)
+	if err != nil {
+		return fmt.Errorf("unable to exec sql on lp with chid %d, seq %d, status %d, addr %s, wdid %s: %s", chid, seq, status, addr, wdid, err.Error())
+	}
+	return sqldb.ChkExec(res, err, 1, "UpdateLP")
+}
+
+func (d *DAL) ExistsLPInfoWithWithdrawId(wdid string) (bool, error) {
+	cnt := 0
+	q := `SELECT count(1) FROM lp WHERE withdraw_id = $1`
+	err := d.QueryRow(q, wdid).Scan(&cnt)
+	_, err = sqldb.ChkQueryRow(err)
+	return cnt > 0, err
 }
 
 func (d *DAL) GetLPInfoByHash(lpType, chainId uint64, lpAddr, txHash string) (uint64, uint64, time.Time, bool, error) {

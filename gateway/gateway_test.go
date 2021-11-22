@@ -374,6 +374,7 @@ func TestTransferRefund(t *testing.T) {
 	/**
 	...
 	update history: get types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED from sgn
+	add withdraw id (wdid) to GatewayOnLiqWithdraw() call
 	...
 	*/
 
@@ -401,7 +402,7 @@ func TestTransferRefund(t *testing.T) {
 	errMsgIsNil(t, statusRsp.Err)
 	checkTransferStatus(t, statusRsp.GetStatus(), types.TransferHistoryStatus_TRANSFER_CONFIRMING_YOUR_REFUND)
 
-	relayer.GatewayOnLiqWithdraw(uint64(chain1), seqNum, usrAddr)
+	relayer.GatewayOnLiqWithdraw("wdid", uint64(chain1), seqNum, usrAddr)
 	statusRsp, err = svc.GetTransferStatus(nil, &webapi.GetTransferStatusRequest{TransferId: transferId})
 	errIsNil(t, err)
 	errMsgIsNil(t, statusRsp.Err)
@@ -540,7 +541,7 @@ func TestLPWithdraw(t *testing.T) {
 	checkLpStatus(t, lpHistory.History[0].Status, types.WithdrawStatus_WD_SUBMITTING)
 
 	// onchain status
-	relayer.GatewayOnLiqWithdraw(uint64(chainId), seqNum, addr)
+	relayer.GatewayOnLiqWithdraw("wdid", uint64(chainId), seqNum, addr)
 	lpHistory, err = svc.LPHistory(nil, &webapi.LPHistoryRequest{
 		NextPageToken: "",
 		PageSize:      10,

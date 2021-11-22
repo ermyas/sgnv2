@@ -58,6 +58,32 @@ func (d *DAL) GetTransferBySrcTxHash(srcTxHash string, chainId uint32) (*Transfe
 	}, found, err
 }
 
+func (d *DAL) GetTransferByDstTransferId(dstTransferId string) (*Transfer, bool, error) {
+	q := `SELECT transfer_id, create_time, update_time, status, src_chain_id, dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt, refund_seq_num, usr_addr, refund_tx FROM transfer WHERE dst_transfer_id = $1`
+	var transferId, srcTxHash, dstTxHash, tokenSymbol, srcAmt, dstAmt, usrAddr, refundTx string
+	var srcChainId, status, dstChainId, refundSeqNum uint64
+	var ct, ut time.Time
+	err := d.QueryRow(q, dstTransferId).Scan(&transferId, &ct, &ut, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum, &usrAddr, &refundTx)
+	found, err := sqldb.ChkQueryRow(err)
+	return &Transfer{
+		TransferId:    transferId,
+		DstTransferId: dstTransferId,
+		SrcChainId:    srcChainId,
+		DstChainId:    dstChainId,
+		CT:            ct,
+		UT:            ut,
+		SrcTxHash:     srcTxHash,
+		DstTxHash:     dstTxHash,
+		Status:        types.TransferHistoryStatus(int32(status)),
+		TokenSymbol:   tokenSymbol,
+		SrcAmt:        srcAmt,
+		DstAmt:        dstAmt,
+		RefundSeqNum:  refundSeqNum,
+		UsrAddr:       usrAddr,
+		RefundTx:      refundTx,
+	}, found, err
+}
+
 func (d *DAL) CheckTransferStatusNotIn(transferId string, statusList []uint64) bool {
 	var status uint64
 	q := `SELECT status FROM transfer WHERE transfer_id = $1`
@@ -92,29 +118,9 @@ func (d *DAL) UpdateTransferRefundStatus(transferId string, status uint64, refun
 	res, err := d.Exec(q, transferId, status, now(), refundTx)
 	return sqldb.ChkExec(res, err, 1, "UpdateTransferRefundStatus")
 }
+
 func (d *DAL) UpdateTransferStatus(transferId string, status uint64) error {
-	var checked bool
-	switch status {
-	case
-		uint64(types.TransferHistoryStatus_TRANSFER_REFUNDED), // relayer event
-		uint64(types.TransferHistoryStatus_TRANSFER_FAILED):   // UpdateTransferStatusInHistory
-		checked = true // final status
-	case
-		uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION), // send event
-		uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE),     // relayer event
-		uint64(types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED),               // UpdateTransferStatusInHistory
-		uint64(types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED),       // UpdateTransferStatusInHistory
-		uint64(types.TransferHistoryStatus_TRANSFER_COMPLETED),                    //TransferCompleted called by relayer event, and update if relay event missing
-		uint64(types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND):            // 1. UpdateTransferStatusInHistory when signAgainWithdraw; 2. MarkTransferRequestingRefund
-		checked = true
-	case
-		uint64(types.TransferHistoryStatus_TRANSFER_CONFIRMING_YOUR_REFUND), // MarkTransferRefund called by user
-		uint64(types.TransferHistoryStatus_TRANSFER_SUBMITTING):             //MarkTransferSend called by user
-		checked = false // status changed by other api
-	default:
-		checked = false // unknown status
-	}
-	if !checked {
+	if pass := checkTransferStatus(status); !pass {
 		return nil
 	}
 	q := `UPDATE transfer SET status=$2, update_time=$3 WHERE transfer_id=$1`
@@ -122,23 +128,58 @@ func (d *DAL) UpdateTransferStatus(transferId string, status uint64) error {
 	return sqldb.ChkExec(res, err, 1, "UpdateTransferStatus")
 }
 
+func (d *DAL) UpdateTransferForRefund(transferId string, status uint64, refundId string) error {
+	if pass := checkTransferStatus(status); !pass {
+		return nil
+	}
+	q := `UPDATE transfer SET status=$2, refund_id=$3 update_time=now() WHERE transfer_id=$1`
+	res, err := d.Exec(q, transferId, status, refundId)
+	return sqldb.ChkExec(res, err, 1, "UpdateTransferForRefund")
+}
+
+func checkTransferStatus(status uint64) bool {
+	var pass bool
+	switch status {
+	case
+		uint64(types.TransferHistoryStatus_TRANSFER_REFUNDED), // relayer event
+		uint64(types.TransferHistoryStatus_TRANSFER_FAILED):   // UpdateTransferStatusInHistory
+		pass = true // final status
+	case
+		uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION), // send event
+		uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE),     // relayer event
+		uint64(types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED),               // UpdateTransferStatusInHistory
+		uint64(types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED),       // UpdateTransferStatusInHistory
+		uint64(types.TransferHistoryStatus_TRANSFER_COMPLETED),                    //TransferCompleted called by relayer event, and update if relay event missing
+		uint64(types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND):            // 1. UpdateTransferStatusInHistory when signAgainWithdraw; 2. MarkTransferRequestingRefund
+		pass = true
+	case
+		uint64(types.TransferHistoryStatus_TRANSFER_CONFIRMING_YOUR_REFUND), // MarkTransferRefund called by user
+		uint64(types.TransferHistoryStatus_TRANSFER_SUBMITTING):             //MarkTransferSend called by user
+		pass = false // status changed by other api
+	default:
+		pass = false // unknown status
+	}
+	return pass
+}
+
 type Transfer struct {
-	TransferId   string
-	SrcChainId   uint64
-	DstChainId   uint64
-	Status       types.TransferHistoryStatus
-	SrcTxHash    string
-	DstTxHash    string
-	SrcAmt       string
-	DstAmt       string
-	TokenSymbol  string
-	CT           time.Time
-	UT           time.Time
-	Volume       float64
-	RefundSeqNum uint64
-	UsrAddr      string
-	RefundTx     string
-	FeePerc      uint32
+	TransferId    string
+	DstTransferId string
+	SrcChainId    uint64
+	DstChainId    uint64
+	Status        types.TransferHistoryStatus
+	SrcTxHash     string
+	DstTxHash     string
+	SrcAmt        string
+	DstAmt        string
+	TokenSymbol   string
+	CT            time.Time
+	UT            time.Time
+	Volume        float64
+	RefundSeqNum  uint64
+	UsrAddr       string
+	RefundTx      string
+	FeePerc       uint32
 }
 
 func (d *DAL) PaginateTransferList(sender string, end time.Time, size uint64) ([]*Transfer, int, time.Time, error) {
@@ -194,6 +235,13 @@ func (d *DAL) GetTransferByRefundSeqNum(chainId, seqNum uint64, addr string) (st
 	return transferId, found, err
 }
 
+func (d *DAL) ExistsTransferWithRefundId(refundId string) (bool, error) {
+	cnt := 0
+	q := `select count(1) from transfer where refund_id = $1`
+	err := d.QueryRow(q, refundId).Scan(&cnt)
+	return cnt > 0, err
+}
+
 func (d *DAL) UpsertTransferOnSend(transferId, usrAddr, tokenAddr, amt, sendTxHash string, srcChainId, dsChainId uint64) error {
 	status := uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION)
 	token, tokenFound, tokenErr := GetTokenByAddr(tokenAddr, srcChainId)
@@ -211,11 +259,26 @@ func (d *DAL) UpsertTransferOnSend(transferId, usrAddr, tokenAddr, amt, sendTxHa
 	res, err := d.Exec(q, transferId, usrAddr, token.Token.Symbol, amt, srcChainId, dsChainId, status, now(), now(), sendTxHash)
 	return sqldb.ChkExec(res, err, 1, "UpsertTransferOnSend")
 }
-func (d *DAL) TransferCompleted(transferId, txHash, dstTransferId, receivedAmt string) error {
+func (d *DAL) TransferCompleted(transferId, txHash, dstTransferId, receivedAmt string, isDelayed bool) error {
 	status := uint64(types.TransferHistoryStatus_TRANSFER_COMPLETED)
+	if isDelayed {
+		status = uint64(types.TransferHistoryStatus_TRANSFER_DELAYED)
+	}
 	q := `UPDATE transfer SET dst_tx_hash=$2, status=$3, update_time=$4, dst_transfer_id=$5, received_amt=$6 WHERE transfer_id=$1`
 	res, err := d.Exec(q, transferId, txHash, status, now(), dstTransferId, receivedAmt)
 	return sqldb.ChkExec(res, err, 1, "TransferCompleted")
+}
+
+func (d *DAL) UpdateTransferStatusByDstTransferId(dstXferId string, status types.TransferHistoryStatus) error {
+	q := `UPDATE transfer SET status=$2, update_time=now() WHERE dst_transfer_id=$1`
+	res, err := d.Exec(q, dstXferId, uint64(status))
+	return sqldb.ChkExec(res, err, 1, "UpdateTransferStatusByTransferId")
+}
+
+func (d *DAL) UpdateTransferStatusByRefundId(refundId string, status types.TransferHistoryStatus) error {
+	q := `UPDATE transfer SET status=$2, update_time=now() WHERE refund_id=$1`
+	res, err := d.Exec(q, refundId, uint64(status))
+	return sqldb.ChkExec(res, err, 1, "UpdateTransferStatusByRefundId")
 }
 
 func (d *DAL) MarkTransferRefund(transferId, txHash string) error {

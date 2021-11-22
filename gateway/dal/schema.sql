@@ -18,7 +18,9 @@ CREATE TABLE IF NOT EXISTS transfer (
     status INT NOT NULL DEFAULT 1,
     volume FLOAT NOT NULL DEFAULT 0,
     refund_tx TEXT NOT NULL DEFAULT '',
-    refund_seq_num INT NOT NULL DEFAULT 0
+    refund_seq_num INT NOT NULL DEFAULT 0,
+    refund_id TEXT,
+    UNIQUE (refund_id)
 );
 CREATE INDEX IF NOT EXISTS tsf_utm_idx ON transfer (update_time);
 CREATE INDEX IF NOT EXISTS tsf_ctm_idx ON transfer (create_time);
@@ -27,6 +29,7 @@ CREATE INDEX IF NOT EXISTS tsf_tid_idx ON transfer (transfer_id);
 CREATE INDEX IF NOT EXISTS tsf_dtid_idx ON transfer (dst_transfer_id);
 CREATE INDEX IF NOT EXISTS tsf_sqn_idx ON transfer (refund_seq_num);
 CREATE INDEX IF NOT EXISTS tsf_shs_idx ON transfer (src_tx_hash);
+ALTER TABLE IF EXISTS transfer ADD COLUMN IF NOT EXISTS refund_id TEXT UNIQUE;
 
 CREATE TABLE IF NOT EXISTS lp (
     usr_addr TEXT NOT NULL,
@@ -41,12 +44,16 @@ CREATE TABLE IF NOT EXISTS lp (
     lp_type INT NOT NULL DEFAULT 1,
     seq_num INT NOT NULL DEFAULT 0,
     withdraw_method_type INT NOT NULL DEFAULT 1,
+    withdraw_id TEXT,
     PRIMARY KEY (usr_addr, chain_id, seq_num, lp_type),
+    UNIQUE (withdraw_id),
     UNIQUE (usr_addr, chain_id, tx_hash, lp_type)
-    );
+);
+    
 CREATE INDEX IF NOT EXISTS lp_utm_idx ON lp (update_time);
 CREATE INDEX IF NOT EXISTS lp_ctm_idx ON lp (create_time);
 CREATE INDEX IF NOT EXISTS lp_addr_idx ON lp (usr_addr);
+ALTER TABLE IF EXISTS lp ADD COLUMN IF NOT EXISTS withdraw_id TEXT UNIQUE;
 
 CREATE TABLE IF NOT EXISTS reward_token (
     symbol TEXT NOT NULL,
@@ -96,4 +103,11 @@ CREATE TABLE IF NOT EXISTS admin_addr (
 CREATE TABLE IF NOT EXISTS apy (
     create_time TIMESTAMPTZ PRIMARY KEY NOT NULL DEFAULT now(),
     apy TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS delayed_op (
+    id TEXT NOT NULL,
+    type INT DEFAULT 0, -- dal.DelayedOpType
+    tx_hash TEXT,
+    PRIMARY KEY (id)
 );

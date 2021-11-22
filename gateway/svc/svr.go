@@ -45,9 +45,6 @@ func (gs *GatewayService) Close() {
 	dal.DB = nil
 }
 
-type GatewayConfig struct {
-}
-
 type GatewayService struct {
 	F  *fee.TokenPriceCache
 	TP *transactor.TransactorPool
