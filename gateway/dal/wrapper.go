@@ -177,8 +177,9 @@ func DelayXferExec(id string) error {
 		}
 		err = DB.UpdateTransferStatusByDstTransferId(id, toStatus)
 		if err == nil {
-			log.Infof("handled DelayedTransferExecuted, id %s status %d", id, toStatus)
+			return err
 		}
+		log.Infof("handled DelayedTransferExecuted, id %s status %d", id, toStatus)
 	} else if t == uint64(DelayedOpWithdraw) {
 		found, err = DB.ExistsLPInfoWithWithdrawId(id)
 		if err != nil {
@@ -189,13 +190,13 @@ func DelayXferExec(id string) error {
 		}
 		err := DB.UpdateLPStatusByWithdrawId(id, types.WithdrawStatus_WD_COMPLETED)
 		if err == nil {
-			log.Infof("handled DelayedTransferExecuted, id %s status %d", id, types.WithdrawStatus_WD_COMPLETED)
+			return err
 		}
+		log.Infof("handled DelayedTransferExecuted, id %s status %d", id, types.WithdrawStatus_WD_COMPLETED)
 	} else {
 		return fmt.Errorf("cannot process DelayedTransferExecuted with id %s: the fetched record has an unknown type %d", id, t)
 	}
-
-	return fmt.Errorf("DelayXferExec: id %s not found in either transfers or lp table", id)
+	return nil
 }
 
 // GetTokenByAddr query api
