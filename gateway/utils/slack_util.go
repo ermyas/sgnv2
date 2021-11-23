@@ -33,17 +33,17 @@ func SendBalanceAlert(alerts []*BalanceAlert, env string) {
 		msg = msg + fmt.Sprintf("token:`%s`, balance: `%s`, usr_addr: `%s`, total withdraw: `%s`, total deposit:`%s` \n", alert.Token, alert.Balance, alert.Addr, alert.Withdraw, alert.Deposit)
 	}
 	log.Warnf(msg)
-	//if env == "prod" {
-	//	sendSlackP1AlertProd("Abnormal LP Balance Alert", msg)
-	//} else if env == "test" {
-	//	sendSlackP1AlertTest("Abnormal LP Balance Alert", msg)
-	//}
+	if env == "prod" {
+		sendSlackP1AlertProd("Abnormal LP Balance Alert", msg)
+	} else if env == "test" {
+		sendSlackP1AlertTest("Abnormal LP Balance Alert", msg)
+	}
 }
 
 func sendSlackP1AlertTest(title string, msg string) {
 	url := "https://hooks.slack.com/services/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"
 	body := `{
-		"channel": "#cbridge-v2-testnet-p1",
+		"channel": "#cbridge-v2-testnet-report",
 			"username": "%s",
 			"text": "%s",
 			"icon_emoji": "https://svblockchain.slack.com/services/BRARCSVU3?settings=1"
