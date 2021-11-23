@@ -246,7 +246,7 @@ func (d *DAL) PaginateLpHistory(sender string, end time.Time, size uint64) ([]*L
 }
 
 func (d *DAL) GetAllLpHistory(sender string) ([]*LP, error) {
-	q := "SELECT chain_id, token_symbol, amt, lp_type FROM lp WHERE usr_addr = $1 and withdraw_method_type in (1,2) and status<>3"
+	q := "SELECT chain_id, token_symbol, amt, lp_type FROM lp WHERE usr_addr = $1 and withdraw_method_type in (1,2) and status!=5"
 	rows, err := d.Query(q, sender)
 	if err != nil {
 		log.Warnf("db err:%+v", err)
@@ -276,7 +276,7 @@ func (d *DAL) GetAllLpHistory(sender string) ([]*LP, error) {
 }
 
 func (d *DAL) PaginateLpAmt(end time.Time, size uint64) ([]*LP, int, time.Time, error) {
-	q := "SELECT usr_addr, chain_id, token_symbol, amt, create_time, lp_type FROM lp WHERE create_time < $1 and withdraw_method_type in (1,2) and status<>3 limit $2"
+	q := "SELECT usr_addr, chain_id, token_symbol, amt, create_time, lp_type FROM lp WHERE create_time < $1 and withdraw_method_type in (1,2) and status!=5 limit $2"
 	rows, err := d.Query(q, end, size)
 	if err != nil {
 		log.Warnf("db err:%+v", err)
