@@ -92,10 +92,10 @@ func (gs *GatewayService) AlertAbnormalBalance() {
 			if balance == nil {
 				balance = new(big.Float).SetInt64(0)
 			}
-			cmpIO := dw.deposit
-			cmpBlc := new(big.Float).Mul(new(big.Float).Add(balance, dw.withdraw), new(big.Float).SetFloat64(0.95))
-			if cmpIO.Cmp(cmpBlc) > 0 {
-				// total_deposit > 0.95 * (total_withdrawal + current_lp_balance)
+			cmpIO := new(big.Float).Mul(dw.deposit, new(big.Float).SetFloat64(1.05))
+			cmpBlc := new(big.Float).Add(balance, dw.withdraw)
+			if cmpIO.Cmp(cmpBlc) < 0 {
+				// total_deposit * 1.05 < (total_withdrawal + current_lp_balance)
 				wd, _ := dw.withdraw.Float64()
 				dp, _ := dw.deposit.Float64()
 				blc, _ := balance.Float64()
@@ -126,13 +126,13 @@ func (gs *GatewayService) getUsrBalance(usrAddr string, chainTokens []*cbrtypes.
 	}
 
 	for _, liq := range detailList.LiquidityDetail {
-		balance := balanceMap[liq.GetToken().GetSymbol()]
-		if balance == nil {
-			balance = new(big.Float).SetInt64(0)
-		}
 		token := chainTokenAddrMap[liq.GetChainId()][liq.GetToken().GetAddress()]
 		if token == nil {
 			continue
+		}
+		balance := balanceMap[token.GetToken().GetSymbol()]
+		if balance == nil {
+			balance = new(big.Float).SetInt64(0)
 		}
 		balance = new(big.Float).Add(balance, rmAmtDecimal(liq.GetUsrLiquidity(), int(token.GetToken().GetDecimal())))
 		balanceMap[token.GetToken().GetSymbol()] = balance
@@ -180,7 +180,7 @@ func getTotalWithdrawAndDeposit() map[string]map[string]*TotalIO {
 	hasNextPage := true
 	usrIOMap := make(map[string]map[string]*TotalIO)
 	for hasNextPage {
-		lps, size, nextTime, err := dal.DB.PaginateLpAmt(end, pageSize)
+		lps, size, nextTime, err := dal.DB.PaginateLpAmtForBalance(end, pageSize)
 		if err != nil {
 			log.Errorf("PaginateLpAmt error, end:%s, pageSize:%d, err:%+v", end.String(), pageSize, err)
 			break
@@ -215,7 +215,7 @@ func getTotalWithdrawAndDeposit() map[string]map[string]*TotalIO {
 
 // return withdraw and deposit
 func getUsrWithdrawAndDeposit(addr string) *TotalIO {
-	lpHistory, err := dal.DB.GetAllLpHistory(addr)
+	lpHistory, err := dal.DB.GetAllLpHistoryForBalance(addr)
 	if err != nil {
 		log.Warnf("GetAllLpHistory err:%+v", err)
 	}
