@@ -43,7 +43,7 @@ func SendBalanceAlert(alerts []*BalanceAlert, env string) {
 func sendSlackP1AlertTest(title string, msg string) {
 	url := "https://hooks.slack.com/services/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"
 	body := `{
-		"channel": "#cbridge-v2-testnet-report",
+		"channel": "#cbridge-v2-sentinel-report",
 			"username": "%s",
 			"text": "%s",
 			"icon_emoji": "https://svblockchain.slack.com/services/BRARCSVU3?settings=1"
