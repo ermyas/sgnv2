@@ -2,8 +2,8 @@ package dal
 
 import (
 	"fmt"
-
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 )
@@ -34,7 +34,12 @@ func UpsertTransferOnSend(transferId, usrAddr, tokenSymbol, amt, sendTxHash stri
 	if DB == nil {
 		return nil
 	} else {
-		return DB.UpsertTransferOnSend(transferId, usrAddr, tokenSymbol, amt, sendTxHash, srcChainId, dsChainId)
+		volume, getVolumeErr := DB.GetUsdVolume(tokenSymbol, srcChainId, common.Str2BigInt(amt))
+		if getVolumeErr != nil {
+			log.Warnf("find invalid token volume, symbol:%s, chainId:%d, we set volume to 0 first", tokenSymbol, srcChainId)
+			// continue to save 0 volume in db
+		}
+		return DB.UpsertTransferOnSend(transferId, usrAddr, tokenSymbol, amt, sendTxHash, srcChainId, dsChainId, volume)
 	}
 }
 
@@ -213,7 +218,12 @@ func UpsertLPForLiqAdd(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chai
 	if DB == nil {
 		return nil
 	} else {
-		return DB.UpsertLPWithTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash, chainId, status, lpType, seqNum)
+		volume, getVolumeErr := DB.GetUsdVolume(tokenSymbol, chainId, common.Str2BigInt(amt))
+		if getVolumeErr != nil {
+			log.Warnf("find invalid token volume, symbol:%s, chainId:%d, we set volume to 0 first", tokenSymbol, chainId)
+			// continue to save 0 volume in db
+		}
+		return DB.UpsertLPWithTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash, chainId, status, lpType, seqNum, volume)
 	}
 }
 

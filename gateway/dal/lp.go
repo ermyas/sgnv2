@@ -27,32 +27,32 @@ type LPInfo struct {
 	WithdrawId         sql.NullString
 }
 
-func (d *DAL) InsertLPWithSeqNumAndMethodType(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum, methodType uint64) error {
-	q := `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num, withdraw_method_type)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
-	res, err := d.Exec(q, usrAddr, chainId, tokenSymbol, tokenAddr, amt, txHash, now(), now(), status, lpType, seqNum, methodType)
+func (d *DAL) InsertLPWithSeqNumAndMethodType(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum, methodType uint64, volume float64) error {
+	q := `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num, withdraw_method_type, volume)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
+	res, err := d.Exec(q, usrAddr, chainId, tokenSymbol, tokenAddr, amt, txHash, now(), now(), status, lpType, seqNum, methodType, volume)
 	if err != nil {
 		log.Errorf("InsertLPWithSeqNumAndMethodType db err, usrAddr:%s, hash:%s, chainId:%d, seqNum:%d, lpType:%d, err:%+v", usrAddr, txHash, chainId, seqNum, lpType, err)
 	}
 	return sqldb.ChkExec(res, err, 1, "InsertLPWithSeqNumAndMethodType")
 }
 
-func (d *DAL) UpsertLPWithSeqNum(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum uint64) error {
-	q := `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (usr_addr, chain_id, seq_num, lp_type) DO UPDATE
+func (d *DAL) UpsertLPWithSeqNum(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum uint64, volume float64) error {
+	q := `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num, volume)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) ON CONFLICT (usr_addr, chain_id, seq_num, lp_type) DO UPDATE
 	SET status = $9, tx_hash=$6, update_time = $7`
-	res, err := d.Exec(q, usrAddr, chainId, tokenSymbol, tokenAddr, amt, txHash, now(), now(), status, lpType, seqNum)
+	res, err := d.Exec(q, usrAddr, chainId, tokenSymbol, tokenAddr, amt, txHash, now(), now(), status, lpType, seqNum, volume)
 	if err != nil {
 		log.Errorf("UpsertLPWithSeqNum db err, usrAddr:%s, hash:%s, chainId:%d, seqNum:%d, lpType:%d, err:%+v", usrAddr, txHash, chainId, seqNum, lpType, err)
 	}
 	return sqldb.ChkExec(res, err, 1, "UpsertLPWithSeqNum")
 }
 
-func (d *DAL) UpsertLPWithTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum uint64) error {
-	q := `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (usr_addr, chain_id, tx_hash, lp_type) DO UPDATE
+func (d *DAL) UpsertLPWithTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum uint64, volume float64) error {
+	q := `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num, volume)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) ON CONFLICT (usr_addr, chain_id, tx_hash, lp_type) DO UPDATE
 	SET status = $9, seq_num = $11, update_time = $7`
-	res, err := d.Exec(q, usrAddr, chainId, tokenSymbol, tokenAddr, amt, txHash, now(), now(), status, lpType, seqNum)
+	res, err := d.Exec(q, usrAddr, chainId, tokenSymbol, tokenAddr, amt, txHash, now(), now(), status, lpType, seqNum, volume)
 	if err != nil {
 		log.Errorf("UpsertLPWithTx db err, usrAddr:%s, hash:%s, chainId:%d, seqNum:%d, lpType:%d, err:%+v", usrAddr, txHash, chainId, seqNum, lpType, err)
 	}

@@ -242,7 +242,7 @@ func (d *DAL) ExistsTransferWithRefundId(refundId string) (bool, error) {
 	return cnt > 0, err
 }
 
-func (d *DAL) UpsertTransferOnSend(transferId, usrAddr, tokenAddr, amt, sendTxHash string, srcChainId, dsChainId uint64) error {
+func (d *DAL) UpsertTransferOnSend(transferId, usrAddr, tokenAddr, amt, sendTxHash string, srcChainId, dsChainId uint64, volume float64) error {
 	status := uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION)
 	token, tokenFound, tokenErr := GetTokenByAddr(tokenAddr, srcChainId)
 	if token == nil || !tokenFound || tokenErr != nil {
@@ -253,10 +253,10 @@ func (d *DAL) UpsertTransferOnSend(transferId, usrAddr, tokenAddr, amt, sendTxHa
 		}
 		return updateErr
 	}
-	q := `INSERT INTO transfer (transfer_id, usr_addr, token_symbol, amt, src_chain_id, dst_chain_id, status, create_time, update_time, src_tx_hash)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT (transfer_id) DO UPDATE
+	q := `INSERT INTO transfer (transfer_id, usr_addr, token_symbol, amt, src_chain_id, dst_chain_id, status, create_time, update_time, src_tx_hash, volume)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (transfer_id) DO UPDATE
 	SET amt=$4, status= $7, update_time=$9, src_tx_hash=$10`
-	res, err := d.Exec(q, transferId, usrAddr, token.Token.Symbol, amt, srcChainId, dsChainId, status, now(), now(), sendTxHash)
+	res, err := d.Exec(q, transferId, usrAddr, token.Token.Symbol, amt, srcChainId, dsChainId, status, now(), now(), sendTxHash, volume)
 	return sqldb.ChkExec(res, err, 1, "UpsertTransferOnSend")
 }
 func (d *DAL) TransferCompleted(transferId, txHash, dstTransferId, receivedAmt string, isDelayed bool) error {

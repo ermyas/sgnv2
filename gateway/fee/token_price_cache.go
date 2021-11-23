@@ -66,6 +66,20 @@ func (t *TokenPriceCache) StartTokenPricePolling(tr *transactor.Transactor, inte
 			err := t.refreshCache(tr)
 			if err != nil {
 				log.Errorln("failed to refresh token price cache:", err)
+			} else {
+				// also update price cache in dal
+				if dal.DB.AllTokenIds == nil || len(dal.DB.AllTokenIds) == 0 {
+					newAllTokenIds := make(map[string]*dal.TokenData)
+					for tokenSymbol, tokenInfo := range t.allTokenIds {
+						newAllTokenIds[tokenSymbol] = &dal.TokenData{
+							Id:     tokenInfo.Id,
+							Symbol: tokenInfo.Symbol,
+							Name:   tokenInfo.Name,
+						}
+					}
+					dal.DB.AllTokenIds = newAllTokenIds
+				}
+				dal.DB.Prices = t.Prices
 			}
 		}
 	}()

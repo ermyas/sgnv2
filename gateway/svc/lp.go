@@ -52,10 +52,14 @@ func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.Mar
 	}
 	txHash := request.GetTxHash()
 	if lpType == webapi.LPType_LP_TYPE_ADD {
-		err = dal.DB.UpsertLPWithTx(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, uint64(chainId), uint64(types.WithdrawStatus_WD_SUBMITTING), uint64(lpType), common.TsMilli(time.Now()))
+		err = dal.DB.UpsertLPWithTx(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash,
+			uint64(chainId), uint64(types.WithdrawStatus_WD_SUBMITTING), uint64(lpType), common.TsMilli(time.Now()),
+			gs.F.GetUsdVolume(token.GetToken(), common.Str2BigInt(amt)))
 	} else if lpType == webapi.LPType_LP_TYPE_REMOVE {
 		seqNum := request.GetSeqNum()
-		err = dal.DB.UpsertLPWithSeqNum(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, uint64(chainId), uint64(types.WithdrawStatus_WD_SUBMITTING), uint64(lpType), seqNum)
+		err = dal.DB.UpsertLPWithSeqNum(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt,
+			txHash, uint64(chainId), uint64(types.WithdrawStatus_WD_SUBMITTING), uint64(lpType), seqNum,
+			gs.F.GetUsdVolume(token.GetToken(), common.Str2BigInt(amt)))
 	}
 	if err == nil {
 		return &webapi.MarkLiquidityResponse{}, nil
@@ -197,7 +201,10 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 				},
 			}, nil
 		}
-		err = dal.DB.InsertLPWithSeqNumAndMethodType(lp, exitToken.GetToken().GetSymbol(), exitToken.GetToken().GetAddress(), receivedAmt, strconv.Itoa(int(seqNum)), exitChainId, uint64(types.WithdrawStatus_WD_WAITING_FOR_SGN), uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum, uint64(request.GetMethodType()))
+		err = dal.DB.InsertLPWithSeqNumAndMethodType(lp, exitToken.GetToken().GetSymbol(), exitToken.GetToken().GetAddress(),
+			receivedAmt, strconv.Itoa(int(seqNum)), exitChainId, uint64(types.WithdrawStatus_WD_WAITING_FOR_SGN),
+			uint64(webapi.LPType_LP_TYPE_REMOVE), seqNum, uint64(request.GetMethodType()),
+			gs.F.GetUsdVolume(exitToken.GetToken(), common.Str2BigInt(receivedAmt)))
 		if err != nil {
 			_ = dal.DB.UpdateLPStatusForWithdraw(exitChainId, seqNum, uint64(types.WithdrawStatus_WD_FAILED), lp)
 			return &webapi.WithdrawLiquidityResponse{
