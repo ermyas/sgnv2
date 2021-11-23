@@ -100,7 +100,9 @@ func (d *DAL) GetLPInfoBySeqNum(seqNum, lpType, chainId uint64, lpAddr string) (
 
 func (d *DAL) GetLPInfo(seq, lptype, chid uint64, lpaddr string) (*LPInfo, bool, error) {
 	l := &LPInfo{}
-	q := `select * from lp where seq_num = $1 and chain_id = $2 and usr_addr = $3 and lp_type = $4`
+	q := `select 
+	usr_addr,chain_id,token_symbol,token_addr,amt,tx_hash,update_time,create_time,status,lp_type,seq_num,withdraw_method_type,withdraw_id
+	from lp where seq_num = $1 and chain_id = $2 and usr_addr = $3 and lp_type = $4`
 	err := d.QueryRow(q, seq, chid, lpaddr, lptype).Scan(
 		&l.UsrAddr, &l.ChainId, &l.TokenSymbol, &l.TokenAddr, &l.Amt, &l.TxHash, &l.UpdateTime,
 		&l.CreateTime, &l.Status, &l.LpType, &l.SeqNum, &l.WithdrawMethodType, &l.WithdrawId)
