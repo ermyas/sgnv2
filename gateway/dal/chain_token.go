@@ -239,7 +239,6 @@ func (d *DAL) GetChainInfo(ids []uint32) ([]*webapi.Chain, error) {
 			BlockDelay:     blockDelay,
 			GasTokenSymbol: gasTokenSymbol,
 			ExploreUrl:     exploreUrl,
-			RpcUrl:         rpcUrl,
 			ContractAddr:   contract,
 		}
 		tps = append(tps, tp)
@@ -279,7 +278,6 @@ func (d *DAL) GetChain(id uint64) (*webapi.Chain, string, bool, error) {
 		BlockDelay:     blockDelay,
 		GasTokenSymbol: gasTokenSymbol,
 		ExploreUrl:     exploreUrl,
-		RpcUrl:         rpcUrl,
 		ContractAddr:   contract,
 	}
 	if found && err == nil {

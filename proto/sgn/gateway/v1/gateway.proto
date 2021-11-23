@@ -221,7 +221,7 @@ message Chain {
   uint32 block_delay = 4;
   string gas_token_symbol = 5;
   string explore_url = 6;
-  string rpc_url = 7;
+    reserved 7; // rpc_url removed
   string contract_addr = 8;  // bridge contract addr
 }
 
