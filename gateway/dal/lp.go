@@ -281,24 +281,22 @@ func (d *DAL) GetAllLpHistoryForBalance(sender string) ([]*LP, error) {
 	return tps, nil
 }
 
-func (d *DAL) PaginateLpAmtForBalance(end time.Time, size uint64) ([]*LP, int, time.Time, error) {
-	q := "SELECT usr_addr, chain_id, token_symbol, amt, create_time, lp_type, status FROM lp WHERE create_time < $1 and withdraw_method_type in (1,2) limit $2"
-	rows, err := d.Query(q, end, size)
+func (d *DAL) AllLpAmtForBalance() ([]*LP, error) {
+	q := "SELECT usr_addr, chain_id, token_symbol, amt, lp_type, status FROM lp WHERE withdraw_method_type in (1,2)"
+	rows, err := d.Query(q)
 	if err != nil {
 		log.Warnf("db err:%+v", err)
-		return nil, 0, time.Unix(0, 0), err
+		return nil, err
 	}
 	defer closeRows(rows)
 
 	var tps []*LP
 	var tokenSymbol, amt, addr string
 	var chainId, lpType, status uint64
-	var ct time.Time
-	minTime := now()
 	for rows.Next() {
-		err = rows.Scan(&addr, &chainId, &tokenSymbol, &amt, &ct, &lpType, &status)
+		err = rows.Scan(&addr, &chainId, &tokenSymbol, &amt, &lpType, &status)
 		if err != nil {
-			return nil, 0, time.Unix(0, 0), err
+			return nil, err
 		}
 
 		isSubmitAdd := lpType == uint64(webapi.LPType_LP_TYPE_ADD) && status == uint64(types.WithdrawStatus_WD_SUBMITTING)
@@ -313,15 +311,9 @@ func (d *DAL) PaginateLpAmtForBalance(end time.Time, size uint64) ([]*LP, int, t
 			}
 			tps = append(tps, tp)
 		}
-		if minTime.After(ct) {
-			minTime = ct
-		}
-	}
-	if len(tps) == 0 {
-		minTime = time.Unix(0, 0)
 	}
 
-	return tps, len(tps), minTime, nil
+	return tps, nil
 }
 
 func (d *DAL) GetLpStatByTimeRange(begin, end time.Time) (float64, uint64, error) {

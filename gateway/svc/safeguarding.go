@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -86,6 +85,10 @@ func (gs *GatewayService) AlertAbnormalBalance() {
 	var alerts []*utils.BalanceAlert
 	for usrAddr, dwTokenMap := range allDepositAndWithdraw {
 		tokenBalance := gs.getUsrBalance(usrAddr, chainTokens, tokenMap)
+		balanceStr := tokenBalanceStr(tokenBalance)
+		if balanceStr != "" {
+			log.Infof("usr addr: %s, blc:{%s}", usrAddr, balanceStr)
+		}
 		for tokenSymbol, dw := range dwTokenMap {
 			// cmp and alert
 			balance := tokenBalance[tokenSymbol]
@@ -112,6 +115,16 @@ func (gs *GatewayService) AlertAbnormalBalance() {
 	if alerts != nil && len(alerts) > 0 {
 		utils.SendBalanceAlert(alerts, Env)
 	}
+}
+
+func tokenBalanceStr(flt map[string]*big.Float) string {
+	ret := ""
+	for token, amt := range flt {
+		if amt.Cmp(new(big.Float).SetInt64(0)) > 0 {
+			ret = ret + fmt.Sprintf("token: %s, amt:%s;", token, amt.String())
+		}
+	}
+	return ret
 }
 
 func (gs *GatewayService) getUsrBalance(usrAddr string, chainTokens []*cbrtypes.ChainTokenAddrPair, chainTokenAddrMap map[uint64]map[string]*webapi.TokenInfo) map[string]*big.Float {
@@ -175,39 +188,30 @@ type TotalIO struct {
 
 // return map[addr][token_symbol]totalIO
 func getTotalWithdrawAndDeposit() map[string]map[string]*TotalIO {
-	pageSize := uint64(5000)
-	end := time.Now()
-	hasNextPage := true
 	usrIOMap := make(map[string]map[string]*TotalIO)
-	for hasNextPage {
-		lps, size, nextTime, err := dal.DB.PaginateLpAmtForBalance(end, pageSize)
-		if err != nil {
-			log.Errorf("PaginateLpAmt error, end:%s, pageSize:%d, err:%+v", end.String(), pageSize, err)
-			break
+	lps, err := dal.DB.AllLpAmtForBalance()
+	if err != nil {
+		log.Errorf("AllLpAmtForBalance db error, err:%+v", err)
+		return usrIOMap
+	}
+	for _, entry := range lps {
+		lpType := entry.LpType
+		addr := entry.Addr
+		tokenSymbol := entry.TokenSymbol
+		if usrIOMap[addr] == nil {
+			usrIOMap[addr] = make(map[string]*TotalIO)
 		}
-		for _, entry := range lps {
-			lpType := entry.LpType
-			addr := entry.Addr
-			tokenSymbol := entry.TokenSymbol
-			if usrIOMap[addr] == nil {
-				usrIOMap[addr] = make(map[string]*TotalIO)
+		if usrIOMap[addr][tokenSymbol] == nil {
+			usrIOMap[addr][tokenSymbol] = &TotalIO{
+				withdraw: new(big.Float).SetInt64(0),
+				deposit:  new(big.Float).SetInt64(0),
 			}
-			if usrIOMap[addr][tokenSymbol] == nil {
-				usrIOMap[addr][tokenSymbol] = &TotalIO{
-					withdraw: new(big.Float).SetInt64(0),
-					deposit:  new(big.Float).SetInt64(0),
-				}
-			}
+		}
 
-			if lpType == webapi.LPType_LP_TYPE_REMOVE {
-				usrIOMap[addr][entry.TokenSymbol].withdraw = new(big.Float).Add(usrIOMap[addr][entry.TokenSymbol].withdraw, getAmtFromLpHistory(entry))
-			} else if lpType == webapi.LPType_LP_TYPE_ADD {
-				usrIOMap[addr][entry.TokenSymbol].deposit = new(big.Float).Add(usrIOMap[addr][entry.TokenSymbol].deposit, getAmtFromLpHistory(entry))
-			}
-		}
-		end = nextTime
-		if uint64(size) != pageSize {
-			hasNextPage = false
+		if lpType == webapi.LPType_LP_TYPE_REMOVE {
+			usrIOMap[addr][entry.TokenSymbol].withdraw = new(big.Float).Add(usrIOMap[addr][entry.TokenSymbol].withdraw, getAmtFromLpHistory(entry))
+		} else if lpType == webapi.LPType_LP_TYPE_ADD {
+			usrIOMap[addr][entry.TokenSymbol].deposit = new(big.Float).Add(usrIOMap[addr][entry.TokenSymbol].deposit, getAmtFromLpHistory(entry))
 		}
 	}
 	return usrIOMap
