@@ -9,6 +9,7 @@ Follow instructions to start a local testnet with multiple validators and test d
 - [Staking](./docs/staking.md)
 - [Governance](./docs/governance.md)
 - [cBridge](./docs/cbridge.md)
+- [Live Upgrade](./docs/live_upgrade.md)
 
 ## Local Single-Node Manual Testing
 

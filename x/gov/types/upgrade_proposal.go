@@ -10,15 +10,15 @@ const (
 	ProposalTypeUpgrade string = "Upgrade"
 )
 
-func NewUpgradeProposal(title, description string, plan upgradetypes.Plan) Content {
-	return &UpgradeProposal{title, description, plan}
-}
-
 // Implements Proposal Interface
-var _ Content = UpgradeProposal{}
+var _ Content = &UpgradeProposal{}
 
 func init() {
 	RegisterProposalType(ProposalTypeUpgrade)
+}
+
+func NewUpgradeProposal(title, description string, plan upgradetypes.Plan) *UpgradeProposal {
+	return &UpgradeProposal{title, description, plan}
 }
 
 func (sup UpgradeProposal) GetTitle() string { return sup.Title }

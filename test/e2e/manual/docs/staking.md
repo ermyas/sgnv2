@@ -2,7 +2,7 @@
 
 ### Auto Setup
 
-Run `go run localnet.go -start -auto` to set up the docker test environment with four sgn nodes added as bonded validators.
+Run `echo 12341234 | go run localnet.go -start -auto` to set up the docker test environment with four sgn nodes added as bonded validators.
 
 ### Manual Setup
 

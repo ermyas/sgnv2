@@ -13,8 +13,8 @@ import (
 func NewUpgradeProposalHandler(k upgradekeeper.Keeper) govtypes.Handler {
 	return func(ctx sdk.Context, content govtypes.Content) error {
 		switch c := content.(type) {
-		case govtypes.UpgradeProposal:
-			return handleUpgradeProposal(ctx, k, c)
+		case *govtypes.UpgradeProposal:
+			return handleUpgradeProposal(ctx, k, *c)
 
 		default:
 			return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized software upgrade proposal content type: %T", c)
