@@ -171,8 +171,9 @@ enum XferStatus {
                           // come, we should go to refund flow.
   BAD_DEST_CHAIN = 9;     // dest chain is same to src chain, relayer will ignore it.
 
-  EXCEED_MAX_OUT_AMOUNT = 10; // amount larger than max out allowance
-  XFER_DEPLAYED = 11; // relayer has succesfully called onchain relay() but the onchain contract decides that the amt is greater than its delayThreshold
+  EXCEED_MAX_OUT_AMOUNT = 10;  // amount larger than max out allowance
+  XFER_DELAYED = 11;  // relayer has successfully called onchain relay() but the onchain contract decides that the amt is greater than its
+                      // delayThreshold
   BAD_ADDRESS = 12;
 }
 
