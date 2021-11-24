@@ -1,0 +1,6 @@
+[ExplorerConf]
+explorerDbUrl = "44.229.31.88:26257"
+gatewayDbUrl = "44.229.31.88:26257"
+gatewayRpcUrl = "44.229.31.88:10000"
+grpcPort = 8086
+grpcWebPort = 8087

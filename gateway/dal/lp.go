@@ -323,3 +323,32 @@ func (d *DAL) PaginateLpAmtForBalance(end time.Time, size uint64) ([]*LP, int, t
 
 	return tps, len(tps), minTime, nil
 }
+
+func (d *DAL) GetLpStatByTimeRange(begin, end time.Time) (float64, uint64, error) {
+	var volume sql.NullFloat64
+	var count sql.NullInt64
+	q := "SELECT sum(volume),count(1) FROM lp WHERE create_time >= $1 and create_time < $2"
+	err := d.QueryRow(q, begin, end).Scan(&volume, &count)
+	if err != nil {
+		return 0, 0, err
+	}
+	return volume.Float64, uint64(count.Int64), nil
+}
+
+func (d *DAL) GetDistinctLpAddrByTimeRange(begin, end time.Time) ([]string, error) {
+	var addrs []string
+	q := "SELECT distinct(usr_addr) FROM lp WHERE create_time >= $1 and create_time < $2"
+	rows, err := d.Query(q, begin, end)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var addr string
+		err = rows.Scan(&addr)
+		if err != nil {
+			return nil, err
+		}
+		addrs = append(addrs, addr)
+	}
+	return addrs, nil
+}

@@ -1,6 +1,7 @@
 package dal
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/celer-network/goutils/log"
@@ -333,4 +334,33 @@ func (d *DAL) Get24hTx() ([]*Transfer, error) {
 	}
 
 	return tps, nil
+}
+
+func (d *DAL) GetTxStatByTimeRange(begin, end time.Time) (float64, uint64, error) {
+	var volume sql.NullFloat64
+	var count sql.NullInt64
+	q := "SELECT sum(volume),count(1) FROM transfer WHERE create_time >= $1 and create_time < $2"
+	err := d.QueryRow(q, begin, end).Scan(&volume, &count)
+	if err != nil {
+		return 0, 0, err
+	}
+	return volume.Float64, uint64(count.Int64), nil
+}
+
+func (d *DAL) GetDistinctTransferAddrByTimeRange(begin, end time.Time) ([]string, error) {
+	var addrs []string
+	q := "SELECT distinct(usr_addr) FROM transfer WHERE create_time >= $1 and create_time < $2"
+	rows, err := d.Query(q, begin, end)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var addr string
+		err = rows.Scan(&addr)
+		if err != nil {
+			return nil, err
+		}
+		addrs = append(addrs, addr)
+	}
+	return addrs, nil
 }
