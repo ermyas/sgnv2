@@ -85,10 +85,6 @@ func (gs *GatewayService) AlertAbnormalBalance() {
 	var alerts []*utils.BalanceAlert
 	for usrAddr, dwTokenMap := range allDepositAndWithdraw {
 		tokenBalance := gs.getUsrBalance(usrAddr, chainTokens, tokenMap)
-		balanceStr := tokenBalanceStr(tokenBalance)
-		if balanceStr != "" {
-			log.Infof("usr addr: %s, blc:{%s}", usrAddr, balanceStr)
-		}
 		for tokenSymbol, dw := range dwTokenMap {
 			// cmp and alert
 			balance := tokenBalance[tokenSymbol]
@@ -115,16 +111,6 @@ func (gs *GatewayService) AlertAbnormalBalance() {
 	if alerts != nil && len(alerts) > 0 {
 		utils.SendBalanceAlert(alerts, Env)
 	}
-}
-
-func tokenBalanceStr(flt map[string]*big.Float) string {
-	ret := ""
-	for token, amt := range flt {
-		if amt.Cmp(new(big.Float).SetInt64(0)) > 0 {
-			ret = ret + fmt.Sprintf("token: %s, amt:%s;", token, amt.String())
-		}
-	}
-	return ret
 }
 
 func (gs *GatewayService) getUsrBalance(usrAddr string, chainTokens []*cbrtypes.ChainTokenAddrPair, chainTokenAddrMap map[uint64]map[string]*webapi.TokenInfo) map[string]*big.Float {
