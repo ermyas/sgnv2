@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc"
 	"math"
 	"math/big"
+	"time"
 )
 
 // Implementation of account-svc API layer
@@ -17,7 +18,8 @@ type GatewayClient struct {
 }
 
 func NewGatewayAPI(gatewayUrl string) (*GatewayClient, error) {
-	opts := []grpc.DialOption{grpc.WithInsecure()}
+	opts := []grpc.DialOption{grpc.WithInsecure(),
+		grpc.WithBlock(), grpc.WithTimeout(3 * time.Second)}
 	conn, err := grpc.Dial(gatewayUrl, opts...)
 	if err != nil {
 		return nil, err
