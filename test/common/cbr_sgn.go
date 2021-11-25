@@ -68,14 +68,14 @@ func CheckChainSigners(t *testing.T, transactor *transactor.Transactor, chainId 
 	var signers *cbrtypes.ChainSigners
 	for retry := 0; retry < RetryLimit; retry++ {
 		signers, err = cbrcli.QueryChainSigners(transactor.CliCtx, chainId)
-		if err == nil && signers != nil && sameSortedSigenrs(signers.GetSortedSigners(), expSigners) {
+		if err == nil && signers != nil && sameSortedSigners(signers.GetSortedSigners(), expSigners) {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
 	ChkErr(err, "failed to QueryChainSigners")
 	log.Infof("Query sgn and get chain %d signers: %s", chainId, signers.String())
-	assert.True(t, sameSortedSigenrs(signers.GetSortedSigners(), expSigners),
+	assert.True(t, sameSortedSigners(signers.GetSortedSigners(), expSigners),
 		"expected signers should be: "+cbrtypes.PrintSigners(expSigners))
 }
 
@@ -84,18 +84,18 @@ func CheckLatestSigners(t *testing.T, transactor *transactor.Transactor, expSign
 	var signers *cbrtypes.LatestSigners
 	for retry := 0; retry < RetryLimit; retry++ {
 		signers, err = cbrcli.QueryLatestSigners(transactor.CliCtx)
-		if err == nil && signers != nil && sameSortedSigenrs(signers.GetSortedSigners(), expSigners) {
+		if err == nil && signers != nil && sameSortedSigners(signers.GetSortedSigners(), expSigners) {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
 	ChkErr(err, "failed to QueryLatestSigners")
 	log.Infof("Query sgn and get latest signers: %s", signers.String())
-	assert.True(t, sameSortedSigenrs(signers.GetSortedSigners(), expSigners),
+	assert.True(t, sameSortedSigners(signers.GetSortedSigners(), expSigners),
 		"expected signers should be: "+cbrtypes.PrintSigners(expSigners))
 }
 
-func sameSortedSigenrs(ss1, ss2 []*cbrtypes.Signer) bool {
+func sameSortedSigners(ss1, ss2 []*cbrtypes.Signer) bool {
 	if len(ss1) != len(ss2) {
 		return false
 	}
