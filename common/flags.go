@@ -53,13 +53,17 @@ const (
 	FlagLogLevel = "log.level"
 	FlagLogColor = "log.color"
 
-	FlagToStartGateway     = "gateway.start_gateway"
-	FlagGatewayDbUrl       = "gateway.db_url"
-	FlagGatewayAwsS3Region = "gateway.aws.s3.region"
-	FlagGatewayAwsS3Bucket = "gateway.aws.s3.bucket"
-	FlagGatewayAwsKey      = "gateway.aws.key"
-	FlagGatewayAwsSecret   = "gateway.aws.secret"
-	FlagBlockNativeApiKey  = "gateway.block_native.apikey"
+	FlagToStartGateway                            = "gateway.start_gateway"
+	FlagGatewayDbUrl                              = "gateway.db_url"
+	FlagGatewayAwsS3Region                        = "gateway.aws.s3.region"
+	FlagGatewayAwsS3Bucket                        = "gateway.aws.s3.bucket"
+	FlagGatewayAwsKey                             = "gateway.aws.key"
+	FlagGatewayAwsSecret                          = "gateway.aws.secret"
+	FlagBlockNativeApiKey                         = "gateway.block_native.apikey"
+	FlagGatewayIncentiveRewardsKeystore           = "gateway.incentive_rewards.keystore"
+	FlagGatewayIncentiveRewardsPassphrase         = "gateway.incentive_rewards.passphrase"
+	FlagGatewayIncentiveRewardsBscChainId         = "gateway.incentive_rewards.bsc_chain_id"
+	FlagGatewayIncentiveRewardsBscContractAddress = "gateway.incentive_rewards.bsc_contract_address"
 
 	FlagMultiChain = "multichain" // array of toml tables, each table represents one chain, see common/multichain.go for details
 )

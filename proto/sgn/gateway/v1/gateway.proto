@@ -1,9 +1,11 @@
 syntax = "proto3";
 package sgn.gateway.v1;
 
+import "gogoproto/gogo.proto";
 import "google/api/annotations.proto";
 import "sgn/cbridge/v1/query.proto";
 import "sgn/cbridge/v1/cbridge.proto";
+import "sgn/common/v1/common.proto";
 import "sgn/farming/v1/farming.proto";
 import "sgn/distribution/v1/distribution.proto";
 import "cosmos/base/v1beta1/coin.proto";
@@ -186,6 +188,29 @@ service Web {
       body: "*"
     };
   }
+
+    rpc GetRetentionRewardsInfo (GetRetentionRewardsInfoRequest) returns (GetRetentionRewardsInfoResponse) {
+        option (google.api.http) = {
+            get: "/v1/getRetentionRewardsInfo"
+        };
+    }
+    rpc ClaimRetentionRewards (ClaimRetentionRewardsRequest) returns (ClaimRetentionRewardsResponse) {
+        option (google.api.http) = {
+            post: "/v1/claimRetentionRewards"
+            body: "*"
+        };
+    }
+    rpc GetFeeRebateInfo (GetFeeRebateInfoRequest) returns (GetFeeRebateInfoResponse) {
+        option (google.api.http) = {
+            get: "/v1/getFeeRebateInfo"
+        };
+    }
+    rpc ClaimFeeRebate (ClaimFeeRebateRequest) returns (ClaimFeeRebateResponse) {
+        option (google.api.http) = {
+            post: "/v1/claimFeeRebate"
+            body: "*"
+        };
+    }
 }
 
 message GetCampaignScoresRequest {
@@ -570,6 +595,70 @@ message FixEventMissRequest {
 }
 message FixEventMissResponse {
   ErrMsg err = 1;
+}
+
+message GetRetentionRewardsInfoRequest {
+    string addr = 1;
+}
+message GetRetentionRewardsInfoResponse {
+    ErrMsg err = 1;
+    // in millis
+    uint64 event_id = 2;
+    uint64 event_end_time = 3;
+    // in CELR
+    string max_reward = 4;
+    double max_transfer_volume = 5;
+    // in wei
+    string current_reward = 6;
+    double celr_usd_price = 7;
+    // if not 0 means already claimed
+    uint64 claim_time = 8;
+    // signatures defines the signatures to be verified on Ethereum.
+    sgn.common.v1.Signature signature = 9 [(gogoproto.moretags) = "yaml:\"signature\"", (gogoproto.nullable) = false];
+}
+
+message ClaimRetentionRewardsRequest {
+    string addr = 1;
+}
+message ClaimRetentionRewardsResponse {
+    ErrMsg err = 1;
+    // in millis
+    uint64 event_id = 2;
+    // in wei
+    string current_reward = 3;
+    // signatures defines the signatures to be verified on Ethereum.
+    sgn.common.v1.Signature signature = 4 [(gogoproto.moretags) = "yaml:\"signature\"", (gogoproto.nullable) = false];
+}
+
+message GetFeeRebateInfoRequest {
+    string addr = 1;
+}
+message GetFeeRebateInfoResponse {
+    ErrMsg err = 1;
+    // in millis
+    uint64 event_id = 2;
+    uint64 event_end_time = 3;
+    double rebate_portion = 4;
+    // CELR in wei
+    string reward = 5;
+    double celr_usd_price = 6;
+    // if not 0 means already claimed
+    uint64 claim_time = 7;
+    // signatures defines the signatures to be verified on Ethereum.
+    sgn.common.v1.Signature signature = 8 [(gogoproto.moretags) = "yaml:\"signature\"", (gogoproto.nullable) = false];
+}
+
+message ClaimFeeRebateRequest {
+    string addr = 1;
+}
+message ClaimFeeRebateResponse {
+    ErrMsg err = 1;
+    // in millis
+    uint64 event_id = 2;
+    // in wei
+    string reward = 3;
+    // signatures defines the signatures to be verified on Ethereum.
+    sgn.common.v1.Signature signature = 4 [(gogoproto.moretags) = "yaml:\"signature\"", (gogoproto.nullable) = false];
 }
 
 enum CSType {

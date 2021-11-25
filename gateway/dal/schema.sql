@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS lp (
     UNIQUE (withdraw_id),
     UNIQUE (usr_addr, chain_id, tx_hash, lp_type)
 );
-    
+
 CREATE INDEX IF NOT EXISTS lp_utm_idx ON lp (update_time);
 CREATE INDEX IF NOT EXISTS lp_ctm_idx ON lp (create_time);
 CREATE INDEX IF NOT EXISTS lp_addr_idx ON lp (usr_addr);
@@ -111,4 +111,27 @@ CREATE TABLE IF NOT EXISTS delayed_op (
     type INT DEFAULT 0, -- dal.DelayedOpType
     tx_hash TEXT,
     PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS retention_rewards_log (
+    usr_addr TEXT NOT NULL,
+    event_id INT NOT NULL,
+    group_level INT NOT NULL,
+    reward_amt TEXT NOT NULL DEFAULT '0',
+    claim_time TIMESTAMPTZ NOT NULL DEFAULT '1970-01-01 00:00:00+00:00',
+    signature BYTES,
+    PRIMARY KEY (usr_addr, event_id),
+    UNIQUE (usr_addr, event_id)
+);
+
+CREATE TABLE IF NOT EXISTS fee_rebate_log (
+    usr_addr TEXT NOT NULL,
+    event_id INT NOT NULL,
+    rebate_portion FLOAT NOT NULL DEFAULT 0,
+    total_fee FLOAT NOT NULL DEFAULT 0,  -- in USD
+    reward_amt TEXT NOT NULL DEFAULT '0',
+    claim_time TIMESTAMPTZ NOT NULL DEFAULT '1970-01-01 00:00:00+00:00',
+    signature BYTES,
+    PRIMARY KEY (usr_addr, event_id),
+    UNIQUE (usr_addr, event_id)
 );

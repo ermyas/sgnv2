@@ -364,3 +364,21 @@ func (d *DAL) GetDistinctTransferAddrByTimeRange(begin, end time.Time) ([]string
 	}
 	return addrs, nil
 }
+
+func (d *DAL) GetCompletedVolumeBetween(addr string, startTime, endTime time.Time) (float64, error) {
+	var totolVolume sql.NullFloat64
+	status := uint64(types.TransferHistoryStatus_TRANSFER_COMPLETED)
+	q := `SELECT sum(volume)
+		  FROM transfer
+		  WHERE usr_addr = $1
+          and status = $2
+		  and update_time between $3 and $4`
+	err := d.QueryRow(q, addr, status, startTime, endTime).Scan(&totolVolume)
+	if err != nil {
+		return 0, err
+	}
+	if totolVolume.Valid {
+		return totolVolume.Float64, nil
+	}
+	return 0, nil
+}

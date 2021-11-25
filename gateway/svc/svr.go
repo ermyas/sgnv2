@@ -3,6 +3,8 @@ package gatewaysvc
 import (
 	"context"
 	"fmt"
+	ethutils "github.com/celer-network/goutils/eth"
+	"github.com/celer-network/sgn-v2/eth"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -45,10 +47,19 @@ func (gs *GatewayService) Close() {
 	dal.DB = nil
 }
 
+type GatewayConfig struct {
+}
+
+type IncentiveRewardsSigner struct {
+	Signer *ethutils.Signer
+	Addr   *eth.Addr
+}
+
 type GatewayService struct {
 	F  *fee.TokenPriceCache
 	TP *transactor.TransactorPool
 	EC map[uint64]*ethclient.Client
+	S  *IncentiveRewardsSigner
 }
 
 func NewGatewayService(dbUrl string) (*GatewayService, error) {

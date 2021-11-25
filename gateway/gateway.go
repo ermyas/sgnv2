@@ -4,13 +4,15 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/eth"
+	"github.com/spf13/viper"
 	"net"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/fee"
 	gatewaysvc "github.com/celer-network/sgn-v2/gateway/svc"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
@@ -21,7 +23,6 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/rs/cors"
-	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 )
 
@@ -76,6 +77,17 @@ func InitGateway(
 	if err != nil {
 		log.Fatalf("fail to init transactor in gateway server, err:%v", err)
 		return
+	}
+
+	signerKey, signerPass := viper.GetString(common.FlagGatewayIncentiveRewardsKeystore), viper.GetString(common.FlagGatewayIncentiveRewardsPassphrase)
+	signer, addr, err := eth.CreateSigner(signerKey, signerPass, nil)
+	if err != nil {
+		log.Fatalf("fail to CreateSigner in gateway server, err:%v", err)
+		return
+	}
+	gs.S = &gatewaysvc.IncentiveRewardsSigner{
+		Signer: &signer,
+		Addr:   &addr,
 	}
 
 	gs.StartChainTokenPolling(1 * time.Hour)

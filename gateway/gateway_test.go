@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/celer-network/sgn-v2/eth"
+	"github.com/spf13/viper"
 	"io"
 	"math/big"
 	"math/rand"
@@ -12,8 +14,6 @@ import (
 	"strconv"
 	"testing"
 	"time"
-
-	"github.com/spf13/viper"
 
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
@@ -143,6 +143,15 @@ func newTestSvc(t *testing.T) *gatewaysvc.GatewayService {
 	gs.StartChainTokenPolling(1 * time.Hour)
 	gs.StartUpdateTokenPricePolling(time.Duration(viper.GetInt32(common.FlagSgnCheckIntervalCbrPrice)) * time.Second)
 	gs.F = fee.NewTokenPriceCache(gs.TP.GetTransactor())
+	signerKey, signerPass := viper.GetString(common.FlagGatewayIncentiveRewardsKeystore), viper.GetString(common.FlagGatewayIncentiveRewardsPassphrase)
+	signer, addr, err := eth.CreateSigner(signerKey, signerPass, nil)
+	if err != nil {
+		require.NoError(t, err, "fail to CreateSigner in gateway server, err:", err)
+	}
+	gs.S = &gatewaysvc.IncentiveRewardsSigner{
+		Signer: &signer,
+		Addr:   &addr,
+	}
 	return gs
 }
 
@@ -569,4 +578,23 @@ func TestAlert(t *testing.T) {
 		Deposit:  "700",
 	})
 	utils.SendBalanceAlert(alerts, "local")
+}
+
+func TestRetentionRewards(t *testing.T) {
+	_db, err := dal.NewDAL("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", stSvr), 10)
+	errIsNil(t, err)
+	defer _db.Close()
+
+	dal.DB = _db
+	q := `insert into retention_rewards_log
+          (usr_addr, event_id, group_level)
+          values($1, $2, $3)`
+	addr := "0x1111111111111111111111111111111111111111"
+	dal.DB.Exec(q, addr, 1, 1)
+	record, amt, claimTime, signature, found, err := dal.DB.GetRetentionRewardsRecord(addr, 1)
+	if err != nil {
+		t.Errorf("fail to GetRetentionRewardsRecord %v", err)
+	}
+	t.Log("", record, amt, claimTime, signature, found)
+	return
 }

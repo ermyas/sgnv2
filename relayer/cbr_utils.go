@@ -71,7 +71,11 @@ func GatewayOnRelay(transferId, txHash, dstTransferId, amt string) error {
 	if dal.DB == nil {
 		return nil
 	}
-	return dal.TransferCompleted(transferId, txHash, dstTransferId, amt)
+	err := dal.TransferCompleted(transferId, txHash, dstTransferId, amt)
+	if err != nil {
+		dal.AddFeeRebateFee(transferId)
+	}
+	return err
 }
 
 func GatewayOnLiqAdd(lpAddr, token, tokenAddr, amt, txHash string, chainId uint64, seqNum uint64) error {
