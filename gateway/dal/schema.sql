@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS lp (
     volume FLOAT NOT NULL DEFAULT 0,
     lp_type INT NOT NULL DEFAULT 1,
     seq_num INT NOT NULL DEFAULT 0,
+    nonce INT NOT NULL DEFAULT 0,
     withdraw_method_type INT NOT NULL DEFAULT 1,
     withdraw_id TEXT,
     PRIMARY KEY (usr_addr, chain_id, seq_num, lp_type),
