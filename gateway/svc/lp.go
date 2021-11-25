@@ -25,6 +25,54 @@ type txData struct {
 	dstToken *types.Token
 }
 
+func (gs *GatewayService) MarkLiquidity(ctx context.Context, request *webapi.MarkLiquidityRequest) (*webapi.MarkLiquidityResponse, error) {
+	lpType := request.GetType()
+	chainId := request.GetChainId()
+	amt := request.GetAmt()
+	addr := common.Hex2Addr(request.GetLpAddr()).String()
+	tokenAddr := common.Hex2Addr(request.GetTokenAddr()).String()
+	log.Infof("Liquidity in mark api addr:%s, amt:%s, chainId:%d, type:%d", addr, amt, chainId, lpType)
+	if !utils.CheckMarkLiquidityParams(lpType, chainId, amt, request.GetLpAddr(), request.GetTokenAddr()) {
+		log.Warnf("Mark Liquidity failed, param check failed")
+		return &webapi.MarkLiquidityResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "params checking failed",
+			},
+		}, nil
+	}
+	token, found, err := dal.DB.GetTokenByAddr(tokenAddr, uint64(chainId))
+	if !found || err != nil {
+		return &webapi.MarkLiquidityResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "token not found in gateway DB",
+			},
+		}, nil
+	}
+	txHash := request.GetTxHash()
+	if lpType == webapi.LPType_LP_TYPE_ADD {
+		err = dal.DB.UpsertLPWithTx(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash,
+			uint64(chainId), uint64(types.WithdrawStatus_WD_SUBMITTING), uint64(lpType), common.TsMilli(time.Now()),
+			gs.F.GetUsdVolume(token.GetToken(), common.Str2BigInt(amt)))
+	} else if lpType == webapi.LPType_LP_TYPE_REMOVE {
+		seqNum := request.GetSeqNum()
+		err = dal.DB.UpsertLPWithSeqNum(addr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt,
+			txHash, uint64(chainId), uint64(types.WithdrawStatus_WD_SUBMITTING), uint64(lpType), seqNum,
+			gs.F.GetUsdVolume(token.GetToken(), common.Str2BigInt(amt)))
+	}
+	if err == nil {
+		return &webapi.MarkLiquidityResponse{}, nil
+	} else {
+		return &webapi.MarkLiquidityResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "update data err",
+			},
+		}, nil
+	}
+}
+
 func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi.WithdrawLiquidityRequest) (*webapi.WithdrawLiquidityResponse, error) {
 	// only valid request will be logged
 	wdReq := new(types.WithdrawReq)
@@ -381,7 +429,6 @@ func (gs *GatewayService) LPHistory(ctx context.Context, request *webapi.LPHisto
 			Type:        lp.LpType,
 			SeqNum:      lp.SeqNum,
 			MethodType:  lp.MethodType,
-			Nonce:       lp.Nonce,
 		})
 	}
 	return &webapi.LPHistoryResponse{

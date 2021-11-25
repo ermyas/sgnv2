@@ -35,6 +35,14 @@ service Web {
     };
   }
 
+  // same as V1, call this api after user confirm transfer on metamask
+  rpc MarkTransfer(MarkTransferRequest) returns (MarkTransferResponse) {
+    option (google.api.http) = {
+      post: "/v1/markTransfer"
+      body: "*"
+    };
+  }
+
   rpc GetTransferStatus(GetTransferStatusRequest) returns (GetTransferStatusResponse) {
     option (google.api.http) = {
       post: "/v1/getTransferStatus"
@@ -47,6 +55,13 @@ service Web {
   rpc GetLPInfoList(GetLPInfoListRequest) returns (GetLPInfoListResponse) {
     option (google.api.http) = {
       get: "/v1/getLPInfoList"
+    };
+  }
+
+  rpc MarkLiquidity(MarkLiquidityRequest) returns (MarkLiquidityResponse) {
+    option (google.api.http) = {
+      post: "/v1/markLiquidity"
+      body: "*"
     };
   }
 
@@ -333,6 +348,24 @@ message EstimateWithdrawAmt {
   uint32 max_slippage = 6;        // param for requesting on chain, slippage * 1M, eg. 0.5% is 5000
 }
 
+enum TransferType {
+  TRANSFER_TYPE_UNKNOWN = 0;
+  TRANSFER_TYPE_SEND = 1;
+  TRANSFER_TYPE_REFUND = 2;
+}
+message MarkTransferRequest {
+  string transfer_id = 1;
+  TransferInfo src_send_info = 2;
+  TransferInfo dst_min_received_info = 3;
+  string addr = 4;
+  string src_tx_hash = 5;
+  TransferType type = 6;
+}
+
+message MarkTransferResponse {
+  ErrMsg err = 1;
+}
+
 message GetLPInfoListRequest {
   string addr = 1;
 }
@@ -367,6 +400,20 @@ message WithdrawLiquidityRequest {
 message WithdrawLiquidityResponse {
   ErrMsg err = 1;
   uint64 seq_num = 2;  // same as WithdrawLiquidityRequest.reqid
+}
+
+message MarkLiquidityRequest {
+  string lp_addr = 1;
+  string amt = 2;
+  string token_addr = 3;
+  uint32 chain_id = 4;
+  uint64 seq_num = 5;  // used for withdraw only
+  string tx_hash = 6;
+  LPType type = 7;
+}
+
+message MarkLiquidityResponse {
+  ErrMsg err = 1;
 }
 
 message UnlockFarmingRewardRequest {
@@ -421,7 +468,6 @@ message LPHistory {
   LPType type = 7;
   uint64 seq_num = 8;
   WithdrawMethodType method_type = 9;
-  uint64 nonce = 10;
 }
 
 message TransferHistoryRequest {
