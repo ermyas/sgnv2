@@ -5,22 +5,12 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/eth"
 	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	mapset "github.com/deckarep/golang-set"
 	"github.com/iancoleman/strcase"
 	"github.com/spf13/viper"
 )
-
-func (r *Relayer) isSyncer() bool {
-	syncer, err := stakingcli.QuerySyncer(r.Transactor.CliCtx)
-	if err != nil {
-		log.Errorln("Get syncer err", err)
-		return false
-	}
-	return eth.Hex2Addr(syncer.EthAddress) == r.Operator.ValAddr
-}
 
 func (r *Relayer) getCurrentBlockNumber() *big.Int {
 	return r.ethMonitor.GetCurrentBlockNumber()
@@ -94,10 +84,6 @@ func getEventCheckInterval(name string) uint64 {
 	}
 	// If not specified, use the default value of 0
 	return 0
-}
-
-func getDelegatorKey(validator, delegator eth.Addr) string {
-	return eth.Addr2Hex(validator) + ":" + eth.Addr2Hex(delegator)
 }
 
 func (r *Relayer) validateSigs(signedValidators mapset.Set) (pass bool) {

@@ -100,3 +100,7 @@ func (r *Relayer) processPullerQueue() {
 		}
 	}
 }
+
+func getDelegatorKey(validator, delegator eth.Addr) string {
+	return eth.Addr2Hex(validator) + ":" + eth.Addr2Hex(delegator)
+}

@@ -11,6 +11,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
+	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/spf13/viper"
@@ -26,6 +27,7 @@ type Relayer struct {
 	bonded          bool
 	bootstrapped    bool // SGN is bootstrapped with at least one bonded validator on the eth contract
 	startEthBlock   *big.Int
+	syncer          Syncer
 	lock            sync.RWMutex
 	cbrMgr          CbrMgr
 	cbrSsUpdating   bool
@@ -101,4 +103,63 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 	go r.doCbridgeSync(r.cbrMgr)
 	r.doCbridgeOnchain(r.cbrMgr) // internal use goroutine
 	go r.pullPriceChange()
+
+	go r.checkSyncer()
+}
+
+type Syncer struct {
+	isSyncer   bool
+	updateTime time.Time
+	lock       sync.RWMutex
+}
+
+func (r *Relayer) checkSyncer() {
+	sgnBlkTime := viper.GetDuration(common.FlagConsensusTimeoutCommit)
+	log.Infof("check syncer every %s", sgnBlkTime)
+	for {
+		time.Sleep(sgnBlkTime)
+		syncer, err := stakingcli.QuerySyncer(r.Transactor.CliCtx)
+		if err != nil {
+			log.Errorln("Get syncer err", err)
+		}
+		isSyncerPrev := r.isSyncer()
+		if eth.Hex2Addr(syncer.EthAddress) == r.Operator.ValAddr {
+			// is current syncer
+			if !isSyncerPrev {
+				// just became syncer
+				r.setSyncer(true)
+			}
+		} else {
+			// is not current syncer
+			if isSyncerPrev {
+				// no longer a syncer
+				r.setSyncer(false)
+			}
+		}
+	}
+}
+
+func (r *Relayer) isSyncer() bool {
+	r.syncer.lock.RLock()
+	defer r.syncer.lock.RUnlock()
+	return r.syncer.isSyncer
+}
+
+func (r *Relayer) getSyncer() (bool, time.Time) {
+	r.syncer.lock.RLock()
+	defer r.syncer.lock.RUnlock()
+	return r.syncer.isSyncer, r.syncer.updateTime
+}
+
+func (r *Relayer) setSyncer(syncer bool) {
+	r.syncer.lock.Lock()
+	defer r.syncer.lock.Unlock()
+	r.syncer.updateTime = time.Now()
+	if syncer {
+		r.syncer.isSyncer = true
+		log.Debug("become a syncer")
+	} else {
+		r.syncer.isSyncer = false
+		log.Debug("no longer a syncer")
+	}
 }

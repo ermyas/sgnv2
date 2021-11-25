@@ -58,7 +58,7 @@ type CbrOneChain struct {
 	lock     sync.RWMutex
 
 	// chainid and blkdelay and forwardblkdelay for verify/easy logging
-	chainid, blkDelay, forwardBlkDelay uint64
+	chainid, blkDelay, forwardBlkDelay, blkInterval uint64
 }
 
 // key is chainid
@@ -134,6 +134,7 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 		chainid:         cfg.ChainID,
 		blkDelay:        cfg.BlkDelay,
 		forwardBlkDelay: cfg.ForwardBlkDelay,
+		blkInterval:     cfg.BlkInterval,
 	}
 	chainSigners, err := cbrcli.QueryChainSigners(cliCtx, cfg.ChainID)
 	if err != nil {

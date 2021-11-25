@@ -26,6 +26,9 @@ const (
 	maxRelayRetry     = 15
 	maxSigRetry       = 10
 	maxBytesPerUpdate = 400000
+
+	sigWaitSgnBlk    = 4
+	newSyncerWaitBlk = 8
 )
 
 // sleep, check if syncer, if yes, go over cbr dbs to send tx
@@ -75,15 +78,16 @@ func (r *Relayer) doCbridgeOnchainByChain(chid uint64) {
 	log.Infof("start process cbridge onchain, interval:%s, chainId: %d", interval, chid)
 	for {
 		time.Sleep(interval)
-		if !r.isSyncer() {
-			continue
-		}
-
 		r.processCbridgeQueue(chid)
 	}
 }
 
 func (r *Relayer) processCbridgeQueue(chid uint64) {
+	syncer, syncerUpdateTime := r.getSyncer()
+	if !syncer {
+		return
+	}
+
 	var keys, vals [][]byte
 	r.lock.RLock()
 	prefix := GetCbrChainXferPrefix(chid)
@@ -101,17 +105,35 @@ func (r *Relayer) processCbridgeQueue(chid uint64) {
 	r.lock.RUnlock()
 
 	if len(keys) > 0 {
-		log.Debugf("start process relay queue，current timestamp: %d, queue size: %d, chainid: %d", time.Now().Unix(), len(keys), chid)
+		log.Debugf("start process relay queue for dst chain %d queue size: %d", chid, len(keys))
+	} else {
+		return
 	}
+
+	newSyncer := false
+	newSyncerWaitTime := time.Duration(r.cbrMgr[chid].blkInterval) * time.Second * newSyncerWaitBlk
+	if syncerUpdateTime.Add(newSyncerWaitTime).After(time.Now()) {
+		newSyncer = true
+	}
+	sigWaitTime := viper.GetDuration(common.FlagConsensusTimeoutCommit) * sigWaitSgnBlk
 	for i, key := range keys {
-		event := NewRelayRequestFromBytes(vals[i])
+		relay := NewRelayRequestFromBytes(vals[i])
+		if relay.CreateTime.Add(sigWaitTime).After(time.Now()) {
+			// wait a while to collect validator signatures
+			continue
+		}
+		if newSyncer && relay.CreateTime.Before(syncerUpdateTime) {
+			// wait for relay to be submitted by the previous syncer
+			continue
+		}
+
 		err = r.dbDelete(key)
 		if err != nil {
 			log.Errorln("db Delete err", err)
 			continue
 		}
 
-		r.submitRelay(event)
+		r.submitRelay(relay)
 	}
 }
 
