@@ -309,7 +309,8 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 			// validate sig
 			contractAddr, found := GetCbrContract(kv, mySig.GetChainId())
 			if !found {
-				return nil, fmt.Errorf("%s contract not found for chain %d", logmsg, mySig.GetChainId())
+				log.Errorf("%s contract not found for chain %d", logmsg, mySig.GetChainId())
+				continue
 			}
 			dataToSign := types.EncodeSignersUpdateToSign(mySig.GetChainId(), contractAddr, msg.Data)
 			signer, err := ethutils.RecoverSigner(dataToSign, mySig.Sig)
