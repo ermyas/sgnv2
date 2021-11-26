@@ -149,9 +149,9 @@ func ValidateSigQuorum(sortedSigs []*AddrSig, curss []*Signer) (pass bool, sigsB
 			filteredSigs = append(filteredSigs, sig)
 		}
 	}
-	// sort signer by power
+	// Sort filteredSigs by descending powers
 	sort.Slice(filteredSigs, func(i, j int) bool {
-		return signerPowers[eth.Bytes2Addr(filteredSigs[i].GetAddr())].Cmp(signerPowers[eth.Bytes2Addr(filteredSigs[j].GetAddr())]) > 0
+		return signerPowers[eth.Bytes2Addr(filteredSigs[i].GetAddr())].Cmp(signerPowers[eth.Bytes2Addr(filteredSigs[j].GetAddr())]) == 1
 	})
 
 	signedPower := big.NewInt(0)
@@ -161,6 +161,7 @@ func ValidateSigQuorum(sortedSigs []*AddrSig, curss []*Signer) (pass bool, sigsB
 			signedPower.Add(signedPower, power)
 			quorumSigners = append(quorumSigners, s)
 			if signedPower.Cmp(quorumStake) > 0 {
+				// Sort quorumSigners by ascending addresses per contract requirement
 				sort.Slice(quorumSigners, func(i, j int) bool {
 					return bytes.Compare(eth.Pad20Bytes(quorumSigners[i].Addr), eth.Pad20Bytes(quorumSigners[j].Addr)) == -1
 				})
@@ -190,8 +191,9 @@ func MinSigsForQuorum(signers []*Signer) uint32 {
 	}
 	quorumStake := big.NewInt(0).Mul(totalPower, big.NewInt(2))
 	quorumStake = quorumStake.Quo(quorumStake, big.NewInt(3))
+	// Sort signers by descending powers
 	sort.Slice(signers, func(i, j int) bool {
-		return sigMap[eth.Bytes2Addr(signers[i].Addr)].Cmp(sigMap[eth.Bytes2Addr(signers[j].Addr)]) > 0
+		return sigMap[eth.Bytes2Addr(signers[i].Addr)].Cmp(sigMap[eth.Bytes2Addr(signers[j].Addr)]) == 1
 	})
 
 	signedPower := big.NewInt(0)

@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"sort"
 
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
@@ -367,23 +366,22 @@ func (k msgServer) UpdateLatestSigners(ctx context.Context, msg *types.MsgUpdate
 	return &types.MsgUpdateLatestSignersResp{}, nil
 }
 
-// sort curSigs in place and return it. if newsig.Addr equals one already in curSigs, only update sig
-func UpdateSortedSigs(curSigs []*types.AddrSig, newsig *types.AddrSig) []*types.AddrSig {
-	foundSameAddr := false
-	for _, addrSig := range curSigs {
-		if bytes.Equal(addrSig.Addr, newsig.Addr) {
-			addrSig.Sig = newsig.Sig
-			foundSameAddr = true
+// Add newSig and return updated curSigs. if newSig.Addr equals one already in curSigs, only update sig
+func UpdateSortedSigs(curSigs []*types.AddrSig, newSig *types.AddrSig) []*types.AddrSig {
+	for i, addrSig := range curSigs {
+		if bytes.Equal(addrSig.Addr, newSig.Addr) {
+			// Overwriting existing sig
+			addrSig.Sig = newSig.Sig
+			return curSigs
+		}
+		// NOTE: We must compare full 20 bytes, otherwise if address has leading 00, it may be put in the wrong order
+		if bytes.Compare(eth.Pad20Bytes(newSig.Addr), eth.Pad20Bytes(addrSig.Addr)) == -1 {
+			// Found the spot, do insertion
+			newSigs := append(curSigs[:i+1], curSigs[i:]...)
+			newSigs[i] = newSig
+			return newSigs
 		}
 	}
-	if foundSameAddr {
-		return curSigs
-	}
-	// new addr, add then sort by addr
-	curSigs = append(curSigs, newsig)
-	sort.Slice(curSigs, func(i, j int) bool {
-		// note we must compare full 20 bytes, otherwise if address has leading 00, it may be put in the wrong order
-		return bytes.Compare(eth.Pad20Bytes(curSigs[i].Addr), eth.Pad20Bytes(curSigs[j].Addr)) == -1
-	})
-	return curSigs
+	// Address larger than all existing signers, append to the end
+	return append(curSigs, newSig)
 }

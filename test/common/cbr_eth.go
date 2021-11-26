@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"sort"
 	"time"
 
 	ethutils "github.com/celer-network/goutils/eth"
@@ -138,9 +137,6 @@ func (c *CbrChain) SetInitSigners(amts []*big.Int) error {
 func OnchainClaimFarmingRewards(details *farmingtypes.RewardClaimDetails) error {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
-	sort.Slice(details.Signatures, func(i int, j int) bool {
-		return details.Signatures[i].Signer < details.Signatures[j].Signer
-	})
 	var sigs [][]byte
 	for _, signature := range details.Signatures {
 		sigs = append(sigs, signature.SigBytes)
@@ -156,9 +152,6 @@ func OnchainClaimFarmingRewards(details *farmingtypes.RewardClaimDetails) error 
 func OnchainClaimStakingReward(claimInfo *distrtypes.StakingRewardClaimInfo) error {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
-	sort.Slice(claimInfo.Signatures, func(i int, j int) bool {
-		return claimInfo.Signatures[i].Signer < claimInfo.Signatures[j].Signer
-	})
 	var sigs [][]byte
 	for _, signature := range claimInfo.Signatures {
 		sigs = append(sigs, signature.SigBytes)
