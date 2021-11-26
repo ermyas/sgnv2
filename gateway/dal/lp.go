@@ -37,22 +37,11 @@ func (d *DAL) InsertLPWithSeqNumAndMethodType(usrAddr, tokenSymbol, tokenAddr, a
 	return sqldb.ChkExec(res, err, 1, "InsertLPWithSeqNumAndMethodType")
 }
 
-func (d *DAL) UpsertLPWithSeqNum(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum uint64, volume float64) error {
-	q := `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num, volume)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) ON CONFLICT (usr_addr, chain_id, seq_num, lp_type) DO UPDATE
-	SET status = $9, tx_hash=$6, update_time = $7`
-	res, err := d.Exec(q, usrAddr, chainId, tokenSymbol, tokenAddr, amt, txHash, now(), now(), status, lpType, seqNum, volume)
-	if err != nil {
-		log.Errorf("UpsertLPWithSeqNum db err, usrAddr:%s, hash:%s, chainId:%d, seqNum:%d, lpType:%d, err:%+v", usrAddr, txHash, chainId, seqNum, lpType, err)
-	}
-	return sqldb.ChkExec(res, err, 1, "UpsertLPWithSeqNum")
-}
-
-func (d *DAL) UpsertLPWithTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum uint64, volume float64) error {
-	q := `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num, volume)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) ON CONFLICT (usr_addr, chain_id, tx_hash, lp_type) DO UPDATE
+func (d *DAL) UpsertLPWithTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum, nonce uint64, volume float64) error {
+	q := `INSERT INTO lp (usr_addr, chain_id, token_symbol, token_addr, amt, tx_hash, update_time, create_time, status, lp_type, seq_num, volume, nonce)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) ON CONFLICT (usr_addr, chain_id, tx_hash, lp_type) DO UPDATE
 	SET status = $9, seq_num = $11, update_time = $7`
-	res, err := d.Exec(q, usrAddr, chainId, tokenSymbol, tokenAddr, amt, txHash, now(), now(), status, lpType, seqNum, volume)
+	res, err := d.Exec(q, usrAddr, chainId, tokenSymbol, tokenAddr, amt, txHash, now(), now(), status, lpType, seqNum, volume, nonce)
 	if err != nil {
 		log.Errorf("UpsertLPWithTx db err, usrAddr:%s, hash:%s, chainId:%d, seqNum:%d, lpType:%d, err:%+v", usrAddr, txHash, chainId, seqNum, lpType, err)
 	}
@@ -202,10 +191,11 @@ type LP struct {
 	SeqNum      uint64
 	Addr        string
 	MethodType  webapi.WithdrawMethodType
+	Nonce       uint64
 }
 
 func (d *DAL) PaginateLpHistory(sender string, end time.Time, size uint64) ([]*LP, int, time.Time, error) {
-	q := "SELECT chain_id, token_symbol, amt, tx_hash, create_time, status, lp_type, seq_num, usr_addr, withdraw_method_type FROM lp WHERE usr_addr = $1 and create_time < $3 and withdraw_method_type in (1,2) order by create_time desc limit $2"
+	q := "SELECT chain_id, token_symbol, amt, tx_hash, create_time, status, lp_type, seq_num, usr_addr, withdraw_method_type,nonce FROM lp WHERE usr_addr = $1 and create_time < $3 and withdraw_method_type in (1,2) order by create_time desc limit $2"
 	rows, err := d.Query(q, sender, size, end)
 	if err != nil {
 		return nil, 0, time.Unix(0, 0), err
@@ -214,11 +204,11 @@ func (d *DAL) PaginateLpHistory(sender string, end time.Time, size uint64) ([]*L
 
 	var tps []*LP
 	var txHash, tokenSymbol, amt, addr string
-	var chainId, status, lpType, seqnum, methodType uint64
+	var chainId, status, lpType, seqnum, methodType, nonce uint64
 	var ct time.Time
 	minTime := now()
 	for rows.Next() {
-		err = rows.Scan(&chainId, &tokenSymbol, &amt, &txHash, &ct, &status, &lpType, &seqnum, &addr, &methodType)
+		err = rows.Scan(&chainId, &tokenSymbol, &amt, &txHash, &ct, &status, &lpType, &seqnum, &addr, &methodType, &nonce)
 		if err != nil {
 			return nil, 0, time.Unix(0, 0), err
 		}
@@ -234,6 +224,7 @@ func (d *DAL) PaginateLpHistory(sender string, end time.Time, size uint64) ([]*L
 			SeqNum:      seqnum,
 			Addr:        addr,
 			MethodType:  webapi.WithdrawMethodType(methodType),
+			Nonce:       nonce,
 		}
 		if minTime.After(ct) {
 			minTime = ct

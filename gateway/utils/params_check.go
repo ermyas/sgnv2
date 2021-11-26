@@ -4,31 +4,8 @@ import (
 	"regexp"
 
 	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 )
-
-func CheckMarkTransferParams(transferId, txHash, addr string, sendInfo, receivedInfo *webapi.TransferInfo, txType webapi.TransferType) bool {
-	isValidIndex := isValidHash(transferId) &&
-		isValidHash(txHash)
-	if txType == webapi.TransferType_TRANSFER_TYPE_REFUND {
-		return isValidIndex
-	} else {
-		return isValidIndex &&
-			isValidAddr(addr) &&
-			isValidTxInfo(sendInfo) &&
-			isValidTxInfo(receivedInfo) &&
-			sendInfo.GetChain().GetId() != receivedInfo.GetChain().GetId()
-	}
-}
-
-func CheckMarkLiquidityParams(lpType webapi.LPType, chainId uint32, amt, lpAddr, tokenAddr string) bool {
-	return lpType != webapi.LPType_LP_TYPE_UNKNOWN &&
-		IsvalidAmt(amt) &&
-		chainId > 0 &&
-		isValidAddr(lpAddr) &&
-		isValidAddr(tokenAddr)
-}
 
 func CheckWithdrawLiquidityParams(req *types.WithdrawReq) bool {
 	if req.GetXferId() != "" {
@@ -52,13 +29,6 @@ func isValidAddr(addr string) bool {
 
 func isValidHash(hash string) bool {
 	return common.IsValidTxHash(hash)
-}
-
-func isValidTxInfo(info *webapi.TransferInfo) bool {
-	return IsvalidAmt(info.GetAmount()) &&
-		info.GetChain().GetId() > 0 &&
-		info.GetToken().GetSymbol() != "" &&
-		isValidAddr(info.GetToken().GetAddress())
 }
 
 func IsvalidAmt(amt string) bool {

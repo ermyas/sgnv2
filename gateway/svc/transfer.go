@@ -157,68 +157,6 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 	}
 }
 
-func (gs *GatewayService) MarkTransfer(ctx context.Context, request *webapi.MarkTransferRequest) (*webapi.MarkTransferResponse, error) {
-	transferId := request.GetTransferId()
-	addr := common.Hex2Addr(request.GetAddr())
-	sendInfo := request.GetSrcSendInfo()
-	receivedInfo := request.GetDstMinReceivedInfo()
-	if request.Type == webapi.TransferType_TRANSFER_TYPE_SEND {
-		sendInfo = refineTokenInfo(request.GetSrcSendInfo())
-		receivedInfo = refineTokenInfo(request.GetDstMinReceivedInfo())
-	}
-	txHash := request.GetSrcTxHash()
-	txType := request.GetType()
-	log.Infof("Mark transfer, transferId: %s, addr:%s, txHash: %s, srcChainId:%d, txType:%d", transferId, addr, txHash, sendInfo.GetChain().GetId(), txType)
-	if !utils.CheckMarkTransferParams(transferId, txHash, request.GetAddr(), sendInfo, receivedInfo, txType) {
-		return &webapi.MarkTransferResponse{
-			Err: &webapi.ErrMsg{
-				Code: webapi.ErrCode_ERROR_CODE_COMMON,
-				Msg:  "params checking failed",
-			},
-		}, nil
-	}
-	if txType == webapi.TransferType_TRANSFER_TYPE_SEND {
-		srcChainId := uint64(sendInfo.GetChain().GetId())
-		dstChainId := uint64(receivedInfo.GetChain().GetId())
-		percentage := uint32(400) // default 0.04%
-		tr := gs.TP.GetTransactor()
-		perc, err := cbrcli.QueryFeePerc(tr.CliCtx, &types.GetFeePercentageRequest{
-			SrcChainId: srcChainId,
-			DstChainId: dstChainId,
-		})
-		if err == nil && perc != nil && perc.FeePerc > 0 {
-			percentage = perc.FeePerc
-		} else {
-			log.Warnf("get perc failed:srcChain:%d, dstChain:%d, perc:%+v, err:%+v", srcChainId, dstChainId, perc, err)
-		}
-
-		err = dal.DB.MarkTransferSend(transferId, addr.String(), sendInfo.GetToken().GetSymbol(),
-			sendInfo.GetAmount(), receivedInfo.GetAmount(), txHash, srcChainId,
-			dstChainId, gs.F.GetUsdVolume(sendInfo.GetToken(), common.Str2BigInt(sendInfo.GetAmount())), percentage)
-		if err != nil {
-			return &webapi.MarkTransferResponse{
-				Err: &webapi.ErrMsg{
-					Code: webapi.ErrCode_ERROR_CODE_COMMON,
-					Msg:  "mark transfer refund failed",
-				},
-			}, nil
-		}
-	} else if txType == webapi.TransferType_TRANSFER_TYPE_REFUND {
-		err := dal.DB.MarkTransferRefund(transferId, txHash)
-		if err != nil {
-			return &webapi.MarkTransferResponse{
-				Err: &webapi.ErrMsg{
-					Code: webapi.ErrCode_ERROR_CODE_COMMON,
-					Msg:  "mark transfer refund failed",
-				},
-			}, nil
-		}
-	}
-	return &webapi.MarkTransferResponse{
-		Err: nil,
-	}, nil
-}
-
 func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.TransferHistoryRequest) (*webapi.TransferHistoryResponse, error) {
 	addr := common.Hex2Addr(request.GetAddr()).String()
 	endTime := time.Now()
@@ -444,15 +382,16 @@ func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainI
 	percFee := feeInfo.GetPercFee()
 	baseFee := feeInfo.GetBaseFee()
 	feeAmt := new(big.Int).Add(common.Str2BigInt(percFee), common.Str2BigInt(baseFee))
-	srcVolume := gs.F.GetUsdVolume(srcToken.Token, common.Str2BigInt(amt))
-	dstVolume := gs.F.GetUsdVolume(dstToken.Token, common.Str2BigInt(eqValueTokenAmt))
+	srcVolume, _ := rmAmtDecimal(amt, int(srcToken.GetToken().GetDecimal())).Float64()
+	dstVolume, _ := rmAmtDecimal(eqValueTokenAmt, int(dstToken.GetToken().GetDecimal())).Float64()
 	bridgeRate := 0.0
 	if srcVolume > 0.000000001 {
 		bridgeRate = dstVolume / srcVolume
 	} else {
 		return nil, fmt.Errorf("amount should > 0")
 	}
-	minReceiveVolume := dstVolume*(1-float64(slippage)/1e6) - gs.F.GetUsdVolume(dstToken.Token, feeAmt)
+	feeVolume, _ := rmAmtDecimal(feeAmt.String(), int(dstToken.GetToken().GetDecimal())).Float64()
+	minReceiveVolume := dstVolume*(1-float64(slippage)/1e6) - feeVolume
 	minReceiveVolume = math.Max(minReceiveVolume, 0)
 	return &webapi.EstimateAmtResponse{
 		EqValueTokenAmt:   eqValueTokenAmt,

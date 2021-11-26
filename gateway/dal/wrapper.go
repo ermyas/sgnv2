@@ -2,6 +2,7 @@ package dal
 
 import (
 	"fmt"
+
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
@@ -30,7 +31,7 @@ func UpdateTransferForRefund(transferId string, status uint64, refundId string) 
 }
 
 // UpsertTransferOnSend update api
-func UpsertTransferOnSend(transferId, usrAddr, tokenSymbol, amt, sendTxHash string, srcChainId, dsChainId uint64) error {
+func UpsertTransferOnSend(transferId, usrAddr, tokenSymbol, amt, estimatedAmt, sendTxHash string, srcChainId, dsChainId uint64, perc uint32) error {
 	if DB == nil {
 		return nil
 	} else {
@@ -39,7 +40,7 @@ func UpsertTransferOnSend(transferId, usrAddr, tokenSymbol, amt, sendTxHash stri
 			log.Warnf("find invalid token volume, symbol:%s, chainId:%d, we set volume to 0 first", tokenSymbol, srcChainId)
 			// continue to save 0 volume in db
 		}
-		return DB.UpsertTransferOnSend(transferId, usrAddr, tokenSymbol, amt, sendTxHash, srcChainId, dsChainId, volume)
+		return DB.UpsertTransferOnSend(transferId, usrAddr, tokenSymbol, amt, estimatedAmt, sendTxHash, srcChainId, dsChainId, volume, perc)
 	}
 }
 
@@ -214,7 +215,7 @@ func GetTokenByAddr(addr string, chainId uint64) (*webapi.TokenInfo, bool, error
 }
 
 // UpsertLPForLiqAdd update api
-func UpsertLPForLiqAdd(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum uint64) error {
+func UpsertLPForLiqAdd(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chainId, status, lpType, seqNum, nonce uint64) error {
 	if DB == nil {
 		return nil
 	} else {
@@ -223,7 +224,7 @@ func UpsertLPForLiqAdd(usrAddr, tokenSymbol, tokenAddr, amt, txHash string, chai
 			log.Warnf("find invalid token volume, symbol:%s, chainId:%d, we set volume to 0 first", tokenSymbol, chainId)
 			// continue to save 0 volume in db
 		}
-		return DB.UpsertLPWithTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash, chainId, status, lpType, seqNum, volume)
+		return DB.UpsertLPWithTx(usrAddr, tokenSymbol, tokenAddr, amt, txHash, chainId, status, lpType, seqNum, nonce, volume)
 	}
 }
 
