@@ -30,7 +30,7 @@ func NewTxCmd() *cobra.Command {
 	return mintTxCmd
 }
 
-// GetCmdSubmitAdjustProvisionsProposal implements a command handler for submitting an AddTokensProposal
+// GetCmdSubmitAdjustProvisionsProposal implements a command handler for submitting an AdjustProvisionsProposal
 func GetCmdSubmitAdjustProvisionsProposal() *cobra.Command {
 	return &cobra.Command{
 		Use:   "mint-adjust-provisions [proposal-file]",

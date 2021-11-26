@@ -19,6 +19,7 @@ func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(&RemovePoolProposal{}, "sgn-v2/RemovePoolProposal", nil)
 	cdc.RegisterConcrete(&AdjustRewardProposal{}, "sgn-v2/AdjustRewardProposal", nil)
 	cdc.RegisterConcrete(&AddTokensProposal{}, "sgn-v2/AddTokensProposal", nil)
+	cdc.RegisterConcrete(&SetRewardContractsProposal{}, "sgn-v2/SetRewardContractsProposal", nil)
 }
 
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
@@ -33,6 +34,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		&RemovePoolProposal{},
 		&AdjustRewardProposal{},
 		&AddTokensProposal{},
+		&SetRewardContractsProposal{},
 	)
 
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)

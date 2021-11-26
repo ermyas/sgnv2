@@ -31,6 +31,8 @@ func GetQueryCmd() *cobra.Command {
 		GetCmdQueryPools(),
 		GetCmdQueryToken(),
 		GetCmdQueryTokens(),
+		GetCmdQueryRewardContract(),
+		GetCmdQueryRewardContracts(),
 		GetCmdQueryNumPools(),
 		GetCmdQueryStakeInfo(),
 		GetCmdQueryEarnings(),
@@ -197,6 +199,79 @@ $ %s query farming tokens
 			res, err := queryClient.Tokens(
 				cmd.Context(),
 				&types.QueryTokensRequest{},
+			)
+			if err != nil {
+				return err
+			}
+			return cliCtx.PrintProto(res)
+		},
+	}
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
+}
+
+// GetCmdQueryRewardContract gets the reward contract query command.
+func GetCmdQueryRewardContract() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "reward-contract [chain-id]",
+		Short: "query a reward contract",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query the info about a reward contract.
+
+Example:
+$ %s query farming reward-contract 1
+`,
+				version.AppName,
+			),
+		),
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			chainId, err := strconv.ParseUint(args[0], 10, 64)
+			if err != nil {
+				return err
+			}
+			queryClient := types.NewQueryClient(cliCtx)
+			res, err := queryClient.RewardContract(
+				cmd.Context(),
+				&types.QueryRewardContractRequest{ChainId: chainId},
+			)
+			if err != nil {
+				return err
+			}
+			return cliCtx.PrintProto(&res.RewardContract)
+		},
+	}
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
+}
+
+// GetCmdQueryRewardContracts gets the reward contracts query command.
+func GetCmdQueryRewardContracts() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "reward-contracts",
+		Short: "query all reward contracts",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query the info about all reward contracts.
+
+Example:
+$ %s query farming reward-contracts
+`,
+				version.AppName,
+			),
+		),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			queryClient := types.NewQueryClient(cliCtx)
+			res, err := queryClient.RewardContracts(
+				cmd.Context(),
+				&types.QueryRewardContractsRequest{},
 			)
 			if err != nil {
 				return err

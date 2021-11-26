@@ -20,19 +20,28 @@ func (k Keeper) GetERC20Token(ctx sdk.Context, chainId uint64, symbol string) (t
 	return token, true
 }
 
+func (k Keeper) IterateAllERC20Tokens(
+	ctx sdk.Context, handler func(token types.ERC20Token) (stop bool),
+) {
+	store := ctx.KVStore(k.storeKey)
+	iter := sdk.KVStorePrefixIterator(store, types.ERC20TokenPrefix)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		var token types.ERC20Token
+		k.cdc.MustUnmarshal(iter.Value(), &token)
+		if handler(token) {
+			break
+		}
+	}
+}
+
 // GetERC20Tokens gets all supported tokens
 func (k Keeper) GetERC20Tokens(ctx sdk.Context) (tokens types.ERC20Tokens) {
-	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, types.ERC20TokenPrefix)
-	defer iterator.Close()
-
-	for ; iterator.Valid(); iterator.Next() {
-		var token types.ERC20Token
-		k.cdc.MustUnmarshal(iterator.Value(), &token)
+	k.IterateAllERC20Tokens(ctx, func(token types.ERC20Token) bool {
 		tokens = append(tokens, token)
-	}
-
-	return
+		return false
+	})
+	return tokens
 }
 
 func (k Keeper) HasERC20Token(ctx sdk.Context, chainId uint64, symbol string) bool {

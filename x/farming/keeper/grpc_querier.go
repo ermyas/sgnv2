@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/celer-network/sgn-v2/common"
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/farming/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -87,6 +88,39 @@ func (k Keeper) Token(c context.Context, req *types.QueryTokenRequest) (*types.Q
 		return nil, status.Errorf(codes.NotFound, "token %s/%d not found", req.Symbol, req.ChainId)
 	}
 	return &types.QueryTokenResponse{Token: token}, nil
+}
+
+// RewardContracts queries all the reward contracts.
+func (k Keeper) RewardContracts(c context.Context, req *types.QueryRewardContractsRequest) (*types.QueryRewardContractsResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	ctx := sdk.UnwrapSDKContext(c)
+
+	var infos []commontypes.ContractInfo
+	k.IterateAllRewardContracts(ctx, func(info commontypes.ContractInfo) bool {
+		infos = append(infos, info)
+		return false
+	})
+	return &types.QueryRewardContractsResponse{RewardContracts: infos}, nil
+
+}
+
+// RewardContract queries a single reward contract.
+func (k Keeper) RewardContract(c context.Context, req *types.QueryRewardContractRequest) (*types.QueryRewardContractResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	if req.ChainId == 0 {
+		return nil, status.Error(codes.InvalidArgument, "invalid chain ID")
+	}
+	ctx := sdk.UnwrapSDKContext(c)
+
+	info, found := k.GetRewardContract(ctx, req.ChainId)
+	if !found {
+		return nil, status.Errorf(codes.NotFound, "reward contract for chain ID %d not found", req.ChainId)
+	}
+	return &types.QueryRewardContractResponse{RewardContract: info}, nil
 }
 
 // Earnings queries the current earnings of an account in a pool.

@@ -5,6 +5,7 @@ import "gogoproto/gogo.proto";
 import "google/api/annotations.proto";
 import "cosmos/base/query/v1beta1/pagination.proto";
 import "cosmos/base/v1beta1/coin.proto";
+import "sgn/common/v1/common.proto";
 import "sgn/farming/v1/farming.proto";
 
 option go_package = "github.com/celer-network/sgn-v2/x/farming/types";
@@ -34,6 +35,14 @@ service Query {
   // Token queries the info of a single token.
   rpc Token(QueryTokenRequest) returns (QueryTokenResponse) {
     option (google.api.http).get = "/sgn/farming/v1/token/{chain_id}/{symbol}";
+  }
+
+  rpc RewardContracts(QueryRewardContractsRequest) returns (QueryRewardContractsResponse) {
+    option (google.api.http).get = "/sgn/farming/v1/reward_contracts";
+  }
+
+  rpc RewardContract(QueryRewardContractRequest) returns (QueryRewardContractResponse) {
+    option (google.api.http).get = "/sgn/farming/v1/reward_contract/{chain_id}";
   }
 
   // Earnings queries the current earnings of an account in a pool.
@@ -135,6 +144,31 @@ message QueryTokenRequest {
 message QueryTokenResponse {
   // token defines the token info.
   ERC20Token token = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryRewardContractsRequest is the request type for the
+// Query/RewardContracts RPC method.
+message QueryRewardContractsRequest {}
+
+// QueryRewardContractsResponse is the response type for the
+// Query/RewardContracts RPC method.
+message QueryRewardContractsResponse {
+  // reward_contracts defines the info of all the FarmingRewards contracts.
+  repeated sgn.common.v1.ContractInfo reward_contracts = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryRewardContractRequest is the request type for the
+// Query/RewardContract RPC method.
+message QueryRewardContractRequest {
+  // chain_id defines the chain ID of the contract to query for.
+  uint64 chain_id = 1;
+}
+
+// QueryRewardContractResponse is the response type for the
+// Query/RewardContract RPC method.
+message QueryRewardContractResponse {
+  // reward_contract defines the info of the FarmingRewards contract.
+  sgn.common.v1.ContractInfo reward_contract = 1 [(gogoproto.nullable) = false];
 }
 
 // QueryEarningsRequest is the request type for the

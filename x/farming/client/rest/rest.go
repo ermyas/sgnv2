@@ -126,3 +126,37 @@ func postAdjustRewardProposalHandlerFn(clientCtx client.Context) http.HandlerFun
 		tx.WriteGeneratedTxResponse(clientCtx, w, req.BaseReq, msg)
 	}
 }
+
+// SetRewardContractsProposalRESTHandler returns an SetRewardContractsProposalRESTHandler that exposes the add tokens REST handler with a given sub-route.
+func SetRewardContractsProposalRESTHandler(clientCtx client.Context) govrest.ProposalRESTHandler {
+	return govrest.ProposalRESTHandler{
+		SubRoute: "farming_set_reward_contracts",
+		Handler:  postSetRewardContractsProposalHandlerFn(clientCtx),
+	}
+}
+
+func postSetRewardContractsProposalHandlerFn(clientCtx client.Context) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req SetRewardContractsProposalReq
+		if !rest.ReadRESTReq(w, r, clientCtx.LegacyAmino, &req) {
+			return
+		}
+
+		req.BaseReq = req.BaseReq.Sanitize()
+		if !req.BaseReq.ValidateBasic(w) {
+			return
+		}
+
+		content := types.NewSetRewardContractsProposal(req.Title, req.Description, req.RewardContracts)
+
+		msg, err := govtypes.NewMsgSubmitProposal(content, req.Deposit[0].Amount, req.Proposer)
+		if rest.CheckBadRequestError(w, err) {
+			return
+		}
+		if rest.CheckBadRequestError(w, msg.ValidateBasic()) {
+			return
+		}
+
+		tx.WriteGeneratedTxResponse(clientCtx, w, req.BaseReq, msg)
+	}
+}

@@ -2,6 +2,8 @@ package types
 
 import (
 	"fmt"
+
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 )
 
 // NewGenesisState creates a new GenesisState object
@@ -11,6 +13,7 @@ func NewGenesisState(
 	stakeInfos []StakeInfo,
 	historicalRewards []PoolHistoricalRewardsRecord,
 	currentRewards []PoolCurrentRewardsRecord,
+	rewardContracts []commontypes.ContractInfo,
 ) *GenesisState {
 	return &GenesisState{
 		Params:                params,
@@ -18,6 +21,7 @@ func NewGenesisState(
 		StakeInfos:            stakeInfos,
 		PoolHistoricalRewards: historicalRewards,
 		PoolCurrentRewards:    currentRewards,
+		RewardContracts:       rewardContracts,
 	}
 }
 
@@ -29,6 +33,7 @@ func DefaultGenesisState() *GenesisState {
 		StakeInfos:            []StakeInfo{},
 		PoolHistoricalRewards: []PoolHistoricalRewardsRecord{},
 		PoolCurrentRewards:    []PoolCurrentRewardsRecord{},
+		RewardContracts:       []commontypes.ContractInfo{},
 	}
 }
 

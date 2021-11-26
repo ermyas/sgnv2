@@ -110,6 +110,7 @@ var (
 			farmingclient.AddPoolProposalHandler,
 			farmingclient.AddTokensProposalHandler,
 			farmingclient.AdjustRewardProposalHandler,
+			farmingclient.SetRewardContractsProposalHandler,
 		),
 		slashing.AppModule{},
 		sync.AppModule{},

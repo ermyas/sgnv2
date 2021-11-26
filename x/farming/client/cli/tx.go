@@ -31,6 +31,7 @@ func NewTxCmd() *cobra.Command {
 		GetCmdSubmitAddPoolProposal(),
 		GetCmdSubmitAddTokensProposal(),
 		GetCmdSubmitAdjustRewardProposal(),
+		GetCmdSubmitSetRewardContractsProposal(),
 		GetCmdClaimAllRewards(),
 		// TODO: Support ClaimRewards for a single pool?
 	)
@@ -296,6 +297,69 @@ Where proposal.json contains:
 					proposal.Description,
 					proposal.PoolName,
 					proposal.RewardAdjustmentInputs,
+				)
+
+			msg, err := govtypes.NewMsgSubmitProposal(content, deposit[0].Amount, from)
+			if err != nil {
+				return err
+			}
+
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+		},
+	}
+}
+
+// GetCmdSubmitSetRewardContractsProposal implements a command handler for submitting an SetRewardContractsProposal
+func GetCmdSubmitSetRewardContractsProposal() *cobra.Command {
+	return &cobra.Command{
+		Use:   "farming-set-reward-contracts [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit an SetRewardContractsProposal",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit an SetRewardContractsProposal along with an initial deposit.
+The proposal details must be supplied via a JSON file.
+
+Example:
+$ %s gov submit-proposal farming-set-reward-contracts <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+
+{
+  "title": "Set FarmingRewardsContract for chain IDs 1 and 5",
+  "description": "Set FarmingRewardsContract for Ethereum and Goerli",
+  "reward_contracts": [
+    {
+      "chain_id": 1,
+      "address": "0x0db9888166f26F0416977E6D4B41Cf8C266c942c",
+    },
+    {
+      "chain_id": 5,
+      "address": "0x0db9888166f26F0416977E6D4B41Cf8C266c942c",
+    }
+  ],
+  "deposit": "10000000%s"
+}
+`, version.AppName, stakingtypes.StakeDenom,
+			)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+			proposal, err := ParseSetRewardContractsProposalWithDeposit(clientCtx.Codec, args[0])
+			if err != nil {
+				return err
+			}
+			deposit, err := sdk.ParseCoinsNormalized(proposal.Deposit)
+			if err != nil {
+				return err
+			}
+			from := clientCtx.GetFromAddress()
+			content :=
+				types.NewSetRewardContractsProposal(
+					proposal.Title,
+					proposal.Description,
+					proposal.RewardContracts,
 				)
 
 			msg, err := govtypes.NewMsgSubmitProposal(content, deposit[0].Amount, from)

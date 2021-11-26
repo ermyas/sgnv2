@@ -2,18 +2,20 @@ package types
 
 // farming module event types
 const (
-	EventTypeAddPool      = "add-pool"
-	EventTypeRemovePool   = "remove-pool"
-	EventTypeAddToken     = "add-token"
-	EventTypeAdjustReward = "adjust-reward"
-	EventTypeStake        = "stake"
-	EventTypeUnstake      = "unstake"
-	EventTypeClaim        = "claim"
-	EventTypeClaimAll     = "claim_all"
+	EventTypeAddPool           = "add-pool"
+	EventTypeRemovePool        = "remove-pool"
+	EventTypeAddToken          = "add-token"
+	EventTypeSetRewardContract = "set-reward-contract"
+	EventTypeAdjustReward      = "adjust-reward"
+	EventTypeStake             = "stake"
+	EventTypeUnstake           = "unstake"
+	EventTypeClaim             = "claim"
+	EventTypeClaimAll          = "claim_all"
 
 	AttributeKeyAddress              = "address"
 	AttributeKeyPool                 = "pool"
 	AttributeKeyToken                = "token"
+	AttributeKeyRewardContract       = "reward_contract"
 	AttributeKeyStakeToken           = "stake_token"
 	AttributeKeyAddAmount            = "add_amount"
 	AttributeKeyRewardStartHeight    = "reward_start_height"

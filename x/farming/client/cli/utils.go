@@ -54,3 +54,19 @@ func ParseAdjustRewardProposalWithDeposit(cdc codec.JSONCodec, proposalFile stri
 
 	return proposal, nil
 }
+
+// ParseSetRewardContractsProposalWithDeposit reads and parses an SetRewardContractsProposalWithDeposit from a JSON file.
+func ParseSetRewardContractsProposalWithDeposit(cdc codec.JSONCodec, proposalFile string) (
+	types.SetRewardContractsProposalWithDeposit, error) {
+	proposal := types.SetRewardContractsProposalWithDeposit{}
+
+	contents, err := ioutil.ReadFile(proposalFile)
+	if err != nil {
+		return proposal, err
+	}
+	if err = cdc.UnmarshalJSON(contents, &proposal); err != nil {
+		return proposal, err
+	}
+
+	return proposal, nil
+}

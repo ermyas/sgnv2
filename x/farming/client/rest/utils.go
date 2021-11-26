@@ -1,6 +1,7 @@
 package rest
 
 import (
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/x/farming/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
@@ -42,5 +43,16 @@ type (
 		RewardAdjustmentInputs []types.RewardAdjustmentInput `json:"reward_adjustment_inputs" yaml:"reward_adjustment_inputs"`
 		Proposer               sdk.AccAddress                `json:"proposer" yaml:"proposer"`
 		Deposit                sdk.Coins                     `json:"deposit" yaml:"deposit"`
+	}
+
+	// SetRewardContractsProposalReq defines an SetRewardContractsProposal request body.
+	SetRewardContractsProposalReq struct {
+		BaseReq rest.BaseReq `json:"base_req" yaml:"base_req"`
+
+		Title           string                     `json:"title" yaml:"title"`
+		Description     string                     `json:"description" yaml:"description"`
+		RewardContracts []commontypes.ContractInfo `json:"tokens" yaml:"reward_contracts"`
+		Proposer        sdk.AccAddress             `json:"proposer" yaml:"proposer"`
+		Deposit         sdk.Coins                  `json:"deposit" yaml:"deposit"`
 	}
 )

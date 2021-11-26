@@ -21,6 +21,9 @@ func NewProposalHandler(k keeper.Keeper) govtypes.Handler {
 		case *types.AddTokensProposal:
 			err = keeper.HandleAddTokensProposal(ctx, k, c)
 			return err
+		case *types.SetRewardContractsProposal:
+			err = keeper.HandleSetRewardContractsProposal(ctx, k, c)
+			return err
 		default:
 			return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized farming proposal content type: %T", c)
 		}

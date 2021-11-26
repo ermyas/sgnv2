@@ -288,3 +288,27 @@ message AddTokensProposalWithDeposit {
   repeated ERC20Token tokens = 3 [(gogoproto.moretags) = "yaml:\"tokens\"", (gogoproto.nullable) = false];
   string deposit = 4 [(gogoproto.moretags) = "yaml:\"deposit\""];
 }
+
+// SetRewardContractsProposal details a proposal to set FarmingRewards contract info.
+message SetRewardContractsProposal {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.goproto_stringer) = false;
+
+  string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
+  string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
+  repeated sgn.common.v1.ContractInfo reward_contracts = 3
+      [(gogoproto.moretags) = "yaml:\"reward_contracts\"", (gogoproto.nullable) = false];
+}
+
+// SetRewardContractsProposalWithDeposit defines an SetRewardContractsProposal with a deposit, for CLI usage.
+message SetRewardContractsProposalWithDeposit {
+  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.goproto_stringer) = true;
+
+  string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
+  string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
+  repeated sgn.common.v1.ContractInfo reward_contracts = 3
+      [(gogoproto.moretags) = "yaml:\"reward_contracts\"", (gogoproto.nullable) = false];
+  string deposit = 4 [(gogoproto.moretags) = "yaml:\"deposit\""];
+}

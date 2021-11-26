@@ -3,6 +3,7 @@ package keeper
 import (
 	"fmt"
 
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/x/farming/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -123,5 +124,13 @@ func (k Keeper) ExportGenesis(ctx sdk.Context) (data *types.GenesisState) {
 		},
 	)
 
-	return types.NewGenesisState(params, pools, stakeInfos, allHistoricalRewards, allCurRewards)
+	allRewardContracts := make([]commontypes.ContractInfo, 0)
+	k.IterateAllRewardContracts(ctx,
+		func(info commontypes.ContractInfo) (stop bool) {
+			allRewardContracts = append(allRewardContracts, info)
+			return false
+		},
+	)
+
+	return types.NewGenesisState(params, pools, stakeInfos, allHistoricalRewards, allCurRewards, allRewardContracts)
 }
