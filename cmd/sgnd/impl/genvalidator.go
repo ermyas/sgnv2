@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"math/big"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -17,7 +17,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -56,17 +55,15 @@ func AddGenesisValidatorCmd(defaultNodeHome string) *cobra.Command {
 			if !ok {
 				return err
 			}
-			ksBytes, err := ioutil.ReadFile(viper.GetString(common.FlagEthSignerKeystore))
+			signerKey, signerPass := viper.GetString(common.FlagEthSignerKeystore), viper.GetString(common.FlagEthSignerPassphrase)
+			_, addr, err := eth.CreateSigner(signerKey, signerPass, big.NewInt(0))
 			if err != nil {
-				return err
+				log.Fatalln("CreateSigner err:", err)
 			}
-			ethKey, err := keystore.DecryptKey(ksBytes, viper.GetString(common.FlagEthSignerPassphrase))
-			if err != nil {
-				return err
-			}
+
 			initialValidator := stakingtypes.Validator{
 				EthAddress:      viper.GetString(common.FlagEthValidatorAddress),
-				EthSigner:       eth.Addr2Hex(ethKey.Address),
+				EthSigner:       eth.Addr2Hex(addr),
 				SgnAddress:      key.GetAddress().String(),
 				ConsensusPubkey: pkAny,
 				Status:          stakingtypes.Bonded,

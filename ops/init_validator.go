@@ -1,14 +1,13 @@
 package ops
 
 import (
-	"io/ioutil"
+	"math/big"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -46,14 +45,10 @@ func InitValidator() error {
 	minSelfDelegation := calcRawAmount(viper.GetString(FlagMinSelfDelegation))
 	commissionRate := viper.GetFloat64(FlagCommissionRate)
 
-	signerKsBytes, err := ioutil.ReadFile(viper.GetString(common.FlagEthSignerKeystore))
+	signerKey, signerPass := viper.GetString(common.FlagEthSignerKeystore), viper.GetString(common.FlagEthSignerPassphrase)
+	_, signerAddr, err := eth.CreateSigner(signerKey, signerPass, big.NewInt(0))
 	if err != nil {
-		return err
-	}
-
-	signerKey, err := keystore.DecryptKey(signerKsBytes, viper.GetString(common.FlagEthSignerPassphrase))
-	if err != nil {
-		return err
+		log.Fatalln("CreateSigner err:", err)
 	}
 
 	stakingContract := ethClient.Contracts.Staking
@@ -69,7 +64,7 @@ func InitValidator() error {
 		log.Infof(
 			"Initializing validator %x with signer %x minSelfDelegation: %s, commissionRate: %f",
 			ethClient.Address,
-			signerKey.Address,
+			signerAddr,
 			minSelfDelegation,
 			commissionRate,
 		)
@@ -77,7 +72,7 @@ func InitValidator() error {
 			"InitializeValidator",
 			func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
 				return stakingContract.InitializeValidator(
-					opts, signerKey.Address, minSelfDelegation, eth.CommissionRate(commissionRate))
+					opts, signerAddr, minSelfDelegation, eth.CommissionRate(commissionRate))
 			},
 		)
 		if err != nil {
