@@ -1441,7 +1441,7 @@ type QueryClient interface {
 	// get fee percentage between 2 chains
 	GetFeePercentage(ctx context.Context, in *GetFeePercentageRequest, opts ...grpc.CallOption) (*GetFeePercentageResponse, error)
 	QueryTransferStatus(ctx context.Context, in *QueryTransferStatusRequest, opts ...grpc.CallOption) (*QueryTransferStatusResponse, error)
-	//LP
+	// LP
 	LiquidityDetailList(ctx context.Context, in *LiquidityDetailListRequest, opts ...grpc.CallOption) (*LiquidityDetailListResponse, error)
 	QueryTotalLiquidity(ctx context.Context, in *QueryTotalLiquidityRequest, opts ...grpc.CallOption) (*QueryTotalLiquidityResponse, error)
 	QueryAddLiquidityStatus(ctx context.Context, in *QueryAddLiquidityStatusRequest, opts ...grpc.CallOption) (*QueryLiquidityStatusResponse, error)
@@ -1535,7 +1535,7 @@ type QueryServer interface {
 	// get fee percentage between 2 chains
 	GetFeePercentage(context.Context, *GetFeePercentageRequest) (*GetFeePercentageResponse, error)
 	QueryTransferStatus(context.Context, *QueryTransferStatusRequest) (*QueryTransferStatusResponse, error)
-	//LP
+	// LP
 	LiquidityDetailList(context.Context, *LiquidityDetailListRequest) (*LiquidityDetailListResponse, error)
 	QueryTotalLiquidity(context.Context, *QueryTotalLiquidityRequest) (*QueryTotalLiquidityResponse, error)
 	QueryAddLiquidityStatus(context.Context, *QueryAddLiquidityStatusRequest) (*QueryLiquidityStatusResponse, error)

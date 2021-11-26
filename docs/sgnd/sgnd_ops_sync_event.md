@@ -1,11 +1,11 @@
 ## sgnd ops sync event
 
-Sync bridge event from onchain, automatically figure out which event based on elog
+Sync bridge event from onchain
 
 ### Synopsis
 
 Example:
-$ <appd> ops sync event --chainid=883 --txhash="0xxx"
+$ <appd> ops sync event --chainid=883 --txhash="0xxx" --evname="Send"
 
 ```
 sgnd ops sync event [flags]
@@ -15,8 +15,9 @@ sgnd ops sync event [flags]
 
 ```
       --chainid uint    which chainid to query tx hash
+      --evname string   ev name, the name of the parsed event
   -h, --help            help for event
-      --txhash string   tx hash, will parse last event
+      --txhash string   tx hash, will parse event with same ID as evname
 ```
 
 ### SEE ALSO

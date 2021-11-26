@@ -80,7 +80,7 @@ func getFeePerc(srcChainId, dstChainId uint64) uint32 {
 }
 
 func getEstimatedAmt(srcChainId, dstChainId uint64, srcToken *webapi.TokenInfo, amt string) (string, error) {
-	if !utils.IsvalidAmt(amt) {
+	if !utils.IsValidAmt(amt) {
 		return "0", fmt.Errorf("invalid amt, params checking failed")
 	}
 	tr := CurRelayerInstance.Transactor

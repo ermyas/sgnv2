@@ -31,7 +31,7 @@ func isValidHash(hash string) bool {
 	return common.IsValidTxHash(hash)
 }
 
-func IsvalidAmt(amt string) bool {
+func IsValidAmt(amt string) bool {
 	if !regexp.MustCompile(`^[0-9]+$`).MatchString(amt) {
 		// isNumeric
 		return false

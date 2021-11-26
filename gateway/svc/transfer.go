@@ -357,7 +357,7 @@ func (gs *GatewayService) getTxHashForTransfer(transfer *dal.Transfer) (string, 
 }
 
 func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainId, slippage uint32, srcToken, dstToken *webapi.TokenInfo, amt string, useLp bool) (*webapi.EstimateAmtResponse, error) {
-	if !utils.IsvalidAmt(amt) || slippage == 0 {
+	if !utils.IsValidAmt(amt) || slippage == 0 {
 		return nil, fmt.Errorf("invalid amt, params checking failed")
 	}
 	tr := gs.TP.GetTransactor()

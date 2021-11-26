@@ -7,177 +7,169 @@ option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
 
 // Query defines the gRPC querier service.
 service Query {
-    rpc ChainTokensConfig (ChainTokensConfigRequest) returns (ChainTokensConfigResponse) {
-    }
+  rpc ChainTokensConfig(ChainTokensConfigRequest) returns (ChainTokensConfigResponse) {}
 
-    rpc GetFee (GetFeeRequest) returns (GetFeeResponse) {
-    }
+  rpc GetFee(GetFeeRequest) returns (GetFeeResponse) {}
 
-    // get fee percentage between 2 chains
-    rpc GetFeePercentage (GetFeePercentageRequest) returns (GetFeePercentageResponse) {
-    }
+  // get fee percentage between 2 chains
+  rpc GetFeePercentage(GetFeePercentageRequest) returns (GetFeePercentageResponse) {}
 
-    rpc QueryTransferStatus (QueryTransferStatusRequest) returns (QueryTransferStatusResponse) {
-    }
+  rpc QueryTransferStatus(QueryTransferStatusRequest) returns (QueryTransferStatusResponse) {}
 
-    //LP
-    rpc LiquidityDetailList (LiquidityDetailListRequest) returns (LiquidityDetailListResponse) {
-    }
-    rpc QueryTotalLiquidity (QueryTotalLiquidityRequest) returns (QueryTotalLiquidityResponse){
-    }
+  // LP
+  rpc LiquidityDetailList(LiquidityDetailListRequest) returns (LiquidityDetailListResponse) {}
+  rpc QueryTotalLiquidity(QueryTotalLiquidityRequest) returns (QueryTotalLiquidityResponse) {}
 
-    rpc QueryAddLiquidityStatus (QueryAddLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {
-    }
+  rpc QueryAddLiquidityStatus(QueryAddLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {}
 
-    rpc QueryWithdrawLiquidityStatus (QueryWithdrawLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {
-    }
+  rpc QueryWithdrawLiquidityStatus(QueryWithdrawLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {}
 
-    // we could return all withdraw req ids for one user in case gateway lost db, req is usr addr, resp has repeated req ids
-    // rpc QueryAllWdReqIdList (QueryAllWdReqIdListReq) returns (QueryAllWdReqIdListResp) {}
+  // we could return all withdraw req ids for one user in case gateway lost db, req is usr addr, resp has repeated req ids
+  // rpc QueryAllWdReqIdList (QueryAllWdReqIdListReq) returns (QueryAllWdReqIdListResp) {}
 }
 
-message ChainTokensConfigRequest {
-}
+message ChainTokensConfigRequest {}
 
 message ChainTokensConfigResponse {
-    map<string, Tokens> chain_tokens = 2; //map<chain_id, Tokens>, chain_id is a numeric string
+  map<string, Tokens> chain_tokens = 2;  // map<chain_id, Tokens>, chain_id is a numeric string
 }
 
 message Tokens {
-    repeated Token tokens = 1;
-    string contract_addr = 2;
-    uint32 block_delay = 3;
+  repeated Token tokens = 1;
+  string contract_addr = 2;
+  uint32 block_delay = 3;
 }
 
 message GetFeeRequest {
-    uint64 src_chain_id = 1;
-    uint64 dst_chain_id = 2;
-    string src_token_addr = 3;
-    string amt = 4; //on_src_chain, numeric string with decimal
-    string lp_addr = 5; // set for LP cross-chain withdrawal
+  uint64 src_chain_id = 1;
+  uint64 dst_chain_id = 2;
+  string src_token_addr = 3;
+  string amt = 4;      // on_src_chain, numeric string with decimal
+  string lp_addr = 5;  // set for LP cross-chain withdrawal
 }
 
 message GetFeeResponse {
-    string eq_value_token_amt = 2; //on_dst_chain
-    string perc_fee = 3; //on_dst_chain, percentage fee based on amount
-    string base_fee = 5; //on_dest_chain, independent of amount, to cover relay onchain tx gas cost
-    uint64 decimal = 4; //on_dst_chain
+  string eq_value_token_amt = 2;  // on_dst_chain
+  string perc_fee = 3;            // on_dst_chain, percentage fee based on amount
+  string base_fee = 5;            // on_dest_chain, independent of amount, to cover relay onchain tx gas cost
+  uint64 decimal = 4;             // on_dst_chain
 }
 
 message GetFeePercentageRequest {
-    uint64 src_chain_id = 1;
-    uint64 dst_chain_id = 2;
+  uint64 src_chain_id = 1;
+  uint64 dst_chain_id = 2;
 }
 
 message GetFeePercentageResponse {
-    uint32 fee_perc = 1; //fee percent * 1e6
+  uint32 fee_perc = 1;  // fee percent * 1e6
 }
 
 message QueryTransferStatusRequest {
-    repeated string transfer_id = 1; //hex string
+  repeated string transfer_id = 1;  // hex string
 }
 
 message QueryTransferStatusResponse {
-    map<string, TransferStatus> status = 2; //map<transfer_id, status>, transfer_id is hex string
+  map<string, TransferStatus> status = 2;  // map<transfer_id, status>, transfer_id is hex string
 }
 
 message LiquidityDetail {
-    uint64 chain_id = 1;
-    Token token = 2;
-    string usr_liquidity = 3; // current liquidity of user
-    string usr_lp_fee_earning = 4; // current lp earning of user
-    string total_liquidity = 5; // the LP’s liquidity for this (chain, token)
+  uint64 chain_id = 1;
+  Token token = 2;
+  string usr_liquidity = 3;       // current liquidity of user
+  string usr_lp_fee_earning = 4;  // current lp earning of user
+  string total_liquidity = 5;     // the LP’s liquidity for this (chain, token)
 }
 message ChainTokenAddrPair {
-    uint64 chain_id = 1;
-    string token_addr = 2;
+  uint64 chain_id = 1;
+  string token_addr = 2;
 }
 message LiquidityDetailListRequest {
-    string lp_addr = 1;
-    repeated ChainTokenAddrPair chain_token = 2;
+  string lp_addr = 1;
+  repeated ChainTokenAddrPair chain_token = 2;
 }
 
 message LiquidityDetailListResponse {
-    repeated LiquidityDetail liquidity_detail = 2;
+  repeated LiquidityDetail liquidity_detail = 2;
 }
 
 message QueryTotalLiquidityRequest {
-    uint64 chain_id = 1;
-    string token_addr = 2;
+  uint64 chain_id = 1;
+  string token_addr = 2;
 }
 
 message QueryTotalLiquidityResponse {
-    string total_liq = 1;
+  string total_liq = 1;
 }
 
-
 message QueryAddLiquidityStatusRequest {
-    uint64 chain_id = 1;
-    uint64 seq_num = 2;
+  uint64 chain_id = 1;
+  uint64 seq_num = 2;
 }
 
 message QueryWithdrawLiquidityStatusRequest {
-    uint64 seq_num = 1; // user req id
-    string usr_addr = 2; // hex string of eth address
+  uint64 seq_num = 1;   // user req id
+  string usr_addr = 2;  // hex string of eth address
 }
 
 message QueryLiquidityStatusResponse {
-    WithdrawStatus status = 1;
-    WithdrawDetail detail = 2;
+  WithdrawStatus status = 1;
+  WithdrawDetail detail = 2;
 }
 
 message CheckChainTokenValidRequest {
-    uint64 src_chain_id = 1;
-    string src_token_addr = 2;
-    uint64 dest_chain_id = 3;
+  uint64 src_chain_id = 1;
+  string src_token_addr = 2;
+  uint64 dest_chain_id = 3;
 }
 
 message CheckChainTokenValidResponse {
-    bool valid = 1;
+  bool valid = 1;
 }
 
 message TransferStatus {
-    TransferHistoryStatus gateway_status = 1; // to_be_refund and to_be_confirmed are used
-    XferStatus sgn_status = 2; // used for refund reason
+  TransferHistoryStatus gateway_status = 1;  // to_be_refund and to_be_confirmed are used
+  XferStatus sgn_status = 2;                 // used for refund reason
 }
 
 message Token {
-    string symbol = 1; // upper case symbol
-    string address = 2;
-    int32 decimal = 3;
-    bool xfer_disabled = 4; // if set to true, won't relay if this asset is src or dest
+  string symbol = 1;  // upper case symbol
+  string address = 2;
+  int32 decimal = 3;
+  bool xfer_disabled = 4;  // if set to true, won't relay if this asset is src or dest
 }
 
 enum WithdrawStatus {
-    WD_UNKNOWN = 0;
+  WD_UNKNOWN = 0;
 
-    // user for withdraw: after calling withdraw api
-    // relayer for add: monitored add event
-    WD_WAITING_FOR_SGN = 1;
+  // user for withdraw: after calling withdraw api
+  // relayer for add: monitored add event
+  WD_WAITING_FOR_SGN = 1;
 
-    WD_WAITING_FOR_LP = 2; // x: sgn confirmed and submitting on chain(for withdraw only)
+  WD_WAITING_FOR_LP = 2;  // x: sgn confirmed and submitting on chain(for withdraw only)
 
-    WD_SUBMITTING = 3; // user: after calling mark add or withdraw
-    WD_COMPLETED = 4; // relayer: on chain event monitored
+  WD_SUBMITTING = 3;  // user: after calling mark add or withdraw
+  WD_COMPLETED = 4;   // relayer: on chain event monitored
 
-    // user for add: check if tx reverted when shown status is WD_SUBMITTING
-    // x for withdraw: sgn rejected
-    WD_FAILED = 5;
+  // user for add: check if tx reverted when shown status is WD_SUBMITTING
+  // x for withdraw: sgn rejected
+  WD_FAILED = 5;
 
-    WD_DELAYED = 6; // relayer has succesfully called onchain relay() but the onchain contract decides that the amt is greater than its delayThreshold
+  WD_DELAYED = 6;  // relayer has successfully called onchain relay() but the onchain contract decides that the amt is greater than its
+                   // delayThreshold
 }
 
 enum TransferHistoryStatus {
-    TRANSFER_UNKNOWN = 0;
-    TRANSFER_SUBMITTING = 1; // user: after calling mark transfer api
-    TRANSFER_FAILED = 2; // user: check if tx reverted when shown status is TRANSFER_SUBMITTING
-    TRANSFER_WAITING_FOR_SGN_CONFIRMATION = 3; // relayer: on send tx success event
-    TRANSFER_WAITING_FOR_FUND_RELEASE = 4; // relayer: mark send tx
-    TRANSFER_COMPLETED = 5; // relayer: on relay tx success event
-    TRANSFER_TO_BE_REFUNDED = 6; // x: transfer rejected by sgn and waiting for withdraw api called
-    TRANSFER_REQUESTING_REFUND = 7; // user: withdraw api has been called and withdraw is processing by sgn
-    TRANSFER_REFUND_TO_BE_CONFIRMED = 8; // x: withdraw is approved by sgn
-    TRANSFER_CONFIRMING_YOUR_REFUND = 9; // user: mark refund has been submitted on chain
-    TRANSFER_REFUNDED = 10; //relayer: on refund(withdraw liquidity actually) tx event
-    TRANSFER_DELAYED = 11; // relayer has succesfully called onchain relay() but the onchain contract decides that the amt is greater than its delayThreshold
+  TRANSFER_UNKNOWN = 0;
+  TRANSFER_SUBMITTING = 1;                    // user: after calling mark transfer api
+  TRANSFER_FAILED = 2;                        // user: check if tx reverted when shown status is TRANSFER_SUBMITTING
+  TRANSFER_WAITING_FOR_SGN_CONFIRMATION = 3;  // relayer: on send tx success event
+  TRANSFER_WAITING_FOR_FUND_RELEASE = 4;      // relayer: mark send tx
+  TRANSFER_COMPLETED = 5;                     // relayer: on relay tx success event
+  TRANSFER_TO_BE_REFUNDED = 6;                // x: transfer rejected by sgn and waiting for withdraw api called
+  TRANSFER_REQUESTING_REFUND = 7;             // user: withdraw api has been called and withdraw is processing by sgn
+  TRANSFER_REFUND_TO_BE_CONFIRMED = 8;        // x: withdraw is approved by sgn
+  TRANSFER_CONFIRMING_YOUR_REFUND = 9;        // user: mark refund has been submitted on chain
+  TRANSFER_REFUNDED = 10;                     // relayer: on refund(withdraw liquidity actually) tx event
+  TRANSFER_DELAYED = 11;  // relayer has successfully called onchain relay() but the onchain contract decides that the amt is greater than
+                          // its delayThreshold
 }

@@ -122,8 +122,8 @@ func (c *CbrOneChain) monDelayXferAdd(blk *big.Int) {
 		Contract:     c.contract,
 		StartBlock:   blk,
 		ForwardDelay: c.forwardBlkDelay,
-		// much lower than the blk delay in cfg because the gateway service needs "Relay"
-		// to be precedented by "DelayedTransferAdded".
+		// NOTE: Using much lower than the blk delay in cfg because the gateway service needs "Relay"
+		// to be preceded by "DelayedTransferAdded".
 		// this is ok because the the result action of monitoring "DelayedTransferAdded"
 		// only changes the status for display use and is not related to fund safety.
 		BlockDelay: blkDelay,

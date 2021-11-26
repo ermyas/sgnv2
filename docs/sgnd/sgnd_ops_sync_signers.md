@@ -16,7 +16,7 @@ sgnd ops sync signers [flags]
 ```
       --chainid uint    which chainid to query tx hash
   -h, --help            help for signers
-      --txhash string   tx hash, will parse last event
+      --txhash string   tx hash, will parse event with same ID as SignersUpdated
 ```
 
 ### SEE ALSO

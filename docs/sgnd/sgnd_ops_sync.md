@@ -15,7 +15,7 @@ sgnd ops sync [flags]
 ### SEE ALSO
 
 * [sgnd ops](sgnd_ops.md)	 - Operation subcommands
-* [sgnd ops sync event](sgnd_ops_sync_event.md)	 - Sync bridge event from onchain, automatically figure out which event based on elog
+* [sgnd ops sync event](sgnd_ops_sync_event.md)	 - Sync bridge event from onchain
 * [sgnd ops sync signers](sgnd_ops_sync_signers.md)	 - Sync signers from onchain
 * [sgnd ops sync staking](sgnd_ops_sync_staking.md)	 - Sync latest staking info from onchain of the given validator addr. Delegation info will be synced also if delegator addr is provided.
 
