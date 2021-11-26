@@ -113,7 +113,7 @@ func (r *Relayer) submitSlash(slashEvent SlashEvent) {
 			},
 		},
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
-			return r.EthClient.Contracts.Staking.Slash(opts, slash.GetEthSlashBytes(), slash.GetSigsBytes())
+			return r.EthClient.Contracts.Staking.Slash(opts, slash.GetSlashBytes(), slash.GetSigsBytes())
 		},
 	)
 	if err != nil {

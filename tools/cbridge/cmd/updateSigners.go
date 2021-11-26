@@ -8,6 +8,7 @@ import (
 	"log"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/spf13/cobra"
@@ -34,7 +35,7 @@ var updateSignersCmd = &cobra.Command{
 		log.Printf("raw: %x\nsig: %x", raw, sig)
 		// now try to submit onchain
 		cbrContract, _ = eth.NewBridge(eth.Hex2Addr(cfg.Cbridge), ec)
-		tx, err := cbrContract.UpdateSigners(auth, addrs, powers, [][]byte{sig}, addrs, powers)
+		tx, err := cbrContract.UpdateSigners(auth, new(big.Int).SetInt64(time.Now().Unix()), addrs, powers, [][]byte{sig}, addrs, powers)
 		chkTxErr(tx, err)
 	},
 }

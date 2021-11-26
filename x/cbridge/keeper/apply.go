@@ -162,6 +162,13 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			ChainId: onchev.Chainid,
 		}
 		chainSigners.SetByEvent(ev)
+
+		latestSigners, _ := k.GetLatestSigners(ctx)
+		if types.EqualSortedSigners(latestSigners.GetSortedSigners(), chainSigners.GetSortedSigners()) {
+			// updated to latest
+			chainSigners.SortedSigs = []*types.AddrSig{}
+		}
+
 		k.SetChainSigners(ctx, chainSigners)
 		log.Infoln("x/cbr applied chainSigners:", chainSigners.String())
 	}

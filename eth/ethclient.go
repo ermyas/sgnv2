@@ -21,6 +21,7 @@ type EthClient struct {
 	Transactor *ethutils.Transactor
 	Signer     ethutils.Signer
 	Address    Addr
+	ChainId    uint64
 	// init by SetContracts
 	Contracts *Contracts
 }
@@ -88,6 +89,7 @@ func (ethClient *EthClient) setTransactor(ksfile string, passphrase string, tcon
 	if err != nil {
 		return err
 	}
+	ethClient.ChainId = tconfig.ChainId.Uint64()
 	ethClient.Transactor = ethutils.NewTransactorByExternalSigner(
 		ethClient.Address,
 		ethClient.Signer,

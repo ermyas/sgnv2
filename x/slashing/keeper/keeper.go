@@ -42,8 +42,8 @@ func (k Keeper) HandleDoubleSign(ctx sdk.Context, addr crypto.Address, blkTime t
 		return
 	}
 
-	log.Infof("Confirmed double sign from %s", consAddr)
-	k.Slash(ctx, types.AttributeValueDoubleSign, validator, k.SlashFactorDoubleSign(ctx), []types.AcctAmtPair{}, blkTime) //collector and syncer reward will be done in next version
+	log.Infof("Confirmed double sign from %s %s", validator.EthAddress, consAddr)
+	k.Slash(ctx, types.AttributeValueDoubleSign, validator, k.SlashFactorDoubleSign(ctx), nil, blkTime) //collector and syncer reward will be done in next version
 }
 
 // HandleValidatorSignature handles a validator signature, must be called once per validator per block.
@@ -98,14 +98,14 @@ func (k Keeper) HandleValidatorSignature(ctx sdk.Context, addr crypto.Address, s
 	// if we are past the minimum height and the validator has missed too many blocks, slash them
 	if height > minHeight && signInfo.MissedBlocksCounter > maxMissed {
 		// Downtime confirmed: slash the validator
-		log.Infof("Validator %s past min height of %d and above max miss threshold of %d",
-			consAddr, minHeight, maxMissed)
+		log.Infof("Validator %s %s past min height of %d and above max miss threshold of %d",
+			validator.EthAddress, consAddr, minHeight, maxMissed)
 
 		// We need to reset the counter & array so that the validator won't be immediately slashed for downtime upon rebonding.
 		signInfo.MissedBlocksCounter = 0
 		signInfo.IndexOffset = 0
 		k.ClearValidatorMissedBlockBitArray(ctx, consAddr)
-		k.Slash(ctx, types.AttributeValueMissingSignature, validator, k.SlashFactorDowntime(ctx), []types.AcctAmtPair{}, blkTime) //collector and syncer reward will be done in next version
+		k.Slash(ctx, types.AttributeValueMissingSignature, validator, k.SlashFactorDowntime(ctx), nil, blkTime) //collector and syncer reward will be done in next version
 	}
 
 	k.SetValidatorSigningInfo(ctx, signInfo)
@@ -113,7 +113,10 @@ func (k Keeper) HandleValidatorSignature(ctx sdk.Context, addr crypto.Address, s
 
 // Slash a validator for an infraction
 // Find the contributing stake and burn the specified slashFactor of it
-func (k Keeper) Slash(ctx sdk.Context, reason string, failedValidator stakingtypes.Validator, slashFactor uint64, collectors []types.AcctAmtPair, blkTime time.Time) {
+func (k Keeper) Slash(
+	ctx sdk.Context, reason string, failedValidator stakingtypes.Validator, slashFactor uint64,
+	collectors []*types.AcctAmtPair, blkTime time.Time) {
+
 	_, found := k.StakingKeeper.GetValidator(ctx, failedValidator.GetEthAddress())
 	if !found {
 		log.Errorln("cannot find profile for the failed validator, eth addr: ", failedValidator.EthAddress)
@@ -124,26 +127,26 @@ func (k Keeper) Slash(ctx sdk.Context, reason string, failedValidator stakingtyp
 	slashNonce := k.GetSlashNonce(ctx)
 	slashExpireTime := uint64(blkTime.Unix()) + k.SlashTimeout(ctx)
 
-	slash := types.NewSlash(slashNonce, slashFactor, k.JailPeriod(ctx), slashExpireTime, reason, failedValidator.EthAddress, collectors)
-	log.Warnf("Slash validator: %s %x, reason: %s, nonce: %d, enabled: %t",
-		failedValidator.SgnAddress, failedValidator.GetEthAddress(), reason, slash.Nonce, enableSlash)
+	slash := types.NewSlash(
+		slashNonce, failedValidator.GetEthAddr(), slashFactor, k.JailPeriod(ctx), slashExpireTime, reason, collectors)
+	log.Warnf("Slash validator: %x, reason: %s, nonce: %d, enabled: %t",
+		failedValidator.GetEthAddress(), reason, slash.SlashOnChain.Nonce, enableSlash)
 
 	if enableSlash {
-		slash.GenerateEthSlashBytes()
+		slash.GenerateSlashBytes()
 		k.SetSlash(ctx, slash)
 
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(
 				types.EventTypeSlash,
-				sdk.NewAttribute(types.AttributeKeyNonce, sdk.NewUint(slash.Nonce).String()),
+				sdk.NewAttribute(types.AttributeKeyNonce, sdk.NewUint(slash.SlashOnChain.Nonce).String()),
 				sdk.NewAttribute(types.AttributeKeyReason, reason),
 			),
 		)
 
 		slashNonce += 1
+		k.SetSlashNonce(ctx, slashNonce)
 	}
-
-	k.SetSlashNonce(ctx, slashNonce)
 }
 
 // Get the next Slash nonce
@@ -178,7 +181,7 @@ func (k Keeper) GetSlash(ctx sdk.Context, nonce uint64) (slash types.Slash, foun
 // Set the entire slash metadata for a nonce
 func (k Keeper) SetSlash(ctx sdk.Context, slash types.Slash) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(types.GetSlashKey(slash.Nonce), k.cdc.MustMarshal(&slash))
+	store.Set(types.GetSlashKey(slash.SlashOnChain.Nonce), k.cdc.MustMarshal(&slash))
 }
 
 // IterateSlashes iterates over the stored slashes

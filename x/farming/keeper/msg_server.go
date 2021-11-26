@@ -4,13 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
-	ethproto "github.com/celer-network/sgn-v2/proto/eth"
 	"github.com/celer-network/sgn-v2/x/farming/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gogo/protobuf/proto"
@@ -180,7 +178,7 @@ func (k msgServer) accumulateRewards(ctx sdk.Context, addr eth.Addr, claimInfo *
 		}
 	}
 	// 3. Reconstruct RewardProtoBytes with TokenAddresses and updated CumulativeRewardAmounts
-	for chainId, details := range chainIdToDetails {
+	for _, details := range chainIdToDetails {
 		var tokenAddresses [][]byte
 		var cumulativeRewardAmounts [][]byte
 		for _, coin := range details.CumulativeRewardAmounts {
@@ -197,9 +195,8 @@ func (k msgServer) accumulateRewards(ctx sdk.Context, addr eth.Addr, claimInfo *
 		}
 		// Marshal RewardProtoBytes
 		rewardProtoBytes, marshalErr := proto.Marshal(
-			&ethproto.FarmingRewards{
+			&types.FarmingRewardsOnChain{
 				Recipient:               addr.Bytes(),
-				ChainId:                 new(big.Int).SetUint64(chainId).Bytes(),
 				TokenAddresses:          tokenAddresses,
 				CumulativeRewardAmounts: cumulativeRewardAmounts,
 			})
@@ -256,10 +253,13 @@ func (k msgServer) SignRewards(
 		chainIdToRewardClaimDetails[detail.ChainId] = detail
 	}
 	for _, signatureDetails := range msg.SignatureDetailsList {
-		addSigErr := chainIdToRewardClaimDetails[signatureDetails.ChainId].AddSig(
-			signatureDetails.Signature,
-			validator.GetSignerAddr().String(),
-		)
+		contract, found := k.GetRewardContract(ctx, signatureDetails.ChainId)
+		if !found {
+			return nil, fmt.Errorf("farming reward contract for chain %d not found", signatureDetails.ChainId)
+		}
+		claimDetails := chainIdToRewardClaimDetails[signatureDetails.ChainId]
+		dataToSign := claimDetails.EncodeDataToSign(eth.Hex2Addr(contract.Address))
+		addSigErr := claimDetails.AddSig(dataToSign, signatureDetails.Signature, validator.GetSignerAddr().String())
 		if addSigErr != nil {
 			return nil, fmt.Errorf("failed to add sig: %s", addSigErr)
 		}

@@ -1,9 +1,8 @@
 package keeper
 
 import (
-	"bytes"
-
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -53,7 +52,7 @@ func (k Keeper) UpdateLatestSigners(ctx sdk.Context, force bool) bool {
 	latestSigners, found := k.GetLatestSigners(ctx)
 	if found && !force {
 		duration := k.GetSignerUpdateDuration(ctx)
-		if latestSigners.GetUpdateTime().Add(duration).After(ctx.BlockHeader().Time) {
+		if common.TsSecToTime(latestSigners.GetTriggerTime()).Add(duration).After(ctx.BlockHeader().Time) {
 			return false
 		}
 	}
@@ -68,14 +67,14 @@ func (k Keeper) UpdateLatestSigners(ctx sdk.Context, force bool) bool {
 		newSigners.SortedSigners = append(newSigners.SortedSigners, signer)
 	}
 	newSigners.Sort()
-	newSigners.GenerateSignersBytes()
-
-	if bytes.Equal(latestSigners.GetSignersBytes(), newSigners.SignersBytes) {
+	if types.EqualSortedSigners(latestSigners.SortedSigners, newSigners.SortedSigners) {
 		return false
 	}
+	newSigners.TriggerTime = uint64(ctx.BlockTime().Unix())
+	newSigners.LastSignTime = newSigners.TriggerTime
+	newSigners.GenerateSignersBytes()
 
 	log.Infoln("Update latest signers:", newSigners.String())
-	newSigners.UpdateTime = ctx.BlockHeader().Time
 	k.SetLatestSigners(ctx, newSigners)
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeDataToSign,
@@ -83,5 +82,17 @@ func (k Keeper) UpdateLatestSigners(ctx sdk.Context, force bool) bool {
 		sdk.NewAttribute(types.AttributeKeyData, eth.Bytes2Hex(newSigners.SignersBytes)),
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 	))
+
+	// reset sigs in chain signers
+	cbrContracts := GetCbrContracts(ctx.KVStore(k.storeKey))
+	for chainId := range cbrContracts {
+		chainSigners, found := k.GetChainSigners(ctx, chainId)
+		if !found {
+			chainSigners = types.ChainSigners{ChainId: chainId}
+		}
+		chainSigners.SortedSigs = []*types.AddrSig{}
+		k.SetChainSigners(ctx, &chainSigners)
+	}
+
 	return true
 }

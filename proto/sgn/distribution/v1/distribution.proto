@@ -36,6 +36,7 @@ message Params {
     (gogoproto.jsontag) = "claim_cooldown,omitempty",
     (gogoproto.moretags) = "yaml:\"claim_cooldown\""
   ];
+  sgn.common.v1.ContractInfo reward_contract = 6 [(gogoproto.nullable) = false];
 }
 
 // ValidatorHistoricalRewards represents historical rewards for a validator.
@@ -170,6 +171,12 @@ message CBridgeFeeShareInfo {
     (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.DecCoins",
     (gogoproto.nullable) = false
   ];
+}
+
+// msg to be submitted to the onchain contract
+message StakingRewardOnChain {
+  bytes recipient = 1;                 // [(soltype) = "address"]
+  bytes cumulative_reward_amount = 2;  // [(soltype) = "uint256"]
 }
 
 // -------------------- Governance Proposals --------------------

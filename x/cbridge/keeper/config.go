@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"strings"
 
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -46,6 +47,10 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 	for _, relayGasCost := range cfg.GetRelayGasCost() {
 		raw, _ := relayGasCost.Marshal()
 		kv.Set(types.CfgKeyChain2RelayGasCostParam(relayGasCost.GetChainId()), raw)
+	}
+	for _, chainContract := range cfg.GetCbrContracts() {
+		raw, _ := chainContract.Marshal()
+		kv.Set(types.CfgKeyCbrContract(chainContract.GetChainId()), raw)
 	}
 }
 
@@ -112,6 +117,15 @@ func (k Keeper) GetCbrConfig(ctx sdk.Context) types.CbrConfig {
 		relayGasCostParam := new(types.RelayGasCostParam)
 		relayGasCostParam.Unmarshal(relayGasCostRaw)
 		cbrConfig.RelayGasCost = append(cbrConfig.RelayGasCost, relayGasCostParam)
+	}
+
+	iter4 := sdk.KVStorePrefixIterator(kv, []byte("cfg-cbrcontract-"))
+	defer iter4.Close()
+	for ; iter4.Valid(); iter4.Next() {
+		chainContractRaw := iter4.Value()
+		chainContract := new(commontypes.ContractInfo)
+		chainContract.Unmarshal(chainContractRaw)
+		cbrConfig.CbrContracts = append(cbrConfig.CbrContracts, chainContract)
 	}
 
 	return cbrConfig
@@ -182,4 +196,27 @@ func GetAMN(kv sdk.KVStore, srcChid, destChid uint64) (float64, float64, float64
 		A = float64(pair.ConstA)
 	}
 	return A, m, n, nil
+}
+
+func GetCbrContract(kv sdk.KVStore, chid uint64) (eth.Addr, bool) {
+	raw := kv.Get(types.CfgKeyCbrContract(chid))
+	if raw == nil {
+		return eth.ZeroAddr, false
+	}
+	chainContract := new(commontypes.ContractInfo)
+	chainContract.Unmarshal(raw)
+	return eth.Hex2Addr(chainContract.GetAddress()), true
+}
+
+func GetCbrContracts(kv sdk.KVStore) map[uint64]eth.Addr {
+	cbrContracts := make(map[uint64]eth.Addr)
+	iter := sdk.KVStorePrefixIterator(kv, []byte("cfg-cbrcontract-"))
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		chainContractRaw := iter.Value()
+		chainContract := new(commontypes.ContractInfo)
+		chainContract.Unmarshal(chainContractRaw)
+		cbrContracts[chainContract.ChainId] = eth.Hex2Addr(chainContract.Address)
+	}
+	return cbrContracts
 }

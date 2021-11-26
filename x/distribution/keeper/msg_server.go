@@ -12,7 +12,6 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
-	ethproto "github.com/celer-network/sgn-v2/proto/eth"
 	"github.com/celer-network/sgn-v2/x/distribution/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -197,7 +196,7 @@ func (k msgServer) accumulateStakingReward(ctx sdk.Context, delAddr eth.Addr, cl
 	// 2. Reconstruct RewardProtoBytes with updated CumulativeRewardAmount
 	// Marshal RewardProtoBytes
 	rewardProtoBytes, marshalErr := proto.Marshal(
-		&ethproto.StakingReward{
+		&types.StakingRewardOnChain{
 			Recipient:              delAddr.Bytes(),
 			CumulativeRewardAmount: claimInfo.CumulativeRewardAmount.Amount.RoundInt().BigInt().Bytes(),
 		})
@@ -233,7 +232,10 @@ func (k msgServer) SignStakingReward(
 	if !found {
 		return nil, err
 	}
+	contract := k.RewardContract(ctx)
+	msgToSign := claimInfo.EncodeDataToSign(contract.ChainId, eth.Hex2Addr(contract.Address))
 	addSigErr := claimInfo.AddSig(
+		msgToSign,
 		msg.Signature,
 		validator.GetSignerAddr().String(),
 	)

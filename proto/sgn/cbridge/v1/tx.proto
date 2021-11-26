@@ -25,15 +25,20 @@ enum SignDataType {
   INVALID = 0;
   RELAY = 1;     // data is serialized RelayOnChain
   WITHDRAW = 2;  // data is serialized WithdrawOnchain
-  SIGNERS = 3;   // data is serialized SortedSigners
+  SIGNERS = 3;   // data is packed(triggerTime, signerAddrs, signerPowers)
 }
 
 message MsgSendMySig {
-  SignDataType datatype = 1;  // relay or withdraw
+  SignDataType datatype = 1;
   bytes data = 2;             // signed data
-  bytes my_sig = 3;           // eth address should be recovered by x/cbridge and compare to validators
+  repeated MySig my_sigs = 3; // eth address should be recovered by x/cbridge and compare to validators
 
   string creator = 4;  // must be bonded validator
+}
+
+message MySig {
+  uint64 chain_id = 1;
+  bytes sig = 2;
 }
 
 message MsgSendMySigResp {}

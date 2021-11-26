@@ -35,6 +35,7 @@ type Params struct {
 	SlashFactorDowntime   uint64                                 `protobuf:"varint,5,opt,name=slash_factor_downtime,json=slashFactorDowntime,proto3" json:"slash_factor_downtime,omitempty" yaml:"slash_factor_downtime"`
 	JailPeriod            uint64                                 `protobuf:"varint,6,opt,name=jail_period,json=jailPeriod,proto3" json:"jail_period,omitempty" yaml:"jail_period"`
 	MinSignedPerWindow    github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,7,opt,name=min_signed_per_window,json=minSignedPerWindow,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"min_signed_per_window" yaml:"min_signed_per_window"`
+	StakingContract       types.ContractInfo                     `protobuf:"bytes,8,opt,name=staking_contract,json=stakingContract,proto3" json:"staking_contract"`
 }
 
 func (m *Params) Reset()         { *m = Params{} }
@@ -112,70 +113,24 @@ func (m *Params) GetJailPeriod() uint64 {
 	return 0
 }
 
-type AcctAmtPair struct {
-	// bech32-encoded sgn address (sdk.AccAddress)
-	Account string                                 `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty" yaml:"account"`
-	Amount  github_com_cosmos_cosmos_sdk_types.Int `protobuf:"bytes,2,opt,name=amount,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Int" json:"amount"`
-}
-
-func (m *AcctAmtPair) Reset()         { *m = AcctAmtPair{} }
-func (m *AcctAmtPair) String() string { return proto.CompactTextString(m) }
-func (*AcctAmtPair) ProtoMessage()    {}
-func (*AcctAmtPair) Descriptor() ([]byte, []int) {
-	return fileDescriptor_148c19847bc412bb, []int{1}
-}
-func (m *AcctAmtPair) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *AcctAmtPair) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_AcctAmtPair.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *AcctAmtPair) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_AcctAmtPair.Merge(m, src)
-}
-func (m *AcctAmtPair) XXX_Size() int {
-	return m.Size()
-}
-func (m *AcctAmtPair) XXX_DiscardUnknown() {
-	xxx_messageInfo_AcctAmtPair.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_AcctAmtPair proto.InternalMessageInfo
-
-func (m *AcctAmtPair) GetAccount() string {
+func (m *Params) GetStakingContract() types.ContractInfo {
 	if m != nil {
-		return m.Account
+		return m.StakingContract
 	}
-	return ""
+	return types.ContractInfo{}
 }
 
 type Slash struct {
-	// bech32-encoded sgn address (sdk.AccAddress)
-	Validator     string            `protobuf:"bytes,1,opt,name=validator,proto3" json:"validator,omitempty" yaml:"validator"`
-	Nonce         uint64            `protobuf:"varint,2,opt,name=nonce,proto3" json:"nonce,omitempty"`
-	SlashFactor   uint64            `protobuf:"varint,3,opt,name=slash_factor,json=slashFactor,proto3" json:"slash_factor,omitempty"`
-	ExpireTime    uint64            `protobuf:"varint,4,opt,name=expire_time,json=expireTime,proto3" json:"expire_time,omitempty"`
-	JailPeriod    uint64            `protobuf:"varint,5,opt,name=jail_period,json=jailPeriod,proto3" json:"jail_period,omitempty"`
-	Collectors    []AcctAmtPair     `protobuf:"bytes,6,rep,name=collectors,proto3" json:"collectors"`
-	Reason        string            `protobuf:"bytes,7,opt,name=reason,proto3" json:"reason,omitempty"`
-	EthSlashBytes []byte            `protobuf:"bytes,8,opt,name=eth_slash_bytes,json=ethSlashBytes,proto3" json:"eth_slash_bytes,omitempty" yaml:"eth_slash_bytes"`
-	Signatures    []types.Signature `protobuf:"bytes,9,rep,name=signatures,proto3" json:"signatures"`
+	SlashOnChain SlashOnChain      `protobuf:"bytes,1,opt,name=slash_on_chain,json=slashOnChain,proto3" json:"slash_on_chain" yaml:"slash_on_chain"`
+	SlashBytes   []byte            `protobuf:"bytes,2,opt,name=slash_bytes,json=slashBytes,proto3" json:"slash_bytes,omitempty" yaml:"slash_bytes"`
+	Signatures   []types.Signature `protobuf:"bytes,3,rep,name=signatures,proto3" json:"signatures"`
+	Reason       string            `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
 }
 
-func (m *Slash) Reset()         { *m = Slash{} }
-func (m *Slash) String() string { return proto.CompactTextString(m) }
-func (*Slash) ProtoMessage()    {}
+func (m *Slash) Reset()      { *m = Slash{} }
+func (*Slash) ProtoMessage() {}
 func (*Slash) Descriptor() ([]byte, []int) {
-	return fileDescriptor_148c19847bc412bb, []int{2}
+	return fileDescriptor_148c19847bc412bb, []int{1}
 }
 func (m *Slash) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -204,44 +159,23 @@ func (m *Slash) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Slash proto.InternalMessageInfo
 
-func (m *Slash) GetValidator() string {
+func (m *Slash) GetSlashOnChain() SlashOnChain {
 	if m != nil {
-		return m.Validator
+		return m.SlashOnChain
 	}
-	return ""
+	return SlashOnChain{}
 }
 
-func (m *Slash) GetNonce() uint64 {
+func (m *Slash) GetSlashBytes() []byte {
 	if m != nil {
-		return m.Nonce
+		return m.SlashBytes
 	}
-	return 0
+	return nil
 }
 
-func (m *Slash) GetSlashFactor() uint64 {
+func (m *Slash) GetSignatures() []types.Signature {
 	if m != nil {
-		return m.SlashFactor
-	}
-	return 0
-}
-
-func (m *Slash) GetExpireTime() uint64 {
-	if m != nil {
-		return m.ExpireTime
-	}
-	return 0
-}
-
-func (m *Slash) GetJailPeriod() uint64 {
-	if m != nil {
-		return m.JailPeriod
-	}
-	return 0
-}
-
-func (m *Slash) GetCollectors() []AcctAmtPair {
-	if m != nil {
-		return m.Collectors
+		return m.Signatures
 	}
 	return nil
 }
@@ -253,16 +187,137 @@ func (m *Slash) GetReason() string {
 	return ""
 }
 
-func (m *Slash) GetEthSlashBytes() []byte {
+// msg to be submitted to the onchain contract
+type SlashOnChain struct {
+	Validator   []byte         `protobuf:"bytes,1,opt,name=validator,proto3" json:"validator,omitempty"`
+	Nonce       uint64         `protobuf:"varint,2,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	SlashFactor uint64         `protobuf:"varint,3,opt,name=slash_factor,json=slashFactor,proto3" json:"slash_factor,omitempty"`
+	ExpireTime  uint64         `protobuf:"varint,4,opt,name=expire_time,json=expireTime,proto3" json:"expire_time,omitempty"`
+	JailPeriod  uint64         `protobuf:"varint,5,opt,name=jail_period,json=jailPeriod,proto3" json:"jail_period,omitempty"`
+	Collectors  []*AcctAmtPair `protobuf:"bytes,6,rep,name=collectors,proto3" json:"collectors,omitempty"`
+}
+
+func (m *SlashOnChain) Reset()      { *m = SlashOnChain{} }
+func (*SlashOnChain) ProtoMessage() {}
+func (*SlashOnChain) Descriptor() ([]byte, []int) {
+	return fileDescriptor_148c19847bc412bb, []int{2}
+}
+func (m *SlashOnChain) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *SlashOnChain) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_SlashOnChain.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *SlashOnChain) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SlashOnChain.Merge(m, src)
+}
+func (m *SlashOnChain) XXX_Size() int {
+	return m.Size()
+}
+func (m *SlashOnChain) XXX_DiscardUnknown() {
+	xxx_messageInfo_SlashOnChain.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SlashOnChain proto.InternalMessageInfo
+
+func (m *SlashOnChain) GetValidator() []byte {
 	if m != nil {
-		return m.EthSlashBytes
+		return m.Validator
 	}
 	return nil
 }
 
-func (m *Slash) GetSignatures() []types.Signature {
+func (m *SlashOnChain) GetNonce() uint64 {
 	if m != nil {
-		return m.Signatures
+		return m.Nonce
+	}
+	return 0
+}
+
+func (m *SlashOnChain) GetSlashFactor() uint64 {
+	if m != nil {
+		return m.SlashFactor
+	}
+	return 0
+}
+
+func (m *SlashOnChain) GetExpireTime() uint64 {
+	if m != nil {
+		return m.ExpireTime
+	}
+	return 0
+}
+
+func (m *SlashOnChain) GetJailPeriod() uint64 {
+	if m != nil {
+		return m.JailPeriod
+	}
+	return 0
+}
+
+func (m *SlashOnChain) GetCollectors() []*AcctAmtPair {
+	if m != nil {
+		return m.Collectors
+	}
+	return nil
+}
+
+type AcctAmtPair struct {
+	Account []byte `protobuf:"bytes,1,opt,name=account,proto3" json:"account,omitempty"`
+	Amount  []byte `protobuf:"bytes,2,opt,name=amount,proto3" json:"amount,omitempty"`
+}
+
+func (m *AcctAmtPair) Reset()      { *m = AcctAmtPair{} }
+func (*AcctAmtPair) ProtoMessage() {}
+func (*AcctAmtPair) Descriptor() ([]byte, []int) {
+	return fileDescriptor_148c19847bc412bb, []int{3}
+}
+func (m *AcctAmtPair) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *AcctAmtPair) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_AcctAmtPair.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *AcctAmtPair) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AcctAmtPair.Merge(m, src)
+}
+func (m *AcctAmtPair) XXX_Size() int {
+	return m.Size()
+}
+func (m *AcctAmtPair) XXX_DiscardUnknown() {
+	xxx_messageInfo_AcctAmtPair.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AcctAmtPair proto.InternalMessageInfo
+
+func (m *AcctAmtPair) GetAccount() []byte {
+	if m != nil {
+		return m.Account
+	}
+	return nil
+}
+
+func (m *AcctAmtPair) GetAmount() []byte {
+	if m != nil {
+		return m.Amount
 	}
 	return nil
 }
@@ -275,7 +330,7 @@ func (m *QuerySlashParams) Reset()         { *m = QuerySlashParams{} }
 func (m *QuerySlashParams) String() string { return proto.CompactTextString(m) }
 func (*QuerySlashParams) ProtoMessage()    {}
 func (*QuerySlashParams) Descriptor() ([]byte, []int) {
-	return fileDescriptor_148c19847bc412bb, []int{3}
+	return fileDescriptor_148c19847bc412bb, []int{4}
 }
 func (m *QuerySlashParams) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -313,62 +368,66 @@ func (m *QuerySlashParams) GetNonce() uint64 {
 
 func init() {
 	proto.RegisterType((*Params)(nil), "sgn.slashing.v1.Params")
-	proto.RegisterType((*AcctAmtPair)(nil), "sgn.slashing.v1.AcctAmtPair")
 	proto.RegisterType((*Slash)(nil), "sgn.slashing.v1.Slash")
+	proto.RegisterType((*SlashOnChain)(nil), "sgn.slashing.v1.SlashOnChain")
+	proto.RegisterType((*AcctAmtPair)(nil), "sgn.slashing.v1.AcctAmtPair")
 	proto.RegisterType((*QuerySlashParams)(nil), "sgn.slashing.v1.QuerySlashParams")
 }
 
 func init() { proto.RegisterFile("sgn/slashing/v1/slashing.proto", fileDescriptor_148c19847bc412bb) }
 
 var fileDescriptor_148c19847bc412bb = []byte{
-	// 741 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0xcd, 0x6a, 0xdb, 0x4a,
-	0x18, 0xb5, 0xe2, 0x9f, 0xc4, 0x63, 0xe7, 0x26, 0x4c, 0x9c, 0x5c, 0x5d, 0xdf, 0x20, 0xf9, 0xea,
-	0x42, 0xf1, 0xa2, 0x91, 0x9b, 0x74, 0x51, 0x08, 0xb4, 0x10, 0x11, 0x02, 0xdd, 0x04, 0x67, 0x1c,
-	0x28, 0x94, 0x82, 0x90, 0xe5, 0xa9, 0xac, 0x46, 0x9a, 0x31, 0x9a, 0xb1, 0x1d, 0x2f, 0x4b, 0x5f,
-	0xa0, 0xab, 0x3e, 0x43, 0xdf, 0xa4, 0x59, 0x66, 0x59, 0xba, 0x10, 0xc5, 0x79, 0x03, 0x3d, 0x41,
-	0xd1, 0x8c, 0x6c, 0x2b, 0x69, 0x36, 0x5d, 0x49, 0xdf, 0x77, 0xce, 0x1c, 0x1d, 0xbe, 0xef, 0x68,
-	0x80, 0xc6, 0x3c, 0xd2, 0x61, 0x81, 0xc3, 0x86, 0x3e, 0xf1, 0x3a, 0x93, 0xc3, 0xe5, 0xbb, 0x39,
-	0x8a, 0x28, 0xa7, 0x70, 0x8b, 0x79, 0xc4, 0x5c, 0xf6, 0x26, 0x87, 0xcd, 0x86, 0x47, 0x3d, 0x2a,
-	0xb0, 0x4e, 0xfa, 0x26, 0x69, 0xcd, 0x7f, 0x5c, 0xca, 0x42, 0xca, 0x6c, 0x09, 0xc8, 0x22, 0x83,
-	0x9a, 0xe9, 0x17, 0x5c, 0x1a, 0x86, 0x94, 0xa4, 0xfa, 0xf2, 0x4d, 0x62, 0xc6, 0xb7, 0x12, 0xa8,
-	0x74, 0x9d, 0xc8, 0x09, 0x19, 0x3c, 0x06, 0x75, 0x4c, 0x9c, 0x7e, 0x80, 0x6d, 0xf1, 0x35, 0x55,
-	0x69, 0x29, 0xed, 0x0d, 0xeb, 0xef, 0x24, 0xd6, 0x77, 0x66, 0x4e, 0x18, 0x1c, 0x1b, 0x79, 0xd4,
-	0x40, 0x35, 0x59, 0xf6, 0xd2, 0x0a, 0x5e, 0x80, 0x06, 0xf3, 0x3d, 0x82, 0x07, 0x76, 0x3f, 0xa0,
-	0xee, 0x15, 0xb3, 0xa7, 0x3e, 0x19, 0xd0, 0xa9, 0xba, 0xd6, 0x52, 0xda, 0x45, 0x4b, 0x4f, 0x62,
-	0xfd, 0x5f, 0xa9, 0xf1, 0x18, 0xcb, 0x40, 0x50, 0xb6, 0x2d, 0xd1, 0x7d, 0x23, 0x9a, 0xf0, 0x25,
-	0xd8, 0x14, 0x5f, 0xb2, 0xb9, 0x1f, 0x62, 0x3a, 0xe6, 0x6a, 0xb1, 0xa5, 0xb4, 0x4b, 0x96, 0x9a,
-	0xc4, 0x7a, 0x23, 0xd3, 0xca, 0xc3, 0x06, 0xaa, 0x8b, 0xfa, 0x52, 0x96, 0xf0, 0x1d, 0x50, 0x25,
-	0xfe, 0xde, 0x71, 0x39, 0x8d, 0xec, 0x01, 0x1d, 0x0b, 0xf3, 0xbe, 0x47, 0xd4, 0x92, 0x50, 0xfa,
-	0x3f, 0x89, 0x75, 0x3d, 0xaf, 0xf4, 0x3b, 0xd3, 0x40, 0xbb, 0x02, 0x3a, 0x13, 0xc8, 0xa9, 0x00,
-	0x7a, 0xbe, 0x47, 0xe0, 0x25, 0xd8, 0x7d, 0x70, 0x66, 0x4a, 0x52, 0x23, 0x6a, 0x59, 0x48, 0xb7,
-	0x92, 0x58, 0xdf, 0x7f, 0x54, 0x5a, 0xd2, 0x0c, 0xb4, 0x73, 0x4f, 0x57, 0x76, 0xe1, 0x0b, 0x50,
-	0xfb, 0xe0, 0xf8, 0x81, 0x3d, 0xc2, 0x91, 0x4f, 0x07, 0x6a, 0x45, 0x68, 0xed, 0x25, 0xb1, 0x0e,
-	0xa5, 0x56, 0x0e, 0x34, 0x10, 0x48, 0xab, 0xae, 0x28, 0xe0, 0x47, 0x05, 0xec, 0x86, 0x3e, 0xb1,
-	0xb3, 0xe9, 0x8e, 0x70, 0xb4, 0x58, 0xc0, 0x7a, 0x4b, 0x69, 0xd7, 0xad, 0xf3, 0x9b, 0x58, 0x2f,
-	0xfc, 0x88, 0xf5, 0x27, 0x9e, 0xcf, 0x87, 0xe3, 0xbe, 0xe9, 0xd2, 0x30, 0x8b, 0x48, 0xf6, 0x38,
-	0x60, 0x83, 0xab, 0x0e, 0x9f, 0x8d, 0x30, 0x33, 0x4f, 0xb1, 0xbb, 0x72, 0xff, 0xa8, 0xa8, 0x81,
-	0x60, 0xe8, 0x93, 0x9e, 0x68, 0x77, 0x71, 0x24, 0xf7, 0x65, 0x7c, 0x52, 0x40, 0xed, 0xc4, 0x75,
-	0xf9, 0x49, 0xc8, 0xbb, 0x8e, 0x1f, 0xc1, 0xa7, 0x60, 0xdd, 0x71, 0x5d, 0x3a, 0x26, 0x5c, 0x24,
-	0xa9, 0x6a, 0xc1, 0x24, 0xd6, 0xff, 0x92, 0xb2, 0x19, 0x60, 0xa0, 0x05, 0x05, 0x9e, 0x81, 0x8a,
-	0x13, 0x0a, 0xf2, 0x9a, 0x20, 0x9b, 0x7f, 0xe0, 0xf8, 0x35, 0xe1, 0x28, 0x3b, 0x6d, 0x7c, 0x29,
-	0x82, 0xb2, 0x8c, 0xe4, 0x11, 0xa8, 0x4e, 0x9c, 0xc0, 0x1f, 0x38, 0x9c, 0x46, 0x99, 0x83, 0x46,
-	0x12, 0xeb, 0xdb, 0xd2, 0xc1, 0x12, 0x32, 0xd0, 0x8a, 0x06, 0x1b, 0xa0, 0x4c, 0x28, 0x71, 0xb1,
-	0x30, 0x51, 0x42, 0xb2, 0x80, 0xff, 0x81, 0x7a, 0x7e, 0x8b, 0x32, 0x88, 0xa8, 0x96, 0xdb, 0x20,
-	0xd4, 0x41, 0x0d, 0x5f, 0x8f, 0xfc, 0x08, 0x8b, 0x38, 0xca, 0x80, 0x21, 0x20, 0x5b, 0x69, 0x22,
-	0x53, 0x42, 0x7e, 0xb5, 0x65, 0x49, 0xc8, 0xad, 0xd0, 0x02, 0xc0, 0xa5, 0x41, 0x80, 0x53, 0x39,
-	0xa6, 0x56, 0x5a, 0xc5, 0x76, 0xed, 0x68, 0xdf, 0x7c, 0xf0, 0xef, 0x9b, 0xb9, 0x01, 0x5b, 0xa5,
-	0x74, 0x44, 0x28, 0x77, 0x0a, 0xee, 0x81, 0x4a, 0x84, 0x1d, 0x46, 0x89, 0x58, 0x7b, 0x15, 0x65,
-	0x15, 0xb4, 0xc0, 0x16, 0xe6, 0x43, 0xf9, 0xe3, 0xda, 0xfd, 0x19, 0xc7, 0x4c, 0xdd, 0x10, 0xb9,
-	0x68, 0x26, 0xb1, 0xbe, 0x97, 0xfd, 0xdc, 0xf7, 0x09, 0x06, 0xda, 0xc4, 0x7c, 0x28, 0x26, 0x69,
-	0xa5, 0x35, 0x7c, 0x05, 0x40, 0x1a, 0x04, 0x87, 0x8f, 0x23, 0xcc, 0xd4, 0xaa, 0xf0, 0xa7, 0x0a,
-	0x7f, 0xd9, 0x7d, 0x32, 0x39, 0x34, 0x7b, 0x0b, 0xc2, 0xc2, 0xdb, 0xea, 0x84, 0xd1, 0x06, 0xdb,
-	0x17, 0x63, 0x1c, 0xcd, 0x84, 0x64, 0x76, 0xe3, 0x2c, 0xc7, 0xad, 0xe4, 0xc6, 0x6d, 0x9d, 0x7f,
-	0x9d, 0x6b, 0xca, 0xcd, 0x5c, 0x53, 0x6e, 0xe7, 0x9a, 0xf2, 0x73, 0xae, 0x29, 0x9f, 0xef, 0xb4,
-	0xc2, 0xed, 0x9d, 0x56, 0xf8, 0x7e, 0xa7, 0x15, 0xde, 0x3e, 0xcb, 0x07, 0x02, 0x07, 0x38, 0x3a,
-	0x20, 0x98, 0x4f, 0x69, 0x74, 0xd5, 0x61, 0x1e, 0x39, 0x98, 0x1c, 0x75, 0xae, 0x57, 0x97, 0xa9,
-	0x88, 0x47, 0xbf, 0x22, 0x6e, 0xba, 0xe7, 0xbf, 0x02, 0x00, 0x00, 0xff, 0xff, 0x4d, 0x20, 0xe6,
-	0x57, 0x69, 0x05, 0x00, 0x00,
+	// 794 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x54, 0x4f, 0x8f, 0xdb, 0x44,
+	0x1c, 0x8d, 0xbb, 0x49, 0xda, 0x8e, 0x03, 0xad, 0xa6, 0xbb, 0xc5, 0x6c, 0xb7, 0x76, 0x30, 0x12,
+	0xca, 0x65, 0x1d, 0x76, 0x39, 0x20, 0xad, 0x00, 0xa9, 0x6e, 0x41, 0x42, 0x42, 0x65, 0x3b, 0xa9,
+	0x84, 0x84, 0x90, 0xac, 0x89, 0x33, 0xf5, 0x0e, 0xb1, 0x67, 0x22, 0xcf, 0x24, 0x69, 0x8e, 0xf0,
+	0x09, 0xb8, 0x20, 0x71, 0xe4, 0xc8, 0x47, 0xe9, 0xb1, 0x47, 0xc4, 0xc1, 0x42, 0xd9, 0x23, 0xb7,
+	0x7c, 0x02, 0x34, 0x7f, 0xb2, 0x3b, 0xdd, 0xdd, 0x93, 0xfd, 0x7e, 0xef, 0xf9, 0x79, 0xe6, 0x37,
+	0xef, 0x37, 0x20, 0x14, 0x05, 0x1b, 0x8a, 0x12, 0x8b, 0x33, 0xca, 0x8a, 0xe1, 0xe2, 0xe8, 0xe2,
+	0x3d, 0x99, 0xd5, 0x5c, 0x72, 0x78, 0x4f, 0x14, 0x2c, 0xb9, 0xa8, 0x2d, 0x8e, 0xf6, 0x77, 0x0b,
+	0x5e, 0x70, 0xcd, 0x0d, 0xd5, 0x9b, 0x91, 0xed, 0x7f, 0x98, 0x73, 0x51, 0x71, 0x91, 0x19, 0xc2,
+	0x00, 0x4b, 0xed, 0xab, 0x3f, 0xe4, 0xbc, 0xaa, 0x38, 0x53, 0xfe, 0xe6, 0xcd, 0x70, 0xf1, 0xef,
+	0x1d, 0xd0, 0x3d, 0xc5, 0x35, 0xae, 0x04, 0x3c, 0x01, 0x3d, 0xc2, 0xf0, 0xb8, 0x24, 0x99, 0xfe,
+	0x5b, 0xe0, 0xf5, 0xbd, 0xc1, 0x9d, 0xf4, 0x83, 0x4d, 0x13, 0x3d, 0x58, 0xe1, 0xaa, 0x3c, 0x89,
+	0x5d, 0x36, 0x46, 0xbe, 0x81, 0x23, 0x85, 0xe0, 0x0b, 0xb0, 0x2b, 0x68, 0xc1, 0xc8, 0x24, 0x1b,
+	0x97, 0x3c, 0x9f, 0x8a, 0x6c, 0x49, 0xd9, 0x84, 0x2f, 0x83, 0x5b, 0x7d, 0x6f, 0xb0, 0x93, 0x46,
+	0x9b, 0x26, 0x7a, 0x64, 0x3c, 0x6e, 0x52, 0xc5, 0x08, 0x9a, 0x72, 0xaa, 0xab, 0x3f, 0xe8, 0x22,
+	0xfc, 0x12, 0xbc, 0xa7, 0xff, 0x94, 0x49, 0x5a, 0x11, 0x3e, 0x97, 0xc1, 0x4e, 0xdf, 0x1b, 0xb4,
+	0xd3, 0x60, 0xd3, 0x44, 0xbb, 0xd6, 0xcb, 0xa5, 0x63, 0xd4, 0xd3, 0xf8, 0xa5, 0x81, 0xf0, 0x27,
+	0x10, 0x18, 0xfe, 0x15, 0xce, 0x25, 0xaf, 0xb3, 0x09, 0x9f, 0xeb, 0xc5, 0xd3, 0x82, 0x05, 0x6d,
+	0xed, 0xf4, 0xf1, 0xa6, 0x89, 0x22, 0xd7, 0xe9, 0xba, 0x32, 0x46, 0x7b, 0x9a, 0xfa, 0x46, 0x33,
+	0xcf, 0x34, 0x31, 0xa2, 0x05, 0x83, 0x2f, 0xc1, 0xde, 0x95, 0x6f, 0x96, 0x4c, 0x2d, 0x24, 0xe8,
+	0x68, 0xeb, 0xfe, 0xa6, 0x89, 0x0e, 0x6e, 0xb4, 0x36, 0xb2, 0x18, 0x3d, 0x78, 0xc7, 0xd7, 0x54,
+	0xe1, 0xe7, 0xc0, 0xff, 0x19, 0xd3, 0x32, 0x9b, 0x91, 0x9a, 0xf2, 0x49, 0xd0, 0xd5, 0x5e, 0x0f,
+	0x37, 0x4d, 0x04, 0x8d, 0x97, 0x43, 0xc6, 0x08, 0x28, 0x74, 0xaa, 0x01, 0xfc, 0xc5, 0x03, 0x7b,
+	0x15, 0x65, 0x99, 0xed, 0xee, 0x8c, 0xd4, 0xdb, 0x03, 0xb8, 0xdd, 0xf7, 0x06, 0xbd, 0xf4, 0xf9,
+	0x9b, 0x26, 0x6a, 0xfd, 0xd3, 0x44, 0x9f, 0x14, 0x54, 0x9e, 0xcd, 0xc7, 0x49, 0xce, 0x2b, 0x1b,
+	0x11, 0xfb, 0x38, 0x14, 0x93, 0xe9, 0x50, 0xae, 0x66, 0x44, 0x24, 0xcf, 0x48, 0x7e, 0xb9, 0xfa,
+	0x1b, 0x4d, 0x63, 0x04, 0x2b, 0xca, 0x46, 0xba, 0x7c, 0x4a, 0x6a, 0x7b, 0x5e, 0xdf, 0x81, 0xfb,
+	0x42, 0xe2, 0x29, 0x65, 0x45, 0x96, 0x73, 0x26, 0x6b, 0x9c, 0xcb, 0xe0, 0x4e, 0xdf, 0x1b, 0xf8,
+	0xc7, 0x8f, 0x12, 0x15, 0x61, 0x1b, 0xbb, 0xc5, 0x51, 0xf2, 0xd4, 0xd2, 0xdf, 0xb2, 0x57, 0x3c,
+	0x6d, 0xab, 0xa5, 0xa1, 0x7b, 0xf6, 0xd3, 0x2d, 0x15, 0xff, 0x7a, 0x0b, 0x74, 0x4c, 0xb4, 0xc6,
+	0xe0, 0x7d, 0xd3, 0x43, 0xce, 0xb2, 0xfc, 0x0c, 0x53, 0xa6, 0x83, 0xe9, 0x1f, 0x3f, 0x4e, 0xae,
+	0x0c, 0x46, 0xa2, 0xf5, 0xdf, 0xb3, 0xa7, 0x4a, 0x94, 0x3e, 0x56, 0xbe, 0x9b, 0x26, 0xda, 0x73,
+	0x8f, 0x61, 0x6b, 0xb1, 0x0d, 0x8b, 0x15, 0xab, 0xc6, 0x1b, 0xc1, 0x78, 0x25, 0x89, 0xd0, 0xa9,
+	0xed, 0xb9, 0x8d, 0x77, 0xc8, 0x18, 0x01, 0x8d, 0x52, 0x05, 0xe0, 0x57, 0x00, 0xa8, 0xf6, 0x60,
+	0x39, 0xaf, 0x89, 0x08, 0x76, 0xfa, 0x3b, 0x03, 0xff, 0x38, 0xb8, 0xb2, 0xdd, 0xd1, 0x56, 0x60,
+	0xf7, 0xea, 0x7c, 0x01, 0x1f, 0x82, 0x6e, 0x4d, 0xb0, 0xe0, 0x26, 0x93, 0x77, 0x91, 0x45, 0x27,
+	0xed, 0x3f, 0xfe, 0x8c, 0x5a, 0xf1, 0x7f, 0x1e, 0xe8, 0xb9, 0x9b, 0x82, 0x07, 0xe0, 0xee, 0x02,
+	0x97, 0x74, 0x82, 0x25, 0xaf, 0x75, 0x1b, 0x7a, 0xe8, 0xb2, 0x00, 0x77, 0x41, 0x87, 0x71, 0x96,
+	0x13, 0xbd, 0xfe, 0x36, 0x32, 0x00, 0x7e, 0x04, 0x7a, 0x6e, 0x06, 0xcd, 0x18, 0x21, 0xdf, 0xc9,
+	0x1f, 0x8c, 0x80, 0x4f, 0x5e, 0xcf, 0x68, 0x4d, 0xf4, 0x30, 0x99, 0xf1, 0x40, 0xc0, 0x94, 0xd4,
+	0x3c, 0x29, 0x81, 0x1b, 0xcc, 0x8e, 0x11, 0x38, 0x01, 0xfc, 0x02, 0x80, 0x9c, 0x97, 0x25, 0x51,
+	0x76, 0x22, 0xe8, 0xea, 0x3e, 0x1c, 0x5c, 0x3b, 0xa0, 0x27, 0x79, 0x2e, 0x9f, 0x54, 0xf2, 0x14,
+	0xd3, 0x1a, 0x39, 0x7a, 0xbb, 0xdb, 0xaf, 0x81, 0xef, 0x08, 0x60, 0x00, 0x6e, 0xe3, 0x3c, 0xe7,
+	0x73, 0x26, 0xed, 0x4e, 0xb7, 0x50, 0x35, 0x0d, 0x57, 0x9a, 0xd0, 0x07, 0x85, 0x2c, 0xb2, 0x36,
+	0x03, 0x70, 0xff, 0xc5, 0x9c, 0xd4, 0x2b, 0xdd, 0x38, 0x7b, 0xb5, 0x5d, 0x74, 0xc6, 0x73, 0x3a,
+	0x93, 0x3e, 0xff, 0x6b, 0x1d, 0x7a, 0x6f, 0xd6, 0xa1, 0xf7, 0x76, 0x1d, 0x7a, 0xff, 0xae, 0x43,
+	0xef, 0xb7, 0xf3, 0xb0, 0xf5, 0xf6, 0x3c, 0x6c, 0xfd, 0x7d, 0x1e, 0xb6, 0x7e, 0xfc, 0xd4, 0x9d,
+	0x15, 0x52, 0x92, 0xfa, 0x90, 0x11, 0xb9, 0xe4, 0xf5, 0x74, 0x28, 0x0a, 0x76, 0xb8, 0x38, 0x1e,
+	0xbe, 0xbe, 0xbc, 0xb5, 0xf5, 0xe4, 0x8c, 0xbb, 0xfa, 0x4a, 0xfd, 0xec, 0xff, 0x00, 0x00, 0x00,
+	0xff, 0xff, 0x6e, 0xb4, 0xc4, 0x89, 0xd2, 0x05, 0x00, 0x00,
 }
 
 func (this *Params) Equal(that interface{}) bool {
@@ -411,31 +470,7 @@ func (this *Params) Equal(that interface{}) bool {
 	if !this.MinSignedPerWindow.Equal(that1.MinSignedPerWindow) {
 		return false
 	}
-	return true
-}
-func (this *AcctAmtPair) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*AcctAmtPair)
-	if !ok {
-		that2, ok := that.(AcctAmtPair)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if this.Account != that1.Account {
-		return false
-	}
-	if !this.Amount.Equal(that1.Amount) {
+	if !this.StakingContract.Equal(&that1.StakingContract) {
 		return false
 	}
 	return true
@@ -459,7 +494,45 @@ func (this *Slash) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if this.Validator != that1.Validator {
+	if !this.SlashOnChain.Equal(&that1.SlashOnChain) {
+		return false
+	}
+	if !bytes.Equal(this.SlashBytes, that1.SlashBytes) {
+		return false
+	}
+	if len(this.Signatures) != len(that1.Signatures) {
+		return false
+	}
+	for i := range this.Signatures {
+		if !this.Signatures[i].Equal(&that1.Signatures[i]) {
+			return false
+		}
+	}
+	if this.Reason != that1.Reason {
+		return false
+	}
+	return true
+}
+func (this *SlashOnChain) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*SlashOnChain)
+	if !ok {
+		that2, ok := that.(SlashOnChain)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Validator, that1.Validator) {
 		return false
 	}
 	if this.Nonce != that1.Nonce {
@@ -478,23 +551,36 @@ func (this *Slash) Equal(that interface{}) bool {
 		return false
 	}
 	for i := range this.Collectors {
-		if !this.Collectors[i].Equal(&that1.Collectors[i]) {
+		if !this.Collectors[i].Equal(that1.Collectors[i]) {
 			return false
 		}
 	}
-	if this.Reason != that1.Reason {
-		return false
+	return true
+}
+func (this *AcctAmtPair) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
 	}
-	if !bytes.Equal(this.EthSlashBytes, that1.EthSlashBytes) {
-		return false
-	}
-	if len(this.Signatures) != len(that1.Signatures) {
-		return false
-	}
-	for i := range this.Signatures {
-		if !this.Signatures[i].Equal(&that1.Signatures[i]) {
+
+	that1, ok := that.(*AcctAmtPair)
+	if !ok {
+		that2, ok := that.(AcctAmtPair)
+		if ok {
+			that1 = &that2
+		} else {
 			return false
 		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Account, that1.Account) {
+		return false
+	}
+	if !bytes.Equal(this.Amount, that1.Amount) {
+		return false
 	}
 	return true
 }
@@ -543,6 +629,16 @@ func (m *Params) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	var l int
 	_ = l
 	{
+		size, err := m.StakingContract.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintSlashing(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x42
+	{
 		size := m.MinSignedPerWindow.Size()
 		i -= size
 		if _, err := m.MinSignedPerWindow.MarshalTo(dAtA[i:]); err != nil {
@@ -590,46 +686,6 @@ func (m *Params) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *AcctAmtPair) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *AcctAmtPair) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AcctAmtPair) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	{
-		size := m.Amount.Size()
-		i -= size
-		if _, err := m.Amount.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintSlashing(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x12
-	if len(m.Account) > 0 {
-		i -= len(m.Account)
-		copy(dAtA[i:], m.Account)
-		i = encodeVarintSlashing(dAtA, i, uint64(len(m.Account)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *Slash) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -650,6 +706,13 @@ func (m *Slash) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if len(m.Reason) > 0 {
+		i -= len(m.Reason)
+		copy(dAtA[i:], m.Reason)
+		i = encodeVarintSlashing(dAtA, i, uint64(len(m.Reason)))
+		i--
+		dAtA[i] = 0x22
+	}
 	if len(m.Signatures) > 0 {
 		for iNdEx := len(m.Signatures) - 1; iNdEx >= 0; iNdEx-- {
 			{
@@ -661,23 +724,49 @@ func (m *Slash) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 				i = encodeVarintSlashing(dAtA, i, uint64(size))
 			}
 			i--
-			dAtA[i] = 0x4a
+			dAtA[i] = 0x1a
 		}
 	}
-	if len(m.EthSlashBytes) > 0 {
-		i -= len(m.EthSlashBytes)
-		copy(dAtA[i:], m.EthSlashBytes)
-		i = encodeVarintSlashing(dAtA, i, uint64(len(m.EthSlashBytes)))
+	if len(m.SlashBytes) > 0 {
+		i -= len(m.SlashBytes)
+		copy(dAtA[i:], m.SlashBytes)
+		i = encodeVarintSlashing(dAtA, i, uint64(len(m.SlashBytes)))
 		i--
-		dAtA[i] = 0x42
+		dAtA[i] = 0x12
 	}
-	if len(m.Reason) > 0 {
-		i -= len(m.Reason)
-		copy(dAtA[i:], m.Reason)
-		i = encodeVarintSlashing(dAtA, i, uint64(len(m.Reason)))
-		i--
-		dAtA[i] = 0x3a
+	{
+		size, err := m.SlashOnChain.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = encodeVarintSlashing(dAtA, i, uint64(size))
 	}
+	i--
+	dAtA[i] = 0xa
+	return len(dAtA) - i, nil
+}
+
+func (m *SlashOnChain) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SlashOnChain) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *SlashOnChain) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
 	if len(m.Collectors) > 0 {
 		for iNdEx := len(m.Collectors) - 1; iNdEx >= 0; iNdEx-- {
 			{
@@ -716,6 +805,43 @@ func (m *Slash) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.Validator)
 		copy(dAtA[i:], m.Validator)
 		i = encodeVarintSlashing(dAtA, i, uint64(len(m.Validator)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AcctAmtPair) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AcctAmtPair) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *AcctAmtPair) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Amount) > 0 {
+		i -= len(m.Amount)
+		copy(dAtA[i:], m.Amount)
+		i = encodeVarintSlashing(dAtA, i, uint64(len(m.Amount)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Account) > 0 {
+		i -= len(m.Account)
+		copy(dAtA[i:], m.Account)
+		i = encodeVarintSlashing(dAtA, i, uint64(len(m.Account)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -787,25 +913,37 @@ func (m *Params) Size() (n int) {
 	}
 	l = m.MinSignedPerWindow.Size()
 	n += 1 + l + sovSlashing(uint64(l))
-	return n
-}
-
-func (m *AcctAmtPair) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Account)
-	if l > 0 {
-		n += 1 + l + sovSlashing(uint64(l))
-	}
-	l = m.Amount.Size()
+	l = m.StakingContract.Size()
 	n += 1 + l + sovSlashing(uint64(l))
 	return n
 }
 
 func (m *Slash) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = m.SlashOnChain.Size()
+	n += 1 + l + sovSlashing(uint64(l))
+	l = len(m.SlashBytes)
+	if l > 0 {
+		n += 1 + l + sovSlashing(uint64(l))
+	}
+	if len(m.Signatures) > 0 {
+		for _, e := range m.Signatures {
+			l = e.Size()
+			n += 1 + l + sovSlashing(uint64(l))
+		}
+	}
+	l = len(m.Reason)
+	if l > 0 {
+		n += 1 + l + sovSlashing(uint64(l))
+	}
+	return n
+}
+
+func (m *SlashOnChain) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -833,19 +971,22 @@ func (m *Slash) Size() (n int) {
 			n += 1 + l + sovSlashing(uint64(l))
 		}
 	}
-	l = len(m.Reason)
+	return n
+}
+
+func (m *AcctAmtPair) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Account)
 	if l > 0 {
 		n += 1 + l + sovSlashing(uint64(l))
 	}
-	l = len(m.EthSlashBytes)
+	l = len(m.Amount)
 	if l > 0 {
 		n += 1 + l + sovSlashing(uint64(l))
-	}
-	if len(m.Signatures) > 0 {
-		for _, e := range m.Signatures {
-			l = e.Size()
-			n += 1 + l + sovSlashing(uint64(l))
-		}
 	}
 	return n
 }
@@ -1045,61 +1186,11 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipSlashing(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthSlashing
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *AcctAmtPair) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowSlashing
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: AcctAmtPair: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: AcctAmtPair: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
+		case 8:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Account", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field StakingContract", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowSlashing
@@ -1109,55 +1200,22 @@ func (m *AcctAmtPair) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthSlashing
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthSlashing
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Account = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Amount", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSlashing
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthSlashing
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthSlashing
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Amount.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.StakingContract.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1213,7 +1271,108 @@ func (m *Slash) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Validator", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field SlashOnChain", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSlashing
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthSlashing
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthSlashing
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.SlashOnChain.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SlashBytes", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSlashing
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthSlashing
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthSlashing
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SlashBytes = append(m.SlashBytes[:0], dAtA[iNdEx:postIndex]...)
+			if m.SlashBytes == nil {
+				m.SlashBytes = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signatures", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSlashing
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthSlashing
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthSlashing
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Signatures = append(m.Signatures, types.Signature{})
+			if err := m.Signatures[len(m.Signatures)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reason", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -1241,7 +1400,91 @@ func (m *Slash) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Validator = string(dAtA[iNdEx:postIndex])
+			m.Reason = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipSlashing(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthSlashing
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *SlashOnChain) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowSlashing
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SlashOnChain: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SlashOnChain: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Validator", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowSlashing
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthSlashing
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthSlashing
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Validator = append(m.Validator[:0], dAtA[iNdEx:postIndex]...)
+			if m.Validator == nil {
+				m.Validator = []byte{}
+			}
 			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
@@ -1348,46 +1591,64 @@ func (m *Slash) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Collectors = append(m.Collectors, AcctAmtPair{})
+			m.Collectors = append(m.Collectors, &AcctAmtPair{})
 			if err := m.Collectors[len(m.Collectors)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
-		case 7:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Reason", wireType)
+		default:
+			iNdEx = preIndex
+			skippy, err := skipSlashing(dAtA[iNdEx:])
+			if err != nil {
+				return err
 			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowSlashing
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthSlashing
 			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthSlashing
-			}
-			if postIndex > l {
+			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Reason = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 8:
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *AcctAmtPair) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowSlashing
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AcctAmtPair: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AcctAmtPair: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EthSlashBytes", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Account", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -1414,16 +1675,16 @@ func (m *Slash) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.EthSlashBytes = append(m.EthSlashBytes[:0], dAtA[iNdEx:postIndex]...)
-			if m.EthSlashBytes == nil {
-				m.EthSlashBytes = []byte{}
+			m.Account = append(m.Account[:0], dAtA[iNdEx:postIndex]...)
+			if m.Account == nil {
+				m.Account = []byte{}
 			}
 			iNdEx = postIndex
-		case 9:
+		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Signatures", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Amount", wireType)
 			}
-			var msglen int
+			var byteLen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowSlashing
@@ -1433,24 +1694,24 @@ func (m *Slash) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				byteLen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
+			if byteLen < 0 {
 				return ErrInvalidLengthSlashing
 			}
-			postIndex := iNdEx + msglen
+			postIndex := iNdEx + byteLen
 			if postIndex < 0 {
 				return ErrInvalidLengthSlashing
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Signatures = append(m.Signatures, types.Signature{})
-			if err := m.Signatures[len(m.Signatures)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
+			m.Amount = append(m.Amount[:0], dAtA[iNdEx:postIndex]...)
+			if m.Amount == nil {
+				m.Amount = []byte{}
 			}
 			iNdEx = postIndex
 		default:

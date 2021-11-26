@@ -5,6 +5,7 @@ import "cosmos_proto/cosmos.proto";
 import "gogoproto/gogo.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
+import "sgn/common/v1/common.proto";
 
 option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
 
@@ -26,6 +27,7 @@ message Params {
 
 // ========== configs
 // use configs to avoid confusion w/ cosmos param
+// Next tag: 7
 message CbrConfig {
   uint32 lp_fee_perc = 1;  // eg. 80 means 80% fee goes to cbridge lp, 20% goes to sgn
   // to improve scalability, we'll first pick this many LPs to see if their total liquidity is enough
@@ -38,6 +40,7 @@ message CbrConfig {
 
   repeated ChainAsset assets = 2;      // multi-asset, multi-chain
   repeated ChainPair chain_pairs = 3;  // per chain pair configs
+  repeated sgn.common.v1.ContractInfo cbr_contracts = 6; // per chain cbridge contract address
 }
 
 // needed for base fee calculation. the value set in genesis is only used when first start.
@@ -215,14 +218,14 @@ message ChainSigners {
 
   uint64 chain_id = 1;
   repeated Signer sorted_signers = 2;
+  repeated AddrSig sorted_sigs = 3; // sigs of LatestSigners.signers_bytes
 }
 
 message LatestSigners {
   option (gogoproto.goproto_stringer) = false;
 
   repeated Signer sorted_signers = 1;
-  bytes signers_bytes = 2;
-  repeated AddrSig sorted_sigs = 3;
-  google.protobuf.Timestamp update_time = 4
-      [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"update_time\""];
+  bytes signers_bytes = 2; // pack(triggerTime, addrs, powers)
+  uint64 trigger_time = 3; // block timestamp
+  uint64 last_sign_time = 4;  // to anti-dos, avoid constant re-signing
 }

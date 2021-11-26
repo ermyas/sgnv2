@@ -73,7 +73,7 @@ func slashTest(t *testing.T) {
 	require.NoError(t, err, "failed to query slash")
 	log.Infoln("Query sgn about slash info:", slash.String())
 	assert.Equal(t, slashingtypes.AttributeValueMissingSignature, slash.Reason)
-	assert.Equal(t, eth.Addr2Hex(tc.ValEthAddrs[1]), slash.Validator)
+	assert.Equal(t, tc.ValEthAddrs[1], eth.Bytes2Addr(slash.SlashOnChain.Validator))
 	assert.Equal(t, eth.Addr2Hex(tc.ValSignerAddrs[0]), slash.Signatures[0].Signer)
 
 	time.Sleep(5 * time.Second) // wait for onchain call mined
@@ -109,7 +109,7 @@ func disableSlashTest(t *testing.T) {
 	amts := []*big.Int{amt1, amt2}
 	tc.SetupValidators(t, transactor, amts)
 
-	paramChanges := []govtypes.ParamChange{govtypes.NewParamChange("slash", "EnableSlash", "false")}
+	paramChanges := []govtypes.ParamChange{govtypes.NewParamChange("slashing", "EnableSlash", "false")}
 	content := govtypes.NewParameterProposal("Slash Param Change", "Update EnableSlash", paramChanges)
 	submitProposalmsg, _ := govtypes.NewMsgSubmitProposal(content, sdk.NewInt(1e9), transactor.Key.GetAddress())
 	transactor.AddTxMsg(submitProposalmsg)
@@ -152,7 +152,7 @@ func expireSlashTest(t *testing.T) {
 
 	prevBalance, _ := tc.CelrContract.BalanceOf(&bind.CallOpts{}, tc.ValEthAddrs[0])
 
-	paramChanges := []govtypes.ParamChange{govtypes.NewParamChange("slash", "SlashTimeout", string(transactor.CliCtx.LegacyAmino.MustMarshalJSON(1)))}
+	paramChanges := []govtypes.ParamChange{govtypes.NewParamChange("slashing", "SlashTimeout", string(transactor.CliCtx.LegacyAmino.MustMarshalJSON(1)))}
 	content := govtypes.NewParameterProposal("Slash Param Change", "Update SlashTimeout", paramChanges)
 	submitProposalmsg, _ := govtypes.NewMsgSubmitProposal(content, sdk.NewInt(1e9), transactor.Key.GetAddress())
 	transactor.AddTxMsg(submitProposalmsg)

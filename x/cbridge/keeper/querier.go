@@ -431,7 +431,7 @@ func queryWithdrawLiquidityStatus(ctx sdk.Context, req abci.RequestQuery, k Keep
 
 func queryChainSigners(
 	ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
-	var params types.QueryChainSignersParams
+	var params types.QueryChainParams
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse params: %s", err)

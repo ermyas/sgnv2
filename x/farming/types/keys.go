@@ -38,6 +38,7 @@ var (
 	PoolCurrentRewardsPrefix    = []byte{0x05}
 	RewardClaimInfoPrefix       = []byte{0x06}
 	ERC20TokenPrefix            = []byte{0x07}
+	RewardContractPrefix        = []byte{0x08}
 )
 
 const (
@@ -86,6 +87,10 @@ func GetRewardClaimInfoKey(addr eth.Addr) []byte {
 // GetERC20TokenKey gets the key for an ERC-20 token
 func GetERC20TokenKey(chainId uint64, symbol string) []byte {
 	return append(ERC20TokenPrefix, append(getChainIdBytes(chainId), []byte(symbol)...)...)
+}
+
+func GetRewardContractKey(chainId uint64) []byte {
+	return append(RewardContractPrefix, getChainIdBytes(chainId)...)
 }
 
 func getChainIdBytes(chainId uint64) []byte {

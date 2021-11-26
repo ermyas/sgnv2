@@ -3,6 +3,8 @@ package types
 import (
 	"fmt"
 
+	commontypes "github.com/celer-network/sgn-v2/common/types"
+	"github.com/celer-network/sgn-v2/eth"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
@@ -30,11 +32,14 @@ var (
 	KeySlashFactorDowntime   = []byte("SlashFactorDowntime")
 	KeyJailPeriod            = []byte("SlashJailPeriod")
 	KeyMinSignedPerWindow    = []byte("MinSignedPerWindow")
+	KeyStakingContract       = []byte("StakingContract")
 )
 
 // NewParams creates a new Params instance
-func NewParams(enableSlash bool, signedBlocksWindow int64, slashTimeout, slashFactorDoubleSign, slashFactorDowntime, jailPeriod uint64,
-	minSignedPerWindow sdk.Dec) Params {
+func NewParams(
+	enableSlash bool, signedBlocksWindow int64, slashTimeout, slashFactorDoubleSign,
+	slashFactorDowntime, jailPeriod uint64, minSignedPerWindow sdk.Dec,
+	stakingContract commontypes.ContractInfo) Params {
 	return Params{
 		EnableSlash:           enableSlash,
 		SignedBlocksWindow:    signedBlocksWindow,
@@ -43,13 +48,15 @@ func NewParams(enableSlash bool, signedBlocksWindow int64, slashTimeout, slashFa
 		SlashFactorDowntime:   slashFactorDowntime,
 		JailPeriod:            jailPeriod,
 		MinSignedPerWindow:    minSignedPerWindow,
+		StakingContract:       stakingContract,
 	}
 }
 
 // DefaultParams returns a default set of parameters.
 func DefaultParams() Params {
 	return NewParams(DefaultEnableSlash, DefaultSignedBlocksWindow, DefaultSlashTimeout,
-		DefaultSlashFactorDoubleSign, DefaultSlashFactorDowntime, DefaultJailPeriod, DefaultMinSignedPerWindow)
+		DefaultSlashFactorDoubleSign, DefaultSlashFactorDowntime, DefaultJailPeriod, DefaultMinSignedPerWindow,
+		commontypes.ContractInfo{})
 }
 
 // ParamKeyTable returns the parameter key table.
@@ -67,6 +74,7 @@ func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
 		paramtypes.NewParamSetPair(KeySlashFactorDowntime, &p.SlashFactorDowntime, validateSlashFactorDowntime),
 		paramtypes.NewParamSetPair(KeyJailPeriod, &p.JailPeriod, validateJailPeriod),
 		paramtypes.NewParamSetPair(KeyMinSignedPerWindow, &p.MinSignedPerWindow, validateMinSignedPerWindow),
+		paramtypes.NewParamSetPair(KeyStakingContract, &p.StakingContract, validateStakingContract),
 	}
 }
 
@@ -91,6 +99,9 @@ func (p Params) ValidateBasic() error {
 		return err
 	}
 	if err := validateMinSignedPerWindow(p.MinSignedPerWindow); err != nil {
+		return err
+	}
+	if err := validateStakingContract(p.StakingContract); err != nil {
 		return err
 	}
 	return nil
@@ -178,6 +189,19 @@ func validateMinSignedPerWindow(i interface{}) error {
 
 	if v.GT(sdk.OneDec()) {
 		return fmt.Errorf("slash parameter MinSignedPerWindow must be less or equal than 1: %s", v)
+	}
+
+	return nil
+}
+
+func validateStakingContract(i interface{}) error {
+	v, ok := i.(commontypes.ContractInfo)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+
+	if len(eth.Hex2Bytes(v.Address)) > 20 {
+		return fmt.Errorf("Invalid address length")
 	}
 
 	return nil

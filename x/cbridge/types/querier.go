@@ -28,10 +28,10 @@ type QueryRelayParams struct {
 	XrefId []byte `json:"xref_id,omitempty"`
 }
 
-type QueryChainSignersParams struct {
+type QueryChainParams struct {
 	ChainId uint64
 }
 
-func NewQueryChainSignersParams(chainId uint64) *QueryChainSignersParams {
-	return &QueryChainSignersParams{ChainId: chainId}
+func NewQueryChainParams(chainId uint64) *QueryChainParams {
+	return &QueryChainParams{ChainId: chainId}
 }

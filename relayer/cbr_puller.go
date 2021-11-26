@@ -3,6 +3,7 @@ package relayer
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
@@ -505,15 +506,16 @@ func (r *Relayer) updateSigners() {
 					Power: power.Bytes(),
 				})
 			}
-			pass, sigsBytes = cbrtypes.ValidateSigQuorum(latestSigners.GetSortedSigs(), curssList)
-			if pass {
-				break
+			chainSigners, err := cbrcli.QueryChainSigners(r.Transactor.CliCtx, chainId)
+			if err != nil {
+				log.Errorf("failed to get chain %d signers, err: %s", chainId, err)
+			} else {
+				pass, sigsBytes = cbrtypes.ValidateSigQuorum(chainSigners.GetSortedSigs(), curssList)
+				if pass {
+					break
+				}
 			}
 			time.Sleep(sgnBlkTime)
-			latestSigners, err = cbrcli.QueryLatestSigners(r.Transactor.CliCtx)
-			if err != nil {
-				log.Errorln("failed to get latest signers", err)
-			}
 			retry++
 		}
 		if !pass {
@@ -537,7 +539,8 @@ func (r *Relayer) updateSigners() {
 			func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
 				newSignerAddrs, newSignerPowers := cbrtypes.SignersToEthArrays(latestSigners.GetSortedSigners())
 				return c.contract.UpdateSigners(
-					opts, newSignerAddrs, newSignerPowers, sigsBytes, curss.addrs, curss.powers)
+					opts, new(big.Int).SetUint64(latestSigners.TriggerTime),
+					newSignerAddrs, newSignerPowers, sigsBytes, curss.addrs, curss.powers)
 			},
 		)
 		if err != nil {

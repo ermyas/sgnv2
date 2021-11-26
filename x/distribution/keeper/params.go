@@ -3,6 +3,7 @@ package keeper
 import (
 	"time"
 
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/x/distribution/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -48,4 +49,9 @@ func (k Keeper) GetWithdrawAddrEnabled(ctx sdk.Context) (enabled bool) {
 func (k Keeper) GetClaimCooldown(ctx sdk.Context) (cooldown time.Duration) {
 	k.paramSpace.Get(ctx, types.ParamStoreKeyClaimCooldown, &cooldown)
 	return cooldown
+}
+
+func (k Keeper) RewardContract(ctx sdk.Context) (contract commontypes.ContractInfo) {
+	k.paramSpace.Get(ctx, types.ParamStoreKeyRewardContract, &contract)
+	return
 }

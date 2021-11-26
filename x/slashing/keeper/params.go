@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/x/slashing/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -52,6 +53,12 @@ func (k Keeper) MinSignedPerWindow(ctx sdk.Context) (res sdk.Dec) {
 	return
 }
 
+// StakingContractAddress - staking contract address
+func (k Keeper) StakingContract(ctx sdk.Context) (res commontypes.ContractInfo) {
+	k.paramstore.Get(ctx, types.KeyStakingContract, &res)
+	return
+}
+
 // Get all parameteras as types.Params
 func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	return types.NewParams(
@@ -62,6 +69,7 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 		k.SlashFactorDowntime(ctx),
 		k.JailPeriod(ctx),
 		k.MinSignedPerWindow(ctx),
+		k.StakingContract(ctx),
 	)
 }
 

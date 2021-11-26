@@ -128,6 +128,16 @@
             "per_validator": 2375,
             "per_sig": 5275
           }
+        ],
+        "cbr_contracts": [
+          {
+            "chain_id": 883,
+            "address": ""
+          },
+          {
+            "chain_id": 884,
+            "address": ""
+          }
         ]
       },
       "price": {
@@ -224,6 +234,12 @@
           ],
           "total_accumulated_rewards": []
         }
+      ],
+      "reward_contracts": [
+        {
+          "chain_id": 883,
+          "address": ""
+        }
       ]
     },
     "distribution": {
@@ -232,7 +248,11 @@
         "base_proposer_reward": "0.010000000000000000",
         "bonus_proposer_reward": "0.040000000000000000",
         "withdraw_addr_enabled": false,
-        "claim_cooldown": "1s"
+        "claim_cooldown": "1s",
+        "reward_contract": {
+          "chain_id": 883,
+          "address": ""
+        }
       },
       "fee_pool": {
         "community_pool": []
@@ -271,7 +291,11 @@
         "min_signed_per_window": "0.10000000000000000",
         "slash_factor_double_sign": "50000",
         "slash_factor_downtime": "10000",
-        "jail_period": "0"
+        "jail_period": "0",
+        "staking_contract": {
+          "chain_id": 883,
+          "address": ""
+        }
       }
     },
     "mint": {

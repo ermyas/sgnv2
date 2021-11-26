@@ -469,7 +469,7 @@ func QueryWithdrawLiquidityStatus(cliCtx client.Context, request *types.QueryWit
 }
 
 func QueryChainSigners(cliCtx client.Context, chainId uint64) (chainSigners *types.ChainSigners, err error) {
-	params := types.NewQueryChainSignersParams(chainId)
+	params := types.NewQueryChainParams(chainId)
 	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
 	if err != nil {
 		return

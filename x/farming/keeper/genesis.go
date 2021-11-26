@@ -42,6 +42,9 @@ func (k Keeper) InitGenesis(ctx sdk.Context, data types.GenesisState) {
 	for _, current := range data.PoolCurrentRewards {
 		k.SetPoolCurrentRewards(ctx, current.PoolName, current.Rewards)
 	}
+	for _, contract := range data.RewardContracts {
+		k.SetRewardContract(ctx, contract)
+	}
 
 	// init module account
 	moduleAcc := k.authKeeper.GetModuleAccount(ctx, types.ModuleName)

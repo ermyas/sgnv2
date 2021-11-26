@@ -42,7 +42,10 @@ func handleMsgSignSlash(ctx sdk.Context, keeper keeper.Keeper, msg *types.MsgSig
 	logEntry.Slash.Nonce = msg.Nonce
 
 	res := &sdk.Result{}
-	senderAcct, _ := sdk.AccAddressFromBech32(msg.Sender)
+	senderAcct, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		return res, fmt.Errorf("Invalid msg sender %s", msg.Sender)
+	}
 	validator, found := keeper.StakingKeeper.GetValidatorBySgnAddr(ctx, senderAcct)
 	if !found {
 		return res, fmt.Errorf("sender is not a validator")
@@ -55,12 +58,14 @@ func handleMsgSignSlash(ctx sdk.Context, keeper keeper.Keeper, msg *types.MsgSig
 	if !found {
 		return res, fmt.Errorf("slash does not exist")
 	}
-	logEntry.Slash.ValAddr = slash.Validator
+	logEntry.Slash.ValAddr = eth.Bytes2Hex(slash.SlashOnChain.Validator)
 	logEntry.Slash.Reason = slash.Reason
 
-	err := slash.AddSig(msg.Sig, eth.Addr2Hex(validator.GetSignerAddr()))
+	contract := keeper.StakingContract(ctx)
+	msgToSign := slash.EncodeDataToSign(contract.ChainId, eth.Hex2Addr(contract.Address))
+	err = slash.AddSig(msgToSign, msg.Sig, eth.Addr2Hex(validator.GetSignerAddr()))
 	if err != nil {
-		return res, fmt.Errorf(fmt.Sprintf("failed to add sig: %s", err))
+		return res, fmt.Errorf("failed to add sig: %s", err)
 	}
 
 	keeper.SetSlash(ctx, slash)

@@ -6,6 +6,7 @@ option (gogoproto.equal_all) = true;
 
 import "gogoproto/gogo.proto";
 import "sgn/farming/v1/farming.proto";
+import "sgn/common/v1/common.proto";
 
 // PoolHistoricalRewardsRecord is used for import / export via genesis json.
 message PoolHistoricalRewardsRecord {
@@ -57,4 +58,7 @@ message GenesisState {
   // pool_current_rewards defines the current rewards of all pools at genesis.
   repeated PoolCurrentRewardsRecord pool_current_rewards = 5
       [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"pool_current_rewards\""];
+
+  repeated sgn.common.v1.ContractInfo reward_contracts = 6
+      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"reward_contracts\""];
 }

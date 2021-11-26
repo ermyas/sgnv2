@@ -103,6 +103,9 @@ func updateSgnConfig(cbridge bool) {
 	err = genesisViper.ReadInConfig()
 	tc.ChkErr(err, "Failed to read genesis")
 	genesisViper.Set("app_state.gov.voting_params.voting_period", "10s")
+	genesisViper.Set("app_state.distribution.params.reward_contract.address", eth.Addr2Hex(tc.Contracts.StakingReward.Address))
+	genesisViper.Set("app_state.slashing.params.staking_contract.address", eth.Addr2Hex(tc.Contracts.Staking.Address))
+
 	if !cbridge {
 		genesisViper.Set("app_state.cbridge.config.assets", []string{})
 		genesisViper.Set("app_state.cbridge.config.chain_pairs", []string{})

@@ -8,6 +8,7 @@ import (
 
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/cosmos/cosmos-sdk/codec"
+	solsha3 "github.com/miguelmota/go-solidity-sha3"
 )
 
 // ------------------------------------ Signer(s) ------------------------------------
@@ -67,12 +68,8 @@ func UnmarshalChainSigners(cdc codec.BinaryCodec, value []byte) (s ChainSigners,
 // ------------------------------------ LatestSigners ------------------------------------
 
 func (ls *LatestSigners) String() string {
-	var sigs string
-	for _, s := range ls.GetSortedSigs() {
-		sigs += fmt.Sprintf("%x ", s.Addr)
-	}
-	return fmt.Sprintf("signers: %s, sigs from: < %s>, update time: %s",
-		PrintSigners(ls.GetSortedSigners()), sigs, ls.UpdateTime)
+	return fmt.Sprintf("signers: %s, trigger time: %d",
+		PrintSigners(ls.GetSortedSigners()), ls.TriggerTime)
 }
 
 func (ls *LatestSigners) GenerateSignersBytes() {
@@ -80,18 +77,9 @@ func (ls *LatestSigners) GenerateSignersBytes() {
 		return
 	}
 	addrs, powers := SignersToEthArrays(ls.SortedSigners)
-	ls.SignersBytes = eth.SignerBytes(addrs, powers)
-}
-
-func (ls *LatestSigners) GetSortedSigsBytes() [][]byte {
-	if ls != nil {
-		sigs := make([][]byte, len(ls.SortedSigs))
-		for i, s := range ls.GetSortedSigs() {
-			sigs[i] = s.Sig
-		}
-		return sigs
-	}
-	return nil
+	ls.SignersBytes = append(
+		eth.Pad32Bytes(new(big.Int).SetUint64(ls.TriggerTime).Bytes()),
+		eth.SignerBytes(addrs, powers)...)
 }
 
 // Sort signers array in ascending address order
@@ -129,6 +117,14 @@ func MustUnmarshalLatestSigners(cdc codec.BinaryCodec, value []byte) LatestSigne
 func UnmarshalLatestSigners(cdc codec.BinaryCodec, value []byte) (s LatestSigners, err error) {
 	err = cdc.Unmarshal(value, &s)
 	return s, err
+}
+
+func EncodeSignersUpdateToSign(chainId uint64, contractAddr eth.Addr, SignersBytes []byte) []byte {
+	domain := solsha3.SoliditySHA3(
+		[]string{"uint256", "address", "string"},
+		[]interface{}{new(big.Int).SetUint64(chainId), contractAddr, "UpdateSigners"},
+	)
+	return append(domain, SignersBytes...)
 }
 
 // ------------------------------------ Utils ------------------------------------
@@ -208,4 +204,20 @@ func MinSigsForQuorum(signers []*Signer) uint32 {
 		}
 	}
 	return count
+}
+
+func EqualSortedSigners(ss1, ss2 []*Signer) bool {
+	if len(ss1) != len(ss2) {
+		return false
+	}
+	for i, s1 := range ss1 {
+		s2 := ss2[i]
+		if bytes.Compare(s1.Addr, s2.Addr) != 0 {
+			return false
+		}
+		if bytes.Compare(s1.Power, s2.Power) != 0 {
+			return false
+		}
+	}
+	return true
 }

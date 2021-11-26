@@ -138,6 +138,7 @@ func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*typ
 			sdk.NewAttribute(types.AttributeKeyData, eth.Bytes2Hex(wdDetail.WdOnchain)),
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 		))
+		log.Infof("x/cbr sign again Withdraw user %x reqId %d", req.UserAddr, req.ReqId)
 	case types.SignDataType_RELAY:
 		xferId := eth.Bytes2Hash(req.XferId)
 		xferStatus := GetEvSendStatus(kv, xferId)
@@ -163,6 +164,25 @@ func (k msgServer) SignAgain(ctx context.Context, req *types.MsgSignAgain) (*typ
 			sdk.NewAttribute(types.AttributeKeyData, eth.Bytes2Hex(relay.Relay)),
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 		))
+		log.Infof("x/cbr sign again Relay %x", xferId)
+	case types.SignDataType_SIGNERS:
+		latestSigners, found := k.GetLatestSigners(sdkCtx)
+		if !found {
+			return nil, types.Error(types.ErrCode_NOT_FOUND, "latest signers not found")
+		}
+		now := sdkCtx.BlockTime()
+		if now.Before(common.TsSecToTime(latestSigners.LastSignTime).Add(k.Keeper.GetSignAgainCoolDownDuration(sdkCtx))) {
+			return nil, types.Error(types.ErrCode_REQ_TOO_SOON, "")
+		}
+		sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
+			types.EventTypeDataToSign,
+			sdk.NewAttribute(types.AttributeKeyType, types.SignDataType_SIGNERS.String()),
+			sdk.NewAttribute(types.AttributeKeyData, eth.Bytes2Hex(latestSigners.SignersBytes)),
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		))
+		latestSigners.LastSignTime = uint64(now.Unix())
+		k.SetLatestSigners(sdkCtx, &latestSigners)
+		log.Infof("x/cbr sign again UpdateSigners")
 	default:
 		return nil, types.Error(types.ErrCode_INVALID_REQ, "invalid sign data type %d", req.DataType)
 	}
@@ -195,21 +215,10 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 		return nil, fmt.Errorf("%s, validator is not bonded", logmsg)
 	}
 
-	// validate sig
-	signer, err := ethutils.RecoverSigner(msg.Data, msg.MySig)
-	if err != nil {
-		return nil, fmt.Errorf("%s err %w", logmsg, err)
-	}
-	if signer != validator.GetSignerAddr() {
-		err = fmt.Errorf("mismatch signer address %s %s", signer, validator.GetSignerAddr())
-		return nil, fmt.Errorf("%s err %w", logmsg, err)
-	}
-	logmsg = fmt.Sprintf("%s, signer %x", logmsg, signer)
-
 	ret := &types.MsgSendMySigResp{}
 	if msg.Datatype == types.SignDataType_RELAY {
 		relay := new(types.RelayOnChain)
-		err := relay.Unmarshal(msg.Data)
+		err = relay.Unmarshal(msg.Data)
 		if err != nil {
 			return nil, fmt.Errorf("%s err %w", logmsg, err)
 		}
@@ -218,6 +227,25 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 		xferId := eth.Bytes2Hash(relay.SrcTransferId)
 		logmsg = fmt.Sprintf("%s, xferId %x", logmsg, xferId)
 
+		if len(msg.MySigs) != 1 {
+			return nil, fmt.Errorf("%s invalid sig num %d", logmsg, len(msg.MySigs))
+		}
+		mySig := msg.MySigs[0].Sig
+
+		contractAddr, found := GetCbrContract(kv, relay.GetDstChainId())
+		if !found {
+			return nil, fmt.Errorf("%s contract not found for chain %d", logmsg, relay.GetDstChainId())
+		}
+		dataToSign := types.EncodeRelayOnChainToSign(relay.GetDstChainId(), contractAddr, msg.Data)
+		signer, err := ethutils.RecoverSigner(dataToSign, mySig)
+		if err != nil {
+			return nil, fmt.Errorf("%s err %w", logmsg, err)
+		}
+		if signer != validator.GetSignerAddr() {
+			return nil, fmt.Errorf("%s invalid signature", logmsg)
+		}
+		logmsg = fmt.Sprintf("%s, signer %x", logmsg, signer)
+
 		xferRelay := GetXferRelay(kv, xferId)
 		if xferRelay == nil {
 			return nil, fmt.Errorf("%s xfer not found", logmsg)
@@ -225,41 +253,86 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 		// SortedSigs will be modified in place
 		xferRelay.SortedSigs = UpdateSortedSigs(xferRelay.SortedSigs, &types.AddrSig{
 			Addr: signer[:],
-			Sig:  msg.MySig,
+			Sig:  mySig,
 		})
 		SetXferRelay(kv, xferId, xferRelay)
 		return ret, nil
 	} else if msg.Datatype == types.SignDataType_WITHDRAW {
-		onchain := new(types.WithdrawOnchain)
-		err := onchain.Unmarshal(msg.Data)
+		withdraw := new(types.WithdrawOnchain)
+		err = withdraw.Unmarshal(msg.Data)
 		if err != nil {
 			return nil, fmt.Errorf("%s, unmarshal %x to WithdrawOnchain fail %w", logmsg, msg.Data, err)
 		}
-		logmsg = fmt.Sprintf("%s, seqnum %d", logmsg, onchain.Seqnum)
-		usrAddr := eth.Bytes2Addr(onchain.Receiver)
-		wdDetail := GetWithdrawDetail(kv, usrAddr, onchain.Seqnum)
+		logmsg = fmt.Sprintf("%s, seqnum %d", logmsg, withdraw.Seqnum)
+
+		if len(msg.MySigs) != 1 {
+			return nil, fmt.Errorf("%s invalid sig num %d", logmsg, len(msg.MySigs))
+		}
+		mySig := msg.MySigs[0].Sig
+
+		contractAddr, found := GetCbrContract(kv, withdraw.Chainid)
+		if !found {
+			return nil, fmt.Errorf("%s contract not found for chain %d", logmsg, withdraw.Chainid)
+		}
+		dataToSign := types.EncodeWithdrawOnchainToSign(withdraw.Chainid, contractAddr, msg.Data)
+		signer, err := ethutils.RecoverSigner(dataToSign, mySig)
+		if err != nil {
+			return nil, fmt.Errorf("%s err %w", logmsg, err)
+		}
+		if signer != validator.GetSignerAddr() {
+			return nil, fmt.Errorf("%s invalid signature", logmsg)
+		}
+		logmsg = fmt.Sprintf("%s, signer %x", logmsg, signer)
+
+		usrAddr := eth.Bytes2Addr(withdraw.Receiver)
+		wdDetail := GetWithdrawDetail(kv, usrAddr, withdraw.Seqnum)
 		if wdDetail == nil {
 			return nil, fmt.Errorf("%s, withdraw seq not found", logmsg)
 		}
 		wdDetail.SortedSigs = UpdateSortedSigs(wdDetail.SortedSigs, &types.AddrSig{
 			Addr: signer[:],
-			Sig:  msg.MySig,
+			Sig:  mySig,
 		})
-		SaveWithdrawDetail(kv, usrAddr, onchain.Seqnum, wdDetail)
+		SaveWithdrawDetail(kv, usrAddr, withdraw.Seqnum, wdDetail)
 	} else if msg.Datatype == types.SignDataType_SIGNERS {
+
 		latestSigners, found := k.GetLatestSigners(sdkCtx)
 		if !found {
 			return nil, fmt.Errorf("%s, latest signers not found", logmsg)
 		}
+		// validate signature
 		if !bytes.Equal(latestSigners.GetSignersBytes(), msg.Data) {
-			return nil, fmt.Errorf("%s, signed latest signers not match stored data", logmsg)
+			log.Errorf("%s, signed data not match stored data", logmsg)
+			return ret, nil
 		}
-		latestSigners.SortedSigs = UpdateSortedSigs(latestSigners.SortedSigs, &types.AddrSig{
-			Addr: signer.Bytes(),
-			Sig:  msg.MySig,
-		})
+		for _, mySig := range msg.MySigs {
+			// validate sig
+			contractAddr, found := GetCbrContract(kv, mySig.GetChainId())
+			if !found {
+				return nil, fmt.Errorf("%s contract not found for chain %d", logmsg, mySig.GetChainId())
+			}
+			dataToSign := types.EncodeSignersUpdateToSign(mySig.GetChainId(), contractAddr, msg.Data)
+			signer, err := ethutils.RecoverSigner(dataToSign, mySig.Sig)
+			if err != nil {
+				return nil, fmt.Errorf("%s err %w", logmsg, err)
+			}
+			if signer != validator.GetSignerAddr() {
+				return nil, fmt.Errorf("%s invalid signature", logmsg)
+			}
+			logmsg = fmt.Sprintf("%s, signer %x", logmsg, signer)
+
+			chainSigners, found := k.GetChainSigners(sdkCtx, mySig.ChainId)
+			if !found {
+				log.Errorf("%s, signerSigs for chainId %d not found", logmsg, mySig.ChainId)
+				continue
+			}
+			chainSigners.SortedSigs = UpdateSortedSigs(chainSigners.SortedSigs, &types.AddrSig{
+				Addr: signer.Bytes(),
+				Sig:  mySig.Sig,
+			})
+			k.SetChainSigners(sdkCtx, &chainSigners)
+		}
 		logmsg = fmt.Sprintf("%s, latestSigners %s", logmsg, latestSigners.String())
-		k.SetLatestSigners(sdkCtx, &latestSigners)
 	}
 	log.Info(logmsg)
 	return ret, nil
@@ -269,7 +342,7 @@ func (k msgServer) UpdateLatestSigners(ctx context.Context, msg *types.MsgUpdate
 	if msg == nil {
 		return nil, fmt.Errorf("nil msg")
 	}
-	logmsg := "x/cbr handle MsgSendMySig"
+	logmsg := "x/cbr handle UpdateLatestSigners"
 	senderAcct, err := sdk.AccAddressFromBech32(msg.Creator)
 	if err != nil {
 		return nil, fmt.Errorf("%s err %w", logmsg, err)

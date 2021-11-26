@@ -10,7 +10,13 @@ import "gogoproto/gogo.proto";
 message Signature {
   // signer defines the Ethereum address of the signer.
   string signer = 1 [(gogoproto.moretags) = "yaml:\"signer\""];
-
   // sig_bytes defines the signature bytes.
   bytes sig_bytes = 2 [(gogoproto.moretags) = "yaml:\"sig_bytes\""];
+}
+
+message ContractInfo {
+  // chain_id defines the EVM chain ID of the contract
+  uint64 chain_id = 1 [(gogoproto.moretags) = "yaml:\"chain_id\""];
+  // address defines the address of the contract
+  string address = 2 [(gogoproto.moretags) = "yaml:\"address\""];
 }

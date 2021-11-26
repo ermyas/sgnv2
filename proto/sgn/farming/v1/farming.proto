@@ -172,6 +172,15 @@ message RewardAdjustmentInput {
   ];
 }
 
+message FarmingRewardsOnChain {
+  // recipient defines the reward recipient
+  bytes recipient = 1;  // [(soltype) = "address"]
+  // token_addresses defines the list of reward token addresses
+  repeated bytes token_addresses = 2;  // [(soltype) = "address"]
+  // cumulative_reward_amounts defines the cumulative amount of rewards
+  repeated bytes cumulative_reward_amounts = 3;  // [(soltype) = "uint256"]
+}
+
 // -------------------- Governance Proposals --------------------
 
 // AddPoolProposal details a proposal to add a farming pool. If passed, it automatically registers

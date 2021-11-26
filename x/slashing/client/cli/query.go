@@ -140,7 +140,7 @@ func QuerySlashRequest(cliCtx client.Context, nonce uint64) (slashRequest []byte
 		return
 	}
 
-	slashRequest = slash.GetEthSlashBytes()
+	slashRequest = slash.GetSlashBytes()
 	return
 }
 

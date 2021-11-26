@@ -34,8 +34,8 @@ const (
 )
 
 var (
-	ChainSignersKey  = []byte("cs")
-	LatestSignersKey = []byte("ls")
+	ChainSignersKey  = []byte("signers-chain")
+	LatestSignersKey = []byte("signers-latest")
 )
 
 // this line is used by starport scaffolding # ibc/keys/port
@@ -173,4 +173,8 @@ func CfgKeyChain2RelayGasCostParam(chid uint64) []byte {
 // store estimate relay gas cost. only updated when monitored CbrEventSignersUpdated
 func CfgKeyChain2EstimateRelayGasCost(chid uint64) []byte {
 	return []byte(fmt.Sprintf("cfg-ch2relaygascost-%d", chid))
+}
+
+func CfgKeyCbrContract(chid uint64) []byte {
+	return []byte(fmt.Sprintf("cfg-cbrcontract-%d", chid))
 }

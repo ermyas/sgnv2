@@ -14,6 +14,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -202,6 +203,18 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool, gateway boo
 		genesisViper.SetConfigFile(genesisPath)
 		err = genesisViper.ReadInConfig()
 		tc.ChkErr(err, "Failed to read genesis")
+		genesisViper.Set("app_state.slashing.params.staking_contract.address", eth.Addr2Hex(tc.Contracts.Staking.Address))
+		genesisViper.Set("app_state.distribution.params.reward_contract.address", eth.Addr2Hex(tc.Contracts.StakingReward.Address))
+
+		var farmingRewardContracts []commontypes.ContractInfo
+		farmingRewardContracts = append(farmingRewardContracts,
+			commontypes.ContractInfo{
+				ChainId: 883,
+				Address: eth.Addr2Hex(tc.Contracts.FarmingRewards.Address),
+			},
+		)
+		genesisViper.Set("app_state.farming.reward_contracts", farmingRewardContracts)
+
 		if manual {
 			genesisViper.Set("app_state.gov.voting_params.voting_period", "120s")
 		} else {
@@ -319,6 +332,21 @@ func DeployBridgeContract() {
 		cbrViper.Set("multichain", multichains)
 		err = cbrViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")
+
+		genesisPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/genesis.json", i)
+		genesisViper := viper.New()
+		genesisViper.SetConfigFile(genesisPath)
+		err = genesisViper.ReadInConfig()
+		tc.ChkErr(err, "Failed to read genesis")
+		cbrConfig := new(cbrtypes.CbrConfig)
+		jsonByte, _ := json.Marshal(genesisViper.Get("app_state.cbridge.config"))
+		json.Unmarshal(jsonByte, cbrConfig)
+		cbrConfig.CbrContracts[0].Address = eth.Addr2Hex(tc.CbrChain1.CbrAddr)
+		cbrConfig.CbrContracts[1].Address = eth.Addr2Hex(tc.CbrChain2.CbrAddr)
+		genesisViper.Set("app_state.cbridge.config", cbrConfig)
+		err = genesisViper.WriteConfig()
+		tc.ChkErr(err, "Failed to write genesis")
+
 	}
 }
 

@@ -20,27 +20,38 @@ message Params {
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
     (gogoproto.nullable) = false
   ];
-}
-
-message AcctAmtPair {
-  // bech32-encoded sgn address (sdk.AccAddress)
-  string account = 1 [(gogoproto.moretags) = "yaml:\"account\""];
-  string amount = 2 [(gogoproto.nullable) = false, (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int"];
+  sgn.common.v1.ContractInfo staking_contract = 8 [(gogoproto.nullable) = false];
 }
 
 message Slash {
-  // bech32-encoded sgn address (sdk.AccAddress)
-  string validator = 1 [(gogoproto.moretags) = "yaml:\"validator\""];
+  option (gogoproto.goproto_stringer) = false;
+
+  SlashOnChain slash_on_chain = 1 [(gogoproto.moretags) = "yaml:\"slash_on_chain\"", (gogoproto.nullable) = false];
+  bytes slash_bytes = 2 [(gogoproto.moretags) = "yaml:\"slash_bytes\""];
+  repeated sgn.common.v1.Signature signatures = 3 [(gogoproto.nullable) = false];
+  string reason = 4;
+}
+// msg to be submitted to the onchain contract
+message SlashOnChain {
+  option (gogoproto.goproto_stringer) = false;
+
+  bytes validator = 1;  // [(soltype) = "address"]
   uint64 nonce = 2;
   uint64 slash_factor = 3;
-  uint64 expire_time = 4;
-  uint64 jail_period = 5;
-  repeated AcctAmtPair collectors = 6 [(gogoproto.nullable) = false];
-  string reason = 7;
-  bytes eth_slash_bytes = 8 [(gogoproto.moretags) = "yaml:\"eth_slash_bytes\""];
-  repeated sgn.common.v1.Signature signatures = 9 [(gogoproto.nullable) = false];
+  uint64 expire_time = 4;  // block timestamp
+  uint64 jail_period = 5;  // eth block number
+  repeated AcctAmtPair collectors = 6;
+}
+
+message AcctAmtPair {
+  option (gogoproto.goproto_stringer) = false;
+
+  bytes account = 1;  // [(soltype) = "address"]
+  bytes amount = 2;   // [(soltype) = "uint256"]
 }
 
 message QuerySlashParams {
   uint64 nonce = 1;
 }
+
+

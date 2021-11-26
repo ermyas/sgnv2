@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/celer-network/sgn-v2/eth"
+	solsha3 "github.com/miguelmota/go-solidity-sha3"
 )
 
 func (m *XferRelay) GetSortedSigsBytes() [][]byte {
@@ -124,4 +125,20 @@ func (w *WithdrawOnchain) String() string {
 	}
 	return fmt.Sprintf("chainid %d, seqnum %d, receiver %x, token %x, amount %d, refid %x",
 		w.Chainid, w.Seqnum, w.Receiver, w.Token, big.NewInt(0).SetBytes(w.Amount), w.Refid)
+}
+
+func EncodeRelayOnChainToSign(chainId uint64, contractAddr eth.Addr, relayBytes []byte) []byte {
+	domain := solsha3.SoliditySHA3(
+		[]string{"uint256", "address", "string"},
+		[]interface{}{new(big.Int).SetUint64(chainId), contractAddr, "Relay"},
+	)
+	return append(domain, relayBytes...)
+}
+
+func EncodeWithdrawOnchainToSign(chainId uint64, contractAddr eth.Addr, withdrawBytes []byte) []byte {
+	domain := solsha3.SoliditySHA3(
+		[]string{"uint256", "address", "string"},
+		[]interface{}{new(big.Int).SetUint64(chainId), contractAddr, "WithdrawMsg"},
+	)
+	return append(domain, withdrawBytes...)
 }

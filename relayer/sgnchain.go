@@ -21,13 +21,15 @@ import (
 var (
 	EventQuerySlash = tmquery.MustParse(
 		fmt.Sprintf("tm.event='NewBlock' AND %s.%s EXISTS", slashingtypes.EventTypeSlash, slashingtypes.AttributeKeyNonce)).String()
+
 	EventQueryCbridge = tmquery.MustParse(
 		fmt.Sprintf("%s.%s='%s'", cbrtypes.EventTypeDataToSign, sdk.AttributeKeyModule, cbrtypes.ModuleName)).String()
+
 	EventQueryFarmingClaimAll = tmquery.MustParse(
 		fmt.Sprintf("tm.event='Tx' AND %s.%s EXISTS", farmingtypes.EventTypeClaimAll, farmingtypes.AttributeKeyAddress)).String()
+
 	EventQueryDistributionClaimAllStakingReward = tmquery.MustParse(
-		fmt.Sprintf(
-			"tm.event='Tx' AND %s.%s EXISTS",
+		fmt.Sprintf("tm.event='Tx' AND %s.%s EXISTS",
 			distrtypes.EventTypeClaimAllStakingReward, distrtypes.AttributeKeyDelegatorAddress)).String()
 )
 
@@ -77,9 +79,10 @@ func (r *Relayer) monitorSgnSlash() {
 					log.Errorf("Query slash %d err %s", slashEvent.Nonce, err)
 					return
 				}
-				log.Infof("New slash to %s, reason %s, nonce %d", slash.Validator, slash.Reason, slashEvent.Nonce)
+				log.Infof("New slash to %x, reason %s, nonce %d", slash.SlashOnChain.Validator, slash.Reason, slashEvent.Nonce)
 
-				sig, err := r.EthClient.SignEthMessage(slash.EthSlashBytes)
+				dataToSign := slash.EncodeDataToSign(r.EthClient.ChainId, r.EthClient.Contracts.Staking.Address)
+				sig, err := r.EthClient.SignEthMessage(dataToSign)
 				if err != nil {
 					log.Errorln("SignEthMessage err", err)
 					return
@@ -112,15 +115,8 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 			dataArr := events[fmt.Sprintf("%s.%s", cbrtypes.EventTypeDataToSign, cbrtypes.AttributeKeyData)]
 			for i, dataType := range dataTypes {
 				data := eth.Hex2Bytes(dataArr[i])
-				// sign data first
-				sig, err := r.EthClient.SignEthMessage(data)
-				if err != nil {
-					log.Error(err)
-					return
-				}
 				msg := &cbrtypes.MsgSendMySig{
 					Data:    data,
-					MySig:   sig,
 					Creator: r.Transactor.Key.GetAddress().String(),
 				}
 				logmsg := fmt.Sprintf("Sign cBridge data, dataType: %s", dataType)
@@ -128,11 +124,24 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 				case cbrtypes.SignDataType_RELAY.String():
 					msg.Datatype = cbrtypes.SignDataType_RELAY
 					relay := new(cbrtypes.RelayOnChain)
-					err = relay.Unmarshal(data)
+					err := relay.Unmarshal(data)
 					if err != nil {
 						log.Errorf("%s, failed to unmarshal RelayOnChain: %s", logmsg, err)
+						continue
+					}
+					chain := r.cbrMgr[relay.DstChainId]
+					if chain == nil {
+						log.Errorf("%s, no cbrMgr %d found", logmsg, relay.DstChainId)
+						continue
+					}
+					dataToSign := cbrtypes.EncodeRelayOnChainToSign(relay.DstChainId, chain.contract.Address, data)
+					sig, err := r.EthClient.SignEthMessage(dataToSign)
+					if err != nil {
+						log.Errorf("%s, sign msg err: %s", logmsg, err)
 						return
 					}
+					msg.MySigs = append(msg.MySigs, &cbrtypes.MySig{ChainId: relay.DstChainId, Sig: sig})
+
 					relayRequest := NewRelayRequest(relay.SrcTransferId, relay.DstChainId)
 					err = r.dbSet(GetCbrXferKey(relayRequest.XferId, relay.DstChainId), relayRequest.MustMarshal())
 					if err != nil {
@@ -141,9 +150,37 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 					log.Infof("%s: %s", logmsg, relay.String())
 				case cbrtypes.SignDataType_WITHDRAW.String():
 					msg.Datatype = cbrtypes.SignDataType_WITHDRAW
-					log.Infof("%s", logmsg)
+					withdraw := new(cbrtypes.WithdrawOnchain)
+					err := withdraw.Unmarshal(data)
+					if err != nil {
+						log.Errorf("%s, failed to unmarshal WithdrawOnchain: %s", logmsg, err)
+						continue
+					}
+					chain := r.cbrMgr[withdraw.Chainid]
+					if chain == nil {
+						log.Errorf("%s, no cbrMgr %d found", logmsg, withdraw.Chainid)
+						continue
+					}
+					dataToSign := cbrtypes.EncodeWithdrawOnchainToSign(withdraw.Chainid, chain.contract.Address, data)
+					sig, err := r.EthClient.SignEthMessage(dataToSign)
+					if err != nil {
+						log.Errorf("%s, sign msg err: %s", logmsg, err)
+						continue
+					}
+					msg.MySigs = append(msg.MySigs, &cbrtypes.MySig{ChainId: withdraw.Chainid, Sig: sig})
+
+					log.Infof("%s: %s", logmsg, withdraw.String())
 				case cbrtypes.SignDataType_SIGNERS.String():
 					msg.Datatype = cbrtypes.SignDataType_SIGNERS
+					for chainId, c := range r.cbrMgr {
+						dataToSign := cbrtypes.EncodeSignersUpdateToSign(chainId, c.contract.Address, data)
+						sig, err := r.EthClient.SignEthMessage(dataToSign)
+						if err != nil {
+							log.Errorf("%s, sign msg err: %s", logmsg, err)
+							continue
+						}
+						msg.MySigs = append(msg.MySigs, &cbrtypes.MySig{ChainId: chainId, Sig: sig})
+					}
 					r.setCbrSsUpdating()
 					log.Infof("%s", logmsg)
 				}
@@ -174,7 +211,12 @@ func (r *Relayer) monitorSgnFarmingClaimAllEvent() {
 				}
 				var signatureDetailsList []farmingtypes.SignatureDetails
 				for _, details := range rewardClaimInfo.RewardClaimInfo.RewardClaimDetailsList {
-					sig, err := r.EthClient.SignEthMessage(details.RewardProtoBytes)
+					if details.ChainId != r.EthClient.ChainId {
+						log.Errorf("Farming reward on chain %d not supported yet", details.ChainId)
+						continue
+					}
+					dataToSign := details.EncodeDataToSign(r.EthClient.Contracts.FarmingRewards.Address)
+					sig, err := r.EthClient.SignEthMessage(dataToSign)
 					if err != nil {
 						log.Errorln("SignEthMessage err", err)
 						return
@@ -211,7 +253,9 @@ func (r *Relayer) monitorSgnDistributionClaimAllStakingRewardEvent() {
 					log.Errorf("Query StakingRewardClaimInfo err %s", err)
 					return
 				}
-				sig, err := r.EthClient.SignEthMessage(stakingRewardClaimInfo.RewardClaimInfo.RewardProtoBytes)
+				dataToSign := stakingRewardClaimInfo.RewardClaimInfo.EncodeDataToSign(
+					r.EthClient.ChainId, r.EthClient.Contracts.StakingReward.Address)
+				sig, err := r.EthClient.SignEthMessage(dataToSign)
 				if err != nil {
 					log.Errorln("SignEthMessage err", err)
 					return

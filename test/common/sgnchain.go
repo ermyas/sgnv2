@@ -211,7 +211,7 @@ func QueryProposal(cliCtx client.Context, proposalID uint64, status govtypes.Pro
 func QuerySlash(cliCtx client.Context, nonce uint64, sigCount int) (slash slashingtypes.Slash, err error) {
 	for retry := 0; retry < RetryLimit; retry++ {
 		slash, err = slashingcli.QuerySlash(cliCtx, nonce)
-		if err == nil && len(slash.EthSlashBytes) > 0 && len(slash.Signatures) == sigCount {
+		if err == nil && len(slash.SlashBytes) > 0 && len(slash.Signatures) == sigCount {
 			break
 		}
 		time.Sleep(RetryPeriod)
@@ -221,8 +221,8 @@ func QuerySlash(cliCtx client.Context, nonce uint64, sigCount int) (slash slashi
 		return
 	}
 
-	if len(slash.EthSlashBytes) == 0 {
-		err = errors.New("EthSlashBytes cannot be zero")
+	if len(slash.SlashBytes) == 0 {
+		err = errors.New("SlashBytes cannot be zero")
 	}
 
 	if len(slash.Signatures) != sigCount {

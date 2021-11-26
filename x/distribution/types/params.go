@@ -4,10 +4,11 @@ import (
 	"fmt"
 	time "time"
 
-	yaml "gopkg.in/yaml.v2"
-
+	commontypes "github.com/celer-network/sgn-v2/common/types"
+	"github.com/celer-network/sgn-v2/eth"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // Parameter keys
@@ -17,6 +18,7 @@ var (
 	ParamStoreKeyBonusProposerReward = []byte("bonusproposerreward")
 	ParamStoreKeyWithdrawAddrEnabled = []byte("withdrawaddrenabled")
 	ParamStoreKeyClaimCooldown       = []byte("claimcooldown")
+	ParamStoreKeyRewardContract      = []byte("rewardcontract")
 )
 
 // ParamKeyTable returns the parameter key table.
@@ -48,6 +50,7 @@ func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
 		paramtypes.NewParamSetPair(ParamStoreKeyBonusProposerReward, &p.BonusProposerReward, validateBonusProposerReward),
 		paramtypes.NewParamSetPair(ParamStoreKeyWithdrawAddrEnabled, &p.WithdrawAddrEnabled, validateWithdrawAddrEnabled),
 		paramtypes.NewParamSetPair(ParamStoreKeyClaimCooldown, &p.ClaimCooldown, validateClaimCooldown),
+		paramtypes.NewParamSetPair(ParamStoreKeyRewardContract, &p.RewardContract, validateRewardContract),
 	}
 }
 
@@ -151,5 +154,18 @@ func validateClaimCooldown(i interface{}) error {
 	if v <= 0 {
 		return fmt.Errorf("claim cooldown must be positive: %d", v)
 	}
+	return nil
+}
+
+func validateRewardContract(i interface{}) error {
+	v, ok := i.(commontypes.ContractInfo)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+
+	if len(eth.Hex2Bytes(v.Address)) > 20 {
+		return fmt.Errorf("Invalid address length")
+	}
+
 	return nil
 }
