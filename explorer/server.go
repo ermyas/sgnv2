@@ -280,7 +280,7 @@ func ParseConfig(path string) (*ExplorerServerConfig, error) {
 }
 
 func (e *explorerServer) StartScheduleJob() {
-	ticker := time.NewTicker(10 * time.Minute)
+	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 	for ; true; <-ticker.C {
 		log.Infoln("start StartScheduleJob")
@@ -387,7 +387,7 @@ func (e *explorerServer) processTransferStat() error {
 				return dbErr
 			}
 		}
-		dbErr = e.explorerDb.InsertHourlyTransactionStat(begin, begin, txVolume+lpVolume+v1Volume, txCount+lpCount+v1Count)
+		dbErr = e.explorerDb.InsertHourlyTransactionStat(begin, end, txVolume+lpVolume+v1Volume, txCount+lpCount+v1Count)
 		if dbErr != nil {
 			log.Errorf("fail to InsertTransactionStat, err:%s", dbErr.Error())
 			return dbErr
