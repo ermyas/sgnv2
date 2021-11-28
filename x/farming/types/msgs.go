@@ -15,7 +15,7 @@ const (
 )
 
 // Verify interface at compile time
-var _, _ sdk.Msg = &MsgClaimRewards{}, &MsgClaimAllRewards{}
+var _, _, _ sdk.Msg = &MsgClaimRewards{}, &MsgClaimAllRewards{}, &MsgSignRewards{}
 
 func NewMsgClaimRewards(poolName string, address eth.Addr, sender sdk.AccAddress) *MsgClaimRewards {
 	return &MsgClaimRewards{
@@ -25,34 +25,35 @@ func NewMsgClaimRewards(poolName string, address eth.Addr, sender sdk.AccAddress
 	}
 }
 
-func (m MsgClaimRewards) Route() string {
+func (msg MsgClaimRewards) Route() string {
 	return RouterKey
 }
 
-func (m MsgClaimRewards) Type() string {
+func (msg MsgClaimRewards) Type() string {
 	return TypeMsgClaimRewards
 }
 
-func (m MsgClaimRewards) ValidateBasic() error {
-	if m.PoolName == "" || len(m.PoolName) > MaxPoolNameLength {
-		return WrapErrInvalidInput(m.PoolName)
+func (msg MsgClaimRewards) ValidateBasic() error {
+	if msg.PoolName == "" || len(msg.PoolName) > MaxPoolNameLength {
+		return WrapErrInvalidInput(msg.PoolName)
 	}
-	if m.Address == "" {
+	if msg.Address == "" {
 		return WrapErrInvalidAddress("")
 	}
-	if m.Sender == "" {
-		return WrapErrInvalidAddress("")
+	_, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		return WrapErrInvalidAddress(msg.Sender)
 	}
 	return nil
 }
 
-func (m MsgClaimRewards) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(&m)
+func (msg MsgClaimRewards) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(&msg)
 	return sdk.MustSortJSON(bz)
 }
 
-func (m MsgClaimRewards) GetSigners() []sdk.AccAddress {
-	senderAddr, err := sdk.AccAddressFromBech32(m.Sender)
+func (msg MsgClaimRewards) GetSigners() []sdk.AccAddress {
+	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)
 	if err != nil {
 		panic(err)
 	}
@@ -66,31 +67,31 @@ func NewMsgClaimAllRewards(address eth.Addr, sender sdk.AccAddress) *MsgClaimAll
 	}
 }
 
-func (m MsgClaimAllRewards) Route() string {
+func (msg MsgClaimAllRewards) Route() string {
 	return RouterKey
 }
 
-func (m MsgClaimAllRewards) Type() string {
+func (msg MsgClaimAllRewards) Type() string {
 	return TypeMsgClaimAllRewards
 }
 
-func (m MsgClaimAllRewards) ValidateBasic() error {
-	if m.Address == "" {
+func (msg MsgClaimAllRewards) ValidateBasic() error {
+	if msg.Address == "" {
 		return WrapErrInvalidAddress("")
 	}
-	if m.Sender == "" {
+	if msg.Sender == "" {
 		return WrapErrInvalidAddress("")
 	}
 	return nil
 }
 
-func (m MsgClaimAllRewards) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(&m)
+func (msg MsgClaimAllRewards) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(&msg)
 	return sdk.MustSortJSON(bz)
 }
 
-func (m MsgClaimAllRewards) GetSigners() []sdk.AccAddress {
-	senderAddr, err := sdk.AccAddressFromBech32(m.Sender)
+func (msg MsgClaimAllRewards) GetSigners() []sdk.AccAddress {
+	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)
 	if err != nil {
 		panic(err)
 	}
@@ -106,34 +107,35 @@ func NewMsgSignRewards(
 	}
 }
 
-func (m MsgSignRewards) Route() string {
+func (msg MsgSignRewards) Route() string {
 	return RouterKey
 }
 
-func (m MsgSignRewards) Type() string {
+func (msg MsgSignRewards) Type() string {
 	return TypeMsgSignRewards
 }
 
-func (m MsgSignRewards) ValidateBasic() error {
-	if m.Address == "" {
+func (msg MsgSignRewards) ValidateBasic() error {
+	if msg.Address == "" {
 		return WrapErrInvalidAddress("")
 	}
-	if m.Sender == "" {
-		return WrapErrInvalidAddress("")
+	_, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		return WrapErrInvalidAddress(msg.Sender)
 	}
-	if len(m.SignatureDetailsList) == 0 {
+	if len(msg.SignatureDetailsList) == 0 {
 		return WrapErrInvalidSig("")
 	}
 	return nil
 }
 
-func (m MsgSignRewards) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(&m)
+func (msg MsgSignRewards) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(&msg)
 	return sdk.MustSortJSON(bz)
 }
 
-func (m MsgSignRewards) GetSigners() []sdk.AccAddress {
-	senderAddr, err := sdk.AccAddressFromBech32(m.Sender)
+func (msg MsgSignRewards) GetSigners() []sdk.AccAddress {
+	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)
 	if err != nil {
 		panic(err)
 	}

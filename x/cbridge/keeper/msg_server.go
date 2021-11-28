@@ -385,3 +385,25 @@ func UpdateSortedSigs(curSigs []*types.AddrSig, newSig *types.AddrSig) []*types.
 	// Address larger than all existing signers, append to the end
 	return append(curSigs, newSig)
 }
+
+// SyncFarming attempts to sync the liquidity of a (chainID, token) for an LP
+// with their stake in the farming module.
+func (k msgServer) SyncFarming(goCtx context.Context, msg *types.MsgSyncFarming) (*types.MsgSyncFarmingResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	tokenAddr := eth.Hex2Addr(msg.TokenAddress)
+	lpAddr := eth.Hex2Addr(msg.LpAddress)
+	liqMapKey := types.LiqMapKey(msg.ChainId, tokenAddr, lpAddr)
+	kv := ctx.KVStore(k.storeKey)
+	liqBytes := kv.Get(liqMapKey)
+	liquidity := new(big.Int).SetBytes(liqBytes)
+
+	logMsg := "x/cbr handle SyncFarming"
+	symbol := GetAssetSymbol(kv, &ChainIdTokenAddr{msg.ChainId, tokenAddr})
+	err := k.Keeper.SyncFarming(ctx, symbol, msg.ChainId, lpAddr, liquidity)
+	if err != nil {
+		return nil, fmt.Errorf("%s err %w", logMsg, err)
+	}
+	log.Info(logMsg)
+	return &types.MsgSyncFarmingResponse{}, nil
+}

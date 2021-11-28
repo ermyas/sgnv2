@@ -53,8 +53,9 @@ func (msg MsgSetWithdrawAddress) ValidateBasic() error {
 	if msg.WithdrawAddress == "" {
 		return ErrEmptyWithdrawAddr
 	}
-	if msg.Sender == "" {
-		return ErrEmptySender
+	_, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		return ErrInvalidSender
 	}
 	return nil
 }
@@ -92,8 +93,9 @@ func (msg MsgWithdrawDelegatorReward) ValidateBasic() error {
 	if msg.ValidatorAddress == "" {
 		return ErrEmptyValidatorAddr
 	}
-	if msg.Sender == "" {
-		return ErrEmptySender
+	_, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		return ErrInvalidSender
 	}
 	return nil
 }
@@ -127,8 +129,9 @@ func (msg MsgWithdrawValidatorCommission) ValidateBasic() error {
 	if msg.ValidatorAddress == "" {
 		return ErrEmptyValidatorAddr
 	}
-	if msg.Sender == "" {
-		return ErrEmptySender
+	_, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		return ErrInvalidSender
 	}
 	return nil
 }
@@ -205,8 +208,9 @@ func (msg MsgClaimAllStakingReward) ValidateBasic() error {
 	if msg.DelegatorAddress == "" {
 		return ErrEmptyDelegatorAddr
 	}
-	if msg.Sender == "" {
-		return ErrEmptySender
+	_, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		return ErrInvalidSender
 	}
 	return nil
 }
@@ -220,34 +224,35 @@ func NewMsgSignStakingReward(
 	}
 }
 
-func (m MsgSignStakingReward) Route() string {
+func (msg MsgSignStakingReward) Route() string {
 	return RouterKey
 }
 
-func (m MsgSignStakingReward) Type() string {
+func (msg MsgSignStakingReward) Type() string {
 	return TypeMsgSignStakingReward
 }
 
-func (m MsgSignStakingReward) ValidateBasic() error {
-	if m.DelegatorAddress == "" {
+func (msg MsgSignStakingReward) ValidateBasic() error {
+	if msg.DelegatorAddress == "" {
 		return ErrEmptyDelegatorAddr
 	}
-	if m.Sender == "" {
-		return ErrEmptySender
+	_, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		return ErrInvalidSender
 	}
-	if len(m.Signature) == 0 {
+	if len(msg.Signature) == 0 {
 		return ErrEmptySignature
 	}
 	return nil
 }
 
-func (m MsgSignStakingReward) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(&m)
+func (msg MsgSignStakingReward) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(&msg)
 	return sdk.MustSortJSON(bz)
 }
 
-func (m MsgSignStakingReward) GetSigners() []sdk.AccAddress {
-	senderAddr, err := sdk.AccAddressFromBech32(m.Sender)
+func (msg MsgSignStakingReward) GetSigners() []sdk.AccAddress {
+	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)
 	if err != nil {
 		panic(err)
 	}

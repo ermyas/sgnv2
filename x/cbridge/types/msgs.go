@@ -5,7 +5,7 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
-var _, _, _ sdk.Msg = &MsgInitWithdraw{}, &MsgSendMySig{}, &MsgSignAgain{}
+var _, _, _, _ sdk.Msg = &MsgInitWithdraw{}, &MsgSendMySig{}, &MsgSignAgain{}, &MsgSyncFarming{}
 
 func NewMsgInitWithdraw(creator string) *MsgInitWithdraw {
 	return &MsgInitWithdraw{
@@ -128,6 +128,54 @@ func (msg *MsgUpdateLatestSigners) GetSignBytes() []byte {
 }
 
 func (msg *MsgUpdateLatestSigners) ValidateBasic() error {
+	_, err := sdk.AccAddressFromBech32(msg.Creator)
+	if err != nil {
+		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid creator address (%s)", err)
+	}
+	return nil
+}
+
+func NewMsgSyncFarming(
+	lpAddress string,
+	chainId uint64,
+	tokenAddress string,
+	creator string) *MsgSyncFarming {
+	return &MsgSyncFarming{
+		LpAddress:    lpAddress,
+		ChainId:      chainId,
+		TokenAddress: tokenAddress,
+		Creator:      creator,
+	}
+}
+
+func (msg *MsgSyncFarming) Route() string {
+	return RouterKey
+}
+
+func (msg *MsgSyncFarming) Type() string {
+	return "SyncFarming"
+}
+
+func (msg *MsgSyncFarming) GetSigners() []sdk.AccAddress {
+	creator, err := sdk.AccAddressFromBech32(msg.Creator)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{creator}
+}
+
+func (msg *MsgSyncFarming) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+func (msg *MsgSyncFarming) ValidateBasic() error {
+	if msg.LpAddress == "" {
+		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid LP address")
+	}
+	if msg.TokenAddress == "" {
+		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid token address")
+	}
 	_, err := sdk.AccAddressFromBech32(msg.Creator)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid creator address (%s)", err)

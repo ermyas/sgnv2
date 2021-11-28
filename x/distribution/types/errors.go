@@ -18,7 +18,7 @@ var (
 	ErrEmptyProposalRecipient  = sdkerrors.Register(ModuleName, 31, "invalid community pool spend proposal recipient")
 	ErrNoValidatorExists       = sdkerrors.Register(ModuleName, 32, "validator does not exist")
 	ErrNoDelegationExists      = sdkerrors.Register(ModuleName, 33, "delegation does not exist")
-	ErrEmptySender             = sdkerrors.Register(ModuleName, 34, "sender address is empty")
+	ErrInvalidSender           = sdkerrors.Register(ModuleName, 34, "invalid sender address")
 	ErrClaimCooldownNotPassed  = sdkerrors.Register(ModuleName, 35, "claim cooldown not passed")
 	ErrEmptySignature          = sdkerrors.Register(ModuleName, 36, "empty signature")
 )

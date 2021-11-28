@@ -19,6 +19,10 @@ service Msg {
   rpc SendMySig(MsgSendMySig) returns (MsgSendMySigResp);
 
   rpc UpdateLatestSigners(MsgUpdateLatestSigners) returns (MsgUpdateLatestSignersResp);
+
+  // SyncFarming defines a method to sync the farming status for an LP.
+  // Useful when a new farming pool is enabled.
+  rpc SyncFarming(MsgSyncFarming) returns (MsgSyncFarmingResponse);
 }
 
 enum SignDataType {
@@ -30,8 +34,8 @@ enum SignDataType {
 
 message MsgSendMySig {
   SignDataType datatype = 1;
-  bytes data = 2;             // signed data
-  repeated MySig my_sigs = 3; // eth address should be recovered by x/cbridge and compare to validators
+  bytes data = 2;              // signed data
+  repeated MySig my_sigs = 3;  // eth address should be recovered by x/cbridge and compare to validators
 
   string creator = 4;  // must be bonded validator
 }
@@ -97,6 +101,19 @@ message MsgUpdateLatestSigners {
 }
 
 message MsgUpdateLatestSignersResp {}
+
+message MsgSyncFarming {
+  // lp_address defines the liquidity provider's EVM address
+  string lp_address = 1 [(gogoproto.moretags) = "yaml:\"lp_address\""];
+  // chain_id defines the EVM chain ID to sync the stake token on
+  uint64 chain_id = 2 [(gogoproto.moretags) = "yaml:\"chain_id\""];
+  // token_address defines the EVM address of the stake token
+  string token_address = 3 [(gogoproto.moretags) = "yaml:\"token_address\""];
+  // creator defines the SGN account address sending the message
+  string creator = 4 [(gogoproto.moretags) = "yaml:\"creator\""];
+}
+
+message MsgSyncFarmingResponse {}
 
 message ErrMsg {
   ErrCode code = 1;
