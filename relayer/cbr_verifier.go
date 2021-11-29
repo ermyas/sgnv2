@@ -39,10 +39,16 @@ func (r *Relayer) verifyCbrEventUpdate(update *synctypes.PendingUpdate) (done, a
 		return true, false
 	}
 
-	// delete my local db event so this event won't be picked again when I become syncer
-	defer r.cbrMgr[onchev.Chainid].delEvent(onchev.Evtype, elog.BlockNumber, uint64(elog.Index))
+	cbrOneChain := r.cbrMgr[onchev.Chainid]
+	if cbrOneChain == nil {
+		log.Errorf("Updates from invalid chain, chain id: %d, elog: %s", onchev.Chainid, string(onchev.Elog))
+		return true, false
+	}
 
-	skip, reason := r.cbrMgr[onchev.Chainid].skipEvent(onchev.Evtype, elog, r.Transactor.CliCtx, nil)
+	// delete my local db event so this event won't be picked again when I become syncer
+	defer cbrOneChain.delEvent(onchev.Evtype, elog.BlockNumber, uint64(elog.Index))
+
+	skip, reason := cbrOneChain.skipEvent(onchev.Evtype, elog, r.Transactor.CliCtx, nil)
 	if skip {
 		log.Debugf("skip cbr event: %s, reason: %s", string(onchev.Elog), reason)
 		return true, false
@@ -51,19 +57,19 @@ func (r *Relayer) verifyCbrEventUpdate(update *synctypes.PendingUpdate) (done, a
 	logmsg := fmt.Sprintf("verify update %d cbr chain %d type %s", update.Id, onchev.Chainid, onchev.Evtype)
 	switch onchev.Evtype {
 	case cbrtypes.CbrEventLiqAdd:
-		return r.cbrMgr[onchev.Chainid].verifyLiqAdd(elog, r.Transactor.CliCtx, logmsg)
+		return cbrOneChain.verifyLiqAdd(elog, r.Transactor.CliCtx, logmsg)
 
 	case cbrtypes.CbrEventSend:
-		return r.cbrMgr[onchev.Chainid].verifySend(elog, r.Transactor.CliCtx, logmsg)
+		return cbrOneChain.verifySend(elog, r.Transactor.CliCtx, logmsg)
 
 	case cbrtypes.CbrEventRelay:
-		return r.cbrMgr[onchev.Chainid].verifyRelay(elog, r.Transactor.CliCtx, logmsg)
+		return cbrOneChain.verifyRelay(elog, r.Transactor.CliCtx, logmsg)
 
 	case cbrtypes.CbrEventWithdraw:
-		return r.cbrMgr[onchev.Chainid].verifyWithdraw(elog, r.Transactor.CliCtx, logmsg)
+		return cbrOneChain.verifyWithdraw(elog, r.Transactor.CliCtx, logmsg)
 
 	case cbrtypes.CbrEventSignersUpdated:
-		return r.cbrMgr[onchev.Chainid].verifySigners(elog, r.Transactor.CliCtx, logmsg)
+		return cbrOneChain.verifySigners(elog, r.Transactor.CliCtx, logmsg)
 
 	default:
 		log.Errorf("%s. invalid type", logmsg)
