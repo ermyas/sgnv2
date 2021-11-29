@@ -94,12 +94,12 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 	go r.monitorSgnFarmingClaimAllEvent()
 	go r.monitorSgnDistributionClaimAllStakingRewardEvent()
 
+	r.cbrMgr = NewCbridgeMgr(db, r.Transactor.CliCtx) // cbrMgr should be initialized before verifyPendingUpdates
+	go r.monitorSgnCbrDataToSign()                    // cbr monitor set after cbrMgr initialization
+
 	go r.processPullerQueue()
 	go r.processSlashQueue()
 	go r.verifyPendingUpdates()
-
-	r.cbrMgr = NewCbridgeMgr(db, r.Transactor.CliCtx) // do we need to save mgr somewhere?
-	go r.monitorSgnCbrDataToSign()                    // cbr monitor set after cbrMgr initialization
 
 	go r.doCbridgeSync(r.cbrMgr)
 	r.doCbridgeOnchain(r.cbrMgr) // internal use goroutine

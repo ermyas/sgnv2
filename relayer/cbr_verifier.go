@@ -41,8 +41,8 @@ func (r *Relayer) verifyCbrEventUpdate(update *synctypes.PendingUpdate) (done, a
 
 	cbrOneChain := r.cbrMgr[onchev.Chainid]
 	if cbrOneChain == nil {
-		log.Errorf("Updates from invalid chain, chain id: %d, elog: %s", onchev.Chainid, string(onchev.Elog))
-		return true, false
+		log.Errorf("cbrMgr not finish initialization yet, updates from chain: %d", onchev.Chainid)
+		return false, false
 	}
 
 	// delete my local db event so this event won't be picked again when I become syncer
