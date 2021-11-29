@@ -36,7 +36,7 @@ var (
 // GRPC metadata.
 // HTTP headers that start with 'Grpc-Metadata-' are automatically mapped to
 // gRPC metadata after removing prefix 'Grpc-Metadata-'. We can use this
-// CustomGRPCHeaderMatcher if headers don't start with `Grpc-Metadata-`
+// CustomGRPCHeaderMatcher if headers don't start with Grpc-Metadata-
 func CustomGRPCHeaderMatcher(key string) (string, bool) {
 	switch strings.ToLower(key) {
 	case grpctypes.GRPCBlockHeightHeader:

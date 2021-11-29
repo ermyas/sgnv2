@@ -51,7 +51,6 @@ CREATE TABLE IF NOT EXISTS lp (
     UNIQUE (withdraw_id),
     UNIQUE (usr_addr, chain_id, tx_hash, lp_type)
 );
-
 CREATE INDEX IF NOT EXISTS lp_utm_idx ON lp (update_time);
 CREATE INDEX IF NOT EXISTS lp_ctm_idx ON lp (create_time);
 CREATE INDEX IF NOT EXISTS lp_addr_idx ON lp (usr_addr);

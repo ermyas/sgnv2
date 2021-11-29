@@ -106,12 +106,6 @@ func (d *DAL) CheckTransferStatusNotIn(transferId string, statusList []uint64) b
 	return true
 }
 
-func (d *DAL) UpdateTransferRefundStatus(transferId string, status uint64, refundTx string) error {
-	q := `UPDATE transfer SET status=$2, update_time=$3, refund_tx=$4 WHERE transfer_id=$1`
-	res, err := d.Exec(q, transferId, status, now(), refundTx)
-	return sqldb.ChkExec(res, err, 1, "UpdateTransferRefundStatus")
-}
-
 func (d *DAL) UpdateTransferStatus(transferId string, status uint64) error {
 	if pass := checkTransferStatus(status); !pass {
 		return nil
@@ -121,12 +115,9 @@ func (d *DAL) UpdateTransferStatus(transferId string, status uint64) error {
 	return sqldb.ChkExec(res, err, 1, "UpdateTransferStatus")
 }
 
-func (d *DAL) UpdateTransferForRefund(transferId string, status uint64, refundId string) error {
-	if pass := checkTransferStatus(status); !pass {
-		return nil
-	}
-	q := `UPDATE transfer SET status=$2, refund_id=$3 update_time=now() WHERE transfer_id=$1`
-	res, err := d.Exec(q, transferId, status, refundId)
+func (d *DAL) UpdateTransferForRefund(transferId string, status uint64, refundId string, refundTx string) error {
+	q := `UPDATE transfer SET status=$2, refund_id=$3, refund_tx=$4, update_time=now() WHERE transfer_id=$1`
+	res, err := d.Exec(q, transferId, status, refundId, refundTx)
 	return sqldb.ChkExec(res, err, 1, "UpdateTransferForRefund")
 }
 

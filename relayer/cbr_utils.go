@@ -142,7 +142,7 @@ func GatewayOnLiqAdd(lpAddr, token, tokenAddr, amt, txHash string, chainId uint6
 	return dal.UpsertLPForLiqAdd(lpAddr, token, tokenAddr, amt, txHash, chainId, uint64(status), uint64(lpType), seqNum, nonce)
 }
 
-func GatewayOnLiqWithdraw(id string, chid, seq uint64, addr string) {
+func GatewayOnLiqWithdraw(id, tx string, chid, seq uint64, addr string) {
 	if dal.DB == nil {
 		return
 	}
@@ -161,11 +161,11 @@ func GatewayOnLiqWithdraw(id string, chid, seq uint64, addr string) {
 		toStatus := uint64(cbrtypes.TransferHistoryStatus_TRANSFER_REFUNDED)
 		if isDelayed {
 			toStatus = uint64(cbrtypes.TransferHistoryStatus_TRANSFER_DELAYED)
+			// update delayed operation type so that when receiving the DelayedTransferExecuted we know that it's a refund not a withdrawal
+			dal.DB.UpdateDelayedOpType(id, dal.DelayedOpRefund)
 		}
-		// update delayed operation type so that when receiving the DelayedTransferExecuted we know that it's a refund not a withdrawal
-		dal.DB.UpdateDelayedOpType(id, dal.DelayedOpRefund)
 		// save refund_id so if we later receive DelayedTransferExecuted, the handler can find this record
-		err := dal.UpdateTransferForRefund(transferId, toStatus, id)
+		err := dal.UpdateTransferForRefund(transferId, toStatus, id, tx)
 		if err != nil {
 			log.Warnf("db when UpdateTransferStatus to TRANSFER_REFUNDED, transferId:%s, err:%+v", transferId, err)
 		}
@@ -177,10 +177,10 @@ func GatewayOnLiqWithdraw(id string, chid, seq uint64, addr string) {
 	toStatus := uint64(cbrtypes.WithdrawStatus_WD_COMPLETED)
 	if isDelayed {
 		toStatus = uint64(cbrtypes.WithdrawStatus_WD_DELAYED)
+		// update delayed operation type so that when receiving the DelayedTransferExecuted we know that it's a withdrawal not a refund
+		dal.DB.UpdateDelayedOpType(id, dal.DelayedOpWithdraw)
 	}
 	logmsg := fmt.Sprintf("cannot process WithdrawDone with id %s, chid %d, seq %d, addr %s:", id, chid, seq, addr)
-	// update delayed operation type so that when receiving the DelayedTransferExecuted we know that it's a withdrawal not a refund
-	dal.DB.UpdateDelayedOpType(id, dal.DelayedOpWithdraw)
 	l, found, err := dal.DB.GetLPInfo(seq, uint64(webapi.LPType_LP_TYPE_REMOVE), chid, addr)
 	if err != nil {
 		log.Errorln(logmsg, err.Error())

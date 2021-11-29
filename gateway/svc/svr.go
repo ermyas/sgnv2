@@ -3,11 +3,12 @@ package gatewaysvc
 import (
 	"context"
 	"fmt"
-	ethutils "github.com/celer-network/goutils/eth"
-	"github.com/celer-network/sgn-v2/eth"
 	"path/filepath"
 	"strconv"
 	"time"
+
+	ethutils "github.com/celer-network/goutils/eth"
+	"github.com/celer-network/sgn-v2/eth"
 
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 

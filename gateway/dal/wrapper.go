@@ -22,11 +22,11 @@ func UpdateTransferStatus(transferId string, status uint64) error {
 	}
 }
 
-func UpdateTransferForRefund(transferId string, status uint64, refundId string) error {
+func UpdateTransferForRefund(transferId string, status uint64, refundId, refundTx string) error {
 	if DB == nil {
 		return nil
 	} else {
-		return DB.UpdateTransferForRefund(transferId, status, refundId)
+		return DB.UpdateTransferForRefund(transferId, status, refundId, refundTx)
 	}
 }
 
@@ -183,9 +183,9 @@ func DelayXferExec(id string) error {
 		}
 		err = DB.UpdateTransferStatusByDstTransferId(id, toStatus)
 		if err == nil {
-			return err
+			log.Infof("handled DelayedTransferExecuted, id %s status %d", id, toStatus)
+			return nil
 		}
-		log.Infof("handled DelayedTransferExecuted, id %s status %d", id, toStatus)
 	} else if t == uint64(DelayedOpWithdraw) {
 		found, err = DB.ExistsLPInfoWithWithdrawId(id)
 		if err != nil {
@@ -196,9 +196,9 @@ func DelayXferExec(id string) error {
 		}
 		err := DB.UpdateLPStatusByWithdrawId(id, types.WithdrawStatus_WD_COMPLETED)
 		if err == nil {
-			return err
+			log.Infof("handled DelayedTransferExecuted, id %s status %d", id, types.WithdrawStatus_WD_COMPLETED)
+			return nil
 		}
-		log.Infof("handled DelayedTransferExecuted, id %s status %d", id, types.WithdrawStatus_WD_COMPLETED)
 	} else {
 		return fmt.Errorf("cannot process DelayedTransferExecuted with id %s: the fetched record has an unknown type %d", id, t)
 	}

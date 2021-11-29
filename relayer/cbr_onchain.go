@@ -13,6 +13,7 @@ import (
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/spf13/viper"
 )
 
 var evNames = []string{
@@ -112,6 +113,9 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 }
 
 func (c *CbrOneChain) monDelayXferAdd(blk *big.Int) {
+	if !viper.GetBool(common.FlagToStartGateway) {
+		return
+	}
 	blkDelay := c.blkDelay / 2
 	if blkDelay < 1 {
 		blkDelay = 1
@@ -145,6 +149,9 @@ func (c *CbrOneChain) monDelayXferAdd(blk *big.Int) {
 }
 
 func (c *CbrOneChain) monDelayXferExec(blk *big.Int) {
+	if !viper.GetBool(common.FlagToStartGateway) {
+		return
+	}
 	cfg := &monitor.Config{
 		ChainId:      c.chainid,
 		EventName:    cbrtypes.CbrEventDelayXferExec,
@@ -232,7 +239,7 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 			return true // ask to recreate to process event again
 		}
 		idstr := common.Hash(ev.WithdrawId).String()
-		GatewayOnLiqWithdraw(idstr, c.chainid, ev.Seqnum, ev.Receiver.String())
+		GatewayOnLiqWithdraw(idstr, eLog.TxHash.String(), c.chainid, ev.Seqnum, ev.Receiver.String())
 		return false
 	})
 }
