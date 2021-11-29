@@ -104,12 +104,12 @@ func (d *DAL) GetLPInfo(seq, lptype, chid uint64, lpaddr string) (*LPInfo, bool,
 	return l, true, nil
 }
 
-func (d *DAL) UpdateLP(chid, seq, status uint64, addr, wdid string) error {
+func (d *DAL) UpdateLP(chid, seq, status uint64, addr, wdid, tx string) error {
 	t := uint64(webapi.LPType_LP_TYPE_REMOVE)
-	q := `UPDATE lp SET status=$5, update_time=now(), withdraw_id=$6 WHERE seq_num = $1 and chain_id = $2 and usr_addr = $3 and lp_type = $4`
-	res, err := d.Exec(q, seq, chid, addr, t, status, wdid)
+	q := `UPDATE lp SET status=$5, update_time=now(), withdraw_id=$6, tx_hash=$7 WHERE seq_num = $1 and chain_id = $2 and usr_addr = $3 and lp_type = $4`
+	res, err := d.Exec(q, seq, chid, addr, t, status, wdid, tx)
 	if err != nil {
-		return fmt.Errorf("unable to exec sql on lp with chid %d, seq %d, status %d, addr %s, wdid %s: %s", chid, seq, status, addr, wdid, err.Error())
+		return fmt.Errorf("unable to exec sql on lp with chid %d, seq %d, status %d, addr %s, wdid %s, tx %s: %s", chid, seq, status, addr, wdid, tx, err.Error())
 	}
 	return sqldb.ChkExec(res, err, 1, "UpdateLP")
 }

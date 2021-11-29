@@ -107,19 +107,19 @@ func getEstimatedAmt(srcChainId, dstChainId uint64, srcToken *webapi.TokenInfo, 
 	return estimateReceivedAmt.String(), nil
 }
 
-func GatewayOnSend(transferId, usrAddr, tokenSymbol, amt, sendTxHash string, srcChainId, dsChainId uint64) error {
+func GatewayOnSend(transferId, usrAddr, tokenAddr, amt, sendTxHash string, srcChainId, dsChainId uint64) error {
 	if dal.DB == nil {
 		return nil
 	}
-	srcToken, tokenFound, dbErr := dal.DB.GetTokenBySymbol(tokenSymbol, srcChainId)
-	if !tokenFound || dbErr != nil {
+	srcToken, _, _ := dal.DB.GetTokenByAddr(tokenAddr, srcChainId)
+	if srcToken == nil {
 		return nil
 	}
 	estimatedAmt, err := getEstimatedAmt(srcChainId, dsChainId, srcToken, amt)
 	if err != nil {
 		return nil
 	}
-	return dal.UpsertTransferOnSend(transferId, usrAddr, tokenSymbol, amt, estimatedAmt, sendTxHash, srcChainId, dsChainId, getFeePerc(srcChainId, dsChainId))
+	return dal.UpsertTransferOnSend(transferId, usrAddr, srcToken, amt, estimatedAmt, sendTxHash, srcChainId, dsChainId, getFeePerc(srcChainId, dsChainId))
 }
 
 func GatewayOnRelay(transferId, txHash, dstTransferId, amt string) error {
@@ -133,13 +133,17 @@ func GatewayOnRelay(transferId, txHash, dstTransferId, amt string) error {
 	return err
 }
 
-func GatewayOnLiqAdd(lpAddr, token, tokenAddr, amt, txHash string, chainId uint64, seqNum, nonce uint64) error {
+func GatewayOnLiqAdd(lpAddr, tokenAddr, amt, txHash string, chainId uint64, seqNum, nonce uint64) error {
 	if dal.DB == nil {
+		return nil
+	}
+	token, _, _ := dal.DB.GetTokenByAddr(tokenAddr, chainId)
+	if token == nil {
 		return nil
 	}
 	status := cbrtypes.WithdrawStatus_WD_WAITING_FOR_SGN
 	lpType := webapi.LPType_LP_TYPE_ADD
-	return dal.UpsertLPForLiqAdd(lpAddr, token, tokenAddr, amt, txHash, chainId, uint64(status), uint64(lpType), seqNum, nonce)
+	return dal.UpsertLPForLiqAdd(lpAddr, token.GetToken().GetSymbol(), token.GetToken().GetAddress(), amt, txHash, chainId, uint64(status), uint64(lpType), seqNum, nonce)
 }
 
 func GatewayOnLiqWithdraw(id, tx string, chid, seq uint64, addr string) {
@@ -192,7 +196,7 @@ func GatewayOnLiqWithdraw(id, tx string, chid, seq uint64, addr string) {
 	}
 	// calculate withdraw id
 	wdid := utils.GenWithdrawId(chid, seq, l.UsrAddr, l.TokenAddr, l.Amt)
-	err = dal.UpdateLP(chid, seq, toStatus, addr, wdid.Hex())
+	err = dal.UpdateLP(chid, seq, toStatus, addr, wdid.Hex(), tx)
 	if err != nil {
 		log.Errorln(logmsg, err)
 	}

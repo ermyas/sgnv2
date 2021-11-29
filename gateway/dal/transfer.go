@@ -6,6 +6,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/goutils/sqldb"
+	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 )
 
@@ -226,17 +227,8 @@ func (d *DAL) ExistsTransferWithRefundId(refundId string) (bool, error) {
 	return cnt > 0, err
 }
 
-func (d *DAL) UpsertTransferOnSend(transferId, usrAddr, tokenAddr, amt, receivedAmt, sendTxHash string, srcChainId, dsChainId uint64, volume float64, feePerc uint32) error {
+func (d *DAL) UpsertTransferOnSend(transferId, usrAddr string, token *webapi.TokenInfo, amt, receivedAmt, sendTxHash string, srcChainId, dsChainId uint64, volume float64, feePerc uint32) error {
 	status := uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION)
-	token, tokenFound, tokenErr := GetTokenByAddr(tokenAddr, srcChainId)
-	if token == nil || !tokenFound || tokenErr != nil {
-		log.Errorf("token not found on send event, tokenAddr:%s, chainId:%d", tokenAddr, dsChainId)
-		updateErr := d.UpdateTransferStatus(transferId, status)
-		if updateErr != nil {
-			log.Errorf("try update transfer status but failed for transfer:%s, status:%d", transferId, status)
-		}
-		return updateErr
-	}
 	q := `INSERT INTO transfer (transfer_id, usr_addr, token_symbol, amt, src_chain_id, dst_chain_id, status, create_time, update_time, src_tx_hash, volume, fee_perc, received_amt)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) ON CONFLICT (transfer_id) DO UPDATE
 	SET amt=$4, status= $7, update_time=$9, src_tx_hash=$10, volume=$11, fee_perc=$12, received_amt=$13`

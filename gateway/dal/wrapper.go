@@ -31,16 +31,16 @@ func UpdateTransferForRefund(transferId string, status uint64, refundId, refundT
 }
 
 // UpsertTransferOnSend update api
-func UpsertTransferOnSend(transferId, usrAddr, tokenSymbol, amt, estimatedAmt, sendTxHash string, srcChainId, dsChainId uint64, perc uint32) error {
+func UpsertTransferOnSend(transferId, usrAddr string, token *webapi.TokenInfo, amt, estimatedAmt, sendTxHash string, srcChainId, dsChainId uint64, perc uint32) error {
 	if DB == nil {
 		return nil
 	} else {
-		volume, getVolumeErr := DB.GetUsdVolume(tokenSymbol, srcChainId, common.Str2BigInt(amt))
+		volume, getVolumeErr := DB.GetUsdVolume(token.GetToken().GetSymbol(), srcChainId, common.Str2BigInt(amt))
 		if getVolumeErr != nil {
-			log.Warnf("find invalid token volume, symbol:%s, chainId:%d, we set volume to 0 first", tokenSymbol, srcChainId)
+			log.Warnf("find invalid token volume, symbol:%s, chainId:%d, we set volume to 0 first", token.GetToken().GetSymbol(), srcChainId)
 			// continue to save 0 volume in db
 		}
-		return DB.UpsertTransferOnSend(transferId, usrAddr, tokenSymbol, amt, estimatedAmt, sendTxHash, srcChainId, dsChainId, volume, perc)
+		return DB.UpsertTransferOnSend(transferId, usrAddr, token, amt, estimatedAmt, sendTxHash, srcChainId, dsChainId, volume, perc)
 	}
 }
 
@@ -237,21 +237,12 @@ func GetTransferByRefundSeqNum(chainId, seqNum uint64, usrAddr string) (string, 
 	}
 }
 
-// UpdateLPStatusForWithdraw update api
-func UpdateLPStatusForWithdraw(chainId, seqNum, status uint64, addr string) error {
+// UpdateLP update api
+func UpdateLP(chainId, seqNum, status uint64, addr, wdid, tx string) error {
 	if DB == nil {
 		return nil
 	} else {
-		return DB.UpdateLPStatusForWithdraw(chainId, seqNum, status, addr)
-	}
-}
-
-// UpdateLPStatusForWithdraw update api
-func UpdateLP(chainId, seqNum, status uint64, addr, wdid string) error {
-	if DB == nil {
-		return nil
-	} else {
-		return DB.UpdateLP(chainId, seqNum, status, addr, wdid)
+		return DB.UpdateLP(chainId, seqNum, status, addr, wdid, tx)
 	}
 }
 
