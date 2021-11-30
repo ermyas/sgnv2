@@ -53,12 +53,10 @@ func TransferCompleted(transferId, txHash, dstTransferId, amt string) error {
 	if err != nil {
 		return err
 	}
-	txhash := txHash
 	if isDelayed {
 		DB.UpdateDelayedOpType(dstTransferId, DelayedOpTransfer)
-		txhash = ""
 	}
-	return DB.TransferCompleted(transferId, txhash, dstTransferId, amt, isDelayed)
+	return DB.TransferCompleted(transferId, txHash, dstTransferId, amt, isDelayed)
 }
 
 func DelayXferAdd(id, txHash string) error {
@@ -94,7 +92,7 @@ func bestEffortChecks(id, txHash string) (DelayedOpType, error) {
 	}
 	if found {
 		log.Warnf("DelayedTransferAdded arrives later than Relay, id %s txhash %s", id, txHash)
-		DB.UpdateTransferStatusByDstTransferId(id, types.TransferHistoryStatus_TRANSFER_DELAYED, "")
+		DB.UpdateTransferStatusByDstTransferId(id, types.TransferHistoryStatus_TRANSFER_DELAYED, txHash)
 		return DelayedOpTransfer, nil
 	}
 	// Best effort: check transfer table to make sure the "WithdrawDone" for refund did not arrive first
@@ -104,7 +102,7 @@ func bestEffortChecks(id, txHash string) (DelayedOpType, error) {
 	}
 	if found {
 		log.Warnf("DelayedTransferAdded arrives later than WithdrawDone(refund), id %s txhash %s", id, txHash)
-		DB.UpdateTransferStatusByRefundId(id, types.TransferHistoryStatus_TRANSFER_DELAYED, "")
+		DB.UpdateTransferStatusByRefundId(id, types.TransferHistoryStatus_TRANSFER_DELAYED, txHash)
 		return DelayedOpRefund, nil
 	}
 	// Best effort: check lp table to make sure "WithdrawDone" did not arrive first
@@ -114,7 +112,7 @@ func bestEffortChecks(id, txHash string) (DelayedOpType, error) {
 	}
 	if found {
 		log.Warnf("DelayedTransferAdded arrives later than WithdrawDone(withdraw), id %s txhash %s", id, txHash)
-		DB.UpdateLPStatusByWithdrawId(id, types.WithdrawStatus_WD_DELAYED, "")
+		DB.UpdateLPStatusByWithdrawId(id, types.WithdrawStatus_WD_DELAYED, txHash)
 		return DelayedOpWithdraw, nil
 	}
 	return DelayedOpUnknown, nil

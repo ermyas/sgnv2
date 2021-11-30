@@ -154,10 +154,6 @@ func GatewayOnLiqWithdraw(id, tx string, chid, seq uint64, addr string) {
 	if err != nil {
 		log.Warnf("Unable to fetch record from delayed_ops, id %s err %s", id, err.Error())
 	}
-	txhash := tx
-	if isDelayed {
-		txhash = ""
-	}
 	/*
 		the "refund" kind of withdrawal
 	*/
@@ -173,7 +169,7 @@ func GatewayOnLiqWithdraw(id, tx string, chid, seq uint64, addr string) {
 			dal.DB.UpdateDelayedOpType(id, dal.DelayedOpRefund)
 		}
 		// save refund_id so if we later receive DelayedTransferExecuted, the handler can find this record
-		err := dal.UpdateTransferForRefund(transferId, toStatus, id, txhash)
+		err := dal.UpdateTransferForRefund(transferId, toStatus, id, tx)
 		if err != nil {
 			log.Warnf("db when UpdateTransferStatus to TRANSFER_REFUNDED, transferId:%s, err:%+v", transferId, err)
 		}
@@ -200,7 +196,7 @@ func GatewayOnLiqWithdraw(id, tx string, chid, seq uint64, addr string) {
 	}
 	// calculate withdraw id
 	wdid := utils.GenWithdrawId(chid, seq, l.UsrAddr, l.TokenAddr, l.Amt)
-	err = dal.UpdateLP(chid, seq, toStatus, addr, wdid.Hex(), txhash)
+	err = dal.UpdateLP(chid, seq, toStatus, addr, wdid.Hex(), tx)
 	if err != nil {
 		log.Errorln(logmsg, err)
 	}

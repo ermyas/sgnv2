@@ -207,12 +207,12 @@ func (gs *GatewayService) chooseOneTokenFromSrcChains(wdReq *types.WithdrawReq) 
 
 func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *webapi.QueryLiquidityStatusRequest) (*webapi.QueryLiquidityStatusResponse, error) {
 	seqNum := request.GetSeqNum()
-	txHash := request.GetTxHash()
+	tx := request.GetTxHash()
 	chainId := uint64(request.GetChainId())
 	lpType := uint64(request.GetType())
 	addr := common.Hex2Addr(request.GetLpAddr())
 	tr := gs.TP.GetTransactor()
-	found, status, seqNum, txHash, lpUpdateTime := getLPStatusInDB(request.GetType(), txHash, addr.String(), seqNum, chainId)
+	found, status, seqNum, txHash, lpUpdateTime := getLPStatusInDB(request.GetType(), tx, addr.String(), seqNum, chainId)
 	if found && status == uint64(types.WithdrawStatus_WD_SUBMITTING) && common.IsValidTxHash(txHash) && time.Now().Add(-3*time.Minute).After(lpUpdateTime) {
 		ec := gs.EC[chainId]
 		if ec == nil {

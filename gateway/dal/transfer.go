@@ -253,7 +253,7 @@ func (d *DAL) UpdateTransferStatusByDstTransferId(dstXferId string, status types
 
 func (d *DAL) UpdateTransferStatusByRefundId(refundId string, status types.TransferHistoryStatus, txHash string) error {
 	q := `UPDATE transfer SET status=$2, refund_tx=$3, update_time=now() WHERE refund_id=$1`
-	res, err := d.Exec(q, refundId, uint64(status))
+	res, err := d.Exec(q, refundId, uint64(status), txHash)
 	return sqldb.ChkExec(res, err, 1, "UpdateTransferStatusByRefundId")
 }
 
