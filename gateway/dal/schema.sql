@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS apy (
 
 CREATE TABLE IF NOT EXISTS delayed_op (
     id TEXT NOT NULL,
-    type INT DEFAULT 0, -- dal.DelayedOpType
+    type INT DEFAULT 0, -- dal.DelayedOpType -
     tx_hash TEXT,
     PRIMARY KEY (id)
 );

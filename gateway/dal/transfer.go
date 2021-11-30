@@ -245,14 +245,14 @@ func (d *DAL) TransferCompleted(transferId, txHash, dstTransferId, receivedAmt s
 	return sqldb.ChkExec(res, err, 1, "TransferCompleted")
 }
 
-func (d *DAL) UpdateTransferStatusByDstTransferId(dstXferId string, status types.TransferHistoryStatus) error {
-	q := `UPDATE transfer SET status=$2, update_time=now() WHERE dst_transfer_id=$1`
-	res, err := d.Exec(q, dstXferId, uint64(status))
+func (d *DAL) UpdateTransferStatusByDstTransferId(dstXferId string, status types.TransferHistoryStatus, txHash string) error {
+	q := `UPDATE transfer SET status=$2, dst_tx_hash=$3, update_time=now() WHERE dst_transfer_id=$1`
+	res, err := d.Exec(q, dstXferId, uint64(status), txHash)
 	return sqldb.ChkExec(res, err, 1, "UpdateTransferStatusByTransferId")
 }
 
-func (d *DAL) UpdateTransferStatusByRefundId(refundId string, status types.TransferHistoryStatus) error {
-	q := `UPDATE transfer SET status=$2, update_time=now() WHERE refund_id=$1`
+func (d *DAL) UpdateTransferStatusByRefundId(refundId string, status types.TransferHistoryStatus, txHash string) error {
+	q := `UPDATE transfer SET status=$2, refund_tx=$3, update_time=now() WHERE refund_id=$1`
 	res, err := d.Exec(q, refundId, uint64(status))
 	return sqldb.ChkExec(res, err, 1, "UpdateTransferStatusByRefundId")
 }

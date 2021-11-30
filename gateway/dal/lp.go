@@ -66,9 +66,9 @@ func (d *DAL) UpdateLPStatus(seqNum, lpType, chainId uint64, lpAddr string, stat
 	return sqldb.ChkExec(res, err, 1, "UpdateLPStatus")
 }
 
-func (d *DAL) UpdateLPStatusByWithdrawId(wdid string, status types.WithdrawStatus) error {
-	q := `UPDATE lp SET status=$2, update_time=now() WHERE withdraw_id=$1`
-	res, err := d.Exec(q, wdid, status)
+func (d *DAL) UpdateLPStatusByWithdrawId(wdid string, status types.WithdrawStatus, txHash string) error {
+	q := `UPDATE lp SET status=$2, tx_hash=$3, update_time=now() WHERE withdraw_id=$1`
+	res, err := d.Exec(q, wdid, status, txHash)
 	if err != nil {
 		log.Errorf("UpdateLPStatus db err, wdid %s, status %d, err:%+v", wdid, uint64(status), err)
 	}

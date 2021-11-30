@@ -167,7 +167,7 @@ func (c *CbrOneChain) monDelayXferExec(blk *big.Int) {
 		}
 		idstr := common.Hash(ev.Id).String()
 		log.Infof("MonEv: DelayedTransferExecuted chainId: %d, tx: %s, id %s", c.chainid, eLog.TxHash.String(), idstr)
-		err = GatewayOnDelayXferExec(idstr)
+		err = GatewayOnDelayXferExec(idstr, eLog.TxHash.String())
 		if err != nil {
 			log.Errorln("DelayedTransferExecuted err:", err)
 		}

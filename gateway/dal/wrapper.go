@@ -53,10 +53,12 @@ func TransferCompleted(transferId, txHash, dstTransferId, amt string) error {
 	if err != nil {
 		return err
 	}
+	txhash := txHash
 	if isDelayed {
 		DB.UpdateDelayedOpType(dstTransferId, DelayedOpTransfer)
+		txhash = ""
 	}
-	return DB.TransferCompleted(transferId, txHash, dstTransferId, amt, isDelayed)
+	return DB.TransferCompleted(transferId, txhash, dstTransferId, amt, isDelayed)
 }
 
 func DelayXferAdd(id, txHash string) error {
@@ -64,44 +66,9 @@ func DelayXferAdd(id, txHash string) error {
 		return nil
 	}
 
-	// The best effort checks are meant to correct the finalized state of the records of COMPLETED
-	// to DELAYED in case DelayedTransferAdded event does not arrive before the corresponding events
-	// this is at the cost of some additional DB queries but considering there won't be a lot of
-	// delay events, it should be fine
-
-	t := DelayedOpUnknown
-	// Best effort: check transfer table to make sure "Relay" did not arrive first
-	_, found, err := DB.GetTransferByDstTransferId(id)
+	t, err := bestEffortChecks(id, txHash)
 	if err != nil {
 		return err
-	}
-	if found {
-		log.Warnf("DelayedTransferAdded arrives later than Relay, id %s txhash %s", id, txHash)
-		DB.UpdateTransferStatusByDstTransferId(id, types.TransferHistoryStatus_TRANSFER_DELAYED)
-		t = DelayedOpTransfer
-		return nil
-	}
-	// Best effort: check transfer table to make sure the "WithdrawDone" for refund did not arrive first
-	found, err = DB.ExistsTransferWithRefundId(id)
-	if err != nil {
-		return err
-	}
-	if found {
-		log.Warnf("DelayedTransferAdded arrives later than WithdrawDone(refund), id %s txhash %s", id, txHash)
-		DB.UpdateTransferStatusByRefundId(id, types.TransferHistoryStatus_TRANSFER_DELAYED)
-		t = DelayedOpRefund
-		return nil
-	}
-	// Best effort: check lp table to make sure "WithdrawDone" did not arrive first
-	found, err = DB.ExistsLPInfoWithWithdrawId(id)
-	if err != nil {
-		return err
-	}
-	if found {
-		log.Warnf("DelayedTransferAdded arrives later than WithdrawDone(withdraw), id %s txhash %s", id, txHash)
-		DB.UpdateLPStatusByWithdrawId(id, types.WithdrawStatus_WD_DELAYED)
-		t = DelayedOpWithdraw
-		return nil
 	}
 	// if DelayedTransferAdded event precedes Relay and WithdrawDone, which is expected, insert a record in delayed_op.
 	// the arg t is delayed op type, if DelayedTransferAdded precedes the normal events, t should be Unknown and should
@@ -115,18 +82,49 @@ func DelayXferAdd(id, txHash string) error {
 	return nil
 }
 
+func bestEffortChecks(id, txHash string) (DelayedOpType, error) {
+	// The best effort checks are meant to correct the finalized state of the records of COMPLETED
+	// to DELAYED in case DelayedTransferAdded event does not arrive before the corresponding events
+	// this is at the cost of some additional DB queries but considering there won't be a lot of
+	// delay events, it should be fine
+	// Best effort: check transfer table to make sure "Relay" did not arrive first
+	_, found, err := DB.GetTransferByDstTransferId(id)
+	if err != nil {
+		return DelayedOpUnknown, err
+	}
+	if found {
+		log.Warnf("DelayedTransferAdded arrives later than Relay, id %s txhash %s", id, txHash)
+		DB.UpdateTransferStatusByDstTransferId(id, types.TransferHistoryStatus_TRANSFER_DELAYED, "")
+		return DelayedOpTransfer, nil
+	}
+	// Best effort: check transfer table to make sure the "WithdrawDone" for refund did not arrive first
+	found, err = DB.ExistsTransferWithRefundId(id)
+	if err != nil {
+		return DelayedOpUnknown, err
+	}
+	if found {
+		log.Warnf("DelayedTransferAdded arrives later than WithdrawDone(refund), id %s txhash %s", id, txHash)
+		DB.UpdateTransferStatusByRefundId(id, types.TransferHistoryStatus_TRANSFER_DELAYED, "")
+		return DelayedOpRefund, nil
+	}
+	// Best effort: check lp table to make sure "WithdrawDone" did not arrive first
+	found, err = DB.ExistsLPInfoWithWithdrawId(id)
+	if err != nil {
+		return DelayedOpUnknown, err
+	}
+	if found {
+		log.Warnf("DelayedTransferAdded arrives later than WithdrawDone(withdraw), id %s txhash %s", id, txHash)
+		DB.UpdateLPStatusByWithdrawId(id, types.WithdrawStatus_WD_DELAYED, "")
+		return DelayedOpWithdraw, nil
+	}
+	return DelayedOpUnknown, nil
+}
+
 // id is dst_transfer_id or withdraw_id
-func DelayXferExec(id string) error {
+func DelayXferExec(id, txHash string) error {
 	if DB == nil {
 		return nil
 	}
-
-	defer func() {
-		err := DB.DeleteDelayedOp(id)
-		if err != nil {
-			log.Errorf("Could not delete delayed_op record of id %s: %s", id, err)
-		}
-	}()
 
 	t, found, err := DB.GetDelayedOp(id)
 	if err != nil {
@@ -142,7 +140,7 @@ func DelayXferExec(id string) error {
 		}
 		if found {
 			log.Warnln(logmsg, "Updating transfer status to COMPLETED")
-			DB.UpdateTransferStatusByDstTransferId(id, types.TransferHistoryStatus_TRANSFER_COMPLETED)
+			DB.UpdateTransferStatusByDstTransferId(id, types.TransferHistoryStatus_TRANSFER_COMPLETED, txHash)
 			return nil
 		}
 		// Best effort: check transfer table to make sure the "WithdrawDone" for refund did not arrive first
@@ -152,7 +150,7 @@ func DelayXferExec(id string) error {
 		}
 		if found {
 			log.Warnln(logmsg, "Updating transfer status to REFUNDED")
-			DB.UpdateTransferStatusByRefundId(id, types.TransferHistoryStatus_TRANSFER_REFUNDED)
+			DB.UpdateTransferStatusByRefundId(id, types.TransferHistoryStatus_TRANSFER_REFUNDED, txHash)
 			return nil
 		}
 		// Best effort: check lp table to make sure "WithdrawDone" did not arrive first
@@ -162,7 +160,7 @@ func DelayXferExec(id string) error {
 		}
 		if found {
 			log.Warnln(logmsg, "Updating withdraw status to COMPLETED")
-			DB.UpdateLPStatusByWithdrawId(id, types.WithdrawStatus_WD_COMPLETED)
+			DB.UpdateLPStatusByWithdrawId(id, types.WithdrawStatus_WD_COMPLETED, txHash)
 			return nil
 		}
 	}
@@ -181,7 +179,7 @@ func DelayXferExec(id string) error {
 		} else {
 			toStatus = types.TransferHistoryStatus_TRANSFER_REFUNDED
 		}
-		err = DB.UpdateTransferStatusByDstTransferId(id, toStatus)
+		err = DB.UpdateTransferStatusByDstTransferId(id, toStatus, txHash)
 		if err == nil {
 			log.Infof("handled DelayedTransferExecuted, id %s status %d", id, toStatus)
 			return nil
@@ -194,7 +192,7 @@ func DelayXferExec(id string) error {
 		if !found {
 			return fmt.Errorf("cannot process DelayedTransferExec with id %s, type %d: record not found in transfer table", id, t)
 		}
-		err := DB.UpdateLPStatusByWithdrawId(id, types.WithdrawStatus_WD_COMPLETED)
+		err := DB.UpdateLPStatusByWithdrawId(id, types.WithdrawStatus_WD_COMPLETED, txHash)
 		if err == nil {
 			log.Infof("handled DelayedTransferExecuted, id %s status %d", id, types.WithdrawStatus_WD_COMPLETED)
 			return nil
