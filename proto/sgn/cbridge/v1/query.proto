@@ -28,6 +28,18 @@ service Query {
   // rpc QueryAllWdReqIdList (QueryAllWdReqIdListReq) returns (QueryAllWdReqIdListResp) {}
 }
 
+// get both liqsum and sum of all lm- and compare if they are equal
+// rpc CheckLiqSum (CheckLiqSumReq) returns (CheckLiqSumResp) {}
+message CheckLiqSumReq {
+    uint64 chain_id = 1;
+    string token_addr = 2; // hex string
+}
+
+message CheckLiqSumResp {
+    string liqsum = 1; // big.Int decimal string of liqsum key
+    string sumiter = 2; // GetLiqIterSum sum over all lm-%d-%x-%x
+}
+
 message ChainTokensConfigRequest {}
 
 message ChainTokensConfigResponse {

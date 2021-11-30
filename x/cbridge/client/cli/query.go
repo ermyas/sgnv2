@@ -33,6 +33,7 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 		GetCmdQueryWithdraw(),
 		GetCmdQueryChainSigners(),
 		GetCmdQueryLatestSigners(),
+		GetCmdQueryChkLiqSum(),
 		qDebugAnyCmd,
 	)
 	// this line is used by starport scaffolding # 1
@@ -224,6 +225,35 @@ func GetCmdQueryLatestSigners() *cobra.Command {
 	}
 }
 
+func GetCmdQueryChkLiqSum() *cobra.Command {
+	return &cobra.Command{
+		Use:   "liqsum [chainid] [token]", // requird, keep square bracket for consistency w/ other cmds
+		Args:  cobra.ExactArgs(2),
+		Short: "Query liq sum of chain,token, return both liqsum and itersum over lm- keys",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			chainid, err := strconv.Atoi(args[0])
+			if err != nil {
+				return fmt.Errorf("%s not valid chainid, err:%w", args[0], err)
+			}
+			resp, err := QueryChkLiqSum(cliCtx, &types.CheckLiqSumReq{
+				ChainId:   uint64(chainid),
+				TokenAddr: args[1],
+			})
+			if err != nil {
+				log.Errorln("query error", err)
+				return err
+			}
+			fmt.Println("liqsum:", resp.Liqsum)
+			fmt.Println("sumitr:", resp.Sumiter)
+			return nil
+		},
+	}
+}
+
 // it's by design this doesn't have pkg level func so it can only be called via cmd line
 var qDebugAnyCmd = &cobra.Command{
 	Use:   "getany [internal-db-key]",
@@ -278,6 +308,23 @@ var qDebugAnyCmd = &cobra.Command{
 
 func pre(a, pre string) bool {
 	return strings.HasPrefix(a, pre)
+}
+
+func QueryChkLiqSum(cliCtx client.Context, req *types.CheckLiqSumReq) (resp *types.CheckLiqSumResp, err error) {
+	data, err := cliCtx.LegacyAmino.MarshalJSON(req)
+	if err != nil {
+		return
+	}
+
+	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryChkLiqSum)
+	res, err := common.RobustQueryWithData(cliCtx, route, data)
+	if err != nil {
+		return
+	}
+
+	resp = new(types.CheckLiqSumResp)
+	err = cliCtx.Codec.Unmarshal(res, resp)
+	return
 }
 
 // Query config info

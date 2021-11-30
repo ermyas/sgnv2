@@ -49,10 +49,30 @@ func NewQuerier(k Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
 			return queryDebugAny(ctx, req, k)
 		case types.QueryCheckChainTokenValid:
 			return queryCheckTokenValid(ctx, req, k, legacyQuerierCdc)
+		case types.QueryChkLiqSum:
+			return queryChkLiqSum(ctx, req, k, legacyQuerierCdc)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "Unknown cbridge query endpoint")
 		}
 	}
+}
+
+func queryChkLiqSum(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	kv := ctx.KVStore(k.storeKey)
+	chkReq := new(types.CheckLiqSumReq)
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, chkReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse req: %w", err)
+	}
+	chtok := &ChainIdTokenAddr{
+		ChId:      chkReq.ChainId,
+		TokenAddr: common.Hex2Addr(chkReq.TokenAddr),
+	}
+	resp := types.CheckLiqSumResp{
+		Liqsum:  GetLiq(kv, chtok).String(),
+		Sumiter: GetLiqIterSum(kv, chtok).String(),
+	}
+	return codec.MarshalJSONIndent(legacyQuerierCdc, resp)
 }
 
 // req.data is key, return value raw, expect caller to decode properly
