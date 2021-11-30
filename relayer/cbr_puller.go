@@ -485,7 +485,15 @@ func (r *Relayer) updateSigners() {
 			log.Errorln("failed to get sshash", chainId, err)
 			continue
 		}
-		if eth.Bytes2Hash(crypto.Keccak256(latestSigners.GetSignersBytes())) == ssHash {
+		signerBytes := latestSigners.GetSignersBytes()
+		// len = 32 bytes Trigger time + N * 32 bytes addrs + N * 32 bytes powers
+		if len(signerBytes) < 96 {
+			log.Error("Invalid signers bytes")
+			return
+		}
+		// skip the first 32 bytes triggerTime
+		signerBytes = signerBytes[32:]
+		if eth.Bytes2Hash(crypto.Keccak256(signerBytes)) == ssHash {
 			log.Debugf("chain %d signers already updated", chainId)
 			continue
 		}
