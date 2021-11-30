@@ -197,6 +197,10 @@ func (c *CbrOneChain) verifySend(eLog *ethtypes.Log, cliCtx client.Context, logm
 		return false, false
 	}
 	if !exist {
+		if c.mon.GetCurrentBlockNumber().Uint64() < eLog.BlockNumber {
+			log.Warnln(logmsg, "xferId:", xferId.String(), "block number not passed", c.mon.GetCurrentBlockNumber(), eLog.BlockNumber)
+			return false, false
+		}
 		// xfer doesn't exist, vote no
 		log.Errorln(logmsg, "xferId:", xferId.String(), "not found")
 		return true, false
@@ -243,6 +247,10 @@ func (c *CbrOneChain) verifyRelay(eLog *ethtypes.Log, cliCtx client.Context, log
 		return false, false
 	}
 	if !exist {
+		if c.mon.GetCurrentBlockNumber().Uint64() < eLog.BlockNumber {
+			log.Warnln(logmsg, "xferId:", xferId.String(), "block number not passed", c.mon.GetCurrentBlockNumber(), eLog.BlockNumber)
+			return false, false
+		}
 		// xfer doesn't exist, vote no
 		log.Errorln(logmsg, "xferId:", xferId.String(), "not found")
 		return true, false
@@ -276,8 +284,12 @@ func (c *CbrOneChain) verifyWithdraw(eLog *ethtypes.Log, cliCtx client.Context, 
 		return false, false
 	}
 	if !exist {
+		if c.mon.GetCurrentBlockNumber().Uint64() < eLog.BlockNumber {
+			log.Warnln(logmsg, "wdId:", wdId.String(), "block number not passed", c.mon.GetCurrentBlockNumber(), eLog.BlockNumber)
+			return false, false
+		}
 		// wdid doesn't exist, vote no
-		log.Errorln(logmsg, "wdid:", wdId.String(), "not found")
+		log.Errorln(logmsg, "wdId:", wdId.String(), "not found")
 		return true, false
 	}
 	// we don't do safeblk checking as this is event when money leaving the system, so it's safe

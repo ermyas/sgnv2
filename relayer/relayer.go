@@ -59,7 +59,9 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 		log.Fatalln("GetValidatorNum err", err)
 	}
 
-	verifiedUpdates, err := bigcache.NewBigCache(bigcache.DefaultConfig(10 * time.Minute))
+	bigCacheCfg := bigcache.DefaultConfig(20 * time.Minute)
+	bigCacheCfg.CleanWindow = time.Hour
+	verifiedUpdates, err := bigcache.NewBigCache(bigCacheCfg)
 	if err != nil {
 		log.Fatalln("NewBigCache err", err)
 	}
