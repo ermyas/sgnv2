@@ -236,8 +236,12 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 			}
 			exist, err := stakingcli.QuerySgnAccount(cliCtx, sdk.AccAddress(sgnAddr).String())
 			if err != nil {
-				log.Errorf("Failed to query SGN account address err: %s", err)
-				return err
+				if errors.Is(err, stakingtypes.ErrSgnAccountNotFound) {
+					exist = false
+				} else {
+					log.Errorf("Failed to query SGN account address err: %s", err)
+					return err
+				}
 			}
 			if !exist {
 				log.Infoln("SGN address needs update")
