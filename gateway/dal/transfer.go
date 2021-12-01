@@ -6,6 +6,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/goutils/sqldb"
+	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 )
@@ -356,4 +357,32 @@ func (d *DAL) GetCompletedVolumeBetween(addr string, startTime, endTime time.Tim
 		return totolVolume.Float64, nil
 	}
 	return 0, nil
+}
+
+func (d *DAL) GetTransfersWithStatus(status types.TransferHistoryStatus, startTime, endTime time.Time) ([]*utils.StatusAlertInfo, error) {
+	q := "SELECT src_chain_id, src_tx_hash, update_time FROM transfer WHERE status=$1 AND update_time > $2 AND update_time < $3"
+	rows, err := d.Query(q, uint64(status), startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+
+	var tps []*utils.StatusAlertInfo
+	var srcTxHash string
+	var srcChainId uint64
+	var ut time.Time
+	for rows.Next() {
+		err = rows.Scan(&srcChainId, &srcTxHash, &ut)
+		if err != nil {
+			return nil, err
+		}
+
+		tp := &utils.StatusAlertInfo{
+			ChainId: srcChainId,
+			TxHash:  srcTxHash,
+			Ut:      ut,
+		}
+		tps = append(tps, tp)
+	}
+	return tps, nil
 }

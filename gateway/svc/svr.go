@@ -139,6 +139,7 @@ func (gs *GatewayService) StartAbnormalBalanceCheckPolling(interval time.Duratio
 		defer ticker.Stop()
 		for ; true; <-ticker.C {
 			gs.AlertAbnormalBalance()
+			gs.AlertAbnormalStatus()
 		}
 	}()
 }

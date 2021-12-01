@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/celer-network/goutils/log"
 )
@@ -27,6 +28,12 @@ type BalanceAlert struct {
 	Deposit  string
 }
 
+type StatusAlertInfo struct {
+	ChainId uint64
+	TxHash  string
+	Ut      time.Time
+}
+
 func SendBalanceAlert(alerts []*BalanceAlert, env string) {
 	msg := "find abnormal lp balance:\n"
 	for _, alert := range alerts {
@@ -37,6 +44,19 @@ func SendBalanceAlert(alerts []*BalanceAlert, env string) {
 		sendSlackP1AlertProd("Abnormal LP Balance Alert", msg)
 	} else if env == "test" {
 		sendSlackP1AlertTest("Abnormal LP Balance Alert", msg)
+	}
+}
+
+func SendStatusAlert(alerts []*StatusAlertInfo, key, env string) {
+	msg := "find abnormal status, " + key + ":\n"
+	for _, alert := range alerts {
+		msg = msg + fmt.Sprintf("chainId:`%d`, txHash:`%s`, updateTime:`%s` \n", alert.ChainId, alert.TxHash, alert.Ut)
+	}
+	log.Warnf(msg)
+	if env == "prod" {
+		sendSlackStatusAlertProd(key, msg)
+	} else if env == "test" {
+		sendSlackP1AlertTest(key, msg)
 	}
 }
 
@@ -56,6 +76,21 @@ func sendSlackP1AlertTest(title string, msg string) {
 }
 
 func sendSlackP1AlertProd(title string, msg string) {
+	url := "https://hooks.slack.com/services/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"
+	body := `{
+		"channel": "#cbridge-v2-alert-p1",
+			"username": "%s",
+			"text": "%s",
+			"icon_emoji": "https://svblockchain.slack.com/services/BRARCSVU3?settings=1"
+	}`
+
+	err := httpDoPost(url, fmt.Sprintf(body, title, msg))
+	if err != nil {
+		log.Error("send alert error:", err)
+	}
+}
+
+func sendSlackStatusAlertProd(title string, msg string) {
 	url := "https://hooks.slack.com/services/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"
 	body := `{
 		"channel": "#cbridge-v2-alert-p1",

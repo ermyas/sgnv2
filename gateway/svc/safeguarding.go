@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -110,6 +111,32 @@ func (gs *GatewayService) AlertAbnormalBalance() {
 	}
 	if alerts != nil && len(alerts) > 0 {
 		utils.SendBalanceAlert(alerts, Env)
+	}
+}
+
+func (gs *GatewayService) AlertAbnormalStatus() {
+	endTime := time.Now().Add(-2 * time.Hour)
+	startTime := endTime.Add(-2 * time.Hour)
+	sendNoSync, err := dal.DB.GetTransfersWithStatus(cbrtypes.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION, startTime, endTime)
+	if err != nil {
+		log.Warnf("GetTransfersWithStatus failed, from:%s, to:%s, err:%+v", startTime, endTime, err)
+	}
+	if sendNoSync != nil && len(sendNoSync) > 0 {
+		utils.SendStatusAlert(sendNoSync, "send events not synced to sgn", Env)
+	}
+	fundNoRelease, err := dal.DB.GetTransfersWithStatus(cbrtypes.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE, startTime, endTime)
+	if err != nil {
+		log.Warnf("GetTransfersWithStatus failed, from:%s, to:%s, err:%+v", startTime, endTime, err)
+	}
+	if fundNoRelease != nil && len(fundNoRelease) > 0 {
+		utils.SendStatusAlert(fundNoRelease, "relays that have been waiting for fund release", Env)
+	}
+	addLiqNoSync, err := dal.DB.GetLPWithStatus(cbrtypes.WithdrawStatus_WD_WAITING_FOR_SGN, startTime, endTime)
+	if err != nil {
+		log.Warnf("GetLPWithStatus failed, from:%s, to:%s, err:%+v", startTime, endTime, err)
+	}
+	if addLiqNoSync != nil && len(addLiqNoSync) > 0 {
+		utils.SendStatusAlert(addLiqNoSync, "addLiq events not synced to sgn", Env)
 	}
 }
 

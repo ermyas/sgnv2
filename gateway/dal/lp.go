@@ -7,6 +7,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/goutils/sqldb"
+	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 )
@@ -186,6 +187,7 @@ type LP struct {
 	Amt         string
 	TxHash      string
 	Ct          time.Time
+	Ut          time.Time
 	Status      types.WithdrawStatus
 	LpType      webapi.LPType
 	SeqNum      uint64
@@ -334,4 +336,33 @@ func (d *DAL) GetDistinctLpAddrByTimeRange(begin, end time.Time) ([]string, erro
 		addrs = append(addrs, addr)
 	}
 	return addrs, nil
+}
+
+func (d *DAL) GetLPWithStatus(status types.WithdrawStatus, startTime, endTime time.Time) ([]*utils.StatusAlertInfo, error) {
+	q := "SELECT chain_id, tx_hash, update_time FROM lp WHERE status=$1 AND update_time > $2 AND update_time < $3"
+	rows, err := d.Query(q, uint64(status), startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+
+	var tps []*utils.StatusAlertInfo
+	var chainId uint64
+	var txHash string
+	var ut time.Time
+	for rows.Next() {
+		err = rows.Scan(&chainId, &txHash, &ut)
+		if err != nil {
+			return nil, err
+		}
+
+		tp := &utils.StatusAlertInfo{
+			ChainId: chainId,
+			TxHash:  txHash,
+			Ut:      ut,
+		}
+		tps = append(tps, tp)
+	}
+
+	return tps, nil
 }
