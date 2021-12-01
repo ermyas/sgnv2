@@ -276,7 +276,7 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 				return err
 			}
 
-			if strings.Contains(err.Error(), "validator not found") || storeVal == nil {
+			if (err != nil && strings.Contains(err.Error(), "validator not found")) || storeVal == nil {
 				serverCtx := server.GetServerContextFromCmd(cmd)
 				filePV := privval.LoadOrGenFilePV(serverCtx.Config.PrivValidatorKeyFile(), serverCtx.Config.PrivValidatorStateFile())
 				tmValPubKey, err := filePV.GetPubKey()
