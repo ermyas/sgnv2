@@ -18,6 +18,9 @@ import (
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	"github.com/cosmos/cosmos-sdk/client"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
+	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/version"
@@ -26,6 +29,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/tendermint/tendermint/privval"
 )
 
 const (
@@ -268,9 +272,29 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 			}
 
 			storeVal, err := stakingcli.QueryValidator(cliCtx, valAddr)
-			if err != nil {
-				// NOTE: Assumes validator already exists in kv.
+			if err != nil && !strings.Contains(err.Error(), "validator not found") {
 				return err
+			}
+
+			if strings.Contains(err.Error(), "validator not found") || storeVal == nil {
+				serverCtx := server.GetServerContextFromCmd(cmd)
+				filePV := privval.LoadOrGenFilePV(serverCtx.Config.PrivValidatorKeyFile(), serverCtx.Config.PrivValidatorStateFile())
+				tmValPubKey, err := filePV.GetPubKey()
+				if err != nil {
+					return err
+				}
+				valPubKey, err := cryptocodec.FromTmPubKeyInterface(tmValPubKey)
+				if err != nil {
+					return err
+				}
+				pkAny, err := codectypes.NewAnyWithValue(valPubKey)
+				if err != nil {
+					return fmt.Errorf("failed to generate pkAny, %w", err)
+				}
+
+				storeVal = &stakingtypes.Validator{
+					ConsensusPubkey: pkAny,
+				}
 			}
 
 			// 2. Check validator params
