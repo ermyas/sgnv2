@@ -211,6 +211,10 @@ func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.T
 			dstTxLink = dstChainUrl + transfer.DstTxHash
 		}
 
+		if transfer.Status == types.TransferHistoryStatus_TRANSFER_DELAYED {
+			dstTxLink = ""
+		}
+
 		transfers = append(transfers, &webapi.TransferHistory{
 			TransferId: transfer.TransferId,
 			SrcSendInfo: &webapi.TransferInfo{
