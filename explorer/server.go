@@ -21,20 +21,24 @@ var (
 )
 
 type ExplorerServerConfig struct {
-	GatewayDbUrl  string
-	ExplorerDbUrl string
-	V1DbUrl       string
-	GatewayRpcUrl string
-	GrpcPort      int
-	GrpcWebPort   int
+	GatewayDbUrl       string
+	ExplorerDbUrl      string
+	V1DbUrl            string
+	Prod2DbUrl         string
+	GatewayRpcUrl      string
+	GatewayProd2RpcUrl string
+	GrpcPort           int
+	GrpcWebPort        int
 }
 
 type explorerServer struct {
-	config        *ExplorerServerConfig
-	explorerDb    *DAL
-	v1Db          *DAL
-	gatewayDb     *dal.DAL
-	gatewayClient *utils.GatewayClient
+	config             *ExplorerServerConfig
+	explorerDb         *DAL
+	v1Db               *DAL
+	gatewayDb          *dal.DAL             // prod1
+	prod2Db            *dal.DAL             // prod2
+	gatewayClient      *utils.GatewayClient // prod1
+	gatewayProd2Client *utils.GatewayClient // prod2
 
 	dailyLiqVolumeCache *lrucache.LRUCache
 	dailyTxVolumeCache  *lrucache.LRUCache
@@ -79,6 +83,11 @@ func NewExplorerServer(config *ExplorerServerConfig) (*explorerServer, error) {
 		return nil, err
 	}
 
+	server.prod2Db, err = dal.NewDAL("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", config.Prod2DbUrl), 20)
+	if err != nil {
+		return nil, err
+	}
+
 	server.explorerDb, err = NewDAL("postgres", fmt.Sprintf("postgresql://explorer@%s/explorer?sslmode=disable", config.ExplorerDbUrl), 20)
 	if err != nil {
 		return nil, err
@@ -93,6 +102,10 @@ func NewExplorerServer(config *ExplorerServerConfig) (*explorerServer, error) {
 	}
 
 	server.gatewayClient, err = utils.NewGatewayAPI(config.GatewayRpcUrl)
+	if err != nil {
+		return nil, err
+	}
+	server.gatewayProd2Client, err = utils.NewGatewayAPI(config.GatewayProd2RpcUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -119,13 +132,35 @@ func (e *explorerServer) GetCurrentTotalStatData() (*GetTotalStatsResponse, erro
 		return nil, err
 	}
 
+	overallBalanceProd2, err := e.gatewayProd2Client.GetOverallBalanceInfo(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
 	// TODO should get from db
 	priceIdMap, err := GetUsdPrices()
 	if err != nil {
 		log.Errorf("fail to GetUsdPrices, err:%s", err.Error())
 		return nil, err
 	}
+	// prod1
 	for symbol, liqBalance := range overallBalance {
+		id, foundId := tokenSymbolTokenIds[symbol]
+		if !foundId {
+			log.Errorf("can not get this symbol id:%s", symbol)
+			continue
+		}
+		usdPrice, foundUsdPrice := priceIdMap[id]
+		if !foundUsdPrice {
+			log.Errorf("can not get this price symbol:%s, id:%s", symbol, id)
+			continue
+		}
+		log.Infof("symbol:%s, usdPrice:%f", symbol, usdPrice)
+		resp.TotalLiquidity += liqBalance * usdPrice
+	}
+
+	// prod2
+	for symbol, liqBalance := range overallBalanceProd2 {
 		id, foundId := tokenSymbolTokenIds[symbol]
 		if !foundId {
 			log.Errorf("can not get this symbol id:%s", symbol)
@@ -339,6 +374,7 @@ func (e *explorerServer) processTransferStat() error {
 				return dbErr
 			}
 		}
+
 		lpAddrs, dbErr := e.gatewayDb.GetDistinctLpAddrByTimeRange(begin, end)
 		if dbErr != nil {
 			log.Errorf("fail to GetDistinctAddrByTimeRange, err:%s", dbErr.Error())
@@ -348,6 +384,32 @@ func (e *explorerServer) processTransferStat() error {
 			dbErr = e.explorerDb.InsertDistinctAddr(addr)
 			if dbErr != nil {
 				log.Errorf("fail to InsertDistinctAddr, err:%s", dbErr.Error())
+				return dbErr
+			}
+		}
+
+		txAddrsProd2, dbErr := e.prod2Db.GetDistinctTransferAddrByTimeRange(begin, end)
+		if dbErr != nil {
+			log.Errorf("fail to GetDistinctAddrByTimeRange prod2, err:%s", dbErr.Error())
+			return dbErr
+		}
+		for _, addr := range txAddrsProd2 {
+			dbErr = e.explorerDb.InsertDistinctAddr(addr)
+			if dbErr != nil {
+				log.Errorf("fail to InsertDistinctAddr prod2, err:%s", dbErr.Error())
+				return dbErr
+			}
+		}
+
+		lpAddrsProd2, dbErr := e.prod2Db.GetDistinctLpAddrByTimeRange(begin, end)
+		if dbErr != nil {
+			log.Errorf("fail to GetDistinctAddrByTimeRange prod2, err:%s", dbErr.Error())
+			return dbErr
+		}
+		for _, addr := range lpAddrsProd2 {
+			dbErr = e.explorerDb.InsertDistinctAddr(addr)
+			if dbErr != nil {
+				log.Errorf("fail to InsertDistinctAddr prod2, err:%s", dbErr.Error())
 				return dbErr
 			}
 		}
@@ -378,6 +440,18 @@ func (e *explorerServer) processTransferStat() error {
 			log.Errorf("fail to GetLpStatByTimeRange, err:%s", dbErr.Error())
 			return dbErr
 		}
+
+		txVolumeProd2, txCountProd2, dbErr := e.prod2Db.GetTxStatByTimeRange(begin, end)
+		if dbErr != nil {
+			log.Errorf("fail to GetTxStatByTimeRange prod2, err:%s", dbErr.Error())
+			return dbErr
+		}
+		lpVolumeProd2, lpCountProd2, dbErr := e.prod2Db.GetLpStatByTimeRange(begin, end)
+		if dbErr != nil {
+			log.Errorf("fail to GetLpStatByTimeRange prod2, err:%s", dbErr.Error())
+			return dbErr
+		}
+
 		var v1Volume float64
 		var v1Count uint64
 		if e.v1Db != nil {
@@ -387,7 +461,7 @@ func (e *explorerServer) processTransferStat() error {
 				return dbErr
 			}
 		}
-		dbErr = e.explorerDb.InsertHourlyTransactionStat(begin, end, txVolume+lpVolume+v1Volume, txCount+lpCount+v1Count)
+		dbErr = e.explorerDb.InsertHourlyTransactionStat(begin, end, txVolume+lpVolume+txVolumeProd2+lpVolumeProd2+v1Volume, txCount+lpCount+txCountProd2+lpCountProd2+v1Count)
 		if dbErr != nil {
 			log.Errorf("fail to InsertTransactionStat, err:%s", dbErr.Error())
 			return dbErr
@@ -415,6 +489,12 @@ func (e *explorerServer) processDailyLiqStat() {
 		return
 	}
 
+	overallBalanceProd2, err := e.gatewayProd2Client.GetOverallBalanceInfo(context.Background())
+	if err != nil {
+		log.Errorf("fail to GetOverallBalanceInfo, err:%s", err.Error())
+		return
+	}
+
 	priceIdMap, err := GetUsdPrices()
 	if err != nil {
 		log.Errorf("fail to GetUsdPrices, err:%s", err.Error())
@@ -435,6 +515,22 @@ func (e *explorerServer) processDailyLiqStat() {
 		log.Infof("symbol:%s, usdPrice:%f", symbol, usdPrice)
 		todayLiq += liqBalance * usdPrice
 	}
+
+	for symbol, liqBalance := range overallBalanceProd2 {
+		id, foundId := tokenSymbolTokenIds[symbol]
+		if !foundId {
+			log.Errorf("can not get this symbol id:%s", symbol)
+			continue
+		}
+		usdPrice, foundUsdPrice := priceIdMap[id]
+		if !foundUsdPrice {
+			log.Errorf("can not get this price symbol:%s, id:%s", symbol, id)
+			continue
+		}
+		log.Infof("symbol:%s, usdPrice:%f", symbol, usdPrice)
+		todayLiq += liqBalance * usdPrice
+	}
+
 	dbErr := e.explorerDb.InsertDailyLiquidityStat(today, todayLiq)
 	if dbErr != nil {
 		log.Errorf("fail to InsertDailyLiquidityStat, err:%s", dbErr.Error())

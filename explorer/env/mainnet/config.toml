@@ -2,6 +2,8 @@
 explorerDbUrl = "127.0.0.1:26257"
 gatewayDbUrl = "127.0.0.1:26257"
 v1DbUrl = "54.245.57.55:26258"
+prod2DbUrl = "10.0.235.230:26258"
 gatewayRpcUrl = "127.0.0.1:10000"
+gatewayProd2RpcUrl = "10.0.235.230:10000"
 grpcPort = 8086
 grpcWebPort = 8087
