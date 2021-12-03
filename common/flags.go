@@ -59,7 +59,6 @@ const (
 	FlagGatewayAwsS3Bucket                        = "gateway.aws.s3.bucket"
 	FlagGatewayAwsKey                             = "gateway.aws.key"
 	FlagGatewayAwsSecret                          = "gateway.aws.secret"
-	FlagBlockNativeApiKey                         = "gateway.block_native.apikey"
 	FlagGatewayIncentiveRewardsKeystore           = "gateway.incentive_rewards.keystore"
 	FlagGatewayIncentiveRewardsPassphrase         = "gateway.incentive_rewards.passphrase"
 	FlagGatewayIncentiveRewardsBscChainId         = "gateway.incentive_rewards.bsc_chain_id"

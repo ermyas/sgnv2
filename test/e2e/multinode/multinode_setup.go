@@ -182,7 +182,6 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool, gateway boo
 		configFileViper.BindEnv(common.FlagGatewayAwsS3Bucket, "GATEWAY_AWS_S3_BUCKET")
 		configFileViper.BindEnv(common.FlagGatewayAwsKey, "GATEWAY_AWS_KEY")
 		configFileViper.BindEnv(common.FlagGatewayAwsSecret, "GATEWAY_AWS_SECRET")
-		configFileViper.BindEnv(common.FlagBlockNativeApiKey, "GATEWAY_BLOCK_NATIVE_APIKEY")
 
 		err = configFileViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")

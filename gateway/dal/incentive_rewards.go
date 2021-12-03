@@ -25,7 +25,7 @@ var WeiMultiplier = big.NewInt(0).Exp(big.NewInt(10), big.NewInt(18), nil)
 
 var RetentionRewardsConfig = map[uint64]*RetentionRewardsEvent{
 	1: {
-		EventEndTime: time.Date(2021, time.November, 22, 19, 0, 0, 0, time.UTC),
+		EventEndTime: time.Date(2021, time.December, 1, 0, 0, 0, 0, time.UTC),
 		LevelConfig: map[uint64]*RetentionRewardsLevelConfig{
 			1: {
 				MaxReward:         big.NewInt(0).Mul(WeiMultiplier, big.NewInt(1000)),
@@ -43,7 +43,7 @@ var RetentionRewardsConfig = map[uint64]*RetentionRewardsEvent{
 	},
 
 	2: {
-		EventEndTime: time.Date(2021, time.November, 18, 0, 0, 0, 0, time.UTC),
+		EventEndTime: time.Date(2021, time.December, 7, 0, 0, 0, 0, time.UTC),
 		LevelConfig: map[uint64]*RetentionRewardsLevelConfig{
 			1: {
 				MaxReward:         big.NewInt(0).Mul(WeiMultiplier, big.NewInt(1500)),
@@ -78,9 +78,9 @@ type FeeRebateLevelConfig struct {
 
 var FeeRebateConfig = map[uint64]*FeeRebateEvent{
 	10000: {
-		EventStartTime:          time.Date(2021, time.November, 15, 0, 0, 0, 0, time.UTC),
-		EventEndTime:            time.Date(2021, time.November, 21, 0, 0, 0, 0, time.UTC),
-		LevelDivisionUpperbound: []float64{10000, 20000, 30000},
+		EventStartTime:          time.Date(2021, time.December, 1, 0, 0, 0, 0, time.UTC),
+		EventEndTime:            time.Date(2021, time.December, 7, 0, 0, 0, 0, time.UTC),
+		LevelDivisionUpperbound: []float64{100, 1000, 10000},
 		LevelConfig: map[uint64]*FeeRebateLevelConfig{
 			1: {
 				RebatePortion: 0.1,
@@ -98,9 +98,9 @@ var FeeRebateConfig = map[uint64]*FeeRebateEvent{
 	},
 
 	10001: {
-		EventStartTime:          time.Date(2021, time.November, 20, 0, 0, 0, 0, time.UTC),
-		EventEndTime:            time.Date(2021, time.November, 25, 0, 0, 0, 0, time.UTC),
-		LevelDivisionUpperbound: []float64{10000, 20000, 30000},
+		EventStartTime:          time.Date(2021, time.December, 1, 0, 0, 0, 0, time.UTC),
+		EventEndTime:            time.Date(2021, time.December, 7, 0, 0, 0, 0, time.UTC),
+		LevelDivisionUpperbound: []float64{200, 2000, 20000},
 		LevelConfig: map[uint64]*FeeRebateLevelConfig{
 			1: {
 				RebatePortion: 0.2,

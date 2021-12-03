@@ -2,7 +2,6 @@ package gatewaysvc
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"net/url"
 	"strings"
@@ -21,7 +20,6 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/lthibault/jitterbug"
 	"github.com/spf13/viper"
-	"gopkg.in/resty.v1"
 )
 
 func (gs *GatewayService) StartUpdateTokenPricePolling(interval time.Duration) {
@@ -110,9 +108,6 @@ func (gs *GatewayService) PrepareGasPrice(chainId2Symbol map[uint64]string) (gp 
 		var price *big.Int
 		var err error
 		switch chainId {
-		case 1:
-			// Ethereum mainnet
-			price = GetEthGasPrice()
 		case 10:
 			// Optimistic Ethereum
 			price, err = gs.calcOptimismEffectiveGasPrice(1, 10)
@@ -216,23 +211,4 @@ type BlockPrices struct {
 
 type EstimatedPrices struct {
 	Price uint64 `json:"price"`
-}
-
-func GetEthGasPrice() *big.Int {
-	qs := fmt.Sprintf(
-		"confidenceLevels=99")
-	client := resty.New()
-	r, err := client.R().SetHeader("Authorization", viper.GetString(common.FlagBlockNativeApiKey)).
-		SetQueryString(qs).SetResult(&BlockNativeResp{}).Get("https://api.blocknative.com/gasprices/blockprices")
-	if err != nil || r.StatusCode() != 200 {
-		log.Errorln("fail to get eth gas price from https://api.blocknative.com/gasprices/blockprices. ", err, r)
-		return new(big.Int)
-	}
-	resp := r.Result().(*BlockNativeResp)
-	if len(resp.BlockPrices) == 0 || len(resp.BlockPrices[0].EstimatedPrices) == 0 {
-		log.Errorln("fail to get eth gas price from https://api.blocknative.com/gasprices/blockprices. ", r)
-		return new(big.Int)
-	}
-	// blocknative return gas price in gwei
-	return new(big.Int).Mul(big.NewInt(int64(resp.BlockPrices[0].EstimatedPrices[0].Price)), big.NewInt(1e9))
 }
