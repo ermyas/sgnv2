@@ -11,6 +11,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/gateway/onchain"
 	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
@@ -55,7 +56,7 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 	if found && err == nil && (transfer.Status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND || transfer.Status == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED) {
 		if transfer.RefundSeqNum > 0 {
 			if transfer.Status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND && time.Now().Add(-15*time.Minute).After(transfer.UT) {
-				tr := gs.TP.GetTransactor()
+				tr := onchain.SGNTransactors.GetTransactor()
 				gs.signAgainWithdraw(&types.MsgSignAgain{
 					DataType: types.SignDataType_WITHDRAW,
 					Creator:  tr.Key.GetAddress().String(),
@@ -259,7 +260,7 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 	for _, transfer := range transferList {
 		transferIds = append(transferIds, transfer.TransferId)
 	}
-	tr := gs.TP.GetTransactor()
+	tr := onchain.SGNTransactors.GetTransactor()
 	transferMap, err := cbrcli.QueryTransferStatus(tr.CliCtx, &types.QueryTransferStatusRequest{
 		TransferId: transferIds,
 	})
@@ -276,7 +277,7 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 		srcChainId := transfer.SrcChainId
 		txHash := transfer.SrcTxHash
 		if status == types.TransferHistoryStatus_TRANSFER_SUBMITTING {
-			ec := gs.EC[srcChainId]
+			ec := gs.Chains.GetEthClient(srcChainId)
 			if ec == nil {
 				log.Errorf("no ethClient found for chain:%d", srcChainId)
 				continue
@@ -305,7 +306,7 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 			if refundTx == "" {
 				log.Errorf("refund tx is nil for transfer refund:%s", transferId)
 			} else {
-				ec := gs.EC[chainId]
+				ec := gs.Chains.GetEthClient(chainId)
 				if ec == nil {
 					log.Errorf("no ethClient found for chain:%d", chainId)
 					return nil, fmt.Errorf("no ethClient found for chain:%d", chainId)
@@ -364,7 +365,7 @@ func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainI
 	if !utils.IsValidAmt(amt) || slippage == 0 {
 		return nil, fmt.Errorf("invalid amt, params checking failed")
 	}
-	tr := gs.TP.GetTransactor()
+	tr := onchain.SGNTransactors.GetTransactor()
 	getFeeRequest := &types.GetFeeRequest{
 		SrcChainId:   uint64(srcChainId),
 		DstChainId:   uint64(dstChainId),

@@ -10,6 +10,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/gateway/onchain"
 	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
@@ -70,7 +71,7 @@ func (gs *GatewayService) IsWithdrawNormal(addr, amt, tokenSymbol string, decima
 		wd, _ := w.Float64()
 		dp, _ := d.Float64()
 		dt, _ := withdrawAmt.Float64()
-		utils.SendWithdrawAlert(addr, fmt.Sprintf("%.6f", wd), fmt.Sprintf("%.6f", dp), fmt.Sprintf("%.6f", dt), tokenSymbol, Env)
+		utils.SendWithdrawAlert(addr, fmt.Sprintf("%.6f", wd), fmt.Sprintf("%.6f", dp), fmt.Sprintf("%.6f", dt), tokenSymbol)
 		return false
 	}
 	return true
@@ -110,7 +111,7 @@ func (gs *GatewayService) AlertAbnormalBalance() {
 		}
 	}
 	if alerts != nil && len(alerts) > 0 {
-		utils.SendBalanceAlert(alerts, Env)
+		utils.SendBalanceAlert(alerts)
 	}
 }
 
@@ -122,27 +123,27 @@ func (gs *GatewayService) AlertAbnormalStatus() {
 		log.Warnf("GetTransfersWithStatus failed, from:%s, to:%s, err:%+v", startTime, endTime, err)
 	}
 	if sendNoSync != nil && len(sendNoSync) > 0 {
-		utils.SendStatusAlert(sendNoSync, "send events not synced to sgn", Env)
+		utils.SendStatusAlert(sendNoSync, "send events not synced to sgn")
 	}
 	fundNoRelease, err := dal.DB.GetTransfersWithStatus(cbrtypes.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE, startTime, endTime)
 	if err != nil {
 		log.Warnf("GetTransfersWithStatus failed, from:%s, to:%s, err:%+v", startTime, endTime, err)
 	}
 	if fundNoRelease != nil && len(fundNoRelease) > 0 {
-		utils.SendStatusAlert(fundNoRelease, "relays that have been waiting for fund release", Env)
+		utils.SendStatusAlert(fundNoRelease, "relays that have been waiting for fund release")
 	}
 	addLiqNoSync, err := dal.DB.GetLPWithStatus(cbrtypes.WithdrawStatus_WD_WAITING_FOR_SGN, startTime, endTime)
 	if err != nil {
 		log.Warnf("GetLPWithStatus failed, from:%s, to:%s, err:%+v", startTime, endTime, err)
 	}
 	if addLiqNoSync != nil && len(addLiqNoSync) > 0 {
-		utils.SendStatusAlert(addLiqNoSync, "addLiq events not synced to sgn", Env)
+		utils.SendStatusAlert(addLiqNoSync, "addLiq events not synced to sgn")
 	}
 }
 
 func (gs *GatewayService) getUsrBalance(usrAddr string, chainTokens []*cbrtypes.ChainTokenAddrPair, chainTokenAddrMap map[uint64]map[string]*webapi.TokenInfo) map[string]*big.Float {
 	balanceMap := make(map[string]*big.Float)
-	tr := gs.TP.GetTransactor()
+	tr := onchain.SGNTransactors.GetTransactor()
 	detailList, detailErr := cbrcli.QueryLiquidityDetailList(tr.CliCtx, &cbrtypes.LiquidityDetailListRequest{
 		LpAddr:     usrAddr,
 		ChainToken: chainTokens,

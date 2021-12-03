@@ -2,7 +2,6 @@ package multinode
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/goutils/sqldb"
 	"github.com/celer-network/sgn-v2/common"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
@@ -236,6 +236,7 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool, gateway boo
 	}
 
 	if gateway {
+		// prepare crdb
 		cmd = exec.Command("make", "localnet-start-crdb")
 		cmd.Dir = repoRoot
 		cmd.Stdout = os.Stdout
@@ -243,26 +244,30 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool, gateway boo
 		err = cmd.Run()
 		tc.ChkErr(err, "Failed to make localnet-start-crdb")
 
-		time.Sleep(2 * time.Second) // sleep to wait for crdb fully started
+		time.Sleep(4 * time.Second) // sleep to wait for crdb fully started
 
-		_db, err := sql.Open("postgres", "postgresql://root@localhost:26257/defaultdb?sslmode=disable") // docker port maps to local port
+		_db, err := sqldb.NewDb("postgres", "postgresql://root@localhost:26257/defaultdb?sslmode=disable", 2) // docker port maps to local port
 		tc.ChkErr(err, "Failed to connect db")
-		_db.SetMaxOpenConns(2)
 		defer _db.Close()
 		schema, err := ioutil.ReadFile("../../../gateway/dal/schema.sql")
 		tc.ChkErr(err, "Failed to read schema.sql")
 		_, err = _db.Exec(string(schema))
 		tc.ChkErr(err, "Failed to execute schema.sql")
 
-		node0ConfigPath := "../../../docker-volumes/node0/sgnd/config/sgn.toml"
-		configFileViper := viper.New()
-		configFileViper.SetConfigFile(node0ConfigPath)
-		err = configFileViper.ReadInConfig()
-		tc.ChkErr(err, "Failed to read config")
-		configFileViper.Set(common.FlagToStartGateway, true)
-		configFileViper.Set(common.FlagGatewayDbUrl, "192.168.10.7:26257")
-		err = configFileViper.WriteConfig()
-		tc.ChkErr(err, "Failed to write config")
+		// prepare gateway data
+		log.Infoln("make prepare-gateway-data")
+		repoRoot, _ := filepath.Abs("../../..")
+		cmd = exec.Command("make", "prepare-gateway-data")
+		cmd.Dir = repoRoot
+		err = cmd.Run()
+		tc.ChkErr(err, "Failed to make prepare-gateway-data")
+
+		// build gateway docker
+		log.Infoln("make build-gateway")
+		cmd = exec.Command("make", "build-gateway")
+		cmd.Dir = repoRoot
+		err = cmd.Run()
+		tc.ChkErr(err, "Failed to make build-gateway")
 	}
 
 	// Update global viper
@@ -278,6 +283,16 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool, gateway boo
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	tc.ChkErr(err, "Failed to make localnet-up-nodes")
+
+	if gateway {
+		cmd := exec.Command("make", "start-gateway")
+		cmd.Dir = repoRoot
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			log.Fatal(err)
+		}
+	}
 }
 
 func DeployUsdtForBridge() {

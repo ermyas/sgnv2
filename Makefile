@@ -37,6 +37,10 @@ all: lint install
 install: go.sum
 	go install $(BUILD_FLAGS) ./cmd/sgnd
 
+.PHONY: install-gateway
+install-gateway: go.sum
+	 go build -o $(HOME)/go/bin/gateway ./gateway/main/main.go
+
 generate-docs: go.sum
 	go run ./cmd/gendocs ./docs
 	find ./docs -type f | xargs sed -i '' 's|'"$$HOME"'|\$$HOME|g'
@@ -86,6 +90,10 @@ build-dockers:
 build-node:
 	DOCKER_BUILDKIT=1 docker build --tag celer-network/sgnnode .
 
+.PHONY: build-gateway
+build-gateway:
+	DOCKER_BUILDKIT=1 docker build -f gateway/Dockerfile -t celer-network/gateway .
+
 # Prepare docker environment for multinode testing
 .PHONY: prepare-docker-env
 prepare-docker-env: build-dockers build-linux prepare-geth-data
@@ -130,7 +138,7 @@ localnet-down-nodes:
 	docker-compose stop sgnnode0 sgnnode1 sgnnode2 sgnnode3
 	docker-compose rm -f sgnnode0 sgnnode1 sgnnode2 sgnnode3
 
-# Stop both geth and sgn testnet
+# Stop geth, gateway, and sgn testnet
 .PHONY: localnet-down
 localnet-down:
 	docker-compose down
@@ -163,6 +171,18 @@ copy-manual-test-data:
 	cp -r ./docker-volumes/node* ./test/e2e/manual/data/
 	rm -f ./test/e2e/manual/data/node*/sgnd/*.log
 	rm -rf ./test/e2e/manual/data/node*/sgnd/data
+
+# Prepare gateway data
+.PHONY: prepare-gateway-data
+prepare-gateway-data:
+	rm -rf ./docker-volumes/gateway
+	mkdir -p ./docker-volumes
+	cp -r ./test/multi-node-data/gateway ./docker-volumes/gateway
+
+# start gateway server
+.PHONY: start-gateway
+start-gateway:
+	docker-compose up -d gateway
 
 # Clean test data
 .PHONY: clean-test

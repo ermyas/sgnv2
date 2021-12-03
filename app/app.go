@@ -11,7 +11,6 @@ import (
 	"github.com/celer-network/goutils/log"
 	appparams "github.com/celer-network/sgn-v2/app/params"
 	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/gateway"
 	"github.com/celer-network/sgn-v2/relayer"
 	"github.com/celer-network/sgn-v2/x/cbridge"
 	cbrclient "github.com/celer-network/sgn-v2/x/cbridge/client"
@@ -432,29 +431,6 @@ func NewSgnApp(
 
 	// Piggy-back starting the relayer
 	go app.startRelayer(db, tmCfg, homePath)
-
-	if viper.GetBool(common.FlagToStartGateway) {
-		log.Infoln("starting gateway...")
-		dbUrl := viper.GetString(common.FlagGatewayDbUrl)
-		if dbUrl == "" {
-			dbUrl = "127.0.0.1:26257"
-		}
-		env := "local"
-		chainEnv := viper.GetString(common.FlagSgnChainId)
-		if chainEnv == "sgn-2" {
-			env = "prod"
-		} else if chainEnv == "sgn-testnet-4000" {
-			env = "test"
-		}
-		go gateway.InitGateway(
-			homePath,
-			app.legacyAmino,
-			app.appCodec,
-			app.interfaceRegistry,
-			false,
-			dbUrl,
-			env)
-	}
 
 	return app
 }

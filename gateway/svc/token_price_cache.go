@@ -1,4 +1,4 @@
-package fee
+package gatewaysvc
 
 import (
 	"context"
@@ -49,6 +49,7 @@ func NewTokenPriceCache(tr *transactor.Transactor) *TokenPriceCache {
 		log.Error("NewTokenPriceCache error", err)
 	}
 	feeSvr.StartTokenPricePolling(tr, 1*time.Minute)
+	log.Infof("token price cached")
 	return feeSvr
 }
 

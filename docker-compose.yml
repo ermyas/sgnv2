@@ -28,11 +28,8 @@ services:
     image: "celer-network/sgnnode"
     ports:
       - "1317:1317"
-      - "8081:8081"
-      - "8082:8082"
       - "9090:9090"
       - "9091:9091"
-      - "10000:10000"
       - "26656-26657:26656-26657"
     extra_hosts:
       - "api.coingecko.com:104.18.28.120"
@@ -81,6 +78,22 @@ services:
     networks:
       localnet:
         ipv4_address: 192.168.10.5
+  
+  gateway:
+    container_name: gateway
+    image: "celer-network/gateway"
+    ports:
+      - "18081:8081"
+      - "18082:8082"
+      - "10000:10000"
+    extra_hosts:
+      - "api.coingecko.com:104.18.28.120"
+      - "cbridge-stat.s3.us-west-2.amazonaws.com:52.218.201.137"
+    volumes:
+      - ./docker-volumes/gateway:/sgn-v2/env:Z
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.8
 
   crdb:
     container_name: crdb

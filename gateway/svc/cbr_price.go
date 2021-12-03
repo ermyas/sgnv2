@@ -15,6 +15,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/gateway/onchain"
 	"github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/gogo/protobuf/jsonpb"
@@ -44,7 +45,7 @@ func (gs *GatewayService) StartUpdateTokenPricePolling(interval time.Duration) {
 }
 
 func (gs *GatewayService) UpdateTokenPrice2S3() {
-	resp, err := cli.QueryChainTokensConfig(gs.TP.GetTransactor().CliCtx, &types.ChainTokensConfigRequest{})
+	resp, err := cli.QueryChainTokensConfig(onchain.SGNTransactors.GetTransactor().CliCtx, &types.ChainTokensConfigRequest{})
 	if err != nil {
 		log.Errorln("we will use mocked chain tokens failed to load basic token info:", err)
 		return
@@ -128,7 +129,7 @@ func (gs *GatewayService) PrepareGasPrice(chainId2Symbol map[uint64]string) (gp 
 		case 42161:
 			// Arbitrum
 			// SuggestGasPrice tends to overestimate gasPriceUsed by a factor of 2
-			client := gs.EC[chainId]
+			client := gs.Chains.GetEthClient(chainId)
 			price, err = client.SuggestGasPrice(context.Background())
 			if err != nil {
 				log.Errorln("failed to SuggestGasPrice: chainId: ", chainId, ", error:", err)
@@ -136,7 +137,7 @@ func (gs *GatewayService) PrepareGasPrice(chainId2Symbol map[uint64]string) (gp 
 			}
 			price.Div(price, big.NewInt(2))
 		default:
-			client := gs.EC[chainId]
+			client := gs.Chains.GetEthClient(chainId)
 			price, err = client.SuggestGasPrice(context.Background())
 			if err != nil {
 				log.Errorln("failed to SuggestGasPrice: chainId: ", chainId, ", error:", err)
@@ -154,13 +155,13 @@ func (gs *GatewayService) PrepareGasPrice(chainId2Symbol map[uint64]string) (gp 
 // calcOptimismEffectiveGasPrice calculates the effective gas price using the heuristic
 // effectiveGasPrice = L1GasPrice / 14 + L2GasPrice
 func (gs *GatewayService) calcOptimismEffectiveGasPrice(l1ChainId uint64, l2ChainId uint64) (*big.Int, error) {
-	l1Client := gs.EC[l1ChainId]
+	l1Client := gs.Chains.GetEthClient(l1ChainId)
 	l1Price, err := l1Client.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Errorln("failed to SuggestGasPrice: chainId: ", l1ChainId, ", error:", err)
 		return big.NewInt(0), err
 	}
-	l2Client := gs.EC[l2ChainId]
+	l2Client := gs.Chains.GetEthClient(l2ChainId)
 	l2Price, err := l2Client.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Errorln("failed to SuggestGasPrice: chainId: ", l2ChainId, ", error:", err)

@@ -11,6 +11,7 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/gateway/onchain"
 	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/ops"
@@ -182,7 +183,7 @@ func (gs *GatewayService) diagnosisTx(ctx context.Context, txHash string, chainI
 }
 
 func (gs *GatewayService) isTxEventMissFixable(ctx context.Context, txHash string, chainId uint32) bool {
-	cli := gs.EC[uint64(chainId)]
+	cli := gs.Chains.GetEthClient(uint64(chainId))
 	if cli == nil {
 		return false
 	}
@@ -248,7 +249,7 @@ func (gs *GatewayService) fixTxEventMiss(ctx context.Context, txHash string, cha
 		transfer, _, _ = dal.DB.GetTransfer(transfer.TransferId)
 		if transfer != nil {
 			if transfer.Status == types.TransferHistoryStatus_TRANSFER_COMPLETED || transfer.Status == types.TransferHistoryStatus_TRANSFER_DELAYED {
-				tr := gs.TP.GetTransactor()
+				tr := onchain.SGNTransactors.GetTransactor()
 				relay, cliErr := cbrcli.QueryRelay(tr.CliCtx, eth.Hex2Hash(transfer.TransferId).Bytes())
 				if cliErr != nil {
 					return cliErr
@@ -277,7 +278,7 @@ func (gs *GatewayService) fixTxEventMiss(ctx context.Context, txHash string, cha
 		if !found || dbErr != nil {
 			return fmt.Errorf("token not found:%s, on chain%d", ev.Token.String(), chainId)
 		}
-		cli := gs.EC[uint64(chainId)]
+		cli := gs.Chains.GetEthClient(uint64(chainId))
 		if cli == nil {
 			return fmt.Errorf("ec for chain:%d not found", chainId)
 		}
@@ -372,7 +373,7 @@ func (gs *GatewayService) fixTx(ctx context.Context, txHash string, chainId uint
 				dal.DB.UpdateTransferStatus(tx.TransferId, uint64(tx.Status))
 				_, err := gs.signAgainWithdraw(&types.MsgSignAgain{
 					DataType: types.SignDataType_RELAY,
-					Creator:  gs.TP.GetTransactor().Key.GetAddress().String(),
+					Creator:  onchain.SGNTransactors.GetTransactor().Key.GetAddress().String(),
 					XferId:   eth.Hex2Hash(tx.TransferId).Bytes(),
 				})
 				if err != nil {
@@ -386,9 +387,9 @@ func (gs *GatewayService) fixTx(ctx context.Context, txHash string, chainId uint
 				dal.DB.UpdateTransferStatus(tx.TransferId, uint64(tx.Status))
 				var err error
 				if tx.DstTxHash == "" {
-					err = ops.SyncCbrEvent(gs.TP.GetTransactor().CliCtx, uint64(chainId), txHash, types.CbrEventSend)
+					err = ops.SyncCbrEvent(onchain.SGNTransactors.GetTransactor().CliCtx, uint64(chainId), txHash, types.CbrEventSend)
 				} else {
-					err = ops.SyncCbrEvent(gs.TP.GetTransactor().CliCtx, uint64(chainId), tx.DstTxHash, types.CbrEventRelay)
+					err = ops.SyncCbrEvent(onchain.SGNTransactors.GetTransactor().CliCtx, uint64(chainId), tx.DstTxHash, types.CbrEventRelay)
 				}
 				if err != nil {
 					return err
@@ -415,7 +416,7 @@ func (gs *GatewayService) fixLp(ctx context.Context, txHash, lpAddr string, chai
 				dal.DB.UpdateLPStatus(seqNum, uint64(lpType), uint64(chainId), lpAddr, status)
 				_, err := gs.signAgainWithdraw(&types.MsgSignAgain{
 					DataType: types.SignDataType_WITHDRAW,
-					Creator:  gs.TP.GetTransactor().Key.GetAddress().String(),
+					Creator:  onchain.SGNTransactors.GetTransactor().Key.GetAddress().String(),
 					ReqId:    seqNum,
 					UserAddr: eth.Hex2Addr(lpAddr).Bytes(),
 				})
@@ -430,9 +431,9 @@ func (gs *GatewayService) fixLp(ctx context.Context, txHash, lpAddr string, chai
 				dal.DB.UpdateLPStatus(seqNum, uint64(lpType), uint64(chainId), lpAddr, status)
 				var err error
 				if lpType == webapi.LPType_LP_TYPE_ADD {
-					err = ops.SyncCbrEvent(gs.TP.GetTransactor().CliCtx, uint64(chainId), txHash, types.CbrEventLiqAdd)
+					err = ops.SyncCbrEvent(onchain.SGNTransactors.GetTransactor().CliCtx, uint64(chainId), txHash, types.CbrEventLiqAdd)
 				} else if lpType == webapi.LPType_LP_TYPE_REMOVE {
-					err = ops.SyncCbrEvent(gs.TP.GetTransactor().CliCtx, uint64(chainId), txHash, types.CbrEventWithdraw)
+					err = ops.SyncCbrEvent(onchain.SGNTransactors.GetTransactor().CliCtx, uint64(chainId), txHash, types.CbrEventWithdraw)
 				} else {
 					err = fmt.Errorf("unknown lp type:%s", lpType.String())
 				}
@@ -462,7 +463,7 @@ func (gs *GatewayService) getAddrFromHash(ctx context.Context, txHash string, ch
 }
 
 func (gs *GatewayService) getTransactionByHash(ctx context.Context, txHash string, chainId uint64) (*ethtypes.Transaction, bool, error) {
-	ec := gs.EC[chainId]
+	ec := gs.Chains.GetEthClient(chainId)
 	if ec == nil {
 		return nil, false, fmt.Errorf("eth client not found for chainId:%d", chainId)
 	}
@@ -470,7 +471,7 @@ func (gs *GatewayService) getTransactionByHash(ctx context.Context, txHash strin
 }
 
 func (gs *GatewayService) checkTxExits(ctx context.Context, txHash string, chainId uint32) bool {
-	client := gs.EC[uint64(chainId)]
+	client := gs.Chains.GetEthClient(uint64(chainId))
 	if client == nil {
 		return false
 	}

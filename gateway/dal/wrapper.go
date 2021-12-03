@@ -9,18 +9,7 @@ import (
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 )
 
-// wrapper for other package usage, out of gateway
-// for query api, if DB is nil, will a common err
-// for update api, will return error==nil if DB is nil
-
-// UpdateTransferStatus update api
-func UpdateTransferStatus(transferId string, status uint64) error {
-	if DB == nil {
-		return nil
-	} else {
-		return DB.UpdateTransferStatus(transferId, status)
-	}
-}
+// THIS FILE IS TO BE DELETED WHEN GATEWAY OFFICIALLY SEPARATES FROM SGN
 
 func UpdateTransferForRefund(transferId string, status uint64, refundId, refundTx string) error {
 	if DB == nil {

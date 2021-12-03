@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/celer-network/sgn-v2/eth"
-	"github.com/spf13/viper"
 	"io"
 	"math/big"
 	"math/rand"
@@ -14,15 +12,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/celer-network/sgn-v2/app"
+	"github.com/celer-network/sgn-v2/eth"
+	"github.com/spf13/viper"
+
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
-	"github.com/celer-network/sgn-v2/gateway/fee"
+	"github.com/celer-network/sgn-v2/gateway/onchain"
 	gatewaysvc "github.com/celer-network/sgn-v2/gateway/svc"
 	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
-	"github.com/cosmos/cosmos-sdk/codec"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,11 +35,7 @@ const (
 )
 
 func setGlobal() {
-	gatewaysvc.RootDir = os.ExpandEnv("$HOME/.sgnd")
-	gatewaysvc.LegacyAmino = codec.NewLegacyAmino()
-	gatewaysvc.InterfaceRegistry = codectypes.NewInterfaceRegistry()
-	gatewaysvc.Cdc = codec.NewProtoCodec(gatewaysvc.InterfaceRegistry)
-	gatewaysvc.SelfStart = true
+	*home = os.ExpandEnv("$HOME/.sgnd")
 }
 
 // TestMain is used to setup/teardown a temporary CockroachDB instance
@@ -134,13 +130,13 @@ func checkLpStatus(t *testing.T, status types.WithdrawStatus, dest types.Withdra
 }
 
 func newTestSvc(t *testing.T) *gatewaysvc.GatewayService {
-	gs, err := gatewaysvc.NewGatewayService(stSvr)
-	require.NoError(t, err, "failed to initialize gateway service", err)
-	err = gs.InitTransactors()
-	require.NoError(t, err, "failed to initialize gateway transactors", err)
+	db := dal.NewDAL(viper.GetString(common.FlagGatewayDbUrl))
+	gs := gatewaysvc.NewGatewayService(db)
+	encoding := app.MakeEncodingConfig()
+	onchain.InitSGNTransactors(*home, encoding)
 	gs.StartChainTokenPolling(1 * time.Hour)
 	gs.StartUpdateTokenPricePolling(time.Duration(viper.GetInt32(common.FlagSgnCheckIntervalCbrPrice)) * time.Second)
-	gs.F = fee.NewTokenPriceCache(gs.TP.GetTransactor())
+	gs.F = gatewaysvc.NewTokenPriceCache(onchain.SGNTransactors.GetTransactor())
 	signerKey, signerPass := viper.GetString(common.FlagGatewayIncentiveRewardsKeystore), viper.GetString(common.FlagGatewayIncentiveRewardsPassphrase)
 	signer, addr, err := eth.CreateSigner(signerKey, signerPass, nil)
 	if err != nil {
@@ -187,13 +183,12 @@ func mockChian() {
 	dal.DB.UpsertChainUIInfo(884, "chain2", "test2", "url2", "yyy", "url2", "url2")
 }
 func TestCampaign(t *testing.T) {
-	_db, err := dal.NewDAL("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", stSvr), 10)
-	errIsNil(t, err)
+	_db := dal.NewDAL(stSvr)
 
 	dal.DB = _db
 	usrAddr := "0x25846D545a60A029E5C83f0FB96e41b408528e9E"
 
-	err = dal.DB.InsertClaimWithdrawRewardLog(usrAddr)
+	err := dal.DB.InsertClaimWithdrawRewardLog(usrAddr)
 
 	score, err := dal.DB.CalcCampaignScore(time.Now())
 	errIsNil(t, err)
@@ -241,7 +236,6 @@ func TestCampaign(t *testing.T) {
 	}
 
 }
-
 func TestAlert(t *testing.T) {
 	//utils.SendWithdrawAlert("0x2147F049De1D68bC8265B260760AbA6eda614367", "900", "800", "100")
 	var alerts []*utils.BalanceAlert
@@ -259,12 +253,11 @@ func TestAlert(t *testing.T) {
 		Withdraw: "1200",
 		Deposit:  "700",
 	})
-	utils.SendBalanceAlert(alerts, "local")
+	utils.SendBalanceAlert(alerts)
 }
 
 func TestRetentionRewards(t *testing.T) {
-	_db, err := dal.NewDAL("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", stSvr), 10)
-	errIsNil(t, err)
+	_db := dal.NewDAL(stSvr)
 	defer _db.Close()
 
 	dal.DB = _db

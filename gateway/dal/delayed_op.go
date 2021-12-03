@@ -1,6 +1,8 @@
 package dal
 
-import "database/sql"
+import (
+	"database/sql"
+)
 
 // Delayed Operation Type
 // table: delayed_op
@@ -42,15 +44,6 @@ func (dal *DAL) InsertDelayedOp(id, txhash string, t DelayedOpType) error {
 func (dal *DAL) UpdateDelayedOpType(id string, t DelayedOpType) error {
 	q := `update delayed_op set type = $2 where id = $1`
 	_, err := dal.Db.Exec(q, id, t)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (dal *DAL) DeleteDelayedOp(id string) error {
-	q := `delete from delayed_op where id = $1`
-	_, err := dal.Db.Exec(q, id)
 	if err != nil {
 		return err
 	}

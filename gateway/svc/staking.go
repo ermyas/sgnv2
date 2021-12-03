@@ -6,6 +6,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
+	"github.com/celer-network/sgn-v2/gateway/onchain"
 	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/distribution/client/cli"
@@ -23,7 +24,7 @@ func (gs *GatewayService) StakingConfig(ctx context.Context, request *webapi.Sta
 }
 
 func (gs *GatewayService) UnlockStakingReward(ctx context.Context, request *webapi.UnlockStakingRewardRequest) (*webapi.UnlockStakingRewardResponse, error) {
-	tr := gs.TP.GetTransactor()
+	tr := onchain.SGNTransactors.GetTransactor()
 	if !utils.CheckUnlockStakingRewardParams(request.GetDelegatorAddress()) {
 		log.Warnf("Unlock Staking Reward failed, param check failed")
 		return &webapi.UnlockStakingRewardResponse{
@@ -50,7 +51,7 @@ func (gs *GatewayService) UnlockStakingReward(ctx context.Context, request *weba
 }
 
 func (gs *GatewayService) GetStakingRewardDetails(ctx context.Context, request *webapi.GetStakingRewardDetailsRequest) (*webapi.GetStakingRewardDetailsResponse, error) {
-	tr := gs.TP.GetTransactor()
+	tr := onchain.SGNTransactors.GetTransactor()
 	queryClient := types.NewQueryClient(tr.CliCtx)
 	res, err := queryClient.StakingRewardClaimInfo(
 		ctx,

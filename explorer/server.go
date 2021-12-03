@@ -78,12 +78,12 @@ func NewExplorerServer(config *ExplorerServerConfig) (*explorerServer, error) {
 		totalStatCache:      &totalStatCache{},
 	}
 	var err error
-	server.gatewayDb, err = dal.NewDAL("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", config.GatewayDbUrl), 20)
+	server.gatewayDb = dal.NewDAL(config.GatewayDbUrl)
 	if err != nil {
 		return nil, err
 	}
 
-	server.prod2Db, err = dal.NewDAL("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", config.Prod2DbUrl), 20)
+	server.prod2Db = dal.NewDAL(config.Prod2DbUrl)
 	if err != nil {
 		return nil, err
 	}

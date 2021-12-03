@@ -113,6 +113,14 @@ CREATE TABLE IF NOT EXISTS delayed_op (
     PRIMARY KEY (id)
 );
 
+CREATE TABLE IF NOT EXISTS monitor_block (
+    event TEXT,
+    block_num INT,
+    block_idx INT,
+    restart BOOLEAN,
+    PRIMARY KEY (event)
+);
+
 CREATE TABLE IF NOT EXISTS retention_rewards_log (
     usr_addr TEXT NOT NULL,
     event_id INT NOT NULL,

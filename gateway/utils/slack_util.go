@@ -8,13 +8,14 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/spf13/viper"
 )
 
-func SendWithdrawAlert(addr, withdraw, deposit, delta, token, env string) {
+func SendWithdrawAlert(addr, withdraw, deposit, delta, token string) {
 	msg := fmt.Sprintf("withdraw refused, total withdraw more than %s of total deposit, token:`%s`, usr_addr: `%s`, has deposited:`%s`, has withdrawt: `%s`, want to withdraw:`%s`", "105%", token, addr, deposit, withdraw, delta)
-	if env == "prod" {
+	if viper.GetString("env") == "prod" {
 		sendSlackP1AlertProd("Withdraw 105% Deposit Alert", msg)
-	} else if env == "test" {
+	} else if viper.GetString("env") == "test" {
 		sendSlackP1AlertTest("Withdraw 105% Deposit Alert", msg)
 	}
 	log.Warnf(msg)
@@ -34,28 +35,28 @@ type StatusAlertInfo struct {
 	Ut      time.Time
 }
 
-func SendBalanceAlert(alerts []*BalanceAlert, env string) {
+func SendBalanceAlert(alerts []*BalanceAlert) {
 	msg := "find abnormal lp balance:\n"
 	for _, alert := range alerts {
 		msg = msg + fmt.Sprintf("token:`%s`, balance: `%s`, usr_addr: `%s`, total withdraw: `%s`, total deposit:`%s` \n", alert.Token, alert.Balance, alert.Addr, alert.Withdraw, alert.Deposit)
 	}
 	log.Warnf(msg)
-	if env == "prod" {
+	if viper.GetString("env") == "prod" {
 		sendSlackP1AlertProd("Abnormal LP Balance Alert", msg)
-	} else if env == "test" {
+	} else if viper.GetString("env") == "test" {
 		sendSlackP1AlertTest("Abnormal LP Balance Alert", msg)
 	}
 }
 
-func SendStatusAlert(alerts []*StatusAlertInfo, key, env string) {
+func SendStatusAlert(alerts []*StatusAlertInfo, key string) {
 	msg := "find abnormal status, " + key + ":\n"
 	for _, alert := range alerts {
 		msg = msg + fmt.Sprintf("chainId:`%d`, txHash:`%s`, updateTime:`%s` \n", alert.ChainId, alert.TxHash, alert.Ut)
 	}
 	log.Warnf(msg)
-	if env == "prod" {
+	if viper.GetString("env") == "prod" {
 		sendSlackStatusAlertProd(key, msg)
-	} else if env == "test" {
+	} else if viper.GetString("env") == "test" {
 		sendSlackP1AlertTest(key, msg)
 	}
 }

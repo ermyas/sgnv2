@@ -12,6 +12,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/gateway/onchain"
 	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
@@ -48,7 +49,7 @@ func (gs *GatewayService) WithdrawLiquidity(ctx context.Context, request *webapi
 		}, nil
 	}
 	transferId := wdReq.GetXferId()
-	tr := gs.TP.GetTransactor()
+	tr := onchain.SGNTransactors.GetTransactor()
 	if transferId != "" {
 		log.Infof("WithdrawLiquidity for refund, TransferId:%s, ReqId:%d", transferId, wdReq.GetReqId())
 		// refund transfer
@@ -211,10 +212,10 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 	chainId := uint64(request.GetChainId())
 	lpType := uint64(request.GetType())
 	addr := common.Hex2Addr(request.GetLpAddr())
-	tr := gs.TP.GetTransactor()
+	tr := onchain.SGNTransactors.GetTransactor()
 	found, status, seqNum, txHash, lpUpdateTime := getLPStatusInDB(request.GetType(), tx, addr.String(), seqNum, chainId)
 	if found && status == uint64(types.WithdrawStatus_WD_SUBMITTING) && common.IsValidTxHash(txHash) && time.Now().Add(-3*time.Minute).After(lpUpdateTime) {
-		ec := gs.EC[chainId]
+		ec := gs.Chains.GetEthClient(chainId)
 		if ec == nil {
 			log.Errorf("no ethClient found for chain:%d", chainId)
 			return nil, fmt.Errorf("no ethClient found for chain:%d", chainId)
@@ -460,20 +461,20 @@ func (gs *GatewayService) EstimateWithdrawAmt(ctx context.Context, request *weba
 // ================================= internal method below =====================================
 
 func (gs *GatewayService) initWithdraw(req *types.MsgInitWithdraw) error {
-	tr := gs.TP.GetTransactor()
+	tr := onchain.SGNTransactors.GetTransactor()
 	_, err := cbrcli.InitWithdraw(tr, req)
 	return err
 }
 
 func (gs *GatewayService) signAgainWithdraw(req *types.MsgSignAgain) (uint64, error) {
-	tr := gs.TP.GetTransactor()
+	tr := onchain.SGNTransactors.GetTransactor()
 	log.Debugf("sign again, req_id:%d", req.GetReqId())
 	_, err := cbrcli.SignAgain(tr, req)
 	return req.ReqId, err
 }
 
 func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64, usrAddr string) (*types.QueryLiquidityStatusResponse, []byte, [][]byte, [][]byte, [][]byte) {
-	tr := gs.TP.GetTransactor()
+	tr := onchain.SGNTransactors.GetTransactor()
 	detail, err2 := cbrcli.QueryWithdrawLiquidityStatus(tr.CliCtx, &types.QueryWithdrawLiquidityStatusRequest{
 		SeqNum:  seqNum,
 		UsrAddr: usrAddr,

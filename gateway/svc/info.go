@@ -12,6 +12,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/dal"
+	"github.com/celer-network/sgn-v2/gateway/onchain"
 	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
@@ -183,7 +184,7 @@ func (gs *GatewayService) getLpFeeEarningApy(usrAddr string) (map[uint64]map[str
 	userDetailMap := make(map[uint64]map[string]*cbrtypes.LiquidityDetail)
 	hasUsr := usrAddr != ""
 	if hasUsr {
-		tr := gs.TP.GetTransactor()
+		tr := onchain.SGNTransactors.GetTransactor()
 		detailList, detailErr := cbrcli.QueryLiquidityDetailList(tr.CliCtx, &cbrtypes.LiquidityDetailListRequest{
 			LpAddr:     usrAddr,
 			ChainToken: chainTokens,
@@ -243,7 +244,7 @@ func (gs *GatewayService) getLpFeeEarningApy(usrAddr string) (map[uint64]map[str
 }
 
 func (gs *GatewayService) getLiquidityOnChainToken(chainId uint64, tokenAddr string) string {
-	tr := gs.TP.GetTransactor()
+	tr := onchain.SGNTransactors.GetTransactor()
 	resp, err := cbrcli.QueryTotalLiquidity(tr.CliCtx, &cbrtypes.QueryTotalLiquidityRequest{
 		ChainId:   chainId,
 		TokenAddr: tokenAddr,
@@ -266,7 +267,7 @@ func (gs *GatewayService) getFarmingApy(ctx context.Context) map[uint64]map[stri
 		return cache
 	}
 	apysByChainId := make(map[uint64]map[string]*FarmingInfo) // map<chain_id, map<token_symbol, apy>>
-	tr := gs.TP.GetTransactor()
+	tr := onchain.SGNTransactors.GetTransactor()
 	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
 	res, err := queryClient.Pools(
 		ctx,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 
+	"github.com/celer-network/sgn-v2/gateway/onchain"
 	"github.com/celer-network/sgn-v2/gateway/utils"
 
 	"github.com/celer-network/goutils/log"
@@ -42,7 +43,7 @@ func (gs *GatewayService) RewardingData(ctx context.Context, request *webapi.Rew
 }
 
 func (gs *GatewayService) UnlockFarmingReward(ctx context.Context, request *webapi.UnlockFarmingRewardRequest) (*webapi.UnlockFarmingRewardResponse, error) {
-	tr := gs.TP.GetTransactor()
+	tr := onchain.SGNTransactors.GetTransactor()
 	if !utils.CheckUnlockFarmingRewardParams(request.GetAddr()) {
 		log.Warnf("Unlock Farming Reward failed, param check failed")
 		return &webapi.UnlockFarmingRewardResponse{
@@ -73,7 +74,7 @@ func (gs *GatewayService) UnlockFarmingReward(ctx context.Context, request *weba
 }
 
 func (gs *GatewayService) GetFarmingRewardDetails(ctx context.Context, request *webapi.GetFarmingRewardDetailsRequest) (*webapi.GetFarmingRewardDetailsResponse, error) {
-	tr := gs.TP.GetTransactor()
+	tr := onchain.SGNTransactors.GetTransactor()
 	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
 	res, err := queryClient.RewardClaimInfo(
 		ctx,
@@ -108,7 +109,7 @@ func (gs *GatewayService) GetFarmingRewardDetails(ctx context.Context, request *
 // ================================= internal method below =====================================
 
 func (gs *GatewayService) getUnlockedCumulativeRewards(ctx context.Context, address string) ([]*webapi.Reward, error) {
-	tr := gs.TP.GetTransactor()
+	tr := onchain.SGNTransactors.GetTransactor()
 	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
 	res, err := queryClient.RewardClaimInfo(
 		ctx,
@@ -155,7 +156,7 @@ func (gs *GatewayService) getUnlockedCumulativeRewards(ctx context.Context, addr
 }
 
 func (gs *GatewayService) getHistoricalCumulativeRewards(ctx context.Context, address string) ([]*webapi.Reward, map[string]float64, error) {
-	tr := gs.TP.GetTransactor()
+	tr := onchain.SGNTransactors.GetTransactor()
 	queryClient := farmingtypes.NewQueryClient(tr.CliCtx)
 	res, err := queryClient.AccountInfo(
 		ctx,

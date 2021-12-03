@@ -3,12 +3,13 @@ package explorer
 import (
 	"fmt"
 
-	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/gateway/fee"
-	"gopkg.in/resty.v1"
 	"strings"
 	"time"
+
+	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
+	gatewaysvc "github.com/celer-network/sgn-v2/gateway/svc"
+	"gopkg.in/resty.v1"
 )
 
 func defaultExplorerErr(msg string) *ErrMsg {
@@ -73,14 +74,14 @@ func GetUsdPrices() (map[string]float64, error) {
 		strings.Join(ids, ","),
 		strings.Join([]string{"usd"}, ","))
 	client := resty.New()
-	r, err := client.R().SetQueryString(qs).SetResult(&fee.TokenPrices{}).Get("https://api.coingecko.com/api/v3/simple/price")
+	r, err := client.R().SetQueryString(qs).SetResult(&gatewaysvc.TokenPrices{}).Get("https://api.coingecko.com/api/v3/simple/price")
 	if err != nil {
 		return nil, err
 	}
 	if r.StatusCode() != 200 {
 		return nil, fmt.Errorf("fail to get usd price")
 	}
-	tokenPrices := r.Result().(*fee.TokenPrices)
+	tokenPrices := r.Result().(*gatewaysvc.TokenPrices)
 	newPrices := make(map[string]float64)
 	// flatten the nested map since we only care about USD Prices
 	for tokenId, vsTokenPrices := range *tokenPrices {

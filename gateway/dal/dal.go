@@ -22,19 +22,17 @@ type DAL struct {
 	AllTokenIds map[string]*TokenData
 }
 
-func NewDAL(driver, info string, poolSize int) (*DAL, error) {
-	db, err := sqldb.NewDb(driver, info, poolSize)
+func NewDAL(url string) *DAL {
+	db, err := sqldb.NewDb("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", url), 20)
 	if err != nil {
-		log.Errorf("fail with db init:%s, %s, %d, err:%+v", driver, info, poolSize, err)
-		return nil, err
+		log.Fatalf("Failed to create db with url %s: %+v", url, err)
 	}
-
 	dal := &DAL{
 		db,
 		make(map[string]float64),
 		make(map[string]*TokenData),
 	}
-	return dal, nil
+	return dal
 }
 
 func (d *DAL) Close() {

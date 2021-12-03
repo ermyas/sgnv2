@@ -241,6 +241,7 @@ func (d *DAL) TransferCompleted(transferId, txHash, dstTransferId, receivedAmt s
 	if isDelayed {
 		status = uint64(types.TransferHistoryStatus_TRANSFER_DELAYED)
 	}
+	// TODO: maybe change to upsert to avoid loss of "SEND" event
 	q := `UPDATE transfer SET dst_tx_hash=$2, status=$3, update_time=$4, dst_transfer_id=$5, received_amt=$6 WHERE transfer_id=$1`
 	res, err := d.Exec(q, transferId, txHash, status, now(), dstTransferId, receivedAmt)
 	return sqldb.ChkExec(res, err, 1, "TransferCompleted")

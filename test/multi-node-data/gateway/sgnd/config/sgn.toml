@@ -1,0 +1,64 @@
+# SGN-specific configs
+
+[eth]
+block_delay = 1
+chain_id = 883
+gateway = "http://192.168.10.1:8545"
+signer_keystore = "./keys/vsigner0.json"
+signer_passphrase = ""
+validator_address = ""
+poll_interval = 1
+max_priority_fee_per_gas_gwei = 2
+
+[eth.check_interval]
+
+[eth.contract_address]
+celr = ""
+staking = ""
+staking_reward = ""
+govern = ""
+sgn = ""
+viewer = ""
+farming_rewards = ""
+
+[log]
+color = false
+level = "debug"
+
+[sgnd]
+base_gas_price = 0
+chain_id = "sgn-localnet-1000"
+gas_adjustment = 1.5
+keyring_backend = "file"
+node_uri = "tcp://192.168.10.2:26657"
+passphrase = "12341234"
+transactors = ["sgn1qehw7sn3u3nhnjeqk8kjccj263rq5fv002l5fk"]
+validator_account = "sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe"
+price_update_url = "https://cbridge-stat.s3.us-west-2.amazonaws.com/test/cbridge-price.json"
+
+[sgnd.check_interval]
+slash = 2
+cbridge = 2
+verifier = 1
+cbr_price = 900
+
+[gateway]
+db_url = "192.168.10.7:26257"
+
+[gateway.incentive_rewards]
+keystore = "./keys/irks.json"
+passphrase = ""
+bsc_chain_id = 97
+bsc_contract_address = "0x72ab37F482e3a91a7c599b4Da6293528e79E2b56"
+
+
+# [gateway.block_native]
+# apikey = "25c6b316-f3df-47b2-8d41-00225f7c96ee"
+
+# [gateway.aws]
+# key = "AKIAVFZJS5E4BRACTHBS"
+# secret = "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"
+
+# [gateway.aws.s3]
+# region = "us-west-2"
+# bucket = "cbridge-stat"
