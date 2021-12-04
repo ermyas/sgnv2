@@ -329,9 +329,6 @@ func (c *CbrOneChain) skipSyncCbrSend(
 	if err != nil {
 		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
 	}
-	if sendEv.Sender != sendEv.Receiver {
-		return true, fmt.Sprintf("sender %x and receiver %x are different", sendEv.Sender, sendEv.Receiver)
-	}
 	// we should check cache first
 	cacheKey := fmt.Sprintf("%d-%d-%x", c.chainid, sendEv.DstChainId, sendEv.Token)
 
