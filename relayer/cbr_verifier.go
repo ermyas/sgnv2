@@ -45,9 +45,6 @@ func (r *Relayer) verifyCbrEventUpdate(update *synctypes.PendingUpdate) (done, a
 		return false, false
 	}
 
-	// delete my local db event so this event won't be picked again when I become syncer
-	defer cbrOneChain.delEvent(onchev.Evtype, elog.BlockNumber, uint64(elog.Index))
-
 	skip, reason := cbrOneChain.skipEvent(onchev.Evtype, elog, r.Transactor.CliCtx, nil)
 	if skip {
 		log.Debugf("skip cbr event: %s, reason: %s", string(onchev.Elog), reason)
@@ -202,7 +199,7 @@ func (c *CbrOneChain) verifySend(eLog *ethtypes.Log, cliCtx client.Context, logm
 			return false, false
 		}
 		// xfer doesn't exist, vote no
-		log.Errorln(logmsg, "xferId:", xferId.String(), "not found")
+		log.Warnln(logmsg, "xferId:", xferId.String(), "not found")
 		return true, false
 	}
 	// latest has the state, now check if it has been long enough
@@ -252,7 +249,7 @@ func (c *CbrOneChain) verifyRelay(eLog *ethtypes.Log, cliCtx client.Context, log
 			return false, false
 		}
 		// xfer doesn't exist, vote no
-		log.Errorln(logmsg, "xferId:", xferId.String(), "not found")
+		log.Warnln(logmsg, "xferId:", xferId.String(), "not found")
 		return true, false
 	}
 	// we don't do safeblk checking as this is event when money leaving the system, so it's safe
@@ -289,7 +286,7 @@ func (c *CbrOneChain) verifyWithdraw(eLog *ethtypes.Log, cliCtx client.Context, 
 			return false, false
 		}
 		// wdid doesn't exist, vote no
-		log.Errorln(logmsg, "wdId:", wdId.String(), "not found")
+		log.Warnln(logmsg, "wdId:", wdId.String(), "not found")
 		return true, false
 	}
 	// we don't do safeblk checking as this is event when money leaving the system, so it's safe
