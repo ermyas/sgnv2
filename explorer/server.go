@@ -375,6 +375,7 @@ func (e *explorerServer) processTransferStat() error {
 			}
 		}
 
+		// TODO, should remove lp addr should sync with product
 		lpAddrs, dbErr := e.gatewayDb.GetDistinctLpAddrByTimeRange(begin, end)
 		if dbErr != nil {
 			log.Errorf("fail to GetDistinctAddrByTimeRange, err:%s", dbErr.Error())
@@ -435,22 +436,22 @@ func (e *explorerServer) processTransferStat() error {
 			log.Errorf("fail to GetTxStatByTimeRange, err:%s", dbErr.Error())
 			return dbErr
 		}
-		lpVolume, lpCount, dbErr := e.gatewayDb.GetLpStatByTimeRange(begin, end)
+		/*lpVolume, lpCount, dbErr := e.gatewayDb.GetLpStatByTimeRange(begin, end)
 		if dbErr != nil {
 			log.Errorf("fail to GetLpStatByTimeRange, err:%s", dbErr.Error())
 			return dbErr
-		}
+		}*/
 
 		txVolumeProd2, txCountProd2, dbErr := e.prod2Db.GetTxStatByTimeRange(begin, end)
 		if dbErr != nil {
 			log.Errorf("fail to GetTxStatByTimeRange prod2, err:%s", dbErr.Error())
 			return dbErr
 		}
-		lpVolumeProd2, lpCountProd2, dbErr := e.prod2Db.GetLpStatByTimeRange(begin, end)
+		/*lpVolumeProd2, lpCountProd2, dbErr := e.prod2Db.GetLpStatByTimeRange(begin, end)
 		if dbErr != nil {
 			log.Errorf("fail to GetLpStatByTimeRange prod2, err:%s", dbErr.Error())
 			return dbErr
-		}
+		}*/
 
 		var v1Volume float64
 		var v1Count uint64
@@ -461,7 +462,7 @@ func (e *explorerServer) processTransferStat() error {
 				return dbErr
 			}
 		}
-		dbErr = e.explorerDb.InsertHourlyTransactionStat(begin, end, txVolume+lpVolume+txVolumeProd2+lpVolumeProd2+v1Volume, txCount+lpCount+txCountProd2+lpCountProd2+v1Count)
+		dbErr = e.explorerDb.InsertHourlyTransactionStat(begin, end, txVolume /*+lpVolume*/ +txVolumeProd2 /*+lpVolumeProd2*/ +v1Volume, txCount /*+lpCount*/ +txCountProd2 /*+lpCountProd2*/ +v1Count)
 		if dbErr != nil {
 			log.Errorf("fail to InsertTransactionStat, err:%s", dbErr.Error())
 			return dbErr
