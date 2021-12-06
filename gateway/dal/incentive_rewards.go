@@ -43,7 +43,7 @@ var RetentionRewardsConfig = map[uint64]*RetentionRewardsEvent{
 	},
 
 	2: {
-		EventEndTime: time.Date(2021, time.December, 7, 0, 0, 0, 0, time.UTC),
+		EventEndTime: time.Date(2021, time.December, 8, 0, 0, 0, 0, time.UTC),
 		LevelConfig: map[uint64]*RetentionRewardsLevelConfig{
 			1: {
 				MaxReward:         big.NewInt(0).Mul(WeiMultiplier, big.NewInt(1500)),
@@ -119,7 +119,7 @@ var FeeRebateConfig = map[uint64]*FeeRebateEvent{
 }
 
 // use RetentionRewardEventId 1 for first time launch
-var RetentionRewardEventId uint64 = 1
+var RetentionRewardEventId uint64 = 2
 
 // use FeeRebateEventId 10000 for first time launch
 var FeeRebateEventId uint64 = 10000
