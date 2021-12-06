@@ -43,7 +43,7 @@ var RetentionRewardsConfig = map[uint64]*RetentionRewardsEvent{
 	},
 
 	2: {
-		EventEndTime: time.Date(2021, time.December, 8, 0, 0, 0, 0, time.UTC),
+		EventEndTime: time.Date(2021, time.December, 6, 9, 0, 0, 0, time.UTC),
 		LevelConfig: map[uint64]*RetentionRewardsLevelConfig{
 			1: {
 				MaxReward:         big.NewInt(0).Mul(WeiMultiplier, big.NewInt(1500)),
