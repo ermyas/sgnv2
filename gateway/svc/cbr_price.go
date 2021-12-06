@@ -101,7 +101,7 @@ func UploadFile(content string) {
 		log.Errorln("fail to UploadFile,", err)
 		return
 	}
-	log.Debugln("success upload cbr price file, ", content)
+	log.Infoln("success upload cbr price file, ", content)
 	return
 }
 
@@ -168,7 +168,7 @@ func (gs *GatewayService) calcGasPriceShouldRaiseDueToGasDrop(chainId uint64, ga
 	manipulatedGasPrice := big.NewFloat(0).Quo(add, quo)
 	u, _ := manipulatedGasPrice.Uint64()
 	newGasPrice := big.NewInt(0).SetUint64(u)
-	log.Debugln("raise gas price due to gas drop on arrival, before:", originalGasPrice.String(), ", after:", newGasPrice.String())
+	log.Infoln("raise gas price due to gas drop on arrival, before:", originalGasPrice.String(), ", after:", newGasPrice.String())
 	return newGasPrice
 }
 
