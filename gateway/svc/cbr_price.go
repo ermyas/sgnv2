@@ -152,23 +152,22 @@ func (gs *GatewayService) calcGasPriceShouldRaiseDueToGasDrop(chainId uint64, ga
 		return originalGasPrice
 	}
 	droppedGasTokenAmtStr := chainId2DropGas[chainId]
-	droppedGasTokenAmt, b := big.NewInt(0).SetString(droppedGasTokenAmtStr, 10)
-	if !b || droppedGasTokenAmt.Cmp(big.NewInt(0)) <= 0 {
+	droppedGasTokenAmt, b := big.NewFloat(0).SetString(droppedGasTokenAmtStr)
+	if !b || droppedGasTokenAmt.Cmp(big.NewFloat(0)) <= 0 {
 		return originalGasPrice
 	}
-	droppedGasTokenAmt.Quo(droppedGasTokenAmt, big.NewInt(0).Exp(big.NewInt(10), big.NewInt(18), nil))
-	droppedGasF := big.NewFloat(0).SetInt(droppedGasTokenAmt)
-	droppedGasF.Mul(droppedGasF, big.NewFloat(gasTokenPrice))
+	droppedGasTokenAmt.Quo(droppedGasTokenAmt, big.NewFloat(0).SetInt(big.NewInt(0).Exp(big.NewInt(10), big.NewInt(18), nil)))
+	droppedGasTokenAmt.Mul(droppedGasTokenAmt, big.NewFloat(gasTokenPrice))
 	originalBaseFee := big.NewFloat(chainId2SuggestedBaseFee[chainId])
 	// quo = originalBaseFee / originalGasPrice
 	quo := big.NewFloat(0).Quo(originalBaseFee, big.NewFloat(0).SetInt(originalGasPrice))
 	// add = originalBaseFee + droppedGas
-	add := big.NewFloat(0).Add(originalBaseFee, droppedGasF)
+	add := big.NewFloat(0).Add(originalBaseFee, droppedGasTokenAmt)
 	// manipulatedGasPrice = (originalBaseFee + droppedGas) / originalBaseFee * originalGasPrice
 	manipulatedGasPrice := big.NewFloat(0).Quo(add, quo)
 	u, _ := manipulatedGasPrice.Uint64()
 	newGasPrice := big.NewInt(0).SetUint64(u)
-	log.Infoln("raise gas price due to gas drop on arrival, before:", originalGasPrice.String(), ", after:", newGasPrice.String())
+	log.Infoln("raise ", chainId, " gas price due to gas drop on arrival, before:", originalGasPrice.String(), ", after:", newGasPrice.String())
 	return newGasPrice
 }
 
