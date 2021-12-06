@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/celer-network/endpoint-proxy/endpointproxy"
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/eth/monitor"
 	"github.com/celer-network/goutils/eth/watcher"
@@ -87,9 +88,21 @@ func NewCbridgeMgr(db dbm.DB, cliCtx client.Context) CbrMgr {
 }
 
 func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.PrefixDB, cliCtx client.Context) *CbrOneChain {
-	ec, err := ethclient.Dial(cfg.Gateway)
-	if err != nil {
-		log.Fatalln("dial", cfg.Gateway, "err:", err)
+	var ec *ethclient.Client
+	var err error
+	if cfg.ProxyPort > 0 {
+		if err = endpointproxy.StartProxy(cfg.Gateway, cfg.ChainID, cfg.ProxyPort); err != nil {
+			log.Fatalln("can not start proxy for chain:", cfg.ChainID, "gateway:", cfg.Gateway, "port:", cfg.ProxyPort, "err:", err)
+		}
+		ec, err = ethclient.Dial(fmt.Sprintf("http://127.0.0.1:%d", cfg.ProxyPort))
+		if err != nil {
+			log.Fatalln("dial", cfg.Gateway, "err:", err)
+		}
+	} else {
+		ec, err = ethclient.Dial(cfg.Gateway)
+		if err != nil {
+			log.Fatalln("dial", cfg.Gateway, "err:", err)
+		}
 	}
 	chid, err := ec.ChainID(context.Background())
 	if err != nil {
