@@ -322,18 +322,15 @@ func (e *explorerServer) StartScheduleJob() {
 		e.processDailyLiqStat()
 		processTransferStatErr := e.processTransferStat()
 		if processTransferStatErr == nil {
-			e.processDailyTransactionsStat()
+			processDailyTransactionsStatErr := e.processDailyTransactionsStat()
+			if processDailyTransactionsStatErr == nil {
+				e.refreshTotalStat()
+			} else {
+				log.Errorf("fail to processDailyTransactionsStat, err:%s", processDailyTransactionsStatErr.Error())
+			}
 		} else {
 			log.Errorf("we find err in processTransferStat, err:%s, so we should ignore processDailyTransactionsStat", processTransferStatErr.Error())
 		}
-	}
-}
-
-func (e *explorerServer) StartRefreshTotalStat() {
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-	for ; true; <-ticker.C {
-		e.refreshTotalStat()
 	}
 }
 
@@ -539,13 +536,13 @@ func (e *explorerServer) processDailyLiqStat() {
 	}
 }
 
-func (e *explorerServer) processDailyTransactionsStat() {
+func (e *explorerServer) processDailyTransactionsStat() error {
 	log.Infoln("processDailyTransactionsStat")
 	// transfer daily is different from liq daily
 	latestDailyTransactionStat, found, dbErr := e.explorerDb.GetLatestDailyTransactionStat()
 	if dbErr != nil {
 		log.Errorf("fail to GetLatestDailyTransactionStat, err:%s", dbErr.Error())
-		return
+		return dbErr
 	}
 	begin := defaultStatBeginTime
 	if found {
@@ -558,12 +555,12 @@ func (e *explorerServer) processDailyTransactionsStat() {
 		transferVolume, transferCount, dbErr := e.explorerDb.GetSumTransferVolumeAndCount(begin, end)
 		if dbErr != nil {
 			log.Errorf("fail to GetSumTransferVolumeAndCount, err:%s", dbErr.Error())
-			return
+			return dbErr
 		}
 		dbErr = e.explorerDb.InsertDailyTransactionStat(begin, transferVolume, transferCount)
 		if dbErr != nil {
 			log.Errorf("fail to InsertDailyLiquidityStat, err:%s", dbErr.Error())
-			return
+			return dbErr
 		}
 		begin = begin.Add(dailyDuration)
 		end = begin.Add(dailyDuration)
@@ -571,4 +568,5 @@ func (e *explorerServer) processDailyTransactionsStat() {
 			break
 		}
 	}
+	return nil
 }
