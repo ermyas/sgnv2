@@ -41,6 +41,8 @@ message CbrConfig {
   repeated ChainAsset assets = 2;      // multi-asset, multi-chain
   repeated ChainPair chain_pairs = 3;  // per chain pair configs
   repeated sgn.common.v1.ContractInfo cbr_contracts = 6; // per chain cbridge contract address
+
+  repeated PerChainPairAssetOverride override = 7; // per (chainpair, asset) config that overrides chain_pairs
 }
 
 // needed for base fee calculation. the value set in genesis is only used when first start.
@@ -99,6 +101,20 @@ message ChainPair {
   uint32 fee1to2 = 4;  // fee percentage when xfer from ch1 to ch2 * 1M, eg. value 10 means 0.001% fee
   uint32 fee2to1 = 5;  // fee percentage when xfer from ch2 to ch1 * 1M, eg. value 10 means 0.001% fee
   uint32 const_a = 6;  // constant A in price formula, if not set, will use 100 default
+  // no_curve should only be config in PerChainPairAssetOverride. if set, MUST not set weight1 and const_a
+  bool no_curve = 7; // if set to true, always 1:1 (decimals are defined in ChainAsset)
+}
+
+// some asset requires different const A/weight, fee percentage than ChainPair
+// so we allow per (chain pair, asset) override, if transfer happens between supported chains, these parameters
+// will be used instead of ones in ChainPair. asset must be already configued in ChainAsset
+// note if override 
+message PerChainPairAssetOverride {
+  string symbol = 1;
+  ChainPair chpair = 2; // MUST config all fields EVEN if some are the same as ChainPair
+  // if later this override is no longer needed, we can't just delete it from config
+  // we have to set this to true so x/cbr will delete the consensus kv
+  // bool no_longer_needed = 3;
 }
 
 // propose new cbr config, note it must be a whole json

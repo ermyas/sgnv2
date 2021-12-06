@@ -64,6 +64,12 @@ func (c *CbrConfig) Validate() error {
 			return fmt.Errorf("chainpair %s invalid: %w", cp.String(), err)
 		}
 	}
+	for _, ov := range c.Override {
+		err = ov.Chpair.Validate()
+		if err != nil {
+			return fmt.Errorf("%s override %s invalid: %w", ov.Symbol, ov.Chpair.String(), err)
+		}
+	}
 	// todo: make sure assets are multi-chain correctly?
 	// also check all chains in assets are in chainpairs
 	return nil
@@ -95,6 +101,11 @@ func (cp *ChainPair) Validate() error {
 	}
 	if cp.Weight1 >= 200 {
 		return fmt.Errorf("weight1 %d >= 200", cp.Weight1)
+	}
+	if cp.NoCurve {
+		if cp.Weight1 > 0 || cp.ConstA > 0 {
+			return fmt.Errorf("both no_curve and (weight1 %d or consta %d) are set", cp.Weight1, cp.ConstA)
+		}
 	}
 	return nil
 }

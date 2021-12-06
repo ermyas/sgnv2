@@ -181,7 +181,7 @@ func queryFeePerc(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerie
 
 	kv := ctx.KVStore(k.storeKey)
 
-	feePerc := GetFeePerc(kv, params.SrcChainId, params.DstChainId) // fee percent * 1e6
+	feePerc := GetFeePerc(kv, params.SrcChainId, params.DstChainId, params.Symbol) // fee percent * 1e6
 	resp := types.GetFeePercentageResponse{FeePerc: feePerc}
 	res, err := k.cdc.Marshal(&resp)
 

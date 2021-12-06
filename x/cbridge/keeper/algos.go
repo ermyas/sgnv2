@@ -30,8 +30,9 @@ func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmo
 	if isNegOrZero(srcAmount) {
 		return ret, fmt.Errorf("invalid src amt")
 	}
+	sym := GetAssetSymbol(kv, src.ChainIdTokenAddr)
 	// A,m,n are from chain pair config
-	A, m, n, err := GetAMN(kv, src.ChId, dest.ChId)
+	A, m, n, err := GetAMN(kv, src.ChId, dest.ChId, sym)
 	if err != nil {
 		return ret, fmt.Errorf("GetAMN err: %w", err) // 0 if not found chain pair
 	}
@@ -56,6 +57,24 @@ func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmo
 		return ret, fmt.Errorf("no liquidity on dest chain") // no liq on dest chain
 	}
 	log.Infoln("srcLiqSum:", srcLiqSum, "destLiqSum:", destLiqSum)
+
+	// support per (chainpair,token) override to not use curve ie. always 1:1, but still need to consider decimal difference
+	nocurve := GetOverrideNotUsingCurve(kv, src.ChId, dest.ChId, sym)
+	if nocurve {
+		destAmt := new(big.Int).Set(srcAmount)
+		// adjust amt for decimal diff
+		if dest.Decimal > src.Decimal {
+			destAmt.Mul(destAmt, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(dest.Decimal-src.Decimal)), nil))
+		} else if dest.Decimal < src.Decimal {
+			destAmt.Div(destAmt, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(src.Decimal-dest.Decimal)), nil))
+		}
+		if destAmt.Cmp(destLiqSum) > 0 {
+			return ret, fmt.Errorf("destAmt %s > destLiqSum %s", destAmt, destLiqSum)
+		}
+		log.Infoln("nocurve", "destAmt:", destAmt)
+		return destAmt, nil
+	}
+
 	y := amt2float(destLiqSum, dest.Decimal) // y can't be 0
 
 	D := solveD(A, x, y, m, n)
@@ -376,14 +395,15 @@ func getAddr(lpmapkey []byte) string {
 
 // total is dest amount, return percent fee based on it
 func CalcPercFee(kv sdk.KVStore, src, dest *ChainIdTokenAddr, total *big.Int) *big.Int {
-	feePerc := GetFeePerc(kv, src.ChId, dest.ChId) // fee percent * 1e6
+	sym := GetAssetSymbol(kv, dest)
+	feePerc := GetFeePerc(kv, src.ChId, dest.ChId, sym) // fee percent * 1e6
 	if feePerc == 0 {
 		return new(big.Int)
 	}
 	feeAmt := new(big.Int).Mul(total, big.NewInt(int64(feePerc)))
 	feeAmt.Div(feeAmt, big.NewInt(1e6))
 	// now compare feeAmt to max fee amt for dest chain token
-	assetInfo := GetAssetInfo(kv, GetAssetSymbol(kv, dest), dest.ChId)
+	assetInfo := GetAssetInfo(kv, sym, dest.ChId)
 	if assetInfo == nil {
 		return feeAmt
 	}

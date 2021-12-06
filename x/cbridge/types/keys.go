@@ -126,7 +126,8 @@ func SgnFeeKey(chid uint64, token eth.Addr) []byte {
 7. chid -> GasTokenSymbol string.
 8. symbol -> uint32(USD price * 1e4)
 9. chid -> GasCostParam
-9. chid -> GasCost
+10. chid -> GasCost
+11. symbol-chid1-chid2 -> ChainPair. per (chainpair, token) info override
 */
 
 var (
@@ -177,4 +178,9 @@ func CfgKeyChain2EstimateRelayGasCost(chid uint64) []byte {
 
 func CfgKeyCbrContract(chid uint64) []byte {
 	return []byte(fmt.Sprintf("cfg-cbrcontract-%d", chid))
+}
+
+// chid1 must be smaller than chid2
+func CfgKeyChainPairAssetOverride(sym string, chid1, chid2 uint64) []byte {
+	return []byte(fmt.Sprintf("cfg-override-%s-%d-%d", sym, chid1, chid2))
 }

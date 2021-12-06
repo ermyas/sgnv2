@@ -70,6 +70,7 @@ message GetFeeResponse {
 message GetFeePercentageRequest {
   uint64 src_chain_id = 1;
   uint64 dst_chain_id = 2;
+  string symbol = 3; // support per chainpair, token override
 }
 
 message GetFeePercentageResponse {

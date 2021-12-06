@@ -44,6 +44,10 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 		// SetLPs(kv, chpair.Chid1, chidTokenMap[chpair.Chid1])
 		// SetLPs(kv, chpair.Chid2, chidTokenMap[chpair.Chid2])
 	}
+	for _, ov := range cfg.Override {
+		raw, _ := ov.Chpair.Marshal()
+		kv.Set(types.CfgKeyChainPairAssetOverride(ov.Symbol, ov.Chpair.Chid1, ov.Chpair.Chid2), raw)
+	}
 	for _, relayGasCost := range cfg.GetRelayGasCost() {
 		raw, _ := relayGasCost.Marshal()
 		kv.Set(types.CfgKeyChain2RelayGasCostParam(relayGasCost.GetChainId()), raw)
@@ -128,6 +132,17 @@ func (k Keeper) GetCbrConfig(ctx sdk.Context) types.CbrConfig {
 		cbrConfig.CbrContracts = append(cbrConfig.CbrContracts, chainContract)
 	}
 
+	iter5 := sdk.KVStorePrefixIterator(kv, []byte("cfg-override-"))
+	defer iter5.Close()
+	for ; iter5.Valid(); iter5.Next() {
+		pairRaw := iter5.Value()
+		pair := new(types.ChainPair)
+		pair.Unmarshal(pairRaw)
+		cbrConfig.Override = append(cbrConfig.Override, &types.PerChainPairAssetOverride{
+			Symbol: strings.Split(string(iter5.Key()), "-")[2], // key is cfg-override-%s-%d-%d
+			Chpair: pair,
+		})
+	}
 	return cbrConfig
 }
 
@@ -152,40 +167,66 @@ func GetAssetInfo(kv sdk.KVStore, sym string, chid uint64) *types.ChainAsset {
 
 // fee percent from src to dest chain, note cfg always save smaller chid as chid1
 // return value is actual fee percent * 1e6
-func GetFeePerc(kv sdk.KVStore, srcChid, destChid uint64) uint32 {
-	pair := new(types.ChainPair)
-	if srcChid < destChid {
-		raw := kv.Get(types.CfgKeyChainPair(srcChid, destChid))
-		pair.Unmarshal(raw)
-		return pair.Fee1To2
-	} else {
-		// dest is ch1, src is ch2
-		raw := kv.Get(types.CfgKeyChainPair(destChid, srcChid))
-		pair.Unmarshal(raw)
-		return pair.Fee2To1
+// add sym arg to support per chainpair,token override
+func GetFeePerc(kv sdk.KVStore, srcChid, destChid uint64, sym string) uint32 {
+	chid1, chid2 := srcChid, destChid
+	useFee1 := true // srcChain is chid1
+	if chid1 > chid2 {
+		chid1, chid2 = destChid, srcChid
+		useFee1 = false // srcChain is chid2 so we need to use Fee2To1
 	}
+	pair := new(types.ChainPair)
+	raw := kv.Get(types.CfgKeyChainPairAssetOverride(sym, chid1, chid2))
+	if raw == nil {
+		// if (chainpair,token) override not found, use the chainpair
+		raw = kv.Get(types.CfgKeyChainPair(chid1, chid2))
+	}
+	pair.Unmarshal(raw)
+	if useFee1 {
+		return pair.Fee1To2
+	}
+	return pair.Fee2To1
+}
+
+// whether per chainpair,token override has no_curve, if no override, return false
+// otherwise, return override chain pair.NoCurve
+func GetOverrideNotUsingCurve(kv sdk.KVStore, srcChid, destChid uint64, sym string) bool {
+	chid1, chid2 := srcChid, destChid
+	if chid1 > chid2 {
+		chid1, chid2 = destChid, srcChid
+	}
+	raw := kv.Get(types.CfgKeyChainPairAssetOverride(sym, chid1, chid2))
+	if raw == nil {
+		return false // no override found
+	}
+	pair := new(types.ChainPair)
+	pair.Unmarshal(raw)
+	return pair.NoCurve
 }
 
 // chain pair A, src weight as m, dst weight n = 2 - m
 // if src,dest not found, return error
-func GetAMN(kv sdk.KVStore, srcChid, destChid uint64) (float64, float64, float64, error) {
+// sym is to support per chainpair,token override
+func GetAMN(kv sdk.KVStore, srcChid, destChid uint64, sym string) (float64, float64, float64, error) {
+	chid1, chid2 := srcChid, destChid
+	if chid1 > chid2 {
+		chid1, chid2 = destChid, srcChid
+	}
 	pair := new(types.ChainPair)
-	var A, m, n float64
-	if srcChid < destChid {
-		raw := kv.Get(types.CfgKeyChainPair(srcChid, destChid))
-		if len(raw) == 0 {
+	raw := kv.Get(types.CfgKeyChainPairAssetOverride(sym, chid1, chid2))
+	if raw == nil {
+		raw = kv.Get(types.CfgKeyChainPair(chid1, chid2))
+		if raw == nil {
 			return 0, 0, 0, ErrNoChainPair
 		}
-		pair.Unmarshal(raw)
+	}
+	pair.Unmarshal(raw)
+	var A, m, n float64
+	if chid1 == srcChid {
 		m = float64(pair.Weight1) / 100
 		n = 2 - m
 	} else {
 		// dest is ch1, src is ch2
-		raw := kv.Get(types.CfgKeyChainPair(destChid, srcChid))
-		if len(raw) == 0 {
-			return 0, 0, 0, ErrNoChainPair
-		}
-		pair.Unmarshal(raw)
 		// dest weight n is weight1
 		n = float64(pair.Weight1) / 100
 		m = 2 - n
