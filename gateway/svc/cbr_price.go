@@ -2,6 +2,7 @@ package gatewaysvc
 
 import (
 	"context"
+	"github.com/celer-network/sgn-v2/eth"
 	"math/big"
 	"net/url"
 	"strings"
@@ -100,6 +101,7 @@ func UploadFile(content string) {
 		log.Errorln("fail to UploadFile,", err)
 		return
 	}
+	log.Debugln("success upload cbr price file, ", content)
 	return
 }
 
@@ -108,17 +110,11 @@ func (gs *GatewayService) PrepareGasPrice(chainId2Symbol map[uint64]string) (gp 
 		var price *big.Int
 		var err error
 		switch chainId {
-		case 10:
-			// Optimistic Ethereum
-			price, err = gs.calcOptimismEffectiveGasPrice(1, 10)
+		case 10, 69:
+			// Optimistic
+			price, err = gs.calcOptimismGasPrice(chainId)
 			if err != nil {
-				continue
-			}
-		case 69:
-			// Optimistic Kovan
-			// NOTE: Requires Kovan to be in the list of clients
-			price, err = gs.calcOptimismEffectiveGasPrice(42, 69)
-			if err != nil {
+				log.Errorln("failed to calcOptimismGasPrice: chainId: ", chainId, ", error:", err)
 				continue
 			}
 		case 42161:
@@ -149,18 +145,18 @@ func (gs *GatewayService) PrepareGasPrice(chainId2Symbol map[uint64]string) (gp 
 
 // calcOptimismEffectiveGasPrice calculates the effective gas price using the heuristic
 // effectiveGasPrice = L1GasPrice / 14 + L2GasPrice
-func (gs *GatewayService) calcOptimismEffectiveGasPrice(l1ChainId uint64, l2ChainId uint64) (*big.Int, error) {
-	l1Client := gs.Chains.GetEthClient(l1ChainId)
-	l1Price, err := l1Client.SuggestGasPrice(context.Background())
+func (gs *GatewayService) calcOptimismGasPrice(chainId uint64) (*big.Int, error) {
+	caller, err := eth.NewOVMGasPriceOracleCaller(common.Hex2Addr("0x420000000000000000000000000000000000000F"), gs.Chains.GetEthClient(chainId))
 	if err != nil {
-		log.Errorln("failed to SuggestGasPrice: chainId: ", l1ChainId, ", error:", err)
-		return big.NewInt(0), err
+		return nil, err
 	}
-	l2Client := gs.Chains.GetEthClient(l2ChainId)
-	l2Price, err := l2Client.SuggestGasPrice(context.Background())
+	l1Price, err := caller.L1BaseFee(nil)
 	if err != nil {
-		log.Errorln("failed to SuggestGasPrice: chainId: ", l2ChainId, ", error:", err)
-		return big.NewInt(0), err
+		return nil, err
+	}
+	l2Price, err := caller.GasPrice(nil)
+	if err != nil {
+		return nil, err
 	}
 	return new(big.Int).Add(new(big.Int).Div(l1Price, big.NewInt(14)), l2Price), nil
 }
