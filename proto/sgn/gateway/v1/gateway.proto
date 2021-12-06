@@ -233,6 +233,8 @@ message Chain {
   string explore_url = 6;
     reserved 7; // rpc_url removed
   string contract_addr = 8;  // bridge contract addr
+  string drop_gas_amt = 9; // how much gas will be dropped on dst chain when transfer(dst chain gas token)
+  double suggested_base_fee = 10; // only for backend
 }
 
 message ChainTokenInfo {

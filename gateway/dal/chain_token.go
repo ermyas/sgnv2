@@ -2,7 +2,6 @@ package dal
 
 import (
 	"fmt"
-
 	"github.com/celer-network/goutils/sqldb"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -180,39 +179,45 @@ func (d *DAL) getChainTokenList(q string) (map[uint32]*webapi.ChainTokenInfo, er
 }
 
 // GetAllChainAndGasToken return key is gas token symbol, value is chainId
-func (d *DAL) GetAllChainAndGasToken() (symbol2chainIds map[string][]uint64, chainId2Symbol map[uint64]string, error error) {
+func (d *DAL) GetAllChainAndGasToken() (symbol2chainIds map[string][]uint64, chainId2Symbol map[uint64]string,
+	chainId2DropGas map[uint64]string, chainId2SuggestedBaseFee map[uint64]float64, error error) {
 	symbol2chainIds = make(map[string][]uint64)
 	chainId2Symbol = make(map[uint64]string)
-	q := `SELECT id, gas_token_symbol
+	chainId2DropGas = make(map[uint64]string)
+	chainId2SuggestedBaseFee = make(map[uint64]float64)
+	q := `SELECT id, gas_token_symbol, drop_gas_amt, suggested_base_fee
           FROM chain
           WHERE gas_token_symbol is not null`
 	rows, err := d.Query(q)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	defer closeRows(rows)
 	var id uint64
-	var gasTokenSymbol string
+	var gasTokenSymbol, dropGasAmt string
+	var suggestedBaseFee float64
 	for rows.Next() {
-		err = rows.Scan(&id, &gasTokenSymbol)
+		err = rows.Scan(&id, &gasTokenSymbol, &dropGasAmt, &suggestedBaseFee)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 		if gasTokenSymbol == "" {
 			continue
 		}
 		chainId2Symbol[id] = gasTokenSymbol
+		chainId2DropGas[id] = dropGasAmt
+		chainId2SuggestedBaseFee[id] = suggestedBaseFee
 		if len(symbol2chainIds[gasTokenSymbol]) == 0 {
 			symbol2chainIds[gasTokenSymbol] = []uint64{id}
 		} else {
 			symbol2chainIds[gasTokenSymbol] = append(symbol2chainIds[gasTokenSymbol], id)
 		}
 	}
-	return symbol2chainIds, chainId2Symbol, nil
+	return symbol2chainIds, chainId2Symbol, chainId2DropGas, chainId2SuggestedBaseFee, nil
 }
 func (d *DAL) GetChainInfo(ids []uint32) ([]*webapi.Chain, error) {
 	inClause := sqldb.InClause("id", len(ids), 1)
-	q := fmt.Sprintf(`SELECT id, name, icon, block_delay, gas_token_symbol, explore_url, rpc_url, contract FROM chain WHERE %s`, inClause)
+	q := fmt.Sprintf(`SELECT id, name, icon, block_delay, gas_token_symbol, explore_url, rpc_url, contract, drop_gas_amt, suggested_base_fee FROM chain WHERE %s`, inClause)
 	var params []interface{}
 	for _, v := range ids {
 		params = append(params, v)
@@ -224,32 +229,35 @@ func (d *DAL) GetChainInfo(ids []uint32) ([]*webapi.Chain, error) {
 	defer closeRows(rows)
 
 	var id, blockDelay uint32
-	var name, icon, gasTokenSymbol, exploreUrl, rpcUrl, contract string
-
+	var name, icon, gasTokenSymbol, exploreUrl, rpcUrl, contract, dropGasAmt string
+	var suggestedBaseFee float64
 	var tps []*webapi.Chain
+
 	for rows.Next() {
-		err = rows.Scan(&id, &name, &icon, &blockDelay, &gasTokenSymbol, &exploreUrl, &rpcUrl, &contract)
+		err = rows.Scan(&id, &name, &icon, &blockDelay, &gasTokenSymbol, &exploreUrl, &rpcUrl, &contract, &dropGasAmt, &suggestedBaseFee)
 		if err != nil {
 			return nil, err
 		}
 		tp := &webapi.Chain{
-			Id:             id,
-			Name:           name,
-			Icon:           icon,
-			BlockDelay:     blockDelay,
-			GasTokenSymbol: gasTokenSymbol,
-			ExploreUrl:     exploreUrl,
-			ContractAddr:   contract,
+			Id:               id,
+			Name:             name,
+			Icon:             icon,
+			BlockDelay:       blockDelay,
+			GasTokenSymbol:   gasTokenSymbol,
+			ExploreUrl:       exploreUrl,
+			ContractAddr:     contract,
+			DropGasAmt:       dropGasAmt,
+			SuggestedBaseFee: suggestedBaseFee,
 		}
 		tps = append(tps, tp)
 	}
 	return tps, nil
 }
-func (d *DAL) UpsertChainUIInfo(id uint64, name, icon, url, gasTokenSymbol, exploreUrl, rpcUrl string) error {
-	q := `INSERT INTO chain (id, name, icon, tx_url, gas_token_symbol, explore_url, rpc_url)
-                VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (id) DO UPDATE
-	SET name=$2, icon=$3, tx_url=$4, gas_token_symbol=$5, explore_url=$6, rpc_url=$7`
-	res, err := d.Exec(q, id, name, icon, url, gasTokenSymbol, exploreUrl, rpcUrl)
+func (d *DAL) UpsertChainUIInfo(id uint64, name, icon, url, gasTokenSymbol, exploreUrl, rpcUrl, dropGasAmt string, suggestedBaseFee float64) error {
+	q := `INSERT INTO chain (id, name, icon, tx_url, gas_token_symbol, explore_url, rpc_url, drop_gas_amt, suggested_base_fee)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (id) DO UPDATE
+	SET name=$2, icon=$3, tx_url=$4, gas_token_symbol=$5, explore_url=$6, rpc_url=$7, drop_gas_amt=$8, suggested_base_fee=9`
+	res, err := d.Exec(q, id, name, icon, url, gasTokenSymbol, exploreUrl, rpcUrl, dropGasAmt, suggestedBaseFee)
 	return sqldb.ChkExec(res, err, 1, "UpsertChainInfo")
 }
 
@@ -266,19 +274,22 @@ func (d *DAL) GetChain(id uint64) (*webapi.Chain, string, bool, error) {
 	if cache != nil {
 		return cache, url, true, nil
 	}
-	var name, icon, txUrl, gasTokenSymbol, exploreUrl, rpcUrl, contract string
+	var name, icon, txUrl, gasTokenSymbol, exploreUrl, rpcUrl, contract, dropGasAmt string
 	var blockDelay uint32
-	q := `SELECT name, icon, tx_url, block_delay, gas_token_symbol, explore_url, rpc_url, contract FROM chain where id=$1`
-	err := d.QueryRow(q, id).Scan(&name, &icon, &txUrl, &blockDelay, &gasTokenSymbol, &exploreUrl, &rpcUrl, &contract)
+	var suggestedBaseFee float64
+	q := `SELECT name, icon, tx_url, block_delay, gas_token_symbol, explore_url, rpc_url, contract, drop_gas_amt, suggested_base_fee FROM chain where id=$1`
+	err := d.QueryRow(q, id).Scan(&name, &icon, &txUrl, &blockDelay, &gasTokenSymbol, &exploreUrl, &rpcUrl, &contract, &dropGasAmt, &suggestedBaseFee)
 	found, err := sqldb.ChkQueryRow(err)
 	chain := &webapi.Chain{
-		Id:             uint32(id),
-		Name:           name,
-		Icon:           icon,
-		BlockDelay:     blockDelay,
-		GasTokenSymbol: gasTokenSymbol,
-		ExploreUrl:     exploreUrl,
-		ContractAddr:   contract,
+		Id:               uint32(id),
+		Name:             name,
+		Icon:             icon,
+		BlockDelay:       blockDelay,
+		GasTokenSymbol:   gasTokenSymbol,
+		ExploreUrl:       exploreUrl,
+		ContractAddr:     contract,
+		DropGasAmt:       dropGasAmt,
+		SuggestedBaseFee: suggestedBaseFee,
 	}
 	if found && err == nil {
 		SetChainCache(chain, txUrl)

@@ -30,13 +30,15 @@ func (gs *GatewayService) UpdateChain(ctx context.Context, request *webapi.Updat
 			},
 		}, nil
 	}
-	var name, icon, gasTokenSymbol, exploreUrl string
+	var name, icon, gasTokenSymbol, exploreUrl, dropGasAmt string
+	var suggestedBaseFee float64
 	chainInDb, url, chainFound, err := dal.DB.GetChain(chainId)
 	if chainInDb != nil && chainFound && err == nil {
 		name = chainInDb.GetName()
 		icon = chainInDb.GetIcon()
 		gasTokenSymbol = chainInDb.GetGasTokenSymbol()
 		exploreUrl = chainInDb.GetExploreUrl()
+		dropGasAmt = chainInDb.GetDropGasAmt()
 	}
 	if chainInput.GetName() != "" {
 		name = chainInput.GetName()
@@ -53,8 +55,14 @@ func (gs *GatewayService) UpdateChain(ctx context.Context, request *webapi.Updat
 	if chainInput.GetExploreUrl() != "" {
 		exploreUrl = chainInput.GetExploreUrl()
 	}
+	if chainInput.GetDropGasAmt() != "" {
+		dropGasAmt = chainInput.GetDropGasAmt()
+	}
+	if chainInput.GetSuggestedBaseFee() != 0 {
+		suggestedBaseFee = chainInput.GetSuggestedBaseFee()
+	}
 
-	dal.DB.UpsertChainUIInfo(chainId, name, icon, url, gasTokenSymbol, exploreUrl, "")
+	dal.DB.UpsertChainUIInfo(chainId, name, icon, url, gasTokenSymbol, exploreUrl, "", dropGasAmt, suggestedBaseFee)
 	chainInDb, url, _, _ = dal.DB.GetChain(chainId)
 	return &webapi.UpdateChainResponse{
 		Chain:       chainInDb,

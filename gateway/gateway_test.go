@@ -179,8 +179,8 @@ func TestTokenAndFee(t *testing.T) {
 }
 
 func mockChian() {
-	dal.DB.UpsertChainUIInfo(883, "chain1", "test1", "url1", "xxx", "url1", "url1")
-	dal.DB.UpsertChainUIInfo(884, "chain2", "test2", "url2", "yyy", "url2", "url2")
+	dal.DB.UpsertChainUIInfo(883, "chain1", "test1", "url1", "xxx", "url1", "url1", "0", 1.2)
+	dal.DB.UpsertChainUIInfo(884, "chain2", "test2", "url2", "yyy", "url2", "url2", "0", 1.2)
 }
 func TestCampaign(t *testing.T) {
 	_db := dal.NewDAL(stSvr)

@@ -56,7 +56,7 @@ func (gs *GatewayService) UpdateTokenPrice2S3() {
 			tokenMap[token.GetSymbol()] = true
 		}
 	}
-	symbol2chainIds, chainId2Symbol, err := dal.DB.GetAllChainAndGasToken()
+	symbol2chainIds, chainId2Symbol, chainId2DropGas, chainId2SuggestedBaseFee, err := dal.DB.GetAllChainAndGasToken()
 	if err != nil {
 		log.Errorln("failed to GetAllChainAndGasToken: err ", err)
 		return
@@ -65,7 +65,7 @@ func (gs *GatewayService) UpdateTokenPrice2S3() {
 	c := &types.CbrPrice{
 		UpdateEpoch: uint64(time.Now().UnixNano() / 1000000),
 		AssetPrice:  gs.PrepareAssetPrice(tokenMap, symbol2chainIds),
-		GasPrice:    gs.PrepareGasPrice(chainId2Symbol),
+		GasPrice:    gs.PrepareGasPrice(chainId2Symbol, chainId2DropGas, chainId2SuggestedBaseFee),
 	}
 
 	marshaler := jsonpb.Marshaler{}
@@ -105,8 +105,9 @@ func UploadFile(content string) {
 	return
 }
 
-func (gs *GatewayService) PrepareGasPrice(chainId2Symbol map[uint64]string) (gp []*types.GasPrice) {
-	for chainId := range chainId2Symbol {
+func (gs *GatewayService) PrepareGasPrice(chainId2Symbol map[uint64]string, chainId2DropGas map[uint64]string,
+	chainId2SuggestedBaseFee map[uint64]float64) (gp []*types.GasPrice) {
+	for chainId, symbol := range chainId2Symbol {
 		var price *big.Int
 		var err error
 		switch chainId {
@@ -137,10 +138,38 @@ func (gs *GatewayService) PrepareGasPrice(chainId2Symbol map[uint64]string) (gp 
 		}
 		gp = append(gp, &types.GasPrice{
 			ChainId: chainId,
-			Price:   price.String(),
+			Price:   gs.calcGasPriceShouldRaiseDueToGasDrop(chainId, symbol, price, chainId2DropGas, chainId2SuggestedBaseFee).String(),
 		})
 	}
 	return gp
+}
+
+func (gs *GatewayService) calcGasPriceShouldRaiseDueToGasDrop(chainId uint64, gasTokenSymbol string, originalGasPrice *big.Int,
+	chainId2DropGas map[uint64]string, chainId2SuggestedBaseFee map[uint64]float64) *big.Int {
+	gasTokenPrice, err := gs.F.GetUsdPrice(gasTokenSymbol)
+	if err != nil {
+		log.Errorln("fail to GetUsdPrice,", err)
+		return originalGasPrice
+	}
+	droppedGasTokenAmtStr := chainId2DropGas[chainId]
+	droppedGasTokenAmt, b := big.NewInt(0).SetString(droppedGasTokenAmtStr, 10)
+	if !b || droppedGasTokenAmt.Cmp(big.NewInt(0)) <= 0 {
+		return originalGasPrice
+	}
+	droppedGasTokenAmt.Quo(droppedGasTokenAmt, big.NewInt(0).Exp(big.NewInt(10), big.NewInt(18), nil))
+	droppedGasF := big.NewFloat(0).SetInt(droppedGasTokenAmt)
+	droppedGasF.Mul(droppedGasF, big.NewFloat(gasTokenPrice))
+	originalBaseFee := big.NewFloat(chainId2SuggestedBaseFee[chainId])
+	// quo = originalBaseFee / originalGasPrice
+	quo := big.NewFloat(0).Quo(originalBaseFee, big.NewFloat(0).SetInt(originalGasPrice))
+	// add = originalBaseFee + droppedGas
+	add := big.NewFloat(0).Add(originalBaseFee, droppedGasF)
+	// manipulatedGasPrice = (originalBaseFee + droppedGas) / originalBaseFee * originalGasPrice
+	manipulatedGasPrice := big.NewFloat(0).Quo(add, quo)
+	u, _ := manipulatedGasPrice.Uint64()
+	newGasPrice := big.NewInt(0).SetUint64(u)
+	log.Debugln("raise gas price due to gas drop on arrival, before:", originalGasPrice.String(), ", after:", newGasPrice.String())
+	return newGasPrice
 }
 
 // calcOptimismEffectiveGasPrice calculates the effective gas price using the heuristic

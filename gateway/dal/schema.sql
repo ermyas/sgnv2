@@ -88,7 +88,9 @@ CREATE TABLE IF NOT EXISTS chain (
      gas_token_symbol TEXT NOT NULL DEFAULT '',
      explore_url TEXT NOT NULL DEFAULT '',
      rpc_url TEXT NOT NULL DEFAULT '',
-     contract TEXT NOT NULL DEFAULT ''
+     contract TEXT NOT NULL DEFAULT '',
+     drop_gas_amt TEXT NOT NULL DEFAULT '0', -- in wei
+     suggested_base_fee FLOAT NOT NULL DEFAULT 0 -- in USD
 );
 
 CREATE TABLE IF NOT EXISTS claim_withdraw_reward_log (

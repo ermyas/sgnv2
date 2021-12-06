@@ -179,7 +179,7 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 		}
 	}
 
-	symbol2chainIds, _, err := dal.DB.GetAllChainAndGasToken()
+	symbol2chainIds, _, _, _, err := dal.DB.GetAllChainAndGasToken()
 	if err != nil {
 		return fmt.Errorf("failed to GetAllChainAndGasToken")
 	}

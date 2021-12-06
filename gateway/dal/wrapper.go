@@ -7,6 +7,7 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	"math/big"
 )
 
 // THIS FILE IS TO BE DELETED WHEN GATEWAY OFFICIALLY SEPARATES FROM SGN
@@ -219,6 +220,28 @@ func GetTransferByRefundSeqNum(chainId, seqNum uint64, usrAddr string) (string, 
 		return "", false, noDBErrorForQuery()
 	} else {
 		return DB.GetTransferByRefundSeqNum(chainId, seqNum, usrAddr)
+	}
+}
+
+func GetGasOnArrival(transferId string) (dropGasAmt *big.Int, userAddr *common.Addr, chainId uint64, needDrop bool, err error) {
+	if DB == nil {
+		return nil, nil, 0, false, noDBErrorForQuery()
+	} else {
+		transfer, b, err := DB.GetTransfer(transferId)
+		if err != nil || !b {
+			log.Errorln("can't find transfer info at gateway, ", transferId)
+			return nil, nil, 0, false, err
+		}
+		chain, _ := GetChainCache(transfer.DstChainId)
+		if transfer.TokenSymbol == "WETH" {
+			return nil, nil, 0, false, nil
+		}
+		dropGasAmt, b := big.NewInt(0).SetString(chain.GetDropGasAmt(), 10)
+		if !b {
+			return nil, nil, 0, false, nil
+		}
+		usrAddr := common.Hex2Addr(transfer.UsrAddr)
+		return dropGasAmt, &usrAddr, transfer.DstChainId, true, nil
 	}
 }
 
