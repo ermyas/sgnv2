@@ -29,7 +29,6 @@ func main() {
 		return
 	}
 	go es.StartScheduleJob()
-	go es.StartRefreshTotalStat()
 	// start a rpc server
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", config.GrpcPort))
 	if err != nil {
