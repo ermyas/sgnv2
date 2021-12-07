@@ -140,7 +140,7 @@ func queryChainTokensConfig(ctx sdk.Context, req abci.RequestQuery, k Keeper, le
 	for _, a := range mca.Assets {
 		occ, ok := mccMap[a.ChainId]
 		if !ok {
-			log.Warnln("chain %d is not configured in multichain, assume it's off shelf", a.ChainId)
+			log.Warnf("chain %d is not configured in multichain, assume it's off shelf", a.ChainId)
 			occ = &common.OneChainConfig{}
 		}
 

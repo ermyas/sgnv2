@@ -193,6 +193,7 @@ func (d *DAL) AddFeeRebateFee(transferId string) {
 		if err != nil {
 			log.Errorln("failed to UpsertFeeRebateRecord:", err)
 		}
+		log.Infoln("UpsertFeeRebateRecord ", transfer.UsrAddr, " eventId:", FeeRebateEventId, " add fee:", feeUsdPrice)
 	}
 }
 
