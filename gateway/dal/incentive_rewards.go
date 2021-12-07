@@ -78,8 +78,8 @@ type FeeRebateLevelConfig struct {
 
 var FeeRebateConfig = map[uint64]*FeeRebateEvent{
 	10000: {
-		EventStartTime:          time.Date(2021, time.December, 6, 0, 0, 0, 0, time.UTC),
-		EventEndTime:            time.Date(2021, time.December, 7, 0, 0, 0, 0, time.UTC),
+		EventStartTime:          time.Date(2021, time.December, 8, 0, 0, 0, 0, time.UTC),
+		EventEndTime:            time.Date(2021, time.December, 9, 0, 0, 0, 0, time.UTC),
 		LevelDivisionUpperbound: []float64{100, 1000, 10000},
 		LevelConfig: map[uint64]*FeeRebateLevelConfig{
 			1: {
@@ -168,18 +168,18 @@ func (d *DAL) GetFeeRebateRecord(addr string, eventId uint64) (
 	return rewardAmt, rebatePortion, claimTime, signature, totalFee, found, err
 }
 
-func AddFeeRebateFee(transferId string) {
-	transfer, found, err := DB.GetTransfer(transferId)
+func (d *DAL) AddFeeRebateFee(transferId string) {
+	transfer, found, err := d.GetTransfer(transferId)
 	if err != nil || !found {
 		log.Errorln("not possible finding transfer:", transferId)
 		return
 	}
-	srcToken, _, _ := DB.GetTokenBySymbol(transfer.TokenSymbol, transfer.SrcChainId)
-	dstToken, _, _ := DB.GetTokenBySymbol(transfer.TokenSymbol, transfer.DstChainId)
+	srcToken, _, _ := d.GetTokenBySymbol(transfer.TokenSymbol, transfer.SrcChainId)
+	dstToken, _, _ := d.GetTokenBySymbol(transfer.TokenSymbol, transfer.DstChainId)
 	srcAmt := rmAmtDec(transfer.SrcAmt, int(srcToken.GetToken().Decimal))
 	dstAmt := rmAmtDec(transfer.DstAmt, int(dstToken.GetToken().Decimal))
 	if dstAmt < srcAmt {
-		price, err := DB.GetUsdPrice(transfer.TokenSymbol)
+		price, err := d.GetUsdPrice(transfer.TokenSymbol)
 		if err != nil {
 			log.Errorln("not possible GetUsdPrice:", transfer.TokenSymbol)
 			return
@@ -189,9 +189,9 @@ func AddFeeRebateFee(transferId string) {
 		if time.Now().Before(event.EventStartTime) || time.Now().After(event.EventEndTime) {
 			return
 		}
-		err = DB.UpsertFeeRebateRecord(transfer.UsrAddr, FeeRebateEventId, feeUsdPrice)
+		err = d.upsertFeeRebateRecord(transfer.UsrAddr, FeeRebateEventId, feeUsdPrice)
 		if err != nil {
-			log.Errorln("failed to UpsertFeeRebateRecord:", err)
+			log.Errorln("failed to upsertFeeRebateRecord:", err)
 		}
 	}
 }
@@ -201,7 +201,7 @@ func rmAmtDec(amt string, decimal int) float64 {
 	return f
 }
 
-func (d *DAL) UpsertFeeRebateRecord(addr string, eventId uint64, fee float64) error {
+func (d *DAL) upsertFeeRebateRecord(addr string, eventId uint64, fee float64) error {
 	q := `insert into fee_rebate_log
           (usr_addr, event_id, total_fee)
           values($1, $2, $3)
@@ -209,7 +209,7 @@ func (d *DAL) UpsertFeeRebateRecord(addr string, eventId uint64, fee float64) er
           DO UPDATE
 	      SET total_fee = total_fee + $3`
 	res, err := d.Exec(q, addr, eventId, fee)
-	return sqldb.ChkExec(res, err, 1, "UpsertFeeRebateRecord")
+	return sqldb.ChkExec(res, err, 1, "upsertFeeRebateRecord")
 }
 
 func (d *DAL) ClaimFeeRebateRecord(addr string, eventId uint64, rewardAmt *big.Int, rebatePortion float64,

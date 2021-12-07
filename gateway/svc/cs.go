@@ -258,7 +258,7 @@ func (gs *GatewayService) fixTxEventMiss(ctx context.Context, txHash string, cha
 				if err != nil {
 					return err
 				}
-				err = relayer.GatewayOnRelay(gs.Chains.GetEthClient(uint64(chainId)), transfer.TransferId, "", relayOnChain.GetRelayOnChainTransferId().String(), new(big.Int).SetBytes(relayOnChain.GetAmount()).String())
+				err = relayer.GatewayOnRelay(transfer.TransferId, "", relayOnChain.GetRelayOnChainTransferId().String(), new(big.Int).SetBytes(relayOnChain.GetAmount()).String())
 				if err != nil {
 					return err
 				}
