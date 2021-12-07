@@ -206,7 +206,7 @@ func (d *DAL) UpsertFeeRebateRecord(addr string, eventId uint64, fee float64) er
           (usr_addr, event_id, total_fee)
           VALUES ($1, $2, $3)
           ON CONFLICT (usr_addr, event_id)
-          DO UPDATE SET total_fee = excluded.total_fee + $3`
+          DO UPDATE SET total_fee = excluded.total_fee + fee_rebate_log.total_fee`
 	res, err := d.Exec(q, addr, eventId, fee)
 	return sqldb.ChkExec(res, err, 1, "UpsertFeeRebateRecord")
 }

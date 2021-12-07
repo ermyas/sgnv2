@@ -180,7 +180,7 @@ func (c *OneChain) monRelay(blk *big.Int) {
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 
-		err = GatewayOnRelay(common.Hash(ev.SrcTransferId).String(), eLog.TxHash.String(), common.Hash(ev.TransferId).String(), ev.Amount.String())
+		err = GatewayOnRelay(c.Client, common.Hash(ev.SrcTransferId).String(), eLog.TxHash.String(), common.Hash(ev.TransferId).String(), ev.Amount.String())
 		if err != nil {
 			log.Warnf("UpdateTransfer err: %s, srcId %x, dstId %x, txHash %x, chainId %d", err, ev.SrcTransferId, ev.TransferId, eLog.TxHash, c.chainid)
 		}
