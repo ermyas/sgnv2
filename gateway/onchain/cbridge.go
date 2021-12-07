@@ -44,6 +44,8 @@ type OneChain struct {
 // key is chainid
 type ChainMgr map[uint64]*OneChain
 
+var Chains ChainMgr
+
 func InitChainMgr(db *dal.DAL) ChainMgr {
 	var mcc []*common.OneChainConfig
 	err := viper.UnmarshalKey(common.FlagMultiChain, &mcc)
@@ -57,6 +59,7 @@ func InitChainMgr(db *dal.DAL) ChainMgr {
 		log.Infof("Add cbridge chain: %+v", onecfg)
 		ret[onecfg.ChainID] = newOneChain(onecfg, watcherDal)
 	}
+	Chains = ret
 	return ret
 }
 

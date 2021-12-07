@@ -12,7 +12,6 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/onchain"
-	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/ops"
 	"github.com/celer-network/sgn-v2/relayer"
@@ -216,7 +215,7 @@ func (gs *GatewayService) fixTxEventMiss(ctx context.Context, txHash string, cha
 		return fmt.Errorf("error cs type, only tx or lp_add is valid")
 	}
 
-	elog, err := utils.GetELog(uint64(chainId), txHash, eventName)
+	elog, err := onchain.GetCbrLog(uint64(chainId), txHash, eventName)
 	if err != nil {
 		return err
 	}
