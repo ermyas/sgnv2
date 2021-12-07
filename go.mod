@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go v1.41.15
 	github.com/celer-network/endpoint-proxy v0.0.5
 	github.com/celer-network/goutils v0.1.41
-	github.com/cosmos/cosmos-sdk v0.44.5
+	github.com/cosmos/cosmos-sdk v0.44.4
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/deckarep/golang-set v1.7.1
 	github.com/ethereum/go-ethereum v1.10.8
