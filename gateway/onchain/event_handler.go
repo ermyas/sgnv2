@@ -18,7 +18,8 @@ func GatewayOnSend(transferId, usrAddr, tokenAddr, amt, sendTxHash string, srcCh
 	}
 	estimatedAmt, err := getEstimatedAmt(srcChainId, dsChainId, token, amt)
 	if err != nil {
-		return nil
+		log.Warnf("estimateAmt on send for transferId:%s failed, err:%s", transferId, err.Error())
+		estimatedAmt = "0"
 	}
 	volume, getVolumeErr := dal.DB.GetUsdVolume(token.GetToken().GetSymbol(), srcChainId, common.Str2BigInt(amt))
 	if getVolumeErr != nil {

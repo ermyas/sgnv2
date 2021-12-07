@@ -75,5 +75,8 @@ func getEstimatedAmt(srcChainId, dstChainId uint64, srcToken *webapi.TokenInfo, 
 	baseFee := feeInfo.GetBaseFee()
 	feeAmt := new(big.Int).Add(common.Str2BigInt(percFee), common.Str2BigInt(baseFee))
 	estimateReceivedAmt := new(big.Int).Sub(common.Str2BigInt(eqValueTokenAmt), feeAmt)
+	if estimateReceivedAmt.Cmp(new(big.Int).SetInt64(0)) < 0 {
+		return "0", fmt.Errorf("got invalid estimateReceivedAmt:%s,eqValueTokenAmt:%s, percFee:%s, baseFee:%s, use 0 instead", eqValueTokenAmt, percFee, baseFee, estimateReceivedAmt.String())
+	}
 	return estimateReceivedAmt.String(), nil
 }
