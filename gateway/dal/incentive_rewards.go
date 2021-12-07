@@ -169,6 +169,10 @@ func (d *DAL) GetFeeRebateRecord(addr string, eventId uint64) (
 }
 
 func (d *DAL) AddFeeRebateFee(transferId string) {
+	event := FeeRebateConfig[FeeRebateEventId]
+	if time.Now().Before(event.EventStartTime) || time.Now().After(event.EventEndTime) {
+		return
+	}
 	transfer, found, err := d.GetTransfer(transferId)
 	if err != nil || !found {
 		log.Errorln("not possible finding transfer:", transferId)
@@ -185,13 +189,9 @@ func (d *DAL) AddFeeRebateFee(transferId string) {
 			return
 		}
 		feeUsdPrice := (srcAmt - dstAmt) * price
-		event := FeeRebateConfig[FeeRebateEventId]
-		if time.Now().Before(event.EventStartTime) || time.Now().After(event.EventEndTime) {
-			return
-		}
-		err = d.upsertFeeRebateRecord(transfer.UsrAddr, FeeRebateEventId, feeUsdPrice)
+		err = d.UpsertFeeRebateRecord(transfer.UsrAddr, FeeRebateEventId, feeUsdPrice)
 		if err != nil {
-			log.Errorln("failed to upsertFeeRebateRecord:", err)
+			log.Errorln("failed to UpsertFeeRebateRecord:", err)
 		}
 	}
 }
@@ -201,15 +201,14 @@ func rmAmtDec(amt string, decimal int) float64 {
 	return f
 }
 
-func (d *DAL) upsertFeeRebateRecord(addr string, eventId uint64, fee float64) error {
-	q := `insert into fee_rebate_log
-          (usr_addr, event_id, fee_rebate_log.total_fee)
-          values($1, $2, $3)
-          on conflict (usr_addr, event_id)
-          DO UPDATE
-	      SET fee_rebate_log.total_fee = fee_rebate_log.total_fee + $3`
+func (d *DAL) UpsertFeeRebateRecord(addr string, eventId uint64, fee float64) error {
+	q := `INSERT INTO fee_rebate_log
+          (usr_addr, event_id, total_fee)
+          VALUES ($1, $2, $3)
+          ON CONFLICT (usr_addr, event_id)
+          DO UPDATE SET total_fee = excluded.total_fee + $3`
 	res, err := d.Exec(q, addr, eventId, fee)
-	return sqldb.ChkExec(res, err, 1, "upsertFeeRebateRecord")
+	return sqldb.ChkExec(res, err, 1, "UpsertFeeRebateRecord")
 }
 
 func (d *DAL) ClaimFeeRebateRecord(addr string, eventId uint64, rewardAmt *big.Int, rebatePortion float64,

@@ -273,3 +273,20 @@ func TestRetentionRewards(t *testing.T) {
 	t.Log("", record, amt, claimTime, signature, found)
 	return
 }
+
+func TestFeeRebate(t *testing.T) {
+	_db := dal.NewDAL(stSvr)
+	defer _db.Close()
+
+	dal.DB = _db
+
+	addr := "0x1111111111111111111111111111111111111111"
+	err := dal.DB.UpsertFeeRebateRecord(addr, 10000, 20.9)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	err = dal.DB.UpsertFeeRebateRecord(addr, 10000, 10.1)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+}
