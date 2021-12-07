@@ -12,7 +12,7 @@ import (
 )
 
 func SendWithdrawAlert(addr, withdraw, deposit, delta, token string) {
-	msg := fmt.Sprintf("withdraw refused, total withdraw more than %s of total deposit, token:`%s`, usr_addr: `%s`, has deposited:`%s`, has withdrawt: `%s`, want to withdraw:`%s`", "105%", token, addr, deposit, withdraw, delta)
+	msg := fmt.Sprintf("withdraw refused, total withdraw more than %s of total deposit, token:`%s`, usr_addr: `%s`, has deposited:`%s`, has withdrawn: `%s`, want to withdraw:`%s`", "105%", token, addr, deposit, withdraw, delta)
 	if viper.GetString("env") == "prod" {
 		sendSlackP1AlertProd("Withdraw 105% Deposit Alert", msg)
 	} else if viper.GetString("env") == "test" {

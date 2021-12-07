@@ -1,18 +1,7 @@
 package onchain
 
 import (
-	"context"
 	"fmt"
-	ethutils "github.com/celer-network/goutils/eth"
-	"github.com/celer-network/sgn-v2/eth"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/spf13/viper"
-	"io/ioutil"
-	"math/big"
-	"strings"
-	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -40,7 +29,7 @@ func GatewayOnSend(transferId, usrAddr, tokenAddr, amt, sendTxHash string, srcCh
 	return dal.DB.UpsertTransferOnSend(transferId, usrAddr, token, amt, estimatedAmt, sendTxHash, srcChainId, dsChainId, volume, getFeePerc(srcChainId, dsChainId))
 }
 
-func GatewayOnRelay(c *ethclient.Client, transferId, txHash, dstTransferId, amt string) error {
+func GatewayOnRelay(transferId, txHash, dstTransferId, amt string) error {
 	_, isDelayed, err := dal.DB.GetDelayedOp(dstTransferId)
 	if err != nil {
 		return err
@@ -48,12 +37,7 @@ func GatewayOnRelay(c *ethclient.Client, transferId, txHash, dstTransferId, amt 
 	if isDelayed {
 		dal.DB.UpdateDelayedOpType(dstTransferId, dal.DelayedOpTransfer)
 	}
-	err = dal.DB.TransferCompleted(transferId, txHash, dstTransferId, amt, isDelayed)
-	if err == nil {
-		dal.DB.AddFeeRebateFee(transferId)
-		sendGasOnArrival(c, transferId)
-	}
-	return err
+	return dal.DB.TransferCompleted(transferId, txHash, dstTransferId, amt, isDelayed)
 }
 
 func GatewayOnLiqWithdraw(id, tx string, chid, seq uint64, addr string) {
@@ -256,67 +240,4 @@ func GatewayOnDelayXferExec(id string, txHash string) error {
 		return fmt.Errorf("cannot process DelayedTransferExecuted with id %s: the fetched record has an unknown type %d", id, t)
 	}
 	return nil
-}
-
-func sendGasOnArrival(c *ethclient.Client, transferId string) {
-	dropGasAmt, userAddr, chainId, needDrop, err := dal.GetGasOnArrival(transferId)
-	if err != nil {
-		log.Errorln("fail to GetGasOnArrival, ", err)
-		return
-	}
-	if needDrop {
-		var ksBytes []byte
-		ksBytes, err = ioutil.ReadFile(viper.GetString(common.FlagGatewayIncentiveRewardsKeystore))
-		if err != nil {
-			log.Errorln("fail to get FlagGatewayIncentiveRewardsKeystore ", err)
-			return
-		}
-		ksAddrStr, err := eth.GetAddressFromKeystore(ksBytes)
-		if err != nil {
-			log.Errorln("fail to get GetAddressFromKeystore ", err)
-			return
-		}
-		auth, err := bind.NewTransactorWithChainID(strings.NewReader(string(ksBytes)), viper.GetString(common.FlagEthSignerPassphrase), big.NewInt(int64(chainId)))
-		if err != nil {
-			log.Errorln("fail to get NewTransactorWithChainID ", err)
-			return
-		}
-		auth.Value = dropGasAmt
-		ctx := context.Background()
-		acctAddr := eth.Hex2Addr(ksAddrStr)
-		nonce, err := c.PendingNonceAt(ctx, acctAddr)
-		if err != nil {
-			log.Errorln("fail to get PendingNonceAt ", err)
-			return
-		}
-		gasPrice, err := c.SuggestGasPrice(ctx)
-		if err != nil {
-			log.Errorln("fail to get SuggestGasPrice ", err)
-			return
-		}
-		txData := &ethtypes.DynamicFeeTx{
-			Nonce:     nonce,
-			GasTipCap: big.NewInt(0),
-			GasFeeCap: gasPrice,
-			Gas:       1000000,
-			To:        userAddr,
-			Value:     auth.Value,
-			Data:      nil,
-		}
-		tx := ethtypes.NewTx(txData)
-		tx, err = auth.Signer(acctAddr, tx)
-		if err != nil {
-			log.Errorln("fail to Signer ", err)
-			return
-		}
-
-		err = c.SendTransaction(ctx, tx)
-		if err != nil {
-			log.Errorln("fail to SendTransaction ", err)
-			return
-		}
-		_, err = ethutils.WaitMined(context.Background(), c, tx, ethutils.WithBlockDelay(1), ethutils.WithPollingInterval(time.Second*5))
-		log.Infoln("send gas on arrival to ", userAddr, " on chain ", chainId, " dropGasAmt:", dropGasAmt)
-		return
-	}
 }

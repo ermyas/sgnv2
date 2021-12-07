@@ -14,7 +14,6 @@ import (
 	"github.com/celer-network/sgn-v2/gateway/onchain"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/ops"
-	"github.com/celer-network/sgn-v2/relayer"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -40,7 +39,7 @@ func (gs *GatewayService) GetInfoByTxHash(ctx context.Context, request *webapi.G
 			Info: "can not find tx or error tx status, please check again",
 		}, nil
 	}
-	return gs.checkCaseStatus(ctx, request.GetType(), request.GetTxHash(), request.GetChainId()), nil
+	return gs.checkCaseStatus(ctx, request.GetType(), request.GetTxHash(), request.GetChainId(), request.GetType()), nil
 }
 
 func (gs *GatewayService) FixEventMiss(ctx context.Context, request *webapi.FixEventMissRequest) (*webapi.FixEventMissResponse, error) {
@@ -65,7 +64,7 @@ func (gs *GatewayService) FixEventMiss(ctx context.Context, request *webapi.FixE
 	status := request.GetType()
 	switch status {
 	case webapi.CSType_CT_TX:
-		err := gs.fixTx(ctx, txHash, chainId)
+		err := gs.fixTx(ctx, txHash, chainId, status)
 		if err != nil {
 			return &webapi.FixEventMissResponse{
 				Err: &webapi.ErrMsg{
@@ -77,7 +76,7 @@ func (gs *GatewayService) FixEventMiss(ctx context.Context, request *webapi.FixE
 	case webapi.CSType_CT_LP_ADD:
 		lpAddr, err := gs.getAddrFromHash(ctx, txHash, uint64(chainId))
 		if err == nil {
-			err = gs.fixLp(ctx, txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_REMOVE)
+			err = gs.fixLp(ctx, txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_ADD, status)
 		}
 		if err != nil {
 			return &webapi.FixEventMissResponse{
@@ -90,7 +89,7 @@ func (gs *GatewayService) FixEventMiss(ctx context.Context, request *webapi.FixE
 	case webapi.CSType_CT_LP_RM:
 		lpAddr, err := gs.getAddrFromHash(ctx, txHash, uint64(chainId))
 		if err == nil {
-			err = gs.fixLp(ctx, txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_REMOVE)
+			err = gs.fixLp(ctx, txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_REMOVE, status)
 		}
 
 		if err != nil {
@@ -105,10 +104,10 @@ func (gs *GatewayService) FixEventMiss(ctx context.Context, request *webapi.FixE
 	return &webapi.FixEventMissResponse{}, nil
 }
 
-func (gs *GatewayService) checkCaseStatus(ctx context.Context, status webapi.CSType, txHash string, chainId uint32) *webapi.GetInfoByTxHashResponse {
+func (gs *GatewayService) checkCaseStatus(ctx context.Context, status webapi.CSType, txHash string, chainId uint32, csType webapi.CSType) *webapi.GetInfoByTxHashResponse {
 	switch status {
 	case webapi.CSType_CT_TX:
-		return gs.diagnosisTx(ctx, txHash, chainId)
+		return gs.diagnosisTx(ctx, txHash, chainId, csType)
 	case webapi.CSType_CT_LP_ADD:
 		lpAddr, err := gs.getAddrFromHash(ctx, txHash, uint64(chainId))
 		if err != nil {
@@ -116,7 +115,7 @@ func (gs *GatewayService) checkCaseStatus(ctx context.Context, status webapi.CST
 				Info: "can not find lp addr from txHash and chainId",
 			}
 		}
-		return gs.diagnosisLp(ctx, txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_ADD)
+		return gs.diagnosisLp(ctx, txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_ADD, csType)
 	case webapi.CSType_CT_LP_RM:
 		lpAddr, err := gs.getAddrFromHash(ctx, txHash, uint64(chainId))
 		if err != nil {
@@ -124,12 +123,12 @@ func (gs *GatewayService) checkCaseStatus(ctx context.Context, status webapi.CST
 				Info: "can not find lp addr from txHash and chainId",
 			}
 		}
-		return gs.diagnosisLp(ctx, txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_REMOVE)
+		return gs.diagnosisLp(ctx, txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_REMOVE, csType)
 	}
 	return &webapi.GetInfoByTxHashResponse{}
 }
 
-func (gs *GatewayService) diagnosisTx(ctx context.Context, txHash string, chainId uint32) *webapi.GetInfoByTxHashResponse {
+func (gs *GatewayService) diagnosisTx(ctx context.Context, txHash string, chainId uint32, csType webapi.CSType) *webapi.GetInfoByTxHashResponse {
 	resp := &webapi.GetInfoByTxHashResponse{
 		Operation: webapi.CSOperation_CA_NORMAL,
 		Memo:      NormalMsg,
@@ -172,8 +171,9 @@ func (gs *GatewayService) diagnosisTx(ctx context.Context, txHash string, chainI
 				"refundSeqNum: %d",
 			tx.TransferId, tx.TokenSymbol, tx.DstChainId, tx.Status.String(), tx.UsrAddr, tx.UT.String(), tx.CT.String(), srcAmt, dstAmt, tx.RefundTx, tx.RefundSeqNum)
 	} else {
-		if gs.isTxEventMissFixable(ctx, txHash, chainId) {
+		if gs.isTxEventMissFixable(ctx, txHash, chainId, csType) {
 			resp = newInfoResponse(webapi.CSOperation_CA_USE_RESYNC_TOOL, ToolMsg, webapi.UserCaseStatus_CC_TRANSFER_NO_HISTORY)
+			resp.Info = "no history found in backend, but you can try to fix it with fix button blow. After that, click 'search' again to check fix result"
 		} else {
 			resp = newInfoResponse(webapi.CSOperation_CA_MORE_INFO_NEEDED, CheckInputMsg, webapi.UserCaseStatus_CC_TRANSFER_NO_HISTORY)
 		}
@@ -181,11 +181,51 @@ func (gs *GatewayService) diagnosisTx(ctx context.Context, txHash string, chainI
 	return resp
 }
 
-func (gs *GatewayService) isTxEventMissFixable(ctx context.Context, txHash string, chainId uint32) bool {
+func (gs *GatewayService) isTxEventMissFixable(ctx context.Context, txHash string, chainId uint32, csType webapi.CSType) bool {
+	eventName := getEventName(csType)
+	if eventName == "" {
+		return false
+	}
 	cli := gs.Chains.GetEthClient(uint64(chainId))
 	if cli == nil {
 		return false
 	}
+	elog, err := onchain.GetCbrLog(uint64(chainId), txHash, eventName)
+	if err != nil || elog == nil {
+		return false
+	}
+
+	chain, _, _, _ := dal.DB.GetChain(uint64(chainId))
+	if chain != nil {
+		if elog.Address.String() != chain.ContractAddr {
+			log.Warnf("isTxEventMissFixable failed, chain id check failed, chainId:%d, addrOnChain:%s, addInTx:%s", chainId, chain.ContractAddr, elog.Address.String())
+			return false
+		}
+	} else {
+		return false
+	}
+	parser, err := eth.NewBridgeFilterer(eth.ZeroAddr, nil)
+
+	if err != nil {
+		return false
+	}
+	if csType == webapi.CSType_CT_TX {
+		_, parseErr := parser.ParseSend(*elog)
+		if parseErr != nil {
+			return false
+		}
+	} else if csType == webapi.CSType_CT_LP_ADD {
+		_, parseErr := parser.ParseLiquidityAdded(*elog)
+		if parseErr != nil {
+			return false
+		}
+	} else if csType == webapi.CSType_CT_LP_RM {
+		_, parseErr := parser.ParseWithdrawDone(*elog)
+		if parseErr != nil {
+			return false
+		}
+	}
+
 	receipt, err := cli.TransactionReceipt(ctx, eth.Hex2Hash(txHash))
 	if receipt == nil || err != nil {
 		return false
@@ -204,24 +244,33 @@ func (gs *GatewayService) isTxEventMissFixable(ctx context.Context, txHash strin
 	return false
 }
 
-func (gs *GatewayService) fixTxEventMiss(ctx context.Context, txHash string, chainId uint32, csType webapi.CSType) error {
+func getEventName(csType webapi.CSType) string {
 	eventName := ""
 	if csType == webapi.CSType_CT_TX {
 		eventName = "Send"
 	} else if csType == webapi.CSType_CT_LP_ADD {
 		eventName = "LiquidityAdded"
+	} else if csType == webapi.CSType_CT_LP_RM {
+		eventName = "WithdrawDone"
 	}
+	return eventName
+}
+
+func (gs *GatewayService) fixTxEventMiss(ctx context.Context, txHash string, chainId uint32, csType webapi.CSType) error {
+	eventName := getEventName(csType)
 	if eventName == "" {
 		return fmt.Errorf("error cs type, only tx or lp_add is valid")
 	}
 
 	elog, err := onchain.GetCbrLog(uint64(chainId), txHash, eventName)
-	if err != nil {
+	if elog == nil || err != nil {
+		log.Warnf("GetCbrLog failed,chainId:%d, txHash:%s, eventName:%s, elog:%+v, err:%+v", uint64(chainId), txHash, eventName, elog, err)
 		return err
 	}
 	parser, err := eth.NewBridgeFilterer(eth.ZeroAddr, nil)
 
-	if err != nil {
+	if parser == nil || err != nil {
+		log.Warnf("get parser failed, parser:%+v, err:%+v", parser, err)
 		return err
 	}
 
@@ -235,7 +284,7 @@ func (gs *GatewayService) fixTxEventMiss(ctx context.Context, txHash string, cha
 			return fmt.Errorf("parse failed from elog:%+v", elog)
 		}
 
-		err = relayer.GatewayOnSend(common.Hash(ev.TransferId).String(), ev.Sender.String(), ev.Token.String(), ev.Amount.String(), txHash, uint64(chainId), ev.DstChainId)
+		err = onchain.GatewayOnSend(common.Hash(ev.TransferId).String(), ev.Sender.String(), ev.Token.String(), ev.Amount.String(), txHash, uint64(chainId), ev.DstChainId)
 		if err != nil {
 			return err
 		}
@@ -258,7 +307,7 @@ func (gs *GatewayService) fixTxEventMiss(ctx context.Context, txHash string, cha
 				if err != nil {
 					return err
 				}
-				err = relayer.GatewayOnRelay(transfer.TransferId, "", relayOnChain.GetRelayOnChainTransferId().String(), new(big.Int).SetBytes(relayOnChain.GetAmount()).String())
+				err = onchain.GatewayOnRelay(transfer.TransferId, "", relayOnChain.GetRelayOnChainTransferId().String(), new(big.Int).SetBytes(relayOnChain.GetAmount()).String())
 				if err != nil {
 					return err
 				}
@@ -270,20 +319,25 @@ func (gs *GatewayService) fixTxEventMiss(ctx context.Context, txHash string, cha
 		if parseErr != nil {
 			return parseErr
 		}
+
 		if ev == nil {
 			return fmt.Errorf("parse failed from elog:%+v", elog)
 		}
+
 		token, found, dbErr := dal.DB.GetTokenByAddr(ev.Token.String(), uint64(chainId))
 		if !found || dbErr != nil {
 			return fmt.Errorf("token not found:%s, on chain%d", ev.Token.String(), chainId)
 		}
+
 		cli := gs.Chains.GetEthClient(uint64(chainId))
 		if cli == nil {
 			return fmt.Errorf("ec for chain:%d not found", chainId)
 		}
+
 		tx, _, txErr := cli.TransactionByHash(ctx, eth.Hex2Hash(txHash))
+
 		if tx != nil && txErr == nil {
-			err = relayer.GatewayOnLiqAdd(ev.Provider.String(), token.Token.Address, ev.Amount.String(), txHash, uint64(chainId), ev.Seqnum, tx.Nonce())
+			err = onchain.GatewayOnLiqAdd(ev.Provider.String(), token.Token.Address, ev.Amount.String(), txHash, uint64(chainId), ev.Seqnum, tx.Nonce())
 			if err != nil {
 				return err
 			}
@@ -294,6 +348,17 @@ func (gs *GatewayService) fixTxEventMiss(ctx context.Context, txHash string, cha
 		} else {
 			return fmt.Errorf("get nonce failed,chainId:%d, TxHash:%s, err: %s", chainId, txHash, txErr)
 		}
+	} else if csType == webapi.CSType_CT_LP_RM {
+		ev, parseErr := parser.ParseWithdrawDone(*elog)
+		if parseErr != nil {
+			return parseErr
+		}
+		idstr := common.Hash(ev.WithdrawId).String()
+		onchain.GatewayOnLiqWithdraw(idstr, elog.TxHash.String(), uint64(chainId), ev.Seqnum, ev.Receiver.String())
+		lpHistory, _, _, _ := dal.DB.PaginateLpHistory(ev.Receiver.String(), time.Now(), 1000)
+		if lpHistory != nil && len(lpHistory) > 0 {
+			gs.updateLpStatusInHistory(lpHistory)
+		}
 	}
 	return nil
 }
@@ -303,7 +368,7 @@ func rmAmtDec(amt string, decimal int) float64 {
 	return f
 }
 
-func (gs *GatewayService) diagnosisLp(ctx context.Context, txHash, lpAddr string, chainId uint32, lpType webapi.LPType) *webapi.GetInfoByTxHashResponse {
+func (gs *GatewayService) diagnosisLp(ctx context.Context, txHash, lpAddr string, chainId uint32, lpType webapi.LPType, csType webapi.CSType) *webapi.GetInfoByTxHashResponse {
 	resp := &webapi.GetInfoByTxHashResponse{
 		Operation: webapi.CSOperation_CA_NORMAL,
 		Memo:      NormalMsg,
@@ -321,7 +386,11 @@ func (gs *GatewayService) diagnosisLp(ctx context.Context, txHash, lpAddr string
 		caseStatus := mapLpStatus2CaseStatus(types.WithdrawStatus(status), lpType)
 		if ut.Add(OnChainTime).Before(time.Now()) {
 			if caseStatus == webapi.UserCaseStatus_CC_WAITING_FOR_LP {
-				resp = newInfoResponse(webapi.CSOperation_CA_NORMAL, NormalMsg, caseStatus)
+				if gs.isTxEventMissFixable(ctx, txHash, chainId, csType) {
+					resp = newInfoResponse(webapi.CSOperation_CA_USE_RESYNC_TOOL, ToolMsg, webapi.UserCaseStatus_CC_ADD_NO_HISTORY)
+				} else {
+					resp = newInfoResponse(webapi.CSOperation_CA_NORMAL, NormalMsg, caseStatus)
+				}
 			} else if caseStatus == webapi.UserCaseStatus_CC_WITHDRAW_WAITING_FOR_SGN {
 				resp = newInfoResponse(webapi.CSOperation_CA_USE_RESIGN_TOOL, ToolMsg, caseStatus)
 			} else if caseStatus == webapi.UserCaseStatus_CC_ADD_SUBMITTING ||
@@ -353,16 +422,12 @@ func (gs *GatewayService) diagnosisLp(ctx context.Context, txHash, lpAddr string
 			resp.Info = resp.Info + fmt.Sprintf("type: %s", t)
 		}
 	} else {
-		if gs.isTxEventMissFixable(ctx, txHash, chainId) {
-			resp = newInfoResponse(webapi.CSOperation_CA_USE_RESYNC_TOOL, ToolMsg, webapi.UserCaseStatus_CC_ADD_NO_HISTORY)
-		} else {
-			resp = newInfoResponse(webapi.CSOperation_CA_MORE_INFO_NEEDED, CheckInputMsg, webapi.UserCaseStatus_CC_ADD_NO_HISTORY)
-		}
+		resp = newInfoResponse(webapi.CSOperation_CA_MORE_INFO_NEEDED, CheckInputMsg, webapi.UserCaseStatus_CC_ADD_NO_HISTORY)
 	}
 	return resp
 }
 
-func (gs *GatewayService) fixTx(ctx context.Context, txHash string, chainId uint32) error {
+func (gs *GatewayService) fixTx(ctx context.Context, txHash string, chainId uint32, csType webapi.CSType) error {
 	tx, txFound, dbErr := dal.DB.GetTransferBySrcTxHash(txHash, chainId)
 	if txFound && dbErr == nil {
 		caseStatus := mapTxStatus2CaseStatus(tx.Status)
@@ -398,13 +463,13 @@ func (gs *GatewayService) fixTx(ctx context.Context, txHash string, chainId uint
 		} else {
 			return fmt.Errorf("frequence limited, please operate after until:%s", tx.UT.Add(OnChainTime).String())
 		}
-	} else if gs.isTxEventMissFixable(ctx, txHash, chainId) {
+	} else if gs.isTxEventMissFixable(ctx, txHash, chainId, csType) {
 		return gs.fixTxEventMiss(ctx, txHash, chainId, webapi.CSType_CT_TX)
 	}
 	return nil
 }
 
-func (gs *GatewayService) fixLp(ctx context.Context, txHash, lpAddr string, chainId uint32, lpType webapi.LPType) error {
+func (gs *GatewayService) fixLp(ctx context.Context, txHash, lpAddr string, chainId uint32, lpType webapi.LPType, csType webapi.CSType) error {
 	seqNum, status, ut, lpFound, dbErr := dal.DB.GetLPInfoByHash(uint64(lpType), uint64(chainId), lpAddr, txHash)
 	if lpFound && dbErr == nil {
 		caseStatus := mapLpStatus2CaseStatus(types.WithdrawStatus(status), lpType)
@@ -422,6 +487,8 @@ func (gs *GatewayService) fixLp(ctx context.Context, txHash, lpAddr string, chai
 				if err != nil {
 					return err
 				}
+			} else if caseStatus == webapi.UserCaseStatus_CC_WAITING_FOR_LP && gs.isTxEventMissFixable(ctx, txHash, chainId, csType) {
+				return gs.fixTxEventMiss(ctx, txHash, chainId, csType)
 			} else if caseStatus == webapi.UserCaseStatus_CC_ADD_SUBMITTING ||
 				caseStatus == webapi.UserCaseStatus_CC_ADD_WAITING_FOR_SGN ||
 				caseStatus == webapi.UserCaseStatus_CC_WITHDRAW_SUBMITTING {
@@ -443,8 +510,8 @@ func (gs *GatewayService) fixLp(ctx context.Context, txHash, lpAddr string, chai
 		} else {
 			return fmt.Errorf("frequence limited, please operate after until:%s", ut.Add(OnChainTime).String())
 		}
-	} else if lpType == webapi.LPType_LP_TYPE_ADD && gs.isTxEventMissFixable(ctx, txHash, chainId) {
-		return gs.fixTxEventMiss(ctx, txHash, chainId, webapi.CSType_CT_LP_ADD)
+	} else if lpType == webapi.LPType_LP_TYPE_ADD && gs.isTxEventMissFixable(ctx, txHash, chainId, csType) {
+		return gs.fixTxEventMiss(ctx, txHash, chainId, csType)
 	}
 	return nil
 }

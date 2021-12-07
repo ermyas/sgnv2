@@ -1,2 +1,2 @@
-WITH_CLEVELDB=yes make install
-sudo systemctl restart sgnd
+make install-gateway
+sudo systemctl restart gateway

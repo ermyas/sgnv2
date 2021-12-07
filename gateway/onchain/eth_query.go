@@ -21,7 +21,7 @@ func GetCbrLog(chainid uint64, txhash, evname string) (*ethtypes.Log, error) {
 	}
 	elog := eth.FindMatchCbrEvent(evname, chain.contract.Address, txReceipt.Logs)
 	if elog == nil {
-		log.Errorln("no match event found in tx:", txhash)
+		log.Warnf("no match event found in tx:%s", txhash)
 		return nil, fmt.Errorf("no match event found in tx: %s", txhash)
 	}
 	return elog, nil
