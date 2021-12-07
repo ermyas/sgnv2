@@ -203,11 +203,11 @@ func rmAmtDec(amt string, decimal int) float64 {
 
 func (d *DAL) upsertFeeRebateRecord(addr string, eventId uint64, fee float64) error {
 	q := `insert into fee_rebate_log
-          (usr_addr, event_id, total_fee)
+          (usr_addr, event_id, fee_rebate_log.total_fee)
           values($1, $2, $3)
           on conflict (usr_addr, event_id)
           DO UPDATE
-	      SET total_fee = total_fee + $3`
+	      SET fee_rebate_log.total_fee = fee_rebate_log.total_fee + $3`
 	res, err := d.Exec(q, addr, eventId, fee)
 	return sqldb.ChkExec(res, err, 1, "upsertFeeRebateRecord")
 }
