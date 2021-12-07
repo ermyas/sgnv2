@@ -2,9 +2,11 @@ package onchain
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"time"
 
+	"github.com/celer-network/endpoint-proxy/endpointproxy"
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/eth/monitor"
 	"github.com/celer-network/goutils/eth/watcher"
@@ -73,9 +75,21 @@ func (chains ChainMgr) GetEthClient(chid uint64) *ethclient.Client {
 
 func newOneChain(chainConf *common.OneChainConfig, wdal *watcherDAL) *OneChain {
 	log.Infoln("Dialing eth client at", chainConf.Gateway)
-	ec, err := ethclient.Dial(chainConf.Gateway)
-	if err != nil {
-		log.Fatalln("dial", chainConf.Gateway, "err:", err)
+	var ec *ethclient.Client
+	var err error
+	if chainConf.ProxyPort > 0 {
+		if err = endpointproxy.StartProxy(chainConf.Gateway, chainConf.ChainID, chainConf.ProxyPort); err != nil {
+			log.Fatalln("can not start proxy for chain:", chainConf.ChainID, "gateway:", chainConf.Gateway, "port:", chainConf.ProxyPort, "err:", err)
+		}
+		ec, err = ethclient.Dial(fmt.Sprintf("http://127.0.0.1:%d", chainConf.ProxyPort))
+		if err != nil {
+			log.Fatalln("dial", chainConf.Gateway, "err:", err)
+		}
+	} else {
+		ec, err = ethclient.Dial(chainConf.Gateway)
+		if err != nil {
+			log.Fatalln("dial", chainConf.Gateway, "err:", err)
+		}
 	}
 	chid, err := ec.ChainID(context.Background())
 	if err != nil {
