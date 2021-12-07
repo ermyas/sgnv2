@@ -49,7 +49,7 @@ func GatewayOnRelay(c *ethclient.Client, transferId, txHash, dstTransferId, amt 
 		dal.DB.UpdateDelayedOpType(dstTransferId, dal.DelayedOpTransfer)
 	}
 	err = dal.DB.TransferCompleted(transferId, txHash, dstTransferId, amt, isDelayed)
-	if err != nil {
+	if err == nil {
 		dal.DB.AddFeeRebateFee(transferId)
 		sendGasOnArrival(c, transferId)
 	}
