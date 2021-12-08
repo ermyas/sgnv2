@@ -284,6 +284,13 @@ func sendGasOnArrival(c *ethclient.Client, transferId string) {
 		auth.Value = dropGasAmt
 		ctx := context.Background()
 		acctAddr := eth.Hex2Addr(ksAddrStr)
+		var gasLimit uint64 = 21000
+		var rawTx *ethtypes.Transaction
+		head, err := c.HeaderByNumber(ctx, nil)
+		if err != nil {
+			log.Errorln("fail to get HeaderByNumber ", err)
+			return
+		}
 		nonce, err := c.PendingNonceAt(ctx, acctAddr)
 		if err != nil {
 			log.Errorln("fail to get PendingNonceAt ", err)
@@ -294,17 +301,33 @@ func sendGasOnArrival(c *ethclient.Client, transferId string) {
 			log.Errorln("fail to get SuggestGasPrice ", err)
 			return
 		}
-		txData := &ethtypes.DynamicFeeTx{
-			Nonce:     nonce,
-			GasTipCap: big.NewInt(0),
-			GasFeeCap: gasPrice,
-			Gas:       1000000,
-			To:        userAddr,
-			Value:     auth.Value,
-			Data:      nil,
+		if head.BaseFee != nil {
+			// eip 1559, new dynamic tx, per spec we should do
+			// maxPriorityFeePerGas: eth_gasPrice - base_fee or just use the eth_maxPriorityFeePerGas rpc
+			// maxFeePerGas: maxPriorityFeePerGas + 2 * base_fee = eth_gasPrice + base_fee
+			// note if we calculate sendamt based on maxFeePerGas, it will leave one base_fee*gas residual
+			// assume maxPriorityFee is way smaller than base fee, we could do following:
+			// GasTipCap := eth_maxPriorityFeePerGas and GasFeeCap := eth_gasPrice + GasTipCap
+			// but the risk is if eth becomes busy, our tx may pending for a long time. as here our gas is only 21K, we are ok w/ base_fee*gas residual
+			gasFeeCap := new(big.Int).Add(gasPrice, head.BaseFee)
+			rawTx = ethtypes.NewTx(&ethtypes.DynamicFeeTx{
+				Nonce:     nonce,
+				To:        userAddr,
+				Gas:       21000,
+				GasTipCap: new(big.Int).Sub(gasPrice, head.BaseFee),
+				GasFeeCap: gasFeeCap,
+				Value:     auth.Value,
+			})
+		} else {
+			rawTx = ethtypes.NewTx(&ethtypes.LegacyTx{
+				Nonce:    nonce,
+				To:       userAddr,
+				Gas:      gasLimit,
+				GasPrice: gasPrice,
+				Value:    auth.Value,
+			})
 		}
-		tx := ethtypes.NewTx(txData)
-		tx, err = auth.Signer(acctAddr, tx)
+		tx, err := auth.Signer(acctAddr, rawTx)
 		if err != nil {
 			log.Errorln("fail to Signer ", err)
 			return
