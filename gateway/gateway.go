@@ -57,6 +57,7 @@ func InitGateway() {
 
 	setupConfigDefaults()
 	loadConfigs()
+	setupEnv()
 
 	db := dal.NewDAL(viper.GetString(common.FlagGatewayDbUrl))
 	gs := gatewaysvc.NewGatewayService(db)
@@ -154,17 +155,6 @@ func setupConfigDefaults() {
 	// sets home dir for the convenience of all later file loadings
 	viper.SetDefault(flags.FlagHome, *home)
 
-	// setup env var
-	env := "local"
-	chainEnv := viper.GetString(common.FlagSgnChainId)
-	if chainEnv == "sgn-2" || chainEnv == "sgn-3" {
-		env = "prod"
-	} else if chainEnv == "sgn-testnet-4000" {
-		env = "test"
-	}
-	viper.SetDefault("env", env)
-	log.Infoln("Setup env:", viper.GetString("env"))
-
 	// setup db url
 	viper.SetDefault(common.FlagGatewayDbUrl, "127.0.0.1:26257")
 }
@@ -185,4 +175,17 @@ func loadConfigs() {
 		return
 	}
 	log.Infoln("Loaded sgn.toml")
+}
+
+func setupEnv() {
+	// setup env var
+	env := "local"
+	chainEnv := viper.GetString(common.FlagSgnChainId)
+	if chainEnv == "sgn-2" || chainEnv == "sgn-3" {
+		env = "prod"
+	} else if chainEnv == "sgn-testnet-4000" {
+		env = "test"
+	}
+	viper.SetDefault("env", env)
+	log.Infoln("Setup env:", viper.GetString("env"))
 }
