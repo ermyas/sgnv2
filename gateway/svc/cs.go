@@ -197,7 +197,7 @@ func (gs *GatewayService) isTxEventMissFixable(ctx context.Context, txHash strin
 
 	chain, _, _, _ := dal.DB.GetChain(uint64(chainId))
 	if chain != nil {
-		if elog.Address.String() != chain.ContractAddr {
+		if elog.Address != eth.Hex2Addr(chain.ContractAddr) {
 			log.Warnf("isTxEventMissFixable failed, chain id check failed, chainId:%d, addrOnChain:%s, addInTx:%s", chainId, chain.ContractAddr, elog.Address.String())
 			return false
 		}
