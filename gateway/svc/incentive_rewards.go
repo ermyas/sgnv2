@@ -341,9 +341,9 @@ func calcFeeRebatePortionAndReward(addr string, price, totalFeeInUsd float64, ev
 	portion = event.LevelConfig[uint64(i)].RebatePortion
 	quo := big.NewFloat(0).Quo(big.NewFloat(totalFeeInUsd), big.NewFloat(price))
 	quo.Mul(quo, big.NewFloat(portion))
+	quo.Mul(quo, big.NewFloat(0).SetInt(dal.WeiMultiplier))
 	wei := big.NewInt(0)
 	quo.Int(wei)
-	wei.Mul(wei, dal.WeiMultiplier)
 	if wei.Cmp(event.LevelConfig[uint64(i)].MaxReward) > 0 {
 		wei = event.LevelConfig[uint64(i)].MaxReward
 	}
