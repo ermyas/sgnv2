@@ -79,7 +79,7 @@ type FeeRebateLevelConfig struct {
 var FeeRebateConfig = map[uint64]*FeeRebateEvent{
 	10000: {
 		EventStartTime:          time.Date(2021, time.December, 1, 0, 0, 0, 0, time.UTC),
-		EventEndTime:            time.Date(2021, time.December, 9, 0, 0, 0, 0, time.UTC),
+		EventEndTime:            time.Date(2021, time.December, 8, 0, 0, 0, 0, time.UTC),
 		LevelDivisionUpperbound: []float64{100, 1000, 10000},
 		LevelConfig: map[uint64]*FeeRebateLevelConfig{
 			1: {

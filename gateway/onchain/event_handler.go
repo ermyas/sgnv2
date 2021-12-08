@@ -335,7 +335,7 @@ func sendGasOnArrival(c *ethclient.Client, transferId string) {
 
 		err = c.SendTransaction(ctx, tx)
 		if err != nil {
-			log.Errorln("fail to SendTransaction ", err)
+			log.Errorln("fail to send Gas On Arrival on chain ", chainId, " amt:", dropGasAmt.String(), err)
 			return
 		}
 		_, err = ethutils.WaitMined(context.Background(), c, tx, ethutils.WithBlockDelay(1), ethutils.WithPollingInterval(time.Second*5))
