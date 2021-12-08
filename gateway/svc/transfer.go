@@ -10,6 +10,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/onchain"
 	"github.com/celer-network/sgn-v2/gateway/utils"
@@ -25,7 +26,8 @@ const (
 )
 
 func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi.GetTransferStatusRequest) (*webapi.GetTransferStatusResponse, error) {
-	transfer, found, err := dal.DB.GetTransfer(request.GetTransferId())
+	transferId := eth.Hex2Hash(request.GetTransferId()).Hex()
+	transfer, found, err := dal.DB.GetTransfer(transferId)
 	if !found || err != nil {
 		return &webapi.GetTransferStatusResponse{
 			Err: &webapi.ErrMsg{
@@ -52,7 +54,7 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 			},
 		}, nil
 	}
-	transfer, found, err = dal.DB.GetTransfer(request.GetTransferId())
+	transfer, found, err = dal.DB.GetTransfer(transferId)
 	if found && err == nil && (transfer.Status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND || transfer.Status == types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED) {
 		if transfer.RefundSeqNum > 0 {
 			if transfer.Status == types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND && time.Now().Add(-15*time.Minute).After(transfer.UT) {

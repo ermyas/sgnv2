@@ -33,11 +33,12 @@ func InitSGNTransactors(home string, encoding params.EncodingConfig) {
 	log.Infof("Initialized %d sgn transactors", len(txrAddrs))
 }
 
-func getFeePerc(srcChainId, dstChainId uint64) uint32 {
+func getFeePerc(srcChainId, dstChainId uint64, tokenSymbol string) uint32 {
 	perc := uint32(0)
 	tr := SGNTransactors.GetTransactor()
 	if tr != nil {
 		_perc, err := cbrcli.QueryFeePerc(tr.CliCtx, &cbrtypes.GetFeePercentageRequest{
+			Symbol:     tokenSymbol,
 			SrcChainId: srcChainId,
 			DstChainId: dstChainId,
 		})

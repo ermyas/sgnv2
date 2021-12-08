@@ -3,6 +3,8 @@ package relayer
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
+
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
@@ -12,7 +14,6 @@ import (
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"math/big"
 )
 
 func (c *CbrOneChain) setCurss(ss []*cbrtypes.Signer) {
@@ -61,11 +62,12 @@ func (c *CbrOneChain) getTokenFromDB(tokenAddr string) (*webapi.TokenInfo, bool)
 	return token, true
 }
 
-func getFeePerc(srcChainId, dstChainId uint64) uint32 {
+func getFeePerc(srcChainId, dstChainId uint64, tokenSymbol string) uint32 {
 	perc := uint32(0)
 	tr := CurRelayerInstance.Transactor
 	if tr != nil {
 		_perc, err := cbrcli.QueryFeePerc(tr.CliCtx, &cbrtypes.GetFeePercentageRequest{
+			Symbol:     tokenSymbol,
 			SrcChainId: srcChainId,
 			DstChainId: dstChainId,
 		})
@@ -122,7 +124,7 @@ func GatewayOnSend(transferId, usrAddr, tokenAddr, amt, sendTxHash string, srcCh
 		log.Warnf("estimateAmt on send for transferId:%s failed, err:%s", transferId, err.Error())
 		estimatedAmt = "0"
 	}
-	return dal.UpsertTransferOnSend(transferId, usrAddr, srcToken, amt, estimatedAmt, sendTxHash, srcChainId, dsChainId, getFeePerc(srcChainId, dsChainId))
+	return dal.UpsertTransferOnSend(transferId, usrAddr, srcToken, amt, estimatedAmt, sendTxHash, srcChainId, dsChainId, getFeePerc(srcChainId, dsChainId, srcToken.GetToken().GetSymbol()))
 }
 
 func GatewayOnRelay(transferId, txHash, dstTransferId, amt string) error {
