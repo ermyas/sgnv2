@@ -1,12 +1,13 @@
 package dal
 
 import (
-	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/goutils/sqldb"
-	"github.com/celer-network/sgn-v2/common"
 	"math"
 	"math/big"
 	"time"
+
+	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/goutils/sqldb"
+	"github.com/celer-network/sgn-v2/common"
 )
 
 type RetentionRewardsEvent struct {

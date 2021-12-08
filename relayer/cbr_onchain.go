@@ -1,7 +1,6 @@
 package relayer
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 	"time"
@@ -13,7 +12,6 @@ import (
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/spf13/viper"
 )
 
 var evNames = []string{
@@ -40,10 +38,6 @@ func (c *CbrOneChain) startMon() {
 	c.monWithdraw(blkNum)
 	smallDelay()
 	c.monSignersUpdated(blkNum)
-	smallDelay()
-	c.monDelayXferAdd(blkNum)
-	smallDelay()
-	c.monDelayXferExec(blkNum)
 }
 
 func (c *CbrOneChain) monSend(blk *big.Int) {
@@ -66,11 +60,6 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
-		}
-
-		err = GatewayOnSend(common.Hash(ev.TransferId).String(), ev.Sender.String(), ev.Token.String(), ev.Amount.String(), eLog.TxHash.String(), c.chainid, ev.DstChainId)
-		if err != nil {
-			log.Warnf("GatewayOnSend err: %s, txId %x, txHash %x, chainId %d", err, ev.TransferId, eLog.TxHash, c.chainid)
 		}
 		return false
 	})
@@ -104,73 +93,6 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
 		}
-		err = GatewayOnRelay(common.Hash(ev.SrcTransferId).String(), eLog.TxHash.String(), common.Hash(ev.TransferId).String(), ev.Amount.String())
-		if err != nil {
-			log.Warnf("UpdateTransfer err: %s, srcId %x, dstId %x, txHash %x, chainId %d", err, ev.SrcTransferId, ev.TransferId, eLog.TxHash, c.chainid)
-		}
-		return false
-	})
-}
-
-func (c *CbrOneChain) monDelayXferAdd(blk *big.Int) {
-	if !viper.GetBool(common.FlagToStartGateway) {
-		return
-	}
-	blkDelay := c.blkDelay / 2
-	if blkDelay < 1 {
-		blkDelay = 1
-	}
-	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    cbrtypes.CbrEventDelayXferAdd,
-		Contract:     c.contract,
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
-		// NOTE: Using much lower than the blk delay in cfg because the gateway service needs "Relay"
-		// to be preceded by "DelayedTransferAdded".
-		// this is ok because the the result action of monitoring "DelayedTransferAdded"
-		// only changes the status for display use and is not related to fund safety.
-		BlockDelay: blkDelay,
-	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.contract.ParseDelayedTransferAdded(eLog)
-		if err != nil {
-			log.Errorln("monRelay: cannot parse event:", err)
-			return false
-		}
-		idstr := common.Hash(ev.Id).String()
-		log.Infof("MonEv: DelayedTransferAdded chainId: %d, tx: %s, id %s", c.chainid, eLog.TxHash.String(), idstr)
-		err = GatewayOnDelayXferAdd(idstr, eLog.TxHash.String())
-		if err != nil {
-			log.Errorln("GatewayOnDelayXferAdd err:", err)
-		}
-		return false
-	})
-}
-
-func (c *CbrOneChain) monDelayXferExec(blk *big.Int) {
-	if !viper.GetBool(common.FlagToStartGateway) {
-		return
-	}
-	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    cbrtypes.CbrEventDelayXferExec,
-		Contract:     c.contract,
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
-	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.contract.ParseDelayedTransferExecuted(eLog)
-		if err != nil {
-			log.Errorln("monRelay: cannot parse event:", err)
-			return false
-		}
-		idstr := common.Hash(ev.Id).String()
-		log.Infof("MonEv: DelayedTransferExecuted chainId: %d, tx: %s, id %s", c.chainid, eLog.TxHash.String(), idstr)
-		err = GatewayOnDelayXferExec(idstr, eLog.TxHash.String())
-		if err != nil {
-			log.Errorln("DelayedTransferExecuted err:", err)
-		}
 		return false
 	})
 }
@@ -195,18 +117,6 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
-		}
-		nonce := uint64(0)
-		tx, _, err := c.TransactionByHash(context.Background(), eLog.TxHash)
-		if tx != nil && err == nil {
-			nonce = tx.Nonce()
-		} else {
-			log.Warnf("get nonce failed, use ts:%d instead, TxHash:%s, err: %s", nonce, eLog.TxHash.String(), err)
-		}
-		err = GatewayOnLiqAdd(ev.Provider.String(), ev.Token.String(), ev.Amount.String(), eLog.TxHash.String(), c.chainid, ev.Seqnum, nonce)
-		if err != nil {
-			log.Warnf("UpsertLP err: %s, seqNum %d, amt %s, txHash %x, chainId %d", err, ev.Seqnum, ev.Amount.String(), eLog.TxHash, c.chainid)
-			return false
 		}
 		return false
 	})
@@ -233,8 +143,6 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
 		}
-		idstr := common.Hash(ev.WithdrawId).String()
-		GatewayOnLiqWithdraw(idstr, eLog.TxHash.String(), c.chainid, ev.Seqnum, ev.Receiver.String())
 		return false
 	})
 }

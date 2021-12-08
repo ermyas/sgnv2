@@ -3,16 +3,17 @@ package onchain
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"math/big"
+	"strings"
+	"time"
+
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
-	"io/ioutil"
-	"math/big"
-	"strings"
-	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -64,7 +65,7 @@ func GatewayOnLiqWithdraw(id, tx string, chid, seq uint64, addr string) {
 	/*
 		the "refund" kind of withdrawal
 	*/
-	transferId, found, err := dal.GetTransferByRefundSeqNum(chid, seq, addr)
+	transferId, found, err := dal.DB.GetTransferByRefundSeqNum(chid, seq, addr)
 	if err != nil {
 		log.Warnf("error when get transfer, usr:%s chainId:%d, seqNum:%d, err:%+v", addr, chid, seq, err)
 	}
@@ -76,7 +77,7 @@ func GatewayOnLiqWithdraw(id, tx string, chid, seq uint64, addr string) {
 			dal.DB.UpdateDelayedOpType(id, dal.DelayedOpRefund)
 		}
 		// save refund_id so if we later receive DelayedTransferExecuted, the handler can find this record
-		err := dal.UpdateTransferForRefund(transferId, toStatus, id, tx)
+		err := dal.DB.UpdateTransferForRefund(transferId, toStatus, id, tx)
 		if err != nil {
 			log.Warnf("db when UpdateTransferStatus to TRANSFER_REFUNDED, transferId:%s, err:%+v", transferId, err)
 		}
@@ -103,7 +104,7 @@ func GatewayOnLiqWithdraw(id, tx string, chid, seq uint64, addr string) {
 	}
 	// calculate withdraw id
 	wdid := utils.GenWithdrawId(chid, seq, l.UsrAddr, l.TokenAddr, l.Amt)
-	err = dal.UpdateLP(chid, seq, toStatus, addr, wdid.Hex(), tx)
+	err = dal.DB.UpdateLP(chid, seq, toStatus, addr, wdid.Hex(), tx)
 	if err != nil {
 		log.Errorln(logmsg, err)
 	}
@@ -259,87 +260,97 @@ func GatewayOnDelayXferExec(id string, txHash string) error {
 }
 
 func sendGasOnArrival(c *ethclient.Client, transferId string) {
-	dropGasAmt, userAddr, chainId, needDrop, err := dal.GetGasOnArrival(transferId)
+	transfer, found, err := dal.DB.GetTransfer(transferId)
+	if err != nil || !found {
+		log.Errorln("can't find transfer info at gateway, ", transferId, err)
+		return
+	}
+	chain, _ := dal.GetChainCache(transfer.DstChainId)
+	if transfer.TokenSymbol == "WETH" || chain.GetDropGasAmt() == "0" {
+		return
+	}
+	dropGasAmt, found := big.NewInt(0).SetString(chain.GetDropGasAmt(), 10)
+	if !found {
+		return
+	}
+	userAddr := common.Hex2Addr(transfer.UsrAddr)
+	var ksBytes []byte
+	ksBytes, err = ioutil.ReadFile(viper.GetString(common.FlagGatewayIncentiveRewardsKeystore))
 	if err != nil {
-		log.Errorln("fail to GetGasOnArrival, ", err)
+		log.Errorln("fail to get FlagGatewayIncentiveRewardsKeystore ", err)
 		return
 	}
-	if needDrop {
-		var ksBytes []byte
-		ksBytes, err = ioutil.ReadFile(viper.GetString(common.FlagGatewayIncentiveRewardsKeystore))
-		if err != nil {
-			log.Errorln("fail to get FlagGatewayIncentiveRewardsKeystore ", err)
-			return
-		}
-		ksAddrStr, err := eth.GetAddressFromKeystore(ksBytes)
-		if err != nil {
-			log.Errorln("fail to get GetAddressFromKeystore ", err)
-			return
-		}
-		auth, err := bind.NewTransactorWithChainID(strings.NewReader(string(ksBytes)), viper.GetString(common.FlagGatewayIncentiveRewardsPassphrase), big.NewInt(int64(chainId)))
-		if err != nil {
-			log.Errorln("fail to get NewTransactorWithChainID ", err)
-			return
-		}
-		auth.Value = dropGasAmt
-		ctx := context.Background()
-		acctAddr := eth.Hex2Addr(ksAddrStr)
-		var gasLimit uint64 = 21000
-		var rawTx *ethtypes.Transaction
-		head, err := c.HeaderByNumber(ctx, nil)
-		if err != nil {
-			log.Errorln("fail to get HeaderByNumber ", err)
-			return
-		}
-		nonce, err := c.PendingNonceAt(ctx, acctAddr)
-		if err != nil {
-			log.Errorln("fail to get PendingNonceAt ", err)
-			return
-		}
-		gasPrice, err := c.SuggestGasPrice(ctx)
-		if err != nil {
-			log.Errorln("fail to get SuggestGasPrice ", err)
-			return
-		}
-		if head.BaseFee != nil {
-			// eip 1559, new dynamic tx, per spec we should do
-			// maxPriorityFeePerGas: eth_gasPrice - base_fee or just use the eth_maxPriorityFeePerGas rpc
-			// maxFeePerGas: maxPriorityFeePerGas + 2 * base_fee = eth_gasPrice + base_fee
-			// note if we calculate sendamt based on maxFeePerGas, it will leave one base_fee*gas residual
-			// assume maxPriorityFee is way smaller than base fee, we could do following:
-			// GasTipCap := eth_maxPriorityFeePerGas and GasFeeCap := eth_gasPrice + GasTipCap
-			// but the risk is if eth becomes busy, our tx may pending for a long time. as here our gas is only 21K, we are ok w/ base_fee*gas residual
-			gasFeeCap := new(big.Int).Add(gasPrice, head.BaseFee)
-			rawTx = ethtypes.NewTx(&ethtypes.DynamicFeeTx{
-				Nonce:     nonce,
-				To:        userAddr,
-				Gas:       21000,
-				GasTipCap: new(big.Int).Sub(gasPrice, head.BaseFee),
-				GasFeeCap: gasFeeCap,
-				Value:     auth.Value,
-			})
-		} else {
-			rawTx = ethtypes.NewTx(&ethtypes.LegacyTx{
-				Nonce:    nonce,
-				To:       userAddr,
-				Gas:      gasLimit,
-				GasPrice: gasPrice,
-				Value:    auth.Value,
-			})
-		}
-		tx, err := auth.Signer(acctAddr, rawTx)
-		if err != nil {
-			log.Errorln("fail to Signer ", err)
-			return
-		}
+	ksAddrStr, err := eth.GetAddressFromKeystore(ksBytes)
+	if err != nil {
+		log.Errorln("fail to get GetAddressFromKeystore ", err)
+		return
+	}
+	auth, err := bind.NewTransactorWithChainID(strings.NewReader(string(ksBytes)), viper.GetString(common.FlagGatewayIncentiveRewardsPassphrase), big.NewInt(int64(transfer.DstChainId)))
+	if err != nil {
+		log.Errorln("fail to get NewTransactorWithChainID ", err)
+		return
+	}
+	auth.Value = dropGasAmt
+	ctx := context.Background()
+	acctAddr := eth.Hex2Addr(ksAddrStr)
+	var gasLimit uint64 = 21000
+	var rawTx *ethtypes.Transaction
+	head, err := c.HeaderByNumber(ctx, nil)
+	if err != nil {
+		log.Errorln("fail to get HeaderByNumber ", err)
+		return
+	}
+	nonce, err := c.PendingNonceAt(ctx, acctAddr)
+	if err != nil {
+		log.Errorln("fail to get PendingNonceAt ", err)
+		return
+	}
+	gasPrice, err := c.SuggestGasPrice(ctx)
+	if err != nil {
+		log.Errorln("fail to get SuggestGasPrice ", err)
+		return
+	}
+	if head.BaseFee != nil {
+		// eip 1559, new dynamic tx, per spec we should do
+		// maxPriorityFeePerGas: eth_gasPrice - base_fee or just use the eth_maxPriorityFeePerGas rpc
+		// maxFeePerGas: maxPriorityFeePerGas + 2 * base_fee = eth_gasPrice + base_fee
+		// note if we calculate sendamt based on maxFeePerGas, it will leave one base_fee*gas residual
+		// assume maxPriorityFee is way smaller than base fee, we could do following:
+		// GasTipCap := eth_maxPriorityFeePerGas and GasFeeCap := eth_gasPrice + GasTipCap
+		// but the risk is if eth becomes busy, our tx may pending for a long time. as here our gas is only 21K, we are ok w/ base_fee*gas residual
+		gasFeeCap := new(big.Int).Add(gasPrice, head.BaseFee)
+		rawTx = ethtypes.NewTx(&ethtypes.DynamicFeeTx{
+			Nonce:     nonce,
+			To:        &userAddr,
+			Gas:       21000,
+			GasTipCap: new(big.Int).Sub(gasPrice, head.BaseFee),
+			GasFeeCap: gasFeeCap,
+			Value:     auth.Value,
+		})
+	} else {
+		rawTx = ethtypes.NewTx(&ethtypes.LegacyTx{
+			Nonce:    nonce,
+			To:       &userAddr,
+			Gas:      gasLimit,
+			GasPrice: gasPrice,
+			Value:    auth.Value,
+		})
+	}
+	tx, err := auth.Signer(acctAddr, rawTx)
+	if err != nil {
+		log.Errorln("fail to Signer ", err)
+		return
+	}
 
-		err = c.SendTransaction(ctx, tx)
-		if err != nil {
-			log.Errorln("fail to send Gas On Arrival on chain ", chainId, " amt:", dropGasAmt.String(), err)
-			return
-		}
-		_, err = ethutils.WaitMined(context.Background(), c, tx, ethutils.WithBlockDelay(1), ethutils.WithPollingInterval(time.Second*5))
-		log.Infoln("send gas on arrival to ", userAddr, " on chain ", chainId, " dropGasAmt:", dropGasAmt)
+	err = c.SendTransaction(ctx, tx)
+	if err != nil {
+		log.Errorln("fail to send Gas On Arrival on chain ", transfer.DstChainId, " amt:", dropGasAmt.String(), err)
 		return
 	}
+	_, err = ethutils.WaitMined(context.Background(), c, tx, ethutils.WithBlockDelay(1), ethutils.WithPollingInterval(time.Second*5))
+	if err != nil {
+		log.Errorf("send gas on arrival to %x on chain %d dropGasAmt %s, WaitMined err %v", userAddr, transfer.DstChainId, dropGasAmt.String(), err)
+		return
+	}
+	log.Infoln("send gas on arrival to ", userAddr, " on chain ", transfer.DstChainId, " dropGasAmt:", dropGasAmt)
 }
