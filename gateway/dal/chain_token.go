@@ -2,10 +2,22 @@ package dal
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/celer-network/goutils/sqldb"
+	types2 "github.com/celer-network/sgn-v2/common/types"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 )
+
+// mint related token only insert once and do set disable to avoid join normal bridge and liq
+func (d *DAL) InsertMintTokenBaseInfo(symbol, addr string, chainId, decimal uint64) error {
+	q := `INSERT INTO token (symbol, address, chain_id, decimal, update_time, disabled)
+                VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING`
+	_, err := d.Exec(q, symbol, addr, chainId, decimal, now(), true)
+	return err
+}
 
 func (d *DAL) UpsertTokenBaseInfo(symbol, addr string, chainId, decimal uint64, disabled bool) error {
 	q := `INSERT INTO token (symbol, address, chain_id, decimal, update_time, disabled)
@@ -303,4 +315,76 @@ func (d *DAL) GetChainBlockDelay(id uint64) (uint32, bool, error) {
 	err := d.QueryRow(q, id).Scan(&blockDelay)
 	found, err := sqldb.ChkQueryRow(err)
 	return blockDelay, found, err
+}
+
+type PeggedConfig struct {
+	origChainId   uint64
+	peggedChainId uint64
+	tokenSymbol   string
+}
+
+func (d *DAL) UpdateMintTokenUIInfo(symbol string, chainId uint64, name, icon string) error {
+	q := `UPDATE pegged_config set orig_token_name=$3, orig_token_icon=$4 where orig_token_symbol=$1 and orig_chain_id=$2`
+	_, err := d.Exec(q, symbol, chainId, name, icon)
+	return err
+}
+
+func (d *DAL) UpdatePeggedOrgTokenUIInfo(symbol string, chainId uint64, name, icon string) error {
+	q := `UPDATE pegged_config set pegged_chain_name=$3, pegged_chain_icon=$4 where pegged_chain_symbol=$1 and pegged_chain_id=$2`
+	_, err := d.Exec(q, symbol, chainId, name, icon)
+	return err
+}
+
+func (d *DAL) InsertPeggedBaseInfo(org, peg *types2.ERC20Token) error {
+	q := `INSERT INTO pegged_config (orig_chain_id, orig_token_symbol, orig_token_addr, orig_token_decimal, 
+                                     pegged_chain_id, pegged_token_symbol, pegged_token_addr, pegged_token_decimal)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT DO NOTHING`
+	_, err := d.Exec(q, org.GetChainId(), org.GetSymbol(), eth.Hex2Addr(org.GetAddress()).String(), org.GetDecimals(),
+		peg.GetChainId(), peg.GetSymbol(), eth.Hex2Addr(peg.GetAddress()).String(), peg.GetDecimals())
+	return err
+}
+
+func (d *DAL) GetWithdrawChainIdByBurnChainIdAndTokenAddr(burnChainId uint64, burnToken common.Address) (uint64, bool, error) {
+	q := `SELECT orig_chain_id FROM pegged_config where pegged_chain_id=$1 and pegged_token_addr=$2`
+	var withdrawChainId uint64
+	err := d.QueryRow(q, burnChainId, burnToken.String()).Scan(&withdrawChainId)
+	found, err := sqldb.ChkQueryRow(err)
+	if err != nil {
+		return 0, false, err
+	}
+	if !found {
+		return 0, false, nil
+	}
+	return withdrawChainId, true, nil
+}
+
+func (d *DAL) GetAllValidPeggedConfigList() ([]*webapi.PeggedPairConfig, error) {
+	var configs []*webapi.PeggedPairConfig
+	q := `SELECT orig_chain_id, orig_token_symbol, orig_token_addr, orig_token_decimal, orig_token_name, orig_token_icon, 
+                 pegged_chain_id, pegged_token_symbol, pegged_token_addr, pegged_token_decimal, pegged_token_name, pegged_token_icon FROM pegged_config where disabled=false`
+	rows, dbErr := d.Query(q)
+	if dbErr != nil {
+		return nil, dbErr
+	}
+	for rows.Next() {
+		var orgChainId, peggedChainId uint32
+		org := &webapi.TokenInfo{
+			Token: &types.Token{},
+		}
+		pegged := &webapi.TokenInfo{
+			Token: &types.Token{},
+		}
+		dbErr = rows.Scan(&orgChainId, &org.Token.Symbol, &org.Token.Address, &org.Token.Decimal, &org.Name, &org.Icon,
+			&peggedChainId, &pegged.Token.Symbol, &pegged.Token.Address, &pegged.Token.Decimal, &pegged.Name, &pegged.Icon)
+		if dbErr != nil {
+			return nil, dbErr
+		}
+		configs = append(configs, &webapi.PeggedPairConfig{
+			OrgChainId:    orgChainId,
+			OrgToken:      org,
+			PeggedChainId: peggedChainId,
+			PeggedToken:   pegged,
+		})
+	}
+	return configs, nil
 }

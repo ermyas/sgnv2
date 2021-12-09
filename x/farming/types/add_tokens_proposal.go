@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -24,7 +25,7 @@ func init() {
 // NewAddTokensProposal creates a new instance of AddTokensProposal
 //nolint:interfacer
 func NewAddTokensProposal(
-	title, description string, tokens []ERC20Token) *AddTokensProposal {
+	title, description string, tokens []commontypes.ERC20Token) *AddTokensProposal {
 	return &AddTokensProposal{
 		Title:       title,
 		Description: description,

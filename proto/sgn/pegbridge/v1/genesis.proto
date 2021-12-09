@@ -1,0 +1,20 @@
+syntax = "proto3";
+package sgn.pegbridge.v1;
+
+option go_package = "github.com/celer-network/sgn-v2/x/pegbridge/types";
+
+import "gogoproto/gogo.proto";
+import "sgn/common/v1/common.proto";
+import "sgn/pegbridge/v1/pegbridge.proto";
+
+// GenesisState defines the pegbridge module's genesis state.
+message GenesisState {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // params defines all the parameters of the module.
+  Params params = 1 [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"params\""];
+
+  // config defines the config at genesis.
+  PegConfig config = 2 [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"config\""];
+}

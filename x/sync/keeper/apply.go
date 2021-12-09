@@ -34,6 +34,8 @@ func (k Keeper) ApplyUpdate(ctx sdk.Context, update *types.PendingUpdate) (appli
 		applied, err = k.cbrKeeper.ApplyEvent(cacheCtx, update.Data)
 	case types.DataType_CbrUpdateCbrPrice:
 		applied, err = k.cbrKeeper.ApplyUpdateCbrPrice(cacheCtx, update.Data)
+	case types.DataType_PegbrOnChainEvent:
+		applied, err = k.pegbrKeeper.ApplyEvent(cacheCtx, update.Data)
 	}
 
 	if err != nil {

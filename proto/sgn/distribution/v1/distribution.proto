@@ -163,8 +163,8 @@ message StakingRewardClaimInfo {
   repeated sgn.common.v1.Signature signatures = 5 [(gogoproto.moretags) = "yaml:\"signatures\"", (gogoproto.nullable) = false];
 }
 
-// CBridgeFeeShareInfo describes the claimable cBridge fee share amount for a delegator.
-message CBridgeFeeShareInfo {
+// ClaimableFeesInfo describes the claimable fee amounts for a delegator.
+message ClaimableFeesInfo {
   // claimable_fee_amounts defines the claimable fee amounts.
   repeated cosmos.base.v1beta1.DecCoin claimable_fee_amounts = 1 [
     (gogoproto.moretags) = "yaml:\"claimable_fee_amounts\"",

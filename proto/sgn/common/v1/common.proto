@@ -20,3 +20,15 @@ message ContractInfo {
   // address defines the address of the contract
   string address = 2 [(gogoproto.moretags) = "yaml:\"address\""];
 }
+
+// ERC20Token describes an ERC20 token on a specific EVM-compatible chain
+message ERC20Token {
+  // chain_id defines the EVM chain ID
+  uint64 chain_id = 1 [(gogoproto.moretags) = "yaml:\"chain_id\""];
+  // symbol defines the ERC20 token symbol
+  string symbol = 2 [(gogoproto.moretags) = "yaml:\"symbol\""];
+  // address defines the token contract address
+  string address = 3 [(gogoproto.moretags) = "yaml:\"address\""];
+  // decimals defines the token decimals
+  uint32 decimals = 4 [(gogoproto.moretags) = "yaml:\"decimals\""];
+}

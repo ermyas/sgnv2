@@ -414,12 +414,18 @@ func CalcPercFee(kv sdk.KVStore, src, dest *ChainIdTokenAddr, total *big.Int) *b
 	return feeAmt
 }
 
+// CalcBaseFee is a convenience method for external keepers to calculate the base fee.
+func (k Keeper) CalcBaseFee(ctx sdk.Context, symbol string, assetChainId uint64, destChainId uint64) *big.Int {
+	store := ctx.KVStore(k.storeKey)
+	return CalcBaseFee(store, symbol, assetChainId, destChainId)
+}
+
 // base fee only depends on asset price, dest chain gas token price, dest chain gas price and relay gas cost
-func CalcBaseFee(kv sdk.KVStore, assetSym string, destChid uint64) (baseFee *big.Int) {
+func CalcBaseFee(kv sdk.KVStore, assetSym string, assetChainId uint64, destChid uint64) (baseFee *big.Int) {
 	baseFee = new(big.Int)
 	gasTokenUsdPrice := GetGasTokenUsdPrice(kv, destChid)
 	assetUsdPrice := GetAssetUsdPrice(kv, assetSym)
-	assetInfo := GetAssetInfo(kv, assetSym, destChid)
+	assetInfo := GetAssetInfo(kv, assetSym, assetChainId)
 	gasCost := getUint32(kv, types.CfgKeyChain2EstimateRelayGasCost(destChid))
 
 	gasPrice := GetGasPrice(kv, destChid)

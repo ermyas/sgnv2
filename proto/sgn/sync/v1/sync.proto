@@ -11,11 +11,9 @@ enum DataType {
   ValidatorParams = 2;  // signer, pubkey, commission
   ValidatorStates = 3;  // status, token, share
   DelegatorShares = 4;
-
   CbrOnchainEvent = 5; // syncer saw a new onchain event
-
-  // use PendingUpdate.data as serialized CbrPrice msg
-  CbrUpdateCbrPrice = 6;
+  CbrUpdateCbrPrice = 6; // use PendingUpdate.data as serialized CbrPrice msg
+  PegbrOnChainEvent = 7;
 }
 
 enum VoteOption {

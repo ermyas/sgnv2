@@ -323,7 +323,7 @@ func cbrOps() {
 	addAmt := big.NewInt(5 * 1e10)
 	var i uint64
 	for i = 0; i < 2; i++ {
-		err = tc.CbrChain1.Approve(i, addAmt)
+		err = tc.CbrChain1.ApproveUSDT(i, addAmt)
 		tc.ChkErr(err, fmt.Sprintf("u%d chain1 approve", i))
 		err = tc.CbrChain1.AddLiq(i, addAmt)
 		tc.ChkErr(err, fmt.Sprintf("u%d chain1 addliq", i))
@@ -331,7 +331,7 @@ func cbrOps() {
 	}
 	log.Infoln("======================== Add liquidity on chain 2 ===========================")
 	for i = 0; i < 2; i++ {
-		err = tc.CbrChain2.Approve(i, addAmt)
+		err = tc.CbrChain2.ApproveUSDT(i, addAmt)
 		tc.ChkErr(err, fmt.Sprintf("u%d chain2 approve", i))
 		err = tc.CbrChain2.AddLiq(i, addAmt)
 		tc.ChkErr(err, fmt.Sprintf("u%d chain2 addliq", i))
@@ -356,7 +356,7 @@ func cbrOps() {
 
 	log.Infoln("======================== Xfer ===========================")
 	xferAmt := big.NewInt(1e10)
-	err = tc.CbrChain1.Approve(0, xferAmt)
+	err = tc.CbrChain1.ApproveUSDT(0, xferAmt)
 	tc.ChkErr(err, "u0 chain1 approve")
 	xferId, err := tc.CbrChain1.Send(0, xferAmt, tc.CbrChain2.ChainId, 1)
 	tc.ChkErr(err, "u0 chain1 send")
@@ -372,7 +372,7 @@ func cbrOps() {
 	detail := tc.GetWithdrawDetailWithSigs(txr, tc.CbrChain1.Users[0].Address, reqid, 4)
 	curss, err := tc.GetCurSortedSigners(txr, tc.CbrChain1.ChainId)
 	tc.ChkErr(err, "chain1 GetCurSortedSigners")
-	err = tc.CbrChain1.OnchainWithdraw(detail, curss)
+	err = tc.CbrChain1.OnchainCbrWithdraw(detail, curss)
 	tc.ChkErr(err, "chain1 onchain withdraw")
 
 	res, err = cbrcli.QueryLiquidityDetailList(txr.CliCtx, &cbrtypes.LiquidityDetailListRequest{

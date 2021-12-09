@@ -1,6 +1,6 @@
 {
   "title": "cBridge config Change",
-  "description": "Update cbridge param to v1.1",
+  "description": "Update cbridge config to v1.1",
   "cbr_config": {
     "lp_fee_perc": 80,
     "relay_onchain_gas_cost": 150000,
