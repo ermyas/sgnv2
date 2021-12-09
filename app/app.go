@@ -444,12 +444,6 @@ func NewSgnApp(
 	app.SetAnteHandler(anteHandler)
 	app.SetEndBlocker(app.EndBlocker)
 
-	if loadLatest {
-		if err := app.LoadLatestVersion(); err != nil {
-			tmos.Exit(err.Error())
-		}
-	}
-
 	app.UpgradeKeeper.SetUpgradeHandler("pegbr-upgrade",
 		func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 			return app.mm.RunMigrations(ctx, app.configurator, fromVM)
@@ -467,6 +461,12 @@ func NewSgnApp(
 
 		// configure store loader that checks if version == upgradeHeight and applies store upgrades
 		app.SetStoreLoader(upgradetypes.UpgradeStoreLoader(upgradeInfo.Height, &storeUpgrades))
+	}
+
+	if loadLatest {
+		if err := app.LoadLatestVersion(); err != nil {
+			tmos.Exit(err.Error())
+		}
 	}
 
 	// Piggy-back starting the relayer
