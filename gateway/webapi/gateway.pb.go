@@ -11109,56 +11109,6 @@ func (m *ErrMsg) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.Report)
-	if l > 0 {
-		n += 1 + l + sovGateway(uint64(l))
-	}
-	l = len(m.Sig)
-	if l > 0 {
-		n += 1 + l + sovGateway(uint64(l))
-	}
-	return n
-}
-
-func (m *CurrentBlockNumberReport) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.Timestamp != 0 {
-		n += 1 + sovGateway(uint64(m.Timestamp))
-	}
-	if len(m.BlockNums) > 0 {
-		for k, v := range m.BlockNums {
-			_ = k
-			_ = v
-			mapEntrySize := 1 + sovGateway(uint64(k)) + 1 + sovGateway(uint64(v))
-			n += mapEntrySize + 1 + sovGateway(uint64(mapEntrySize))
-		}
-	}
-	return n
-}
-
-func (m *ReportCurrentBlockNumberResponse) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.Err != nil {
-		l = m.Err.Size()
-		n += 1 + l + sovGateway(uint64(l))
-	}
-	return n
-}
-
-func (m *ErrMsg) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
 	if m.Code != 0 {
 		n += 1 + sovGateway(uint64(m.Code))
 	}

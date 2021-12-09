@@ -3,9 +3,10 @@ package onchain
 import (
 	"context"
 	"fmt"
-	"github.com/celer-network/sgn-v2/relayer"
 	"math/big"
 	"time"
+
+	"github.com/celer-network/sgn-v2/relayer"
 
 	"github.com/celer-network/endpoint-proxy/endpointproxy"
 	ethutils "github.com/celer-network/goutils/eth"
@@ -393,7 +394,8 @@ func (c *OneChain) monPegbrWithdrawn(blk *big.Int) {
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		err = GatewayOnRelay(eth.Hash(ev.RefId).String(), eLog.TxHash.String(), eth.Hash(ev.WithdrawId).String(), ev.Amount.String(), ev.Receiver.String(), ev.Token.String(), ev.RefChainId, c.chainid)
+
+		err = GatewayOnRelay(c.Client, eth.Hash(ev.RefId).String(), eLog.TxHash.String(), eth.Hash(ev.WithdrawId).String(), ev.Amount.String(), ev.Receiver.String(), ev.Token.String(), ev.RefChainId, c.chainid)
 		if err != nil {
 			log.Warnf("UpdateTransfer pegged withdraw err: %s, srcId %x, dstId %x, txHash %x, chainId %d", err, ev.RefId, ev.WithdrawId, eLog.TxHash, c.chainid)
 		}
@@ -473,7 +475,7 @@ func (c *OneChain) monPegbrMint(blk *big.Int) {
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		err = GatewayOnRelay(eth.Hash(ev.RefId).String(), eLog.TxHash.String(), eth.Hash(ev.MintId).String(), ev.Amount.String(), ev.Account.String(), ev.Token.String(), ev.RefChainId, c.chainid)
+		err = GatewayOnRelay(c.Client, eth.Hash(ev.RefId).String(), eLog.TxHash.String(), eth.Hash(ev.MintId).String(), ev.Amount.String(), ev.Account.String(), ev.Token.String(), ev.RefChainId, c.chainid)
 		if err != nil {
 			log.Warnf("UpdateTransfer mint err: %s, srcId %x, dstId %x, txHash %x, chainId %d", err, ev.RefId, ev.MintId, eLog.TxHash, c.chainid)
 		}
