@@ -457,7 +457,7 @@ func (c *OneChain) monPegbrDelayWithdrawExec(blk *big.Int) {
 }
 
 func (c *OneChain) monPegbrMint(blk *big.Int) {
-	if c.GetPtbContract() != nil {
+	if c.GetPtbContract().Address == eth.ZeroAddr {
 		return
 	}
 	cfg := &monitor.Config{
