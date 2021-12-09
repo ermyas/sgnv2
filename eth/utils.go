@@ -196,20 +196,20 @@ func (ev *BridgeLiquidityAdded) Equal(b *BridgeLiquidityAdded) bool {
 
 // onchid is the chainid this event happen
 func (ev *BridgeLiquidityAdded) PrettyLog(onchid uint64) string {
-	return fmt.Sprintf("cbr-liqadd-%d-%d token: %x lp: %x amt: %s", onchid, ev.Seqnum, ev.Token, ev.Provider, ev.Amount)
+	return fmt.Sprintf("liqadd-%d-%d token: %x lp: %x amt: %s", onchid, ev.Seqnum, ev.Token, ev.Provider, ev.Amount)
 }
 
 func (ev *BridgeWithdrawDone) PrettyLog(onchid uint64) string {
-	return fmt.Sprintf("cbr-withdraw-%d chid: %d token: %x receiver: %x amt: %s", ev.Seqnum, onchid, ev.Token, ev.Receiver, ev.Amount)
+	return fmt.Sprintf("withdraw-%d chid: %d token: %x receiver: %x amt: %s", ev.Seqnum, onchid, ev.Token, ev.Receiver, ev.Amount)
 }
 
 // relay-%x is src transfer id!!! so we can easily correlate with send log
 func (ev *BridgeRelay) PrettyLog(onchid uint64) string {
-	return fmt.Sprintf("cbr-relay-%x srcchid: %d dst: %d-%x sender: %x receiver: %x amt: %s thisXferId: %x", ev.SrcTransferId, ev.SrcChainId, onchid, ev.Token, ev.Sender, ev.Receiver, ev.Amount, ev.TransferId)
+	return fmt.Sprintf("relay-%x srcchid: %d dst: %d-%x sender: %x receiver: %x amt: %s thisXferId: %x", ev.SrcTransferId, ev.SrcChainId, onchid, ev.Token, ev.Sender, ev.Receiver, ev.Amount, ev.TransferId)
 }
 
 func (ev *BridgeSignersUpdated) PrettyLog(onchid uint64) string {
-	return fmt.Sprintf("cbr-signersUpdated-%d: %s", onchid, ev.String())
+	return fmt.Sprintf("signersUpdated-%d: %s", onchid, ev.String())
 }
 
 func (r *BridgeRelay) String() string {
@@ -268,49 +268,4 @@ func ToPadBytes(v interface{}, rlen ...int) []byte {
 	ret := make([]byte, retlen)
 	copy(ret[retlen-len(orig):], orig)
 	return ret
-}
-
-// onchid is the chainid this event happen
-func (ev *OriginalTokenVaultDeposited) PrettyLog(onchid uint64) string {
-	return fmt.Sprintf(
-		"peg-deposited-%d depositId: %x account: %x token: %x amount: %s mintChainId: %d mintAccount: %x",
-		onchid, ev.DepositId, ev.Depositor, ev.Token, ev.Amount, ev.MintChainId, ev.MintAccount)
-}
-
-func (ev *PeggedTokenBridgeMint) PrettyLog(onchid uint64) string {
-	return fmt.Sprintf(
-		"peg-mint-%d mintId: %x token: %x account: %x amount: %s depositChainId: %d depositId: %x depositor: %x",
-		onchid, ev.MintId, ev.Token, ev.Account, ev.Amount, ev.RefChainId, ev.RefId, ev.Depositor)
-}
-
-func (ev *PeggedTokenBridgeBurn) PrettyLog(onchid uint64) string {
-	return fmt.Sprintf(
-		"peg-burn-%d burnId: %x token: %x account: %x amount: %s withdrawAccount: %x",
-		onchid, ev.BurnId, ev.Token, ev.Account, ev.Amount, ev.WithdrawAccount)
-}
-
-func (ev *OriginalTokenVaultWithdrawn) PrettyLog(onchid uint64) string {
-	return fmt.Sprintf(
-		"peg-withdrawn-%d withdrawId: %x receiver: %x token: %x amount: %s mintChainId: %d mintId: %x burnAccount: %x",
-		onchid, ev.WithdrawId, ev.Receiver, ev.Token, ev.Amount, ev.RefChainId, ev.RefId, ev.BurnAccount)
-}
-
-func (ev *OriginalTokenVaultDeposited) String() string {
-	return fmt.Sprintf("depositId %x, account %x, token %x, amount %s, mintChainId %d,  mintAccount %x",
-		ev.DepositId, ev.Depositor, ev.Token, ev.Amount, ev.MintChainId, ev.MintAccount)
-}
-
-func (ev *PeggedTokenBridgeMint) String() string {
-	return fmt.Sprintf("mintId %x, account %x, token %x, amount %s, depositChainId %d, depositId %x, depositor %x",
-		ev.MintId, ev.Account, ev.Token, ev.Amount, ev.RefChainId, ev.RefId, ev.Depositor)
-}
-
-func (ev *PeggedTokenBridgeBurn) String() string {
-	return fmt.Sprintf("burnId %x, account %x, token %x, amount %s, withdrawAccount %x",
-		ev.BurnId, ev.Account, ev.Token, ev.Amount, ev.WithdrawAccount)
-}
-
-func (ev *OriginalTokenVaultWithdrawn) String() string {
-	return fmt.Sprintf("withdrawId %x, receiver %x, token %x, amount %s, burnChainId %d, burnId %x, burnAccount %x",
-		ev.WithdrawId, ev.Receiver, ev.Token, ev.Amount, ev.RefChainId, ev.RefId, ev.BurnAccount)
 }

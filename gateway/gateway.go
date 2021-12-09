@@ -67,7 +67,7 @@ func InitGateway() {
 	onchain.InitSGNTransactors(*home, encoding)
 	gs.Chains = onchain.InitChainMgr(db)
 
-	gs.StartChainTokenPolling(2 * time.Minute)
+	gs.StartChainTokenPolling(1 * time.Hour)
 	gs.F = gatewaysvc.NewTokenPriceCache(onchain.SGNTransactors.GetTransactor())
 	gs.StartUpdateTokenPricePolling(time.Duration(viper.GetInt32(common.FlagSgnCheckIntervalCbrPrice)) * time.Second)
 	gs.StartAvgLpFeeEarningPolling(10 * time.Minute)

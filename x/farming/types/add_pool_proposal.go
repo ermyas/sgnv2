@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	commontypes "github.com/celer-network/sgn-v2/common/types"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -27,8 +26,8 @@ func init() {
 func NewAddPoolProposal(
 	title, description,
 	poolName string,
-	stakeToken commontypes.ERC20Token,
-	rewardTokens []commontypes.ERC20Token,
+	stakeToken ERC20Token,
+	rewardTokens []ERC20Token,
 	initialRewardInputs []RewardAdjustmentInput,
 ) *AddPoolProposal {
 	return &AddPoolProposal{

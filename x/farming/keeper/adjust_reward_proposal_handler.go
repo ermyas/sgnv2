@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/celer-network/sgn-v2/common"
-	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/x/farming/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -27,7 +26,7 @@ func HandleAdjustRewardProposal(ctx sdk.Context, k Keeper, p *types.AdjustReward
 	// 3. Update existing infos with new inputs, assuming both are sorted by ascending denoms
 	// Mint AddAmount, update RemainingAmount, set RewardAmountPerBlock. For new rewards, also set RewardStartBlockHeight
 	newInfos := []types.RewardTokenInfo{}
-	newTokens := []commontypes.ERC20Token{}
+	newTokens := []types.ERC20Token{}
 	newAccumulatedRewards := []sdk.DecCoin{}
 	indexInfos, indexInputs := 0, 0
 	lenInfos, lenInputs := len(pool.RewardTokenInfos), len(p.RewardAdjustmentInputs)
@@ -104,7 +103,7 @@ func HandleAdjustRewardProposal(ctx sdk.Context, k Keeper, p *types.AdjustReward
 }
 
 // CheckAdjustRewardProposal checks the validity of an AdjustRewardProposal
-func (k Keeper) CheckAdjustRewardProposal(ctx sdk.Context, p *types.AdjustRewardProposal) (*types.FarmingPool, []commontypes.ERC20Token, error) {
+func (k Keeper) CheckAdjustRewardProposal(ctx sdk.Context, p *types.AdjustRewardProposal) (*types.FarmingPool, []types.ERC20Token, error) {
 	// 1.1. Check pool existence
 	pool, found := k.GetFarmingPool(ctx, p.PoolName)
 	if !found {
@@ -115,7 +114,7 @@ func (k Keeper) CheckAdjustRewardProposal(ctx sdk.Context, p *types.AdjustReward
 		return nil, nil, types.WrapErrInvalidInput("empty reward token info array")
 	}
 	// 1.2. Check reward tokens exist and sorted by ascending denom
-	tokens := []commontypes.ERC20Token{}
+	tokens := []types.ERC20Token{}
 	lastDenom := ""
 	for _, input := range p.RewardAdjustmentInputs {
 		denom := input.AddAmount.Denom

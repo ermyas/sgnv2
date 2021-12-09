@@ -132,7 +132,7 @@ func (k Keeper) claimFeeShare(ctx sdk.Context, wdReq *types.WithdrawReq, delAddr
 	// 2. Take the fee balance in the distribution module and generate a WithdrawOnchain
 	symbol := GetAssetSymbol(kv, &ChainIdTokenAddr{wd.FromChainId, feeTokenAddr})
 	denom := fmt.Sprintf("%s%s/%d", types.CBridgeFeeDenomPrefix, symbol, wd.FromChainId)
-	coin := k.distrKeeper.GetWithdrawableBalance(ctx, delAddr, sdk.NewCoin(denom, sdk.ZeroInt()))
+	coin := k.distrKeeper.GetWithdrawableCBridgeFeeShare(ctx, delAddr, sdk.NewCoin(denom, sdk.ZeroInt()))
 	err = k.BurnFeeShare(ctx, delAddr, coin)
 	if err != nil {
 		return nil, err

@@ -110,15 +110,6 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 }
 
 func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.EstimateAmtRequest) (*webapi.EstimateAmtResponse, error) {
-	// TODO
-	if request.GetIsPegged() {
-		return &webapi.EstimateAmtResponse{
-			EqValueTokenAmt: request.GetAmt(),
-			BridgeRate:      1.0,
-			PercFee:         "0",
-			BaseFee:         "0",
-		}, nil
-	}
 	amt := request.GetAmt()
 	srcChainId := request.GetSrcChainId()
 	dstChainId := request.GetDstChainId()

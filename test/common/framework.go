@@ -41,13 +41,6 @@ type CbrChain struct {
 	CbrAddr, USDTAddr eth.Addr
 	CbrContract       *eth.BridgeContract
 	USDTContract      *eth.Erc20
-
-	PegBridgeContract           *eth.PegBridgeContract
-	PegVaultContract            *eth.PegVaultContract
-	PegBridgeAddr, PegVaultAddr eth.Addr
-	UNIContract                 *eth.Erc20
-	PeggedUNIContract           *eth.PeggedToken
-	UNIAddr, PeggedUNIAddr      eth.Addr
 }
 
 type TestEthClient struct {

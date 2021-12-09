@@ -29,7 +29,6 @@ type Relayer struct {
 	startEthBlock   *big.Int
 	syncer          Syncer
 	lock            sync.RWMutex
-	pegbrLock       sync.RWMutex
 	cbrMgr          CbrMgr
 	cbrSsUpdating   bool
 }
@@ -99,10 +98,6 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 
 	r.cbrMgr = NewCbridgeMgr(db, r.Transactor.CliCtx) // cbrMgr should be initialized before verifyPendingUpdates
 	go r.monitorSgnCbrDataToSign()                    // cbr monitor set after cbrMgr initialization
-	go r.monitorSgnPegMintToSign()
-	go r.monitorSgnPegWithdrawToSign()
-
-	r.startReportCurrentBlockNumber(time.Minute * 5)
 
 	r.startReportCurrentBlockNumber(time.Minute * 5)
 
@@ -113,9 +108,6 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 	go r.doCbridgeSync(r.cbrMgr)
 	r.doCbridgeOnchain(r.cbrMgr) // internal use goroutine
 	go r.pullPriceChange()
-
-	go r.doPegbrSync(r.cbrMgr)
-	r.doPegbrOnchain(r.cbrMgr) // internal use goroutine
 
 	go r.checkSyncer()
 }

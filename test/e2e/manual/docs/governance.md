@@ -17,10 +17,10 @@ sgnd query gov proposal 1 --home data/node0/sgnd
 2. All nodes vote yes:
 
 ```sh
-echo 12341234 | sgnd tx gov vote 1 yes --home data/node0/sgnd
-echo 12341234 | sgnd tx gov vote 1 yes --home data/node1/sgnd
-echo 12341234 | sgnd tx gov vote 1 yes --home data/node2/sgnd
-echo 12341234 | sgnd tx gov vote 1 yes --home data/node3/sgnd
+sgnd tx gov vote 1 yes --home data/node0/sgnd
+sgnd tx gov vote 1 yes --home data/node1/sgnd
+sgnd tx gov vote 1 yes --home data/node2/sgnd
+sgnd tx gov vote 1 yes --home data/node3/sgnd
 ```
 
 3. Query proposal status and updated block mining reward after voting timeout (2 mins):

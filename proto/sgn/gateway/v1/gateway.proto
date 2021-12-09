@@ -287,16 +287,6 @@ message GetTransferConfigsResponse {
   repeated Chain chains = 2;
   map<uint32, ChainTokenInfo> chain_token = 3;  // map<chain_id, ChainTokenInfo>
   string farming_reward_contract_addr = 4;
-  repeated PeggedPairConfig pegged_pair_configs = 5;
-}
-
-message PeggedPairConfig {
-  uint32 org_chain_id = 1;
-  TokenInfo org_token = 2;
-  uint32 pegged_chain_id = 3;
-  TokenInfo pegged_token = 4;
-  string pegged_deposit_contract_addr = 5; // for pegged deposit
-  string pegged_burn_contract_addr = 6; // for pegged burn
 }
 
 message GetTokenInfoRequest {
@@ -316,7 +306,6 @@ message EstimateAmtRequest {
   string amt = 4;
   string usr_addr = 5;
   uint32 slippage_tolerance = 6;  // user setting, for ui only, slippage * 1M, eg. 0.5% is 5000
-  bool is_pegged = 7;
 }
 
 message EstimateAmtResponse {
