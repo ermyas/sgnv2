@@ -22,6 +22,7 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 	kv := ctx.KVStore(k.storeKey)
 	setUint32(kv, types.CfgKeyFeePerc, cfg.LpFeePerc)
 	setUint32(kv, types.CfgKeyPickLpSize, cfg.PickLpSize)
+	setUint32(kv, types.CfgKeyMaxGainPerc, cfg.MaxGainPerc)
 	// Note: we don't iter and del all cfg-xxx key/val if we're removing asset
 	// because this is VERY unlikely, also need to take care of past xfers
 	// now we have xfer_disabled in asset, so there should be no need to delete
@@ -80,6 +81,7 @@ func (k Keeper) SetCbrPrice(ctx sdk.Context, cfg *types.CbrPrice) {
 	SetAssetPrice(kv, cfg.GetAssetPrice())
 }
 
+// return 0 if key not foud
 func getUint32(kv sdk.KVStore, key []byte) uint32 {
 	return uint32(new(big.Int).SetBytes(kv.Get(key)).Int64())
 }
@@ -93,6 +95,7 @@ func (k Keeper) GetCbrConfig(ctx sdk.Context) types.CbrConfig {
 	kv := ctx.KVStore(k.storeKey)
 	cbrConfig.LpFeePerc = getUint32(kv, types.CfgKeyFeePerc)
 	cbrConfig.PickLpSize = getUint32(kv, types.CfgKeyPickLpSize)
+	cbrConfig.MaxGainPerc = getUint32(kv, types.CfgKeyMaxGainPerc)
 	cbrConfig.Assets = make([]*types.ChainAsset, 0)
 	cbrConfig.ChainPairs = make([]*types.ChainPair, 0)
 
