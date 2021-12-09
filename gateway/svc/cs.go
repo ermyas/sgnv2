@@ -306,7 +306,7 @@ func (gs *GatewayService) fixTxEventMiss(ctx context.Context, txHash string, cha
 				if err != nil {
 					return err
 				}
-				err = onchain.GatewayOnRelay(transfer.TransferId, "", relayOnChain.GetRelayOnChainTransferId().String(), new(big.Int).SetBytes(relayOnChain.GetAmount()).String(), eth.Bytes2Addr(relayOnChain.GetReceiver()).String(), eth.Bytes2Addr(relayOnChain.GetToken()).String(), uint64(chainId), ev.DstChainId)
+				err = onchain.GatewayOnRelay(gs.Chains.GetEthClient(uint64(chainId)), transfer.TransferId, "", relayOnChain.GetRelayOnChainTransferId().String(), new(big.Int).SetBytes(relayOnChain.GetAmount()).String(), eth.Bytes2Addr(relayOnChain.GetReceiver()).String(), eth.Bytes2Addr(relayOnChain.GetToken()).String(), uint64(chainId), ev.DstChainId)
 				if err != nil {
 					return err
 				}
