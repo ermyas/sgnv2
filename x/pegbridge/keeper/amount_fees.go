@@ -62,6 +62,27 @@ func (k Keeper) CalcAmountAndFees(
 	return destAmt, baseFeeInOrig, percFeeInOrig
 }
 
+// CalcBaseFee calculates the base fee. The base fee is a function of:
+// 1. Asset price
+// 2. Destination chain gas token price,
+// 3. Destination chain gas price
+// 4. Mint / withdraw gas cost
+// NOTE: For simplicity, we approximate pegbridge mint / withdraw gas cost by directly using
+// cbridge relay gas cost as the difference is small. Operation wise this requires that the original asset
+// MUST BE part of the asset info in the cbridge module. Transfer can be disabled if we want to restrict the asset to
+// mint / burn mode.
+func (k Keeper) CalcBaseFee(ctx sdk.Context, pair types.OrigPeggedPair, isPeggedDest bool) (baseFee *big.Int) {
+	var destChainId uint64
+	if isPeggedDest {
+		destChainId = pair.Pegged.ChainId
+	} else {
+		destChainId = pair.Orig.ChainId
+	}
+	// NOTE: Always use orig as the pegged symbol might be different across different
+	// pegged versions of the same asset, and the fees are claimed in the form of orig tokens anyway.
+	return k.cbridgeKeeper.CalcBaseFee(ctx, pair.Orig.Symbol, pair.Orig.ChainId, destChainId)
+}
+
 // CalcPercFee calculates the percentage fee based on the destination amount.
 func (k Keeper) CalcPercFee(
 	ctx sdk.Context, pair types.OrigPeggedPair, destAmount *big.Int, isPeggedDest bool) (percFee *big.Int) {
@@ -88,27 +109,6 @@ func (k Keeper) CalcPercFee(
 		return maxPercFee
 	}
 	return percFee
-}
-
-// CalcBaseFee calculates the base fee. The base fee is a function of:
-// 1. Asset price
-// 2. Destination chain gas token price,
-// 3. Destination chain gas price
-// 4. Mint / withdraw gas cost
-// NOTE: For simplicity, we approximate pegbridge mint / withdraw gas cost by directly using
-// cbridge relay gas cost as the difference is small. Operation wise this requires that the original asset
-// MUST BE part of the asset info in the cbridge module. Transfer can be disabled if we want to restrict the asset to
-// mint / burn mode.
-func (k Keeper) CalcBaseFee(ctx sdk.Context, pair types.OrigPeggedPair, isPeggedDest bool) (baseFee *big.Int) {
-	var destChainId uint64
-	if isPeggedDest {
-		destChainId = pair.Pegged.ChainId
-	} else {
-		destChainId = pair.Orig.ChainId
-	}
-	// NOTE: Always use orig as the pegged symbol might be different across different
-	// pegged versions of the same asset, and the fees are claimed in the form of orig tokens anyway.
-	return k.cbridgeKeeper.CalcBaseFee(ctx, pair.Orig.Symbol, pair.Orig.ChainId, destChainId)
 }
 
 // MintFee mints coins to distribution module's fee collector account

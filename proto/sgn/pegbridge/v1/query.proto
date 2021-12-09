@@ -30,6 +30,11 @@ service Query {
     option (google.api.http).get = "/sgn/pegbridge/v1/orig_pegged_pairs";
   }
 
+  // EstimatedAmountFees queries the estimated received amount and charged fees for a mint / withdraw request.
+  rpc EstimatedAmountFees(QueryEstimatedAmountFeesRequest) returns (QueryEstimatedAmountFeesResponse) {
+    option (google.api.http).get = "/sgn/pegbridge/v1/estimated_amount_fees";
+  }
+
   // DepositInfo queries the deposit info
   rpc DepositInfo(QueryDepositInfoRequest) returns (QueryDepositInfoResponse) {
     option (google.api.http).get = "/sgn/pegbridge/v1/deposit_info/{deposit_id}";
@@ -76,6 +81,20 @@ message QueryOrigPeggedPairsRequest {
 // QueryOrigPeggedPairsResponse is the response type for the Query/OrigPeggedPairs RPC method.
 message QueryOrigPeggedPairsResponse {
   repeated OrigPeggedPair pairs = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryEstimatedAmountFeesRequest is the request type for the Query/EstimatedAmountFees RPC method.
+message QueryEstimatedAmountFeesRequest {
+  OrigPeggedPair pair = 1 [(gogoproto.nullable) = false];
+  string request_amount = 2;
+  bool mint = 3;
+}
+
+// QueryEstimatedAmountFeesResponse is the response type for the Query/EstimatedAmountFees RPC method.
+message QueryEstimatedAmountFeesResponse {
+  string receive_amount = 1;
+  string base_fee = 2;
+  string percentage_fee = 3;
 }
 
 // QueryDepositInfoRequest is the request type for the Query/DepositInfo RPC method.

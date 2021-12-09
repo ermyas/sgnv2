@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"errors"
+	"math/big"
 
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/pegbridge/types"
@@ -66,6 +67,22 @@ func (k Keeper) OrigPeggedPairs(
 		return false
 	})
 	return &types.QueryOrigPeggedPairsResponse{Pairs: pairs}, nil
+}
+
+func (k Keeper) EstimatedAmountFees(
+	c context.Context, req *types.QueryEstimatedAmountFeesRequest) (*types.QueryEstimatedAmountFeesResponse, error) {
+	ctx := sdk.UnwrapSDKContext(c)
+
+	requestAmount, valid := new(big.Int).SetString(req.RequestAmount, 10)
+	if !valid {
+		return nil, errors.New("invalid request amount")
+	}
+	receiveAmount, baseFee, percFee := k.CalcAmountAndFees(ctx, req.Pair, requestAmount, req.Mint)
+	return &types.QueryEstimatedAmountFeesResponse{
+		ReceiveAmount: receiveAmount.String(),
+		BaseFee:       baseFee.String(),
+		PercentageFee: percFee.String(),
+	}, nil
 }
 
 func (k Keeper) DepositInfo(c context.Context, req *types.QueryDepositInfoRequest) (*types.QueryDepositInfoResponse, error) {
