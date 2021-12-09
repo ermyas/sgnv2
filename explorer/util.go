@@ -62,6 +62,8 @@ var tokenSymbolTokenIds = map[string]string{
 	"DODO":  "dodo",
 	"MCB":   "mcdex",
 	"CELO":  "celo",
+	"LYRA":  "scrypta",
+	"IMX":   "impermax",
 }
 
 func GetUsdPrices() (map[string]float64, error) {
