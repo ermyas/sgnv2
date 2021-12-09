@@ -12,6 +12,8 @@ import (
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
+	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 )
@@ -62,10 +64,29 @@ func (c *CbrChain) SetUsersAndDelegators() {
 	c.Delegators = dels
 }
 
-func (c *CbrChain) Approve(uid uint64, amt *big.Int) error {
+func (c *CbrChain) ApproveUSDT(uid uint64, amt *big.Int) error {
+	return c.ApproveErc20(c.USDTContract, uid, amt, c.CbrAddr)
+}
+
+func (c *CbrChain) ApproveUNI(uid uint64, amt *big.Int) error {
+	return c.ApproveErc20(c.UNIContract, uid, amt, c.PegVaultAddr)
+}
+
+func (c *CbrChain) ApproveErc20(erc20 *eth.Erc20, uid uint64, amt *big.Int, spender eth.Addr) error {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
-	tx, err := c.USDTContract.Approve(c.Users[uid].Auth, c.CbrAddr, amt)
+	tx, err := erc20.Approve(c.Users[uid].Auth, spender, amt)
+	if err != nil {
+		return err
+	}
+	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "Approve")
+	return nil
+}
+
+func (c *CbrChain) ApprovePeggedUNI(uid uint64, amt *big.Int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
+	tx, err := c.PeggedUNIContract.Approve(c.Users[uid].Auth, c.PegBridgeAddr, amt)
 	if err != nil {
 		return err
 	}
@@ -107,7 +128,7 @@ func (c *CbrChain) SendAny(fromUid, toUid uint64, amt *big.Int, dstChainId, nonc
 	return sendEv.TransferId, nil
 }
 
-func (c *CbrChain) OnchainWithdraw(wdDetail *cbrtypes.WithdrawDetail, signers []*cbrtypes.Signer) error {
+func (c *CbrChain) OnchainCbrWithdraw(wdDetail *cbrtypes.WithdrawDetail, signers []*cbrtypes.Signer) error {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 	addrs, powers := cbrtypes.SignersToEthArrays(signers)
@@ -115,7 +136,7 @@ func (c *CbrChain) OnchainWithdraw(wdDetail *cbrtypes.WithdrawDetail, signers []
 	if err != nil {
 		return err
 	}
-	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "OnchainWithdraw")
+	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "OnchainCbrWithdraw")
 	return nil
 }
 
@@ -162,4 +183,88 @@ func OnchainClaimStakingReward(claimInfo *distrtypes.StakingRewardClaimInfo) err
 	}
 	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "OnchainClaimStakingReward")
 	return nil
+}
+
+func (c *CbrChain) PbrDeposit(fromUid uint64, amt *big.Int, mintChainId uint64, nonce uint64) (string, error) {
+	tx, err := c.PegVaultContract.Deposit(c.Users[fromUid].Auth, c.UNIAddr, amt, mintChainId, c.Users[fromUid].Address, nonce)
+	if err != nil {
+		return "", err
+	}
+	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
+	if err != nil {
+		return "", err
+	}
+	// last log is Deposit event (NOTE: test only)
+	depositLog := receipt.Logs[len(receipt.Logs)-1]
+	depositEv, err := c.PegVaultContract.ParseDeposited(*depositLog)
+	if err != nil {
+		return "", fmt.Errorf("parse log %+v err: %w", depositEv, err)
+	}
+	log.Infof("Deposit tx success, depositId: %x", depositEv.DepositId)
+	return eth.Hash(depositEv.DepositId).Hex(), nil
+}
+
+func (c *CbrChain) PbrBurn(fromUid uint64, amt *big.Int, nonce uint64) (string, error) {
+	tx, err := c.PegBridgeContract.Burn(c.Users[fromUid].Auth, c.PeggedUNIAddr, amt, c.Users[fromUid].Address, nonce)
+	if err != nil {
+		return "", err
+	}
+	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
+	if err != nil {
+		return "", err
+	}
+	// last log is Deposit event (NOTE: test only)
+	burnLog := receipt.Logs[len(receipt.Logs)-1]
+	burnEv, err := c.PegBridgeContract.ParseBurn(*burnLog)
+	if err != nil {
+		return "", fmt.Errorf("parse log %+v err: %w", burnEv, err)
+	}
+	log.Infof("Burn tx success, burnId: %x", burnEv.BurnId)
+	return eth.Hash(burnEv.BurnId).Hex(), nil
+}
+
+func (c *CbrChain) OnchainPegVaultWithdraw(info *pegbrtypes.WithdrawInfo, signers []*cbrtypes.Signer) error {
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
+	addrs, powers := cbrtypes.SignersToEthArrays(signers)
+	tx, err := c.PegVaultContract.Withdraw(c.Auth, info.WithdrawProtoBytes, info.GetSortedSigsBytes(), addrs, powers)
+	if err != nil {
+		return err
+	}
+	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "OnchainPegVaultWithdraw")
+	return nil
+}
+
+func (c *CbrChain) CheckUNIBalance(uid uint64, expectedAmt *big.Int) {
+	var err error
+	var expected bool
+	for retry := 0; retry < RetryLimit*2; retry++ {
+		balance, err := c.UNIContract.BalanceOf(&bind.CallOpts{}, c.Users[uid].Address)
+		if err == nil && balance.Cmp(expectedAmt) == 0 {
+			expected = true
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to CheckUNIBalance")
+	if !expected {
+		log.Fatal("CheckUNIBalance failed")
+	}
+}
+
+func (c *CbrChain) CheckPeggedUNIBalance(uid uint64, expectedAmt *big.Int) {
+	var err error
+	var expected bool
+	for retry := 0; retry < RetryLimit*2; retry++ {
+		balance, err := c.PeggedUNIContract.BalanceOf(&bind.CallOpts{}, c.Users[uid].Address)
+		if err == nil && balance.Cmp(expectedAmt) == 0 {
+			expected = true
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to CheckPeggedUNIBalance")
+	if !expected {
+		log.Fatal("CheckPeggedUNIBalance failed")
+	}
 }

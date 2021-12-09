@@ -19,6 +19,8 @@ import (
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	pegcli "github.com/celer-network/sgn-v2/x/pegbridge/client/cli"
+	pegtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	"github.com/lthibault/jitterbug"
 )
 
@@ -184,10 +186,56 @@ func (gs *GatewayService) pollChainToken() {
 			}
 		}
 	}
+
+	// pegged token
+	log.Infof("start QueryAllPeggedPairs")
+	pegPairs, err := pegcli.QueryOrigPeggedPairs(tr.CliCtx, &pegtypes.QueryOrigPeggedPairsRequest{})
+	if err != nil {
+		log.Errorln("query QueryAllPeggedPairs err", err)
+	} else {
+		for _, pair := range pegPairs {
+			org := pair.GetOrig()
+			pegged := pair.GetPegged()
+			dbErr := dal.DB.InsertMintTokenBaseInfo(org.GetSymbol(), eth.Hex2Addr(org.GetAddress()).String(), org.GetChainId(), uint64(org.GetDecimals()))
+			if dbErr != nil {
+				log.Errorf("fail to save peg org token, dbErr:%s", dbErr.Error())
+				continue
+			}
+			dbErr = dal.DB.InsertMintTokenBaseInfo(pegged.GetSymbol(), eth.Hex2Addr(pegged.GetAddress()).String(), pegged.GetChainId(), uint64(pegged.GetDecimals()))
+			if dbErr != nil {
+				log.Errorf("fail to save pegged token, dbErr:%s", dbErr.Error())
+				continue
+			}
+			dbErr = dal.DB.InsertPeggedBaseInfo(&org, &pegged)
+			if dbErr != nil {
+				log.Errorf("failed to InsertPeggedBaseInfo: %v", dbErr)
+				continue
+			}
+		}
+	}
+}
+
+func (gs *GatewayService) GetAllValidPeggedPairs() ([]*webapi.PeggedPairConfig, error) {
+	configs, dbErr := dal.DB.GetAllValidPeggedConfigList()
+	if dbErr != nil {
+		return nil, dbErr
+	}
+	log.Infof("GetAllValidPeggedPairs configs:%+v", configs)
+	for _, c := range configs {
+		srcChain, foundSrc := gs.Chains.GetOneChain(uint64(c.OrgChainId))
+		peggedChain, foundPegged := gs.Chains.GetOneChain(uint64(c.PeggedChainId))
+		if !foundSrc || !foundPegged || srcChain.GetOtvContract() == nil || peggedChain.GetPtbContract() == nil {
+			log.Errorf("fail to find this pegged chain pair in onchain config: %+v", c)
+			continue
+		}
+		c.PeggedDepositContractAddr = srcChain.GetOtvContract().GetAddr().String()
+		c.PeggedBurnContractAddr = peggedChain.GetPtbContract().GetAddr().String()
+	}
+	log.Infof("GetAllValidPeggedPairs res:%+v", configs)
+	return configs, nil
 }
 
 // ================================= common method below =====================================
-
 func unknownChain(chainId uint32) *webapi.Chain {
 	return &webapi.Chain{
 		Id:   chainId,

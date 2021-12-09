@@ -101,6 +101,8 @@ func (r *Relayer) verifyUpdate(update *synctypes.PendingUpdate) (done, approve b
 		return r.verifyCbrEventUpdate(update)
 	case synctypes.DataType_CbrUpdateCbrPrice:
 		return r.verifyUpdateCbrPrice(update)
+	case synctypes.DataType_PegbrOnChainEvent:
+		return r.verifyPegbrEventUpdate(update)
 	default:
 		return false, false
 	}

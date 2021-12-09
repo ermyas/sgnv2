@@ -27,8 +27,6 @@ const (
 	// DefaultParamspace default name for parameter store
 	DefaultParamspace = ModuleName
 
-	// this line is used by starport scaffolding # ibc/keys/name
-
 	CBridgeStakeDenomPrefix = "CB-"
 	CBridgeFeeDenomPrefix   = "CBF-"
 )
@@ -37,8 +35,6 @@ var (
 	ChainSignersKey  = []byte("signers-chain")
 	LatestSignersKey = []byte("signers-latest")
 )
-
-// this line is used by starport scaffolding # ibc/keys/port
 
 func KeyPrefix(p string) []byte {
 	return []byte(p)

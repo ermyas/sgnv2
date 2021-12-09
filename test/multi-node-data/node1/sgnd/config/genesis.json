@@ -104,6 +104,13 @@
             "addr": "0x",
             "decimal": 6,
             "max_fee_amount": "100000000"
+          },
+          {
+            "symbol": "UNI",
+            "chain_id": 883,
+            "addr": "0x",
+            "decimal": 18,
+            "max_fee_amount": "1000000000000000000"
           }
         ],
         "chain_pairs": [
@@ -146,6 +153,10 @@
           {
             "symbol": "USDT",
             "price": 10000
+          },
+          {
+            "symbol": "UNI",
+            "price": 170000
           },
           {
             "symbol": "ETH",

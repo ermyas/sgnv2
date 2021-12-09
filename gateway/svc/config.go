@@ -108,7 +108,18 @@ func (gs *GatewayService) UpdateToken(ctx context.Context, request *webapi.Updat
 	if request.GetTokenIcon() != "" {
 		icon = request.GetTokenIcon()
 	}
-	dal.DB.UpdateTokenUIInfo(tokenSymbol, chainId, name, icon)
+	dbErr1 := dal.DB.UpdateTokenUIInfo(tokenSymbol, chainId, name, icon)
+	if dbErr1 != nil {
+		log.Errorf("fail to UpdateTokenUIInfo, err:%s", dbErr1.Error())
+	}
+	dbErr2 := dal.DB.UpdateMintTokenUIInfo(tokenSymbol, chainId, name, icon)
+	if dbErr2 != nil {
+		log.Errorf("fail to UpdateMintTokenUIInfo, err:%s", dbErr2.Error())
+	}
+	dbErr3 := dal.DB.UpdatePeggedOrgTokenUIInfo(tokenSymbol, chainId, name, icon)
+	if dbErr3 != nil {
+		log.Errorf("fail to UpdatePeggedOrgTokenUIInfo, err:%s", dbErr3.Error())
+	}
 	tokenInDb, _, _ = dal.DB.GetTokenBySymbol(tokenSymbol, chainId)
 	return &webapi.UpdateTokenResponse{
 		Token: tokenInDb,

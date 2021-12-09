@@ -325,7 +325,7 @@ func (c *CbrOneChain) skipEvent(evn string, evlog *ethtypes.Log, cliCtx client.C
 func (c *CbrOneChain) skipSyncCbrSend(
 	evlog *ethtypes.Log, cliCtx client.Context, validCache map[string]bool) (skip bool, reason string) {
 
-	sendEv, err := c.contract.ParseSend(*evlog)
+	sendEv, err := c.cbrContract.ParseSend(*evlog)
 	if err != nil {
 		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
 	}
@@ -378,11 +378,11 @@ func (c *CbrOneChain) skipSyncCbrSend(
 }
 
 func (c *CbrOneChain) skipSyncCbrSignerUpdate(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
-	ev, err := c.contract.ParseSignersUpdated(*evlog)
+	ev, err := c.cbrContract.ParseSignersUpdated(*evlog)
 	if err != nil {
 		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
 	}
-	ssHash, err := c.contract.SsHash(&bind.CallOpts{})
+	ssHash, err := c.cbrContract.SsHash(&bind.CallOpts{})
 	if err != nil {
 		log.Errorf("chain %d failed to get onchain sshash err %s", c.chainid, err)
 		return
@@ -402,7 +402,7 @@ func (c *CbrOneChain) skipSyncCbrSignerUpdate(evlog *ethtypes.Log, cliCtx client
 }
 
 func (c *CbrOneChain) skipSyncCbrLiqAdd(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
-	ev, err := c.contract.ParseLiquidityAdded(*evlog)
+	ev, err := c.cbrContract.ParseLiquidityAdded(*evlog)
 	if err != nil {
 		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
 	}
@@ -424,7 +424,7 @@ func (c *CbrOneChain) skipSyncCbrLiqAdd(evlog *ethtypes.Log, cliCtx client.Conte
 }
 
 func (c *CbrOneChain) skipSyncCbrRelay(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
-	ev, err := c.contract.ParseRelay(*evlog)
+	ev, err := c.cbrContract.ParseRelay(*evlog)
 	if err != nil {
 		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
 	}
@@ -446,7 +446,7 @@ func (c *CbrOneChain) skipSyncCbrRelay(evlog *ethtypes.Log, cliCtx client.Contex
 }
 
 func (c *CbrOneChain) skipSyncCbrWithdraw(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
-	ev, err := c.contract.ParseWithdrawDone(*evlog)
+	ev, err := c.cbrContract.ParseWithdrawDone(*evlog)
 	if err != nil {
 		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
 	}
@@ -477,7 +477,7 @@ func (r *Relayer) updateSigners() {
 
 	log.Infoln("update latest signers to", latestSigners.String())
 	for chainId, c := range r.cbrMgr {
-		ssHash, err := c.contract.SsHash(&bind.CallOpts{})
+		ssHash, err := c.cbrContract.SsHash(&bind.CallOpts{})
 		if err != nil {
 			log.Errorln("failed to get sshash", chainId, err)
 			continue
@@ -543,7 +543,7 @@ func (r *Relayer) updateSigners() {
 			},
 			func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
 				newSignerAddrs, newSignerPowers := cbrtypes.SignersToEthArrays(latestSigners.GetSortedSigners())
-				return c.contract.UpdateSigners(
+				return c.cbrContract.UpdateSigners(
 					opts, new(big.Int).SetUint64(latestSigners.TriggerTime),
 					newSignerAddrs, newSignerPowers, sigsBytes, curss.addrs, curss.powers)
 			},

@@ -15,6 +15,8 @@ import (
 	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
 	farmingcli "github.com/celer-network/sgn-v2/x/farming/client/cli"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
+	pegbrcli "github.com/celer-network/sgn-v2/x/pegbridge/client/cli"
+	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -60,6 +62,74 @@ func CheckXfer(transactor *transactor.Transactor, xferId []byte) {
 	if resp.Status[xferIdStr].GatewayStatus != cbrtypes.TransferHistoryStatus_TRANSFER_COMPLETED {
 		log.Fatalln("incorrect status")
 	}
+}
+
+func WaitPbrDeposit(transactor *transactor.Transactor, depositId string) *pegbrtypes.DepositInfo {
+	var err error
+	log.Infoln("waiting for deposit", depositId)
+	for retry := 0; retry < RetryLimit*2; retry++ {
+		resp, err := pegbrcli.QueryDepositInfo(transactor.CliCtx, depositId)
+		if err == nil {
+			return &resp
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryDepositInfo")
+	return nil
+}
+
+func CheckPbrWithdraw(transactor *transactor.Transactor, withdrawId string) *pegbrtypes.WithdrawInfo {
+	var err error
+	var expected bool
+	var resp pegbrtypes.WithdrawInfo
+	log.Infoln("checking withdraw Id", withdrawId)
+	for retry := 0; retry < RetryLimit*2; retry++ {
+		resp, err = pegbrcli.QueryWithdrawInfo(transactor.CliCtx, withdrawId)
+		if err == nil && resp.Success {
+			expected = true
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryWithdrawInfo")
+	if !expected {
+		log.Fatal("CheckPbrWithdraw check failed")
+	}
+	return &resp
+}
+
+func CheckPbrMint(transactor *transactor.Transactor, mintId string) *pegbrtypes.MintInfo {
+	var err error
+	var expected bool
+	var resp pegbrtypes.MintInfo
+	log.Infoln("checking mint Id", mintId)
+	for retry := 0; retry < RetryLimit*2; retry++ {
+		resp, err = pegbrcli.QueryMintInfo(transactor.CliCtx, mintId)
+		if err == nil && resp.Success {
+			expected = true
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryMintInfo")
+	if !expected {
+		log.Fatal("CheckPbrMint check failed")
+	}
+	return &resp
+}
+
+func WaitPbrBurn(transactor *transactor.Transactor, burnId string) *pegbrtypes.BurnInfo {
+	var err error
+	log.Infoln("waiting for burn", burnId)
+	for retry := 0; retry < RetryLimit*2; retry++ {
+		resp, err := pegbrcli.QueryBurnInfo(transactor.CliCtx, burnId)
+		if err == nil {
+			return &resp
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryBurnInfo")
+	return nil
 }
 
 func CheckChainSigners(t *testing.T, transactor *transactor.Transactor, chainId uint64, expSigners []*cbrtypes.Signer) {
@@ -135,7 +205,7 @@ func (c *CbrChain) StartWithdrawRemoveLiquidity(transactor *transactor.Transacto
 	return err
 }
 
-func (c *CbrChain) StartWithdrawClaimFeeShare(transactor *transactor.Transactor, reqid, uid uint64, wdLq *cbrtypes.WithdrawLq) error {
+func (c *CbrChain) StartWithdrawClaimCbrFeeShare(transactor *transactor.Transactor, reqid, uid uint64, wdLq *cbrtypes.WithdrawLq) error {
 	// NOTE: Only support single wdLq for now
 	withdrawReq := &cbrtypes.WithdrawReq{
 		Withdraws:    []*cbrtypes.WithdrawLq{wdLq},
@@ -267,6 +337,66 @@ func GetStakingRewardClaimInfo(
 		context.Background(), transactor.CliCtx, eth.Addr2Hex(DelEthAddrs[uid]))
 }
 
-func GetCBridgeFeeShareInfo(transactor *transactor.Transactor, delId uint64) (*distrtypes.CBridgeFeeShareInfo, error) {
+func GetCBridgeFeeShareInfo(transactor *transactor.Transactor, delId uint64) (*distrtypes.ClaimableFeesInfo, error) {
 	return distrcli.QueryCBridgeFeeShareInfo(context.Background(), transactor.CliCtx, eth.Addr2Hex(DelEthAddrs[delId]))
+}
+
+func GetPegBridgeFeesInfo(transactor *transactor.Transactor, delId uint64) (*distrtypes.ClaimableFeesInfo, error) {
+	return distrcli.QueryPegBridgeFeesInfo(context.Background(), transactor.CliCtx, eth.Addr2Hex(DelEthAddrs[delId]))
+}
+
+func (c *CbrChain) StartClaimPegBridgeFee(
+	transactor *transactor.Transactor, uid uint64, chainId uint64, tokenAddress eth.Addr, nonce uint64) error {
+	delegator := c.Delegators[uid]
+	msg := &pegbrtypes.MsgClaimFee{
+		DelegatorAddress: delegator.Address.Hex(),
+		ChainId:          chainId,
+		TokenAddress:     eth.Addr2Hex(tokenAddress),
+		Nonce:            nonce,
+		Sender:           transactor.Key.GetAddress().String(),
+	}
+	signature := delegator.SignMsg(msg.EncodeDataToSignByDelegator())
+	msg.Signature = signature
+
+	_, err := pegbrcli.InitClaimFee(transactor, msg)
+	return err
+}
+
+func GetPegBridgeFeeClaimWithdrawInfoWithSigs(
+	transactor *transactor.Transactor, delAddr eth.Addr, nonce uint64, expSigNum int) (
+	withdrawId string, withdrawInfo *pegbrtypes.WithdrawInfo) {
+	var feeClaimInfo pegbrtypes.FeeClaimInfo
+	var err error
+	// First wait for FeeClaimInfo
+	for retry := 0; retry < RetryLimit; retry++ {
+		feeClaimInfo, err = pegbrcli.QueryFeeClaimInfo(
+			transactor.CliCtx,
+			delAddr,
+			nonce,
+		)
+		if err == nil {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryFeeClaimInfo")
+	withdrawId = eth.Bytes2Hex(feeClaimInfo.WithdrawId)
+	// Then wait for WithdrawInfo with enough signatures
+	var wdInfo pegbrtypes.WithdrawInfo
+	for retry := 0; retry < RetryLimit; retry++ {
+		wdInfo, err = pegbrcli.QueryWithdrawInfo(
+			transactor.CliCtx,
+			withdrawId,
+		)
+		if err == nil && len(wdInfo.Signatures) == expSigNum {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryWithdrawInfo")
+	withdrawInfo = &wdInfo
+	if len(withdrawInfo.Signatures) != expSigNum {
+		log.Fatalf("QueryWithdrawInfo expected sigNum %d, actual %d", expSigNum, len(withdrawInfo.Signatures))
+	}
+	return withdrawId, withdrawInfo
 }
