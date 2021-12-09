@@ -71,11 +71,6 @@ service Query {
   rpc CBridgeFeeShareInfo(QueryCBridgeFeeShareInfoRequest) returns (QueryCBridgeFeeShareInfoResponse) {
     option (google.api.http).get = "/sgn/distribution/v1/cbridge_fee_share_info/{delegator_address}";
   }
-
-  // PegBridgeFeesInfo describes the claimable pegbridge fees for a delegator.
-  rpc PegBridgeFeesInfo(QueryPegBridgeFeesInfoRequest) returns (QueryPegBridgeFeesInfoResponse) {
-    option (google.api.http).get = "/sgn/distribution/v1/pegbridge_fees_info/{delegator_address}";
-  }
 }
 
 // QueryParamsRequest is the request type for the Query/Params RPC method.
@@ -254,22 +249,5 @@ message QueryCBridgeFeeShareInfoRequest {
 // RPC method.
 message QueryCBridgeFeeShareInfoResponse {
   // fee_share_info defines the fee share info.
-  ClaimableFeesInfo fee_share_info = 1 [(gogoproto.nullable) = false];
-}
-
-// QueryPegBridgeFeesInfoRequest is the request type for the Query/PegBridgeFeesInfo
-// RPC method.
-message QueryPegBridgeFeesInfoRequest {
-  option (gogoproto.equal) = false;
-  option (gogoproto.goproto_getters) = false;
-
-  // delegator_address defines the delegator address to query for.
-  string delegator_address = 1;
-}
-
-// QueryPegBridgeFeesInfoRequest is the response type for the Query/PegBridgeFeesInfo
-// RPC method.
-message QueryPegBridgeFeesInfoResponse {
-  // fees_info defines the fees info.
-  ClaimableFeesInfo fees_info = 1 [(gogoproto.nullable) = false];
+  CBridgeFeeShareInfo fee_share_info = 1 [(gogoproto.nullable) = false];
 }

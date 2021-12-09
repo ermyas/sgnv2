@@ -10,25 +10,12 @@ Auto generated along with [sgn-v2-contract](https://github.com/celer-network/sgn
 
 [bindings_cbr.go](./bindings_cbr.go)
 
-In [sgn-v2-contract](https://github.com/celer-network/sgn-v2-contracts) repo, go to `contracts` folder, download `openzeppelin-contracts-4.2.0`
+In [sgn-v2-contract](https://github.com/celer-network/sgn-v2-contracts) repo, go to `contracts` repo, download `openzeppelin-contracts-4.2.0`
 
 Then run
 ```
 solc --base-path $PWD --allow-paths . --overwrite --optimize --optimize-runs 800 --abi --bin -o . '@openzeppelin/'=openzeppelin-contracts-4.2.0/ Bridge.sol
 abigen --abi Bridge.abi --bin Bridge.bin --pkg eth --type Bridge > ../../sgn-v2/eth/bindings_cbr.go
-```
-
-## Pegged Bridge contract bindings
-
-[bindings_pegged.go](./bindings_pegged.go)
-
-In [sgn-v2-contract](https://github.com/celer-network/sgn-v2-contracts) repo, go to `contracts` folder, download `openzeppelin-contracts-4.2.0`
-
-Then run
-```
-solc --base-path $PWD --allow-paths . --overwrite --optimize --optimize-runs 800 --pretty-json --combined-json abi,bin -o . '@openzeppelin/'=openzeppelin-contracts-4.2.0/ pegged/*.sol
-jq '."contracts"|=with_entries(select(.key| test("^openzeppelin") or test("^interfaces") or test("^libraries") or test("^safeguard/Pauser") | not))' combined.json > pegged.json
-abigen -combined-json ./pegged.json -pkg eth -out ../../sgn-v2/eth/bindings_pegged.go
 ```
 
 ## OVM GasPriceOracle bindings
@@ -39,7 +26,7 @@ We need to query the OVM_GasPriceOracle to get the right gas price on Optimism. 
 
 First Download [contract OVM_GasPriceOracle.sol](https://github.com/ethereum-optimism/optimism/blob/639e5b13f2ab94b7b49e1f8114ed05a064df8a27/packages/contracts/contracts/L2/predeploys/OVM_GasPriceOracle.sol).
 
-Then run
+Then run 
 ```
 solc --base-path $PWD --allow-paths . --overwrite --optimize --optimize-runs 800 --pretty-json --combined-json abi -o . '@openzeppelin/'=openzeppelin-contracts-4.3.3/ OVM_GasPriceOracle.sol
 jq '."contracts"|=with_entries(select(.key|test("^openzeppelin")|not))' combined.json > oracle.json

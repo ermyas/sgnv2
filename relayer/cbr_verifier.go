@@ -108,7 +108,7 @@ func (r *Relayer) verifyUpdateCbrPrice(update *synctypes.PendingUpdate) (done, a
 
 func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, logmsg string) (done, approve bool) {
 	// parse event
-	ev, err := c.cbrContract.ParseLiquidityAdded(*eLog)
+	ev, err := c.contract.ParseLiquidityAdded(*eLog)
 	if err != nil {
 		log.Errorf("%s. parse eLog error %s", logmsg, err)
 		return true, false
@@ -125,7 +125,7 @@ func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, lo
 	}
 	// We MUST be extra careful dealing with log as attacker could generate same topics using their own contract
 	// WARNING: must check log Address!!! other projects have been hacked by missing the check
-	addLiqLog := eth.FindMatchCbrEvent(cbrtypes.CbrEventLiqAdd, c.cbrContract.Address, receipt.Logs)
+	addLiqLog := eth.FindMatchCbrEvent(cbrtypes.CbrEventLiqAdd, c.contract.Address, receipt.Logs)
 
 	if addLiqLog == nil { // no match event in the tx, could be forged tx
 		log.Errorln(logmsg, "no match event found in tx:", eLog.TxHash)
@@ -136,8 +136,8 @@ func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, lo
 		return true, false
 	}
 	// not possible as we check addr in FindMatchCbrEvent, keep here for extra safety
-	if addLiqLog.Address != c.cbrContract.Address {
-		log.Errorln(logmsg, "mismatch contract addr. log has:", addLiqLog.Address, "expect:", c.cbrContract.Address)
+	if addLiqLog.Address != c.contract.Address {
+		log.Errorln(logmsg, "mismatch contract addr. log has:", addLiqLog.Address, "expect:", c.contract.Address)
 		return true, false
 	}
 	// check blocknumber and index because they are used in key
@@ -155,7 +155,7 @@ func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, lo
 		log.Warnf("%s evblk %d too soon, should only up to blk %d", logmsg, addLiqLog.BlockNumber, blk-c.blkDelay)
 		return false, false
 	}
-	addLiqEv, err := c.cbrContract.ParseLiquidityAdded(*addLiqLog)
+	addLiqEv, err := c.contract.ParseLiquidityAdded(*addLiqLog)
 	if err != nil {
 		log.Errorln(logmsg, "parse log err:", err)
 		return true, false
@@ -171,7 +171,7 @@ func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, lo
 
 func (c *CbrOneChain) verifySend(eLog *ethtypes.Log, cliCtx client.Context, logmsg string) (done, approve bool) {
 	// parse event
-	ev, err := c.cbrContract.ParseSend(*eLog)
+	ev, err := c.contract.ParseSend(*eLog)
 	if err != nil {
 		log.Errorf("%s. parse eLog error %s", logmsg, err)
 		return true, false
@@ -188,7 +188,7 @@ func (c *CbrOneChain) verifySend(eLog *ethtypes.Log, cliCtx client.Context, logm
 	}
 	// we must check both latest and latest-blkdelay have the state
 	// if only latest has, means too soon, if only latest-blkdelay has, means it has been reorg
-	exist, err := c.cbrContract.Transfers(nil, xferId)
+	exist, err := c.contract.Transfers(nil, xferId)
 	if err != nil {
 		log.Warnf("%s. query transfers err: %s", logmsg, err)
 		return false, false
@@ -204,7 +204,7 @@ func (c *CbrOneChain) verifySend(eLog *ethtypes.Log, cliCtx client.Context, logm
 	}
 	// latest has the state, now check if it has been long enough
 	safeBlkNum := c.mon.GetCurrentBlockNumber().Uint64() - c.blkDelay
-	exist, err = c.cbrContract.Transfers(&bind.CallOpts{
+	exist, err = c.contract.Transfers(&bind.CallOpts{
 		BlockNumber: new(big.Int).SetUint64(safeBlkNum),
 	}, xferId)
 	if err != nil {
@@ -223,7 +223,7 @@ func (c *CbrOneChain) verifySend(eLog *ethtypes.Log, cliCtx client.Context, logm
 
 func (c *CbrOneChain) verifyRelay(eLog *ethtypes.Log, cliCtx client.Context, logmsg string) (done, approve bool) {
 	// parse event
-	ev, err := c.cbrContract.ParseRelay(*eLog)
+	ev, err := c.contract.ParseRelay(*eLog)
 	if err != nil {
 		log.Errorf("%s. parse eLog error %s", logmsg, err)
 		return true, false
@@ -238,7 +238,7 @@ func (c *CbrOneChain) verifyRelay(eLog *ethtypes.Log, cliCtx client.Context, log
 		log.Errorf("%s. mismatch xferid ev has %x, calc: %x", logmsg, ev.TransferId, xferId)
 		return true, false
 	}
-	exist, err := c.cbrContract.Transfers(nil, xferId)
+	exist, err := c.contract.Transfers(nil, xferId)
 	if err != nil {
 		log.Warnf("%s. query transfers err: %s", logmsg, err)
 		return false, false
@@ -260,7 +260,7 @@ func (c *CbrOneChain) verifyRelay(eLog *ethtypes.Log, cliCtx client.Context, log
 
 func (c *CbrOneChain) verifyWithdraw(eLog *ethtypes.Log, cliCtx client.Context, logmsg string) (done, approve bool) {
 	// parse event
-	ev, err := c.cbrContract.ParseWithdrawDone(*eLog)
+	ev, err := c.contract.ParseWithdrawDone(*eLog)
 	if err != nil {
 		log.Errorf("%s. parse eLog error %s", logmsg, err)
 		return true, false
@@ -275,7 +275,7 @@ func (c *CbrOneChain) verifyWithdraw(eLog *ethtypes.Log, cliCtx client.Context, 
 		log.Errorf("%s mismatch wdid ev has %x, calc %x", logmsg, ev.WithdrawId, wdId)
 		return true, false
 	}
-	exist, err := c.cbrContract.Withdraws(nil, wdId)
+	exist, err := c.contract.Withdraws(nil, wdId)
 	if err != nil {
 		log.Warnf("%s. query withdraws err: %s", logmsg, err)
 		return false, false
@@ -297,7 +297,7 @@ func (c *CbrOneChain) verifyWithdraw(eLog *ethtypes.Log, cliCtx client.Context, 
 
 func (c *CbrOneChain) verifySigners(eLog *ethtypes.Log, cliCtx client.Context, logmsg string) (done, approve bool) {
 	// parse event
-	ev, err := c.cbrContract.ParseSignersUpdated(*eLog)
+	ev, err := c.contract.ParseSignersUpdated(*eLog)
 	if err != nil {
 		log.Errorf("%s. parse eLog error %s", logmsg, err)
 		return true, false
@@ -314,7 +314,7 @@ func (c *CbrOneChain) verifySigners(eLog *ethtypes.Log, cliCtx client.Context, l
 	}
 
 	// check on chain
-	ssHash, err := c.cbrContract.SsHash(&bind.CallOpts{})
+	ssHash, err := c.contract.SsHash(&bind.CallOpts{})
 	if err != nil {
 		log.Warnf("%s. query ssHash err: %s", logmsg, err)
 		return false, false

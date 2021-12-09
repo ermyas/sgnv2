@@ -15,8 +15,8 @@ type (
 		Title               string                        `json:"title" yaml:"title"`
 		Description         string                        `json:"description" yaml:"description"`
 		PoolName            string                        `json:"pool_name" yaml:"pool_name"`
-		StakeToken          commontypes.ERC20Token        `json:"stake_token" yaml:"stake_token"`
-		RewardTokens        []commontypes.ERC20Token      `json:"reward_tokens" yaml:"reward_tokens"`
+		StakeToken          types.ERC20Token              `json:"stake_token" yaml:"stake_token"`
+		RewardTokens        []types.ERC20Token            `json:"reward_tokens" yaml:"reward_tokens"`
 		InitialRewardInputs []types.RewardAdjustmentInput `json:"initial_reward_inputs" yaml:"initial_reward_inputs"`
 		Proposer            sdk.AccAddress                `json:"proposer" yaml:"proposer"`
 		Deposit             sdk.Coins                     `json:"deposit" yaml:"deposit"`
@@ -26,11 +26,11 @@ type (
 	AddTokensProposalReq struct {
 		BaseReq rest.BaseReq `json:"base_req" yaml:"base_req"`
 
-		Title       string                   `json:"title" yaml:"title"`
-		Description string                   `json:"description" yaml:"description"`
-		Tokens      []commontypes.ERC20Token `json:"tokens" yaml:"tokens"`
-		Proposer    sdk.AccAddress           `json:"proposer" yaml:"proposer"`
-		Deposit     sdk.Coins                `json:"deposit" yaml:"deposit"`
+		Title       string             `json:"title" yaml:"title"`
+		Description string             `json:"description" yaml:"description"`
+		Tokens      []types.ERC20Token `json:"tokens" yaml:"tokens"`
+		Proposer    sdk.AccAddress     `json:"proposer" yaml:"proposer"`
+		Deposit     sdk.Coins          `json:"deposit" yaml:"deposit"`
 	}
 
 	// AdjustRewardProposalReq defines an AdjustRewardProposal request body.

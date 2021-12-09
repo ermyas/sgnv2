@@ -28,17 +28,6 @@ func DeployERC20Contract(ethClient *ethclient.Client, auth *bind.TransactOpts, n
 	return erc20Addr, erc20
 }
 
-func DeployPeggedTokenContract(
-	ethClient *ethclient.Client, auth *bind.TransactOpts, name, symbol string, decimals uint8, controller eth.Addr) (eth.Addr, *eth.PeggedToken) {
-	peggedTokenAddr, tx, erc20, err := eth.DeployPeggedToken(auth, ethClient, name, symbol, decimals, controller)
-	ChkErr(err, "failed to deploy PeggedToken")
-
-	log.Infoln("PeggedToken address:", peggedTokenAddr.String())
-	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployPeggedToken")
-
-	return peggedTokenAddr, erc20
-}
-
 func DeployBridgeContract(ethClient *ethclient.Client, auth *bind.TransactOpts) (cbrAddr eth.Addr, cbrContract *eth.BridgeContract) {
 	cbrAddr, tx, _, err := eth.DeployBridge(auth, ethClient)
 	ChkErr(err, "failed to deploy bridge contract")
@@ -48,34 +37,6 @@ func DeployBridgeContract(ethClient *ethclient.Client, auth *bind.TransactOpts) 
 	log.Infoln("bridge address:", cbrAddr.String())
 
 	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployBridgeContract")
-
-	return
-}
-
-func DeployPegBridgeContract(
-	ethClient *ethclient.Client, auth *bind.TransactOpts, sigsVerifier eth.Addr) (ptbAddr eth.Addr, ptbContract *eth.PegBridgeContract) {
-	ptbAddr, tx, _, err := eth.DeployPeggedTokenBridge(auth, ethClient, sigsVerifier)
-	ChkErr(err, "failed to deploy PeggedTokenBridge contract")
-	ptbContract, err = eth.NewPegBridgeContract(ptbAddr, ethClient)
-	ChkErr(err, "failed to set PeggedTokenBridge contract")
-
-	log.Infoln("ptb address:", ptbAddr.String())
-
-	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployPegBridgeContract")
-
-	return
-}
-
-func DeployPegVaultContract(
-	ethClient *ethclient.Client, auth *bind.TransactOpts, sigsVerifier eth.Addr) (otvAddr eth.Addr, otvContract *eth.PegVaultContract) {
-	otvAddr, tx, _, err := eth.DeployOriginalTokenVault(auth, ethClient, sigsVerifier)
-	ChkErr(err, "failed to deploy OriginalTokenVault contract")
-	otvContract, err = eth.NewPegVaultContract(otvAddr, ethClient)
-	ChkErr(err, "failed to set OriginalTokenVault contract")
-
-	log.Infoln("otv address:", otvAddr.String())
-
-	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployPegVaultContract")
 
 	return
 }

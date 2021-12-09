@@ -124,7 +124,7 @@ message QueryTokensRequest {
 // Query/Tokens RPC method.
 message QueryTokensResponse {
   // tokens defines the info of all the tokens.
-  repeated sgn.common.v1.ERC20Token tokens = 1 [(gogoproto.nullable) = false];
+  repeated ERC20Token tokens = 1 [(gogoproto.nullable) = false];
 }
 
 // QueryTokenRequest is the request type for the
@@ -143,7 +143,7 @@ message QueryTokenRequest {
 // Query/Token RPC method.
 message QueryTokenResponse {
   // token defines the token info.
-  sgn.common.v1.ERC20Token token = 1 [(gogoproto.nullable) = false];
+  ERC20Token token = 1 [(gogoproto.nullable) = false];
 }
 
 // QueryRewardContractsRequest is the request type for the

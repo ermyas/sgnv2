@@ -6,8 +6,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/celer-network/sgn-v2/relayer"
-
 	"github.com/celer-network/endpoint-proxy/endpointproxy"
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/eth/monitor"
@@ -17,7 +15,6 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
-	pegtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
@@ -39,9 +36,9 @@ func (c *cbrContract) GetABI() string {
 type OneChain struct {
 	*ethclient.Client
 	*ethutils.Transactor
-	mon          *monitor.Service
-	contract     *cbrContract
-	pegContracts *relayer.PegContracts
+	mon      *monitor.Service
+	contract *cbrContract
+
 	// chainid and blkdelay and forwardblkdelay for verify/easy logging
 	chainid, blkDelay, forwardBlkDelay uint64
 }
@@ -74,14 +71,6 @@ func (chains ChainMgr) GetEthClient(chid uint64) *ethclient.Client {
 		return nil
 	}
 	return chain.Client
-}
-
-func (chains ChainMgr) GetOneChain(chid uint64) (*OneChain, bool) {
-	chain, found := chains[chid]
-	if found {
-		return chain, true
-	}
-	return nil, false
 }
 
 func newOneChain(chainConf *common.OneChainConfig, wdal *watcherDAL) *OneChain {
@@ -123,26 +112,9 @@ func newOneChain(chainConf *common.OneChainConfig, wdal *watcherDAL) *OneChain {
 			Address: eth.Hex2Addr(chainConf.CBridge),
 			Bridge:  cbr,
 		},
-		pegContracts:    &relayer.PegContracts{},
 		chainid:         chainConf.ChainID,
 		blkDelay:        chainConf.BlkDelay,
 		forwardBlkDelay: chainConf.ForwardBlkDelay,
-	}
-
-	if chainConf.OTVault != "" {
-		vault, err := eth.NewPegVaultContract(eth.Hex2Addr(chainConf.OTVault), ec)
-		if err != nil {
-			log.Fatalln("OriginalTokenVaults contract at", chainConf.OTVault, "err:", err)
-		}
-		ret.pegContracts.SetPegVaultContract(vault)
-	}
-
-	if chainConf.PTBridge != "" {
-		pegBridge, err := eth.NewPegBridgeContract(eth.Hex2Addr(chainConf.PTBridge), ec)
-		if err != nil {
-			log.Fatalln("PeggedTokenBridge contract at", chainConf.PTBridge, "err:", err)
-		}
-		ret.pegContracts.SetegBridgeContract(pegBridge)
 	}
 	go ret.startMon()
 	return ret
@@ -165,30 +137,6 @@ func (c *OneChain) startMon() {
 	c.monDelayXferAdd(blkNum)
 	smallDelay()
 	c.monDelayXferExec(blkNum)
-	smallDelay()
-
-	// pegged event monitor
-	if c.GetOtvContract() != nil {
-		c.monPegbrDeposited(blkNum)
-		smallDelay()
-		c.monPegbrWithdrawn(blkNum)
-		smallDelay()
-		c.monPegbrDelayWithdrawAdd(blkNum)
-		smallDelay()
-		c.monPegbrDelayWithdrawExec(blkNum)
-		smallDelay()
-	}
-
-	if c.GetPtbContract() != nil {
-		c.monPegbrMint(blkNum)
-		smallDelay()
-		c.monPegbrBurn(blkNum)
-		smallDelay()
-		c.monPegbrDelayMintAdd(blkNum)
-		smallDelay()
-		c.monPegbrDelayMintExec(blkNum)
-		smallDelay()
-	}
 }
 
 func (c *OneChain) monSend(blk *big.Int) {
@@ -347,243 +295,4 @@ func (c *OneChain) monWithdraw(blk *big.Int) {
 		GatewayOnLiqWithdraw(idstr, eLog.TxHash.String(), c.chainid, ev.Seqnum, ev.Receiver.String())
 		return false
 	})
-}
-
-func (c *OneChain) monPegbrDeposited(blk *big.Int) {
-	if c.GetOtvContract().Address == eth.ZeroAddr {
-		return
-	}
-	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    pegtypes.PegbrEventDeposited,
-		Contract:     c.GetOtvContract(),
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
-	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.GetOtvContract().ParseDeposited(eLog)
-		if err != nil {
-			log.Errorln("monPegbrDeposited: cannot parse event:", err)
-			return false
-		}
-		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		err = GatewayOnSend(eth.Hash(ev.DepositId).String(), ev.Depositor.String(), ev.Token.String(), ev.Amount.String(), eLog.TxHash.String(), c.chainid, ev.MintChainId)
-		if err != nil {
-			log.Warnf("GatewayOnSend err: %s, txId %x, txHash %x, chainId %d", err, eth.Hash(ev.DepositId).String(), eLog.TxHash, c.chainid)
-			return true
-		}
-		return false
-	})
-}
-
-func (c *OneChain) monPegbrWithdrawn(blk *big.Int) {
-	if c.GetOtvContract().Address == eth.ZeroAddr {
-		return
-	}
-	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    pegtypes.PegbrEventWithdrawn,
-		Contract:     c.GetOtvContract(),
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
-	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.GetOtvContract().ParseWithdrawn(eLog)
-		if err != nil {
-			log.Errorln("monPegbrWithdrawn: cannot parse event:", err)
-			return false
-		}
-		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		err = GatewayOnRelay(c.Client, eth.Hash(ev.RefId).String(), eLog.TxHash.String(), eth.Hash(ev.WithdrawId).String(), ev.Amount.String(), ev.Receiver.String(), ev.Token.String(), ev.RefChainId, c.chainid)
-		if err != nil {
-			log.Warnf("UpdateTransfer pegged withdraw err: %s, srcId %x, dstId %x, txHash %x, chainId %d", err, ev.RefId, ev.WithdrawId, eLog.TxHash, c.chainid)
-		}
-		return false
-	})
-}
-
-func (c *OneChain) monPegbrDelayWithdrawAdd(blk *big.Int) {
-	if c.GetOtvContract().Address == eth.ZeroAddr {
-		return
-	}
-	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    types.CbrEventDelayXferAdd,
-		Contract:     c.GetOtvContract(),
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
-	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.GetOtvContract().ParseDelayedTransferAdded(eLog)
-		if err != nil {
-			log.Errorln("monPegbrDelayWithdrawn: cannot parse event:", err)
-			return false
-		}
-		log.Infof("MonEv: delayed pegged withdraw added:%x, tx:%x", ev.Id, eLog.TxHash)
-		idstr := eth.Hash(ev.Id).String()
-		err = GatewayOnDelayXferAdd(idstr, eLog.TxHash.String())
-		if err != nil {
-			log.Errorln("GatewayOnDelayXferAdd err:", err)
-		}
-		return false
-	})
-}
-
-func (c *OneChain) monPegbrDelayWithdrawExec(blk *big.Int) {
-	if c.GetOtvContract().Address == eth.ZeroAddr {
-		return
-	}
-	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    types.CbrEventDelayXferExec,
-		Contract:     c.GetOtvContract(),
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
-	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.GetOtvContract().ParseDelayedTransferExecuted(eLog)
-		if err != nil {
-			log.Errorln("monPegbrDelayWithdrawExec: cannot parse event:", err)
-			return false
-		}
-		log.Infof("MonEv: delayed pegged withdraw exec:%x, tx:%x", ev.Id, eLog.TxHash)
-		idstr := eth.Hash(ev.Id).String()
-		err = GatewayOnDelayXferExec(idstr, eLog.TxHash.String())
-		if err != nil {
-			log.Errorln("GatewayOnDelayPeggedWithdrawExec err:", err)
-		}
-		return false
-	})
-}
-
-func (c *OneChain) monPegbrMint(blk *big.Int) {
-	if c.GetPtbContract() != nil {
-		return
-	}
-	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    pegtypes.PegbrEventMint,
-		Contract:     c.GetPtbContract(),
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
-	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.GetPtbContract().ParseMint(eLog)
-		if err != nil {
-			log.Errorln("monPegbrMint: cannot parse event:", err)
-			return false
-		}
-		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		err = GatewayOnRelay(c.Client, eth.Hash(ev.RefId).String(), eLog.TxHash.String(), eth.Hash(ev.MintId).String(), ev.Amount.String(), ev.Account.String(), ev.Token.String(), ev.RefChainId, c.chainid)
-		if err != nil {
-			log.Warnf("UpdateTransfer mint err: %s, srcId %x, dstId %x, txHash %x, chainId %d", err, ev.RefId, ev.MintId, eLog.TxHash, c.chainid)
-		}
-		return false
-	})
-}
-
-func (c *OneChain) monPegbrBurn(blk *big.Int) {
-	if c.GetPtbContract().Address == eth.ZeroAddr {
-		return
-	}
-	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    pegtypes.PegbrEventBurn,
-		Contract:     c.GetPtbContract(),
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
-	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.GetPtbContract().ParseBurn(eLog)
-		if err != nil {
-			log.Errorln("monPegbrActionBurn: cannot parse event:", err)
-			return false
-		}
-		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		withdrawChainId, foundWithdrawChainId, dbErr := dal.DB.GetWithdrawChainIdByBurnChainIdAndTokenAddr(c.chainid, ev.Token)
-		if dbErr != nil {
-			log.Errorf("fail to GetWithdrawChainIdByBurnChainIdAndTokenAddr, dbErr:%x", dbErr.Error())
-			return true
-		}
-		if !foundWithdrawChainId {
-			// use 0 as default
-			log.Errorf("fail to find this withdraw chain, burnChainId:%d, token:%x", c.chainid, ev.Token)
-			withdrawChainId = 0
-		}
-
-		err = GatewayOnSend(eth.Hash(ev.BurnId).String(), ev.Account.String(), ev.Token.String(), ev.Amount.String(), eLog.TxHash.String(), c.chainid, withdrawChainId)
-		if err != nil {
-			log.Warnf("GatewayOnSend err: %s, txId %x, txHash %x, chainId %d", err, eth.Hash(ev.BurnId).String(), eLog.TxHash, c.chainid)
-			return true
-		}
-		return false
-	})
-}
-
-func (c *OneChain) monPegbrDelayMintAdd(blk *big.Int) {
-	if c.GetPtbContract().Address == eth.ZeroAddr {
-		return
-	}
-	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    types.CbrEventDelayXferAdd,
-		Contract:     c.GetPtbContract(),
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
-	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.GetPtbContract().ParseDelayedTransferAdded(eLog)
-		if err != nil {
-			log.Errorln("monPegbrDelayMint: cannot parse event:", err)
-			return false
-		}
-		log.Infof("MonEv: delayed pegged mint added:%x, tx:%x", ev.Id, eLog.TxHash)
-		idstr := eth.Hash(ev.Id).String()
-		err = GatewayOnDelayXferAdd(idstr, eLog.TxHash.String())
-		if err != nil {
-			log.Errorln("GatewayOnDelayXferAdd err:", err)
-		}
-		return false
-	})
-}
-
-func (c *OneChain) monPegbrDelayMintExec(blk *big.Int) {
-	if c.GetPtbContract().Address == eth.ZeroAddr {
-		return
-	}
-	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    types.CbrEventDelayXferExec,
-		Contract:     c.GetPtbContract(),
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
-	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.GetPtbContract().ParseDelayedTransferExecuted(eLog)
-		if err != nil {
-			log.Errorln("monPegbrDelayMintExec: cannot parse event:", err)
-			return false
-		}
-		log.Infof("MonEv: delayed pegged mint exec:%x, tx:%x", ev.Id, eLog.TxHash)
-		idstr := eth.Hash(ev.Id).String()
-		err = GatewayOnDelayXferExec(idstr, eLog.TxHash.String())
-		if err != nil {
-			log.Errorln("GatewayOnDelayMintExec err:", err)
-		}
-		return false
-	})
-}
-
-func (c *OneChain) GetPtbContract() *eth.PegBridgeContract {
-	if c.pegContracts == nil {
-		return nil
-	}
-	return c.pegContracts.GetPegBridgeContract()
-}
-
-func (c *OneChain) GetOtvContract() *eth.PegVaultContract {
-	if c.pegContracts == nil {
-		return nil
-	}
-	return c.pegContracts.GetPegVaultContract()
 }

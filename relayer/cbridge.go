@@ -34,50 +34,29 @@ const (
 	cbrDbPrefix = "cbr-"
 )
 
-type PegContracts struct {
-	bridge *eth.PegBridgeContract
-	vault  *eth.PegVaultContract
+// just to satisfy monitor interface requirement
+type cbrContract struct {
+	*eth.Bridge
+	Address eth.Addr
 }
 
-func (pc *PegContracts) GetPegVaultContract() *eth.PegVaultContract {
-	if pc == nil {
-		return nil
-	}
-	return pc.vault
+func (c *cbrContract) GetAddr() eth.Addr {
+	return c.Address
 }
 
-func (pc *PegContracts) GetPegBridgeContract() *eth.PegBridgeContract {
-	if pc == nil {
-		return nil
-	}
-	return pc.bridge
-}
-
-func (pc *PegContracts) SetPegVaultContract(v *eth.PegVaultContract) {
-	if pc == nil {
-		return
-	}
-	pc.vault = v
-}
-
-func (pc *PegContracts) SetegBridgeContract(b *eth.PegBridgeContract) {
-	if pc == nil {
-		return
-	}
-	pc.bridge = b
+func (c *cbrContract) GetABI() string {
+	return eth.BridgeABI
 }
 
 // ethclient etc
 type CbrOneChain struct {
 	*ethclient.Client
 	*ethutils.Transactor
-	mon          *monitor.Service
-	cbrContract  *eth.BridgeContract
-	pegContracts *PegContracts
-	db           *dbm.PrefixDB // cbr-xxx xxx is chainid
-	curss        currentSigners
-	lock         sync.RWMutex
-	pegbrLock    sync.RWMutex
+	mon      *monitor.Service
+	contract *cbrContract
+	db       *dbm.PrefixDB // cbr-xxx xxx is chainid
+	curss    currentSigners
+	lock     sync.RWMutex
 
 	// chainid and blkdelay and forwardblkdelay for verify/easy logging
 	chainid, blkDelay, forwardBlkDelay, blkInterval uint64
@@ -139,14 +118,6 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 	if err != nil {
 		log.Fatalln("cbridge contract at", cfg.CBridge, "err:", err)
 	}
-	otv, err := eth.NewPegVaultContract(eth.Hex2Addr(cfg.OTVault), ec)
-	if err != nil {
-		log.Fatalln("OriginalTokenVault contract at", cfg.OTVault, "err:", err)
-	}
-	ptb, err := eth.NewPegBridgeContract(eth.Hex2Addr(cfg.PTBridge), ec)
-	if err != nil {
-		log.Fatalln("PeggedTokenBridge contract at", cfg.PTBridge, "err:", err)
-	}
 	signerKey, signerPass := viper.GetString(common.FlagEthSignerKeystore), viper.GetString(common.FlagEthSignerPassphrase)
 	signer, addr, err := eth.CreateSigner(signerKey, signerPass, chid)
 	if err != nil {
@@ -168,13 +139,9 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 		Client:     ec,
 		Transactor: transactor,
 		mon:        mon,
-		cbrContract: &eth.BridgeContract{
+		contract: &cbrContract{
 			Bridge:  cbr,
 			Address: eth.Hex2Addr(cfg.CBridge),
-		},
-		pegContracts: &PegContracts{
-			vault:  otv,
-			bridge: ptb,
 		},
 		db:              dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID))),
 		chainid:         cfg.ChainID,

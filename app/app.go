@@ -31,10 +31,6 @@ import (
 	mintclient "github.com/celer-network/sgn-v2/x/mint/client"
 	mintkeeper "github.com/celer-network/sgn-v2/x/mint/keeper"
 	minttypes "github.com/celer-network/sgn-v2/x/mint/types"
-	"github.com/celer-network/sgn-v2/x/pegbridge"
-	pegclient "github.com/celer-network/sgn-v2/x/pegbridge/client"
-	pegkeeper "github.com/celer-network/sgn-v2/x/pegbridge/keeper"
-	pegtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	"github.com/celer-network/sgn-v2/x/slashing"
 	slashingkeeper "github.com/celer-network/sgn-v2/x/slashing/keeper"
 	slashingtypes "github.com/celer-network/sgn-v2/x/slashing/types"
@@ -109,7 +105,6 @@ var (
 			govclient.ParamProposalHandler,
 			govclient.UpgradeProposalHandler,
 			cbrclient.CbrConfigProposalHandler,
-			pegclient.PegConfigProposalHandler,
 			mintclient.AdjustProvisionsProposalHandler,
 			farmingclient.AddPoolProposalHandler,
 			farmingclient.AddTokensProposalHandler,
@@ -120,7 +115,6 @@ var (
 		sync.AppModule{},
 		staking.AppModuleBasic{},
 		cbridge.AppModuleBasic{},
-		pegbridge.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -174,7 +168,6 @@ type SgnApp struct {
 	SyncKeeper     synckeeper.Keeper
 	StakingKeeper  stakingkeeper.Keeper
 	CbridgeKeeper  cbridgekeeper.Keeper
-	PegbrKeeper    pegkeeper.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -246,7 +239,7 @@ func NewSgnApp(
 		paramstypes.StoreKey, upgradetypes.StoreKey,
 		minttypes.StoreKey, distrtypes.StoreKey, farmingtypes.StoreKey,
 		govtypes.StoreKey, slashingtypes.StoreKey, synctypes.StoreKey, stakingtypes.StoreKey,
-		cbrtypes.MemStoreKey, cbrtypes.StoreKey, pegtypes.StoreKey,
+		cbrtypes.MemStoreKey, cbrtypes.StoreKey,
 	)
 	tKeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 
@@ -302,18 +295,8 @@ func NewSgnApp(
 		app.DistrKeeper,
 		authtypes.FeeCollectorName,
 	)
-	app.PegbrKeeper = pegkeeper.NewKeeper(
-		appCodec,
-		keys[pegtypes.StoreKey],
-		app.GetSubspace(pegtypes.ModuleName),
-		app.BankKeeper,
-		&stakingKeeper,
-		app.CbridgeKeeper,
-		app.DistrKeeper,
-		authtypes.FeeCollectorName,
-	)
 	app.SyncKeeper = synckeeper.NewKeeper(
-		appCodec, keys[synctypes.StoreKey], &stakingKeeper, app.GetSubspace(synctypes.ModuleName), app.CbridgeKeeper, app.PegbrKeeper,
+		appCodec, keys[synctypes.StoreKey], &stakingKeeper, app.GetSubspace(synctypes.ModuleName), app.CbridgeKeeper,
 	)
 
 	govRouter := govtypes.NewRouter()
@@ -321,7 +304,6 @@ func NewSgnApp(
 		AddRoute(proposal.RouterKey, gov.NewParamChangeProposalHandler(app.ParamsKeeper)).
 		AddRoute(upgradetypes.RouterKey, gov.NewUpgradeProposalHandler(app.UpgradeKeeper)).
 		AddRoute(cbrtypes.RouterKey, cbridge.NewCbrProposalHandler(app.CbridgeKeeper)).
-		AddRoute(pegtypes.RouterKey, pegbridge.NewPegProposalHandler(app.PegbrKeeper)).
 		AddRoute(farmingtypes.RouterKey, farming.NewProposalHandler(app.FarmingKeeper)).
 		AddRoute(minttypes.RouterKey, mint.NewProposalHandler(app.MintKeeper))
 	app.GovKeeper = govkeeper.NewKeeper(
@@ -361,7 +343,6 @@ func NewSgnApp(
 		slashing.NewAppModule(app.Slashingkeeper),
 		sync.NewAppModule(app.SyncKeeper),
 		cbridge.NewAppModule(appCodec, app.CbridgeKeeper),
-		pegbridge.NewAppModule(appCodec, app.PegbrKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -396,7 +377,6 @@ func NewSgnApp(
 		slashingtypes.ModuleName,
 		synctypes.ModuleName,
 		cbrtypes.ModuleName,
-		pegtypes.ModuleName,
 	)
 
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter(), legacyAmino)
@@ -610,7 +590,6 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(stakingtypes.ModuleName).WithKeyTable(stakingtypes.ParamKeyTable())
 	paramsKeeper.Subspace(synctypes.ModuleName).WithKeyTable(synctypes.ParamKeyTable())
 	paramsKeeper.Subspace(cbrtypes.ModuleName).WithKeyTable(cbrtypes.ParamKeyTable())
-	paramsKeeper.Subspace(pegtypes.ModuleName).WithKeyTable(pegtypes.ParamKeyTable())
 
 	return paramsKeeper
 }

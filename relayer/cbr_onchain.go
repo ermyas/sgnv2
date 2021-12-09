@@ -38,27 +38,18 @@ func (c *CbrOneChain) startMon() {
 	c.monWithdraw(blkNum)
 	smallDelay()
 	c.monSignersUpdated(blkNum)
-
-	smallDelay()
-	c.monPegbrDeposited(blkNum)
-	smallDelay()
-	c.monPegbrMint(blkNum)
-	smallDelay()
-	c.monPegbrBurn(blkNum)
-	smallDelay()
-	c.monPegbrWithdrawn(blkNum)
 }
 
 func (c *CbrOneChain) monSend(blk *big.Int) {
 	cfg := &monitor.Config{
 		ChainId:      c.chainid,
 		EventName:    cbrtypes.CbrEventSend,
-		Contract:     c.cbrContract,
+		Contract:     c.contract,
 		StartBlock:   blk,
 		ForwardDelay: c.forwardBlkDelay,
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.cbrContract.ParseSend(eLog)
+		ev, err := c.contract.ParseSend(eLog)
 		if err != nil {
 			log.Errorln("monSend: cannot parse event:", err)
 			return false
@@ -78,12 +69,12 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 	cfg := &monitor.Config{
 		ChainId:      c.chainid,
 		EventName:    cbrtypes.CbrEventRelay,
-		Contract:     c.cbrContract,
+		Contract:     c.contract,
 		StartBlock:   blk,
 		ForwardDelay: c.forwardBlkDelay,
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.cbrContract.ParseRelay(eLog)
+		ev, err := c.contract.ParseRelay(eLog)
 		if err != nil {
 			log.Errorln("monRelay: cannot parse event:", err)
 			return false
@@ -110,12 +101,12 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 	cfg := &monitor.Config{
 		ChainId:      c.chainid,
 		EventName:    cbrtypes.CbrEventLiqAdd,
-		Contract:     c.cbrContract,
+		Contract:     c.contract,
 		StartBlock:   blk,
 		ForwardDelay: c.forwardBlkDelay,
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.cbrContract.ParseLiquidityAdded(eLog)
+		ev, err := c.contract.ParseLiquidityAdded(eLog)
 		if err != nil {
 			log.Errorln("monLiqAdd: cannot parse event:", err)
 			return false
@@ -135,12 +126,12 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 	cfg := &monitor.Config{
 		ChainId:      c.chainid,
 		EventName:    cbrtypes.CbrEventWithdraw,
-		Contract:     c.cbrContract,
+		Contract:     c.contract,
 		StartBlock:   blk,
 		ForwardDelay: c.forwardBlkDelay,
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.cbrContract.ParseWithdrawDone(eLog)
+		ev, err := c.contract.ParseWithdrawDone(eLog)
 		if err != nil {
 			log.Errorln("monWithdraw: cannot parse event:", err)
 			return false
@@ -160,12 +151,12 @@ func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 	cfg := &monitor.Config{
 		ChainId:      c.chainid,
 		EventName:    cbrtypes.CbrEventSignersUpdated,
-		Contract:     c.cbrContract,
+		Contract:     c.contract,
 		StartBlock:   blk,
 		ForwardDelay: c.forwardBlkDelay,
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.cbrContract.ParseSignersUpdated(eLog)
+		ev, err := c.contract.ParseSignersUpdated(eLog)
 		if err != nil {
 			log.Errorln("monSignersUpdated: cannot parse event:", err)
 			return false
@@ -199,7 +190,7 @@ func (c *CbrOneChain) SendRelay(relayBytes []byte, sigs [][]byte, curss currentS
 			},
 		},
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
-			return c.cbrContract.Relay(opts, relayBytes, sigs, curss.addrs, curss.powers)
+			return c.contract.Relay(opts, relayBytes, sigs, curss.addrs, curss.powers)
 		},
 	)
 	if err != nil {
@@ -210,5 +201,5 @@ func (c *CbrOneChain) SendRelay(relayBytes []byte, sigs [][]byte, curss currentS
 }
 
 func (c *CbrOneChain) existTransferId(transferId eth.Hash) (bool, error) {
-	return c.cbrContract.BridgeCaller.Transfers(&bind.CallOpts{}, transferId)
+	return c.contract.BridgeCaller.Transfers(&bind.CallOpts{}, transferId)
 }

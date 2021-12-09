@@ -3,15 +3,14 @@ package types
 import (
 	"strings"
 
-	commontypes "github.com/celer-network/sgn-v2/common/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // NewFarmingPool creates a new instance of FarmingPool
 func NewFarmingPool(
 	name string,
-	stakeToken commontypes.ERC20Token,
-	rewardTokens []commontypes.ERC20Token,
+	stakeToken ERC20Token,
+	rewardTokens []ERC20Token,
 	totalStakedAmount sdk.DecCoin,
 	rewardTokenInfos RewardTokenInfos,
 	totalAccumulatedRewards sdk.DecCoins,

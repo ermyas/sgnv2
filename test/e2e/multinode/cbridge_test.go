@@ -128,7 +128,7 @@ func cbridgeTest(t *testing.T) {
 	addAmt := big.NewInt(50000 * 1e6)
 	var i uint64
 	for i = 0; i < 2; i++ {
-		err = tc.CbrChain1.ApproveUSDT(i, addAmt)
+		err = tc.CbrChain1.Approve(i, addAmt)
 		tc.ChkErr(err, fmt.Sprintf("u%d chain1 approve", i))
 		err = tc.CbrChain1.AddLiq(i, addAmt)
 		tc.ChkErr(err, fmt.Sprintf("u%d chain1 addliq", i))
@@ -137,7 +137,7 @@ func cbridgeTest(t *testing.T) {
 
 	log.Infoln("======================== Add liquidity on chain 2 ===========================")
 	for i = 0; i < 2; i++ {
-		err = tc.CbrChain2.ApproveUSDT(i, addAmt)
+		err = tc.CbrChain2.Approve(i, addAmt)
 		tc.ChkErr(err, fmt.Sprintf("u%d chain2 approve", i))
 		err = tc.CbrChain2.AddLiq(i, addAmt)
 		tc.ChkErr(err, fmt.Sprintf("u%d chain2 addliq", i))
@@ -153,7 +153,7 @@ func cbridgeTest(t *testing.T) {
 
 	log.Infoln("======================== Xfer ===========================")
 	xferAmt := big.NewInt(10000 * 1e6)
-	err = tc.CbrChain1.ApproveUSDT(0, xferAmt)
+	err = tc.CbrChain1.Approve(0, xferAmt)
 	tc.ChkErr(err, "u0 chain1 approve")
 	xferId, err := tc.CbrChain1.Send(0, xferAmt, tc.CbrChain2.ChainId, 1)
 	tc.ChkErr(err, "u0 chain1 send")
@@ -182,7 +182,7 @@ func cbridgeTest(t *testing.T) {
 	detail := tc.GetWithdrawDetailWithSigs(transactor, tc.CbrChain1.Users[0].Address, reqid, 3)
 	curss, err := tc.GetCurSortedSigners(transactor, tc.CbrChain1.ChainId)
 	tc.ChkErr(err, "chain1 GetCurSortedSigners")
-	err = tc.CbrChain1.OnchainCbrWithdraw(detail, curss)
+	err = tc.CbrChain1.OnchainWithdraw(detail, curss)
 	tc.ChkErr(err, "chain1 onchain withdraw")
 
 	res, err = cbrcli.QueryLiquidityDetailList(transactor.CliCtx, &cbrtypes.LiquidityDetailListRequest{
@@ -193,7 +193,7 @@ func cbridgeTest(t *testing.T) {
 	log.Infoln("QueryLiquidityDetailList resp:", res.String())
 
 	log.Infoln("======================== Xfer back ===========================")
-	err = tc.CbrChain2.ApproveUSDT(0, xferAmt)
+	err = tc.CbrChain2.Approve(0, xferAmt)
 	tc.ChkErr(err, "u0 chain2 approve")
 	xferId, err = tc.CbrChain2.Send(0, xferAmt, tc.CbrChain1.ChainId, 1)
 	tc.ChkErr(err, "u0 chain2 send")
@@ -240,13 +240,13 @@ func cbridgeTest(t *testing.T) {
 		Ratio:       100000000, // Only support 100% for now
 		// MaxSlippage unsupported for now
 	}
-	err = tc.CbrChain1.StartWithdrawClaimCbrFeeShare(transactor, reqid, 0, feeShareWdLq)
+	err = tc.CbrChain1.StartWithdrawClaimFeeShare(transactor, reqid, 0, feeShareWdLq)
 	tc.ChkErr(err, "del0 chain1 start claim fee share")
 	log.Infoln("claim fee share withdraw reqid:", reqid)
 	detail = tc.GetWithdrawDetailWithSigs(transactor, tc.CbrChain1.Delegators[0].Address, reqid, 3)
 	curss, err = tc.GetCurSortedSigners(transactor, tc.CbrChain1.ChainId)
 	tc.ChkErr(err, "chain1 GetCurSortedSigners")
-	err = tc.CbrChain1.OnchainCbrWithdraw(detail, curss)
+	err = tc.CbrChain1.OnchainWithdraw(detail, curss)
 	tc.ChkErr(err, "chain1 onchain withdraw fee share")
 
 	feeShareInfo, err = tc.GetCBridgeFeeShareInfo(transactor, 0)

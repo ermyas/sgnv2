@@ -231,7 +231,7 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 		Decimal:         uint64(destToken.Decimal),
 	}
 	if params.LpAddr == "" {
-		resp.BaseFee = CalcBaseFee(kv, assetSym, dest.ChId, dest.ChId).String()
+		resp.BaseFee = CalcBaseFee(kv, assetSym, dest.ChId).String()
 	}
 	res, err := k.cdc.Marshal(&resp)
 	if err != nil {

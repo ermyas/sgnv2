@@ -11,7 +11,6 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/celer-network/sgn-v2/x/distribution/types"
-	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -256,26 +255,9 @@ func (k Keeper) CBridgeFeeShareInfo(
 		return nil, status.Error(codes.InvalidArgument, "empty delegator address")
 	}
 	ctx := sdk.UnwrapSDKContext(c)
-	feeShareInfo := k.getClaimableFeesInfo(ctx, eth.Hex2Addr(req.DelegatorAddress), cbrtypes.CBridgeFeeDenomPrefix)
-	return &types.QueryCBridgeFeeShareInfoResponse{FeeShareInfo: feeShareInfo}, nil
-}
 
-func (k Keeper) PegBridgeFeesInfo(
-	c context.Context, req *types.QueryPegBridgeFeesInfoRequest) (*types.QueryPegBridgeFeesInfoResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid request")
-	}
-	if req.DelegatorAddress == "" {
-		return nil, status.Error(codes.InvalidArgument, "empty delegator address")
-	}
-	ctx := sdk.UnwrapSDKContext(c)
-	feesInfo := k.getClaimableFeesInfo(ctx, eth.Hex2Addr(req.DelegatorAddress), pegbrtypes.PegBridgeFeeDenomPrefix)
-	return &types.QueryPegBridgeFeesInfoResponse{FeesInfo: feesInfo}, nil
-}
-
-func (k Keeper) getClaimableFeesInfo(
-	ctx sdk.Context, delAddr eth.Addr, denomPrefix string) types.ClaimableFeesInfo {
 	// Outstanding fees
+	delAddr := eth.Hex2Addr(req.DelegatorAddress)
 	totalOutstandingFees := sdk.DecCoins{}
 	k.stakingKeeper.IterateDelegations(
 		ctx, delAddr,
@@ -285,7 +267,7 @@ func (k Keeper) getClaimableFeesInfo(
 			endingPeriod := k.IncrementValidatorPeriod(ctx, val)
 			outstandingRewards := k.CalculateDelegationRewards(ctx, val, del, endingPeriod)
 			for _, reward := range outstandingRewards {
-				if strings.HasPrefix(reward.Denom, denomPrefix) {
+				if strings.HasPrefix(reward.Denom, cbrtypes.CBridgeFeeDenomPrefix) {
 					totalOutstandingFees = totalOutstandingFees.Add(reward)
 				}
 			}
@@ -298,14 +280,14 @@ func (k Keeper) getClaimableFeesInfo(
 	balances := k.bankKeeper.GetAllBalances(ctx, derivedRewardAccount) // sorted
 	settledFees := sdk.DecCoins{}
 	for _, coin := range balances {
-		if strings.HasPrefix(coin.Denom, denomPrefix) {
+		if strings.HasPrefix(coin.Denom, cbrtypes.CBridgeFeeDenomPrefix) {
 			settledFees = settledFees.Add(sdk.NewDecCoinFromCoin(coin))
 		}
 	}
 
 	claimableFees := settledFees.Add(totalOutstandingFees.Sort()...)
-	claimableFeesInfo := types.ClaimableFeesInfo{
+	feeShareInfo := types.CBridgeFeeShareInfo{
 		ClaimableFeeAmounts: claimableFees,
 	}
-	return claimableFeesInfo
+	return &types.QueryCBridgeFeeShareInfoResponse{FeeShareInfo: feeShareInfo}, nil
 }

@@ -65,23 +65,12 @@ func (gs *GatewayService) GetTransferConfigs(ctx context.Context, request *webap
 			ChainToken: chainTokenList,
 		}, nil
 	}
-
-	resp := &webapi.GetTransferConfigsResponse{
+	return &webapi.GetTransferConfigsResponse{
 		Err:                       nil,
 		Chains:                    chains,
 		ChainToken:                chainTokenList,
 		FarmingRewardContractAddr: viper.GetString(common.FlagEthContractFarmingRewards),
-	}
-
-	// get pegged config
-	peggedConfigs, getPeggedConfigErr := gs.GetAllValidPeggedPairs()
-	if getPeggedConfigErr != nil {
-		log.Errorf("fail to find any valid pegged pair config, err:%s", getPeggedConfigErr.Error())
-	} else {
-		resp.PeggedPairConfigs = peggedConfigs
-	}
-
-	return resp, nil
+	}, nil
 }
 
 func (gs *GatewayService) GetTokenInfo(ctx context.Context, request *webapi.GetTokenInfoRequest) (*webapi.GetTokenInfoResponse, error) {

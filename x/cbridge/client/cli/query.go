@@ -53,13 +53,13 @@ func GetCmdQueryConfig() *cobra.Command {
 				return err
 			}
 
-			config, err := QueryConfig(cliCtx)
+			params, err := QueryConfig(cliCtx)
 			if err != nil {
 				log.Errorln("query error", err)
 				return err
 			}
 
-			return cliCtx.PrintProto(&config)
+			return cliCtx.PrintProto(&params)
 		},
 	}
 }
