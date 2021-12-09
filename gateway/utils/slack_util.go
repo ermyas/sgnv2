@@ -94,7 +94,7 @@ func sendSlackP1AlertProd(title string, msg string) {
 func sendSlackStatusAlertProd(title string, msg string) {
 	url := "https://hooks.slack.com/services/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"
 	body := `{
-		"channel": "#cbridge-v2-prod2-alert-p2",
+		"channel": "#cbridge-v2-prod2-alert-status",
 			"username": "%s",
 			"text": "%s",
 			"icon_emoji": "https://svblockchain.slack.com/services/BRARCSVU3?settings=1"

@@ -143,11 +143,10 @@ func (gs *GatewayService) diagnosisTx(ctx context.Context, txHash string, chainI
 			tx.Status == types.TransferHistoryStatus_TRANSFER_COMPLETED {
 			resp = newInfoResponse(webapi.CSOperation_CA_NORMAL, NormalMsg, caseStatus)
 		} else if tx0.UT.Add(OnChainTime).Before(time.Now()) {
-			if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_FUND_RELEASE || caseStatus == webapi.UserCaseStatus_CC_TRANSFER_REQUESTING_REFUND {
+			if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_FUND_RELEASE {
 				resp = newInfoResponse(webapi.CSOperation_CA_USE_RESIGN_TOOL, ToolMsg, caseStatus)
 			} else if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_SUBMITTING ||
-				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_SGN_CONFIRMATION ||
-				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_CONFIRMING_YOUR_REFUND {
+				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_SGN_CONFIRMATION {
 				resp = newInfoResponse(webapi.CSOperation_CA_USE_RESYNC_TOOL, ToolMsg, caseStatus)
 			}
 		} else {
@@ -307,7 +306,7 @@ func (gs *GatewayService) fixTxEventMiss(ctx context.Context, txHash string, cha
 				if err != nil {
 					return err
 				}
-				err = onchain.GatewayOnRelay(gs.Chains.GetEthClient(uint64(chainId)), transfer.TransferId, "", relayOnChain.GetRelayOnChainTransferId().String(), new(big.Int).SetBytes(relayOnChain.GetAmount()).String())
+				err = onchain.GatewayOnRelay(transfer.TransferId, "", relayOnChain.GetRelayOnChainTransferId().String(), new(big.Int).SetBytes(relayOnChain.GetAmount()).String(), eth.Bytes2Addr(relayOnChain.GetReceiver()).String(), eth.Bytes2Addr(relayOnChain.GetToken()).String(), uint64(chainId), ev.DstChainId)
 				if err != nil {
 					return err
 				}
@@ -432,7 +431,7 @@ func (gs *GatewayService) fixTx(ctx context.Context, txHash string, chainId uint
 	if txFound && dbErr == nil {
 		caseStatus := mapTxStatus2CaseStatus(tx.Status)
 		if tx.UT.Add(OnChainTime).Before(time.Now()) {
-			if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_FUND_RELEASE || caseStatus == webapi.UserCaseStatus_CC_TRANSFER_REQUESTING_REFUND {
+			if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_FUND_RELEASE {
 				log.Infof("cs fix tx by resign, txHash:%s, chainId:%d, txId:%s", txHash, chainId, tx.TransferId)
 				dal.DB.UpdateTransferStatus(tx.TransferId, uint64(tx.Status))
 				_, err := gs.signAgainWithdraw(&types.MsgSignAgain{
@@ -444,8 +443,7 @@ func (gs *GatewayService) fixTx(ctx context.Context, txHash string, chainId uint
 					return err
 				}
 			} else if caseStatus == webapi.UserCaseStatus_CC_TRANSFER_SUBMITTING ||
-				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_SGN_CONFIRMATION ||
-				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_CONFIRMING_YOUR_REFUND {
+				caseStatus == webapi.UserCaseStatus_CC_TRANSFER_WAITING_FOR_SGN_CONFIRMATION {
 				log.Infof("cs fix tx by resync, txHash:%s, chainId:%d", txHash, chainId)
 				// refresh update time
 				dal.DB.UpdateTransferStatus(tx.TransferId, uint64(tx.Status))

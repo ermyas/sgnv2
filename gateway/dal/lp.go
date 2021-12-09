@@ -240,6 +240,29 @@ func (d *DAL) PaginateLpHistory(sender string, end time.Time, size uint64) ([]*L
 	return tps, len(tps), minTime, nil
 }
 
+func (d *DAL) GetOneLPInfoByHash(chid uint64, hash string) (*LP, bool, error) {
+	var txHash, tokenSymbol, amt, addr string
+	var chainId, status, lpType, seqnum, methodType, nonce uint64
+	var ct time.Time
+	q := "SELECT chain_id, token_symbol, amt, tx_hash, create_time, status, lp_type, seq_num, usr_addr, withdraw_method_type,nonce FROM lp WHERE chain_id = $1 and tx_hash = $2 limit 1"
+	err := d.QueryRow(q, chid, hash).Scan(&chainId, &tokenSymbol, &amt, &txHash, &ct, &status, &lpType, &seqnum, &addr, &methodType, &nonce)
+
+	found, err := sqldb.ChkQueryRow(err)
+	return &LP{
+		ChainId:     chainId,
+		TokenSymbol: tokenSymbol,
+		Amt:         amt,
+		TxHash:      txHash,
+		Ct:          ct,
+		Status:      types.WithdrawStatus(status),
+		LpType:      webapi.LPType(lpType),
+		SeqNum:      seqnum,
+		Addr:        addr,
+		MethodType:  webapi.WithdrawMethodType(methodType),
+		Nonce:       nonce,
+	}, found, err
+}
+
 func (d *DAL) GetAllLpHistoryForBalance(sender string) ([]*LP, error) {
 	q := "SELECT chain_id, token_symbol, amt, lp_type, status FROM lp WHERE usr_addr = $1 and withdraw_method_type in (1,2)"
 	rows, err := d.Query(q, sender)

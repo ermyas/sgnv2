@@ -232,19 +232,21 @@ func (d *DAL) UpsertTransferOnSend(transferId, usrAddr string, token *webapi.Tok
 	status := uint64(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION)
 	q := `INSERT INTO transfer (transfer_id, usr_addr, token_symbol, amt, src_chain_id, dst_chain_id, status, create_time, update_time, src_tx_hash, volume, fee_perc, received_amt)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) ON CONFLICT (transfer_id) DO UPDATE
-	SET amt=$4, status= $7, update_time=$9, src_tx_hash=$10, volume=$11, fee_perc=$12, received_amt=$13`
+	SET amt=$4, update_time=$9, src_tx_hash=$10, volume=$11, fee_perc=$12`
 	res, err := d.Exec(q, transferId, usrAddr, token.Token.Symbol, amt, srcChainId, dsChainId, status, now(), now(), sendTxHash, volume, feePerc, receivedAmt)
 	return sqldb.ChkExec(res, err, 1, "UpsertTransferOnSend")
 }
-func (d *DAL) TransferCompleted(transferId, txHash, dstTransferId, receivedAmt string, isDelayed bool) error {
+
+func (d *DAL) UpsertTransferOnRelay(transferId, dstTransferId, usrAddr string, token *webapi.TokenInfo, receivedAmt, txHash string, srcChainId, dsChainId uint64, isDelayed bool) error {
 	status := uint64(types.TransferHistoryStatus_TRANSFER_COMPLETED)
 	if isDelayed {
 		status = uint64(types.TransferHistoryStatus_TRANSFER_DELAYED)
 	}
-	// TODO: maybe change to upsert to avoid loss of "SEND" event
-	q := `UPDATE transfer SET dst_tx_hash=$2, status=$3, update_time=$4, dst_transfer_id=$5, received_amt=$6 WHERE transfer_id=$1`
-	res, err := d.Exec(q, transferId, txHash, status, now(), dstTransferId, receivedAmt)
-	return sqldb.ChkExec(res, err, 1, "TransferCompleted")
+	q := `INSERT INTO transfer (transfer_id, usr_addr, token_symbol, received_amt, src_chain_id, dst_chain_id, status, create_time, update_time, dst_tx_hash, dst_transfer_id)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (transfer_id) DO UPDATE
+	SET received_amt=$4, status= $7, update_time=$9, dst_tx_hash=$10, dst_transfer_id=$11`
+	res, err := d.Exec(q, transferId, usrAddr, token.Token.Symbol, receivedAmt, srcChainId, dsChainId, status, now(), now(), txHash, dstTransferId)
+	return sqldb.ChkExec(res, err, 1, "UpsertTransferOnRelay")
 }
 
 func (d *DAL) UpdateTransferStatusByDstTransferId(dstXferId string, status types.TransferHistoryStatus, txHash string) error {

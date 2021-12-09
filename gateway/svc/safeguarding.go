@@ -122,6 +122,7 @@ func (gs *GatewayService) AlertAbnormalStatus() {
 	if err != nil {
 		log.Warnf("GetTransfersWithStatus failed, from:%s, to:%s, err:%+v", startTime, endTime, err)
 	}
+	sendNoSync = gs.filterAlertByTransferStatus(sendNoSync, cbrtypes.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION)
 	if sendNoSync != nil && len(sendNoSync) > 0 {
 		utils.SendStatusAlert(sendNoSync, "send events not synced to sgn")
 	}
@@ -129,6 +130,7 @@ func (gs *GatewayService) AlertAbnormalStatus() {
 	if err != nil {
 		log.Warnf("GetTransfersWithStatus failed, from:%s, to:%s, err:%+v", startTime, endTime, err)
 	}
+	fundNoRelease = gs.filterAlertByTransferStatus(fundNoRelease, cbrtypes.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE)
 	if fundNoRelease != nil && len(fundNoRelease) > 0 {
 		utils.SendStatusAlert(fundNoRelease, "relays that have been waiting for fund release")
 	}
@@ -136,9 +138,55 @@ func (gs *GatewayService) AlertAbnormalStatus() {
 	if err != nil {
 		log.Warnf("GetLPWithStatus failed, from:%s, to:%s, err:%+v", startTime, endTime, err)
 	}
+	addLiqNoSync = gs.filterAlertByLPStatus(addLiqNoSync, cbrtypes.WithdrawStatus_WD_WAITING_FOR_SGN)
 	if addLiqNoSync != nil && len(addLiqNoSync) > 0 {
 		utils.SendStatusAlert(addLiqNoSync, "addLiq events not synced to sgn")
 	}
+}
+
+func (gs *GatewayService) filterAlertByTransferStatus(alerts []*utils.StatusAlertInfo, status cbrtypes.TransferHistoryStatus) []*utils.StatusAlertInfo {
+	var filteredAlerts []*utils.StatusAlertInfo
+	for _, alert := range alerts {
+		srcTxHash := alert.TxHash
+		chainId := uint32(alert.ChainId)
+		tx, found, err := dal.DB.GetTransferBySrcTxHash(srcTxHash, chainId)
+		if tx == nil || !found || err != nil {
+			log.Warnf("alert, tx not found for chainId:%d, srcTxHash:%s", chainId, srcTxHash)
+			filteredAlerts = append(filteredAlerts, alert)
+		} else {
+			var transfers []*dal.Transfer
+			transfers = append(transfers, tx)
+			gs.updateTransferStatusInHistory(context.Background(), transfers)
+			tx, _, _ = dal.DB.GetTransferBySrcTxHash(srcTxHash, chainId)
+			if tx.Status == status {
+				filteredAlerts = append(filteredAlerts, alert)
+			}
+		}
+
+	}
+	return filteredAlerts
+}
+
+func (gs *GatewayService) filterAlertByLPStatus(alerts []*utils.StatusAlertInfo, status cbrtypes.WithdrawStatus) []*utils.StatusAlertInfo {
+	var filteredAlerts []*utils.StatusAlertInfo
+	for _, alert := range alerts {
+		srcTxHash := alert.TxHash
+		chainId := alert.ChainId
+		lp, found, err := dal.DB.GetOneLPInfoByHash(chainId, srcTxHash)
+		if lp == nil || !found || err != nil {
+			log.Warnf("alert, lp not found for chainId:%d, srcTxHash:%s", chainId, srcTxHash)
+			filteredAlerts = append(filteredAlerts, alert)
+		} else {
+			var lps []*dal.LP
+			lps = append(lps, lp)
+			gs.updateLpStatusInHistory(lps)
+			lp, _, _ = dal.DB.GetOneLPInfoByHash(chainId, srcTxHash)
+			if lp.Status == status {
+				filteredAlerts = append(filteredAlerts, alert)
+			}
+		}
+	}
+	return filteredAlerts
 }
 
 func (gs *GatewayService) getUsrBalance(usrAddr string, chainTokens []*cbrtypes.ChainTokenAddrPair, chainTokenAddrMap map[uint64]map[string]*webapi.TokenInfo) map[string]*big.Float {

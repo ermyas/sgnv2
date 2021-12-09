@@ -41,7 +41,7 @@ func GatewayOnSend(transferId, usrAddr, tokenAddr, amt, sendTxHash string, srcCh
 	return dal.DB.UpsertTransferOnSend(transferId, usrAddr, token, amt, estimatedAmt, sendTxHash, srcChainId, dsChainId, volume, getFeePerc(srcChainId, dsChainId, token.GetToken().GetSymbol()))
 }
 
-func GatewayOnRelay(c *ethclient.Client, transferId, txHash, dstTransferId, amt string) error {
+func GatewayOnRelay(transferId, txHash, dstTransferId, amt, usrAddr, tokenAddr string, srcChainId, dstChainId uint64) error {
 	_, isDelayed, err := dal.DB.GetDelayedOp(dstTransferId)
 	if err != nil {
 		return err
@@ -49,12 +49,11 @@ func GatewayOnRelay(c *ethclient.Client, transferId, txHash, dstTransferId, amt 
 	if isDelayed {
 		dal.DB.UpdateDelayedOpType(dstTransferId, dal.DelayedOpTransfer)
 	}
-	err = dal.DB.TransferCompleted(transferId, txHash, dstTransferId, amt, isDelayed)
-	if err == nil {
-		dal.DB.AddFeeRebateFee(transferId)
-		sendGasOnArrival(c, transferId)
+	token, _, _ := dal.DB.GetTokenByAddr(tokenAddr, dstChainId)
+	if token == nil {
+		return nil
 	}
-	return err
+	return dal.DB.UpsertTransferOnRelay(transferId, dstTransferId, usrAddr, token, amt, txHash, srcChainId, dstChainId, isDelayed)
 }
 
 func GatewayOnLiqWithdraw(id, tx string, chid, seq uint64, addr string) {
