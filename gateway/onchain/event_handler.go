@@ -273,7 +273,7 @@ func sendGasOnArrival(c *ethclient.Client, transferId string) {
 	if !found {
 		return
 	}
-	userAddr := common.Hex2Addr(transfer.UsrAddr)
+	userAddr := eth.Hex2Addr(transfer.UsrAddr)
 	var ksBytes []byte
 	ksBytes, err = ioutil.ReadFile(viper.GetString(common.FlagGatewayIncentiveRewardsKeystore))
 	if err != nil {

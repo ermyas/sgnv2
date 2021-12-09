@@ -15,16 +15,12 @@ var (
 	ZeroAddrHex = Addr2Hex(ZeroAddr)
 	// ZeroBigInt is big.NewInt(0)
 	ZeroBigInt = big.NewInt(0)
-	// ZeroCid is all 0s
-	ZeroCid CidType
+	// ZeroHash is all 0s
+	ZeroHash Hash
 )
 
-// CidType is the type for payment channel ID
-// Note we need to change all cid.Hex() to Cid2Hex() because Hash.Hex() has 0x prefix
-type CidType = ec.Hash
-
-// HashType is the type for ethereum hash type
-type HashType = ec.Hash
+// Hash is the type for ethereum hash type
+type Hash = ec.Hash
 
 // Addr is alias to geth common.Address
 type Addr = ec.Address
@@ -79,32 +75,15 @@ func FormatAddrHex(s string) string {
 	return Addr2Hex(Hex2Addr(s))
 }
 
-// ========== CidType ==========
-
-// Bytes2Cid converts bytes to CidType
-func Bytes2Cid(b []byte) CidType {
-	return ec.BytesToHash(b)
-}
-
-// Cid2Hex returns hex without 0x prefix
-func Cid2Hex(p CidType) string {
-	return Bytes2Hex(p[:])
-}
-
-// Hex2Cid accepts hex string with or without 0x prefix and return CidType
-func Hex2Cid(s string) CidType {
-	return ec.HexToHash(s)
-}
-
 // ========== Hash ==========
 
-// Hex2Hash accepts hex string with or without 0x prefix and return HashType
-func Hex2Hash(s string) HashType {
+// Hex2Hash accepts hex string with or without 0x prefix and return Hash
+func Hex2Hash(s string) Hash {
 	return ec.HexToHash(s)
 }
 
-// Bytes2Hash converts bytes to HashType
-func Bytes2Hash(b []byte) HashType {
+// Bytes2Hash converts bytes to Hash
+func Bytes2Hash(b []byte) Hash {
 	return ec.BytesToHash(b)
 }
 

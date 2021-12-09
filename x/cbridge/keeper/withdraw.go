@@ -5,7 +5,6 @@ import (
 	"math/big"
 
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -14,7 +13,7 @@ import (
 
 func (k Keeper) refund(ctx sdk.Context, wdReq *types.WithdrawReq, signer eth.Addr, creator string) (*types.WithdrawOnchain, error) {
 	kv := ctx.KVStore(k.storeKey)
-	xferId := eth.Bytes2Hash(common.Hex2Bytes(wdReq.XferId))
+	xferId := eth.Bytes2Hash(eth.Hex2Bytes(wdReq.XferId))
 	wdOnchain := GetXferRefund(kv, xferId)
 	if wdOnchain == nil {
 		return nil, types.Error(types.ErrCode_XFER_NOT_REFUNDABLE, "xfer %d not refundable", xferId)
@@ -28,7 +27,7 @@ func (k Keeper) refund(ctx sdk.Context, wdReq *types.WithdrawReq, signer eth.Add
 		return nil, types.Error(types.ErrCode_INVALID_SIG, "")
 	}
 	wdOnchain.Seqnum = wdReq.ReqId
-	wdOnchain.Refid = common.Hex2Bytes(wdReq.XferId)
+	wdOnchain.Refid = eth.Hex2Bytes(wdReq.XferId)
 	log.Infof("x/cbr handle refund xferId %x, reqId %d, wdOnChain %s, creator %s",
 		xferId, wdReq.ReqId, wdOnchain.String(), creator)
 	// save this back to avoid dup initwithdraw for refund
@@ -144,7 +143,7 @@ func (k Keeper) claimFeeShare(ctx sdk.Context, wdReq *types.WithdrawReq, delAddr
 	logmsg = fmt.Sprintf("%s %sfee_token:%x, amt:%s", logmsg, wdmsgs, feeTokenAddr, amount)
 	log.Infof("x/cbr handle claim fee share: %s creator:%s", logmsg, creator)
 	// Use 0x1 to represent fee share claims. Must be of length 32.
-	refId := [32]byte{}
+	refId := eth.Hash{}
 	refId[31] = 1
 	return &types.WithdrawOnchain{
 		Chainid:  wdReq.ExitChainId,

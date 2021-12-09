@@ -154,7 +154,7 @@ func (r *Relayer) submitRelay(relayRequest RelayRequest) {
 		return
 	}
 
-	xferId := common.Bytes2Hex(relayOnChain.SrcTransferId)
+	xferId := eth.Bytes2Hex(relayOnChain.SrcTransferId)
 	resp, err := cbrcli.QueryTransferStatus(r.Transactor.CliCtx, &cbrtypes.QueryTransferStatusRequest{
 		TransferId: []string{xferId},
 	})
@@ -361,7 +361,7 @@ func (c *CbrOneChain) skipSyncCbrSend(
 		}
 	}
 
-	xferId := common.Hash(sendEv.TransferId).String()
+	xferId := eth.Hash(sendEv.TransferId).String()
 	resp, err := cbrcli.QueryTransferStatus(cliCtx, &cbrtypes.QueryTransferStatusRequest{
 		TransferId: []string{xferId},
 	})
@@ -429,7 +429,7 @@ func (c *CbrOneChain) skipSyncCbrRelay(evlog *ethtypes.Log, cliCtx client.Contex
 		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
 	}
 
-	xferId := common.Hash(ev.SrcTransferId).String()
+	xferId := eth.Hash(ev.SrcTransferId).String()
 	resp, err := cbrcli.QueryTransferStatus(cliCtx, &cbrtypes.QueryTransferStatusRequest{
 		TransferId: []string{xferId},
 	})
@@ -439,7 +439,7 @@ func (c *CbrOneChain) skipSyncCbrRelay(evlog *ethtypes.Log, cliCtx client.Contex
 		return
 	}
 	if resp.Status[xferId].SgnStatus == cbrtypes.XferStatus_SUCCESS {
-		return true, fmt.Sprintf("relay with xferId %s already synced", common.Hash(ev.TransferId).String())
+		return true, fmt.Sprintf("relay with xferId %s already synced", eth.Hash(ev.TransferId).String())
 	}
 
 	return

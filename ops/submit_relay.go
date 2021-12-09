@@ -101,10 +101,10 @@ $ %s ops submit-relay --xferid=xxxxx"
 			re, err := cbr.Transactor.TransactWaitMined(
 				"cli submit relay",
 				func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
-					var curssAddrs []common.Addr
+					var curssAddrs []eth.Addr
 					var curssPowers []*big.Int
 					for _, signer := range curss {
-						curssAddrs = append(curssAddrs, common.Bytes2Addr(signer.GetAddr()))
+						curssAddrs = append(curssAddrs, eth.Bytes2Addr(signer.GetAddr()))
 						curssPowers = append(curssPowers, new(big.Int).SetBytes(signer.GetPower()))
 					}
 					return cbr.contract.Relay(opts, relay.Relay, sigsBytes, curssAddrs, curssPowers)

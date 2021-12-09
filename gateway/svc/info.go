@@ -11,6 +11,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/onchain"
 	"github.com/celer-network/sgn-v2/gateway/utils"
@@ -99,7 +100,7 @@ func (gs *GatewayService) GetTokenInfo(ctx context.Context, request *webapi.GetT
 }
 
 func (gs *GatewayService) GetLPInfoList(ctx context.Context, request *webapi.GetLPInfoListRequest) (*webapi.GetLPInfoListResponse, error) {
-	userAddr := common.Hex2Addr(request.GetAddr()).String()
+	userAddr := eth.Hex2Addr(request.GetAddr()).String()
 	_, chainTokenInfos, userDetailMap, err := gs.getLpFeeEarningApy(userAddr)
 	if err != nil || len(chainTokenInfos) == 0 {
 		return &webapi.GetLPInfoListResponse{}, nil
@@ -196,7 +197,7 @@ func (gs *GatewayService) getLpFeeEarningApy(usrAddr string) (map[uint64]map[str
 		for _, detail := range detailList.GetLiquidityDetail() {
 			chainId := detail.GetChainId()
 			tokenWithAddr := detail.GetToken() // only has addr field
-			token, found, dbErr := dal.DB.GetTokenByAddr(common.Hex2Addr(tokenWithAddr.GetAddress()).String(), chainId)
+			token, found, dbErr := dal.DB.GetTokenByAddr(eth.Hex2Addr(tokenWithAddr.GetAddress()).String(), chainId)
 			if !found || dbErr != nil {
 				log.Debugf("data, token not found in lp list, token addr:%s, chainId:%d", tokenWithAddr.GetAddress(), chainId)
 				continue

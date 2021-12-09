@@ -87,16 +87,16 @@ func EvLiqAddKey(chid, seq uint64) []byte {
 }
 
 // tid is user's transfer if. value is enum xfer status
-func EvSendKey(tid [32]byte) []byte {
+func EvSendKey(tid eth.Hash) []byte {
 	return []byte(fmt.Sprintf("evsend-%x", tid))
 }
 
 // serialized relay msg and sigs, add sig when receive msg
-func XferRelayKey(tid [32]byte) []byte {
+func XferRelayKey(tid eth.Hash) []byte {
 	return []byte(fmt.Sprintf("xferRelay-%x", tid))
 }
 
-func XferRefundKey(tid [32]byte) []byte {
+func XferRefundKey(tid eth.Hash) []byte {
 	return []byte(fmt.Sprintf("xferRefund-%x", tid))
 }
 

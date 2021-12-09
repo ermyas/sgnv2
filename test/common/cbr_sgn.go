@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/transactor"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
@@ -42,7 +41,7 @@ func CheckXfer(transactor *transactor.Transactor, xferId []byte) {
 	var resp *cbrtypes.QueryTransferStatusResponse
 	var err error
 	var prevXferStatus cbrtypes.TransferHistoryStatus
-	xferIdStr := common.Bytes2Hex(xferId)
+	xferIdStr := eth.Bytes2Hex(xferId)
 	for retry := 0; retry < RetryLimit*2; retry++ {
 		resp, err = cbrcli.QueryTransferStatus(transactor.CliCtx, &cbrtypes.QueryTransferStatusRequest{
 			TransferId: []string{xferIdStr},

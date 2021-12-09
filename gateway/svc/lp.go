@@ -11,6 +11,7 @@ import (
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/onchain"
 	"github.com/celer-network/sgn-v2/gateway/utils"
@@ -194,7 +195,7 @@ func (gs *GatewayService) chooseOneTokenFromSrcChains(wdReq *types.WithdrawReq) 
 	for _, wd := range wdReq.Withdraws {
 		if !tokenFound {
 			cid := wd.FromChainId
-			tokenAddr := common.Hex2Addr(wd.TokenAddr).String()
+			tokenAddr := eth.Hex2Addr(wd.TokenAddr).String()
 			tokenIndb, found, dbErr := dal.DB.GetTokenByAddr(tokenAddr, cid)
 			tokenFound = found && dbErr == nil && tokenIndb != nil
 			token = tokenIndb
@@ -211,7 +212,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 	tx := request.GetTxHash()
 	chainId := uint64(request.GetChainId())
 	lpType := uint64(request.GetType())
-	addr := common.Hex2Addr(request.GetLpAddr())
+	addr := eth.Hex2Addr(request.GetLpAddr())
 	tr := onchain.SGNTransactors.GetTransactor()
 	found, status, seqNum, txHash, lpUpdateTime := getLPStatusInDB(request.GetType(), tx, addr.String(), seqNum, chainId)
 	if found && status == uint64(types.WithdrawStatus_WD_SUBMITTING) && common.IsValidTxHash(txHash) && time.Now().Add(-3*time.Minute).After(lpUpdateTime) {
@@ -221,7 +222,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 			return nil, fmt.Errorf("no ethClient found for chain:%d", chainId)
 		}
 
-		receipt, recErr := ec.TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))
+		receipt, recErr := ec.TransactionReceipt(ctx, eth.Bytes2Hash(eth.Hex2Bytes(txHash)))
 		if recErr == nil && receipt.Status != ethtypes.ReceiptStatusSuccessful {
 			log.Warnf("find transfer failed, chain_id %d, hash:%s", chainId, txHash)
 			if lpType == uint64(webapi.LPType_LP_TYPE_ADD) {
@@ -332,7 +333,7 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 }
 
 func (gs *GatewayService) LPHistory(ctx context.Context, request *webapi.LPHistoryRequest) (*webapi.LPHistoryResponse, error) {
-	addr := common.Hex2Addr(request.GetAddr()).String()
+	addr := eth.Hex2Addr(request.GetAddr()).String()
 	endTime := time.Now()
 	if request.GetNextPageToken() != "" {
 		ts, err := strconv.Atoi(request.GetNextPageToken())
@@ -406,7 +407,7 @@ func (gs *GatewayService) EstimateWithdrawAmt(ctx context.Context, request *weba
 		}, nil
 	}
 	resp := make(map[uint32]*webapi.EstimateWithdrawAmt)
-	addr := common.Hex2Addr(request.GetUsrAddr()).String()
+	addr := eth.Hex2Addr(request.GetUsrAddr()).String()
 	for _, withdraw := range srcWithdraws {
 		srcChainId := withdraw.GetChainId()
 		amt := withdraw.GetAmount()

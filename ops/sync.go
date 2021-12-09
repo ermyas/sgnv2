@@ -233,7 +233,7 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 
 			// 1. Check validator SGN address
 			log.Infoln("Check SGN address")
-			sgnAddr, err := ethClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, common.Hex2Addr(valAddr))
+			sgnAddr, err := ethClient.Contracts.Sgn.SgnAddrs(&bind.CallOpts{}, eth.Hex2Addr(valAddr))
 			if err != nil {
 				log.Errorf("Failed to query contract SGN address err: %s", err)
 				return err
@@ -299,7 +299,7 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 
 			// 2. Check validator params
 			log.Infoln("Check validator params")
-			ethVal, err := ethClient.Contracts.Staking.Validators(&bind.CallOpts{}, common.Hex2Addr(valAddr))
+			ethVal, err := ethClient.Contracts.Staking.Validators(&bind.CallOpts{}, eth.Hex2Addr(valAddr))
 			if err != nil {
 				log.Errorf("Failed to query contract validator info: %s", err)
 				return err
@@ -348,7 +348,7 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 			delAddr := viper.GetString(FlagDelAddr)
 			if delAddr != "" {
 				log.Infoln("Check delegator shares")
-				ethDel, err := ethClient.Contracts.Staking.GetDelegatorInfo(&bind.CallOpts{}, common.Hex2Addr(valAddr), common.Hex2Addr(delAddr))
+				ethDel, err := ethClient.Contracts.Staking.GetDelegatorInfo(&bind.CallOpts{}, eth.Hex2Addr(valAddr), eth.Hex2Addr(delAddr))
 				if err != nil {
 					log.Errorf("Failed to query delegator info err: %s", err)
 					return nil

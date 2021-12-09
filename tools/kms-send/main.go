@@ -6,8 +6,8 @@ import (
 	"log"
 	"math/big"
 
-	"github.com/celer-network/goutils/eth"
-	"github.com/celer-network/sgn-v2/common"
+	ethutils "github.com/celer-network/goutils/eth"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -49,7 +49,7 @@ func main() {
 func doOne(chid int64, rpc string) {
 	ec, err := ethclient.Dial(rpc)
 	chkErr(err, "dial "+rpc)
-	kms, err := eth.NewKmsSigner("us-west-2", "alias/"+*keyA, "", "", big.NewInt(chid))
+	kms, err := ethutils.NewKmsSigner("us-west-2", "alias/"+*keyA, "", "", big.NewInt(chid))
 	chkErr(err, "newsigner")
 	bal, err := ec.BalanceAt(bgCtx, kms.Addr, nil)
 	chkErr(err, "get balance")
@@ -60,11 +60,11 @@ func doOne(chid int64, rpc string) {
 		return
 	}
 	// now build tx and send
-	sendETH(ec, kms.Addr, common.Hex2Addr(*dst), bal, kms.SignerFn)
+	sendETH(ec, kms.Addr, eth.Hex2Addr(*dst), bal, kms.SignerFn)
 }
 
 // send bal - gas, for eip1559 it's possible we still has some left b/c we only set cap
-func sendETH(ec *ethclient.Client, from, to common.Addr, bal *big.Int, signer bind.SignerFn) error {
+func sendETH(ec *ethclient.Client, from, to eth.Addr, bal *big.Int, signer bind.SignerFn) error {
 	var rawTx *types.Transaction
 	head, err := ec.HeaderByNumber(bgCtx, nil)
 	chkErr(err, "HeaderByNumber")

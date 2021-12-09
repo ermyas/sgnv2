@@ -2,11 +2,12 @@ package gatewaysvc
 
 import (
 	"context"
-	"github.com/celer-network/sgn-v2/eth"
 	"math/big"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/celer-network/sgn-v2/eth"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -174,7 +175,7 @@ func (gs *GatewayService) calcGasPriceShouldRaiseDueToGasDrop(chainId uint64, ga
 // calcOptimismEffectiveGasPrice calculates the effective gas price using the heuristic
 // effectiveGasPrice = L1GasPrice / 14 + L2GasPrice
 func (gs *GatewayService) calcOptimismGasPrice(chainId uint64) (*big.Int, error) {
-	caller, err := eth.NewOVMGasPriceOracleCaller(common.Hex2Addr("0x420000000000000000000000000000000000000F"), gs.Chains.GetEthClient(chainId))
+	caller, err := eth.NewOVMGasPriceOracleCaller(eth.Hex2Addr("0x420000000000000000000000000000000000000F"), gs.Chains.GetEthClient(chainId))
 	if err != nil {
 		return nil, err
 	}

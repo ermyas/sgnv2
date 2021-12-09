@@ -35,7 +35,7 @@ func (gs *GatewayService) UnlockStakingReward(ctx context.Context, request *weba
 		}, nil
 	}
 	_, err := cli.ClaimAllStakingReward(tr, &types.MsgClaimAllStakingReward{
-		DelegatorAddress: eth.Addr2Hex(common.Hex2Addr(request.GetDelegatorAddress())),
+		DelegatorAddress: eth.Addr2Hex(eth.Hex2Addr(request.GetDelegatorAddress())),
 		Sender:           tr.Key.GetAddress().String(),
 	})
 	if err != nil {
@@ -56,7 +56,7 @@ func (gs *GatewayService) GetStakingRewardDetails(ctx context.Context, request *
 	res, err := queryClient.StakingRewardClaimInfo(
 		ctx,
 		&types.QueryStakingRewardClaimInfoRequest{
-			DelegatorAddress: common.Hex2Addr(request.GetDelegatorAddress()).String(),
+			DelegatorAddress: eth.Hex2Addr(request.GetDelegatorAddress()).String(),
 		},
 	)
 	if res == nil || err != nil {

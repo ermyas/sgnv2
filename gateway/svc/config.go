@@ -4,14 +4,14 @@ import (
 	"context"
 
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/gateway/dal"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func (gs *GatewayService) UpdateChain(ctx context.Context, request *webapi.UpdateChainRequest) (*webapi.UpdateChainResponse, error) {
-	if !checkSigner(common.Hex2Addr(request.GetAddr()).Bytes(), request.Sig) {
+	if !checkSigner(eth.Hex2Addr(request.GetAddr()).Bytes(), request.Sig) {
 		return &webapi.UpdateChainResponse{
 			Err: &webapi.ErrMsg{
 				Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -71,7 +71,7 @@ func (gs *GatewayService) UpdateChain(ctx context.Context, request *webapi.Updat
 }
 
 func (gs *GatewayService) UpdateToken(ctx context.Context, request *webapi.UpdateTokenRequest) (*webapi.UpdateTokenResponse, error) {
-	if !checkSigner(common.Hex2Addr(request.GetAddr()).Bytes(), request.Sig) {
+	if !checkSigner(eth.Hex2Addr(request.GetAddr()).Bytes(), request.Sig) {
 		return &webapi.UpdateTokenResponse{
 			Err: &webapi.ErrMsg{
 				Code: webapi.ErrCode_ERROR_CODE_COMMON,

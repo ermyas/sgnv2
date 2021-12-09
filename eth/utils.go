@@ -33,7 +33,7 @@ func ParseValStatus(valStatus uint8) string {
 }
 
 // GetEventSignature accepts the string of an event signature and return the hex
-func GetEventSignature(eventSigStr string) HashType {
+func GetEventSignature(eventSigStr string) Hash {
 	return crypto.Keccak256Hash([]byte(eventSigStr))
 }
 
@@ -80,7 +80,7 @@ func SignerBytes(addrs []Addr, powers []*big.Int) []byte {
 // if evname not found, all 0 hash (default value) will be returned
 // as this func parse abi internally, caller should call once and save the return
 // instead of keep calling it.
-func GetBridgeEventID(evname string) HashType {
+func GetBridgeEventID(evname string) Hash {
 	cbrabi, _ := abi.JSON(strings.NewReader(BridgeABI))
 	return cbrabi.Events[evname].ID
 }
@@ -95,7 +95,7 @@ func GetBridgeEventID(evname string) HashType {
 // WARNING: must check log Address!!! other projects have been hacked by missing the check
 func FindMatchCbrEvent(cbrEvName string, expAddr Addr, logs []*ethtypes.Log) *ethtypes.Log {
 	evID := GetBridgeEventID(cbrEvName)
-	if evID == ZeroCid {
+	if evID == ZeroHash {
 		return nil
 	}
 	for idx := len(logs) - 1; idx >= 0; idx-- {
@@ -119,7 +119,7 @@ func (ev *BridgeSend) PrettyLog(srcChid uint64) string {
 	return fmt.Sprintf("send-%x src: %d-%x dstchid: %d sender: %x receiver: %x amt: %s maxslip: %f%%", ev.TransferId, srcChid, ev.Token, ev.DstChainId, ev.Sender, ev.Receiver, ev.Amount, float64(ev.MaxSlippage)/10000)
 }
 
-func (ev *BridgeSend) CalcXferId(srcChid uint64) HashType {
+func (ev *BridgeSend) CalcXferId(srcChid uint64) Hash {
 	var b []byte
 	b = append(b, ev.Sender[:]...)
 	b = append(b, ev.Receiver[:]...)
@@ -133,7 +133,7 @@ func (ev *BridgeSend) CalcXferId(srcChid uint64) HashType {
 	return Bytes2Hash(crypto.Keccak256(b))
 }
 
-func GetRelayTransferId(sender, receiver, token Addr, amount *big.Int, srcChainId, destChainId uint64, srcTransferId HashType) HashType {
+func GetRelayTransferId(sender, receiver, token Addr, amount *big.Int, srcChainId, destChainId uint64, srcTransferId Hash) Hash {
 	var b []byte
 	b = append(b, sender[:]...)
 	b = append(b, receiver[:]...)
@@ -150,7 +150,7 @@ bytes32 wdId = keccak256(
   abi.encodePacked(wdmsg.chainid, wdmsg.seqnum, wdmsg.receiver, wdmsg.token, wdmsg.amount)
 );
 */
-func (ev *BridgeWithdrawDone) CalcWdID(chid uint64) HashType {
+func (ev *BridgeWithdrawDone) CalcWdID(chid uint64) Hash {
 	var b []byte
 	b = append(b, ToPadBytes(chid)...)
 	b = append(b, ToPadBytes(ev.Seqnum)...)
@@ -166,7 +166,7 @@ bytes32 transferId = keccak256(abi.encodePacked(
     request.sender, request.receiver, request.token, request.amount,
     request.srcChainId, request.dstChainId, request.srcTransferId));
 */
-func (ev *BridgeRelay) CalcXferId(chid uint64) HashType {
+func (ev *BridgeRelay) CalcXferId(chid uint64) Hash {
 	var b []byte
 	b = append(b, ev.Sender[:]...)
 	b = append(b, ev.Receiver[:]...)

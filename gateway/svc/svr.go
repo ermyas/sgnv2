@@ -139,13 +139,13 @@ func (gs *GatewayService) pollChainToken() {
 			continue
 		}
 		for _, token := range tokens.Tokens {
-			dbErr := dal.DB.UpsertTokenBaseInfo(token.GetSymbol(), common.Hex2Addr(token.GetAddress()).String(), uint64(chainId), uint64(token.GetDecimal()), token.GetXferDisabled())
+			dbErr := dal.DB.UpsertTokenBaseInfo(token.GetSymbol(), eth.Hex2Addr(token.GetAddress()).String(), uint64(chainId), uint64(token.GetDecimal()), token.GetXferDisabled())
 			if dbErr != nil {
 				log.Errorf("failed to write token: %v", dbErr)
 			}
 		}
 		blockDelay := tokens.GetBlockDelay()
-		dbErr := dal.DB.UpsertChainBaseInfo(uint64(chainId), blockDelay, common.Hex2Addr(tokens.GetContractAddr()).String())
+		dbErr := dal.DB.UpsertChainBaseInfo(uint64(chainId), blockDelay, eth.Hex2Addr(tokens.GetContractAddr()).String())
 		if dbErr != nil {
 			log.Errorf("failed to write blockDelay: %v", dbErr)
 		}
@@ -168,7 +168,7 @@ func (gs *GatewayService) pollChainToken() {
 				tokenSymbol := cbrtypes.GetSymbolFromStakeToken(erc20Token.GetSymbol())
 				dbErr := dal.DB.UpsertRewardToken(
 					tokenSymbol,
-					common.Hex2Addr(erc20Token.GetAddress()).String(),
+					eth.Hex2Addr(erc20Token.GetAddress()).String(),
 					erc20Token.GetChainId(),
 					uint64(erc20Token.GetDecimals()),
 				)

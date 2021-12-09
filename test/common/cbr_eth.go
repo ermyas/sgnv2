@@ -85,24 +85,24 @@ func (c *CbrChain) AddLiq(uid uint64, amt *big.Int) error {
 }
 
 // only used for test
-func (c *CbrChain) Send(uid uint64, amt *big.Int, dstChainId, nonce uint64) ([32]byte, error) {
+func (c *CbrChain) Send(uid uint64, amt *big.Int, dstChainId, nonce uint64) (eth.Hash, error) {
 	return c.SendAny(uid, uid, amt, dstChainId, nonce, 100000) //10% slippage
 }
 
-func (c *CbrChain) SendAny(fromUid, toUid uint64, amt *big.Int, dstChainId, nonce uint64, maxSlippage uint32) ([32]byte, error) {
+func (c *CbrChain) SendAny(fromUid, toUid uint64, amt *big.Int, dstChainId, nonce uint64, maxSlippage uint32) (eth.Hash, error) {
 	tx, err := c.CbrContract.Send(
 		c.Users[fromUid].Auth, c.Users[toUid].Address, c.USDTAddr, amt, dstChainId, nonce, maxSlippage)
 	if err != nil {
-		return eth.ZeroCid, err
+		return eth.ZeroHash, err
 	}
 	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
 	if err != nil {
-		return eth.ZeroCid, err
+		return eth.ZeroHash, err
 	}
 	sendLog := receipt.Logs[len(receipt.Logs)-1] // last log is Send event (NOTE Polygon breaks this assumption)
 	sendEv, err := c.CbrContract.ParseSend(*sendLog)
 	if err != nil {
-		return eth.ZeroCid, fmt.Errorf("parse log %+v err: %w", sendLog, err)
+		return eth.ZeroHash, fmt.Errorf("parse log %+v err: %w", sendLog, err)
 	}
 	return sendEv.TransferId, nil
 }

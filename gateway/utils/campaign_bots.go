@@ -1,11 +1,11 @@
 package utils
 
-import "github.com/celer-network/sgn-v2/common"
+import "github.com/celer-network/sgn-v2/eth"
 
 var bots map[string]int32
 
 func IsBot(addr string) bool {
-	addr = common.Hex2Addr(addr).String()
+	addr = eth.Hex2Addr(addr).String()
 	botMap := getBots()
 	_, found := botMap[addr]
 	return found
@@ -3017,7 +3017,7 @@ func getBots() map[string]int32 {
 			"0x47Ff09157B63889BC92A43AeAb3586355B0e7c21",
 		}
 		for _, bot := range rawBots {
-			bots[common.Hex2Addr(bot).String()] = 1
+			bots[eth.Hex2Addr(bot).String()] = 1
 		}
 	}
 	return bots

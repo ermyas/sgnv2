@@ -57,18 +57,18 @@ func HasEvLiqAdd(kv sdk.KVStore, chid, seq uint64) bool {
 	return kv.Get(types.EvLiqAddKey(chid, seq)) != nil
 }
 
-func HasEvSend(kv sdk.KVStore, xferId [32]byte) bool {
+func HasEvSend(kv sdk.KVStore, xferId eth.Hash) bool {
 	return kv.Get(types.EvSendKey(xferId)) != nil
 }
 
 // do we want to add protection for status change?
-func SetEvSendStatus(kv sdk.KVStore, xferId [32]byte, status types.XferStatus) {
+func SetEvSendStatus(kv sdk.KVStore, xferId eth.Hash, status types.XferStatus) {
 	log.Infof("Set xfer %x to %s", xferId, status.String())
 	kv.Set(types.EvSendKey(xferId), []byte{byte(status)})
 }
 
 // if not found, return 0 unknown. xferid is src xfer id
-func GetEvSendStatus(kv sdk.KVStore, xferId [32]byte) types.XferStatus {
+func GetEvSendStatus(kv sdk.KVStore, xferId eth.Hash) types.XferStatus {
 	val := kv.Get(types.EvSendKey(xferId))
 	if val == nil {
 		return types.XferStatus_UNKNOWN
@@ -121,7 +121,7 @@ func HasEnoughLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr, needed *big.Int, sen
 	return false
 }
 
-func GetXferRelay(kv sdk.KVStore, xferId [32]byte) *types.XferRelay {
+func GetXferRelay(kv sdk.KVStore, xferId eth.Hash) *types.XferRelay {
 	raw := kv.Get(types.XferRelayKey(xferId))
 	if raw == nil {
 		return nil
@@ -131,7 +131,7 @@ func GetXferRelay(kv sdk.KVStore, xferId [32]byte) *types.XferRelay {
 	return res
 }
 
-func SetXferRelay(kv sdk.KVStore, xferId [32]byte, xferRelay *types.XferRelay) {
+func SetXferRelay(kv sdk.KVStore, xferId eth.Hash, xferRelay *types.XferRelay) {
 	raw, _ := xferRelay.Marshal()
 	kv.Set(types.XferRelayKey(xferId), raw)
 }
@@ -157,13 +157,13 @@ func GetWithdrawDetail(kv sdk.KVStore, userAddr eth.Addr, reqid uint64) *types.W
 
 // during apply send, if xfer is bad_xxx, set user amount etc so later user can initwithdraw via xferid
 // when user call initwithdraw, set wd seqnum value
-func SetXferRefund(kv sdk.KVStore, tid [32]byte, wd *types.WithdrawOnchain) {
+func SetXferRefund(kv sdk.KVStore, tid eth.Hash, wd *types.WithdrawOnchain) {
 	raw, _ := wd.Marshal()
 	kv.Set(types.XferRefundKey(tid), raw)
 }
 
 // return nil if not found
-func GetXferRefund(kv sdk.KVStore, tid [32]byte) *types.WithdrawOnchain {
+func GetXferRefund(kv sdk.KVStore, tid eth.Hash) *types.WithdrawOnchain {
 	raw := kv.Get(types.XferRefundKey(tid))
 	if raw == nil {
 		return nil

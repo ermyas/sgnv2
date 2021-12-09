@@ -29,7 +29,7 @@ const (
 )
 
 func (gs *GatewayService) GetInfoByTxHash(ctx context.Context, request *webapi.GetInfoByTxHashRequest) (*webapi.GetInfoByTxHashResponse, error) {
-	if !checkSigner(common.Hex2Addr(request.GetAddr()).Bytes(), request.GetSig()) {
+	if !checkSigner(eth.Hex2Addr(request.GetAddr()).Bytes(), request.GetSig()) {
 		return &webapi.GetInfoByTxHashResponse{
 			Info: "invalid operator",
 		}, nil
@@ -43,7 +43,7 @@ func (gs *GatewayService) GetInfoByTxHash(ctx context.Context, request *webapi.G
 }
 
 func (gs *GatewayService) FixEventMiss(ctx context.Context, request *webapi.FixEventMissRequest) (*webapi.FixEventMissResponse, error) {
-	if !checkSigner(common.Hex2Addr(request.GetAddr()).Bytes(), request.GetSig()) {
+	if !checkSigner(eth.Hex2Addr(request.GetAddr()).Bytes(), request.GetSig()) {
 		return &webapi.FixEventMissResponse{
 			Err: &webapi.ErrMsg{
 				Code: webapi.ErrCode_ERROR_CODE_COMMON,
@@ -284,11 +284,11 @@ func (gs *GatewayService) fixTxEventMiss(ctx context.Context, txHash string, cha
 			return fmt.Errorf("parse failed from elog:%+v", elog)
 		}
 
-		err = onchain.GatewayOnSend(common.Hash(ev.TransferId).String(), ev.Sender.String(), ev.Token.String(), ev.Amount.String(), txHash, uint64(chainId), ev.DstChainId)
+		err = onchain.GatewayOnSend(eth.Hash(ev.TransferId).String(), ev.Sender.String(), ev.Token.String(), ev.Amount.String(), txHash, uint64(chainId), ev.DstChainId)
 		if err != nil {
 			return err
 		}
-		transfer, txFound, dbErr := dal.DB.GetTransfer(common.Hash(ev.TransferId).String())
+		transfer, txFound, dbErr := dal.DB.GetTransfer(eth.Hash(ev.TransferId).String())
 		if txFound && transfer != nil && dbErr == nil {
 			var transfers []*dal.Transfer
 			transfers = append(transfers, transfer)
@@ -353,7 +353,7 @@ func (gs *GatewayService) fixTxEventMiss(ctx context.Context, txHash string, cha
 		if parseErr != nil {
 			return parseErr
 		}
-		idstr := common.Hash(ev.WithdrawId).String()
+		idstr := eth.Hash(ev.WithdrawId).String()
 		onchain.GatewayOnLiqWithdraw(idstr, elog.TxHash.String(), uint64(chainId), ev.Seqnum, ev.Receiver.String())
 		lpHistory, _, _, _ := dal.DB.PaginateLpHistory(ev.Receiver.String(), time.Now(), 1000)
 		if lpHistory != nil && len(lpHistory) > 0 {
@@ -541,7 +541,7 @@ func (gs *GatewayService) checkTxExits(ctx context.Context, txHash string, chain
 	if client == nil {
 		return false
 	}
-	receipt, recErr := client.TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))
+	receipt, recErr := client.TransactionReceipt(ctx, eth.Bytes2Hash(eth.Hex2Bytes(txHash)))
 	if receipt == nil || recErr != nil || receipt.Status != ethtypes.ReceiptStatusSuccessful {
 		return false
 	}

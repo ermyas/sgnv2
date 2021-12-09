@@ -8,7 +8,7 @@ import (
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/eth/monitor"
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -200,6 +200,6 @@ func (c *CbrOneChain) SendRelay(relayBytes []byte, sigs [][]byte, curss currentS
 	return tx.Hash().Hex(), nil
 }
 
-func (c *CbrOneChain) existTransferId(transferId common.Hash) (bool, error) {
+func (c *CbrOneChain) existTransferId(transferId eth.Hash) (bool, error) {
 	return c.contract.BridgeCaller.Transfers(&bind.CallOpts{}, transferId)
 }

@@ -56,7 +56,7 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 			return nil, err
 		}
 	case types.RefundTransfer:
-		xferIdBytes = common.Hex2Bytes(wdReq.XferId)
+		xferIdBytes = eth.Hex2Bytes(wdReq.XferId)
 		wdOnchain, err = k.refund(sdkCtx, wdReq, signer, req.Creator)
 		if err != nil {
 			return nil, err

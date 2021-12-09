@@ -155,7 +155,7 @@ func (c *OneChain) monSend(blk *big.Int) {
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 
-		err = GatewayOnSend(common.Hash(ev.TransferId).String(), ev.Sender.String(), ev.Token.String(), ev.Amount.String(), eLog.TxHash.String(), c.chainid, ev.DstChainId)
+		err = GatewayOnSend(eth.Hash(ev.TransferId).String(), ev.Sender.String(), ev.Token.String(), ev.Amount.String(), eLog.TxHash.String(), c.chainid, ev.DstChainId)
 		if err != nil {
 			log.Warnf("GatewayOnSend err: %s, txId %x, txHash %x, chainId %d", err, ev.TransferId, eLog.TxHash, c.chainid)
 			return true
@@ -180,7 +180,7 @@ func (c *OneChain) monRelay(blk *big.Int) {
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 
-		err = GatewayOnRelay(c.Client, common.Hash(ev.SrcTransferId).String(), eLog.TxHash.String(), common.Hash(ev.TransferId).String(), ev.Amount.String())
+		err = GatewayOnRelay(c.Client, eth.Hash(ev.SrcTransferId).String(), eLog.TxHash.String(), eth.Hash(ev.TransferId).String(), ev.Amount.String())
 		if err != nil {
 			log.Warnf("UpdateTransfer err: %s, srcId %x, dstId %x, txHash %x, chainId %d", err, ev.SrcTransferId, ev.TransferId, eLog.TxHash, c.chainid)
 		}
@@ -211,7 +211,7 @@ func (c *OneChain) monDelayXferAdd(blk *big.Int) {
 			log.Errorln("monRelay: cannot parse event:", err)
 			return false
 		}
-		idstr := common.Hash(ev.Id).String()
+		idstr := eth.Hash(ev.Id).String()
 		log.Infof("MonEv: DelayedTransferAdded chainId: %d, tx: %s, id %s", c.chainid, eLog.TxHash.String(), idstr)
 		err = GatewayOnDelayXferAdd(idstr, eLog.TxHash.String())
 		if err != nil {
@@ -235,7 +235,7 @@ func (c *OneChain) monDelayXferExec(blk *big.Int) {
 			log.Errorln("monRelay: cannot parse event:", err)
 			return false
 		}
-		idstr := common.Hash(ev.Id).String()
+		idstr := eth.Hash(ev.Id).String()
 		log.Infof("MonEv: DelayedTransferExecuted chainId: %d, tx: %s, id %s", c.chainid, eLog.TxHash.String(), idstr)
 		GatewayOnDelayXferExec(idstr, eLog.TxHash.String())
 		if err != nil {
@@ -293,7 +293,7 @@ func (c *OneChain) monWithdraw(blk *big.Int) {
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 
-		idstr := common.Hash(ev.WithdrawId).String()
+		idstr := eth.Hash(ev.WithdrawId).String()
 		GatewayOnLiqWithdraw(idstr, eLog.TxHash.String(), c.chainid, ev.Seqnum, ev.Receiver.String())
 		return false
 	})

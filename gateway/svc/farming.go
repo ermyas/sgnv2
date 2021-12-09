@@ -26,7 +26,7 @@ type rewardRecord struct {
 }
 
 func (gs *GatewayService) RewardingData(ctx context.Context, request *webapi.RewardingDataRequest) (*webapi.RewardingDataResponse, error) {
-	addr := common.Hex2Addr(request.GetAddr()).String()
+	addr := eth.Hex2Addr(request.GetAddr()).String()
 	unlockedCumulativeRewards, err := gs.getUnlockedCumulativeRewards(ctx, addr)
 	if err != nil {
 		log.Errorf("getUnlockedCumulativeRewards err:%+v", err)
@@ -54,7 +54,7 @@ func (gs *GatewayService) UnlockFarmingReward(ctx context.Context, request *weba
 		}, nil
 	}
 	_, err := farmingcli.ClaimAllRewards(tr, &farmingtypes.MsgClaimAllRewards{
-		Address: eth.Addr2Hex(common.Hex2Addr(request.GetAddr())),
+		Address: eth.Addr2Hex(eth.Hex2Addr(request.GetAddr())),
 		Sender:  tr.Key.GetAddress().String(),
 	})
 	if err != nil {
@@ -79,7 +79,7 @@ func (gs *GatewayService) GetFarmingRewardDetails(ctx context.Context, request *
 	res, err := queryClient.RewardClaimInfo(
 		ctx,
 		&farmingtypes.QueryRewardClaimInfoRequest{
-			Address: common.Hex2Addr(request.GetAddr()).String(),
+			Address: eth.Hex2Addr(request.GetAddr()).String(),
 		},
 	)
 	if res == nil || err != nil {
@@ -114,7 +114,7 @@ func (gs *GatewayService) getUnlockedCumulativeRewards(ctx context.Context, addr
 	res, err := queryClient.RewardClaimInfo(
 		ctx,
 		&farmingtypes.QueryRewardClaimInfoRequest{
-			Address: common.Hex2Addr(address).String(),
+			Address: eth.Hex2Addr(address).String(),
 		},
 	)
 	var rewards []*webapi.Reward

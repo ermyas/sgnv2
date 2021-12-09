@@ -66,7 +66,7 @@ func queryChkLiqSum(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuer
 	}
 	chtok := &ChainIdTokenAddr{
 		ChId:      chkReq.ChainId,
-		TokenAddr: common.Hex2Addr(chkReq.TokenAddr),
+		TokenAddr: eth.Hex2Addr(chkReq.TokenAddr),
 	}
 	resp := types.CheckLiqSumResp{
 		Liqsum:  GetLiq(kv, chtok).String(),
@@ -106,7 +106,7 @@ func queryRelay(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierC
 		return nil, fmt.Errorf("failed to parse params: %s", err)
 	}
 
-	var xferId [32]byte
+	var xferId eth.Hash
 	copy(xferId[:], params.XrefId)
 	relay := GetXferRelay(ctx.KVStore(k.storeKey), xferId)
 	if relay == nil {
@@ -277,7 +277,7 @@ func queryTransferStatus(ctx sdk.Context, req abci.RequestQuery, k Keeper, legac
 	status := make(map[string]*types.TransferStatus)
 
 	for _, xferId := range params.TransferId {
-		xferStatus := GetEvSendStatus(ctx.KVStore(k.storeKey), eth.Bytes2Hash(common.Hex2Bytes(xferId)))
+		xferStatus := GetEvSendStatus(ctx.KVStore(k.storeKey), eth.Bytes2Hash(eth.Hex2Bytes(xferId)))
 		switch xferStatus {
 		case types.XferStatus_UNKNOWN:
 			status[xferId] = &types.TransferStatus{

@@ -63,7 +63,7 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 					DataType: types.SignDataType_WITHDRAW,
 					Creator:  tr.Key.GetAddress().String(),
 					ReqId:    transfer.RefundSeqNum,
-					UserAddr: common.Hex2Addr(transfer.UsrAddr).Bytes(),
+					UserAddr: eth.Hex2Addr(transfer.UsrAddr).Bytes(),
 				})
 				// update db: refresh update_time, so that will sign again after 15 min
 				dal.DB.UpdateTransferStatus(transfer.TransferId, uint64(types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND))
@@ -145,7 +145,7 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 			},
 		}, nil
 	}
-	addr := common.Hex2Addr(request.GetUsrAddr()).String()
+	addr := eth.Hex2Addr(request.GetUsrAddr()).String()
 
 	resp, infoErr := gs.getEstimatedFeeInfo(addr, srcChainId, dstChainId, slippage, srcToken, dstToken, amt, false)
 	if infoErr != nil {
@@ -161,7 +161,7 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 }
 
 func (gs *GatewayService) TransferHistory(ctx context.Context, request *webapi.TransferHistoryRequest) (*webapi.TransferHistoryResponse, error) {
-	addr := common.Hex2Addr(request.GetAddr()).String()
+	addr := eth.Hex2Addr(request.GetAddr()).String()
 	endTime := time.Now()
 	if request.GetNextPageToken() != "" {
 		ts, err := strconv.Atoi(request.GetNextPageToken())
@@ -284,7 +284,7 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 				log.Errorf("no ethClient found for chain:%d", srcChainId)
 				continue
 			}
-			receipt, recErr := ec.TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(txHash)))
+			receipt, recErr := ec.TransactionReceipt(ctx, eth.Bytes2Hash(eth.Hex2Bytes(txHash)))
 			if recErr == nil && receipt.Status != ethtypes.ReceiptStatusSuccessful {
 				log.Warnf("find transfer failed, chain_id %d, hash:%s", srcChainId, txHash)
 				dbErr := dal.DB.UpdateTransferStatus(transferId, uint64(types.TransferHistoryStatus_TRANSFER_FAILED))
@@ -313,7 +313,7 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 					log.Errorf("no ethClient found for chain:%d", chainId)
 					return nil, fmt.Errorf("no ethClient found for chain:%d", chainId)
 				}
-				receipt, recErr := ec.TransactionReceipt(ctx, common.Bytes2Hash(common.Hex2Bytes(refundTx)))
+				receipt, recErr := ec.TransactionReceipt(ctx, eth.Bytes2Hash(eth.Hex2Bytes(refundTx)))
 				if recErr == nil && receipt.Status != ethtypes.ReceiptStatusSuccessful {
 					dbErr := dal.DB.UpdateTransferStatus(transferId, uint64(types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED))
 					if dbErr != nil {

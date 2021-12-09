@@ -119,7 +119,7 @@ func (r *RelayOnChain) String() string {
 }
 
 // get transfer id of relay (dest transfer id)
-func (ev *RelayOnChain) GetRelayOnChainTransferId() eth.HashType {
+func (ev *RelayOnChain) GetRelayOnChainTransferId() eth.Hash {
 	return eth.GetRelayTransferId(
 		eth.Bytes2Addr(ev.GetSender()),
 		eth.Bytes2Addr(ev.GetReceiver()),
