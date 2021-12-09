@@ -2,6 +2,7 @@ package keeper
 
 import (
 	cbrkeeper "github.com/celer-network/sgn-v2/x/cbridge/keeper"
+	pegkeeper "github.com/celer-network/sgn-v2/x/pegbridge/keeper"
 	"github.com/celer-network/sgn-v2/x/sync/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -15,6 +16,7 @@ type Keeper struct {
 	paramstore    paramstypes.Subspace
 	stakingKeeper types.StakingKeeper
 	cbrKeeper     cbrkeeper.Keeper
+	pegbrKeeper   pegkeeper.Keeper
 }
 
 // NewKeeper creates new instances of the validator Keeper
@@ -24,6 +26,7 @@ func NewKeeper(
 	stakingKeeper types.StakingKeeper,
 	paramstore paramstypes.Subspace,
 	cbr cbrkeeper.Keeper,
+	pegbr pegkeeper.Keeper,
 ) Keeper {
 	return Keeper{
 		cdc:           cdc,
@@ -31,5 +34,6 @@ func NewKeeper(
 		stakingKeeper: stakingKeeper,
 		paramstore:    paramstore,
 		cbrKeeper:     cbr,
+		pegbrKeeper:   pegbr,
 	}
 }

@@ -23,26 +23,14 @@ message Params {
   ];
 }
 
-// ERC20Token describes an ERC20 token on a specific EVM-compatible chain
-message ERC20Token {
-  // chain_id defines the EVM chain ID
-  uint64 chain_id = 1 [(gogoproto.moretags) = "yaml:\"chain_id\""];
-  // symbol defines the ERC20 token symbol
-  string symbol = 2 [(gogoproto.moretags) = "yaml:\"symbol\""];
-  // address defines the token contract address
-  string address = 3 [(gogoproto.moretags) = "yaml:\"address\""];
-  // decimals defines the token decimals
-  uint32 decimals = 4 [(gogoproto.moretags) = "yaml:\"decimals\""];
-}
-
 // FarmingPool represents a pool that rewards liquidity providers with tokens
 message FarmingPool {
   // name defines the name of the farming pool
   string name = 1;
   // stake_token defines the accepted token as stake
-  ERC20Token stake_token = 2 [(gogoproto.moretags) = "yaml:\"stake_token\"", (gogoproto.nullable) = false];
+  sgn.common.v1.ERC20Token stake_token = 2 [(gogoproto.moretags) = "yaml:\"stake_token\"", (gogoproto.nullable) = false];
   // reward_tokens defines the provided reward tokens
-  repeated ERC20Token reward_tokens = 3 [(gogoproto.moretags) = "yaml:\"reward_tokens\"", (gogoproto.nullable) = false];
+  repeated sgn.common.v1.ERC20Token reward_tokens = 3 [(gogoproto.moretags) = "yaml:\"reward_tokens\"", (gogoproto.nullable) = false];
   // total_staked_amount defines the total staked amount
   cosmos.base.v1beta1.DecCoin total_staked_amount = 4 [(gogoproto.moretags) = "yaml:\"total_staked_amount\"", (gogoproto.nullable) = false];
   // reward_token_infos defines the details for each reward token
@@ -193,8 +181,8 @@ message AddPoolProposal {
   string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
   string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
   string pool_name = 3 [(gogoproto.moretags) = "yaml:\"pool_name\""];
-  ERC20Token stake_token = 4 [(gogoproto.moretags) = "yaml:\"stake_token\"", (gogoproto.nullable) = false];
-  repeated ERC20Token reward_tokens = 5 [(gogoproto.moretags) = "yaml:\"reward_tokens\"", (gogoproto.nullable) = false];
+  sgn.common.v1.ERC20Token stake_token = 4 [(gogoproto.moretags) = "yaml:\"stake_token\"", (gogoproto.nullable) = false];
+  repeated sgn.common.v1.ERC20Token reward_tokens = 5 [(gogoproto.moretags) = "yaml:\"reward_tokens\"", (gogoproto.nullable) = false];
   repeated RewardAdjustmentInput initial_reward_inputs = 6
       [(gogoproto.moretags) = "yaml:\"initial_reward_inputs\"", (gogoproto.nullable) = false];
 }
@@ -207,9 +195,9 @@ message AddPoolProposalWithDeposit {
   string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
   string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
   string pool_name = 3 [(gogoproto.moretags) = "yaml:\"pool_name\"", (gogoproto.jsontag) = "pool_name,omitempty"];
-  ERC20Token stake_token = 4
+  sgn.common.v1.ERC20Token stake_token = 4
       [(gogoproto.moretags) = "yaml:\"stake_token\"", (gogoproto.jsontag) = "stake_token,omitempty", (gogoproto.nullable) = false];
-  repeated ERC20Token reward_tokens = 5
+  repeated sgn.common.v1.ERC20Token reward_tokens = 5
       [(gogoproto.moretags) = "yaml:\"reward_tokens\"", (gogoproto.jsontag) = "reward_tokens,omitempty", (gogoproto.nullable) = false];
   repeated RewardAdjustmentInput initial_reward_inputs = 6 [
     (gogoproto.moretags) = "yaml:\"initial_reward_inputs\"",
@@ -275,7 +263,7 @@ message AddTokensProposal {
 
   string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
   string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
-  repeated ERC20Token tokens = 3 [(gogoproto.moretags) = "yaml:\"tokens\"", (gogoproto.nullable) = false];
+  repeated sgn.common.v1.ERC20Token tokens = 3 [(gogoproto.moretags) = "yaml:\"tokens\"", (gogoproto.nullable) = false];
 }
 
 // AddTokensProposalWithDeposit defines an AddTokensProposal with a deposit, for CLI usage.
@@ -285,7 +273,7 @@ message AddTokensProposalWithDeposit {
 
   string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
   string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
-  repeated ERC20Token tokens = 3 [(gogoproto.moretags) = "yaml:\"tokens\"", (gogoproto.nullable) = false];
+  repeated sgn.common.v1.ERC20Token tokens = 3 [(gogoproto.moretags) = "yaml:\"tokens\"", (gogoproto.nullable) = false];
   string deposit = 4 [(gogoproto.moretags) = "yaml:\"deposit\""];
 }
 

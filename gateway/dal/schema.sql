@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS transfer (
     volume FLOAT NOT NULL DEFAULT 0,
     refund_tx TEXT NOT NULL DEFAULT '',
     refund_seq_num INT NOT NULL DEFAULT 0,
+    transfer_type INT NOT NULL DEFAULT 0,
     refund_id TEXT,
     UNIQUE (refund_id)
 );
@@ -145,3 +146,27 @@ CREATE TABLE IF NOT EXISTS fee_rebate_log (
     PRIMARY KEY (usr_addr, event_id),
     UNIQUE (usr_addr, event_id)
 );
+
+CREATE TABLE IF NOT EXISTS pegged_config (
+    orig_chain_id INT NOT NULL,
+    orig_token_symbol TEXT NOT NULL DEFAULT '',
+    orig_token_addr TEXT NOT NULL DEFAULT '',
+    orig_token_decimal TEXT NOT NULL DEFAULT '',
+    orig_token_name TEXT NOT NULL DEFAULT '',
+    orig_token_icon TEXT NOT NULL DEFAULT '',
+
+    pegged_chain_id INT NOT NULL,
+    pegged_token_symbol TEXT NOT NULL DEFAULT '',
+    pegged_token_addr TEXT NOT NULL DEFAULT '',
+    pegged_token_decimal TEXT NOT NULL DEFAULT '',
+    pegged_token_name TEXT NOT NULL DEFAULT '',
+    pegged_token_icon TEXT NOT NULL DEFAULT '',
+
+    disabled BOOLEAN NOT NULL DEFAULT false,
+    update_time TIMESTAMPTZ NOT NULL DEFAULT now(),
+    create_time TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (orig_chain_id, pegged_chain_id, pegged_token_symbol),
+    UNIQUE (pegged_chain_id, pegged_token_symbol)
+);
+
+

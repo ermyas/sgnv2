@@ -19,12 +19,15 @@ import (
 	tc "github.com/celer-network/sgn-v2/test/common"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
+	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/spf13/viper"
 )
+
+var mainchain2Started bool
 
 func SetupMainchain() {
 	repoRoot, _ := filepath.Abs("../../..")
@@ -85,6 +88,10 @@ func SetupMainchain() {
 
 // should be invoked after mainchain 1 setup
 func SetupMainchain2ForBridge() {
+	if mainchain2Started {
+		log.Infoln("mainchain2 already started")
+		return
+	}
 	repoRoot, _ := filepath.Abs("../../..")
 	log.Infoln("prepare geth2 env")
 	cmd := exec.Command("make", "prepare-geth2-env")
@@ -118,6 +125,7 @@ func SetupMainchain2ForBridge() {
 
 	log.Infoln("set up mainchain2")
 	tc.InitCbrChainConfigs()
+	mainchain2Started = true
 }
 
 func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool, gateway bool, manual bool) {
@@ -230,6 +238,7 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool, gateway boo
 	if cbridge {
 		DeployUsdtForBridge()
 		DeployBridgeContract()
+		DeployPegBridgeContract()
 		CreateFarmingPools()
 		FundUsdtFarmingReward()
 	}
@@ -364,6 +373,92 @@ func DeployBridgeContract() {
 	}
 }
 
+func DeployPegBridgeContract() {
+	tc.CbrChain1.PegVaultAddr, tc.CbrChain1.PegVaultContract =
+		tc.DeployPegVaultContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.CbrAddr)
+	tc.CbrChain2.PegBridgeAddr, tc.CbrChain2.PegBridgeContract =
+		tc.DeployPegBridgeContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.CbrAddr)
+
+	tc.CbrChain1.UNIAddr, tc.CbrChain1.UNIContract = tc.DeployERC20Contract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, "UNI", "UNI", 18)
+	tc.CbrChain2.PeggedUNIAddr, tc.CbrChain2.PeggedUNIContract =
+		tc.DeployPeggedTokenContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, "UNI", "UNI", 18, tc.CbrChain2.PegBridgeAddr)
+
+	// fund UNI to each user
+	addrs := []eth.Addr{
+		tc.ClientEthAddrs[0],
+		tc.ClientEthAddrs[1],
+		tc.ClientEthAddrs[2],
+		tc.ClientEthAddrs[3],
+	}
+	log.Infoln("fund each test addr 10 million UNI on chain 1")
+	err := tc.FundAddrsErc20(tc.CbrChain1.UNIAddr, addrs, tc.NewBigInt(1, 25), tc.CbrChain1.Ec, tc.CbrChain1.Auth)
+	tc.ChkErr(err, "fund each test addr 10 million UNI on chain 1")
+
+	for i := 0; i < len(tc.ValEthKs); i++ {
+		cbrCfgPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/cbridge.toml", i)
+		cbrViper := viper.New()
+		cbrViper.SetConfigFile(cbrCfgPath)
+		err := cbrViper.ReadInConfig()
+		tc.ChkErr(err, "Failed to read config")
+		multichains := cbrViper.Get("multichain").([]interface{})
+		multichains[0].(map[string]interface{})["otvault"] = tc.CbrChain1.PegVaultAddr.Hex()
+		multichains[1].(map[string]interface{})["ptbridge"] = tc.CbrChain2.PegBridgeAddr.Hex()
+		cbrViper.Set("multichain", multichains)
+		err = cbrViper.WriteConfig()
+		tc.ChkErr(err, "Failed to write config")
+
+		// Modify genesis to include pegbridge info
+		genesisPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/genesis.json", i)
+		genesisViper := viper.New()
+		genesisViper.SetConfigFile(genesisPath)
+		err = genesisViper.ReadInConfig()
+		tc.ChkErr(err, "Failed to read genesis")
+		peggedTokenBridges := []commontypes.ContractInfo{{
+			ChainId: tc.CbrChain2.ChainId,
+			Address: eth.Addr2Hex(tc.CbrChain2.PegBridgeAddr),
+		}}
+		originalTokenVaults := []commontypes.ContractInfo{{
+			ChainId: tc.CbrChain1.ChainId,
+			Address: eth.Addr2Hex(tc.CbrChain1.PegVaultAddr),
+		}}
+		origPeggedPairs := []pegbrtypes.OrigPeggedPair{{
+			Orig: commontypes.ERC20Token{
+				Symbol:   "UNI",
+				ChainId:  tc.CbrChain1.ChainId,
+				Address:  eth.Addr2Hex(tc.CbrChain1.UNIAddr),
+				Decimals: 18,
+			},
+			Pegged: commontypes.ERC20Token{
+				Symbol:   "UNI",
+				ChainId:  tc.CbrChain2.ChainId,
+				Address:  eth.Addr2Hex(tc.CbrChain2.PeggedUNIAddr),
+				Decimals: 18,
+			},
+			MintFeePips: 100,
+			BurnFeePips: 500,
+			MaxMintFee:  "1000000000000000000",
+			MaxBurnFee:  "1000000000000000000",
+		}}
+		config := pegbrtypes.PegConfig{
+			PeggedTokenBridges:  peggedTokenBridges,
+			OriginalTokenVaults: originalTokenVaults,
+			OrigPeggedPairs:     origPeggedPairs,
+		}
+		genesisViper.Set("app_state.pegbridge.config", config)
+		genesisViper.Set("app_state.pegbridge.params.trigger_sign_cooldown", "10s")
+
+		// Also update cbr config to add original UNI, required by base fee calculation
+		cbrConfig := new(cbrtypes.CbrConfig)
+		jsonByte, _ := json.Marshal(genesisViper.Get("app_state.cbridge.config"))
+		json.Unmarshal(jsonByte, cbrConfig)
+		cbrConfig.Assets[2].Addr = eth.Addr2Hex(tc.CbrChain1.UNIAddr)
+		genesisViper.Set("app_state.cbridge.config", cbrConfig)
+
+		err = genesisViper.WriteConfig()
+		tc.ChkErr(err, "Failed to write genesis")
+	}
+}
+
 func CreateFarmingPools() {
 	log.Infoln("Creating farming pools in genesis")
 	for i := 0; i < len(tc.ValEthKs); i++ {
@@ -382,12 +477,12 @@ func CreateFarmingPools() {
 		var pools farmingtypes.FarmingPools
 		pool := farmingtypes.NewFarmingPool(
 			poolName,
-			farmingtypes.ERC20Token{
+			commontypes.ERC20Token{
 				ChainId: 883,
 				Symbol:  "CB-USDT",
 				Address: eth.Addr2Hex(tc.CbrChain1.USDTAddr),
 			},
-			[]farmingtypes.ERC20Token{
+			[]commontypes.ERC20Token{
 				{
 					ChainId: 883,
 					Symbol:  "CELR",

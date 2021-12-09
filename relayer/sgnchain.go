@@ -10,6 +10,8 @@ import (
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
+	pegbrcli "github.com/celer-network/sgn-v2/x/pegbridge/client/cli"
+	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	slashingcli "github.com/celer-network/sgn-v2/x/slashing/client/cli"
 	slashingtypes "github.com/celer-network/sgn-v2/x/slashing/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -24,7 +26,10 @@ var (
 
 	EventQueryCbridge = tmquery.MustParse(
 		fmt.Sprintf("%s.%s='%s'", cbrtypes.EventTypeDataToSign, sdk.AttributeKeyModule, cbrtypes.ModuleName)).String()
-
+	EventQueryPegMint = tmquery.MustParse(
+		fmt.Sprintf("%s.%s='%s'", pegbrtypes.EventTypeMintToSign, sdk.AttributeKeyModule, pegbrtypes.ModuleName)).String()
+	EventQueryPegWithdraw = tmquery.MustParse(
+		fmt.Sprintf("%s.%s='%s'", pegbrtypes.EventTypeWithdrawToSign, sdk.AttributeKeyModule, pegbrtypes.ModuleName)).String()
 	EventQueryFarmingClaimAll = tmquery.MustParse(
 		fmt.Sprintf("tm.event='Tx' AND %s.%s EXISTS", farmingtypes.EventTypeClaimAll, farmingtypes.AttributeKeyAddress)).String()
 
@@ -134,7 +139,7 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 						log.Errorf("%s, no cbrMgr %d found", logmsg, relay.DstChainId)
 						continue
 					}
-					dataToSign := cbrtypes.EncodeRelayOnChainToSign(relay.DstChainId, chain.contract.Address, data)
+					dataToSign := cbrtypes.EncodeRelayOnChainToSign(relay.DstChainId, chain.cbrContract.Address, data)
 					sig, err := r.EthClient.SignEthMessage(dataToSign)
 					if err != nil {
 						log.Errorf("%s, sign msg err: %s", logmsg, err)
@@ -161,7 +166,7 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 						log.Errorf("%s, no cbrMgr %d found", logmsg, withdraw.Chainid)
 						continue
 					}
-					dataToSign := cbrtypes.EncodeWithdrawOnchainToSign(withdraw.Chainid, chain.contract.Address, data)
+					dataToSign := cbrtypes.EncodeWithdrawOnchainToSign(withdraw.Chainid, chain.cbrContract.Address, data)
 					sig, err := r.EthClient.SignEthMessage(dataToSign)
 					if err != nil {
 						log.Errorf("%s, sign msg err: %s", logmsg, err)
@@ -173,7 +178,7 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 				case cbrtypes.SignDataType_SIGNERS.String():
 					msg.Datatype = cbrtypes.SignDataType_SIGNERS
 					for chainId, c := range r.cbrMgr {
-						dataToSign := cbrtypes.EncodeSignersUpdateToSign(chainId, c.contract.Address, data)
+						dataToSign := cbrtypes.EncodeSignersUpdateToSign(chainId, c.cbrContract.Address, data)
 						sig, err := r.EthClient.SignEthMessage(dataToSign)
 						if err != nil {
 							log.Errorf("%s, sign msg err: %s", logmsg, err)
@@ -185,6 +190,111 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 					log.Infof("%s", logmsg)
 				}
 				r.Transactor.AddTxMsg(msg)
+			}
+		})
+}
+
+func (r *Relayer) monitorSgnPegMintToSign() {
+	MonitorTendermintEvent(
+		r.Transactor.CliCtx.NodeURI,
+		EventQueryPegMint,
+		func(events map[string][]string) {
+			if !r.isBonded() {
+				return
+			}
+			tmEventType := events["tm.event"][0]
+			if tmEventType != tm.EventTx && tmEventType != tm.EventNewBlock {
+				return
+			}
+			dataArr := events[fmt.Sprintf("%s.%s", pegbrtypes.EventTypeMintToSign, pegbrtypes.AttributeKeyData)]
+			mintId := dataArr[0]
+			mintChainId, _ := strconv.ParseUint(dataArr[1], 10, 64)
+
+			// sign data first
+			mintInfo, err := pegbrcli.QueryMintInfo(r.Transactor.CliCtx, mintId)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+
+			mintOnChain := new(pegbrtypes.MintOnChain)
+			err = mintOnChain.Unmarshal(mintInfo.MintProtoBytes)
+			if err != nil {
+				log.Errorf("Unmarshal mintInfo.MintProtoBytes err %s", err)
+				return
+			}
+
+			sig, err := r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(r.cbrMgr[mintChainId].pegContracts.bridge.Address))
+			if err != nil {
+				log.Error(err)
+				return
+			}
+
+			msg := &pegbrtypes.MsgSignMint{
+				MintId:    mintId,
+				Signature: sig,
+				Sender:    r.Transactor.Key.GetAddress().String(),
+			}
+			r.Transactor.AddTxMsg(msg)
+			mintRequest := NewMintRequest(eth.Hex2Bytes(mintId), mintChainId, mintOnChain.RefChainId, mintOnChain.RefId)
+			err = r.dbSet(GetPegbrMintKey(mintChainId, mintRequest.DepositChainId, mintRequest.DepositId), mintRequest.MustMarshal())
+			if err != nil {
+				log.Errorf("db Set err: %s", err)
+			}
+		})
+}
+
+func (r *Relayer) monitorSgnPegWithdrawToSign() {
+	MonitorTendermintEvent(
+		r.Transactor.CliCtx.NodeURI,
+		EventQueryPegWithdraw,
+		func(events map[string][]string) {
+			if !r.isBonded() {
+				return
+			}
+			tmEventType := events["tm.event"][0]
+			if tmEventType != tm.EventTx && tmEventType != tm.EventNewBlock {
+				return
+			}
+			dataArr := events[fmt.Sprintf("%s.%s", pegbrtypes.EventTypeWithdrawToSign, pegbrtypes.AttributeKeyData)]
+			wdId := dataArr[0]
+			wdChainId, _ := strconv.ParseUint(dataArr[1], 10, 64)
+
+			// sign data first
+			wdInfo, err := pegbrcli.QueryWithdrawInfo(r.Transactor.CliCtx, wdId)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+
+			wdOnChain := new(pegbrtypes.WithdrawOnChain)
+			err = wdOnChain.Unmarshal(wdInfo.WithdrawProtoBytes)
+			if err != nil {
+				log.Errorf("Unmarshal wdInfo.WithdrawProtoBytes err %s", err)
+				return
+			}
+
+			sig, err := r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(r.cbrMgr[wdChainId].pegContracts.vault.Address))
+			if err != nil {
+				log.Error(err)
+				return
+			}
+
+			msg := &pegbrtypes.MsgSignWithdraw{
+				WithdrawId: wdId,
+				Signature:  sig,
+				Sender:     r.Transactor.Key.GetAddress().String(),
+			}
+			r.Transactor.AddTxMsg(msg)
+
+			// RefChainId = 0 means fee claim, don't add a WithdrawRequest
+			if wdOnChain.RefChainId == 0 {
+				return
+			}
+			wdRequest := NewWithdrawRequest(eth.Hex2Bytes(wdId), wdChainId, wdOnChain.RefChainId, wdOnChain.RefId)
+			err = r.dbSet(GetPegbrWdKey(wdChainId, wdOnChain.RefChainId, wdOnChain.RefId), wdRequest.MustMarshal())
+			if err != nil {
+				log.Errorf("db Set err: %s", err)
 			}
 		})
 }

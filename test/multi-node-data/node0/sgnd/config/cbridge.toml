@@ -8,6 +8,8 @@ blkinterval = 1
 blkdelay = 1
 maxblkdelta = 5000
 cbridge = ""
+otvault = ""
+ptbridge = ""
 maxfeepergasgwei = 2
 
 [[multichain]]
@@ -18,4 +20,6 @@ blkinterval = 1
 blkdelay = 1
 maxblkdelta = 5000
 cbridge = ""
+otvault = ""
+ptbridge = ""
 addgasgwei = 2

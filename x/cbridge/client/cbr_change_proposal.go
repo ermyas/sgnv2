@@ -13,6 +13,7 @@ import (
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/cobra"
 )
 
@@ -49,7 +50,8 @@ proposal file is path to json like below
 				return err
 			}
 			cbrProp := parseJson(args[0])
-			msg, _ := govtypes.NewMsgSubmitProposal(cbrProp, cbrProp.Deposit, txr.Key.GetAddress())
+			// enforce deposit to be zero
+			msg, _ := govtypes.NewMsgSubmitProposal(cbrProp /*cbrProp.Deposit*/, sdk.NewInt(0), txr.Key.GetAddress())
 			if err := msg.ValidateBasic(); err != nil {
 				log.Error(err)
 				return err
