@@ -78,7 +78,8 @@ func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmo
 	y := amt2float(destLiqSum, dest.Decimal) // y can't be 0
 
 	D := solveD(A, x, y, m, n)
-	newx := x + amt2float(srcAmount, src.Decimal)
+	srcAmtfloat := amt2float(srcAmount, src.Decimal)
+	newx := x + srcAmtfloat
 	var newy float64
 	if m == n {
 		// m and n both 1 because m + n = 2
@@ -103,7 +104,17 @@ func CalcEqualOnDestChain(kv sdk.KVStore, src, dest *ChainIdTokenDecimal, srcAmo
 		// newton's method failed
 		return ret, fmt.Errorf("newy %f >= y %f, newton method failed", newy, y)
 	}
-	retFloat := big.NewFloat(y - newy)
+	dstAmt := y - newy
+	// check if dstAmt is over allowed max gain cap
+	if gainCap := getUint32(kv, types.CfgKeyMaxGainPerc); gainCap > 0 {
+		// dstAmt must be <= srcAmtfloat * (1+gainCap/1e6)
+		maxAllowed := srcAmtfloat * (1 + float64(gainCap)/1e6)
+		if dstAmt > maxAllowed {
+			dstAmt = maxAllowed
+			log.Infoln("calculated amt exceed allowed, set to max allowed:", maxAllowed)
+		}
+	}
+	retFloat := big.NewFloat(dstAmt)
 	retFloat.Mul(retFloat, big.NewFloat(math.Pow10(int(dest.Decimal))))
 	retFloat.Int(ret) // set int in ret, accuracy doesn't matter
 	return ret, nil
