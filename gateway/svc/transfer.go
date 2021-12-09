@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/big"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/celer-network/goutils/log"
@@ -149,9 +150,13 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 
 	resp, infoErr := gs.getEstimatedFeeInfo(addr, srcChainId, dstChainId, slippage, srcToken, dstToken, amt, false)
 	if infoErr != nil {
+		errCode := webapi.ErrCode_ERROR_CODE_COMMON
+		if strings.Contains(infoErr.Error(), "destLiqSum") {
+			errCode = webapi.ErrCode_ERROR_CODE_NO_ENOUGH_TOKEN_ON_DST_CHAIN
+		}
 		return &webapi.EstimateAmtResponse{
 			Err: &webapi.ErrMsg{
-				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Code: errCode,
 				Msg:  infoErr.Error(),
 			},
 		}, nil
