@@ -43,11 +43,6 @@ message CbrConfig {
   repeated sgn.common.v1.ContractInfo cbr_contracts = 6; // per chain cbridge contract address
 
   repeated PerChainPairAssetOverride override = 7; // per (chainpair, asset) config that overrides chain_pairs
-
-  // when calculate dest amount, cap how much gain the user can get. eg. if 1%, means
-  // dest amount must <= 101% of send amount. value is perc * 1M, eg. value 1000 means 0.1%
-  // if not set/default 0, means no cap
-  uint32 max_gain_perc = 8;
 }
 
 // needed for base fee calculation. the value set in genesis is only used when first start.

@@ -131,9 +131,8 @@ func SgnFeeKey(chid uint64, token eth.Addr) []byte {
 */
 
 var (
-	CfgKeyFeePerc     = []byte("cfg-feeperc")
-	CfgKeyPickLpSize  = []byte("cfg-lpsize")
-	CfgKeyMaxGainPerc = []byte("cfg-maxgainperc")
+	CfgKeyFeePerc    = []byte("cfg-feeperc")
+	CfgKeyPickLpSize = []byte("cfg-lpsize")
 )
 
 func CfgKeyChain2Sym(chid uint64, addr eth.Addr) []byte {
