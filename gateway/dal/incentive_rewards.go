@@ -120,7 +120,7 @@ var FeeRebateConfig = map[uint64]*FeeRebateEvent{
 }
 
 // use RetentionRewardEventId 1 for first time launch
-var RetentionRewardEventId uint64 = 2
+var RetentionRewardEventId uint64 = 1
 
 // use FeeRebateEventId 10000 for first time launch
 var FeeRebateEventId uint64 = 10000
