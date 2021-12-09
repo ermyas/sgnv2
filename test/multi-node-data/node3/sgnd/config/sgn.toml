@@ -35,6 +35,7 @@ passphrase = "12341234"
 transactors = []
 validator_account = "sgn1rjr9uaewus3qh4vs4sqdkdvepwyxq8ql84udfh"
 price_update_url = "https://cbridge-stat.s3.us-west-2.amazonaws.com/test/cbridge-price.json"
+liveness_report_endpoint = "http://192.168.10.8:18081/v1/reportCurrentBlockNumber"
 
 [sgnd.check_interval]
 slash = 2

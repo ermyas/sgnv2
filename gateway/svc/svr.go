@@ -33,7 +33,9 @@ func (gs *GatewayService) Close() {
 	dal.DB = nil
 }
 
-type GatewayConfig struct {
+type ValidatorChainConnectivity struct {
+	// validator addr -> current block number
+	C map[eth.Addr]*webapi.CurrentBlockNumberReport
 }
 
 type IncentiveRewardsSigner struct {
@@ -45,6 +47,7 @@ type GatewayService struct {
 	F      *TokenPriceCache
 	Chains onchain.ChainMgr
 	S      *IncentiveRewardsSigner
+	V      *ValidatorChainConnectivity
 }
 
 func NewGatewayService(db *dal.DAL) *GatewayService {
@@ -59,6 +62,9 @@ func NewGatewayService(db *dal.DAL) *GatewayService {
 	gs.S = &IncentiveRewardsSigner{
 		Signer: &signer,
 		Addr:   &addr,
+	}
+	gs.V = &ValidatorChainConnectivity{
+		C: make(map[eth.Addr]*webapi.CurrentBlockNumberReport),
 	}
 	return gs
 }

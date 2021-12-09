@@ -35,15 +35,10 @@ passphrase = "12341234"
 transactors = ["sgn1qehw7sn3u3nhnjeqk8kjccj263rq5fv002l5fk"]
 validator_account = "sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe"
 price_update_url = "https://cbridge-stat.s3.us-west-2.amazonaws.com/test/cbridge-price.json"
+liveness_report_endpoint = "http://192.168.10.8:18081/v1/reportCurrentBlockNumber"
 
 [sgnd.check_interval]
 slash = 2
 cbridge = 2
 verifier = 1
 cbr_price = 60
-
-[gateway.incentive_rewards]
-keystore = "./keys/irks.json"
-passphrase = ""
-bsc_chain_id = 97
-bsc_contract_address = "0x72ab37F482e3a91a7c599b4Da6293528e79E2b56"

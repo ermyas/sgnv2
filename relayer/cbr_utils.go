@@ -3,11 +3,20 @@ package relayer
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/gateway/webapi"
+	"github.com/gogo/protobuf/proto"
+	"github.com/spf13/viper"
 	"math/big"
 
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/gogo/protobuf/jsonpb"
+	"github.com/lthibault/jitterbug"
+	"gopkg.in/resty.v1"
+	"time"
 )
 
 func (c *CbrOneChain) setCurss(ss []*cbrtypes.Signer) {
@@ -46,4 +55,69 @@ func (c *CbrOneChain) delEvent(name string, blknum, idx uint64) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	return c.db.Delete([]byte(fmt.Sprintf("%s-%d-%d", name, blknum, idx)))
+}
+
+func (r *Relayer) startReportCurrentBlockNumber(interval time.Duration) {
+	go func() {
+		// let gateway start upfront
+		time.Sleep(15 * time.Second)
+		ticker := jitterbug.New(
+			interval,
+			&jitterbug.Norm{Stdev: 3 * time.Second},
+		)
+		defer ticker.Stop()
+		for ; true; <-ticker.C {
+			r.reportCurrentBlockNumber()
+		}
+	}()
+}
+
+func (r *Relayer) reportCurrentBlockNumber() {
+	var report = &webapi.CurrentBlockNumberReport{
+		Timestamp: common.TsMilli(time.Now()),
+		BlockNums: make(map[uint64]uint64),
+	}
+	for chainId, oneChain := range r.cbrMgr {
+		blockNumber := oneChain.mon.GetCurrentBlockNumber()
+		report.BlockNums[chainId] = blockNumber.Uint64()
+	}
+	bytes, err := proto.Marshal(report)
+	if err != nil {
+		log.Warnln("fail to Marshal CurrentBlockNumberReport,", err)
+		return
+	}
+	sig, err := r.EthClient.SignEthMessage(bytes)
+	if err != nil {
+		log.Warnln("fail to Sign CurrentBlockNumberReport,", err)
+		return
+	}
+	req := &webapi.ReportCurrentBlockNumberRequest{
+		Report: bytes,
+		Sig:    sig,
+	}
+	client := resty.New()
+	marshaler := jsonpb.Marshaler{}
+	str, err := marshaler.MarshalToString(req)
+	if err != nil {
+		log.Warnln("failed to MarshalToString: err ", err)
+		return
+	}
+	url := viper.GetString(common.FlagSgnLivenessReportEndpoint)
+	if len(url) == 0 {
+		return
+	}
+	response, err := client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(str).
+		SetResult(&webapi.ReportCurrentBlockNumberResponse{}).
+		Post(url)
+	if err != nil || response.StatusCode() != 200 {
+		log.Warnln("fail to reportCurrentBlockNumber ", req, err, r)
+		return
+	}
+	resp := response.Result().(*webapi.ReportCurrentBlockNumberResponse)
+	if resp.GetErr() != nil {
+		log.Warnln("fail to reportCurrentBlockNumber ", req, err, r)
+		return
+	}
 }

@@ -99,6 +99,8 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 	r.cbrMgr = NewCbridgeMgr(db, r.Transactor.CliCtx) // cbrMgr should be initialized before verifyPendingUpdates
 	go r.monitorSgnCbrDataToSign()                    // cbr monitor set after cbrMgr initialization
 
+	r.startReportCurrentBlockNumber(time.Minute * 5)
+
 	go r.processPullerQueue()
 	go r.processSlashQueue()
 	go r.verifyPendingUpdates()

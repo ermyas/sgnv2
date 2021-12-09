@@ -83,9 +83,9 @@ services:
     container_name: gateway
     image: "celer-network/gateway"
     ports:
-      - "18081:8081"
-      - "18082:8082"
-      - "10000:10000"
+      - "8081:18081"
+      - "8082:18082"
+      - "10000:20000"
     extra_hosts:
       - "api.coingecko.com:104.18.28.120"
       - "cbridge-stat.s3.us-west-2.amazonaws.com:52.218.201.137"
