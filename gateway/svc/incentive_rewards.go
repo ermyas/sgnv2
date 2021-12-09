@@ -37,7 +37,9 @@ func (gs *GatewayService) GetRetentionRewardsInfo(ctx context.Context, request *
 		log.Errorln("failed to Get celr UsdPrice:", err)
 	}
 
-	if claimTime.After(time.Date(2000, time.January, 1, 1, 1, 1, 1, time.UTC)) {
+	if event.EventEndTime.Add(7 * 24 * time.Hour).Before(time.Now()) {
+		return &webapi.GetRetentionRewardsInfoResponse{}, nil
+	} else if claimTime.After(time.Date(2000, time.January, 1, 1, 1, 1, 1, time.UTC)) {
 		return &webapi.GetRetentionRewardsInfoResponse{
 			EventId:           dal.RetentionRewardEventId,
 			EventEndTime:      common.TsMilli(event.EventEndTime),

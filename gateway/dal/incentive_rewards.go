@@ -26,7 +26,7 @@ var WeiMultiplier = big.NewInt(0).Exp(big.NewInt(10), big.NewInt(18), nil)
 
 var RetentionRewardsConfig = map[uint64]*RetentionRewardsEvent{
 	1: {
-		EventEndTime: time.Date(2021, time.December, 9, 5, 0, 0, 0, time.UTC),
+		EventEndTime: time.Date(2021, time.December, 1, 5, 0, 0, 0, time.UTC),
 		LevelConfig: map[uint64]*RetentionRewardsLevelConfig{
 			1: {
 				MaxReward:         big.NewInt(0).Mul(WeiMultiplier, big.NewInt(1000)),
@@ -80,7 +80,7 @@ type FeeRebateLevelConfig struct {
 var FeeRebateConfig = map[uint64]*FeeRebateEvent{
 	10000: {
 		EventStartTime:          time.Date(2021, time.December, 1, 0, 0, 0, 0, time.UTC),
-		EventEndTime:            time.Date(2021, time.December, 9, 5, 0, 0, 0, time.UTC),
+		EventEndTime:            time.Date(2021, time.December, 1, 5, 0, 0, 0, time.UTC),
 		LevelDivisionUpperbound: []float64{100, 1000, 10000},
 		LevelConfig: map[uint64]*FeeRebateLevelConfig{
 			1: {
