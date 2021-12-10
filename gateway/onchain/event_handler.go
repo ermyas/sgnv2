@@ -24,8 +24,9 @@ import (
 )
 
 func GatewayOnSend(transferId, usrAddr, tokenAddr, amt, sendTxHash string, srcChainId, dsChainId uint64) error {
-	token, _, _ := dal.DB.GetTokenByAddr(tokenAddr, srcChainId)
-	if token == nil {
+	token, found, dbErr := dal.DB.GetTokenByAddr(tokenAddr, srcChainId)
+	if token == nil || !found || dbErr != nil {
+		log.Errorf("token from send event not found in db, addr:%s, chainId:%d", tokenAddr, srcChainId)
 		return nil
 	}
 	estimatedAmt, err := getEstimatedAmt(srcChainId, dsChainId, token, amt)
@@ -49,8 +50,9 @@ func GatewayOnRelay(c *ethclient.Client, transferId, txHash, dstTransferId, amt,
 	if isDelayed {
 		dal.DB.UpdateDelayedOpType(dstTransferId, dal.DelayedOpTransfer)
 	}
-	token, _, _ := dal.DB.GetTokenByAddr(tokenAddr, dstChainId)
-	if token == nil {
+	token, found, dbErr := dal.DB.GetTokenByAddr(tokenAddr, dstChainId)
+	if token == nil || !found || dbErr != nil {
+		log.Errorf("token from relay event not found in db, addr:%s, chainId:%d", tokenAddr, srcChainId)
 		return nil
 	}
 	err = dal.DB.UpsertTransferOnRelay(transferId, dstTransferId, usrAddr, token, amt, txHash, srcChainId, dstChainId, isDelayed)
@@ -115,8 +117,9 @@ func GatewayOnLiqWithdraw(id, tx string, chid, seq uint64, addr string) {
 }
 
 func GatewayOnLiqAdd(lpAddr, tokenAddr, amt, txHash string, chainId uint64, seqNum, nonce uint64) error {
-	token, _, _ := dal.DB.GetTokenByAddr(tokenAddr, chainId)
-	if token == nil {
+	token, found, dbErr := dal.DB.GetTokenByAddr(tokenAddr, chainId)
+	if token == nil || !found || dbErr != nil {
+		log.Errorf("token from LiqAdd event not found in db, addr:%s, chainId:%d", tokenAddr, chainId)
 		return nil
 	}
 	status := types.WithdrawStatus_WD_WAITING_FOR_SGN

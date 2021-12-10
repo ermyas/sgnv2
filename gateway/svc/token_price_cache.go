@@ -89,8 +89,12 @@ func (t *TokenPriceCache) GetUsdPrice(tokenSymbol string) (float64, error) {
 	}
 	tokenId := dal.DB.GetTokenIdBySymbol(tokenSymbol)
 	if tokenId == "" {
-		price, _ := getMockedPrice(tokenSymbol) // try to use mocked price if token not found
-		return price, fmt.Errorf("unsupported token %s", tokenSymbol)
+		price, mocked := getMockedPrice(tokenSymbol) // try to use mocked price if token not found
+		if mocked {
+			return price, nil
+		} else {
+			return 0, fmt.Errorf("unsupported token %s", tokenSymbol)
+		}
 	}
 	price, ok := t.Prices[tokenId]
 	if !ok {
@@ -217,7 +221,7 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 func getMockedPrice(symbol string) (float64, bool) {
 	if symbol == "TCELR" || symbol == "LYRA" {
 		// new token, mock price
-		return 1, true
+		return 0.5, true
 	}
 	return 0, false
 }
