@@ -38,7 +38,6 @@ var (
 	stopall = flag.Bool("stopall", false, "stop all nodes")
 	rebuild = flag.Bool("rebuild", false, "rebuild sgn node docker image")
 	fund    = flag.String("fund", "", "fund test tokens to give address")
-	nobuild = flag.Bool("nobuild", false, "do not 'start' with building sgn node images")
 )
 
 func main() {
@@ -50,9 +49,7 @@ func main() {
 		*auto = true
 	}
 	if *start {
-		if !*nobuild {
-			multinode.SetupMainchain()
-		}
+		multinode.SetupMainchain()
 		if *cbr {
 			multinode.SetupMainchain2ForBridge()
 		}
@@ -77,17 +74,15 @@ func main() {
 			tc.CbrChain2.SetInitSigners(amts)
 		}
 
-		if !*nobuild {
-			log.Infoln("install sgnd in host machine")
-			cmd := exec.Command("make", "install")
-			cmd.Dir = repoRoot
-			cmd.Env = os.Environ()
-			cmd.Env = append(cmd.Env, "WITH_CLEVELDB=yes")
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			if err := cmd.Run(); err != nil {
-				log.Fatal(err)
-			}
+		log.Infoln("install sgnd in host machine")
+		cmd := exec.Command("make", "install")
+		cmd.Dir = repoRoot
+		cmd.Env = os.Environ()
+		cmd.Env = append(cmd.Env, "WITH_CLEVELDB=yes")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			log.Fatal(err)
 		}
 
 		log.Infoln("copy config files")

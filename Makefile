@@ -30,12 +30,24 @@ ldflags := $(strip $(ldflags))
 
 BUILD_FLAGS := -tags "$(build_tags)" -ldflags '$(ldflags)'
 
+ENVS :=
+BUILDX :=
+BUILDX_FLAGS :=
+ifeq ($(shell arch)$(shell uname),arm64Darwin)
+# on Apple Silicon Macs, Homebrew's install location is changed to /opt/homebrew which causes leveldb that installed via Homebrew 
+# unable to find header files. manually specifying the include and lib location to work around this issue
+	ENVS += CGO_CFLAGS="-I/opt/homebrew/Cellar/leveldb/1.23/include" CGO_LDFLAGS="-L/opt/homebrew/Cellar/leveldb/1.23/lib"
+# forces docker to use the buildx builder and build on amd64 to work around the fact geth doesn't have a released arm64 binary on apk
+	BUILDX += buildx
+	BUILDX_FLAGS += --platform linux/amd64
+endif
+
 .PHONY: all
 all: lint install
 
 .PHONY: install
 install: go.sum
-	go install $(BUILD_FLAGS) ./cmd/sgnd
+	$(ENVS) go install $(BUILD_FLAGS) ./cmd/sgnd
 
 .PHONY: install-gateway
 install-gateway: go.sum
@@ -81,14 +93,16 @@ build-linux: go.sum
 	LEDGER_ENABLED=false GOOS=linux GOARCH=amd64 $(MAKE) build
 
 .PHONY: build-dockers
-build-dockers:
-	DOCKER_BUILDKIT=1 docker build --tag celer-network/geth networks/local/geth
-	DOCKER_BUILDKIT=1 docker build --tag celer-network/sgnnode .
+build-dockers: build-node build-geth
+
+.PHONY: build-geth
+build-geth: 
+	DOCKER_BUILDKIT=1 docker $(BUILDX) build $(BUILDX_FLAGS) --tag celer-network/geth networks/local/geth
 	# $(MAKE) -C networks/local
 
 .PHONY: build-node
 build-node:
-	DOCKER_BUILDKIT=1 docker build --tag celer-network/sgnnode .
+	DOCKER_BUILDKIT=1 docker $(BUILDX) build $(BUILDX_FLAGS) --tag celer-network/sgnnode .
 
 .PHONY: build-gateway
 build-gateway:
@@ -101,7 +115,7 @@ prepare-docker-env: build-dockers build-linux prepare-geth-data
 # Prepare geth2 environment for cbridge testing
 .PHONY: prepare-geth2-env
 prepare-geth2-env:
-	DOCKER_BUILDKIT=1 docker build --tag celer-network/geth2 networks/local/geth2
+	DOCKER_BUILDKIT=1 docker $(BUILDX) build $(BUILDX_FLAGS) --tag celer-network/geth2 networks/local/geth2
 	rm -rf ./docker-volumes/geth2-env
 	mkdir -p ./docker-volumes
 	cp -r ./test/multi-node-data/geth2-env ./docker-volumes/

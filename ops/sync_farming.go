@@ -9,7 +9,6 @@ import (
 	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -44,10 +43,6 @@ func run(cmd *cobra.Command) error {
 	if err != nil {
 		return fmt.Errorf("GetClientQueryContext %v", err)
 	}
-	home, err := cmd.Flags().GetString(flags.FlagHome)
-	if err != nil {
-		return fmt.Errorf("get home flag %v", err)
-	}
 	cbrcli := types.NewQueryClient(cliCtx)
 	req := &types.QueryLPsRequest{
 		ChainId:   chid,
@@ -57,7 +52,7 @@ func run(cmd *cobra.Command) error {
 	if err != nil {
 		return fmt.Errorf("QueryLPs %v, clictx %v", err, cliCtx)
 	}
-	txr, err := transactor.NewCliTransactor(home, cliCtx.LegacyAmino, cliCtx.Codec, cliCtx.InterfaceRegistry)
+	txr, err := transactor.NewTransactorWithCliCtx(cliCtx)
 	if err != nil {
 		return fmt.Errorf("NewCliTransactor %v", err)
 	}
@@ -74,6 +69,7 @@ func run(cmd *cobra.Command) error {
 		}
 		log.Infof("LP %s", addr)
 	}
-
+	txr.Run()
+	txr.WaitDone()
 	return nil
 }

@@ -48,6 +48,10 @@ type Transactor struct {
 	passphrase string
 	msgQueue   deque.Deque
 	lock       sync.Mutex
+
+	// fields used by the WaitDone mechanism
+	done     chan bool
+	waitDone bool // whether there is currently a WaitDone() call in progress
 }
 
 func NewTransactor(
@@ -132,6 +136,8 @@ func NewTransactor(
 		CliCtx:     cliCtx,
 		Key:        key,
 		passphrase: passphrase,
+		waitDone:   false,
+		done:       make(chan bool),
 	}
 
 	return transactor, nil
@@ -150,6 +156,19 @@ func NewCliTransactor(homeDir string, legacyAmino *codec.LegacyAmino, cdc codec.
 	)
 }
 
+func NewTransactorWithCliCtx(cliCtx client.Context) (*Transactor, error) {
+	return NewTransactor(
+		cliCtx.HomeDir,
+		viper.GetString(common.FlagSgnChainId),
+		viper.GetString(common.FlagSgnNodeURI),
+		viper.GetString(common.FlagSgnValidatorAccount),
+		viper.GetString(common.FlagSgnPassphrase),
+		cliCtx.LegacyAmino,
+		cliCtx.Codec,
+		cliCtx.InterfaceRegistry,
+	)
+}
+
 func (t *Transactor) Run() {
 	go t.start()
 }
@@ -160,10 +179,20 @@ func (t *Transactor) AddTxMsg(msg sdk.Msg) {
 	t.msgQueue.PushBack(msg)
 }
 
+// blocks until the msg queue is emptied
+func (t *Transactor) WaitDone() {
+	t.waitDone = true
+	<-t.done
+}
+
 // Poll tx queue and send msgs in batch
 func (t *Transactor) start() {
 	for {
 		if t.msgQueue.Len() == 0 {
+			if t.waitDone {
+				t.waitDone = false
+				t.done <- true
+			}
 			time.Sleep(time.Second)
 			continue
 		}
