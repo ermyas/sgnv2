@@ -4,6 +4,7 @@ import (
 	fmt "fmt"
 	"math/big"
 
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 )
@@ -112,6 +113,49 @@ func (w *WithdrawOnChain) String() string {
 }
 
 func (c *PegConfig) Validate() error {
-	// TODO
+	for _, v := range c.OriginalTokenVaults {
+		if !common.IsHexAddress(v.Address) {
+			return fmt.Errorf("invalid vault address %s", v.String())
+		}
+	}
+	for _, b := range c.PeggedTokenBridges {
+		if !common.IsHexAddress(b.Address) {
+			return fmt.Errorf("invalid vault address %s", b.String())
+		}
+	}
+	for _, p := range c.OrigPeggedPairs {
+		err := p.Validate()
+		if err != nil {
+			return fmt.Errorf("invalid OrigPeggedPair %s, err: %w", p.String(), err)
+		}
+	}
+	return nil
+}
+
+func (p *OrigPeggedPair) Validate() error {
+	if !common.IsHexAddress(p.Orig.Address) {
+		return fmt.Errorf("invalid origin address")
+	}
+	if !common.IsHexAddress(p.Pegged.Address) {
+		return fmt.Errorf("invalid peg address")
+	}
+	if p.MintFeePips > 1e6 {
+		return fmt.Errorf("invalid mint fee pips")
+	}
+	if p.BurnFeePips > 1e6 {
+		return fmt.Errorf("invalid burn fee pips")
+	}
+	if p.MaxMintFee != "" {
+		maxMintFee, good := new(big.Int).SetString(p.MaxMintFee, 10)
+		if !good || maxMintFee.Sign() == -1 {
+			return fmt.Errorf("invalid max mint fee")
+		}
+	}
+	if p.MaxBurnFee != "" {
+		maxBurnFee, good := new(big.Int).SetString(p.MaxBurnFee, 10)
+		if !good || maxBurnFee.Sign() == -1 {
+			return fmt.Errorf("invalid max burn fee")
+		}
+	}
 	return nil
 }

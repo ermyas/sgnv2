@@ -8,6 +8,11 @@ import (
 )
 
 func (k Keeper) SetOrigPeggedPair(ctx sdk.Context, pair types.OrigPeggedPair) {
+	storedPair, found := k.GetOrigPeggedPair(ctx, pair.Orig.ChainId, eth.Hex2Addr(pair.Orig.Address), pair.Pegged.ChainId)
+	if found && eth.Hex2Addr(storedPair.Pegged.Address) != eth.Hex2Addr(pair.Pegged.Address) {
+		k.DeletePeggedOrigIndex(ctx, storedPair.Pegged.ChainId, eth.Hex2Addr(storedPair.Pegged.Address))
+	}
+
 	store := ctx.KVStore(k.storeKey)
 	store.Set(
 		types.GetOrigPeggedPairKey(pair.Orig.ChainId, eth.Hex2Addr(pair.Orig.Address), pair.Pegged.ChainId),
