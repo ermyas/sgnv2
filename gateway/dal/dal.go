@@ -14,7 +14,6 @@ import (
 type TokenData struct {
 	Id     string
 	Symbol string
-	Name   string
 }
 type DAL struct {
 	*sqldb.Db

@@ -2,9 +2,7 @@ package gatewaysvc
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"math/big"
 	"strings"
@@ -16,9 +14,7 @@ import (
 	"github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
-	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/lthibault/jitterbug"
-	"github.com/spf13/viper"
 	"gopkg.in/resty.v1"
 )
 
@@ -30,9 +26,8 @@ type VsTokenPrices map[string]float64
 type TokenPrices map[string]VsTokenPrices
 
 type TokenPriceCache struct {
-	vsTokenIds  []string
-	Prices      map[string]float64 // do not access this map with token symbol since its key is coingecko's tokenId
-	allTokenIds map[string]*TokenData
+	vsTokenIds []string
+	Prices     map[string]float64 // do not access this map with token symbol since its key is coingecko's tokenId
 }
 
 // NewTokenPriceCache builds a new instance of TokenPriceCache with an empty Prices map.
@@ -43,10 +38,6 @@ func NewTokenPriceCache(tr *transactor.Transactor) *TokenPriceCache {
 	feeSvr := &TokenPriceCache{
 		vsTokenIds: vsTokenIds,
 		Prices:     make(map[string]float64),
-	}
-	err := feeSvr.cacheTokenData()
-	if err != nil {
-		log.Error("NewTokenPriceCache error", err)
 	}
 	feeSvr.StartTokenPricePolling(tr, 1*time.Minute)
 	log.Infof("token price cached")
@@ -71,13 +62,16 @@ func (t *TokenPriceCache) StartTokenPricePolling(tr *transactor.Transactor, inte
 				// also update price cache in dal
 				if dal.DB.AllTokenIds == nil || len(dal.DB.AllTokenIds) == 0 {
 					newAllTokenIds := make(map[string]*dal.TokenData)
-					for tokenSymbol, tokenInfo := range t.allTokenIds {
-						newAllTokenIds[tokenSymbol] = &dal.TokenData{
-							Id:     tokenInfo.Id,
-							Symbol: tokenInfo.Symbol,
-							Name:   tokenInfo.Name,
+					tokenIds, err := dal.DB.GetAllTokenIds()
+					if err != nil {
+						for _, tokenInfo := range tokenIds {
+							newAllTokenIds[tokenInfo.Symbol] = &dal.TokenData{
+								Id:     tokenInfo.Id,
+								Symbol: tokenInfo.Symbol,
+							}
 						}
 					}
+
 					dal.DB.AllTokenIds = newAllTokenIds
 				}
 				dal.DB.Prices = t.Prices
@@ -93,13 +87,10 @@ func (t *TokenPriceCache) GetUsdPrice(tokenSymbol string) (float64, error) {
 		// will always use ETH price
 		tokenSymbol = "ETH"
 	}
-	token, ok := t.allTokenIds[tokenSymbol]
-	if !ok {
-		return 0, fmt.Errorf("unsupported token %s", tokenSymbol)
-	}
-	tokenId := token.Id
+	tokenId := dal.DB.GetTokenIdBySymbol(tokenSymbol)
 	if tokenId == "" {
-		return 0, fmt.Errorf("unsupported token %s", tokenSymbol)
+		price, _ := getMockedPrice(tokenSymbol) // try to use mocked price if token not found
+		return price, fmt.Errorf("unsupported token %s", tokenSymbol)
 	}
 	price, ok := t.Prices[tokenId]
 	if !ok {
@@ -171,11 +162,14 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 	var tokenIds []string
 
 	for symbol := range tokenMap {
-		token, found := t.allTokenIds[symbol]
-		if found {
-			tokenIds = append(tokenIds, token.Id)
+		tokenId := dal.DB.GetTokenIdBySymbol(symbol)
+		if tokenId != "" {
+			tokenIds = append(tokenIds, tokenId)
 		} else {
-			log.Errorf("token %s not found in json file", symbol)
+			_, mocked := getMockedPrice(symbol)
+			if !mocked {
+				log.Errorf("token %s not found in db, table: token_id, please add token_id from www.coingecko.com", symbol)
+			}
 		}
 	}
 
@@ -184,11 +178,14 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 		return fmt.Errorf("failed to GetAllChainAndGasToken")
 	}
 	for sym := range symbol2chainIds {
-		token, found := t.allTokenIds[sym]
-		if found {
-			tokenIds = append(tokenIds, token.Id)
+		tokenId := dal.DB.GetTokenIdBySymbol(sym)
+		if tokenId != "" {
+			tokenIds = append(tokenIds, tokenId)
 		} else {
-			log.Errorf("token %s not found in json file", sym)
+			_, mocked := getMockedPrice(sym)
+			if !mocked {
+				log.Errorf("token %s not found in db, table: token_id, please add token_id from www.coingecko.com", sym)
+			}
 		}
 	}
 
@@ -217,37 +214,10 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 	return nil
 }
 
-type TokenData struct {
-	Id     string
-	Symbol string
-	Name   string
-}
-
-func (t *TokenPriceCache) cacheTokenData() error {
-	//Data Id     string `json:"id"`
-	//Data Symbol string `json:"symbol"`
-	//Data Name   string `json:"name"`
-	var tokens []map[string]string
-	dir := viper.GetString(flags.FlagHome)
-	log.Debugf("dir:%s", dir)
-
-	file, err := ioutil.ReadFile(dir + "/config/token_info.json")
-	if err != nil {
-		log.Fatal(err)
+func getMockedPrice(symbol string) (float64, bool) {
+	if symbol == "TCELR" || symbol == "LYRA" {
+		// new token, mock price
+		return 1, true
 	}
-	err = json.Unmarshal(file, &tokens)
-	if err != nil {
-		log.Fatal(err)
-	}
-	resp := make(map[string]*TokenData)
-	for _, token := range tokens {
-		tk := &TokenData{
-			Id:     token["id"],
-			Symbol: strings.ToUpper(token["symbol"]),
-			Name:   token["name"],
-		}
-		resp[strings.ToUpper(token["symbol"])] = tk
-	}
-	t.allTokenIds = resp
-	return err
+	return 0, false
 }

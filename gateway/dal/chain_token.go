@@ -2,6 +2,7 @@ package dal
 
 import (
 	"fmt"
+
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/celer-network/goutils/sqldb"
@@ -387,4 +388,38 @@ func (d *DAL) GetAllValidPeggedConfigList() ([]*webapi.PeggedPairConfig, error) 
 		})
 	}
 	return configs, nil
+}
+
+type TokenId struct {
+	Id     string
+	Symbol string
+}
+
+func (d *DAL) GetAllTokenIds() ([]*TokenId, error) {
+	var tokenIds []*TokenId
+	q := `SELECT symbol, id FROM token_id`
+	rows, dbErr := d.Query(q)
+	if dbErr != nil {
+		return nil, dbErr
+	}
+	for rows.Next() {
+		tokenId := &TokenId{}
+		dbErr = rows.Scan(&tokenId.Symbol, &tokenId.Id)
+		if dbErr != nil {
+			return nil, dbErr
+		}
+		tokenIds = append(tokenIds, tokenId)
+	}
+	return tokenIds, nil
+}
+
+func (d *DAL) GetTokenIdBySymbol(symbol string) string {
+	var id string
+	q := `SELECT id FROM token_id where symbol = $1`
+	err := d.QueryRow(q, symbol).Scan(&id)
+	found, err := sqldb.ChkQueryRow(err)
+	if !found || err != nil {
+		return ""
+	}
+	return id
 }

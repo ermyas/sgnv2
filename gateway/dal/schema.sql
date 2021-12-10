@@ -169,4 +169,9 @@ CREATE TABLE IF NOT EXISTS pegged_config (
     UNIQUE (pegged_chain_id, pegged_token_symbol)
 );
 
+CREATE TABLE IF NOT EXISTS token_id (
+    symbol TEXT PRIMARY KEY NOT NULL,
+    id TEXT NOT NULL
+);
+
 
