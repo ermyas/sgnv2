@@ -61,6 +61,7 @@ func (r *Relayer) startReportCurrentBlockNumber(interval time.Duration) {
 	go func() {
 		// let gateway start upfront
 		time.Sleep(15 * time.Second)
+		log.Infoln("start Report Current Block Number,", viper.GetString(common.FlagSgnLivenessReportEndpoint))
 		ticker := jitterbug.New(
 			interval,
 			&jitterbug.Norm{Stdev: 3 * time.Second},
@@ -112,12 +113,12 @@ func (r *Relayer) reportCurrentBlockNumber() {
 		SetResult(&webapi.ReportCurrentBlockNumberResponse{}).
 		Post(url)
 	if err != nil || response.StatusCode() != 200 {
-		log.Warnln("fail to reportCurrentBlockNumber ", req, err, r)
+		log.Warnln("fail to reportCurrentBlockNumber ", req, err, response)
 		return
 	}
 	resp := response.Result().(*webapi.ReportCurrentBlockNumberResponse)
 	if resp.GetErr() != nil {
-		log.Warnln("fail to reportCurrentBlockNumber ", req, err, r)
+		log.Warnln("fail to reportCurrentBlockNumber ", req, err, response)
 		return
 	}
 }

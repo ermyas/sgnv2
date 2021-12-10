@@ -104,8 +104,6 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 
 	r.startReportCurrentBlockNumber(time.Minute * 5)
 
-	r.startReportCurrentBlockNumber(time.Minute * 5)
-
 	go r.processPullerQueue()
 	go r.processSlashQueue()
 	go r.verifyPendingUpdates()
