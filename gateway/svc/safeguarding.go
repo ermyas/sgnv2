@@ -146,6 +146,9 @@ func (gs *GatewayService) AlertAbnormalStatus() {
 
 func (gs *GatewayService) filterAlertByTransferStatus(alerts []*utils.StatusAlertInfo, status cbrtypes.TransferHistoryStatus) []*utils.StatusAlertInfo {
 	var filteredAlerts []*utils.StatusAlertInfo
+	if alerts == nil || len(alerts) == 0 {
+		return filteredAlerts
+	}
 	for _, alert := range alerts {
 		srcTxHash := alert.TxHash
 		chainId := uint32(alert.ChainId)
@@ -169,6 +172,9 @@ func (gs *GatewayService) filterAlertByTransferStatus(alerts []*utils.StatusAler
 
 func (gs *GatewayService) filterAlertByLPStatus(alerts []*utils.StatusAlertInfo, status cbrtypes.WithdrawStatus) []*utils.StatusAlertInfo {
 	var filteredAlerts []*utils.StatusAlertInfo
+	if alerts == nil || len(alerts) == 0 {
+		return filteredAlerts
+	}
 	for _, alert := range alerts {
 		srcTxHash := alert.TxHash
 		chainId := alert.ChainId
@@ -183,6 +189,9 @@ func (gs *GatewayService) filterAlertByLPStatus(alerts []*utils.StatusAlertInfo,
 			lp, _, _ = dal.DB.GetOneLPInfoByHash(chainId, srcTxHash)
 			if lp.Status == status {
 				filteredAlerts = append(filteredAlerts, alert)
+				log.Infof("alert, update status from sgn failed, status:%s, chainId:%d, srcTxHash:%s，lp info:%+v", status, chainId, srcTxHash, lp)
+			} else {
+				log.Infof("alert, update status from sgn success, from status:%s, to status:%s, chainId:%d, srcTxHash:%s", status, lp.Status, chainId, srcTxHash)
 			}
 		}
 	}

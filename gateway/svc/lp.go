@@ -261,6 +261,9 @@ func (gs *GatewayService) QueryLiquidityStatus(ctx context.Context, request *web
 				ChainId: chainId,
 				SeqNum:  seqNum,
 			})
+			if err2 != nil {
+				log.Warnf("QueryAddLiquidityStatus failed, chainId:%d, seqNum:%d, err:%+v", chainId, seqNum, err2)
+			}
 			if resp != nil && err2 == nil && resp.Status != types.WithdrawStatus_WD_SUBMITTING { // add can not revert
 				_ = dal.DB.UpdateLPStatus(seqNum, lpType, chainId, addr.String(), uint64(resp.Status))
 				status = uint64(resp.Status)
