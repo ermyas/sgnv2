@@ -44,7 +44,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		mintAmount, baseFee, percFee := k.CalcAmountAndFees(ctx, pair, ev.Amount, true /* isPeggedDest */)
 		if mintAmount.Sign() <= 0 {
 			// TODO: Trigger refund, or just ignore?
-			return false, fmt.Errorf("amount too small to cover fees")
+			return false, fmt.Errorf("amount too small to cover fees, mintAmount %s baseFee %s percFee %s", mintAmount, baseFee, percFee)
 		}
 
 		mintTokenAddr := pair.Pegged.Address
@@ -113,7 +113,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		withdrawAmt, baseFee, percFee := k.CalcAmountAndFees(ctx, pair, ev.Amount, false /* isPeggedDest */)
 		if withdrawAmt.Sign() <= 0 {
 			// TODO: Trigger refund, or just ignore?
-			return false, fmt.Errorf("amount too small to cover fees")
+			return false, fmt.Errorf("amount too small to cover fees, withdrawAmt %s baseFee %s percFee %s", withdrawAmt, baseFee, percFee)
 		}
 
 		wdTokenAddr := pair.Orig.Address
