@@ -24,8 +24,21 @@ service Query {
 
   rpc QueryWithdrawLiquidityStatus(QueryWithdrawLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {}
 
+  // for sync farming tool
+  rpc QueryLPs(QueryLPsRequest) returns (QueryLPsResponse) {}
+
   // we could return all withdraw req ids for one user in case gateway lost db, req is usr addr, resp has repeated req ids
   // rpc QueryAllWdReqIdList (QueryAllWdReqIdListReq) returns (QueryAllWdReqIdListResp) {}
+}
+
+message QueryLPsRequest {
+  // omit any of these params to get lps in all respects. if both are omitted, returns all lps
+  uint64 chain_id = 1; 
+  string token_addr = 2; 
+}
+
+message QueryLPsResponse {
+  repeated string lps = 1;
 }
 
 // get both liqsum and sum of all lm- and compare if they are equal

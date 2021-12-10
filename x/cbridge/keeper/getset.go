@@ -88,6 +88,20 @@ func GetLiqIterSum(kv sdk.KVStore, chaddr *ChainIdTokenAddr) *big.Int {
 	return totalLiq
 }
 
+func GetLPs(kv sdk.KVStore, chaddr *ChainIdTokenAddr) ([]eth.Addr, error) {
+	iter := sdk.KVStorePrefixIterator(kv, []byte(fmt.Sprintf("lm-%d-%x-", chaddr.ChId, chaddr.TokenAddr)))
+	defer iter.Close()
+	addrs := []eth.Addr{}
+	for ; iter.Valid(); iter.Next() {
+		addr, err := types.GetLpAddrFromLiqMapKey(iter.Key())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get addr from LiqMap key %s: %v", string(iter.Key()), err)
+		}
+		addrs = append(addrs, addr)
+	}
+	return addrs, nil
+}
+
 // return liqsum-%d-%x value as big.Int
 func GetLiq(kv sdk.KVStore, chaddr *ChainIdTokenAddr) *big.Int {
 	return new(big.Int).SetBytes(kv.Get(types.LiqSumKey(chaddr.ChId, chaddr.TokenAddr)))

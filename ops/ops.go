@@ -23,6 +23,7 @@ func OpsCommand() *cobra.Command {
 		GetSyncCmd(),
 		SubmitRelayCmd(),
 		EthViewerCommand(),
+		SyncFarmingCommand(),
 	)
 
 	return cmd
