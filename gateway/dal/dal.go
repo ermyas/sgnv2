@@ -67,13 +67,14 @@ func (d *DAL) GetUsdPrice(tokenSymbol string) (float64, error) {
 		// will always use ETH price
 		tokenSymbol = "ETH"
 	}
-	token, ok := d.AllTokenIds[tokenSymbol]
-	if !ok {
-		return 0, fmt.Errorf("unsupported token %s", tokenSymbol)
-	}
-	tokenId := token.Id
+	tokenId := d.GetTokenIdBySymbol(tokenSymbol)
 	if tokenId == "" {
-		return 0, fmt.Errorf("unsupported token %s", tokenSymbol)
+		price, mocked := GetMockedPrice(tokenSymbol) // try to use mocked price if token not found
+		if mocked {
+			return price, nil
+		} else {
+			return 0, fmt.Errorf("unsupported token %s", tokenSymbol)
+		}
 	}
 	price, ok := d.Prices[tokenId]
 	if !ok {
@@ -90,4 +91,12 @@ func closeRows(rows *sql.Rows) {
 	if err := rows.Close(); err != nil {
 		log.Warnln("closeRows: error:", err)
 	}
+}
+
+func GetMockedPrice(symbol string) (float64, bool) {
+	if symbol == "TCELR" || symbol == "LYRA" {
+		// new token, mock price
+		return 0.5, true
+	}
+	return 0, false
 }

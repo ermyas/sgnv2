@@ -89,7 +89,7 @@ func (t *TokenPriceCache) GetUsdPrice(tokenSymbol string) (float64, error) {
 	}
 	tokenId := dal.DB.GetTokenIdBySymbol(tokenSymbol)
 	if tokenId == "" {
-		price, mocked := getMockedPrice(tokenSymbol) // try to use mocked price if token not found
+		price, mocked := dal.GetMockedPrice(tokenSymbol) // try to use mocked price if token not found
 		if mocked {
 			return price, nil
 		} else {
@@ -170,7 +170,7 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 		if tokenId != "" {
 			tokenIds = append(tokenIds, tokenId)
 		} else {
-			_, mocked := getMockedPrice(symbol)
+			_, mocked := dal.GetMockedPrice(symbol)
 			if !mocked {
 				log.Errorf("token %s not found in db, table: token_id, please add token_id from www.coingecko.com", symbol)
 			}
@@ -186,7 +186,7 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 		if tokenId != "" {
 			tokenIds = append(tokenIds, tokenId)
 		} else {
-			_, mocked := getMockedPrice(sym)
+			_, mocked := dal.GetMockedPrice(sym)
 			if !mocked {
 				log.Errorf("token %s not found in db, table: token_id, please add token_id from www.coingecko.com", sym)
 			}
@@ -216,12 +216,4 @@ func (t *TokenPriceCache) refreshCache(tr *transactor.Transactor) error {
 	}
 	t.Prices = newPrices
 	return nil
-}
-
-func getMockedPrice(symbol string) (float64, bool) {
-	if symbol == "TCELR" || symbol == "LYRA" {
-		// new token, mock price
-		return 0.5, true
-	}
-	return 0, false
 }
