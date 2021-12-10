@@ -137,7 +137,7 @@ func (gs *GatewayService) pollChainToken() {
 	tr := onchain.SGNTransactors.GetTransactor()
 	resp, err := cbrcli.QueryChainTokensConfig(tr.CliCtx, &cbrtypes.ChainTokensConfigRequest{})
 	if err != nil {
-		log.Errorln("we will use mocked chain tokens failed to load basic token info:", err)
+		log.Warnln("we will use cached chain tokens failed to load basic token info:", err)
 	}
 	chainTokens := resp.GetChainTokens()
 	for chainIdStr, tokens := range chainTokens {
@@ -191,7 +191,7 @@ func (gs *GatewayService) pollChainToken() {
 	log.Infof("start QueryAllPeggedPairs")
 	pegPairs, err := pegcli.QueryOrigPeggedPairs(tr.CliCtx, &pegtypes.QueryOrigPeggedPairsRequest{})
 	if err != nil {
-		log.Errorln("query QueryAllPeggedPairs err", err)
+		log.Warnln("query QueryAllPeggedPairs err", err)
 	} else {
 		for _, pair := range pegPairs {
 			org := pair.GetOrig()

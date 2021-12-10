@@ -47,7 +47,7 @@ func (gs *GatewayService) StartUpdateTokenPricePolling(interval time.Duration) {
 func (gs *GatewayService) UpdateTokenPrice2S3() {
 	resp, err := cli.QueryChainTokensConfig(onchain.SGNTransactors.GetTransactor().CliCtx, &types.ChainTokensConfigRequest{})
 	if err != nil {
-		log.Errorln("we will use mocked chain tokens failed to load basic token info:", err)
+		log.Warnln("we will use cached chain tokens failed to load basic token info:", err)
 		return
 	}
 	chainTokens := resp.GetChainTokens()

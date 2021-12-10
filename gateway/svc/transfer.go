@@ -281,7 +281,7 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 		TransferId: transferIds,
 	})
 	if err != nil {
-		log.Errorf("updateTransferStatusInHistory when QueryTransferStatus in sgn failed, error: %+v", err)
+		log.Warnf("updateTransferStatusInHistory when QueryTransferStatus in sgn failed, error: %+v", err)
 		return refundReasons, err
 	}
 	transferStatusMap := transferMap.Status

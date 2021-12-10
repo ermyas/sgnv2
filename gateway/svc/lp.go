@@ -497,7 +497,7 @@ func (gs *GatewayService) getWithdrawInfo(seqNum, chainId uint64, usrAddr string
 			// there's no withdraw in sgn, so return directly, no detail enriched
 			log.Warnf("ErrKeyNotFound error when QueryWithdrawLiquidityStatus,usrAddr:%s, seqNum:%d", usrAddr, seqNum)
 		} else {
-			log.Errorf("unknown error when QueryWithdrawLiquidityStatus, seqNum:%d, chainId:%d, error%+v", seqNum, chainId, err2)
+			log.Warnf("unknown error when QueryWithdrawLiquidityStatus, seqNum:%d, chainId:%d, error%+v", seqNum, chainId, err2)
 		}
 		return detail, wdOnchain, sortedSigs, signers, powers
 	}
