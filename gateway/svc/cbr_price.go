@@ -30,8 +30,8 @@ func (gs *GatewayService) StartUpdateTokenPricePolling(interval time.Duration) {
 		return
 	}
 	go func() {
-		// let fee model run 90 sec upfront
-		time.Sleep(90 * time.Second)
+		// let fee model run 3 min upfront
+		time.Sleep(3 * time.Minute)
 		ticker := jitterbug.New(
 			interval,
 			&jitterbug.Norm{Stdev: 5 * time.Second},
