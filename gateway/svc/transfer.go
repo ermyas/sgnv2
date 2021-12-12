@@ -3,6 +3,9 @@ package gatewaysvc
 import (
 	"context"
 	"fmt"
+	types2 "github.com/celer-network/sgn-v2/common/types"
+	pegbrcli "github.com/celer-network/sgn-v2/x/pegbridge/client/cli"
+	pegtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	"math"
 	"math/big"
 	"strconv"
@@ -111,15 +114,6 @@ func (gs *GatewayService) GetTransferStatus(ctx context.Context, request *webapi
 }
 
 func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.EstimateAmtRequest) (*webapi.EstimateAmtResponse, error) {
-	// TODO
-	if request.GetIsPegged() {
-		return &webapi.EstimateAmtResponse{
-			EqValueTokenAmt: request.GetAmt(),
-			BridgeRate:      1.0,
-			PercFee:         "0",
-			BaseFee:         "0",
-		}, nil
-	}
 	amt := request.GetAmt()
 	srcChainId := request.GetSrcChainId()
 	dstChainId := request.GetDstChainId()
@@ -127,6 +121,10 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 	slippage := request.GetSlippageTolerance()
 	if slippage == 0 {
 		slippage = default_slippage
+	}
+
+	if request.GetIsPegged() {
+		return gs.getPeggedEstimatedFeeInfo(uint64(srcChainId), uint64(dstChainId), request.GetTokenSymbol(), request.GetAmt())
 	}
 
 	if srcChainId == dstChainId {
@@ -375,6 +373,65 @@ func (gs *GatewayService) getTxHashForTransfer(transfer *dal.Transfer) (string, 
 		}
 	}
 	return srcTxHash, dstTxHash
+}
+
+func (gs *GatewayService) getPeggedEstimatedFeeInfo(srcChainId, dstChainId uint64, symbol, amt string) (*webapi.EstimateAmtResponse, error) {
+	if !utils.IsValidAmt(amt) {
+		return nil, fmt.Errorf("invalid amt, params checking failed")
+	}
+	org, pegged, foundPegged, dbErr := dal.DB.GetChainTokenPairByChainIdTokenPair(symbol, srcChainId, dstChainId)
+	if dbErr != nil {
+		return nil, dbErr
+	}
+	if !foundPegged {
+		return nil, fmt.Errorf("no such token pair for pegged, srcChainId:%d, dstChainId:%d, symbol:%s", srcChainId, dstChainId, symbol)
+	}
+	var isMint bool
+	var srcToken, dstToken *types2.ERC20Token
+	if org.ChainId == srcChainId {
+		isMint = true
+		srcToken = org
+		dstToken = pegged
+	} else {
+		isMint = false
+		srcToken = pegged
+		dstToken = org
+	}
+	tr := onchain.SGNTransactors.GetTransactor()
+	getFeeRequest := &pegtypes.QueryEstimatedAmountFeesRequest{
+		Pair: pegtypes.OrigPeggedPair{
+			Orig:   *org,
+			Pegged: *pegged,
+		},
+		RequestAmount: amt,
+		Mint:          isMint,
+	}
+
+	feeInfo, err := pegbrcli.QueryEstimatedAmountFees(tr.CliCtx, getFeeRequest)
+	if err != nil {
+		log.Warnf("cli.QueryFee error, srcChainId:%d, dstChainId:%d, srcTokenAddr:%s, amt:%s, err:%+v", srcChainId, dstChainId, symbol, amt, err)
+		return nil, err
+	}
+	if feeInfo == nil {
+		return nil, fmt.Errorf("can not estimate fee")
+	}
+	eqValueTokenAmt := feeInfo.GetReceiveAmount()
+	percFee := feeInfo.GetPercentageFee()
+	baseFee := feeInfo.GetBaseFee()
+	srcVolume, _ := rmAmtDecimal(amt, int(srcToken.GetDecimals())).Float64()
+	dstVolume, _ := rmAmtDecimal(eqValueTokenAmt, int(dstToken.GetDecimals())).Float64()
+	bridgeRate := 0.0
+	if srcVolume > 0.000000001 {
+		bridgeRate = dstVolume / srcVolume
+	} else {
+		return nil, fmt.Errorf("amount should > 0")
+	}
+	return &webapi.EstimateAmtResponse{
+		EqValueTokenAmt: eqValueTokenAmt,
+		BridgeRate:      float32(bridgeRate),
+		PercFee:         percFee,
+		BaseFee:         baseFee,
+	}, nil
 }
 
 func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainId, slippage uint32, srcToken, dstToken *webapi.TokenInfo, amt string, useLp bool) (*webapi.EstimateAmtResponse, error) {

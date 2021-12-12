@@ -257,3 +257,13 @@ func QueryOrigPeggedPairs(cliCtx client.Context, params *types.QueryOrigPeggedPa
 	resp = res.Pairs
 	return
 }
+
+func QueryEstimatedAmountFees(cliCtx client.Context, params *types.QueryEstimatedAmountFeesRequest) (resp *types.QueryEstimatedAmountFeesResponse, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	res, err := queryClient.EstimatedAmountFees(context.Background(), params)
+	if err != nil {
+		return
+	}
+	resp = res
+	return
+}

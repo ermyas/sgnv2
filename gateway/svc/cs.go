@@ -283,7 +283,7 @@ func (gs *GatewayService) fixTxEventMiss(ctx context.Context, txHash string, cha
 			return fmt.Errorf("parse failed from elog:%+v", elog)
 		}
 
-		err = onchain.GatewayOnSend(eth.Hash(ev.TransferId).String(), ev.Sender.String(), ev.Token.String(), ev.Amount.String(), txHash, uint64(chainId), ev.DstChainId)
+		err = onchain.GatewayOnSend(eth.Hash(ev.TransferId).String(), ev.Sender.String(), ev.Token.String(), ev.Amount.String(), txHash, uint64(chainId), ev.DstChainId, dal.BridgeTypeSendRelay)
 		if err != nil {
 			return err
 		}

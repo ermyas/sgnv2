@@ -359,6 +359,28 @@ func (d *DAL) GetWithdrawChainIdByBurnChainIdAndTokenAddr(burnChainId uint64, bu
 	return withdrawChainId, true, nil
 }
 
+func (d *DAL) GetChainTokenPairByChainIdTokenPair(symbol string, srcChainId, dstChainId uint64) (*types2.ERC20Token, *types2.ERC20Token, bool, error) {
+	q := `SELECT orig_chain_id, orig_token_addr, orig_token_decimal, 
+                 pegged_chain_id, pegged_token_addr, pegged_token_decimal FROM pegged_config 
+                 where pegged_token_symbol=$1 and ((orig_chain_id=$2 and pegged_chain_id=$3) or (orig_chain_id=$3 and pegged_chain_id=$2))`
+	org := &types2.ERC20Token{
+		Symbol: symbol,
+	}
+	pegged := &types2.ERC20Token{
+		Symbol: symbol,
+	}
+
+	err := d.QueryRow(q, symbol, srcChainId, dstChainId).Scan(&org.ChainId, &org.Address, &org.Decimals, &pegged.ChainId, &pegged.Address, &pegged.Decimals)
+	found, err := sqldb.ChkQueryRow(err)
+	if err != nil {
+		return nil, nil, false, err
+	}
+	if !found {
+		return nil, nil, false, nil
+	}
+	return org, pegged, true, nil
+}
+
 func (d *DAL) GetAllValidPeggedConfigList() ([]*webapi.PeggedPairConfig, error) {
 	var configs []*webapi.PeggedPairConfig
 	q := `SELECT orig_chain_id, orig_token_symbol, orig_token_addr, orig_token_decimal, orig_token_name, orig_token_icon, 

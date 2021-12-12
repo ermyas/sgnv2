@@ -23,23 +23,36 @@ import (
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 )
 
-func GatewayOnSend(transferId, usrAddr, tokenAddr, amt, sendTxHash string, srcChainId, dsChainId uint64) error {
+func GatewayOnSend(transferId, usrAddr, tokenAddr, amt, sendTxHash string, srcChainId, dsChainId uint64, bridgeType int) error {
 	token, found, dbErr := dal.DB.GetTokenByAddr(tokenAddr, srcChainId)
 	if token == nil || !found || dbErr != nil {
 		log.Errorf("token from send event not found in db, addr:%s, chainId:%d", tokenAddr, srcChainId)
 		return nil
 	}
-	estimatedAmt, err := getEstimatedAmt(srcChainId, dsChainId, token, amt)
-	if err != nil {
-		log.Warnf("estimateAmt on send for transferId:%s failed, err:%s", transferId, err.Error())
-		estimatedAmt = "0"
+	estimatedAmt := "0"
+	var getEstimatedAmtErr error
+	switch bridgeType {
+	case dal.BridgeTypeSendRelay:
+		estimatedAmt, getEstimatedAmtErr = getEstimatedAmt(srcChainId, dsChainId, token, amt)
+		if getEstimatedAmtErr != nil {
+			log.Warnf("estimateAmt on send for transferId:%s failed, err:%s", transferId, getEstimatedAmtErr.Error())
+			estimatedAmt = "0"
+		}
+		break
+	case dal.BridgeTypeDepositMint, dal.BridgeTypeBurnWithDraw:
+		estimatedAmt, getEstimatedAmtErr = getEstimatedPeggedAmt(srcChainId, dsChainId, token.GetToken().GetSymbol(), amt)
+		if getEstimatedAmtErr != nil {
+			log.Warnf("estimateAmt on send for transferId:%s failed, err:%s", transferId, getEstimatedAmtErr.Error())
+			estimatedAmt = "0"
+		}
+		break
 	}
 	volume, getVolumeErr := dal.DB.GetUsdVolume(token.GetToken().GetSymbol(), srcChainId, common.Str2BigInt(amt))
 	if getVolumeErr != nil {
 		log.Warnf("find invalid token volume, symbol:%s, chainId:%d, we set volume to 0 first", token.GetToken().GetSymbol(), srcChainId)
 		// continue to save 0 volume in db
 	}
-	return dal.DB.UpsertTransferOnSend(transferId, usrAddr, token, amt, estimatedAmt, sendTxHash, srcChainId, dsChainId, volume, getFeePerc(srcChainId, dsChainId, token.GetToken().GetSymbol()))
+	return dal.DB.UpsertTransferOnSend(transferId, usrAddr, token, amt, estimatedAmt, sendTxHash, srcChainId, dsChainId, volume, getFeePerc(srcChainId, dsChainId, token.GetToken().GetSymbol()), bridgeType)
 }
 
 func GatewayOnRelay(c *ethclient.Client, transferId, txHash, dstTransferId, amt, usrAddr, tokenAddr string, srcChainId, dstChainId uint64) error {

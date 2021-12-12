@@ -9,7 +9,7 @@ blkdelay = 5
 maxblkdelta = 5000
 cbridge = "0x246C3469E42E51F7ea1adb397977164DE2F088A1"
 maxfeepergasgwei = 2
-otvaults = "0x14558EAd4a122d7Fb2e711242500c12963320f20"
+otvault = "0x14558EAd4a122d7Fb2e711242500c12963320f20"
 ptbridge = ""
 
 [[multichain]]
@@ -21,5 +21,5 @@ blkdelay = 5
 maxblkdelta = 5000
 cbridge = "0xF3Ccc0a86f8451AB193011fbb408db2e38EAF10a"
 addgasgwei = 2
-otvaults = ""
+otvault = ""
 ptbridge = "0x58712219A4BDBB0E581DCaF6f5c4C2B2d2f42158"

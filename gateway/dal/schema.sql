@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS transfer (
     volume FLOAT NOT NULL DEFAULT 0,
     refund_tx TEXT NOT NULL DEFAULT '',
     refund_seq_num INT NOT NULL DEFAULT 0,
-    transfer_type INT NOT NULL DEFAULT 0,
+    bridge_type INT NOT NULL DEFAULT 0,
     refund_id TEXT,
     UNIQUE (refund_id)
 );

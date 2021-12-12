@@ -207,7 +207,7 @@ func (c *OneChain) monSend(blk *big.Int) {
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 
-		err = GatewayOnSend(eth.Hash(ev.TransferId).String(), ev.Sender.String(), ev.Token.String(), ev.Amount.String(), eLog.TxHash.String(), c.chainid, ev.DstChainId)
+		err = GatewayOnSend(eth.Hash(ev.TransferId).String(), ev.Sender.String(), ev.Token.String(), ev.Amount.String(), eLog.TxHash.String(), c.chainid, ev.DstChainId, dal.BridgeTypeSendRelay)
 		if err != nil {
 			log.Warnf("GatewayOnSend err: %s, txId %x, txHash %x, chainId %d", err, ev.TransferId, eLog.TxHash, c.chainid)
 		}
@@ -367,7 +367,7 @@ func (c *OneChain) monPegbrDeposited(blk *big.Int) {
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		err = GatewayOnSend(eth.Hash(ev.DepositId).String(), ev.Depositor.String(), ev.Token.String(), ev.Amount.String(), eLog.TxHash.String(), c.chainid, ev.MintChainId)
+		err = GatewayOnSend(eth.Hash(ev.DepositId).String(), ev.Depositor.String(), ev.Token.String(), ev.Amount.String(), eLog.TxHash.String(), c.chainid, ev.MintChainId, dal.BridgeTypeDepositMint)
 		if err != nil {
 			log.Warnf("GatewayOnSend err: %s, txId %x, txHash %x, chainId %d", err, eth.Hash(ev.DepositId).String(), eLog.TxHash, c.chainid)
 			return true
@@ -511,7 +511,7 @@ func (c *OneChain) monPegbrBurn(blk *big.Int) {
 			withdrawChainId = 0
 		}
 
-		err = GatewayOnSend(eth.Hash(ev.BurnId).String(), ev.Account.String(), ev.Token.String(), ev.Amount.String(), eLog.TxHash.String(), c.chainid, withdrawChainId)
+		err = GatewayOnSend(eth.Hash(ev.BurnId).String(), ev.Account.String(), ev.Token.String(), ev.Amount.String(), eLog.TxHash.String(), c.chainid, withdrawChainId, dal.BridgeTypeBurnWithDraw)
 		if err != nil {
 			log.Warnf("GatewayOnSend err: %s, txId %x, txHash %x, chainId %d", err, eth.Hash(ev.BurnId).String(), eLog.TxHash, c.chainid)
 			return true

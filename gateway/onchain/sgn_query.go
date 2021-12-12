@@ -2,6 +2,9 @@ package onchain
 
 import (
 	"fmt"
+	"github.com/celer-network/sgn-v2/gateway/dal"
+	pegbrcli "github.com/celer-network/sgn-v2/x/pegbridge/client/cli"
+	pegtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	"math/big"
 
 	"github.com/celer-network/goutils/log"
@@ -51,6 +54,40 @@ func getFeePerc(srcChainId, dstChainId uint64, tokenSymbol string) uint32 {
 	return perc
 }
 
+func getEstimatedPeggedAmt(srcChainId, dstChainId uint64, symbol, amt string) (string, error) {
+	if !utils.IsValidAmt(amt) {
+		return "", fmt.Errorf("invalid amt, params checking failed")
+	}
+	tr := SGNTransactors.GetTransactor()
+	org, pegged, foundPegged, dbErr := dal.DB.GetChainTokenPairByChainIdTokenPair(symbol, srcChainId, dstChainId)
+	if dbErr != nil {
+		return "0", dbErr
+	}
+	if !foundPegged {
+		return "0", fmt.Errorf("no such token pair for pegged, srcChainId:%d, dstChainId:%d, symbol:%s", srcChainId, dstChainId, symbol)
+	}
+	var isMint bool
+	getFeeRequest := &pegtypes.QueryEstimatedAmountFeesRequest{
+		Pair: pegtypes.OrigPeggedPair{
+			Orig:   *org,
+			Pegged: *pegged,
+		},
+		RequestAmount: amt,
+		Mint:          isMint,
+	}
+
+	feeInfo, err := pegbrcli.QueryEstimatedAmountFees(tr.CliCtx, getFeeRequest)
+	if err != nil {
+		log.Warnf("cli.QueryFee error, srcChainId:%d, dstChainId:%d, srcTokenAddr:%s, amt:%s, err:%+v", srcChainId, dstChainId, symbol, amt, err)
+		return "0", err
+	}
+	if feeInfo == nil {
+		return "0", fmt.Errorf("can not estimate fee")
+	}
+	eqValueTokenAmt := feeInfo.GetReceiveAmount()
+	return eqValueTokenAmt, nil
+}
+
 func getEstimatedAmt(srcChainId, dstChainId uint64, srcToken *webapi.TokenInfo, amt string) (string, error) {
 	if !utils.IsValidAmt(amt) {
 		return "0", fmt.Errorf("invalid amt, params checking failed")
@@ -60,7 +97,7 @@ func getEstimatedAmt(srcChainId, dstChainId uint64, srcToken *webapi.TokenInfo, 
 	getFeeRequest := &cbrtypes.GetFeeRequest{
 		SrcChainId:   srcChainId,
 		DstChainId:   dstChainId,
-		SrcTokenAddr: srcToken.Token.GetAddress(),
+		SrcTokenAddr: srcToken.GetToken().GetAddress(),
 		Amt:          amt,
 	}
 	feeInfo, err := cbrcli.QueryFee(tr.CliCtx, getFeeRequest)
