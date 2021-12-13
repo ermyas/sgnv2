@@ -55,7 +55,7 @@ func GatewayOnSend(transferId, usrAddr, tokenAddr, amt, sendTxHash string, srcCh
 	return dal.DB.UpsertTransferOnSend(transferId, usrAddr, token, amt, estimatedAmt, sendTxHash, srcChainId, dsChainId, volume, getFeePerc(srcChainId, dsChainId, token.GetToken().GetSymbol()), bridgeType)
 }
 
-func GatewayOnRelay(c *ethclient.Client, transferId, txHash, dstTransferId, amt, usrAddr, tokenAddr string, srcChainId, dstChainId uint64) error {
+func GatewayOnRelay(c *ethclient.Client, transferId, txHash, dstTransferId, amt, usrAddr, tokenAddr string, srcChainId, dstChainId uint64, bridgeType int) error {
 	_, isDelayed, err := dal.DB.GetDelayedOp(dstTransferId)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func GatewayOnRelay(c *ethclient.Client, transferId, txHash, dstTransferId, amt,
 		log.Errorf("token from relay event not found in db, addr:%s, chainId:%d", tokenAddr, srcChainId)
 		return nil
 	}
-	err = dal.DB.UpsertTransferOnRelay(transferId, dstTransferId, usrAddr, token, amt, txHash, srcChainId, dstChainId, isDelayed)
+	err = dal.DB.UpsertTransferOnRelay(transferId, dstTransferId, usrAddr, token, amt, txHash, srcChainId, dstChainId, isDelayed, bridgeType)
 	if err == nil {
 		dal.DB.AddFeeRebateFee(transferId)
 		sendGasOnArrival(c, transferId)

@@ -231,7 +231,7 @@ func (c *OneChain) monRelay(blk *big.Int) {
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 
-		err = GatewayOnRelay(c.Client, eth.Hash(ev.SrcTransferId).String(), eLog.TxHash.String(), eth.Hash(ev.TransferId).String(), ev.Amount.String(), ev.Receiver.String(), ev.Token.String(), ev.SrcChainId, c.chainid)
+		err = GatewayOnRelay(c.Client, eth.Hash(ev.SrcTransferId).String(), eLog.TxHash.String(), eth.Hash(ev.TransferId).String(), ev.Amount.String(), ev.Receiver.String(), ev.Token.String(), ev.SrcChainId, c.chainid, dal.BridgeTypeSendRelay)
 		if err != nil {
 			log.Warnf("UpdateTransfer err: %s, srcId %x, dstId %x, txHash %x, chainId %d", err, ev.SrcTransferId, ev.TransferId, eLog.TxHash, c.chainid)
 		}
@@ -394,7 +394,7 @@ func (c *OneChain) monPegbrWithdrawn(blk *big.Int) {
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		err = GatewayOnRelay(c.Client, eth.Hash(ev.RefId).String(), eLog.TxHash.String(), eth.Hash(ev.WithdrawId).String(), ev.Amount.String(), ev.Receiver.String(), ev.Token.String(), ev.RefChainId, c.chainid)
+		err = GatewayOnRelay(c.Client, eth.Hash(ev.RefId).String(), eLog.TxHash.String(), eth.Hash(ev.WithdrawId).String(), ev.Amount.String(), ev.Receiver.String(), ev.Token.String(), ev.RefChainId, c.chainid, dal.BridgeTypeBurnWithDraw)
 		if err != nil {
 			log.Warnf("UpdateTransfer pegged withdraw err: %s, srcId %x, dstId %x, txHash %x, chainId %d", err, ev.RefId, ev.WithdrawId, eLog.TxHash, c.chainid)
 		}
@@ -474,7 +474,7 @@ func (c *OneChain) monPegbrMint(blk *big.Int) {
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		err = GatewayOnRelay(c.Client, eth.Hash(ev.RefId).String(), eLog.TxHash.String(), eth.Hash(ev.MintId).String(), ev.Amount.String(), ev.Account.String(), ev.Token.String(), ev.RefChainId, c.chainid)
+		err = GatewayOnRelay(c.Client, eth.Hash(ev.RefId).String(), eLog.TxHash.String(), eth.Hash(ev.MintId).String(), ev.Amount.String(), ev.Account.String(), ev.Token.String(), ev.RefChainId, c.chainid, dal.BridgeTypeDepositMint)
 		if err != nil {
 			log.Warnf("UpdateTransfer mint err: %s, srcId %x, dstId %x, txHash %x, chainId %d", err, ev.RefId, ev.MintId, eLog.TxHash, c.chainid)
 		}

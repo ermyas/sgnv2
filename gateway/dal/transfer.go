@@ -259,15 +259,15 @@ func (d *DAL) UpsertTransferOnSend(transferId, usrAddr string, token *webapi.Tok
 	return sqldb.ChkExec(res, err, 1, "UpsertTransferOnSend")
 }
 
-func (d *DAL) UpsertTransferOnRelay(transferId, dstTransferId, usrAddr string, token *webapi.TokenInfo, receivedAmt, txHash string, srcChainId, dsChainId uint64, isDelayed bool) error {
+func (d *DAL) UpsertTransferOnRelay(transferId, dstTransferId, usrAddr string, token *webapi.TokenInfo, receivedAmt, txHash string, srcChainId, dsChainId uint64, isDelayed bool, bridgeType int) error {
 	status := uint64(types.TransferHistoryStatus_TRANSFER_COMPLETED)
 	if isDelayed {
 		status = uint64(types.TransferHistoryStatus_TRANSFER_DELAYED)
 	}
-	q := `INSERT INTO transfer (transfer_id, usr_addr, token_symbol, received_amt, src_chain_id, dst_chain_id, status, create_time, update_time, dst_tx_hash, dst_transfer_id)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (transfer_id) DO UPDATE
+	q := `INSERT INTO transfer (transfer_id, usr_addr, token_symbol, received_amt, src_chain_id, dst_chain_id, status, create_time, update_time, dst_tx_hash, dst_transfer_id, bridge_type)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) ON CONFLICT (transfer_id) DO UPDATE
 	SET received_amt=$4, status= $7, update_time=$9, dst_tx_hash=$10, dst_transfer_id=$11`
-	res, err := d.Exec(q, transferId, usrAddr, token.Token.Symbol, receivedAmt, srcChainId, dsChainId, status, now(), now(), txHash, dstTransferId)
+	res, err := d.Exec(q, transferId, usrAddr, token.Token.Symbol, receivedAmt, srcChainId, dsChainId, status, now(), now(), txHash, dstTransferId, bridgeType)
 	return sqldb.ChkExec(res, err, 1, "UpsertTransferOnRelay")
 }
 
