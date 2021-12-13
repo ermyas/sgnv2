@@ -89,6 +89,8 @@ func GetUsdPrices() (map[string]float64, error) {
 	for tokenId, vsTokenPrices := range *tokenPrices {
 		newPrices[tokenId] = vsTokenPrices["usd"]
 	}
+	// TODO here is fo hard code usd price
+	newPrices["LYRA"] = 0.5
 	log.Infof("new prices:%+v", newPrices)
 	return newPrices, nil
 }
