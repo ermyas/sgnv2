@@ -79,7 +79,7 @@ func (k Keeper) EstimatedAmountFees(
 	}
 	// Use stored pair info to estimate fees
 	reqPair := req.GetPair()
-	pair, found := k.GetOrigPeggedPair(ctx, reqPair.Orig.ChainId, eth.Hex2Addr(reqPair.Pegged.Address), reqPair.Pegged.ChainId)
+	pair, found := k.GetOrigPeggedPair(ctx, reqPair.Orig.ChainId, eth.Hex2Addr(reqPair.Orig.Address), reqPair.Pegged.ChainId)
 	if !found {
 		return nil, errors.New("invalid pegged pair")
 	}
