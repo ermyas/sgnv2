@@ -19,11 +19,12 @@ const (
 )
 
 func (d *DAL) GetTransfer(transferId string) (*Transfer, bool, error) {
-	q := `SELECT create_time, update_time, status, src_chain_id, dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt, refund_seq_num, usr_addr, refund_tx FROM transfer WHERE transfer_id = $1`
+	q := `SELECT create_time, update_time, status, src_chain_id, dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt, refund_seq_num, usr_addr, refund_tx, bridge_type FROM transfer WHERE transfer_id = $1`
 	var srcTxHash, dstTxHash, tokenSymbol, srcAmt, dstAmt, usrAddr, refundTx string
 	var srcChainId, status, dstChainId, refundSeqNum uint64
+	var bridgeType int
 	var ct, ut time.Time
-	err := d.QueryRow(q, transferId).Scan(&ct, &ut, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum, &usrAddr, &refundTx)
+	err := d.QueryRow(q, transferId).Scan(&ct, &ut, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum, &usrAddr, &refundTx, &bridgeType)
 	found, err := sqldb.ChkQueryRow(err)
 	return &Transfer{
 		TransferId:   transferId,
@@ -40,15 +41,17 @@ func (d *DAL) GetTransfer(transferId string) (*Transfer, bool, error) {
 		RefundSeqNum: refundSeqNum,
 		UsrAddr:      usrAddr,
 		RefundTx:     refundTx,
+		BridgeType:   bridgeType,
 	}, found, err
 }
 
 func (d *DAL) GetTransferBySrcTxHash(srcTxHash string, chainId uint32) (*Transfer, bool, error) {
-	q := `SELECT create_time, update_time, status, src_chain_id, dst_chain_id, transfer_id, dst_tx_hash, token_symbol, amt, received_amt, refund_seq_num, usr_addr, refund_tx FROM transfer WHERE src_tx_hash = $1 and src_chain_id=$2`
+	q := `SELECT create_time, update_time, status, src_chain_id, dst_chain_id, transfer_id, dst_tx_hash, token_symbol, amt, received_amt, refund_seq_num, usr_addr, refund_tx, bridge_type FROM transfer WHERE src_tx_hash = $1 and src_chain_id=$2`
 	var transferId, dstTxHash, tokenSymbol, srcAmt, dstAmt, usrAddr, refundTx string
 	var srcChainId, status, dstChainId, refundSeqNum uint64
+	var bridgeType int
 	var ct, ut time.Time
-	err := d.QueryRow(q, srcTxHash, chainId).Scan(&ct, &ut, &status, &srcChainId, &dstChainId, &transferId, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum, &usrAddr, &refundTx)
+	err := d.QueryRow(q, srcTxHash, chainId).Scan(&ct, &ut, &status, &srcChainId, &dstChainId, &transferId, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum, &usrAddr, &refundTx, &bridgeType)
 	found, err := sqldb.ChkQueryRow(err)
 	return &Transfer{
 		TransferId:   transferId,
@@ -65,15 +68,17 @@ func (d *DAL) GetTransferBySrcTxHash(srcTxHash string, chainId uint32) (*Transfe
 		RefundSeqNum: refundSeqNum,
 		UsrAddr:      usrAddr,
 		RefundTx:     refundTx,
+		BridgeType:   bridgeType,
 	}, found, err
 }
 
 func (d *DAL) GetTransferByDstTransferId(dstTransferId string) (*Transfer, bool, error) {
-	q := `SELECT transfer_id, create_time, update_time, status, src_chain_id, dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt, refund_seq_num, usr_addr, refund_tx FROM transfer WHERE dst_transfer_id = $1`
+	q := `SELECT transfer_id, create_time, update_time, status, src_chain_id, dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt, refund_seq_num, usr_addr, refund_tx, bridge_type FROM transfer WHERE dst_transfer_id = $1`
 	var transferId, srcTxHash, dstTxHash, tokenSymbol, srcAmt, dstAmt, usrAddr, refundTx string
 	var srcChainId, status, dstChainId, refundSeqNum uint64
+	var bridgeType int
 	var ct, ut time.Time
-	err := d.QueryRow(q, dstTransferId).Scan(&transferId, &ct, &ut, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum, &usrAddr, &refundTx)
+	err := d.QueryRow(q, dstTransferId).Scan(&transferId, &ct, &ut, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundSeqNum, &usrAddr, &refundTx, &bridgeType)
 	found, err := sqldb.ChkQueryRow(err)
 	return &Transfer{
 		TransferId:    transferId,
@@ -91,6 +96,7 @@ func (d *DAL) GetTransferByDstTransferId(dstTransferId string) (*Transfer, bool,
 		RefundSeqNum:  refundSeqNum,
 		UsrAddr:       usrAddr,
 		RefundTx:      refundTx,
+		BridgeType:    bridgeType,
 	}, found, err
 }
 
@@ -122,6 +128,12 @@ func (d *DAL) UpdateTransferStatus(transferId string, status uint64) error {
 	q := `UPDATE transfer SET status=$2, update_time=$3 WHERE transfer_id=$1`
 	res, err := d.Exec(q, transferId, status, now())
 	return sqldb.ChkExec(res, err, 1, "UpdateTransferStatus")
+}
+
+func (d *DAL) UpdateTransferStatusByFrom(transferId string, from, to int32) error {
+	q := `UPDATE transfer SET status=$1, update_time=$2 WHERE transfer_id=$3 and status=$4`
+	_, err := d.Exec(q, to, now(), transferId, from)
+	return err
 }
 
 func (d *DAL) UpdateTransferForRefund(transferId string, status uint64, refundId string, refundTx string) error {
@@ -172,6 +184,7 @@ type Transfer struct {
 	RefundSeqNum  uint64
 	UsrAddr       string
 	RefundTx      string
+	BridgeType    int
 	FeePerc       uint32
 }
 

@@ -3,9 +3,6 @@ package gatewaysvc
 import (
 	"context"
 	"fmt"
-	types2 "github.com/celer-network/sgn-v2/common/types"
-	pegbrcli "github.com/celer-network/sgn-v2/x/pegbridge/client/cli"
-	pegtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	"math"
 	"math/big"
 	"strconv"
@@ -21,6 +18,8 @@ import (
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	pegbrcli "github.com/celer-network/sgn-v2/x/pegbridge/client/cli"
+	pegtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -285,6 +284,36 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 	transferStatusMap := transferMap.Status
 
 	for _, transfer := range transferList {
+		if transfer.Status == types.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION {
+			if transfer.BridgeType == dal.BridgeTypeDepositMint {
+				mintInfo, QueryDepositInfoErr := pegbrcli.QueryDepositInfo(tr.CliCtx, transfer.TransferId)
+				if QueryDepositInfoErr != nil {
+					log.Warnf("fail to get this QueryDepositInfo, depositId:%x", transfer.TransferId)
+				} else if mintInfo.ChainId != 0 {
+					updateTransferStatusByFromErr := dal.DB.UpdateTransferStatusByFrom(transfer.TransferId,
+						int32(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION),
+						int32(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE))
+					if updateTransferStatusByFromErr != nil {
+						log.Errorf("fail UpdateTransferStatusByFrom, transferId:%x, err: %sv", transfer.TransferId, updateTransferStatusByFromErr)
+					}
+				}
+				continue
+			} else if transfer.BridgeType == dal.BridgeTypeBurnWithDraw {
+				burnInfo, QueryBurnInfoErr := pegbrcli.QueryBurnInfo(tr.CliCtx, transfer.TransferId)
+				if QueryBurnInfoErr != nil {
+					log.Warnf("fail to get this QueryBurnInfoErr, burnId:%x", transfer.TransferId)
+				} else if burnInfo.ChainId != 0 {
+					updateTransferStatusByFromErr := dal.DB.UpdateTransferStatusByFrom(transfer.TransferId,
+						int32(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_SGN_CONFIRMATION),
+						int32(types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE))
+					if updateTransferStatusByFromErr != nil {
+						log.Errorf("fail UpdateTransferStatusByFrom, transferId:%x, err: %sv", transfer.TransferId, updateTransferStatusByFromErr)
+					}
+				}
+				continue
+			}
+		}
+		// here for normal bridge transfer, send -> relay
 		refundReason := types.XferStatus_UNKNOWN
 		transferId := transfer.TransferId
 		status := transfer.Status
@@ -387,16 +416,6 @@ func (gs *GatewayService) getPeggedEstimatedFeeInfo(srcChainId, dstChainId uint6
 		return nil, fmt.Errorf("no such token pair for pegged, srcChainId:%d, dstChainId:%d, symbol:%s", srcChainId, dstChainId, symbol)
 	}
 	var isMint bool
-	var srcToken, dstToken *types2.ERC20Token
-	if org.ChainId == srcChainId {
-		isMint = true
-		srcToken = org
-		dstToken = pegged
-	} else {
-		isMint = false
-		srcToken = pegged
-		dstToken = org
-	}
 	tr := onchain.SGNTransactors.GetTransactor()
 	getFeeRequest := &pegtypes.QueryEstimatedAmountFeesRequest{
 		Pair: pegtypes.OrigPeggedPair{
@@ -418,17 +437,9 @@ func (gs *GatewayService) getPeggedEstimatedFeeInfo(srcChainId, dstChainId uint6
 	eqValueTokenAmt := feeInfo.GetReceiveAmount()
 	percFee := feeInfo.GetPercentageFee()
 	baseFee := feeInfo.GetBaseFee()
-	srcVolume, _ := rmAmtDecimal(amt, int(srcToken.GetDecimals())).Float64()
-	dstVolume, _ := rmAmtDecimal(eqValueTokenAmt, int(dstToken.GetDecimals())).Float64()
-	bridgeRate := 0.0
-	if srcVolume > 0.000000001 {
-		bridgeRate = dstVolume / srcVolume
-	} else {
-		return nil, fmt.Errorf("amount should > 0")
-	}
 	return &webapi.EstimateAmtResponse{
 		EqValueTokenAmt: eqValueTokenAmt,
-		BridgeRate:      float32(bridgeRate),
+		BridgeRate:      1.0, // always 1
 		PercFee:         percFee,
 		BaseFee:         baseFee,
 	}, nil
