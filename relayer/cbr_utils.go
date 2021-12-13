@@ -9,6 +9,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/spf13/viper"
 	"math/big"
+	"strconv"
 
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -76,11 +77,11 @@ func (r *Relayer) startReportCurrentBlockNumber(interval time.Duration) {
 func (r *Relayer) reportCurrentBlockNumber() {
 	var report = &webapi.CurrentBlockNumberReport{
 		Timestamp: common.TsMilli(time.Now()),
-		BlockNums: make(map[uint64]uint64),
+		BlockNums: make(map[string]uint64),
 	}
 	for chainId, oneChain := range r.cbrMgr {
 		blockNumber := oneChain.mon.GetCurrentBlockNumber()
-		report.BlockNums[chainId] = blockNumber.Uint64()
+		report.BlockNums[strconv.Itoa(int(chainId))] = blockNumber.Uint64()
 	}
 	bytes, err := proto.Marshal(report)
 	if err != nil {

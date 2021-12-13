@@ -353,10 +353,44 @@ func (gs *GatewayService) ReportCurrentBlockNumber(ctx context.Context, request 
 			},
 		}, nil
 	}
+	if gs.V.C[signer] != nil {
+		// 5 min interval for validator to report, so if blk num at any chain will be regarded as problematic
+		flag := false
+		for chainId, blockNum := range report.GetBlockNums() {
+			if gs.V.C[signer].GetBlockNums()[chainId] >= blockNum {
+				gs.V.P[signer] = true
+				flag = true
+				break
+			}
+		}
+		if flag {
+			delete(gs.V.P, signer)
+		}
+	}
 
 	gs.V.C[signer] = report
 	log.Infoln(signer, " report current block number. now:", gs.V.C[signer])
 	return &webapi.ReportCurrentBlockNumberResponse{}, nil
+}
+
+func (gs *GatewayService) GetCurrentBlockNumberByNode(ctx context.Context, request *webapi.GetCurrentBlockNumberByNodeRequest) (*webapi.GetCurrentBlockNumberByNodeResponse, error) {
+	if len(gs.V.C) == 0 {
+		return &webapi.GetCurrentBlockNumberByNodeResponse{}, nil
+	}
+	m := make(map[string]*webapi.CurrentBlockNumberReport)
+	p := make([]string, 0)
+	for addr, report := range gs.V.C {
+		m[addr.String()] = report
+		if common.TsMilliToTime(report.GetTimestamp()).Add(30 * time.Minute).Before(time.Now()) {
+			p = append(p, addr.String())
+		} else if gs.V.P[addr] {
+			p = append(p, addr.String())
+		}
+	}
+	return &webapi.GetCurrentBlockNumberByNodeResponse{
+		Reports:          m,
+		ProblematicAddrs: p,
+	}, nil
 }
 
 func getRewardTokensFromPool(pool farmingtypes.FarmingPool) []*webapi.TokenInfo {

@@ -180,6 +180,12 @@ service Web {
       body: "*"
     };
   }
+  rpc GetCurrentBlockNumberByNode (GetCurrentBlockNumberByNodeRequest) returns (GetCurrentBlockNumberByNodeResponse) {
+    option (google.api.http) = {
+      get: "/v1/getCurrentBlockNumberByNode"
+    };
+  }
+
 
   // incentive rewards
   rpc GetRetentionRewardsInfo (GetRetentionRewardsInfoRequest) returns (GetRetentionRewardsInfoResponse) {
@@ -646,11 +652,22 @@ message CurrentBlockNumberReport {
   // in millis
   uint64 timestamp = 1;
   // key is chainId, value is block number
-  map<uint64, uint64> block_nums = 2;
+  map<string, uint64> block_nums = 2;
 }
 
 message ReportCurrentBlockNumberResponse {
   ErrMsg err = 1;
+}
+
+message GetCurrentBlockNumberByNodeRequest {
+}
+
+message GetCurrentBlockNumberByNodeResponse {
+  ErrMsg err = 1;
+  // key is addr
+  map<string, CurrentBlockNumberReport> reports = 2;
+  // addrs' current block number is far from others'
+  repeated string problematic_addrs = 3;
 }
 
 enum CSType {

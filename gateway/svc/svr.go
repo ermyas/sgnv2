@@ -38,6 +38,8 @@ func (gs *GatewayService) Close() {
 type ValidatorChainConnectivity struct {
 	// validator addr -> current block number
 	C map[eth.Addr]*webapi.CurrentBlockNumberReport
+	// problematic validator addr
+	P map[eth.Addr]bool
 }
 
 type IncentiveRewardsSigner struct {
@@ -67,6 +69,7 @@ func NewGatewayService(db *dal.DAL) *GatewayService {
 	}
 	gs.V = &ValidatorChainConnectivity{
 		C: make(map[eth.Addr]*webapi.CurrentBlockNumberReport),
+		P: make(map[eth.Addr]bool),
 	}
 	return gs
 }
