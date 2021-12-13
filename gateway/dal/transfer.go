@@ -189,7 +189,7 @@ type Transfer struct {
 }
 
 func (d *DAL) PaginateTransferList(sender string, end time.Time, size uint64) ([]*Transfer, int, time.Time, error) {
-	q := "SELECT transfer_id, create_time, status, src_chain_id,dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt, refund_tx FROM transfer WHERE usr_addr = $1 and create_time < $3 order by create_time desc limit $2"
+	q := "SELECT transfer_id, create_time, status, src_chain_id,dst_chain_id, src_tx_hash, dst_tx_hash, token_symbol, amt, received_amt, refund_tx, bridge_type FROM transfer WHERE usr_addr = $1 and create_time < $3 order by create_time desc limit $2"
 	rows, err := d.Query(q, sender, size, end)
 	if err != nil {
 		log.Errorf("db error:%v", err)
@@ -200,10 +200,11 @@ func (d *DAL) PaginateTransferList(sender string, end time.Time, size uint64) ([
 	var tps []*Transfer
 	var transferId, srcTxHash, dstTxHash, tokenSymbol, srcAmt, dstAmt, refundTx string
 	var srcChainId, status, dstChainId uint64
+	var bridgeType int
 	var ct time.Time
 	minTime := now()
 	for rows.Next() {
-		err = rows.Scan(&transferId, &ct, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundTx)
+		err = rows.Scan(&transferId, &ct, &status, &srcChainId, &dstChainId, &srcTxHash, &dstTxHash, &tokenSymbol, &srcAmt, &dstAmt, &refundTx, &bridgeType)
 		if err != nil {
 			return nil, 0, time.Unix(0, 0), err
 		}
@@ -220,6 +221,7 @@ func (d *DAL) PaginateTransferList(sender string, end time.Time, size uint64) ([
 			SrcAmt:      srcAmt,
 			DstAmt:      dstAmt,
 			RefundTx:    refundTx,
+			BridgeType:  bridgeType,
 		}
 		if minTime.After(ct) {
 			minTime = ct
