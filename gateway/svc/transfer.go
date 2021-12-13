@@ -319,6 +319,8 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 		status := transfer.Status
 		srcChainId := transfer.SrcChainId
 		txHash := transfer.SrcTxHash
+		refundReason = transferStatusMap[transferId].SgnStatus
+		refundReasons[transferId] = refundReason
 		if status == types.TransferHistoryStatus_TRANSFER_SUBMITTING {
 			ec := gs.Chains.GetEthClient(srcChainId)
 			if ec == nil {
@@ -383,8 +385,6 @@ func (gs *GatewayService) updateTransferStatusInHistory(ctx context.Context, tra
 				log.Warnf("UpdateTransferStatus failed, chain_id %d, hash:%s", srcChainId, txHash)
 			}
 		}
-		refundReason = transferStatusMap[transferId].SgnStatus
-		refundReasons[transferId] = refundReason
 	}
 	return refundReasons, nil
 }
