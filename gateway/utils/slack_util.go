@@ -36,7 +36,7 @@ type StatusAlertInfo struct {
 }
 
 func SendBalanceAlert(alerts []*BalanceAlert) {
-	msg := "find abnormal lp balance:\n"
+	msg := "find abnormal lp balance, total_deposit * 1.05 < (total_withdrawal + current_lp_balance):\n"
 	for _, alert := range alerts {
 		msg = msg + fmt.Sprintf("token:`%s`, balance: `%s`, usr_addr: `%s`, total withdraw: `%s`, total deposit:`%s` \n", alert.Token, alert.Balance, alert.Addr, alert.Withdraw, alert.Deposit)
 	}

@@ -78,7 +78,7 @@ func (gs *GatewayService) IsWithdrawNormal(addr, amt, tokenSymbol string, decima
 }
 
 func (gs *GatewayService) AlertAbnormalBalance() {
-	allDepositAndWithdraw := getTotalWithdrawAndDeposit()
+	allDepositAndWithdraw := gs.getTotalWithdrawAndDeposit()
 	// cli: get balance
 	chainTokens, tokenMap, err := getChainTokens()
 	if err != nil {
@@ -134,7 +134,7 @@ func (gs *GatewayService) AlertAbnormalStatus() {
 	if fundNoRelease != nil && len(fundNoRelease) > 0 {
 		utils.SendStatusAlert(fundNoRelease, "relays that have been waiting for fund release")
 	}
-	addLiqNoSync, err := dal.DB.GetLPWithStatus(cbrtypes.WithdrawStatus_WD_WAITING_FOR_SGN, startTime, endTime)
+	addLiqNoSync, err := dal.DB.GetAddLPHistoryWithStatus(cbrtypes.WithdrawStatus_WD_WAITING_FOR_SGN, startTime, endTime)
 	if err != nil {
 		log.Warnf("GetLPWithStatus failed, from:%s, to:%s, err:%+v", startTime, endTime, err)
 	}
@@ -258,7 +258,7 @@ type TotalIO struct {
 }
 
 // return map[addr][token_symbol]totalIO
-func getTotalWithdrawAndDeposit() map[string]map[string]*TotalIO {
+func (gs *GatewayService) getTotalWithdrawAndDeposit() map[string]map[string]*TotalIO {
 	usrIOMap := make(map[string]map[string]*TotalIO)
 	lps, err := dal.DB.AllLpAmtForBalance()
 	if err != nil {
@@ -279,13 +279,29 @@ func getTotalWithdrawAndDeposit() map[string]map[string]*TotalIO {
 			}
 		}
 
-		if lpType == webapi.LPType_LP_TYPE_REMOVE {
+		if lpType == webapi.LPType_LP_TYPE_REMOVE && gs.isLiqSgnProceeded(entry.Status, entry.SeqNum, entry.ChainId, entry.TxHash, entry.Addr, entry.LpType) {
 			usrIOMap[addr][entry.TokenSymbol].withdraw = new(big.Float).Add(usrIOMap[addr][entry.TokenSymbol].withdraw, getAmtFromLpHistory(entry))
 		} else if lpType == webapi.LPType_LP_TYPE_ADD {
 			usrIOMap[addr][entry.TokenSymbol].deposit = new(big.Float).Add(usrIOMap[addr][entry.TokenSymbol].deposit, getAmtFromLpHistory(entry))
 		}
 	}
 	return usrIOMap
+}
+
+func (gs *GatewayService) isLiqSgnProceeded(status cbrtypes.WithdrawStatus, seqNum, chainId uint64, txHash, addr string, lpType webapi.LPType) bool {
+	if status == cbrtypes.WithdrawStatus_WD_WAITING_FOR_SGN {
+		resp, err := gs.QueryLiquidityStatus(context.Background(), &webapi.QueryLiquidityStatusRequest{
+			SeqNum:  seqNum,
+			TxHash:  txHash,
+			LpAddr:  addr,
+			ChainId: uint32(chainId),
+			Type:    lpType,
+		})
+		if resp != nil && err == nil && resp.Status == cbrtypes.WithdrawStatus_WD_WAITING_FOR_SGN {
+			return true
+		}
+	}
+	return false
 }
 
 // return withdraw and deposit

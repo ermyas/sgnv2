@@ -298,7 +298,7 @@ func (d *DAL) GetAllLpHistoryForBalance(sender string) ([]*LP, error) {
 }
 
 func (d *DAL) AllLpAmtForBalance() ([]*LP, error) {
-	q := "SELECT usr_addr, chain_id, token_symbol, amt, lp_type, status FROM lp WHERE withdraw_method_type in (1,2)"
+	q := "SELECT usr_addr, chain_id, token_symbol, amt, lp_type, status, seq_num, tx_hash FROM lp WHERE withdraw_method_type in (1,2)"
 	rows, err := d.Query(q)
 	if err != nil {
 		log.Warnf("db err:%+v", err)
@@ -307,10 +307,10 @@ func (d *DAL) AllLpAmtForBalance() ([]*LP, error) {
 	defer closeRows(rows)
 
 	var tps []*LP
-	var tokenSymbol, amt, addr string
-	var chainId, lpType, status uint64
+	var tokenSymbol, amt, addr, txHash string
+	var chainId, lpType, status, seqNum uint64
 	for rows.Next() {
-		err = rows.Scan(&addr, &chainId, &tokenSymbol, &amt, &lpType, &status)
+		err = rows.Scan(&addr, &chainId, &tokenSymbol, &amt, &lpType, &status, &seqNum, &txHash)
 		if err != nil {
 			return nil, err
 		}
@@ -324,6 +324,9 @@ func (d *DAL) AllLpAmtForBalance() ([]*LP, error) {
 				Amt:         amt,
 				Addr:        addr,
 				LpType:      webapi.LPType(lpType),
+				SeqNum:      seqNum,
+				TxHash:      txHash,
+				Status:      types.WithdrawStatus(status),
 			}
 			tps = append(tps, tp)
 		}
@@ -361,8 +364,8 @@ func (d *DAL) GetDistinctLpAddrByTimeRange(begin, end time.Time) ([]string, erro
 	return addrs, nil
 }
 
-func (d *DAL) GetLPWithStatus(status types.WithdrawStatus, startTime, endTime time.Time) ([]*utils.StatusAlertInfo, error) {
-	q := "SELECT chain_id, tx_hash, update_time FROM lp WHERE status=$1 AND update_time > $2 AND update_time < $3"
+func (d *DAL) GetAddLPHistoryWithStatus(status types.WithdrawStatus, startTime, endTime time.Time) ([]*utils.StatusAlertInfo, error) {
+	q := "SELECT chain_id, tx_hash, update_time FROM lp WHERE status=$1 AND lp_type=1 AND update_time > $2 AND update_time < $3"
 	rows, err := d.Query(q, uint64(status), startTime, endTime)
 	if err != nil {
 		return nil, err
