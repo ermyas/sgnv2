@@ -34,13 +34,16 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-
 		depositChainId := onchev.Chainid
+		if k.HasDepositInfo(ctx, ev.DepositId) {
+			log.Infof("skip already applied pegbr deposit event. chainid %d depositId %x", depositChainId, ev.DepositId)
+			return false, nil
+		}
+
 		pair, found := k.GetOrigPeggedPair(ctx, depositChainId, ev.Token, ev.MintChainId)
 		if !found {
 			return false, fmt.Errorf("pegged pair not exists")
 		}
-
 		mintAmount, baseFee, percFee := k.CalcAmountAndFees(ctx, pair, ev.Amount, true /* isPeggedDest */)
 		if mintAmount.Sign() <= 0 {
 			// TODO: Trigger refund, or just ignore?
@@ -51,11 +54,6 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		// refChainId is deposit chain ID, refId is deposit ID
 		mintId := types.CalcMintId(
 			ev.MintAccount, eth.Hex2Addr(mintTokenAddr), mintAmount, ev.Depositor, depositChainId, ev.DepositId)
-
-		if k.HasMintInfo(ctx, mintId) {
-			log.Infof("skip already applied pegbr deposit event. chainid %d depositId %x", depositChainId, ev.DepositId)
-			return false, nil
-		}
 
 		// Record DepositInfo
 		depositInfo := types.DepositInfo{
@@ -103,8 +101,12 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-
 		burnChainId := onchev.Chainid
+		if k.HasBurnInfo(ctx, ev.BurnId) {
+			log.Infof("skip already applied pegbr burn event. chainId %d burnId %x", burnChainId, ev.BurnId)
+			return false, nil
+		}
+
 		pair, pairFound := k.GetOrigPeggedPairByPegged(ctx, burnChainId, ev.Token)
 		if !pairFound {
 			return false, fmt.Errorf("pegged pair not exists")
@@ -121,11 +123,6 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		// refChainId is burn chain ID, refId is burn ID
 		withdrawId := types.CalcWithdrawId(
 			ev.WithdrawAccount, eth.Hex2Addr(wdTokenAddr), withdrawAmt, ev.Account, burnChainId, ev.BurnId)
-
-		if k.HasWithdrawInfo(ctx, withdrawId) {
-			log.Infof("skip already applied pegbr burn event. chainId %d burnId %x", burnChainId, ev.BurnId)
-			return false, nil
-		}
 
 		// Record BurnInfo
 		burnInfo := types.BurnInfo{

@@ -412,16 +412,13 @@ func (c *CbrOneChain) skipSyncPegbrDeposit(
 		validCache[cacheKey] = pair.Pegged.Address != ""
 	}
 
-	// TODO: just query deposit info should be enough ?
-	mintId := pegbrtypes.CalcMintId(
-		ev.MintAccount, eth.Hex2Addr(pair.Pegged.GetAddress()), ev.Amount, ev.Depositor, c.chainid, ev.DepositId)
-	resp, err := pegbrcli.QueryMintInfo(cliCtx, mintId.Hex())
+	resp, err := pegbrcli.QueryDepositInfo(cliCtx, eth.Bytes2Hex(ev.DepositId[:]))
 	if err != nil && !strings.Contains(err.Error(), "no info found") {
 		// log only, will not skip if request failed
-		log.Errorf("QueryMintInfo err: %s", err)
+		log.Errorf("QueryDepositInfo err: %s", err)
 		return
 	}
-	if resp.MintProtoBytes != nil {
+	if resp.DepositId != nil {
 		return true, fmt.Sprintf("deposit %x already synced", ev.DepositId)
 	}
 
@@ -467,16 +464,13 @@ func (c *CbrOneChain) skipSyncPegbrBurn(
 		validCache[cacheKey] = pair.Orig.Address != ""
 	}
 
-	// TODO: just query burn info should be enough ?
-	wdId := pegbrtypes.CalcWithdrawId(
-		ev.WithdrawAccount, eth.Hex2Addr(pair.Orig.Address), ev.Amount, ev.Account, c.chainid, ev.BurnId)
-	resp, err := pegbrcli.QueryWithdrawInfo(cliCtx, wdId.Hex())
+	resp, err := pegbrcli.QueryBurnInfo(cliCtx, eth.Bytes2Hex(ev.BurnId[:]))
 	if err != nil && !strings.Contains(err.Error(), "no info found") {
 		// log only, will not skip if request failed
-		log.Errorf("QueryWithdrawInfo err: %s", err)
+		log.Errorf("QueryBurnInfo err: %s", err)
 		return
 	}
-	if resp.WithdrawProtoBytes != nil {
+	if resp.BurnId != nil {
 		return true, fmt.Sprintf("burn %x already synced", ev.BurnId)
 	}
 
