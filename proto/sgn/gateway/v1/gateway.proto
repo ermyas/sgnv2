@@ -21,6 +21,13 @@ service Web {
     };
   }
 
+  // include disabled tokens
+  rpc GetTransferConfigsForAll(GetTransferConfigsRequest) returns (GetTransferConfigsResponse) {
+    option (google.api.http) = {
+      get: "/v1/getTransferConfigsForAll"
+    };
+  }
+
   // get chain and token info
   rpc GetTokenInfo(GetTokenInfoRequest) returns (GetTokenInfoResponse) {
     option (google.api.http) = {

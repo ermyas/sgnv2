@@ -36,52 +36,22 @@ func (gs *GatewayService) GetTransferConfigs(ctx context.Context, request *webap
 			ChainToken: nil,
 		}, nil
 	}
-	var chainIds []uint32
-	for key := range chainTokenList {
-		chainIds = append(chainIds, key)
-	}
-	chains, err := dal.DB.GetChainInfo(chainIds)
-	chainFound := make(map[uint32]bool)
-	for _, chain := range chains {
-		chainFound[chain.Id] = true
-		enrichChainUiInfo(chain)
-	}
-	for chainId, tokens := range chainTokenList {
-		_, found := chainFound[chainId]
-		if !found {
-			chains = append(chains, unknownChain(chainId))
-		}
-		for _, token := range tokens.Token {
-			enrichUnknownToken(token)
-		}
-	}
+	return gs.wrapChainTokens(chainTokenList)
+}
+
+func (gs *GatewayService) GetTransferConfigsForAll(ctx context.Context, request *webapi.GetTransferConfigsRequest) (*webapi.GetTransferConfigsResponse, error) {
+	chainTokenList, err := dal.DB.GetChainTokenList()
 	if err != nil {
 		return &webapi.GetTransferConfigsResponse{
 			Err: &webapi.ErrMsg{
 				Code: webapi.ErrCode_ERROR_CODE_COMMON,
-				Msg:  "get chain info failed",
+				Msg:  "get chain_token failed",
 			},
-			Chains:     chains,
-			ChainToken: chainTokenList,
+			Chains:     nil,
+			ChainToken: nil,
 		}, nil
 	}
-
-	resp := &webapi.GetTransferConfigsResponse{
-		Err:                       nil,
-		Chains:                    chains,
-		ChainToken:                chainTokenList,
-		FarmingRewardContractAddr: viper.GetString(common.FlagEthContractFarmingRewards),
-	}
-
-	// get pegged config
-	peggedConfigs, getPeggedConfigErr := gs.GetAllValidPeggedPairs()
-	if getPeggedConfigErr != nil {
-		log.Errorf("fail to find any valid pegged pair config, err:%s", getPeggedConfigErr.Error())
-	} else {
-		resp.PeggedPairConfigs = peggedConfigs
-	}
-
-	return resp, nil
+	return gs.wrapChainTokens(chainTokenList)
 }
 
 func (gs *GatewayService) GetTokenInfo(ctx context.Context, request *webapi.GetTokenInfoRequest) (*webapi.GetTokenInfoResponse, error) {
@@ -539,6 +509,56 @@ func (gs *GatewayService) setAvgLpFeeEarningApy() {
 			_ = dal.DB.InsertApy(apyStr)
 		}
 	}
+}
+
+func (gs *GatewayService) wrapChainTokens(chainTokenList map[uint32]*webapi.ChainTokenInfo) (*webapi.GetTransferConfigsResponse, error) {
+	var chainIds []uint32
+	for key := range chainTokenList {
+		chainIds = append(chainIds, key)
+	}
+	chains, err := dal.DB.GetChainInfo(chainIds)
+	chainFound := make(map[uint32]bool)
+	for _, chain := range chains {
+		chainFound[chain.Id] = true
+		enrichChainUiInfo(chain)
+	}
+	for chainId, tokens := range chainTokenList {
+		_, found := chainFound[chainId]
+		if !found {
+			chains = append(chains, unknownChain(chainId))
+		}
+		for _, token := range tokens.Token {
+			enrichUnknownToken(token)
+		}
+	}
+	if err != nil {
+		return &webapi.GetTransferConfigsResponse{
+			Err: &webapi.ErrMsg{
+				Code: webapi.ErrCode_ERROR_CODE_COMMON,
+				Msg:  "get chain info failed",
+			},
+			Chains:     chains,
+			ChainToken: chainTokenList,
+		}, nil
+	}
+
+	resp := &webapi.GetTransferConfigsResponse{
+		Err:                       nil,
+		Chains:                    chains,
+		ChainToken:                chainTokenList,
+		FarmingRewardContractAddr: viper.GetString(common.FlagEthContractFarmingRewards),
+	}
+
+	// get pegged config
+	peggedConfigs, getPeggedConfigErr := gs.GetAllValidPeggedPairs()
+	if getPeggedConfigErr != nil {
+		log.Errorf("fail to find any valid pegged pair config, err:%s", getPeggedConfigErr.Error())
+	} else {
+		resp.PeggedPairConfigs = peggedConfigs
+	}
+
+	return resp, nil
+
 }
 
 func marshalApy(apyMap map[uint64]map[string]float64) string {

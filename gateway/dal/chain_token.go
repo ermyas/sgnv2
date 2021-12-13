@@ -146,12 +146,12 @@ func (d *DAL) getTokenByAddr(addr string, chainId uint64) (*webapi.TokenInfo, bo
 }
 
 func (d *DAL) GetEnabledChainTokenList() (map[uint32]*webapi.ChainTokenInfo, error) {
-	q := `SELECT symbol, chain_id, address, decimal, name, icon FROM token where disabled = false`
+	q := `SELECT symbol, chain_id, address, decimal, name, icon, disabled FROM token where disabled = false`
 	return d.getChainTokenList(q)
 }
 
 func (d *DAL) GetChainTokenList() (map[uint32]*webapi.ChainTokenInfo, error) {
-	q := `SELECT symbol, chain_id, address, decimal, name, icon FROM token`
+	q := `SELECT symbol, chain_id, address, decimal, name, icon, disabled FROM token`
 	return d.getChainTokenList(q)
 }
 
@@ -165,19 +165,21 @@ func (d *DAL) getChainTokenList(q string) (map[uint32]*webapi.ChainTokenInfo, er
 	var symbol, addr string
 	var chainId, decimal uint32
 	var name, icon string
+	var disabled bool
 
 	resp := make(map[uint32]*webapi.ChainTokenInfo)
 	for rows.Next() {
-		err = rows.Scan(&symbol, &chainId, &addr, &decimal, &name, &icon)
+		err = rows.Scan(&symbol, &chainId, &addr, &decimal, &name, &icon, &disabled)
 		if err != nil {
 			return nil, err
 		}
 		tps, found := resp[chainId]
 		tp := &webapi.TokenInfo{
 			Token: &types.Token{
-				Symbol:  symbol,
-				Address: addr,
-				Decimal: int32(decimal),
+				Symbol:       symbol,
+				Address:      addr,
+				Decimal:      int32(decimal),
+				XferDisabled: disabled,
 			},
 			Name: name,
 			Icon: icon,
