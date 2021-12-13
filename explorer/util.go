@@ -62,7 +62,7 @@ var tokenSymbolTokenIds = map[string]string{
 	"DODO":  "dodo",
 	"MCB":   "mcdex",
 	"CELO":  "celo",
-	// "LYRA":  "scrypta", not right now, use 0.5 mock
+	"LYRA":  "LYRA", //not right now, use 0.5 mock
 	"IMX":   "impermax",
 }
 
@@ -89,7 +89,7 @@ func GetUsdPrices() (map[string]float64, error) {
 	for tokenId, vsTokenPrices := range *tokenPrices {
 		newPrices[tokenId] = vsTokenPrices["usd"]
 	}
-	// TODO here is fo hard code usd price
+	// TODO here is fo hard code usd price, also add token id in the map above, as we use token id to get usd price
 	newPrices["LYRA"] = 0.5
 	log.Infof("new prices:%+v", newPrices)
 	return newPrices, nil
