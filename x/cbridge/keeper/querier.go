@@ -197,7 +197,7 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 	var params types.GetFeeRequest
 	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse params: %w", err)
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
 	src := &ChainIdTokenAddr{
@@ -222,7 +222,7 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 		Decimal:          destToken.Decimal,
 	}, srcAmt, eth.Hex2Addr(params.LpAddr))
 	if err != nil {
-		return nil, fmt.Errorf("failed to compute dest amt: %w", err)
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInsufficientFunds, err.Error())
 	}
 
 	resp := types.GetFeeResponse{
@@ -235,7 +235,7 @@ func queryFee(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc
 	}
 	res, err := k.cdc.Marshal(&resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal response: %w", err)
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
 	return res, nil
