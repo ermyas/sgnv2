@@ -64,6 +64,7 @@ var tokenSymbolTokenIds = map[string]string{
 	"CELO":  "celo",
 	"LYRA":  "LYRA", //not right now, use 0.5 mock
 	"IMX":   "impermax",
+	"BOBA":  "boba-network",
 }
 
 func GetUsdPrices() (map[string]float64, error) {
