@@ -415,7 +415,7 @@ func (gs *GatewayService) getPeggedEstimatedFeeInfo(srcChainId, dstChainId uint6
 	if !foundPegged {
 		return nil, fmt.Errorf("no such token pair for pegged, srcChainId:%d, dstChainId:%d, symbol:%s", srcChainId, dstChainId, symbol)
 	}
-	var isMint bool
+	isMint := org.ChainId == srcChainId
 	tr := onchain.SGNTransactors.GetTransactor()
 	getFeeRequest := &pegtypes.QueryEstimatedAmountFeesRequest{
 		Pair: pegtypes.OrigPeggedPair{
