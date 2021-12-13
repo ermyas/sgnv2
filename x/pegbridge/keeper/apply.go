@@ -90,8 +90,8 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 
 		ctx.EventManager().EmitEvent(sdk.NewEvent(
 			types.EventTypeMintToSign,
-			sdk.NewAttribute(types.AttributeKeyData, mintId.Hex()),
-			sdk.NewAttribute(types.AttributeKeyData, strconv.FormatUint(ev.MintChainId, 10)),
+			sdk.NewAttribute(types.AttributeKeyMintId, mintId.Hex()),
+			sdk.NewAttribute(types.AttributeKeyMintChainId, strconv.FormatUint(ev.MintChainId, 10)),
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 		))
 
@@ -160,8 +160,8 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 
 		ctx.EventManager().EmitEvent(sdk.NewEvent(
 			types.EventTypeWithdrawToSign,
-			sdk.NewAttribute(types.AttributeKeyData, withdrawId.Hex()),
-			sdk.NewAttribute(types.AttributeKeyData, strconv.FormatUint(withdrawChainId, 10)),
+			sdk.NewAttribute(types.AttributeKeyWithdrawId, withdrawId.Hex()),
+			sdk.NewAttribute(types.AttributeKeyWithdrawChainId, strconv.FormatUint(withdrawChainId, 10)),
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 		))
 

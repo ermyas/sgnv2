@@ -206,40 +206,43 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 			if tmEventType != tm.EventTx && tmEventType != tm.EventNewBlock {
 				return
 			}
-			dataArr := events[fmt.Sprintf("%s.%s", pegbrtypes.EventTypeMintToSign, pegbrtypes.AttributeKeyData)]
-			mintId := dataArr[0]
-			mintChainId, _ := strconv.ParseUint(dataArr[1], 10, 64)
 
-			// sign data first
-			mintInfo, err := pegbrcli.QueryMintInfo(r.Transactor.CliCtx, mintId)
-			if err != nil {
-				log.Error(err)
-				return
-			}
+			mintIds := events[fmt.Sprintf("%s.%s", pegbrtypes.EventTypeMintToSign, pegbrtypes.AttributeKeyMintId)]
+			mintChainIds := events[fmt.Sprintf("%s.%s", pegbrtypes.EventTypeMintToSign, pegbrtypes.AttributeKeyMintChainId)]
+			for i, mintId := range mintIds {
+				mintChainId, _ := strconv.ParseUint(mintChainIds[i], 10, 64)
 
-			mintOnChain := new(pegbrtypes.MintOnChain)
-			err = mintOnChain.Unmarshal(mintInfo.MintProtoBytes)
-			if err != nil {
-				log.Errorf("Unmarshal mintInfo.MintProtoBytes err %s", err)
-				return
-			}
+				// sign data first
+				mintInfo, err := pegbrcli.QueryMintInfo(r.Transactor.CliCtx, mintId)
+				if err != nil {
+					log.Error(err)
+					return
+				}
 
-			sig, err := r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(r.cbrMgr[mintChainId].pegContracts.bridge.Address))
-			if err != nil {
-				log.Error(err)
-				return
-			}
+				mintOnChain := new(pegbrtypes.MintOnChain)
+				err = mintOnChain.Unmarshal(mintInfo.MintProtoBytes)
+				if err != nil {
+					log.Errorf("Unmarshal mintInfo.MintProtoBytes err %s", err)
+					return
+				}
 
-			msg := &pegbrtypes.MsgSignMint{
-				MintId:    mintId,
-				Signature: sig,
-				Sender:    r.Transactor.Key.GetAddress().String(),
-			}
-			r.Transactor.AddTxMsg(msg)
-			mintRequest := NewMintRequest(eth.Hex2Bytes(mintId), mintChainId, mintOnChain.RefChainId, mintOnChain.RefId)
-			err = r.dbSet(GetPegbrMintKey(mintChainId, mintRequest.DepositChainId, mintRequest.DepositId), mintRequest.MustMarshal())
-			if err != nil {
-				log.Errorf("db Set err: %s", err)
+				sig, err := r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(r.cbrMgr[mintChainId].pegContracts.bridge.Address))
+				if err != nil {
+					log.Error(err)
+					return
+				}
+
+				msg := &pegbrtypes.MsgSignMint{
+					MintId:    mintId,
+					Signature: sig,
+					Sender:    r.Transactor.Key.GetAddress().String(),
+				}
+				r.Transactor.AddTxMsg(msg)
+				mintRequest := NewMintRequest(eth.Hex2Bytes(mintId), mintChainId, mintOnChain.RefChainId, mintOnChain.RefId)
+				err = r.dbSet(GetPegbrMintKey(mintChainId, mintRequest.DepositChainId, mintRequest.DepositId), mintRequest.MustMarshal())
+				if err != nil {
+					log.Errorf("db Set err: %s", err)
+				}
 			}
 		})
 }
@@ -256,45 +259,48 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 			if tmEventType != tm.EventTx && tmEventType != tm.EventNewBlock {
 				return
 			}
-			dataArr := events[fmt.Sprintf("%s.%s", pegbrtypes.EventTypeWithdrawToSign, pegbrtypes.AttributeKeyData)]
-			wdId := dataArr[0]
-			wdChainId, _ := strconv.ParseUint(dataArr[1], 10, 64)
 
-			// sign data first
-			wdInfo, err := pegbrcli.QueryWithdrawInfo(r.Transactor.CliCtx, wdId)
-			if err != nil {
-				log.Error(err)
-				return
-			}
+			wdIds := events[fmt.Sprintf("%s.%s", pegbrtypes.EventTypeWithdrawToSign, pegbrtypes.AttributeKeyWithdrawId)]
+			wdChainIds := events[fmt.Sprintf("%s.%s", pegbrtypes.EventTypeWithdrawToSign, pegbrtypes.AttributeKeyWithdrawChainId)]
+			for i, wdId := range wdIds {
+				wdChainId, _ := strconv.ParseUint(wdChainIds[i], 10, 64)
 
-			wdOnChain := new(pegbrtypes.WithdrawOnChain)
-			err = wdOnChain.Unmarshal(wdInfo.WithdrawProtoBytes)
-			if err != nil {
-				log.Errorf("Unmarshal wdInfo.WithdrawProtoBytes err %s", err)
-				return
-			}
+				// sign data first
+				wdInfo, err := pegbrcli.QueryWithdrawInfo(r.Transactor.CliCtx, wdId)
+				if err != nil {
+					log.Error(err)
+					return
+				}
 
-			sig, err := r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(r.cbrMgr[wdChainId].pegContracts.vault.Address))
-			if err != nil {
-				log.Error(err)
-				return
-			}
+				wdOnChain := new(pegbrtypes.WithdrawOnChain)
+				err = wdOnChain.Unmarshal(wdInfo.WithdrawProtoBytes)
+				if err != nil {
+					log.Errorf("Unmarshal wdInfo.WithdrawProtoBytes err %s", err)
+					return
+				}
 
-			msg := &pegbrtypes.MsgSignWithdraw{
-				WithdrawId: wdId,
-				Signature:  sig,
-				Sender:     r.Transactor.Key.GetAddress().String(),
-			}
-			r.Transactor.AddTxMsg(msg)
+				sig, err := r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(r.cbrMgr[wdChainId].pegContracts.vault.Address))
+				if err != nil {
+					log.Error(err)
+					return
+				}
 
-			// RefChainId = 0 means fee claim, don't add a WithdrawRequest
-			if wdOnChain.RefChainId == 0 {
-				return
-			}
-			wdRequest := NewWithdrawRequest(eth.Hex2Bytes(wdId), wdChainId, wdOnChain.RefChainId, wdOnChain.RefId)
-			err = r.dbSet(GetPegbrWdKey(wdChainId, wdOnChain.RefChainId, wdOnChain.RefId), wdRequest.MustMarshal())
-			if err != nil {
-				log.Errorf("db Set err: %s", err)
+				msg := &pegbrtypes.MsgSignWithdraw{
+					WithdrawId: wdId,
+					Signature:  sig,
+					Sender:     r.Transactor.Key.GetAddress().String(),
+				}
+				r.Transactor.AddTxMsg(msg)
+
+				// RefChainId = 0 means fee claim, don't add a WithdrawRequest
+				if wdOnChain.RefChainId == 0 {
+					return
+				}
+				wdRequest := NewWithdrawRequest(eth.Hex2Bytes(wdId), wdChainId, wdOnChain.RefChainId, wdOnChain.RefId)
+				err = r.dbSet(GetPegbrWdKey(wdChainId, wdOnChain.RefChainId, wdOnChain.RefId), wdRequest.MustMarshal())
+				if err != nil {
+					log.Errorf("db Set err: %s", err)
+				}
 			}
 		})
 }

@@ -111,8 +111,8 @@ func (k msgServer) TriggerSignMint(goCtx context.Context, msg *types.MsgTriggerS
 	k.SetMintInfo(sdkCtx, mindId, mintInfo)
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeMintToSign,
-		sdk.NewAttribute(types.AttributeKeyData, msg.MintId),
-		sdk.NewAttribute(types.AttributeKeyData, strconv.FormatUint(mintInfo.ChainId, 10)),
+		sdk.NewAttribute(types.AttributeKeyMintId, msg.MintId),
+		sdk.NewAttribute(types.AttributeKeyMintChainId, strconv.FormatUint(mintInfo.ChainId, 10)),
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 	))
 	log.Infof("x/pegbr trigger sign mint, mintId %x", mindId)
@@ -144,8 +144,8 @@ func (k msgServer) TriggerSignWithdraw(goCtx context.Context, msg *types.MsgTrig
 	k.SetWithdrawInfo(sdkCtx, withdrawId, wdInfo)
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeWithdrawToSign,
-		sdk.NewAttribute(types.AttributeKeyData, msg.WithdrawId),
-		sdk.NewAttribute(types.AttributeKeyData, strconv.FormatUint(wdInfo.ChainId, 10)),
+		sdk.NewAttribute(types.AttributeKeyWithdrawId, msg.WithdrawId),
+		sdk.NewAttribute(types.AttributeKeyWithdrawChainId, strconv.FormatUint(wdInfo.ChainId, 10)),
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 	))
 	log.Infof("x/pegbr trigger sign Withdraw, withdrawId %x", withdrawId)
@@ -200,8 +200,8 @@ func (k msgServer) ClaimFee(goCtx context.Context, msg *types.MsgClaimFee) (*typ
 	// Emit event for validators to sign
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeWithdrawToSign,
-		sdk.NewAttribute(types.AttributeKeyData, withdrawId.Hex()),
-		sdk.NewAttribute(types.AttributeKeyData, strconv.FormatUint(msg.ChainId, 10)),
+		sdk.NewAttribute(types.AttributeKeyWithdrawId, withdrawId.Hex()),
+		sdk.NewAttribute(types.AttributeKeyWithdrawChainId, strconv.FormatUint(msg.ChainId, 10)),
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 	))
 

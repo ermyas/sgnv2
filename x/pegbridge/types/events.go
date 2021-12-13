@@ -11,7 +11,10 @@ const (
 	EventTypeMintToSign     = "mint_to_sign"
 	EventTypeWithdrawToSign = "withdraw_to_sign"
 
-	AttributeKeyData = "data" // raw msg to be signed
+	AttributeKeyMintId          = "mint_id"
+	AttributeKeyMintChainId     = "mint_chain_id"
+	AttributeKeyWithdrawId      = "withdraw_id"
+	AttributeKeyWithdrawChainId = "withdraw_chain_id"
 
 	// due to async nature, we have to use event to tell caller the msg grpc response
 	EventTypeMsgResp    = "msg_resp"
