@@ -372,5 +372,5 @@ func sendGasOnArrival(c *ethclient.Client, transferId string) {
 		log.Errorf("send gas on arrival to %x on chain %d dropGasAmt %s, WaitMined err %v", userAddr, transfer.DstChainId, dropGasAmt.String(), err)
 		return
 	}
-	log.Infoln("send gas on arrival to ", userAddr, " on chain ", transfer.DstChainId, " dropGasAmt:", dropGasAmt)
+	log.Infoln("send gas on arrival to ", userAddr, " on chain ", transfer.DstChainId, ", transferId:", transferId, ", dropGasAmt:", dropGasAmt)
 }
