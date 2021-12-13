@@ -62,7 +62,7 @@ var tokenSymbolTokenIds = map[string]string{
 	"DODO":  "dodo",
 	"MCB":   "mcdex",
 	"CELO":  "celo",
-	"LYRA":  "scrypta",
+	// "LYRA":  "scrypta", not right now, use 0.5 mock
 	"IMX":   "impermax",
 }
 
