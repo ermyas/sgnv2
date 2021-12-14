@@ -327,13 +327,7 @@ type PeggedConfig struct {
 }
 
 func (d *DAL) UpdateMintTokenUIInfo(symbol string, chainId uint64, name, icon string) error {
-	q := `UPDATE pegged_config set orig_token_name=$3, orig_token_icon=$4 where orig_token_symbol=$1 and orig_chain_id=$2`
-	_, err := d.Exec(q, symbol, chainId, name, icon)
-	return err
-}
-
-func (d *DAL) UpdatePeggedOrgTokenUIInfo(symbol string, chainId uint64, name, icon string) error {
-	q := `UPDATE pegged_config set pegged_chain_name=$3, pegged_chain_icon=$4 where pegged_chain_symbol=$1 and pegged_chain_id=$2`
+	q := `UPDATE pegged_config set orig_token_name=$3, orig_token_icon=$4, pegged_token_name=$3, pegged_token_icon=$4 where orig_token_symbol=$1 and orig_chain_id=$2`
 	_, err := d.Exec(q, symbol, chainId, name, icon)
 	return err
 }

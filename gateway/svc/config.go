@@ -116,10 +116,6 @@ func (gs *GatewayService) UpdateToken(ctx context.Context, request *webapi.Updat
 	if dbErr2 != nil {
 		log.Errorf("fail to UpdateMintTokenUIInfo, err:%s", dbErr2.Error())
 	}
-	dbErr3 := dal.DB.UpdatePeggedOrgTokenUIInfo(tokenSymbol, chainId, name, icon)
-	if dbErr3 != nil {
-		log.Errorf("fail to UpdatePeggedOrgTokenUIInfo, err:%s", dbErr3.Error())
-	}
 	tokenInDb, _, _ = dal.DB.GetTokenBySymbol(tokenSymbol, chainId)
 	return &webapi.UpdateTokenResponse{
 		Token: tokenInDb,
