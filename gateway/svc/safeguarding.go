@@ -100,18 +100,29 @@ func (gs *GatewayService) AlertAbnormalBalance() {
 				wd, _ := dw.withdraw.Float64()
 				dp, _ := dw.deposit.Float64()
 				blc, _ := balance.Float64()
-				alerts = append(alerts, &utils.BalanceAlert{
-					Token:    tokenSymbol,
-					Balance:  fmt.Sprintf("%.6f", blc),
-					Addr:     usrAddr,
-					Withdraw: fmt.Sprintf("%.6f", wd),
-					Deposit:  fmt.Sprintf("%.6f", dp),
-				})
+				if !checkBlcAlertSent(usrAddr, tokenSymbol, fmt.Sprintf("%.6f", wd), fmt.Sprintf("%.6f", dp)) {
+					alerts = append(alerts, &utils.BalanceAlert{
+						Token:    tokenSymbol,
+						Balance:  fmt.Sprintf("%.6f", blc),
+						Addr:     usrAddr,
+						Withdraw: fmt.Sprintf("%.6f", wd),
+						Deposit:  fmt.Sprintf("%.6f", dp),
+					})
+				}
 			}
 		}
 	}
 	if alerts != nil && len(alerts) > 0 {
 		utils.SendBalanceAlert(alerts)
+	}
+}
+
+func checkBlcAlertSent(addr, token, wd, dp string) bool {
+	if dal.DB.HasBlcAlerted(addr, token, wd, dp) {
+		return true
+	} else {
+		dal.DB.UpdateBlcAlerted(addr, token, wd, dp)
+		return false
 	}
 }
 
