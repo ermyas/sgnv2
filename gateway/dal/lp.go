@@ -383,9 +383,10 @@ func (d *DAL) GetAddLPHistoryWithStatus(status types.WithdrawStatus, startTime, 
 		}
 
 		tp := &utils.StatusAlertInfo{
-			ChainId: chainId,
-			TxHash:  txHash,
-			Ut:      ut,
+			ChainId:  chainId,
+			TxHash:   txHash,
+			Ut:       ut,
+			IsPegged: false,
 		}
 		tps = append(tps, tp)
 	}

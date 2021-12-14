@@ -30,9 +30,10 @@ type BalanceAlert struct {
 }
 
 type StatusAlertInfo struct {
-	ChainId uint64
-	TxHash  string
-	Ut      time.Time
+	ChainId  uint64
+	TxHash   string
+	Ut       time.Time
+	IsPegged bool
 }
 
 func SendBalanceAlert(alerts []*BalanceAlert) {
@@ -51,7 +52,11 @@ func SendBalanceAlert(alerts []*BalanceAlert) {
 func SendStatusAlert(alerts []*StatusAlertInfo, key string) {
 	msg := "find abnormal status, " + key + ":\n"
 	for _, alert := range alerts {
-		msg = msg + fmt.Sprintf("chainId:`%d`, txHash:`%s`, updateTime:`%s` \n", alert.ChainId, alert.TxHash, alert.Ut)
+		msg = msg + fmt.Sprintf("chainId:`%d`, txHash:`%s`, updateTime:`%s`", alert.ChainId, alert.TxHash, alert.Ut)
+		if alert.IsPegged {
+			msg = msg + ", note: this is pegged"
+		}
+		msg = msg + " \n"
 	}
 	log.Warnf(msg)
 	if viper.GetString("env") == "prod" {
