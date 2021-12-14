@@ -121,3 +121,22 @@ func (d *DAL) InsertApy(apyJson string) error {
 	res, err := d.Exec(q, apyJson, now())
 	return sqldb.ChkExec(res, err, 1, "InsertApy")
 }
+
+func (d *DAL) HasBlcAlerted(addr, token, wd, dp string) bool {
+	var cnt uint64
+	q := `SELECT count(1) FROM last_blc_alert WHERE usr_addr = $1 and token = $2 and wd = $3 and dp = $4`
+	err := d.QueryRow(q, addr, token, wd, dp).Scan(&cnt)
+	if err != nil {
+		log.Errorf("run sql HasBlcAlerted failed, err%+v", err)
+		return false
+	}
+	return cnt > 0
+}
+
+func (d *DAL) UpdateBlcAlerted(addr, token, wd, dp string) error {
+	q := `INSERT INTO last_blc_alert (usr_addr, token, wd, dp)
+                VALUES ($1, $2, $3, $4)  ON CONFLICT (usr_addr, token) DO UPDATE
+	SET wd = $3, dp = $4`
+	res, err := d.Exec(q, addr, token, wd, dp)
+	return sqldb.ChkExec(res, err, 1, "UpdateBlcAlerted")
+}

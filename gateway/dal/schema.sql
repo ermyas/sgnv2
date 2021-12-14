@@ -174,4 +174,10 @@ CREATE TABLE IF NOT EXISTS token_id (
     id TEXT NOT NULL
 );
 
-
+CREATE TABLE IF NOT EXISTS last_blc_alert (
+    usr_addr TEXT NOT NULL,
+    token TEXT NOT NULL,
+    wd TEXT NOT NULL,
+    dp TEXT NOT NULL,
+    PRIMARY KEY (usr_addr, token)
+);
