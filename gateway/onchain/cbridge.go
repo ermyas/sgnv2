@@ -406,12 +406,17 @@ func (c *OneChain) monPegbrDelayWithdrawAdd(blk *big.Int) {
 	if c.GetOtvContract().Address == eth.ZeroAddr {
 		return
 	}
+	blkDelay := c.blkDelay - 2
+	if blkDelay < 2 {
+		blkDelay = 2
+	}
 	cfg := &monitor.Config{
 		ChainId:      c.chainid,
 		EventName:    types.CbrEventDelayXferAdd,
 		Contract:     c.GetOtvContract(),
 		StartBlock:   blk,
 		ForwardDelay: c.forwardBlkDelay,
+		BlockDelay:   blkDelay,
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.GetOtvContract().ParseDelayedTransferAdded(eLog)
@@ -524,12 +529,17 @@ func (c *OneChain) monPegbrDelayMintAdd(blk *big.Int) {
 	if c.GetPtbContract().Address == eth.ZeroAddr {
 		return
 	}
+	blkDelay := c.blkDelay - 2
+	if blkDelay < 2 {
+		blkDelay = 2
+	}
 	cfg := &monitor.Config{
 		ChainId:      c.chainid,
 		EventName:    types.CbrEventDelayXferAdd,
 		Contract:     c.GetPtbContract(),
 		StartBlock:   blk,
 		ForwardDelay: c.forwardBlkDelay,
+		BlockDelay:   blkDelay,
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.GetPtbContract().ParseDelayedTransferAdded(eLog)

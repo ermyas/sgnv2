@@ -153,7 +153,6 @@ func (gs *GatewayService) EstimateAmt(ctx context.Context, request *webapi.Estim
 		}, nil
 	}
 	addr := eth.Hex2Addr(request.GetUsrAddr()).String()
-
 	resp, infoErr := gs.getEstimatedFeeInfo(addr, srcChainId, dstChainId, slippage, srcToken, dstToken, amt, false)
 	if infoErr != nil {
 		errCode := webapi.ErrCode_ERROR_CODE_COMMON
@@ -438,10 +437,11 @@ func (gs *GatewayService) getPeggedEstimatedFeeInfo(srcChainId, dstChainId uint6
 	percFee := feeInfo.GetPercentageFee()
 	baseFee := feeInfo.GetBaseFee()
 	return &webapi.EstimateAmtResponse{
-		EqValueTokenAmt: eqValueTokenAmt,
-		BridgeRate:      1.0, // always 1
-		PercFee:         percFee,
-		BaseFee:         baseFee,
+		EqValueTokenAmt:     eqValueTokenAmt,
+		BridgeRate:          1.0, // always 1
+		PercFee:             percFee,
+		BaseFee:             baseFee,
+		EstimatedReceiveAmt: eqValueTokenAmt,
 	}, nil
 }
 
@@ -482,12 +482,14 @@ func (gs *GatewayService) getEstimatedFeeInfo(addr string, srcChainId, dstChainI
 	feeVolume, _ := rmAmtDecimal(feeAmt.String(), int(dstToken.GetToken().GetDecimal())).Float64()
 	minReceiveVolume := dstVolume*(1-float64(slippage)/1e6) - feeVolume
 	minReceiveVolume = math.Max(minReceiveVolume, 0)
+	estimateReceivedAmt := new(big.Int).Sub(common.Str2BigInt(eqValueTokenAmt), feeAmt)
 	return &webapi.EstimateAmtResponse{
-		EqValueTokenAmt:   eqValueTokenAmt,
-		BridgeRate:        float32(bridgeRate),
-		PercFee:           percFee,
-		BaseFee:           baseFee,
-		SlippageTolerance: slippage,
-		MaxSlippage:       uint32(math.Max((srcVolume-minReceiveVolume)*1e6/srcVolume, minimalMaxSlippage)),
+		EqValueTokenAmt:     eqValueTokenAmt,
+		BridgeRate:          float32(bridgeRate),
+		PercFee:             percFee,
+		BaseFee:             baseFee,
+		SlippageTolerance:   slippage,
+		MaxSlippage:         uint32(math.Max((srcVolume-minReceiveVolume)*1e6/srcVolume, minimalMaxSlippage)),
+		EstimatedReceiveAmt: estimateReceivedAmt.String(),
 	}, nil
 }
