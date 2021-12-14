@@ -92,10 +92,18 @@ func GetCmdQueryDeposit() *cobra.Command {
 			depositId := args[0]
 			deposit, err := QueryDepositInfo(cliCtx, depositId)
 			if err != nil {
-				log.Errorln("query error", err)
-				return err
+				return fmt.Errorf("query deposit err: %w", err)
 			}
+			fmt.Println("Deposit Info:")
 			fmt.Println(deposit.String())
+			if deposit.MintId != nil {
+				mint, err := QueryMintInfo(cliCtx, eth.Bytes2Hex(deposit.MintId))
+				if err != nil {
+					return fmt.Errorf("query mint err: %w", err)
+				}
+				fmt.Println("Mint Info:")
+				fmt.Println(mint.String())
+			}
 			return nil
 		},
 	}
@@ -115,9 +123,9 @@ func GetCmdQueryWithdraw() *cobra.Command {
 			withdrawId := args[0]
 			withdraw, err := QueryWithdrawInfo(cliCtx, withdrawId)
 			if err != nil {
-				log.Errorln("query error", err)
-				return err
+				return fmt.Errorf("query withdraw err: %w", err)
 			}
+			fmt.Println("Withdraw Info:")
 			fmt.Println(withdraw.String())
 			return nil
 		},
@@ -138,9 +146,9 @@ func GetCmdQueryMint() *cobra.Command {
 			mintId := args[0]
 			mint, err := QueryMintInfo(cliCtx, mintId)
 			if err != nil {
-				log.Errorln("query error", err)
-				return err
+				return fmt.Errorf("query mint err: %w", err)
 			}
+			fmt.Println("Mint Info:")
 			fmt.Println(mint.String())
 			return nil
 		},
@@ -161,10 +169,18 @@ func GetCmdQueryBurn() *cobra.Command {
 			burnId := args[0]
 			burn, err := QueryBurnInfo(cliCtx, burnId)
 			if err != nil {
-				log.Errorln("query error", err)
-				return err
+				return fmt.Errorf("query burn err: %w", err)
 			}
+			fmt.Println("Burn Info:")
 			fmt.Println(burn.String())
+			if burn.WithdrawId != nil {
+				withdraw, err := QueryWithdrawInfo(cliCtx, eth.Bytes2Hex(burn.WithdrawId))
+				if err != nil {
+					return fmt.Errorf("query withdraw err: %w", err)
+				}
+				fmt.Println("Withdraw Info:")
+				fmt.Println(withdraw.String())
+			}
 			return nil
 		},
 	}
