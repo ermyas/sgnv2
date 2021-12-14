@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 
 	ethutils "github.com/celer-network/goutils/eth"
 	log "github.com/celer-network/goutils/log"
@@ -112,7 +111,6 @@ func (k msgServer) TriggerSignMint(goCtx context.Context, msg *types.MsgTriggerS
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeMintToSign,
 		sdk.NewAttribute(types.AttributeKeyMintId, msg.MintId),
-		sdk.NewAttribute(types.AttributeKeyMintChainId, strconv.FormatUint(mintInfo.ChainId, 10)),
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 	))
 	log.Infof("x/pegbr trigger sign mint, mintId %x", mindId)
@@ -145,7 +143,6 @@ func (k msgServer) TriggerSignWithdraw(goCtx context.Context, msg *types.MsgTrig
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeWithdrawToSign,
 		sdk.NewAttribute(types.AttributeKeyWithdrawId, msg.WithdrawId),
-		sdk.NewAttribute(types.AttributeKeyWithdrawChainId, strconv.FormatUint(wdInfo.ChainId, 10)),
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 	))
 	log.Infof("x/pegbr trigger sign Withdraw, withdrawId %x", withdrawId)
@@ -202,7 +199,6 @@ func (k msgServer) ClaimFee(goCtx context.Context, msg *types.MsgClaimFee) (*typ
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeWithdrawToSign,
 		sdk.NewAttribute(types.AttributeKeyWithdrawId, withdrawId.Hex()),
-		sdk.NewAttribute(types.AttributeKeyWithdrawChainId, strconv.FormatUint(msg.ChainId, 10)),
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 	))
 

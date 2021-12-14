@@ -208,9 +208,7 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 			}
 
 			mintIds := events[fmt.Sprintf("%s.%s", pegbrtypes.EventTypeMintToSign, pegbrtypes.AttributeKeyMintId)]
-			mintChainIds := events[fmt.Sprintf("%s.%s", pegbrtypes.EventTypeMintToSign, pegbrtypes.AttributeKeyMintChainId)]
-			for i, mintId := range mintIds {
-				mintChainId, _ := strconv.ParseUint(mintChainIds[i], 10, 64)
+			for _, mintId := range mintIds {
 
 				// sign data first
 				mintInfo, err := pegbrcli.QueryMintInfo(r.Transactor.CliCtx, mintId)
@@ -226,7 +224,7 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 					return
 				}
 
-				sig, err := r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(r.cbrMgr[mintChainId].pegContracts.bridge.Address))
+				sig, err := r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(r.cbrMgr[mintInfo.ChainId].pegContracts.bridge.Address))
 				if err != nil {
 					log.Error(err)
 					return
@@ -238,8 +236,8 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 					Sender:    r.Transactor.Key.GetAddress().String(),
 				}
 				r.Transactor.AddTxMsg(msg)
-				mintRequest := NewMintRequest(eth.Hex2Bytes(mintId), mintChainId, mintOnChain.RefChainId, mintOnChain.RefId)
-				err = r.dbSet(GetPegbrMintKey(mintChainId, mintRequest.DepositChainId, mintRequest.DepositId), mintRequest.MustMarshal())
+				mintRequest := NewMintRequest(eth.Hex2Bytes(mintId), mintInfo.ChainId, mintOnChain.RefChainId, mintOnChain.RefId)
+				err = r.dbSet(GetPegbrMintKey(mintInfo.ChainId, mintRequest.DepositChainId, mintRequest.DepositId), mintRequest.MustMarshal())
 				if err != nil {
 					log.Errorf("db Set err: %s", err)
 				}
@@ -261,10 +259,7 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 			}
 
 			wdIds := events[fmt.Sprintf("%s.%s", pegbrtypes.EventTypeWithdrawToSign, pegbrtypes.AttributeKeyWithdrawId)]
-			wdChainIds := events[fmt.Sprintf("%s.%s", pegbrtypes.EventTypeWithdrawToSign, pegbrtypes.AttributeKeyWithdrawChainId)]
-			for i, wdId := range wdIds {
-				wdChainId, _ := strconv.ParseUint(wdChainIds[i], 10, 64)
-
+			for _, wdId := range wdIds {
 				// sign data first
 				wdInfo, err := pegbrcli.QueryWithdrawInfo(r.Transactor.CliCtx, wdId)
 				if err != nil {
@@ -279,7 +274,7 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 					return
 				}
 
-				sig, err := r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(r.cbrMgr[wdChainId].pegContracts.vault.Address))
+				sig, err := r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(r.cbrMgr[wdInfo.ChainId].pegContracts.vault.Address))
 				if err != nil {
 					log.Error(err)
 					return
@@ -296,8 +291,8 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 				if wdOnChain.RefChainId == 0 {
 					return
 				}
-				wdRequest := NewWithdrawRequest(eth.Hex2Bytes(wdId), wdChainId, wdOnChain.RefChainId, wdOnChain.RefId)
-				err = r.dbSet(GetPegbrWdKey(wdChainId, wdOnChain.RefChainId, wdOnChain.RefId), wdRequest.MustMarshal())
+				wdRequest := NewWithdrawRequest(eth.Hex2Bytes(wdId), wdInfo.ChainId, wdOnChain.RefChainId, wdOnChain.RefId)
+				err = r.dbSet(GetPegbrWdKey(wdInfo.ChainId, wdOnChain.RefChainId, wdOnChain.RefId), wdRequest.MustMarshal())
 				if err != nil {
 					log.Errorf("db Set err: %s", err)
 				}
