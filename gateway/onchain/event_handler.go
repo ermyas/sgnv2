@@ -71,9 +71,46 @@ func GatewayOnRelay(c *ethclient.Client, transferId, txHash, dstTransferId, amt,
 	err = dal.DB.UpsertTransferOnRelay(transferId, dstTransferId, usrAddr, token, amt, txHash, srcChainId, dstChainId, isDelayed, bridgeType)
 	if err == nil {
 		dal.DB.AddFeeRebateFee(transferId)
-		sendGasOnArrival(c, transferId)
+		RetrySendGasOnArrival(c, transferId)
 	}
 	return err
+}
+
+func RetrySendGasOnArrival(c *ethclient.Client, transferId string) {
+	transfer, found, err := dal.DB.GetTransfer(transferId)
+	if err != nil || !found {
+		log.Errorln("can't find transfer info at gateway, ", transferId, err)
+		return
+	}
+	if dal.DB.NewGasOnArrivalLog(transferId, transfer.UsrAddr, transfer.DstChainId) != nil {
+		log.Errorln("can't NewGasOnArrivalLog, ", transferId, err)
+		return
+	}
+	var retry int
+	maxRetry := 5
+	for retry = 0; retry < maxRetry; retry++ {
+		if retry > 0 {
+			log.Infoln("retry send gas on arrival for the ", retry, " times. transferId:", transferId)
+		}
+		err := SendGasOnArrival(c, transfer)
+		if err != nil {
+			log.Errorln("failed to SendGasOnArrival, ", transferId, err)
+			err := dal.DB.UpdateGasOnArrivalLogToSuccess(transferId)
+			if err != nil {
+				log.Errorln("failed to UpdateGasOnArrivalLogToSuccess, ", transferId, err)
+				return
+			}
+			return
+		}
+		time.Sleep(2 * time.Second)
+	}
+	if retry >= maxRetry {
+		log.Errorln("failed to send gas on arrival for ", retry, " times. give up. transferId:", transferId)
+		err := dal.DB.UpdateGasOnArrivalLogToFail(transferId)
+		if err != nil {
+			log.Errorln("failed to UpdateGasOnArrivalLogToFail, ", transferId, err)
+		}
+	}
 }
 
 func GatewayOnLiqWithdraw(id, tx string, chid, seq uint64, addr string) {
@@ -279,36 +316,32 @@ func GatewayOnDelayXferExec(id string, txHash string) error {
 	return nil
 }
 
-func sendGasOnArrival(c *ethclient.Client, transferId string) {
-	transfer, found, err := dal.DB.GetTransfer(transferId)
-	if err != nil || !found {
-		log.Errorln("can't find transfer info at gateway, ", transferId, err)
-		return
-	}
+func SendGasOnArrival(c *ethclient.Client, transfer *dal.Transfer) error {
+	transferId := transfer.TransferId
 	chain, _ := dal.GetChainCache(transfer.DstChainId)
 	if transfer.TokenSymbol == "WETH" || chain.GetDropGasAmt() == "0" {
-		return
+		return nil
 	}
 	dropGasAmt, found := big.NewInt(0).SetString(chain.GetDropGasAmt(), 10)
 	if !found {
-		return
+		return nil
 	}
 	userAddr := eth.Hex2Addr(transfer.UsrAddr)
 	var ksBytes []byte
-	ksBytes, err = ioutil.ReadFile(viper.GetString(common.FlagGatewayIncentiveRewardsKeystore))
+	ksBytes, err := ioutil.ReadFile(viper.GetString(common.FlagGatewayIncentiveRewardsKeystore))
 	if err != nil {
 		log.Errorln("fail to get FlagGatewayIncentiveRewardsKeystore ", err)
-		return
+		return err
 	}
 	ksAddrStr, err := eth.GetAddressFromKeystore(ksBytes)
 	if err != nil {
 		log.Errorln("fail to get GetAddressFromKeystore ", err)
-		return
+		return err
 	}
 	auth, err := bind.NewTransactorWithChainID(strings.NewReader(string(ksBytes)), viper.GetString(common.FlagGatewayIncentiveRewardsPassphrase), big.NewInt(int64(transfer.DstChainId)))
 	if err != nil {
 		log.Errorln("fail to get NewTransactorWithChainID ", err)
-		return
+		return err
 	}
 	auth.Value = dropGasAmt
 	ctx := context.Background()
@@ -318,17 +351,17 @@ func sendGasOnArrival(c *ethclient.Client, transferId string) {
 	head, err := c.HeaderByNumber(ctx, nil)
 	if err != nil {
 		log.Errorln("fail to get HeaderByNumber ", err)
-		return
+		return err
 	}
 	nonce, err := c.PendingNonceAt(ctx, acctAddr)
 	if err != nil {
 		log.Errorln("fail to get PendingNonceAt ", err)
-		return
+		return err
 	}
 	gasPrice, err := c.SuggestGasPrice(ctx)
 	if err != nil {
 		log.Errorln("fail to get SuggestGasPrice ", err)
-		return
+		return err
 	}
 	if head.BaseFee != nil {
 		// eip 1559, new dynamic tx, per spec we should do
@@ -359,18 +392,19 @@ func sendGasOnArrival(c *ethclient.Client, transferId string) {
 	tx, err := auth.Signer(acctAddr, rawTx)
 	if err != nil {
 		log.Errorln("fail to Signer ", err)
-		return
+		return err
 	}
 
 	err = c.SendTransaction(ctx, tx)
 	if err != nil {
 		log.Errorln("fail to send Gas On Arrival on chain ", transfer.DstChainId, ", transferId:", transferId, " amt:", dropGasAmt.String(), err)
-		return
+		return err
 	}
 	_, err = ethutils.WaitMined(context.Background(), c, tx, ethutils.WithBlockDelay(1), ethutils.WithPollingInterval(time.Second*5))
 	if err != nil {
 		log.Errorf("send gas on arrival to %x on chain %d dropGasAmt %s, WaitMined err %v", userAddr, transfer.DstChainId, dropGasAmt.String(), err)
-		return
+		return err
 	}
 	log.Infoln("send gas on arrival to ", userAddr, " on chain ", transfer.DstChainId, ", transferId:", transferId, ", dropGasAmt:", dropGasAmt)
+	return nil
 }

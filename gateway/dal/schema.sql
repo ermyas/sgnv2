@@ -147,6 +147,16 @@ CREATE TABLE IF NOT EXISTS fee_rebate_log (
     UNIQUE (usr_addr, event_id)
 );
 
+CREATE TABLE IF NOT EXISTS gas_on_arrival_log (
+    transfer_id TEXT PRIMARY KEY NOT NULL,
+    usr_addr TEXT NOT NULL,
+    chain_id INT NOT NULL,
+    status INT NOT NULL DEFAULT 1,
+    update_time TIMESTAMPTZ NOT NULL DEFAULT now(),
+    create_time TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS create_time_idx ON gas_on_arrival_log (create_time);
+
 CREATE TABLE IF NOT EXISTS pegged_config (
     orig_chain_id INT NOT NULL,
     orig_token_symbol TEXT NOT NULL DEFAULT '',
