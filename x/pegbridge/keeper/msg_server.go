@@ -189,6 +189,7 @@ func (k msgServer) ClaimFee(goCtx context.Context, msg *types.MsgClaimFee) (*typ
 	withdrawInfo := types.WithdrawInfo{
 		ChainId:            msg.ChainId,
 		WithdrawProtoBytes: withdrawProtoBytes,
+		LastReqTime:        ctx.BlockTime().Unix(),
 	}
 	// Record WithdrawInfo and FeeClaimInfo
 	k.SetWithdrawInfo(ctx, withdrawId, withdrawInfo)

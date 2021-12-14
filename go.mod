@@ -20,7 +20,6 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.1 // indirect
 	github.com/iancoleman/strcase v0.1.0
 	github.com/improbable-eng/grpc-web v0.14.1
 	github.com/lthibault/jitterbug v2.0.0+incompatible

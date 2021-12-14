@@ -79,6 +79,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			Signatures:     make([]commontypes.Signature, 0),
 			BaseFee:        baseFee.String(),
 			PercentageFee:  percFee.String(),
+			LastReqTime:    ctx.BlockTime().Unix(),
 		}
 		k.SetMintInfo(ctx, mintId, mintInfo)
 
@@ -93,7 +94,8 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 		))
 
-		log.Infof("x/pegbr applied: %s. mintId: %x", ev.PrettyLog(onchev.Chainid), mintId)
+		log.Infof("x/pegbr applied: %s. mintId: %x mintAmt: %s baseFee: %s percFee: %s",
+			ev.PrettyLog(onchev.Chainid), mintId, mintAmount, baseFee, percFee)
 		return true, nil
 	case types.PegbrEventBurn:
 		ptbContract, _ := eth.NewPeggedTokenBridgeFilterer(eth.ZeroAddr, nil)
@@ -148,6 +150,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			Signatures:         make([]commontypes.Signature, 0),
 			BaseFee:            baseFee.String(),
 			PercentageFee:      percFee.String(),
+			LastReqTime:        ctx.BlockTime().Unix(),
 		}
 		k.SetWithdrawInfo(ctx, withdrawId, wdInfo)
 
@@ -162,7 +165,8 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 		))
 
-		log.Infof("x/pegbr applied: %s. withdrawId: %x", ev.PrettyLog(onchev.Chainid), withdrawId)
+		log.Infof("x/pegbr applied: %s. withdrawId: %x withdrawAmt: %s baseFee: %s percFee: %s",
+			ev.PrettyLog(onchev.Chainid), withdrawId, withdrawAmt, baseFee, percFee)
 		return true, nil
 	case types.PegbrEventMint:
 		ptbContract, _ := eth.NewPeggedTokenBridgeFilterer(eth.ZeroAddr, nil)
