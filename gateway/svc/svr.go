@@ -223,7 +223,6 @@ func (gs *GatewayService) GetAllValidPeggedPairs() ([]*webapi.PeggedPairConfig, 
 	if dbErr != nil {
 		return nil, dbErr
 	}
-	log.Infof("GetAllValidPeggedPairs configs:%+v", configs)
 	for _, c := range configs {
 		srcChain, foundSrc := gs.Chains.GetOneChain(uint64(c.OrgChainId))
 		peggedChain, foundPegged := gs.Chains.GetOneChain(uint64(c.PeggedChainId))
@@ -234,7 +233,6 @@ func (gs *GatewayService) GetAllValidPeggedPairs() ([]*webapi.PeggedPairConfig, 
 		c.PeggedDepositContractAddr = srcChain.GetOtvContract().GetAddr().String()
 		c.PeggedBurnContractAddr = peggedChain.GetPtbContract().GetAddr().String()
 	}
-	log.Infof("GetAllValidPeggedPairs res:%+v", configs)
 	return configs, nil
 }
 
