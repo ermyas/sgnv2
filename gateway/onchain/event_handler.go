@@ -93,8 +93,7 @@ func RetrySendGasOnArrival(c *ethclient.Client, transferId string) {
 			log.Infoln("retry send gas on arrival for the ", retry, " times. transferId:", transferId)
 		}
 		err := SendGasOnArrival(c, transfer)
-		if err != nil {
-			log.Errorln("failed to SendGasOnArrival, ", transferId, err)
+		if err == nil {
 			err := dal.DB.UpdateGasOnArrivalLogToSuccess(transferId)
 			if err != nil {
 				log.Errorln("failed to UpdateGasOnArrivalLogToSuccess, ", transferId, err)
