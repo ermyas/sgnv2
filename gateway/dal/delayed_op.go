@@ -33,8 +33,8 @@ func (dal *DAL) GetDelayedOp(id string) (t uint64, found bool, err error) {
 }
 
 func (dal *DAL) InsertDelayedOp(id, txhash string, t DelayedOpType) error {
-	q := `insert into delayed_op (id, tx_hash) values ($1, $2)`
-	_, err := dal.Db.Exec(q, id, txhash)
+	q := `insert into delayed_op (id, tx_hash, type) values ($1, $2, $3)`
+	_, err := dal.Db.Exec(q, id, txhash, t)
 	if err != nil {
 		return err
 	}
