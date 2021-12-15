@@ -94,9 +94,13 @@ func closeRows(rows *sql.Rows) {
 }
 
 func GetMockedPrice(symbol string) (float64, bool) {
-	if symbol == "TCELR" || symbol == "LYRA" || symbol == "DOMI" {
+	if symbol == "TCELR" || symbol == "LYRA" {
 		// new token, mock price
 		return 0.5, true
+	}
+	if symbol == "DOMI" {
+		// new token, mock price
+		return 0.15, true
 	}
 	return 0, false
 }
