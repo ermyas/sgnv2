@@ -7,21 +7,26 @@ option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
 
 // Query defines the gRPC querier service.
 service Query {
+  rpc QueryParams(EmptyRequest) returns (QueryParamsResponse) {}
+  rpc QueryConfig(EmptyRequest) returns (QueryConfigResponse) {}
+  rpc QueryRelay(QueryRelayRequest) returns (QueryRelayResponse) {}
+  rpc QueryChainSigners(QueryChainSignersRequest) returns (QueryChainSignersResponse) {}
+  rpc QueryLatestSigners(EmptyRequest) returns (QueryLatestSignersResponse) {}
+  rpc QueryCheckChainTokenValid(CheckChainTokenValidRequest) returns (CheckChainTokenValidResponse) {}
+  rpc QueryChkLiqSum(CheckLiqSumRequest) returns (CheckLiqSumResponse) {}
+  rpc QueryDebugAny(QueryDebugAnyRequest) returns (QueryDebugAnyResponse) {}
+
+  // for gateway query only below
   rpc ChainTokensConfig(ChainTokensConfigRequest) returns (ChainTokensConfigResponse) {}
-
   rpc GetFee(GetFeeRequest) returns (GetFeeResponse) {}
-
   // get fee percentage between 2 chains
   rpc GetFeePercentage(GetFeePercentageRequest) returns (GetFeePercentageResponse) {}
-
   rpc QueryTransferStatus(QueryTransferStatusRequest) returns (QueryTransferStatusResponse) {}
 
   // LP
   rpc LiquidityDetailList(LiquidityDetailListRequest) returns (LiquidityDetailListResponse) {}
   rpc QueryTotalLiquidity(QueryTotalLiquidityRequest) returns (QueryTotalLiquidityResponse) {}
-
   rpc QueryAddLiquidityStatus(QueryAddLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {}
-
   rpc QueryWithdrawLiquidityStatus(QueryWithdrawLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {}
 
   // for sync farming tool
@@ -30,11 +35,40 @@ service Query {
   // we could return all withdraw req ids for one user in case gateway lost db, req is usr addr, resp has repeated req ids
   // rpc QueryAllWdReqIdList (QueryAllWdReqIdListReq) returns (QueryAllWdReqIdListResp) {}
 }
+message EmptyRequest {
+}
+message QueryParamsResponse {
+    Params params = 1;
+}
+message QueryConfigResponse {
+    CbrConfig cbrConfig = 1;
+}
+message QueryRelayRequest {
+    bytes xref_id = 1;
+}
+message QueryRelayResponse {
+    XferRelay xfer_relay = 1;
+}
+message QueryChainSignersRequest {
+    uint64 chain_id = 1;
+}
+message QueryChainSignersResponse {
+    ChainSigners chain_signers = 1;
+}
+message QueryLatestSignersResponse {
+    LatestSigners latest_signers = 1;
+}
+message QueryDebugAnyRequest{
+    bytes key = 1;
+}
+message QueryDebugAnyResponse {
+    bytes data = 1;
+}
 
 message QueryLPsRequest {
   // omit any of these params to get lps in all respects. if both are omitted, returns all lps
-  uint64 chain_id = 1; 
-  string token_addr = 2; 
+  uint64 chain_id = 1;
+  string token_addr = 2;
 }
 
 message QueryLPsResponse {
@@ -42,13 +76,13 @@ message QueryLPsResponse {
 }
 
 // get both liqsum and sum of all lm- and compare if they are equal
-// rpc CheckLiqSum (CheckLiqSumReq) returns (CheckLiqSumResp) {}
-message CheckLiqSumReq {
+// rpc CheckLiqSum (CheckLiqSumRequest) returns (CheckLiqSumResponse) {}
+message CheckLiqSumRequest {
     uint64 chain_id = 1;
     string token_addr = 2; // hex string
 }
 
-message CheckLiqSumResp {
+message CheckLiqSumResponse {
     string liqsum = 1; // big.Int decimal string of liqsum key
     string sumiter = 2; // GetLiqIterSum sum over all lm-%d-%x-%x
 }
