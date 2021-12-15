@@ -41,6 +41,7 @@ func SetupMainchain() {
 	log.Infoln("build dockers, get geth, build sgn binary")
 	cmd = exec.Command("make", "prepare-docker-env")
 	cmd.Dir = repoRoot
+	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		log.Fatal(err)
 	}

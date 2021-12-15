@@ -205,10 +205,10 @@ func (c *CbrChain) StartWithdrawRemoveLiquidity(transactor *transactor.Transacto
 	return err
 }
 
-func (c *CbrChain) StartWithdrawClaimCbrFeeShare(transactor *transactor.Transactor, reqid, uid uint64, wdLq *cbrtypes.WithdrawLq) error {
+func (c *CbrChain) StartWithdrawClaimCbrFeeShare(transactor *transactor.Transactor, reqid, uid uint64, wdLqs []*cbrtypes.WithdrawLq) error {
 	// NOTE: Only support single wdLq for now
 	withdrawReq := &cbrtypes.WithdrawReq{
-		Withdraws:    []*cbrtypes.WithdrawLq{wdLq},
+		Withdraws:    wdLqs,
 		ExitChainId:  c.ChainId,
 		ReqId:        reqid,
 		WithdrawType: cbrtypes.ClaimFeeShare,
