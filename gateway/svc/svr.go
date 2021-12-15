@@ -227,7 +227,7 @@ func (gs *GatewayService) GetAllValidPeggedPairs() ([]*webapi.PeggedPairConfig, 
 		srcChain, foundSrc := gs.Chains.GetOneChain(uint64(c.OrgChainId))
 		peggedChain, foundPegged := gs.Chains.GetOneChain(uint64(c.PeggedChainId))
 		if !foundSrc || !foundPegged || srcChain.GetOtvContract() == nil || peggedChain.GetPtbContract() == nil {
-			log.Errorf("fail to find this pegged chain pair in onchain config: %+v", c)
+			log.Warnf("fail to find this pegged chain pair in onchain config: %+v", c)
 			continue
 		}
 		c.PeggedDepositContractAddr = srcChain.GetOtvContract().GetAddr().String()
