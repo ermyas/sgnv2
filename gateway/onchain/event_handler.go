@@ -83,7 +83,7 @@ func RetrySendGasOnArrival(c *ethclient.Client, transferId string) {
 		return
 	}
 	chain, _ := dal.GetChainCache(transfer.DstChainId)
-	if transfer.TokenSymbol == "WETH" || chain.GetDropGasAmt() == "0" {
+	if chain.GetDropGasAmt() == "0" {
 		return
 	}
 	dropGasAmt, found := big.NewInt(0).SetString(chain.GetDropGasAmt(), 10)
