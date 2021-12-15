@@ -73,6 +73,7 @@ func InitGateway() {
 	gs.StartAvgLpFeeEarningPolling(10 * time.Minute)
 	gs.StartAbnormalBalanceCheckPolling(1 * time.Hour)
 	gs.StartFailedGasOnArrivalMonitor()
+	gs.StartProblematicCurrentBlockNumberAddrMonitor()
 
 	grpcSvr := startGrpcServer(gs)
 	startGrpcWebServer(grpcSvr)

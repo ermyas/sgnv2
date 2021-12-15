@@ -17,12 +17,12 @@ func (gs *GatewayService) StartFailedGasOnArrivalMonitor() {
 		)
 		defer ticker.Stop()
 		for ; true; <-ticker.C {
-			gs.doStartMonitor()
+			gs.doStartFailedGasOnArrivalMonitor()
 		}
 	}()
 }
 
-func (gs *GatewayService) doStartMonitor() {
+func (gs *GatewayService) doStartFailedGasOnArrivalMonitor() {
 	logs, err := dal.DB.FindFailedGasOnArrivalLog(time.Now().Add(-24 * time.Hour))
 	if err != nil {
 		log.Errorln("failed to FindFailedGasOnArrivalLog,", err)

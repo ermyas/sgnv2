@@ -5,8 +5,10 @@ import (
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/gateway/utils"
 	"github.com/celer-network/sgn-v2/gateway/webapi"
 	"github.com/gogo/protobuf/proto"
+	"github.com/lthibault/jitterbug"
 	"time"
 )
 
@@ -89,4 +91,32 @@ func (gs *GatewayService) GetCurrentBlockNumberByNode(ctx context.Context, reque
 		Reports:          m,
 		ProblematicAddrs: p,
 	}, nil
+}
+
+func (gs *GatewayService) StartProblematicCurrentBlockNumberAddrMonitor() {
+	go func() {
+		time.Sleep(time.Minute)
+		ticker := jitterbug.New(
+			time.Minute*30,
+			&jitterbug.Norm{Stdev: 3 * time.Second},
+		)
+		defer ticker.Stop()
+		for ; true; <-ticker.C {
+			gs.doStartProblematicCurrentBlockNumberAddrMonitor()
+		}
+	}()
+}
+
+func (gs *GatewayService) doStartProblematicCurrentBlockNumberAddrMonitor() {
+	p := make([]string, 0)
+	for addr, report := range gs.V.C {
+		if common.TsMilliToTime(report.GetTimestamp()).Add(30 * time.Minute).Before(time.Now()) {
+			p = append(p, addr.String())
+		} else if gs.V.P[addr] {
+			p = append(p, addr.String())
+		}
+	}
+	if len(p) > 0 {
+		utils.SendProblematicBlockNumberAlert(p)
+	}
 }
