@@ -1,6 +1,7 @@
 package dal
 
 import (
+	"database/sql"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/goutils/sqldb"
 	"math/big"
@@ -36,18 +37,22 @@ func (d *DAL) FindFailedGasOnArrivalLog(beginTime time.Time) ([]*GasOnArrivalLog
 	}
 	defer closeRows(rows)
 
-	var transferId, userAddr, txHash, dropGasAmtStr string
+	var transferId, userAddr, txHash string
+	var txHashStr, dropGasAmtStr sql.NullString
 	var chainId, status uint64
 	var createTime, updateTime time.Time
 	var res []*GasOnArrivalLog
 	for rows.Next() {
-		err = rows.Scan(&transferId, &userAddr, &chainId, &status, &txHash, &dropGasAmtStr, &updateTime, &createTime)
+		err = rows.Scan(&transferId, &userAddr, &chainId, &status, &txHashStr, &dropGasAmtStr, &updateTime, &createTime)
 		if err != nil {
 			return nil, err
 		}
 		dropGasAmt := big.NewInt(0)
-		if len(dropGasAmtStr) > 0 {
-			dropGasAmt, _ = big.NewInt(0).SetString(dropGasAmtStr, 10)
+		if dropGasAmtStr.Valid {
+			dropGasAmt, _ = big.NewInt(0).SetString(dropGasAmtStr.String, 10)
+		}
+		if txHashStr.Valid {
+			txHash = txHashStr.String
 		}
 
 		l := &GasOnArrivalLog{
@@ -69,15 +74,19 @@ func (d *DAL) FindGasOnArrivalLog(transferId string) (*GasOnArrivalLog, bool, er
 	q := `SELECT transfer_id, usr_addr, chain_id, status, tx_hash, drop_gas_amt, update_time, create_time
 		  FROM gas_on_arrival_log 
           WHERE transfer_id = $1`
-	var userAddr, txHash, dropGasAmtStr string
+	var userAddr, txHash string
+	var txHashStr, dropGasAmtStr sql.NullString
 	var chainId, status uint64
 	var createTime, updateTime time.Time
 	err := d.QueryRow(q, transferId).
-		Scan(&transferId, &userAddr, &chainId, &status, &txHash, &dropGasAmtStr, &updateTime, &createTime)
+		Scan(&transferId, &userAddr, &chainId, &status, &txHashStr, &dropGasAmtStr, &updateTime, &createTime)
 	found, err := sqldb.ChkQueryRow(err)
 	dropGasAmt := big.NewInt(0)
-	if len(dropGasAmtStr) > 0 {
-		dropGasAmt, _ = big.NewInt(0).SetString(dropGasAmtStr, 10)
+	if dropGasAmtStr.Valid {
+		dropGasAmt, _ = big.NewInt(0).SetString(dropGasAmtStr.String, 10)
+	}
+	if txHashStr.Valid {
+		txHash = txHashStr.String
 	}
 	return &GasOnArrivalLog{
 		TransferId: transferId,
