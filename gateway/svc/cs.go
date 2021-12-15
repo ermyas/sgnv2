@@ -576,8 +576,8 @@ func (gs *GatewayService) fixLp(ctx context.Context, txHash, lpAddr string, chai
 	return nil
 }
 
-func (gs *GatewayService) fixDropGas(txHash string, chainId uint32) error {
-	tx0, txFound, dbErr := dal.DB.GetTransferBySrcTxHash(txHash, chainId)
+func (gs *GatewayService) fixDropGas(txHash string, srcChainId uint32) error {
+	tx0, txFound, dbErr := dal.DB.GetTransferBySrcTxHash(txHash, srcChainId)
 	if dbErr != nil || !txFound {
 		return fmt.Errorf("can't find tx")
 	}
@@ -588,7 +588,7 @@ func (gs *GatewayService) fixDropGas(txHash string, chainId uint32) error {
 	if arrivalLog.Status == dal.GasOnArrivalStatusSuccess {
 		return nil
 	}
-	client := gs.Chains.GetEthClient(uint64(chainId))
+	client := gs.Chains.GetEthClient(tx0.DstChainId)
 	txHash, err := onchain.SendGasOnArrival(client, tx0, arrivalLog.DropGasAmt)
 	if err == nil {
 		err := dal.DB.UpdateGasOnArrivalLogToSuccess(tx0.TransferId, txHash)
