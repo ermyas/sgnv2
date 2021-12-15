@@ -3,6 +3,7 @@ package dal
 import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/goutils/sqldb"
+	"math/big"
 	"time"
 )
 
@@ -18,12 +19,14 @@ type GasOnArrivalLog struct {
 	UsrAddr    string
 	ChainId    uint64
 	Status     uint64
+	TxHash     string
+	DropGasAmt *big.Int
 	UpdateTime time.Time
 	CreateTime time.Time
 }
 
 func (d *DAL) FindFailedGasOnArrivalLog(beginTime time.Time) ([]*GasOnArrivalLog, error) {
-	q := `SELECT transfer_id, usr_addr, chain_id, status, update_time, create_time
+	q := `SELECT transfer_id, usr_addr, chain_id, status, tx_hash, drop_gas_amt, update_time, create_time
 		  FROM gas_on_arrival_log 
           WHERE create_time > $1 AND status = $2`
 	rows, err := d.Query(q, beginTime, GasOnArrivalStatusFail)
@@ -33,14 +36,18 @@ func (d *DAL) FindFailedGasOnArrivalLog(beginTime time.Time) ([]*GasOnArrivalLog
 	}
 	defer closeRows(rows)
 
-	var transferId, userAddr string
+	var transferId, userAddr, txHash, dropGasAmtStr string
 	var chainId, status uint64
 	var createTime, updateTime time.Time
 	var res []*GasOnArrivalLog
 	for rows.Next() {
-		err = rows.Scan(&transferId, &userAddr, &chainId, &status, &createTime, &updateTime)
+		err = rows.Scan(&transferId, &userAddr, &chainId, &status, &txHash, &dropGasAmtStr, &updateTime, &createTime)
 		if err != nil {
 			return nil, err
+		}
+		dropGasAmt := big.NewInt(0)
+		if len(dropGasAmtStr) > 0 {
+			dropGasAmt, _ = big.NewInt(0).SetString(dropGasAmtStr, 10)
 		}
 
 		l := &GasOnArrivalLog{
@@ -48,33 +55,61 @@ func (d *DAL) FindFailedGasOnArrivalLog(beginTime time.Time) ([]*GasOnArrivalLog
 			UsrAddr:    userAddr,
 			ChainId:    chainId,
 			Status:     status,
-			UpdateTime: createTime,
-			CreateTime: updateTime,
+			TxHash:     txHash,
+			DropGasAmt: dropGasAmt,
+			UpdateTime: updateTime,
+			CreateTime: createTime,
 		}
 		res = append(res, l)
 	}
 	return res, nil
 }
 
-func (d *DAL) NewGasOnArrivalLog(transferId, userAddr string, chainId uint64) error {
-	q := `INSERT INTO gas_on_arrival_log (transfer_id, usr_addr, chain_id, status)
-                VALUES ($1, $2, $3, $4)`
-	res, err := d.Exec(q, transferId, userAddr, chainId, GasOnArrivalStatusNew)
+func (d *DAL) FindGasOnArrivalLog(transferId string) (*GasOnArrivalLog, bool, error) {
+	q := `SELECT transfer_id, usr_addr, chain_id, status, tx_hash, drop_gas_amt, update_time, create_time
+		  FROM gas_on_arrival_log 
+          WHERE transfer_id = $1`
+	var userAddr, txHash, dropGasAmtStr string
+	var chainId, status uint64
+	var createTime, updateTime time.Time
+	err := d.QueryRow(q, transferId).
+		Scan(&transferId, &userAddr, &chainId, &status, &txHash, &dropGasAmtStr, &updateTime, &createTime)
+	found, err := sqldb.ChkQueryRow(err)
+	dropGasAmt := big.NewInt(0)
+	if len(dropGasAmtStr) > 0 {
+		dropGasAmt, _ = big.NewInt(0).SetString(dropGasAmtStr, 10)
+	}
+	return &GasOnArrivalLog{
+		TransferId: transferId,
+		UsrAddr:    userAddr,
+		ChainId:    chainId,
+		Status:     status,
+		TxHash:     txHash,
+		DropGasAmt: dropGasAmt,
+		UpdateTime: updateTime,
+		CreateTime: createTime,
+	}, found, nil
+}
+
+func (d *DAL) NewGasOnArrivalLog(transferId, userAddr string, chainId uint64, dropGasAmt *big.Int) error {
+	q := `INSERT INTO gas_on_arrival_log (transfer_id, usr_addr, chain_id, status, drop_gas_amt)
+                VALUES ($1, $2, $3, $4, $5)`
+	res, err := d.Exec(q, transferId, userAddr, chainId, GasOnArrivalStatusNew, dropGasAmt.String())
 	return sqldb.ChkExec(res, err, 1, "NewGasOnArrivalLog")
 }
 
 func (d *DAL) UpdateGasOnArrivalLogToFail(transferId string) error {
-	return d.UpdateGasOnArrivalLogToStatus(transferId, GasOnArrivalStatusFail)
-}
-
-func (d *DAL) UpdateGasOnArrivalLogToSuccess(transferId string) error {
-	return d.UpdateGasOnArrivalLogToStatus(transferId, GasOnArrivalStatusSuccess)
-}
-
-func (d *DAL) UpdateGasOnArrivalLogToStatus(transferId string, toStatus int) error {
 	q := `UPDATE gas_on_arrival_log 
           SET status=$2, update_time=now()
           WHERE transfer_id=$1`
-	res, err := d.Exec(q, transferId, toStatus)
-	return sqldb.ChkExec(res, err, 1, "UpdateGasOnArrivalLogToStatus")
+	res, err := d.Exec(q, transferId, GasOnArrivalStatusFail)
+	return sqldb.ChkExec(res, err, 1, "UpdateGasOnArrivalLogToFail")
+}
+
+func (d *DAL) UpdateGasOnArrivalLogToSuccess(transferId, txHash string) error {
+	q := `UPDATE gas_on_arrival_log 
+          SET status=$2, tx_hash=$3, update_time=now()
+          WHERE transfer_id=$1`
+	res, err := d.Exec(q, transferId, GasOnArrivalStatusSuccess, txHash)
+	return sqldb.ChkExec(res, err, 1, "UpdateGasOnArrivalLogToSuccess")
 }

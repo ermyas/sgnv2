@@ -82,7 +82,16 @@ func RetrySendGasOnArrival(c *ethclient.Client, transferId string) {
 		log.Errorln("can't find transfer info at gateway, ", transferId, err)
 		return
 	}
-	if dal.DB.NewGasOnArrivalLog(transferId, transfer.UsrAddr, transfer.DstChainId) != nil {
+	chain, _ := dal.GetChainCache(transfer.DstChainId)
+	if transfer.TokenSymbol == "WETH" || chain.GetDropGasAmt() == "0" {
+		return
+	}
+	dropGasAmt, found := big.NewInt(0).SetString(chain.GetDropGasAmt(), 10)
+	if !found {
+		return
+	}
+	err = dal.DB.NewGasOnArrivalLog(transferId, transfer.UsrAddr, transfer.DstChainId, dropGasAmt)
+	if err != nil {
 		log.Errorln("can't NewGasOnArrivalLog, ", transferId, err)
 		return
 	}
@@ -92,9 +101,9 @@ func RetrySendGasOnArrival(c *ethclient.Client, transferId string) {
 		if retry > 0 {
 			log.Infoln("retry send gas on arrival for the ", retry, " times. transferId:", transferId)
 		}
-		err := SendGasOnArrival(c, transfer)
+		txHash, err := SendGasOnArrival(c, transfer, dropGasAmt)
 		if err == nil {
-			err := dal.DB.UpdateGasOnArrivalLogToSuccess(transferId)
+			err := dal.DB.UpdateGasOnArrivalLogToSuccess(transferId, txHash)
 			if err != nil {
 				log.Errorln("failed to UpdateGasOnArrivalLogToSuccess, ", transferId, err)
 				return
@@ -315,32 +324,24 @@ func GatewayOnDelayXferExec(id string, txHash string) error {
 	return nil
 }
 
-func SendGasOnArrival(c *ethclient.Client, transfer *dal.Transfer) error {
+func SendGasOnArrival(c *ethclient.Client, transfer *dal.Transfer, dropGasAmt *big.Int) (string, error) {
 	transferId := transfer.TransferId
-	chain, _ := dal.GetChainCache(transfer.DstChainId)
-	if transfer.TokenSymbol == "WETH" || chain.GetDropGasAmt() == "0" {
-		return nil
-	}
-	dropGasAmt, found := big.NewInt(0).SetString(chain.GetDropGasAmt(), 10)
-	if !found {
-		return nil
-	}
 	userAddr := eth.Hex2Addr(transfer.UsrAddr)
 	var ksBytes []byte
 	ksBytes, err := ioutil.ReadFile(viper.GetString(common.FlagGatewayIncentiveRewardsKeystore))
 	if err != nil {
 		log.Errorln("fail to get FlagGatewayIncentiveRewardsKeystore ", err)
-		return err
+		return "", err
 	}
 	ksAddrStr, err := eth.GetAddressFromKeystore(ksBytes)
 	if err != nil {
 		log.Errorln("fail to get GetAddressFromKeystore ", err)
-		return err
+		return "", err
 	}
 	auth, err := bind.NewTransactorWithChainID(strings.NewReader(string(ksBytes)), viper.GetString(common.FlagGatewayIncentiveRewardsPassphrase), big.NewInt(int64(transfer.DstChainId)))
 	if err != nil {
 		log.Errorln("fail to get NewTransactorWithChainID ", err)
-		return err
+		return "", err
 	}
 	auth.Value = dropGasAmt
 	ctx := context.Background()
@@ -350,17 +351,17 @@ func SendGasOnArrival(c *ethclient.Client, transfer *dal.Transfer) error {
 	head, err := c.HeaderByNumber(ctx, nil)
 	if err != nil {
 		log.Errorln("fail to get HeaderByNumber ", err)
-		return err
+		return "", err
 	}
 	nonce, err := c.PendingNonceAt(ctx, acctAddr)
 	if err != nil {
 		log.Errorln("fail to get PendingNonceAt ", err)
-		return err
+		return "", err
 	}
 	gasPrice, err := c.SuggestGasPrice(ctx)
 	if err != nil {
 		log.Errorln("fail to get SuggestGasPrice ", err)
-		return err
+		return "", err
 	}
 	if head.BaseFee != nil {
 		// eip 1559, new dynamic tx, per spec we should do
@@ -391,19 +392,19 @@ func SendGasOnArrival(c *ethclient.Client, transfer *dal.Transfer) error {
 	tx, err := auth.Signer(acctAddr, rawTx)
 	if err != nil {
 		log.Errorln("fail to Signer ", err)
-		return err
+		return "", err
 	}
 
 	err = c.SendTransaction(ctx, tx)
 	if err != nil {
 		log.Errorln("fail to send Gas On Arrival on chain ", transfer.DstChainId, ", transferId:", transferId, " amt:", dropGasAmt.String(), err)
-		return err
+		return "", err
 	}
-	_, err = ethutils.WaitMined(context.Background(), c, tx, ethutils.WithBlockDelay(1), ethutils.WithPollingInterval(time.Second*5))
+	rec, err := ethutils.WaitMined(context.Background(), c, tx, ethutils.WithBlockDelay(1), ethutils.WithPollingInterval(time.Second*5))
 	if err != nil {
 		log.Errorf("send gas on arrival to %x on chain %d dropGasAmt %s, WaitMined err %v", userAddr, transfer.DstChainId, dropGasAmt.String(), err)
-		return err
+		return "", err
 	}
-	log.Infoln("send gas on arrival to ", userAddr, " on chain ", transfer.DstChainId, ", transferId:", transferId, ", dropGasAmt:", dropGasAmt)
-	return nil
+	log.Infoln("send gas on arrival to ", userAddr, " on chain ", transfer.DstChainId, ", transferId:", transferId, ", dropGasAmt:", dropGasAmt, " txHash:", rec.TxHash.String())
+	return rec.TxHash.String(), nil
 }

@@ -683,6 +683,7 @@ enum CSType {
   CT_TX = 1;      // transfer
   CT_LP_ADD = 2;  // liquidity add
   CT_LP_RM = 3;   // liquidity rm
+  CT_DROP_GAS = 4;
 }
 
 enum CSOperation {
@@ -694,6 +695,7 @@ enum CSOperation {
   CA_USE_RESIGN_TOOL = 5;    // use RESIGN tools
   CA_USE_RESUMBIT_TOOL = 6;  // use RESUMBIT tools
   CA_MORE_INFO_NEEDED = 7;   // more information need, see memo
+  CA_CS_TOOL = 8;            // use cs tool
 }
 enum UserCaseStatus {
   CC_UNKNOWN = 0;
@@ -715,6 +717,11 @@ enum UserCaseStatus {
   CC_WAITING_FOR_LP = 10;
   CC_WITHDRAW_SUBMITTING = 11;  // always this status
   CC_WITHDRAW_WAITING_FOR_SGN = 12;
+
+  // drop gas related cases
+  CC_DROP_GAS_FAIL = 13;
+  CC_DROP_GAS_SUCCESS = 14;
+  CC_DROP_GAS_NO_RECORD = 15;
 }
 enum WithdrawMethodType {
   WD_METHOD_TYPE_UNDEFINED = 0;

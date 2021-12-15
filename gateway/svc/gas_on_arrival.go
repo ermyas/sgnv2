@@ -40,12 +40,12 @@ func (gs *GatewayService) doStartMonitor() {
 			continue
 		}
 		ethClient := gs.Chains.GetEthClient(arrivalLog.ChainId)
-		err = onchain.SendGasOnArrival(ethClient, transfer)
+		txHash, err := onchain.SendGasOnArrival(ethClient, transfer, arrivalLog.DropGasAmt)
 		if err != nil {
 			log.Errorln("can't SendGasOnArrival, ", arrivalLog.TransferId, err)
 			continue
 		}
-		err = dal.DB.UpdateGasOnArrivalLogToSuccess(arrivalLog.TransferId)
+		err = dal.DB.UpdateGasOnArrivalLogToSuccess(arrivalLog.TransferId, txHash)
 		if err != nil {
 			log.Errorln("can't UpdateGasOnArrivalLogToSuccess, ", arrivalLog.TransferId, err)
 			continue

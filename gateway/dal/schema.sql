@@ -152,6 +152,8 @@ CREATE TABLE IF NOT EXISTS gas_on_arrival_log (
     usr_addr TEXT NOT NULL,
     chain_id INT NOT NULL,
     status INT NOT NULL DEFAULT 1,
+    tx_hash TEXT NULL,
+    drop_gas_amt TEXT NULL, -- in wei
     update_time TIMESTAMPTZ NOT NULL DEFAULT now(),
     create_time TIMESTAMPTZ NOT NULL DEFAULT now()
 );
