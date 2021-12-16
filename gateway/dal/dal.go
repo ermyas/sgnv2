@@ -102,5 +102,8 @@ func GetMockedPrice(symbol string) (float64, bool) {
 		// new token, mock price
 		return 0.15, true
 	}
+	if symbol == "oneDODO" {
+		return 1, true
+	}
 	return 0, false
 }

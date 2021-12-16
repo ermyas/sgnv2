@@ -93,6 +93,7 @@ func GetUsdPrices() (map[string]float64, error) {
 	// TODO here is fo hard code usd price, also add token id in the map above, as we use token id to get usd price
 	newPrices["LYRA"] = 0.5
 	newPrices["DOMI"] = 0.15
+	newPrices["oneDODO"] = 1
 	log.Infof("new prices:%+v", newPrices)
 	return newPrices, nil
 }
