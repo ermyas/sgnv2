@@ -33,7 +33,7 @@ var sendCmd = &cobra.Command{
 		if auth == nil {
 			log.Fatal("must set -ks flag")
 		}
-		sym := strings.ToUpper(args[0])
+		sym := args[0]
 		tokenAddr := cfg.GetTokenAddr(sym)
 		dstChid, _ := strconv.Atoi(args[1])
 		amt, _ := new(big.Int).SetString(args[2], 10)

@@ -8,7 +8,6 @@ import (
 	"context"
 	"log"
 	"math/big"
-	"strings"
 
 	ethutil "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/sgn-v2/eth"
@@ -21,7 +20,7 @@ var addLiqCmd = &cobra.Command{
 	Short: "addLiq symbol amount",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		sym := strings.ToUpper(args[0])
+		sym := args[0]
 		tokenAddr := cfg.GetTokenAddr(sym)
 		amt, _ := new(big.Int).SetString(args[1], 10)
 		log.Println("addliq for", chainName, sym, "addr:", tokenAddr, "amt:", amt)
