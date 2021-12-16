@@ -100,6 +100,16 @@ func (gs *GatewayService) FixEventMiss(ctx context.Context, request *webapi.FixE
 				},
 			}, nil
 		}
+	case webapi.CSType_CT_DROP_GAS:
+		err := gs.fixDropGas(txHash, chainId)
+		if err != nil {
+			return &webapi.FixEventMissResponse{
+				Err: &webapi.ErrMsg{
+					Code: webapi.ErrCode_ERROR_CODE_COMMON,
+					Msg:  err.Error(),
+				},
+			}, nil
+		}
 	}
 	return &webapi.FixEventMissResponse{}, nil
 }
@@ -124,8 +134,57 @@ func (gs *GatewayService) checkCaseStatus(ctx context.Context, status webapi.CST
 			}
 		}
 		return gs.diagnosisLp(ctx, txHash, lpAddr, chainId, webapi.LPType_LP_TYPE_REMOVE, csType)
+	case webapi.CSType_CT_DROP_GAS:
+		return gs.diagnosisDropGas(txHash, chainId)
 	}
 	return &webapi.GetInfoByTxHashResponse{}
+}
+
+func (gs *GatewayService) diagnosisDropGas(txHash string, chainId uint32) *webapi.GetInfoByTxHashResponse {
+	tx0, txFound, dbErr := dal.DB.GetTransferBySrcTxHash(txHash, chainId)
+	if dbErr != nil || !txFound {
+		return &webapi.GetInfoByTxHashResponse{
+			Operation: webapi.CSOperation_CA_MORE_INFO_NEEDED,
+			Status:    webapi.UserCaseStatus_CC_TRANSFER_NO_HISTORY,
+			Memo:      CheckInputMsg,
+		}
+	}
+	arrivalLog, b, dbErr := dal.DB.FindGasOnArrivalLog(tx0.TransferId)
+	if dbErr != nil || !b {
+		return &webapi.GetInfoByTxHashResponse{
+			Operation: webapi.CSOperation_CA_MORE_INFO_NEEDED,
+			Status:    webapi.UserCaseStatus_CC_DROP_GAS_NO_RECORD,
+			Memo:      CheckInputMsg,
+		}
+	}
+	if arrivalLog.Status == dal.GasOnArrivalStatusSuccess {
+		return &webapi.GetInfoByTxHashResponse{
+			Operation: webapi.CSOperation_CA_NORMAL,
+			Status:    webapi.UserCaseStatus_CC_DROP_GAS_SUCCESS,
+			Memo:      NormalMsg,
+			Info: fmt.Sprintf(
+				"transferId: %s, \n"+
+					"user_addr: %s, \n"+
+					"updateTime: %s, \n"+
+					"createTime: %s, \n"+
+					"dropAmt: %s, \n"+
+					"txHash: %s",
+				arrivalLog.TransferId, arrivalLog.UsrAddr, arrivalLog.UpdateTime.String(), arrivalLog.CreateTime.String(), arrivalLog.DropGasAmt.String(), arrivalLog.TxHash),
+		}
+	}
+	return &webapi.GetInfoByTxHashResponse{
+		Operation: webapi.CSOperation_CA_CS_TOOL,
+		Status:    webapi.UserCaseStatus_CC_DROP_GAS_FAIL,
+		Memo:      ToolMsg,
+		Info: fmt.Sprintf(
+			"transferId: %s, \n"+
+				"userAddr: %s, \n"+
+				"updateTime: %s, \n"+
+				"createTime: %s, \n"+
+				"dropAmt: %s, \n"+
+				"txHash: %s",
+			arrivalLog.TransferId, arrivalLog.UsrAddr, arrivalLog.UpdateTime.String(), arrivalLog.CreateTime.String(), arrivalLog.DropGasAmt.String(), arrivalLog.TxHash),
+	}
 }
 
 func (gs *GatewayService) diagnosisTx(ctx context.Context, txHash string, chainId uint32, csType webapi.CSType) *webapi.GetInfoByTxHashResponse {
@@ -515,6 +574,30 @@ func (gs *GatewayService) fixLp(ctx context.Context, txHash, lpAddr string, chai
 		return gs.fixTxEventMiss(ctx, txHash, chainId, csType)
 	}
 	return nil
+}
+
+func (gs *GatewayService) fixDropGas(txHash string, srcChainId uint32) error {
+	tx0, txFound, dbErr := dal.DB.GetTransferBySrcTxHash(txHash, srcChainId)
+	if dbErr != nil || !txFound {
+		return fmt.Errorf("can't find tx")
+	}
+	arrivalLog, b, dbErr := dal.DB.FindGasOnArrivalLog(tx0.TransferId)
+	if dbErr != nil || !b {
+		return fmt.Errorf("can't find gas on arrival log")
+	}
+	if arrivalLog.Status == dal.GasOnArrivalStatusSuccess {
+		return nil
+	}
+	client := gs.Chains.GetEthClient(tx0.DstChainId)
+	txHash, err := onchain.SendGasOnArrival(client, tx0, arrivalLog.DropGasAmt)
+	if err == nil {
+		err := dal.DB.UpdateGasOnArrivalLogToSuccess(tx0.TransferId, txHash)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return err
 }
 
 func (gs *GatewayService) getAddrFromHash(ctx context.Context, txHash string, chainId uint64) (string, error) {

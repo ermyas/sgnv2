@@ -256,6 +256,15 @@ func TestAlert(t *testing.T) {
 	utils.SendBalanceAlert(alerts)
 }
 
+func TestGasOnArrival(t *testing.T) {
+	svc := newTestSvc(t)
+	if svc == nil {
+		t.Errorf("fail to init service")
+		return
+	}
+	onchain.RetrySendGasOnArrival(svc.Chains.GetEthClient(1), "ddd")
+}
+
 func TestRetentionRewards(t *testing.T) {
 	_db := dal.NewDAL(stSvr)
 	defer _db.Close()

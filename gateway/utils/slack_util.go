@@ -49,6 +49,17 @@ func SendBalanceAlert(alerts []*BalanceAlert) {
 	}
 }
 
+func SendProblematicBlockNumberAlert(addrs []string) {
+	msg := "those addresses are left behind at reporting their chain's current block number.\n"
+	for _, addr := range addrs {
+		msg = msg + addr + "\n"
+	}
+	log.Warnf(msg)
+	if viper.GetString("env") == "prod" {
+		sendSlackStatusAlertProd("current block number behind alert", msg)
+	}
+}
+
 func SendStatusAlert(alerts []*StatusAlertInfo, key string) {
 	msg := "find abnormal status, " + key + ":\n"
 	for _, alert := range alerts {
