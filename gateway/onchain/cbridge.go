@@ -89,10 +89,11 @@ func newOneChain(chainConf *common.OneChainConfig, wdal *watcherDAL) *OneChain {
 	var ec *ethclient.Client
 	var err error
 	if chainConf.ProxyPort > 0 {
-		if err = endpointproxy.StartProxy(chainConf.Gateway, chainConf.ChainID, chainConf.ProxyPort); err != nil {
-			log.Fatalln("can not start proxy for chain:", chainConf.ChainID, "gateway:", chainConf.Gateway, "port:", chainConf.ProxyPort, "err:", err)
+		proxyPort := chainConf.ProxyPort + 600
+		if err = endpointproxy.StartProxy(chainConf.Gateway, chainConf.ChainID, proxyPort); err != nil {
+			log.Fatalln("can not start proxy for chain:", chainConf.ChainID, "gateway:", chainConf.Gateway, "port:", proxyPort, "err:", err)
 		}
-		ec, err = ethclient.Dial(fmt.Sprintf("http://127.0.0.1:%d", chainConf.ProxyPort))
+		ec, err = ethclient.Dial(fmt.Sprintf("http://127.0.0.1:%d", proxyPort))
 		if err != nil {
 			log.Fatalln("dial", chainConf.Gateway, "err:", err)
 		}
