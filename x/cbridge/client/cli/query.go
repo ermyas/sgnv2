@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -59,7 +60,7 @@ func GetCmdQueryConfig() *cobra.Command {
 				return err
 			}
 
-			return cliCtx.PrintProto(&config)
+			return cliCtx.PrintProto(config)
 		},
 	}
 }
@@ -79,7 +80,7 @@ func GetCmdQueryParams() *cobra.Command {
 				log.Errorln("query error", err)
 				return err
 			}
-			return cliCtx.PrintProto(&params)
+			return cliCtx.PrintProto(params)
 		},
 	}
 }
@@ -239,7 +240,7 @@ func GetCmdQueryChkLiqSum() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("%s not valid chainid, err:%w", args[0], err)
 			}
-			resp, err := QueryChkLiqSum(cliCtx, &types.CheckLiqSumReq{
+			resp, err := QueryChkLiqSum(cliCtx, &types.CheckLiqSumRequest{
 				ChainId:   uint64(chainid),
 				TokenAddr: args[1],
 			})
@@ -261,13 +262,14 @@ var qDebugAnyCmd = &cobra.Command{
 	Short: "Query any kv value for given full key",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cliCtx, _ := client.GetClientQueryContext(cmd)
-		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDebugAny)
 		key := args[0]
-		res, err := common.RobustQueryWithData(cliCtx, route, []byte(key))
-		if err != nil {
+		queryClient := types.NewQueryClient(cliCtx)
+		resp, err := queryClient.QueryDebugAny(context.Background(), &types.QueryDebugAnyRequest{Key: []byte(key)})
+		if resp == nil || err != nil {
 			log.Errorln("query err:", err)
 			return err
 		}
+		res := resp.GetData()
 		if len(res) == 0 {
 			return cliCtx.PrintString("nil value")
 		}
@@ -310,234 +312,109 @@ func pre(a, pre string) bool {
 	return strings.HasPrefix(a, pre)
 }
 
-func QueryChkLiqSum(cliCtx client.Context, req *types.CheckLiqSumReq) (resp *types.CheckLiqSumResp, err error) {
-	data, err := cliCtx.LegacyAmino.MarshalJSON(req)
-	if err != nil {
-		return
-	}
-
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryChkLiqSum)
-	res, err := common.RobustQueryWithData(cliCtx, route, data)
-	if err != nil {
-		return
-	}
-
-	resp = new(types.CheckLiqSumResp)
-	err = cliCtx.Codec.Unmarshal(res, resp)
+func QueryChkLiqSum(cliCtx client.Context, req *types.CheckLiqSumRequest) (resp *types.CheckLiqSumResponse, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err = queryClient.QueryChkLiqSum(context.Background(), req)
 	return
 }
 
 // Query config info
-func QueryConfig(cliCtx client.Context) (config types.CbrConfig, err error) {
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryConfig)
-	res, err := common.RobustQuery(cliCtx, route)
-	if err != nil {
-		return
+func QueryConfig(cliCtx client.Context) (config *types.CbrConfig, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err := queryClient.QueryConfig(context.Background(), &types.EmptyRequest{})
+	if resp != nil {
+		config = resp.GetCbrConfig()
 	}
-
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &config)
 	return
 }
 
 // Query params info
-func QueryParams(cliCtx client.Context) (params types.Params, err error) {
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryParams)
-	res, err := common.RobustQuery(cliCtx, route)
-	if err != nil {
-		return
+func QueryParams(cliCtx client.Context) (params *types.Params, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err := queryClient.QueryParams(context.Background(), &types.EmptyRequest{})
+	if resp != nil {
+		params = resp.GetParams()
 	}
-
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &params)
 	return
 }
 
-func QueryRelay(cliCtx client.Context, xrefId []byte) (relay types.XferRelay, err error) {
-	data, err := cliCtx.LegacyAmino.MarshalJSON(types.NewQueryRelayParams(xrefId))
-	if err != nil {
-		return
+func QueryRelay(cliCtx client.Context, xrefId []byte) (relay *types.XferRelay, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err := queryClient.QueryRelay(context.Background(), &types.QueryRelayRequest{XrefId: xrefId})
+	if resp != nil {
+		relay = resp.GetXferRelay()
 	}
-
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryRelay)
-	res, err := common.RobustQueryWithData(cliCtx, route, data)
-	if err != nil {
-		return
-	}
-
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, &relay)
 	return
 }
 
 func QueryChainTokensConfig(cliCtx client.Context, request *types.ChainTokensConfigRequest) (resp *types.ChainTokensConfigResponse, err error) {
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryChainTokensConfig)
-	res, err := common.RobustQuery(cliCtx, route)
-	if err != nil {
-		return
-	}
-
-	resp = new(types.ChainTokensConfigResponse)
-	err = cliCtx.Codec.Unmarshal(res, resp)
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err = queryClient.ChainTokensConfig(context.Background(), request)
 	return
 }
 
 func QueryFee(cliCtx client.Context, request *types.GetFeeRequest) (resp *types.GetFeeResponse, err error) {
-	data, err := cliCtx.LegacyAmino.MarshalJSON(request)
-	if err != nil {
-		return
-	}
-
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryFee)
-	res, err := common.RobustQueryWithData(cliCtx, route, data)
-	if err != nil {
-		return
-	}
-
-	resp = new(types.GetFeeResponse)
-	err = cliCtx.Codec.Unmarshal(res, resp)
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err = queryClient.GetFee(context.Background(), request)
 	return
 }
 
 func QueryFeePerc(cliCtx client.Context, request *types.GetFeePercentageRequest) (resp *types.GetFeePercentageResponse, err error) {
-	data, err := cliCtx.LegacyAmino.MarshalJSON(request)
-	if err != nil {
-		return
-	}
-
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryFeePerc)
-	res, err := common.RobustQueryWithData(cliCtx, route, data)
-	if err != nil {
-		return
-	}
-
-	resp = new(types.GetFeePercentageResponse)
-	err = cliCtx.Codec.Unmarshal(res, resp)
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err = queryClient.GetFeePercentage(context.Background(), request)
 	return
 }
 
 func QueryCheckChainTokenValid(cliCtx client.Context, request *types.CheckChainTokenValidRequest) (resp *types.CheckChainTokenValidResponse, err error) {
-	data, err := cliCtx.LegacyAmino.MarshalJSON(request)
-	if err != nil {
-		return
-	}
-
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryCheckChainTokenValid)
-	res, err := common.RobustQueryWithData(cliCtx, route, data)
-	if err != nil {
-		return
-	}
-
-	resp = new(types.CheckChainTokenValidResponse)
-	err = cliCtx.Codec.Unmarshal(res, resp)
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err = queryClient.QueryCheckChainTokenValid(context.Background(), request)
 	return
 }
 
 func QueryTransferStatus(cliCtx client.Context, request *types.QueryTransferStatusRequest) (resp *types.QueryTransferStatusResponse, err error) {
-	data, err := cliCtx.LegacyAmino.MarshalJSON(request)
-	if err != nil {
-		return
-	}
-
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryTransferStatus)
-	res, err := common.RobustQueryWithData(cliCtx, route, data)
-	if err != nil {
-		return
-	}
-
-	resp = new(types.QueryTransferStatusResponse)
-	err = cliCtx.Codec.Unmarshal(res, resp)
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err = queryClient.QueryTransferStatus(context.Background(), request)
 	return
 }
 
 func QueryLiquidityDetailList(cliCtx client.Context, request *types.LiquidityDetailListRequest) (resp *types.LiquidityDetailListResponse, err error) {
-	data, err := cliCtx.LegacyAmino.MarshalJSON(request)
-	if err != nil {
-		return
-	}
-
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryLiquidityDetailList)
-	res, err := common.RobustQueryWithData(cliCtx, route, data)
-	if err != nil {
-		return
-	}
-
-	resp = new(types.LiquidityDetailListResponse)
-	err = cliCtx.Codec.Unmarshal(res, resp)
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err = queryClient.LiquidityDetailList(context.Background(), request)
 	return
 }
 
 func QueryTotalLiquidity(cliCtx client.Context, request *types.QueryTotalLiquidityRequest) (resp *types.QueryTotalLiquidityResponse, err error) {
-	data, err := cliCtx.LegacyAmino.MarshalJSON(request)
-	if err != nil {
-		return
-	}
-
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryTotalLiquidity)
-	res, err := common.RobustQueryWithData(cliCtx, route, data)
-	if err != nil {
-		return
-	}
-
-	resp = new(types.QueryTotalLiquidityResponse)
-	err = cliCtx.Codec.Unmarshal(res, resp)
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err = queryClient.QueryTotalLiquidity(context.Background(), request)
 	return
 }
 
 func QueryAddLiquidityStatus(cliCtx client.Context, request *types.QueryAddLiquidityStatusRequest) (resp *types.QueryLiquidityStatusResponse, err error) {
-	data, err := cliCtx.LegacyAmino.MarshalJSON(request)
-	if err != nil {
-		return
-	}
-
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryAddLiquidityStatus)
-	res, err := common.RobustQueryWithData(cliCtx, route, data)
-	if err != nil {
-		return
-	}
-
-	resp = new(types.QueryLiquidityStatusResponse)
-	err = cliCtx.Codec.Unmarshal(res, resp)
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err = queryClient.QueryAddLiquidityStatus(context.Background(), request)
 	return
 }
 
 func QueryWithdrawLiquidityStatus(cliCtx client.Context, request *types.QueryWithdrawLiquidityStatusRequest) (resp *types.QueryLiquidityStatusResponse, err error) {
-	data, err := cliCtx.LegacyAmino.MarshalJSON(request)
-	if err != nil {
-		return
-	}
-
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryWithdrawLiquidityStatus)
-	res, err := common.RobustQueryWithData(cliCtx, route, data)
-	if err != nil {
-		return
-	}
-
-	resp = new(types.QueryLiquidityStatusResponse)
-	err = cliCtx.Codec.Unmarshal(res, resp)
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err = queryClient.QueryWithdrawLiquidityStatus(context.Background(), request)
 	return
 }
 
 func QueryChainSigners(cliCtx client.Context, chainId uint64) (chainSigners *types.ChainSigners, err error) {
-	params := types.NewQueryChainParams(chainId)
-	data, err := cliCtx.LegacyAmino.MarshalJSON(params)
-	if err != nil {
-		return
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err := queryClient.QueryChainSigners(context.Background(), &types.QueryChainSignersRequest{ChainId: chainId})
+	if resp != nil {
+		chainSigners = resp.GetChainSigners()
 	}
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryChainSigners)
-	res, err := common.RobustQueryWithData(cliCtx, route, data)
-	if err != nil {
-		return
-	}
-	chainSigners = new(types.ChainSigners)
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, chainSigners)
 	return
 }
 
 func QueryLatestSigners(cliCtx client.Context) (latestSigners *types.LatestSigners, err error) {
-	route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryLatestSigners)
-	res, err := common.RobustQuery(cliCtx, route)
-	if err != nil {
-		return
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err := queryClient.QueryLatestSigners(context.Background(), &types.EmptyRequest{})
+	if resp != nil {
+		latestSigners = resp.GetLatestSigners()
 	}
-	latestSigners = new(types.LatestSigners)
-	err = cliCtx.LegacyAmino.UnmarshalJSON(res, latestSigners)
 	return
 }
