@@ -55,6 +55,9 @@ message OrigPeggedPair {
 
   // max_burn_fee defines the max burn fee chargeable.
   string max_burn_fee = 6 [(gogoproto.moretags) = "yaml:\"max_burn_fee\""];
+
+  // used for gov only, to delete unintended config
+  bool obsolete = 7 [(gogoproto.moretags) = "yaml:\"obsolete\""];
 }
 
 // PeggedOrigIndex describes the reverse lookup index from a pegged token to the original token, if exists.

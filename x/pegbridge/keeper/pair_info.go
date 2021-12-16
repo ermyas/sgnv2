@@ -8,6 +8,11 @@ import (
 )
 
 func (k Keeper) SetOrigPeggedPair(ctx sdk.Context, pair types.OrigPeggedPair) {
+	if pair.Obsolete {
+		k.DeleteOrigPeggedPair(ctx, pair.Orig.ChainId, eth.Hex2Addr(pair.Orig.Address), pair.Pegged.ChainId, eth.Hex2Addr(pair.Pegged.Address))
+		return
+	}
+
 	storedPair, found := k.GetOrigPeggedPair(ctx, pair.Orig.ChainId, eth.Hex2Addr(pair.Orig.Address), pair.Pegged.ChainId)
 	if found && eth.Hex2Addr(storedPair.Pegged.Address) != eth.Hex2Addr(pair.Pegged.Address) {
 		k.DeletePeggedOrigIndex(ctx, storedPair.Pegged.ChainId, eth.Hex2Addr(storedPair.Pegged.Address))
