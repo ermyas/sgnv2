@@ -34,7 +34,7 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 	for _, asset := range cfg.Assets {
 		addr := eth.Hex2Addr(asset.Addr)
 		// chidTokenMap[asset.ChainId] = addr
-		sym := strings.ToUpper(asset.Symbol)
+		sym := asset.Symbol
 		kv.Set(types.CfgKeyChain2Sym(asset.ChainId, addr), []byte(sym))
 		raw, _ := asset.Marshal()
 		kv.Set(types.CfgKeySym2Info(sym, asset.ChainId), raw)
