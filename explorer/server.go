@@ -23,7 +23,6 @@ var (
 type ExplorerServerConfig struct {
 	GatewayDbUrl       string
 	ExplorerDbUrl      string
-	V1DbUrl            string
 	Prod2DbUrl         string
 	GatewayRpcUrl      string
 	GatewayProd2RpcUrl string
@@ -34,7 +33,6 @@ type ExplorerServerConfig struct {
 type explorerServer struct {
 	config             *ExplorerServerConfig
 	explorerDb         *DAL
-	v1Db               *DAL
 	gatewayDb          *dal.DAL             // prod1
 	prod2Db            *dal.DAL             // prod2
 	gatewayClient      *utils.GatewayClient // prod1
@@ -91,14 +89,6 @@ func NewExplorerServer(config *ExplorerServerConfig) (*explorerServer, error) {
 	server.explorerDb, err = NewDAL("postgres", fmt.Sprintf("postgresql://explorer@%s/explorer?sslmode=disable", config.ExplorerDbUrl), 20)
 	if err != nil {
 		return nil, err
-	}
-
-	// for testnet, we do not need v1 data source
-	if config.V1DbUrl != "" {
-		server.v1Db, err = NewDAL("postgres", fmt.Sprintf("postgresql://root@%s/gateway?sslmode=disable", config.V1DbUrl), 20)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	server.gatewayClient, err = utils.NewGatewayAPI(config.GatewayRpcUrl)
@@ -412,21 +402,6 @@ func (e *explorerServer) processTransferStat() error {
 			}
 		}
 
-		if e.v1Db != nil {
-			v1Addrs, dbErr := e.v1Db.GetV1DistinctTransferAddrByTimeRange(begin, end)
-			if dbErr != nil {
-				log.Errorf("fail to GetV1DistinctTransferAddrByTimeRange, err:%s", dbErr.Error())
-				return dbErr
-			}
-			for _, addr := range v1Addrs {
-				dbErr = e.explorerDb.InsertDistinctAddr(addr)
-				if dbErr != nil {
-					log.Errorf("fail to InsertDistinctAddr, err:%s", dbErr.Error())
-					return dbErr
-				}
-			}
-		}
-
 		// add transfer and lp volume, count
 		txVolume, txCount, dbErr := e.gatewayDb.GetTxStatByTimeRange(begin, end)
 		if dbErr != nil {
@@ -450,16 +425,7 @@ func (e *explorerServer) processTransferStat() error {
 			return dbErr
 		}*/
 
-		var v1Volume float64
-		var v1Count uint64
-		if e.v1Db != nil {
-			v1Volume, v1Count, dbErr = e.v1Db.GetV1TxStatByTimeRange(begin, end)
-			if dbErr != nil {
-				log.Errorf("fail to GetV1TxStatByTimeRange, err:%s", dbErr.Error())
-				return dbErr
-			}
-		}
-		dbErr = e.explorerDb.InsertHourlyTransactionStat(begin, end, txVolume /*+lpVolume*/ +txVolumeProd2 /*+lpVolumeProd2*/ +v1Volume, txCount /*+lpCount*/ +txCountProd2 /*+lpCountProd2*/ +v1Count)
+		dbErr = e.explorerDb.InsertHourlyTransactionStat(begin, end, txVolume /*+lpVolume*/ +txVolumeProd2 /*+lpVolumeProd2*/, txCount /*+lpCount*/ +txCountProd2 /*+lpCountProd2*/)
 		if dbErr != nil {
 			log.Errorf("fail to InsertTransactionStat, err:%s", dbErr.Error())
 			return dbErr
