@@ -3,7 +3,6 @@ package sgn.cbridge.v1;
 
 import "cosmos_proto/cosmos.proto";
 import "gogoproto/gogo.proto";
-import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
 import "sgn/common/v1/common.proto";
 
