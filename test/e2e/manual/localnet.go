@@ -28,7 +28,6 @@ var (
 	start   = flag.Bool("start", false, "start local testnet")
 	cbr     = flag.Bool("cbr", false, "start with cbridge")
 	op      = flag.Bool("op", false, "proceed with sample operations")
-	gateway = flag.Bool("gateway", false, "start with gateway")
 	full    = flag.Bool("full", false, "start with full stack setup")
 	auto    = flag.Bool("auto", false, "auto-add all validators")
 	down    = flag.Bool("down", false, "shutdown local testnet")
@@ -45,7 +44,6 @@ func main() {
 	repoRoot, _ := filepath.Abs("../../..")
 	if *full {
 		*cbr = true
-		*gateway = true
 		*auto = true
 	}
 	if *start {
@@ -67,7 +65,7 @@ func main() {
 			ValidatorBondInterval: big.NewInt(0),
 			MaxSlashFactor:        big.NewInt(1e5),
 		}
-		multinode.SetupNewSgnEnv(p, *cbr, *gateway, true)
+		multinode.SetupNewSgnEnv(p, *cbr, true)
 		if *cbr {
 			amts := []*big.Int{big.NewInt(1e18)}
 			tc.CbrChain1.SetInitSigners(amts)
