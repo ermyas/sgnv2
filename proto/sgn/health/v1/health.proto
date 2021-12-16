@@ -1,0 +1,35 @@
+syntax = "proto3";
+package sgn.health.v1;
+
+option go_package = "github.com/celer-network/sgn-v2/relayer";
+
+message ReportCurrentBlockNumberRequest {
+  // serialized CurrentBlockNumberReport
+  bytes report = 1;
+  bytes sig = 2;
+}
+
+message CurrentBlockNumberReport {
+  // in millis
+  uint64 timestamp = 1;
+  // key is chainId, value is block number
+  map<string, uint64> block_nums = 2;
+}
+
+message ReportCurrentBlockNumberResponse {
+  ErrMsg err = 1;
+}
+
+message ErrMsg {
+  ErrCode code = 1;
+  string msg = 2;
+}
+
+enum ErrCode {
+  ERROR_CODE_UNDEFINED = 0;
+  ERROR_CODE_COMMON = 500;
+  ERROR_NO_TOKEN_ON_DST_CHAIN = 1001;
+  ERROR_NO_TOKEN_ON_SRC_CHAIN = 1002;
+  ERROR_INIT_WITHDRAW_FAILED = 1003;
+  ERROR_CODE_NO_ENOUGH_TOKEN_ON_DST_CHAIN = 1004;
+}

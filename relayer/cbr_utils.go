@@ -3,13 +3,15 @@ package relayer
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/common"
-	"github.com/celer-network/sgn-v2/gateway/webapi"
-	"github.com/gogo/protobuf/proto"
-	"github.com/spf13/viper"
 	"math/big"
 	"strconv"
+
+	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
+	"github.com/gogo/protobuf/proto"
+	"github.com/spf13/viper"
+
+	"time"
 
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -17,7 +19,6 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/lthibault/jitterbug"
 	"gopkg.in/resty.v1"
-	"time"
 )
 
 func (c *CbrOneChain) setCurss(ss []*cbrtypes.Signer) {
@@ -75,7 +76,7 @@ func (r *Relayer) startReportCurrentBlockNumber(interval time.Duration) {
 }
 
 func (r *Relayer) reportCurrentBlockNumber() {
-	var report = &webapi.CurrentBlockNumberReport{
+	var report = &CurrentBlockNumberReport{
 		Timestamp: common.TsMilli(time.Now()),
 		BlockNums: make(map[string]uint64),
 	}
@@ -93,7 +94,7 @@ func (r *Relayer) reportCurrentBlockNumber() {
 		log.Warnln("fail to Sign CurrentBlockNumberReport,", err)
 		return
 	}
-	req := &webapi.ReportCurrentBlockNumberRequest{
+	req := &ReportCurrentBlockNumberRequest{
 		Report: bytes,
 		Sig:    sig,
 	}
@@ -111,13 +112,13 @@ func (r *Relayer) reportCurrentBlockNumber() {
 	response, err := client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(str).
-		SetResult(&webapi.ReportCurrentBlockNumberResponse{}).
+		SetResult(&ReportCurrentBlockNumberResponse{}).
 		Post(url)
 	if err != nil || response.StatusCode() != 200 {
 		log.Warnln("fail to reportCurrentBlockNumber ", req, err, response)
 		return
 	}
-	resp := response.Result().(*webapi.ReportCurrentBlockNumberResponse)
+	resp := response.Result().(*ReportCurrentBlockNumberResponse)
 	if resp.GetErr() != nil {
 		log.Warnln("fail to reportCurrentBlockNumber ", req, err, response)
 		return
