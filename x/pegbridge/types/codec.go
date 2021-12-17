@@ -15,6 +15,7 @@ func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(&MsgTriggerSignMint{}, "sgn-v2/MsgTriggerSignMint", nil)
 	cdc.RegisterConcrete(&MsgTriggerSignWithdraw{}, "sgn-v2/MsgTriggerSignWithdraw", nil)
 	cdc.RegisterConcrete(&PegProposal{}, "sgn-v2/PegProposal", nil)
+	cdc.RegisterConcrete(&PairDeleteProposal{}, "sgn-v2/PairDeleteProposal", nil)
 }
 
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
@@ -28,6 +29,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations(
 		(*govtypes.Content)(nil),
 		&PegProposal{},
+		&PairDeleteProposal{},
 	)
 
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)

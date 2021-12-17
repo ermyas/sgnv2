@@ -74,7 +74,7 @@ proposal file is path to json like below
 				log.Error(err)
 				return err
 			}
-			pegProp := parseJson(args[0])
+			pegProp := parsePegProposalJson(args[0])
 			msg, _ := govtypes.NewMsgSubmitProposal(pegProp /*pegProp.Deposit*/, sdk.NewInt(0), txr.Key.GetAddress())
 			if err := msg.ValidateBasic(); err != nil {
 				log.Error(err)
@@ -88,9 +88,69 @@ proposal file is path to json like below
 	return cmd
 }
 
+func GetCmdSubmitPairDeleteProposal() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "pegged-pair-delete [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit a pegged pair delete proposal",
+		Long: `
+proposal file is path to json like below
+{
+	"title": "peg bridge pair delete",
+	"description": "delete a pair",
+	"pair_to_delete": {
+			"orig": {
+				"address": "3ff73bab93c505809c68b0a8e4321a2713d9255c",
+				"chain_id": 883,
+			},
+			"pegged": {
+				"address": "283ab9db53f25d84fa30915816ec53f8affaa86e",
+				"chain_id": 884,
+			}
+		}
+    },
+	"deposit": "0"
+}
+`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+			home, err := cmd.Flags().GetString(flags.FlagHome)
+			if err != nil {
+				return err
+			}
+			txr, err := transactor.NewCliTransactor(home, clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
+			if err != nil {
+				log.Error(err)
+				return err
+			}
+			prop := parsePairDeleteProposalJson(args[0])
+			msg, _ := govtypes.NewMsgSubmitProposal(prop, prop.Deposit, txr.Key.GetAddress())
+			if err := msg.ValidateBasic(); err != nil {
+				log.Error(err)
+				return err
+			}
+
+			txr.CliSendTxMsgWaitMined(msg)
+			return nil
+		},
+	}
+	return cmd
+}
+
 // parse json at fpath and return PegProposal
-func parseJson(fpath string) *types.PegProposal {
+func parsePegProposalJson(fpath string) *types.PegProposal {
 	ret := new(types.PegProposal)
+	raw, _ := ioutil.ReadFile(fpath)
+	json.Unmarshal(raw, ret)
+	return ret
+}
+
+// parse json at fpath and return PairDeleteProposal
+func parsePairDeleteProposalJson(fpath string) *types.PairDeleteProposal {
+	ret := new(types.PairDeleteProposal)
 	raw, _ := ioutil.ReadFile(fpath)
 	json.Unmarshal(raw, ret)
 	return ret
@@ -108,4 +168,16 @@ func postPegProposalHandlerFn(cliCtx client.Context) http.HandlerFunc {
 	}
 }
 
+func PairDeleteProposalRESTHandler(cliCtx client.Context) govrest.ProposalRESTHandler {
+	return govrest.ProposalRESTHandler{
+		SubRoute: "pegged-pair-delete",
+		Handler:  postPairDeleteProposalHandlerFn(cliCtx),
+	}
+}
+func postPairDeleteProposalHandlerFn(cliCtx client.Context) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+	}
+}
+
 var PegConfigProposalHandler = govcli.NewProposalHandler(GetCmdSubmitPegProposal, PegProposalRESTHandler)
+var PegPairDeleteProposalHandler = govcli.NewProposalHandler(GetCmdSubmitPairDeleteProposal, PegProposalRESTHandler)
