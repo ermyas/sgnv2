@@ -133,12 +133,7 @@ func (c *PegConfig) Validate() error {
 }
 
 func (p *OrigPeggedPair) Validate() error {
-	if !common.IsHexAddress(p.Orig.Address) {
-		return fmt.Errorf("invalid origin address")
-	}
-	if !common.IsHexAddress(p.Pegged.Address) {
-		return fmt.Errorf("invalid peg address")
-	}
+	p.ValidateBasic()
 	if p.MintFeePips > 1e6 {
 		return fmt.Errorf("invalid mint fee pips")
 	}
@@ -156,6 +151,22 @@ func (p *OrigPeggedPair) Validate() error {
 		if !good || maxBurnFee.Sign() == -1 {
 			return fmt.Errorf("invalid max burn fee")
 		}
+	}
+	return nil
+}
+
+func (p *OrigPeggedPair) ValidateBasic() error {
+	if !common.IsHexAddress(p.Orig.Address) {
+		return fmt.Errorf("invalid origin address")
+	}
+	if !common.IsHexAddress(p.Pegged.Address) {
+		return fmt.Errorf("invalid peg address")
+	}
+	if p.Orig.ChainId == 0 {
+		return fmt.Errorf("invalid origin chain id")
+	}
+	if p.Pegged.ChainId == 0 {
+		return fmt.Errorf("invalid pegged chain id")
 	}
 	return nil
 }

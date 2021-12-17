@@ -222,3 +222,14 @@ message PegProposal {
   // deposit defines the amount for MsgSubmitProposal
   string deposit = 4 [(gogoproto.nullable) = false, (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int"];
 }
+
+message PairDeleteProposal {
+  option (cosmos_proto.implements_interface) = "Content";
+  option (gogoproto.equal) = false;
+
+  string title = 1;
+  string description = 2;
+  OrigPeggedPair pair_to_delete = 3;
+  // deposit defines the amount for MsgSubmitProposal
+  string deposit = 4 [(gogoproto.nullable) = false, (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int"];
+}

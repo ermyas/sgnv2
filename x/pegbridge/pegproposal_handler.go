@@ -1,6 +1,7 @@
 package pegbridge
 
 import (
+	"github.com/celer-network/sgn-v2/eth"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	pegkeeper "github.com/celer-network/sgn-v2/x/pegbridge/keeper"
 	"github.com/celer-network/sgn-v2/x/pegbridge/types"
@@ -13,8 +14,10 @@ func NewPegProposalHandler(k pegkeeper.Keeper) govtypes.Handler {
 		switch c := content.(type) {
 		case *types.PegProposal:
 			return handlePegProposal(ctx, k, c)
+		case *types.PairDeleteProposal:
+			return handlePairDeleteProposal(ctx, k, c)
 		default:
-			return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unsupported cbr proposal content type: %T", c)
+			return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unsupported peg proposal content type: %T", c)
 		}
 	}
 }
@@ -24,5 +27,14 @@ func handlePegProposal(ctx sdk.Context, k pegkeeper.Keeper, p *types.PegProposal
 		return err
 	}
 	k.SetPegConfig(ctx, *p.PegConfig)
+	return nil
+}
+
+func handlePairDeleteProposal(ctx sdk.Context, k pegkeeper.Keeper, p *types.PairDeleteProposal) error {
+	pair := p.PairToDelete
+	if err := pair.ValidateBasic(); err != nil {
+		return err
+	}
+	k.DeleteOrigPeggedPair(ctx, pair.Orig.ChainId, eth.Hex2Addr(pair.Orig.Address), pair.Pegged.ChainId, eth.Hex2Addr(pair.Pegged.Address))
 	return nil
 }

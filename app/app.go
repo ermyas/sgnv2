@@ -111,6 +111,7 @@ var (
 			govclient.UpgradeProposalHandler,
 			cbrclient.CbrConfigProposalHandler,
 			pegclient.PegConfigProposalHandler,
+			pegclient.PegPairDeleteProposalHandler,
 			mintclient.AdjustProvisionsProposalHandler,
 			farmingclient.AddPoolProposalHandler,
 			farmingclient.AddTokensProposalHandler,
