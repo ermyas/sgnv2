@@ -9,7 +9,7 @@ sgnd ops init-validator [flags]
 ### Options
 
 ```
-      --commission-rate float        Commission rate in unit of 0.01% (e.g., 120 is 1.2%)
+      --commission-rate float        Commission rate (e.g., 0.1 is 10%)
   -h, --help                         help for init-validator
       --keystore string              Validator keystore file
       --min-self-delegation string   Minimum self-delegated stake (integer in unit of CELR)

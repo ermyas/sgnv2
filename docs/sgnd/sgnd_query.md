@@ -26,6 +26,7 @@ sgnd query [flags]
 * [sgnd query gov](sgnd_query_gov.md)	 - Querying commands for the governance module
 * [sgnd query mint](sgnd_query_mint.md)	 - Querying commands for the minting module
 * [sgnd query params](sgnd_query_params.md)	 - Querying commands for the params module
+* [sgnd query pegbridge](sgnd_query_pegbridge.md)	 - Querying commands for the pegbridge module
 * [sgnd query slashing](sgnd_query_slashing.md)	 - Querying commands for the slash module
 * [sgnd query staking](sgnd_query_staking.md)	 - Querying commands for the staking module
 * [sgnd query sync](sgnd_query_sync.md)	 - Querying commands for the sync module

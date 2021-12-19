@@ -29,7 +29,7 @@ func InitValidatorCommand() *cobra.Command {
 	cmd.Flags().String(FlagKeystore, "", "Validator keystore file")
 	cmd.Flags().String(FlagPassphrase, "", "Validator keystore passphrase")
 	cmd.Flags().String(FlagMinSelfDelegation, "", "Minimum self-delegated stake (integer in unit of CELR)")
-	cmd.Flags().Float64(FlagCommissionRate, 0, "Commission rate in unit of 0.01% (e.g., 120 is 1.2%)")
+	cmd.Flags().Float64(FlagCommissionRate, 0, "Commission rate (e.g., 0.1 is 10%)")
 
 	cmd.MarkFlagRequired(FlagKeystore)
 	cmd.MarkFlagRequired(FlagMinSelfDelegation)

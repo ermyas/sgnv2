@@ -29,6 +29,7 @@ sgnd tx [flags]
 * [sgnd tx mint](sgnd_tx_mint.md)	 - mint transactions subcommands
 * [sgnd tx multisign](sgnd_tx_multisign.md)	 - Generate multisig signatures for transactions generated offline
 * [sgnd tx multisign-batch](sgnd_tx_multisign-batch.md)	 - Assemble multisig transactions in batch from batch signatures
+* [sgnd tx pegbridge](sgnd_tx_pegbridge.md)	 - pegbridge transactions subcommands
 * [sgnd tx sign](sgnd_tx_sign.md)	 - Sign a transaction generated offline
 * [sgnd tx sign-batch](sgnd_tx_sign-batch.md)	 - Sign transaction batch files
 * [sgnd tx slashing](sgnd_tx_slashing.md)	 - Slash transaction subcommands
