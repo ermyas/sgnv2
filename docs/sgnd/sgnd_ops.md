@@ -21,6 +21,7 @@ sgnd ops [flags]
 * [sgnd ops init-validator](sgnd_ops_init-validator.md)	 - Initialize a validator
 * [sgnd ops submit-relay](sgnd_ops_submit-relay.md)	 - submit relay using XferId
 * [sgnd ops sync](sgnd_ops_sync.md)	 - Sync an event from onchain to sidechain
+* [sgnd ops sync-farming](sgnd_ops_sync-farming.md)	 - Syncs all LP liquidity for a token on a chain with their stakes in the farming pool
 * [sgnd ops undelegate](sgnd_ops_undelegate.md)	 - Undelegate tokens from a validator
 * [sgnd ops view](sgnd_ops_view.md)	 - Operation subcommands
 
