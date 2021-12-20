@@ -148,12 +148,13 @@ func (r *Relayer) submitMint(mintRequest MintRequest) {
 
 	txHash, err := r.cbrMgr[mintRequest.MintChainId].SendMint(mintInfo.MintProtoBytes, sigsBytes, curss, mintOnChain)
 	if err != nil {
-		if strings.Contains(err.Error(), "transfer exists") {
+		if strings.Contains(err.Error(), "record exists") {
 			log.Infof("%s. err %s, skip it", logmsg, err)
 			return
 		}
 
 		if strings.Contains(err.Error(), "Pausable: paused") ||
+			strings.Contains(err.Error(), "volume exceeds cap") ||
 			strings.Contains(err.Error(), "Mismatch current signers") {
 			if mintRequest.RetryCount > 0 {
 				mintRequest.RetryCount -= 1
@@ -256,6 +257,7 @@ func (r *Relayer) submitWithdraw(wdRequest WithdrawRequest) {
 		}
 
 		if strings.Contains(err.Error(), "Pausable: paused") ||
+			strings.Contains(err.Error(), "volume exceeds cap") ||
 			strings.Contains(err.Error(), "Mismatch current signers") {
 			if wdRequest.RetryCount > 0 {
 				wdRequest.RetryCount -= 1
