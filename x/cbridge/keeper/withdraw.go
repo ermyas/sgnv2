@@ -13,6 +13,10 @@ import (
 )
 
 func (k Keeper) refund(ctx sdk.Context, wdReq *types.WithdrawReq, signer eth.Addr, creator string) (*types.WithdrawOnchain, error) {
+	// we use non-zero reqid as a way to avoid duplicated refund request, so reqid MUST NOT be 0
+	if wdReq.ReqId == 0 {
+		return nil, types.Error(types.ErrCode_INVALID_REQ, "reqid is 0")
+	}
 	kv := ctx.KVStore(k.storeKey)
 	xferId := eth.Bytes2Hash(eth.Hex2Bytes(wdReq.XferId))
 	wdOnchain := GetXferRefund(kv, xferId)

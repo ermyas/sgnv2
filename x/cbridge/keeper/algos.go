@@ -330,7 +330,7 @@ func pickLPs(kv sdk.KVStore, dstchid uint64, dstToken, sender eth.Addr, destAmou
 	pickedLPs = append(pickedLPs, picked...)
 	if actSum.Cmp(stillNeed) == -1 { // still not enough, need to use iter2
 		stillNeed.Sub(stillNeed, actSum)
-		picked, actSum = pickLpTillSum(iter2, stillNeed, senderHex)
+		picked, _ = pickLpTillSum(iter2, stillNeed, senderHex)
 		pickedLPs = append(pickedLPs, picked...)
 	}
 	return pickedLPs, false // use one by one
