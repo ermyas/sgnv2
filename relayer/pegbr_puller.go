@@ -70,9 +70,6 @@ func (r *Relayer) doPegbrOnchainByChain(chid uint64) {
 	log.Infof("start process pegbr onchain, interval:%s, chainId: %d", interval, chid)
 	for {
 		time.Sleep(interval)
-		if !r.isSyncer() {
-			continue
-		}
 
 		r.processPegbrMintQueue(chid)
 		r.processPegbrWithdrawQueue(chid)
@@ -80,6 +77,11 @@ func (r *Relayer) doPegbrOnchainByChain(chid uint64) {
 }
 
 func (r *Relayer) processPegbrMintQueue(chid uint64) {
+	syncer, syncerUpdateTime := r.getSyncer()
+	if !syncer {
+		return
+	}
+
 	var keys, vals [][]byte
 	r.pegbrLock.RLock()
 	prefix := GetPegbrMintPrefix(chid)
@@ -99,8 +101,24 @@ func (r *Relayer) processPegbrMintQueue(chid uint64) {
 	if len(keys) > 0 {
 		log.Debugf("start process mint queue，current timestamp: %d, queue size: %d, chainid: %d", time.Now().Unix(), len(keys), chid)
 	}
+
+	newSyncer := false
+	newSyncerWaitTime := time.Duration(r.cbrMgr[chid].blkInterval) * time.Second * newSyncerWaitBlk
+	if syncerUpdateTime.Add(newSyncerWaitTime).After(time.Now()) {
+		newSyncer = true
+	}
+	sigWaitTime := viper.GetDuration(common.FlagConsensusTimeoutCommit) * sigWaitSgnBlk
 	for i, key := range keys {
 		event := NewMintRequestFromBytes(vals[i])
+		if event.CreateTime.Add(sigWaitTime).After(time.Now()) {
+			// wait a while to collect validator signatures
+			continue
+		}
+		if newSyncer && event.CreateTime.Before(syncerUpdateTime) {
+			// wait for mint to be submitted by the previous syncer
+			continue
+		}
+
 		err = r.dbDelete(key)
 		if err != nil {
 			log.Errorln("db Delete err", err)
@@ -112,12 +130,16 @@ func (r *Relayer) processPegbrMintQueue(chid uint64) {
 }
 
 func (r *Relayer) submitMint(mintRequest MintRequest) {
-	logmsg := fmt.Sprintf("Process mint, mintChain %d mintId %x depositChainId %d depositId %x",
+	logmsg := fmt.Sprintf("Process peg mint, mintChain %d mintId %x depositChainId %d depositId %x",
 		mintRequest.MintChainId, mintRequest.MintId, mintRequest.DepositChainId, mintRequest.DepositId)
 
 	mintInfo, err := pegbrcli.QueryMintInfo(r.Transactor.CliCtx, eth.Bytes2Hex(mintRequest.MintId))
 	if err != nil {
 		r.requeueMint(mintRequest, fmt.Sprintf("%s. QueryMintInfo err: %s", logmsg, err), true)
+		return
+	}
+	if mintInfo.Success {
+		log.Infof("%s. mint already completed, skip it", logmsg)
 		return
 	}
 
@@ -127,8 +149,6 @@ func (r *Relayer) submitMint(mintRequest MintRequest) {
 		log.Errorf("%s. Unmarshal mintInfo.MintProtoBytes err %s", logmsg, err)
 		return
 	}
-
-	// TODO: check mint onchain if it's been processed already
 
 	curss := r.cbrMgr[mintRequest.MintChainId].getCurss()
 	curssList := make([]*cbrtypes.Signer, 0)
@@ -184,6 +204,11 @@ func (r *Relayer) requeueMint(mintRequest MintRequest, logmsg string, warn bool)
 }
 
 func (r *Relayer) processPegbrWithdrawQueue(chid uint64) {
+	syncer, syncerUpdateTime := r.getSyncer()
+	if !syncer {
+		return
+	}
+
 	var keys, vals [][]byte
 	r.pegbrLock.RLock()
 	prefix := GetPegbrWdPrefix(chid)
@@ -203,8 +228,24 @@ func (r *Relayer) processPegbrWithdrawQueue(chid uint64) {
 	if len(keys) > 0 {
 		log.Debugf("start process withdraw queue，current timestamp: %d, queue size: %d, chainid: %d", time.Now().Unix(), len(keys), chid)
 	}
+
+	newSyncer := false
+	newSyncerWaitTime := time.Duration(r.cbrMgr[chid].blkInterval) * time.Second * newSyncerWaitBlk
+	if syncerUpdateTime.Add(newSyncerWaitTime).After(time.Now()) {
+		newSyncer = true
+	}
+	sigWaitTime := viper.GetDuration(common.FlagConsensusTimeoutCommit) * sigWaitSgnBlk
 	for i, key := range keys {
 		event := NewWithdrawRequestFromBytes(vals[i])
+		if event.CreateTime.Add(sigWaitTime).After(time.Now()) {
+			// wait a while to collect validator signatures
+			continue
+		}
+		if newSyncer && event.CreateTime.Before(syncerUpdateTime) {
+			// wait for withdraw to be submitted by the previous syncer
+			continue
+		}
+
 		err = r.dbDelete(key)
 		if err != nil {
 			log.Errorln("db Delete err", err)
@@ -216,11 +257,15 @@ func (r *Relayer) processPegbrWithdrawQueue(chid uint64) {
 }
 
 func (r *Relayer) submitWithdraw(wdRequest WithdrawRequest) {
-	logmsg := fmt.Sprintf("Process withdraw, withdrawChain %d withdrawId %x", wdRequest.WithdrawChainId, wdRequest.WithdrawId)
+	logmsg := fmt.Sprintf("Process peg withdraw, withdrawChain %d withdrawId %x", wdRequest.WithdrawChainId, wdRequest.WithdrawId)
 
 	wdInfo, err := pegbrcli.QueryWithdrawInfo(r.Transactor.CliCtx, eth.Bytes2Hex(wdRequest.WithdrawId))
 	if err != nil {
 		r.requeueWithdraw(wdRequest, fmt.Sprintf("%s. QueryMintInfo err: %s", logmsg, err), true)
+		return
+	}
+	if wdInfo.Success {
+		log.Infof("%s. withdraw already completed, skip it", logmsg)
 		return
 	}
 
@@ -230,8 +275,6 @@ func (r *Relayer) submitWithdraw(wdRequest WithdrawRequest) {
 		log.Errorf("%s. Unmarshal wdInfo.WithdrawProtoBytes err %s", logmsg, err)
 		return
 	}
-
-	// TODO: check withdraw onchain if it's been processed already
 
 	curss := r.cbrMgr[wdRequest.WithdrawChainId].getCurss()
 	curssList := make([]*cbrtypes.Signer, 0)
