@@ -33,8 +33,15 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 	// go over asset and set ch2sym and sym2info
 	for _, asset := range cfg.Assets {
 		addr := eth.Hex2Addr(asset.Addr)
-		// chidTokenMap[asset.ChainId] = addr
+
 		sym := asset.Symbol
+		// try to check if the symbol already configured on the chain
+		existItem := GetAssetInfo(kv, sym, asset.ChainId)
+		if existItem != nil && eth.Hex2Addr(existItem.Addr) != addr {
+			// the Addr of the token is changed, should remove the original Chain2Sym item
+			kv.Delete(types.CfgKeyChain2Sym(existItem.ChainId, eth.Hex2Addr(existItem.Addr)))
+		}
+
 		kv.Set(types.CfgKeyChain2Sym(asset.ChainId, addr), []byte(sym))
 		raw, _ := asset.Marshal()
 		kv.Set(types.CfgKeySym2Info(sym, asset.ChainId), raw)
