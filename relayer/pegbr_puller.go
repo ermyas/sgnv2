@@ -446,7 +446,7 @@ func (c *CbrOneChain) skipSyncPegbrDeposit(
 	if len(pairs) == 0 {
 		// If request failed, we will not break this flow.
 		// As if invalid token send event go to the apply flow, sgn will also check it and set it to refund flow.
-		log.Errorf("fail to lookup pegged pair, ev:%s, err:%s", ev.PrettyLog(c.chainid), err.Error())
+		log.Errorf("fail to lookup pegged pair, ev:%s, err:%s", ev.PrettyLog(c.chainid), err)
 		// may be call sgn fail, we still send this ev to sgn and sgn to do the check again.
 		return
 	}
@@ -498,7 +498,7 @@ func (c *CbrOneChain) skipSyncPegbrBurn(
 	if len(pairs) == 0 {
 		// If request failed, we will not break this flow.
 		// As if invalid token send event go to the apply flow, sgn will also check it and set it to refund flow.
-		log.Errorf("fail to lookup pegged pair, ev:%s, err:%s", ev.PrettyLog(c.chainid), err.Error())
+		log.Errorf("fail to lookup pegged pair, ev:%s, err:%s", ev.PrettyLog(c.chainid), err)
 		// may be call sgn fail, we still send this ev to sgn and sgn to do the check again.
 		return
 	}

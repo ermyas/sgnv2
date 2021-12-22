@@ -265,7 +265,7 @@ func (c *CbrOneChain) pullEvents(chid uint64, cliCtx client.Context, updatesByte
 			evlog := new(ethtypes.Log)
 			err := json.Unmarshal(vals[i], evlog)
 			if err != nil {
-				log.Errorf("failed to unmarshal onchev elog, key:%s, err:%s", string(key), err.Error())
+				log.Errorf("failed to unmarshal onchev elog, key:%s, err:%s", string(key), err)
 				continue
 			}
 
@@ -348,7 +348,7 @@ func (c *CbrOneChain) skipSyncCbrSend(
 	if checkRespErr != nil {
 		// If request failed, we will not break this flow.
 		// As if invalid token send event go to the apply flow, sgn will also check it and set it to refund flow.
-		log.Errorf("fail to check chain token valid, sendEv:%s, err:%s", sendEv.PrettyLog(c.chainid), checkRespErr.Error())
+		log.Errorf("fail to check chain token valid, sendEv:%s, err:%s", sendEv.PrettyLog(c.chainid), checkRespErr)
 		// may be call sgn fail, we still send this ev to sgn and sgn to do the check again.
 		return
 	} else {
