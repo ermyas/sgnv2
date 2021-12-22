@@ -95,5 +95,5 @@ func GetBurnInfoKey(burnId eth.Hash) []byte {
 func GetFeeClaimInfoKey(address eth.Addr, nonce uint64) []byte {
 	nonceBytes := make([]byte, Uint64ByteArrayLength)
 	binary.LittleEndian.PutUint64(nonceBytes, nonce)
-	return append(address.Bytes(), nonceBytes...)
+	return append(FeeClaimInfoPrefix, append(address.Bytes(), nonceBytes...)...)
 }
