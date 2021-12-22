@@ -38,11 +38,30 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 	}
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	kv := sdkCtx.KVStore(k.storeKey)
-	// check reqid, recover user addr, ensure no existing wdDetail-%x-%d
-	signer, err := ethutils.RecoverSigner(req.WithdrawReq, req.UserSig)
-	if err != nil {
-		return nil, fmt.Errorf("recover signer err: %w", err)
+	var signer eth.Addr
+	// if sig is empty AND wd is a refund, we assume it's for a contract sender, so signer equals wdOnchain.Receiver
+	// otherwise for refund, recovered signer must match wdOnchain.Receiver
+	// wdOnchain.Receiver is saved when apply Send event, value is xfer sender
+	if len(req.UserSig) == 0 && wdReq.WithdrawType == types.RefundTransfer {
+		// usersig is not set, assume contract refund, unfortunately we have to duplicate some
+		// logic from k.refund for security reason
+		xferId := eth.Bytes2Hash(eth.Hex2Bytes(wdReq.XferId))
+		wdOnchain := GetXferRefund(kv, xferId)
+		if wdOnchain == nil {
+			return nil, types.Error(types.ErrCode_XFER_NOT_REFUNDABLE, "xfer %d not refundable", xferId)
+		}
+		signer = eth.Bytes2Addr(wdOnchain.Receiver)
+	} else {
+		// check reqid, recover user addr, ensure no existing wdDetail-%x-%d
+		signer, err = ethutils.RecoverSigner(req.WithdrawReq, req.UserSig)
+		if err != nil {
+			return nil, fmt.Errorf("recover signer err: %w", err)
+		}
 	}
+	// note wdReq.ReqId could be 0, but as long as signer matches expected, we're ok.
+	// note if someone sends in random sig data, it'll recover a random address so this
+	// check will not stop duplicated withdraw, therefore further logic MUST check signer
+	// is expected!!!
 	if GetWithdrawDetail(kv, signer, wdReq.ReqId) != nil {
 		// same reqid already exist
 		return nil, types.Error(types.ErrCode_DUP_REQID, "withdraw %x %d exists", signer, wdReq.ReqId)
