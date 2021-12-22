@@ -31,14 +31,22 @@ func (m *MintInfo) SignersStr() string {
 	return fmt.Sprintf("signers:< %s>", signers)
 }
 
+func (m *MintInfo) SigsStr() string {
+	var sigs string
+	for _, s := range m.Signatures {
+		sigs += fmt.Sprintf("%s ", eth.Bytes2Hex(s.SigBytes))
+	}
+	return fmt.Sprintf("sigs:< %s>", sigs)
+}
+
 func (m *MintInfo) String() string {
 	if m == nil {
 		return "nil"
 	}
 	mintOnChain := new(MintOnChain)
 	mintOnChain.Unmarshal(m.MintProtoBytes)
-	return fmt.Sprintf("chain_id:%x mint_on_chain:[ %s ] base_fee:%s perc_fee:%s last_req_time:%d %s success:%t",
-		m.ChainId, mintOnChain.String(), m.BaseFee, m.PercentageFee, m.LastReqTime, m.SignersStr(), m.Success)
+	return fmt.Sprintf("chain_id:%d mint_on_chain_bytes:%s mint_on_chain:[ %s ] base_fee:%s perc_fee:%s last_req_time:%d %s %s success:%t",
+		m.ChainId, eth.Bytes2Hex(m.MintProtoBytes), mintOnChain.String(), m.BaseFee, m.PercentageFee, m.LastReqTime, m.SignersStr(), m.SigsStr(), m.Success)
 }
 
 func (w *WithdrawInfo) GetAddrSigs() []*cbrtypes.AddrSig {
@@ -61,6 +69,14 @@ func (w *WithdrawInfo) SignersStr() string {
 	return fmt.Sprintf("signers:< %s>", signers)
 }
 
+func (w *WithdrawInfo) SigsStr() string {
+	var sigs string
+	for _, s := range w.Signatures {
+		sigs += fmt.Sprintf("%s ", eth.Bytes2Hex(s.SigBytes))
+	}
+	return fmt.Sprintf("sigs:< %s>", sigs)
+}
+
 func (w *WithdrawInfo) GetSortedSigsBytes() [][]byte {
 	if w != nil {
 		sigs := make([][]byte, len(w.Signatures))
@@ -78,8 +94,8 @@ func (w *WithdrawInfo) String() string {
 	}
 	wdOnChain := new(WithdrawOnChain)
 	wdOnChain.Unmarshal(w.WithdrawProtoBytes)
-	return fmt.Sprintf("chain_id:%x withdraw_on_chain:[ %s ] base_fee:%s perc_fee:%s last_req_time:%d %s success:%t",
-		w.ChainId, wdOnChain.String(), w.BaseFee, w.PercentageFee, w.LastReqTime, w.SignersStr(), w.Success)
+	return fmt.Sprintf("chain_id:%d withdraw_on_chain_bytes:%s withdraw_on_chain:[ %s ] base_fee:%s perc_fee:%s last_req_time:%d %s %s success:%t",
+		w.ChainId, eth.Bytes2Hex(w.WithdrawProtoBytes), wdOnChain.String(), w.BaseFee, w.PercentageFee, w.LastReqTime, w.SignersStr(), w.SigsStr(), w.Success)
 }
 
 func (d *DepositInfo) String() string {
@@ -100,7 +116,7 @@ func (m *MintOnChain) String() string {
 	if m == nil {
 		return "nil"
 	}
-	return fmt.Sprintf("token:%x account:%x amount%s depositor:%x ref_chain_id:%x ref_id:%x",
+	return fmt.Sprintf("token:%x account:%x amount%s depositor:%x ref_chain_id:%d ref_id:%x",
 		m.Token, m.Account, new(big.Int).SetBytes(m.Amount), m.Depositor, m.RefChainId, m.RefId)
 }
 
@@ -108,7 +124,7 @@ func (w *WithdrawOnChain) String() string {
 	if w == nil {
 		return "nil"
 	}
-	return fmt.Sprintf("token:%x receiver:%x amount%s burn_account:%x ref_chain_id:%x ref_id:%x",
+	return fmt.Sprintf("token:%x receiver:%x amount%s burn_account:%x ref_chain_id:%d ref_id:%x",
 		w.Token, w.Receiver, new(big.Int).SetBytes(w.Amount), w.BurnAccount, w.RefChainId, w.RefId)
 }
 
