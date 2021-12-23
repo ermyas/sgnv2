@@ -29,7 +29,7 @@ func (c *CbrOneChain) monPegbrDeposited(blk *big.Int) {
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.pegContracts.vault.ParseDeposited(eLog)
 		if err != nil {
-			log.Errorln("monPegbrDeposited: cannot parse event:", err)
+			log.Errorf("monPegbrDeposited: chain %d cannot parse event: %s", c.chainid, err)
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
@@ -58,7 +58,7 @@ func (c *CbrOneChain) monPegbrMint(blk *big.Int) {
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.pegContracts.bridge.ParseMint(eLog)
 		if err != nil {
-			log.Errorln("monPegbrMint: cannot parse event:", err)
+			log.Errorf("monPegbrMint: chain %d cannot parse event: %s", c.chainid, err)
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
@@ -94,7 +94,7 @@ func (c *CbrOneChain) monPegbrBurn(blk *big.Int) {
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.pegContracts.bridge.ParseBurn(eLog)
 		if err != nil {
-			log.Errorln("monPegbrActionBurn: cannot parse event:", err)
+			log.Errorf("monPegbrBurn: chain %d cannot parse event: %s", c.chainid, err)
 			return false
 		}
 
@@ -124,7 +124,7 @@ func (c *CbrOneChain) monPegbrWithdrawn(blk *big.Int) {
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.pegContracts.vault.ParseWithdrawn(eLog)
 		if err != nil {
-			log.Errorln("monPegbrWithdrawn: cannot parse event:", err)
+			log.Errorf("monPegbrWithdrawn: chain %d cannot parse event: %s", c.chainid, err)
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
