@@ -38,7 +38,7 @@ var (
 			distrtypes.EventTypeClaimAllStakingReward, distrtypes.AttributeKeyDelegatorAddress)).String()
 )
 
-func MonitorTendermintEvent(nodeURI, eventQuery string, handleEvents func(events map[string][]string)) {
+func MonitorTendermintEvent(nodeURI, eventQuery string, handleEvents func(events map[string][]string), outCapacity ...int) {
 	client, err := http.New(nodeURI, "/websocket")
 	if err != nil {
 		log.Errorln("Fail to start create http client", err)
@@ -52,7 +52,7 @@ func MonitorTendermintEvent(nodeURI, eventQuery string, handleEvents func(events
 	}
 	defer client.Stop()
 
-	res, err := client.Subscribe(context.Background(), "monitor", eventQuery)
+	res, err := client.Subscribe(context.Background(), "monitor", eventQuery, outCapacity...)
 	if err != nil {
 		log.Errorln("ws client subscribe error", err)
 		return
@@ -191,7 +191,9 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 				}
 				r.Transactor.AddTxMsg(msg)
 			}
-		})
+		},
+		// Need to set outCapacity to 2 for both tx and block events
+		2 /* outCapacity */)
 }
 
 func (r *Relayer) monitorSgnPegMintToSign() {
@@ -242,7 +244,9 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 					log.Errorf("db Set err: %s", err)
 				}
 			}
-		})
+		},
+		// Need to set outCapacity to 2 for both tx and block events
+		2 /* outCapacity */)
 }
 
 func (r *Relayer) monitorSgnPegWithdrawToSign() {
@@ -297,7 +301,9 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 					log.Errorf("db Set err: %s", err)
 				}
 			}
-		})
+		},
+		// Need to set outCapacity to 2 for both tx and block events
+		2 /* outCapacity */)
 }
 
 func (r *Relayer) monitorSgnFarmingClaimAllEvent() {
