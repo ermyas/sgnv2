@@ -199,7 +199,7 @@ func addValidators() {
 		log.Fatal(err)
 		return
 	}
-	txr.Run()
+	txr.Run(0)
 
 	valAmts := []*big.Int{
 		new(big.Int).Mul(big.NewInt(16000), big.NewInt(common.CelrPrecision)),

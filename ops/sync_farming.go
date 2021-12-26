@@ -69,7 +69,7 @@ func run(cmd *cobra.Command) error {
 		}
 		log.Infof("LP %s", addr)
 	}
-	txr.Run()
+	txr.Run(0)
 	txr.WaitDone()
 	return nil
 }

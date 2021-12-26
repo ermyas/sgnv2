@@ -52,7 +52,7 @@ func NewOperator(
 	if err != nil {
 		return
 	}
-	txr.Run()
+	txr.Run(30)
 
 	privValidator := pvm.LoadFilePV(tmCfg.PrivValidatorKeyFile(), tmCfg.PrivValidatorStateFile())
 	tmPubKey, err := privValidator.GetPubKey()

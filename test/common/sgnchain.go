@@ -56,7 +56,7 @@ func NewTestTransactor(sgnHomeDir, sgnChainID, sgnNodeURI, sgnValAcct, sgnPassph
 		encodingConfig.InterfaceRegistry,
 	)
 	ChkErr(err, "Failed to create new transactor.")
-	tr.Run()
+	tr.Run(0)
 
 	return tr
 }
@@ -78,6 +78,12 @@ func AddValidator(
 		CommissionRate:  sdk.NewDecWithPrec(int64(commissionRate), 4),
 	}
 	CheckValidator(t, transactor, expVal)
+	expDel := &stakingtypes.Delegation{
+		DelegatorAddress: expVal.EthAddress,
+		ValidatorAddress: expVal.EthAddress,
+		Shares:           expVal.DelegatorShares,
+	}
+	CheckDelegation(t, transactor, expDel)
 }
 
 func SetupValidators(t *testing.T, transactor *transactor.Transactor, amts []*big.Int) {

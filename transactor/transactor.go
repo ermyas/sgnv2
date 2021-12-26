@@ -169,8 +169,8 @@ func NewTransactorWithCliCtx(cliCtx client.Context) (*Transactor, error) {
 	)
 }
 
-func (t *Transactor) Run() {
-	go t.start()
+func (t *Transactor) Run(delaySec uint64) {
+	go t.start(delaySec)
 }
 
 // AddTxMsg add msg into a queue before actual broadcast
@@ -186,7 +186,8 @@ func (t *Transactor) WaitDone() {
 }
 
 // Poll tx queue and send msgs in batch
-func (t *Transactor) start() {
+func (t *Transactor) start(delaySec uint64) {
+	time.Sleep(time.Duration(delaySec) * time.Second)
 	for {
 		if t.msgQueue.Len() == 0 {
 			if t.waitDone {
