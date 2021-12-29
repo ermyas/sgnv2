@@ -75,14 +75,14 @@ func (r *Relayer) monitorSgnSlash() {
 				nonce, err := strconv.ParseUint(nonceStr, 10, 64)
 				if err != nil {
 					log.Errorln("Parse slash nonce error", err)
-					return
+					continue
 				}
 
 				slashEvent := NewSlashEvent(nonce)
 				slash, err := slashingcli.QuerySlash(r.Transactor.CliCtx, slashEvent.Nonce)
 				if err != nil {
 					log.Errorf("Query slash %d err %s", slashEvent.Nonce, err)
-					return
+					continue
 				}
 				log.Infof("New slash to %x, reason %s, nonce %d", slash.SlashOnChain.Validator, slash.Reason, slashEvent.Nonce)
 
@@ -90,7 +90,7 @@ func (r *Relayer) monitorSgnSlash() {
 				sig, err := r.EthClient.SignEthMessage(dataToSign)
 				if err != nil {
 					log.Errorln("SignEthMessage err", err)
-					return
+					continue
 				}
 
 				msg := slashingtypes.NewMsgSignSlash(slashEvent.Nonce, sig, r.Transactor.Key.GetAddress())
@@ -143,7 +143,7 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 					sig, err := r.EthClient.SignEthMessage(dataToSign)
 					if err != nil {
 						log.Errorf("%s, sign msg err: %s", logmsg, err)
-						return
+						continue
 					}
 					msg.MySigs = append(msg.MySigs, &cbrtypes.MySig{ChainId: relay.DstChainId, Sig: sig})
 
@@ -216,20 +216,20 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 				mintInfo, err := pegbrcli.QueryMintInfo(r.Transactor.CliCtx, mintId)
 				if err != nil {
 					log.Error(err)
-					return
+					continue
 				}
 
 				mintOnChain := new(pegbrtypes.MintOnChain)
 				err = mintOnChain.Unmarshal(mintInfo.MintProtoBytes)
 				if err != nil {
 					log.Errorf("Unmarshal mintInfo.MintProtoBytes err %s", err)
-					return
+					continue
 				}
 
 				sig, err := r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(r.cbrMgr[mintInfo.ChainId].pegContracts.bridge.Address))
 				if err != nil {
 					log.Error(err)
-					return
+					continue
 				}
 
 				msg := &pegbrtypes.MsgSignMint{
@@ -268,20 +268,20 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 				wdInfo, err := pegbrcli.QueryWithdrawInfo(r.Transactor.CliCtx, wdId)
 				if err != nil {
 					log.Error(err)
-					return
+					continue
 				}
 
 				wdOnChain := new(pegbrtypes.WithdrawOnChain)
 				err = wdOnChain.Unmarshal(wdInfo.WithdrawProtoBytes)
 				if err != nil {
 					log.Errorf("Unmarshal wdInfo.WithdrawProtoBytes err %s", err)
-					return
+					continue
 				}
 
 				sig, err := r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(r.cbrMgr[wdInfo.ChainId].pegContracts.vault.Address))
 				if err != nil {
 					log.Error(err)
-					return
+					continue
 				}
 
 				msg := &pegbrtypes.MsgSignWithdraw{
@@ -293,7 +293,7 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 
 				// RefChainId = 0 means fee claim, don't add a WithdrawRequest
 				if wdOnChain.RefChainId == 0 {
-					return
+					continue
 				}
 				wdRequest := NewWithdrawRequest(eth.Hex2Bytes(wdId), wdInfo.ChainId, wdOnChain.RefChainId, wdOnChain.RefId)
 				err = r.dbSet(GetPegbrWdKey(wdInfo.ChainId, wdOnChain.RefChainId, wdOnChain.RefId), wdRequest.MustMarshal())
@@ -324,7 +324,7 @@ func (r *Relayer) monitorSgnFarmingClaimAllEvent() {
 				)
 				if err != nil {
 					log.Errorf("Query RewardClaimInfo err %s", err)
-					return
+					continue
 				}
 				var signatureDetailsList []farmingtypes.SignatureDetails
 				for _, details := range rewardClaimInfo.RewardClaimInfo.RewardClaimDetailsList {
@@ -336,12 +336,15 @@ func (r *Relayer) monitorSgnFarmingClaimAllEvent() {
 					sig, err := r.EthClient.SignEthMessage(dataToSign)
 					if err != nil {
 						log.Errorln("SignEthMessage err", err)
-						return
+						continue
 					}
 					signatureDetailsList = append(signatureDetailsList, farmingtypes.SignatureDetails{
 						ChainId:   details.ChainId,
 						Signature: sig,
 					})
+				}
+				if len(signatureDetailsList) == 0 {
+					continue
 				}
 				msg := farmingtypes.NewMsgSignRewards(eth.Hex2Addr(addr), r.Transactor.Key.GetAddress(), signatureDetailsList)
 				r.Transactor.AddTxMsg(msg)
@@ -368,14 +371,14 @@ func (r *Relayer) monitorSgnDistributionClaimAllStakingRewardEvent() {
 				)
 				if err != nil {
 					log.Errorf("Query StakingRewardClaimInfo err %s", err)
-					return
+					continue
 				}
 				dataToSign := stakingRewardClaimInfo.RewardClaimInfo.EncodeDataToSign(
 					r.EthClient.ChainId, r.EthClient.Contracts.StakingReward.Address)
 				sig, err := r.EthClient.SignEthMessage(dataToSign)
 				if err != nil {
 					log.Errorln("SignEthMessage err", err)
-					return
+					continue
 				}
 				msg := distrtypes.NewMsgSignStakingReward(eth.Hex2Addr(addr), r.Transactor.Key.GetAddress(), sig)
 				r.Transactor.AddTxMsg(msg)
