@@ -26,6 +26,9 @@ service Msg {
 
   // ClaimFee defines a method for SGN delegators to trigger a claim of pegbridge fee.
   rpc ClaimFee(MsgClaimFee) returns (MsgClaimFeeResponse);
+
+  // ClaimRefund defines a method to trigger a refund process
+  rpc ClaimRefund(MsgClaimRefund) returns (MsgClaimRefundResponse);
 }
 
 // MsgSignMint signs a mint request.
@@ -119,3 +122,17 @@ message MsgClaimFee {
 
 // MsgClaimFeeResponse defines the Msg/ClaimFee response type.
 message MsgClaimFeeResponse {}
+
+// MsgClaimRefund defines the Msg/ClaimRefund request type.
+message MsgClaimRefund {
+  // deposit_id defines the deposit ID
+  string deposit_id = 1 [(gogoproto.moretags) = "yaml:\"deposit_id\""];
+  // signature defines a user signature of deposit_id
+  bytes signature = 2 [(gogoproto.moretags) = "yaml:\"signature\""];
+  // sender defines the SGN account sending this Msg
+  string sender = 3 [(gogoproto.moretags) = "yaml:\"sender\""];
+}
+
+// MsgClaimRefundResponse defines the Msg/ClaimRefund response type.
+message MsgClaimRefundResponse {
+}

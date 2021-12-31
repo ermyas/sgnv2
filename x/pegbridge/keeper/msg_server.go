@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	commontypes "github.com/celer-network/sgn-v2/common/types"
+	"math/big"
 
 	ethutils "github.com/celer-network/goutils/eth"
 	log "github.com/celer-network/goutils/log"
@@ -218,4 +220,59 @@ func (k msgServer) isSenderBondedValidator(ctx sdk.Context, sender string) (stak
 		return nil, fmt.Errorf("validator is not bonded")
 	}
 	return validator, nil
+}
+
+func (k msgServer) ClaimRefund(goCtx context.Context, msg *types.MsgClaimRefund) (*types.MsgClaimRefundResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	depositId := eth.Hex2Hash(msg.DepositId)
+	depositInfo, found := k.GetDepositInfo(ctx, depositId)
+	if !found {
+		return nil, types.WrapErrNoInfoFound(depositId)
+	}
+	if len(depositInfo.MintId) > 0 {
+		// a non-empty mintId indicates a valid deposit.
+		return nil, fmt.Errorf("there is no refund for this deposit:%s", msg.DepositId)
+	}
+	// get depositRefund:withdrawOnChain
+	withdraw, found := k.GetDepositRefund(ctx, depositId)
+	if !found {
+		// this refund has already been claimed.
+		return nil, fmt.Errorf("failed to fetch deposit refund, no withdrawOnChain found for %s", msg.DepositId)
+	}
+	// check claimRefund requester is withdraw.Receiver
+	signer, err := ethutils.RecoverSigner(eth.Hex2Bytes(msg.DepositId), msg.Signature)
+	if err != nil {
+		return nil, fmt.Errorf("recover signer err: %w", err)
+	}
+	if signer != eth.Bytes2Addr(withdraw.Receiver) {
+		return nil, fmt.Errorf("invalid signature")
+	}
+	withdrawId := types.CalcWithdrawId(eth.Bytes2Addr(withdraw.Receiver), eth.Bytes2Addr(withdraw.Token),
+		new(big.Int).SetBytes(withdraw.Amount), eth.Bytes2Addr(withdraw.BurnAccount), withdraw.RefChainId, eth.Bytes2Hash(withdraw.RefId))
+	// record a withdrawInfo
+	withdrawProtoBytes := k.cdc.MustMarshal(&withdraw)
+	wdInfo := types.WithdrawInfo{
+		ChainId:            withdraw.RefChainId,
+		WithdrawProtoBytes: withdrawProtoBytes,
+		Signatures:         make([]commontypes.Signature, 0),
+		BaseFee:            "",
+		PercentageFee:      "",
+		LastReqTime:        ctx.BlockTime().Unix(),
+	}
+	k.SetWithdrawInfo(ctx, withdrawId, wdInfo)
+	// record a refundClaimInfo
+	// Although the invalid depositId is stored deeply in withdrawInfo.
+	// We'd like to keep a forward link from invalid depositId to its corresponding withdrawId.
+	k.SetRefundClaimInfo(ctx, depositId, withdrawId)
+	// delete depositRefund:withdrawOnChain in case of double refunding
+	k.DeleteDepositRefund(ctx, depositId)
+	// emit event for validators to sign
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeWithdrawToSign,
+		sdk.NewAttribute(types.AttributeKeyWithdrawId, withdrawId.Hex()),
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+	))
+	log.Infof("x/pegbr claim refund, depositId: %x, withdrawId: %x, sender: %s",
+		depositId, withdrawId, msg.Sender)
+	return &types.MsgClaimRefundResponse{}, nil
 }

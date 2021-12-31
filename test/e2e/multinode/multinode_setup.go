@@ -391,6 +391,7 @@ func DeployPegBridgeContract() {
 			BurnFeePips: 500,
 			MaxMintFee:  "1000000000000000000",
 			MaxBurnFee:  "1000000000000000000",
+			SupplyCap:   "100000000000000000000",
 		}}
 		config := pegbrtypes.PegConfig{
 			PeggedTokenBridges:  peggedTokenBridges,

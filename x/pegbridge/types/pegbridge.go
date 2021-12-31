@@ -168,6 +168,12 @@ func (p *OrigPeggedPair) Validate() error {
 			return fmt.Errorf("invalid max burn fee")
 		}
 	}
+	if p.SupplyCap != "" {
+		_, good := new(big.Int).SetString(p.SupplyCap, 10)
+		if !good {
+			return fmt.Errorf("invalid supply cap")
+		}
+	}
 	return nil
 }
 

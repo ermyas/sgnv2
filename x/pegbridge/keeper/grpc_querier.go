@@ -139,3 +139,25 @@ func (k Keeper) FeeClaimInfo(c context.Context, req *types.QueryFeeClaimInfoRequ
 	}
 	return &types.QueryFeeClaimInfoResponse{FeeClaimInfo: info}, nil
 }
+
+func (k Keeper) SupplyInfo(c context.Context, req *types.QuerySupplyInfoRequest) (*types.QuerySupplyInfoResponse, error) {
+	ctx := sdk.UnwrapSDKContext(c)
+	pair, found := k.GetOrigPeggedPairByPegged(ctx, req.PeggedChainId, eth.Hex2Addr(req.PeggedAddress))
+	if !found {
+		return nil, errors.New("orig-pegged pair not found")
+	}
+	total, found := k.GetTotalSupply(ctx, req.OrigChainId, req.PeggedChainId, eth.Hex2Addr(req.PeggedAddress))
+	if !found {
+		total = new(big.Int).SetInt64(0)
+	}
+	return &types.QuerySupplyInfoResponse{Total: total.String(), Cap: pair.SupplyCap}, nil
+}
+
+func (k Keeper) RefundClaimInfo(c context.Context, req *types.QueryRefundClaimInfoRequest) (*types.QueryRefundClaimInfoResponse, error) {
+	ctx := sdk.UnwrapSDKContext(c)
+	info, found := k.GetRefundClaimInfo(ctx, eth.Hex2Hash(req.DepositId))
+	if !found {
+		return nil, errors.New("refund claim info not found")
+	}
+	return &types.QueryRefundClaimInfoResponse{WithdrawId: info.Hex()}, nil
+}

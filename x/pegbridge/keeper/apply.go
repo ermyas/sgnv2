@@ -41,13 +41,36 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 
 		pair, found := k.GetOrigPeggedPair(ctx, depositChainId, ev.Token, ev.MintChainId)
 		if !found {
-			return false, fmt.Errorf("pegged pair not exists")
+			// in reason of invalid params, this deposit would be refunded
+			k.manageDataForRefund(ctx, depositChainId, ev)
+			return true, fmt.Errorf("pegged pair not exists")
 		}
 		mintAmount, baseFee, percFee := k.CalcAmountAndFees(ctx, pair, ev.Amount, true /* isPeggedDest */)
 		if mintAmount.Sign() <= 0 {
 			// TODO: Trigger refund, or just ignore?
 			return false, fmt.Errorf("amount too small to cover fees, mintAmount %s baseFee %s percFee %s", mintAmount, baseFee, percFee)
 		}
+		// get supplyCap
+		supplyCap := new(big.Int).SetInt64(0)
+		if pair.SupplyCap != "" {
+			// supply cap string was checked during config set
+			supplyCap.SetString(pair.SupplyCap, 10)
+		}
+		// get totalSupply
+		beforeMintTotalSupply, found := k.GetTotalSupply(ctx, depositChainId, ev.MintChainId, eth.Hex2Addr(pair.Pegged.Address))
+		if !found {
+			beforeMintTotalSupply = new(big.Int).SetInt64(0)
+		}
+		// check if mint would exceed supply cap
+		afterMintTotalSupply := new(big.Int).Add(beforeMintTotalSupply, mintAmount)
+		// a zero supplyCap means infinite supply. a negative supplyCap may mean a special mod of ONLY burn NO mint
+		if supplyCap.Sign() != 0 && supplyCap.Cmp(afterMintTotalSupply) < 0 {
+			// in reason of big mint amount that would exceed the supply cap, this deposit would be refunded
+			k.manageDataForRefund(ctx, depositChainId, ev)
+			return true, fmt.Errorf("ongoing mint would exceed supply cap, mintAmount %s current totalSupply %s supplyCap %s", mintAmount, beforeMintTotalSupply, supplyCap)
+		}
+		// reset totalSupply
+		k.SetTotalSupply(ctx, depositChainId, ev.MintChainId, eth.Hex2Addr(pair.Pegged.Address), afterMintTotalSupply)
 
 		mintTokenAddr := pair.Pegged.Address
 		// refChainId is deposit chain ID, refId is deposit ID
@@ -117,6 +140,20 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			// TODO: Trigger refund, or just ignore?
 			return false, fmt.Errorf("amount too small to cover fees, withdrawAmt %s baseFee %s percFee %s", withdrawAmt, baseFee, percFee)
 		}
+
+		// update totalSupply
+		burnAmt := ev.Amount
+		beforeBurnTotalSupply, found := k.GetTotalSupply(ctx, pair.Orig.ChainId, burnChainId, eth.Hex2Addr(pair.Pegged.Address))
+		if !found {
+			beforeBurnTotalSupply = new(big.Int).SetInt64(0)
+		}
+		afterBurnTotalSupply := new(big.Int).Sub(beforeBurnTotalSupply, burnAmt)
+		// if total supply after this burn would be negative, we'll reset it to zero instead of return an error.
+		// this case would happen when total supply has not yet been set or is incorrectly set.
+		if afterBurnTotalSupply.Sign() == -1 {
+			afterBurnTotalSupply.SetInt64(0)
+		}
+		k.SetTotalSupply(ctx, pair.Orig.ChainId, burnChainId, eth.Hex2Addr(pair.Pegged.Address), afterBurnTotalSupply)
 
 		wdTokenAddr := pair.Orig.Address
 		withdrawChainId := pair.Orig.ChainId
@@ -199,4 +236,24 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (k Keeper) manageDataForRefund(ctx sdk.Context, depositChainId uint64, ev *eth.OriginalTokenVaultDeposited) {
+	// Record a DepositInfo without mintId
+	depositInfo := types.DepositInfo{
+		ChainId:   depositChainId,
+		DepositId: ev.DepositId[:],
+		MintId:    []byte{},
+	}
+	k.SetDepositInfo(ctx, ev.DepositId, depositInfo)
+	// Record a depositRefund: withdrawOnChain
+	wdOnChain := types.WithdrawOnChain{
+		Token:       ev.Token.Bytes(),
+		Receiver:    ev.Depositor.Bytes(),
+		Amount:      ev.Amount.Bytes(),
+		BurnAccount: eth.ZeroAddr.Bytes(),
+		RefChainId:  depositChainId,
+		RefId:       ev.DepositId[:],
+	}
+	k.SetDepositRefund(ctx, ev.DepositId, wdOnChain)
 }

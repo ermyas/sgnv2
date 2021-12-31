@@ -3,6 +3,7 @@ package common
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -381,6 +382,109 @@ func GetPegBridgeFeeClaimWithdrawInfoWithSigs(
 	}
 	ChkErr(err, "failed to QueryFeeClaimInfo")
 	withdrawId = eth.Bytes2Hex(feeClaimInfo.WithdrawId)
+	// Then wait for WithdrawInfo with enough signatures
+	var wdInfo pegbrtypes.WithdrawInfo
+	for retry := 0; retry < RetryLimit; retry++ {
+		wdInfo, err = pegbrcli.QueryWithdrawInfo(
+			transactor.CliCtx,
+			withdrawId,
+		)
+		if err == nil && len(wdInfo.Signatures) == expSigNum {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryWithdrawInfo")
+	withdrawInfo = &wdInfo
+	if len(withdrawInfo.Signatures) != expSigNum {
+		log.Fatalf("QueryWithdrawInfo expected sigNum %d, actual %d", expSigNum, len(withdrawInfo.Signatures))
+	}
+	return withdrawId, withdrawInfo
+}
+
+func CheckTotalSupply(
+	transactor *transactor.Transactor,
+	origChainId uint64,
+	peggedChainId uint64,
+	peggedAddress eth.Addr,
+	expected string,
+) {
+	_, total, err := pegbrcli.QuerySupplyInfo(transactor.CliCtx, origChainId, peggedChainId, peggedAddress)
+	ChkErr(err, "failed to query supply info")
+	if total == expected {
+		return
+	}
+	log.Fatalf("Total supply for %s from chain %d to chain %d is %s, expected %s",
+		eth.Addr2Hex(peggedAddress), origChainId, peggedChainId, total, expected)
+}
+
+func GetSupplyCap(
+	transactor *transactor.Transactor,
+	origChainId uint64,
+	peggedChainId uint64,
+	peggedAddress eth.Addr,
+) string {
+	cap, _, err := pegbrcli.QuerySupplyInfo(transactor.CliCtx, origChainId, peggedChainId, peggedAddress)
+	ChkErr(err, "failed to query supply info")
+	return cap
+}
+
+func WaitPbrDepositWithEmptyMintId(transactor *transactor.Transactor, depositId string) error {
+	var err error
+	log.Infoln("wait for deposit with empty mint id", depositId)
+	for retry := 0; retry < RetryLimit; retry++ {
+		depositInfo, err := pegbrcli.QueryDepositInfo(transactor.CliCtx, depositId)
+		if err == nil {
+			if len(depositInfo.MintId) == 0 {
+				return nil
+			} else {
+				return fmt.Errorf("depositInfo found but with non-empty mintId: %s", eth.Bytes2Hex(depositInfo.MintId))
+			}
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryDepositInfo")
+	return nil
+}
+
+func StartClaimPegbridgeRefund(
+	transactor *transactor.Transactor, depositId string, user *TestEthClient) error {
+	msg := &pegbrtypes.MsgClaimRefund{
+		DepositId: depositId,
+		Sender:    transactor.Key.GetAddress().String(),
+	}
+	signature := user.SignMsg(eth.Hex2Bytes(depositId))
+	msg.Signature = signature
+
+	_, err := pegbrcli.InitClaimRefund(transactor, msg)
+	return err
+}
+
+func FakeStartClaimPegbridgeRefund(
+	transactor *transactor.Transactor, depositId string, user *TestEthClient) error {
+	err := StartClaimPegbridgeRefund(transactor, depositId, user)
+	if err != nil {
+		return nil
+	}
+	return fmt.Errorf("claim refund initiated with success")
+}
+
+func GetRefundWithdrawInfoWithSigs(
+	transactor *transactor.Transactor, depositId string, expSigNum int) (
+	withdrawId string, withdrawInfo *pegbrtypes.WithdrawInfo) {
+	var err error
+	// query refundClaimInfo, in order to get withdrawId
+	for retry := 0; retry < RetryLimit; retry++ {
+		withdrawId, err = pegbrcli.QueryRefundClaimInfo(
+			transactor.CliCtx,
+			depositId,
+		)
+		if err == nil {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryRefundClaimInfo")
 	// Then wait for WithdrawInfo with enough signatures
 	var wdInfo pegbrtypes.WithdrawInfo
 	for retry := 0; retry < RetryLimit; retry++ {

@@ -112,6 +112,7 @@ var (
 			cbrclient.CbrConfigProposalHandler,
 			pegclient.PegConfigProposalHandler,
 			pegclient.PegPairDeleteProposalHandler,
+			pegclient.TotalSupplyUpdateProposalHandler,
 			mintclient.AdjustProvisionsProposalHandler,
 			farmingclient.AddPoolProposalHandler,
 			farmingclient.AddTokensProposalHandler,

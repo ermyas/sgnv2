@@ -295,6 +295,10 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 				if wdOnChain.RefChainId == 0 {
 					continue
 				}
+				// a zeroAddr of burnAccount indicates a refund type withdraw. This case also covers the fee claiming.
+				if eth.Bytes2Hex(wdOnChain.BurnAccount) == eth.ZeroAddr.String() {
+					continue
+				}
 				wdRequest := NewWithdrawRequest(eth.Hex2Bytes(wdId), wdInfo.ChainId, wdOnChain.RefChainId, wdOnChain.RefId)
 				err = r.dbSet(GetPegbrWdKey(wdInfo.ChainId, wdOnChain.RefChainId, wdOnChain.RefId), wdRequest.MustMarshal())
 				if err != nil {

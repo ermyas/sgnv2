@@ -36,6 +36,9 @@ var (
 	MintInfoPrefix           = []byte{0x07}
 	BurnInfoPrefix           = []byte{0x08}
 	FeeClaimInfoPrefix       = []byte{0x09}
+	TotalSupplyPrefix        = []byte{0x0a}
+	DepositRefundPrefix      = []byte{0x0b}
+	RefundClaimInfoPrefix    = []byte{0x0c}
 )
 
 func GetOriginalTokenVaultKey(chainId uint64) []byte {
@@ -96,4 +99,17 @@ func GetFeeClaimInfoKey(address eth.Addr, nonce uint64) []byte {
 	nonceBytes := make([]byte, Uint64ByteArrayLength)
 	binary.LittleEndian.PutUint64(nonceBytes, nonce)
 	return append(FeeClaimInfoPrefix, append(address.Bytes(), nonceBytes...)...)
+}
+
+func GetTotalSupplyKey(origChainId uint64, peggedChainId uint64, peggedAddress eth.Addr) []byte {
+	composalKeyBytes := []byte(fmt.Sprintf("%d-%d-%x", origChainId, peggedChainId, peggedAddress))
+	return append(TotalSupplyPrefix, composalKeyBytes...)
+}
+
+func GetDepositRefundKey(depositId eth.Hash) []byte {
+	return append(DepositRefundPrefix, depositId.Bytes()...)
+}
+
+func GetRefundClaimInfoKey(depositId eth.Hash) []byte {
+	return append(RefundClaimInfoPrefix, depositId.Bytes()...)
 }
