@@ -15,11 +15,14 @@ import (
 
 // send aws kms signer's eth balance to dest addr
 var (
-	keyA = flag.String("a", "sgnv2-test-0", "kms alias like sgnv2-prod-0")
-	dst  = flag.String("d", "", "dest addr hex")
-	chid = flag.Int64("i", 0, "which chainid to send eth, if 0, do all known chains in chmap")
-	minb = flag.Uint64("min", 1e17, "minimal balance in wei, if less than this, skip send")
-	gas  = flag.Uint64("gas", 21000, "default gas limit, in case some chain requires more")
+	keyA         = flag.String("a", "sgnv2-test-0", "kms alias like sgnv2-prod-0")
+	dst          = flag.String("d", "", "dest addr hex")
+	chid         = flag.Int64("i", 0, "which chainid to send eth, if 0, do all known chains in chmap")
+	minb         = flag.Uint64("min", 1e17, "minimal balance in wei, if less than this, skip send")
+	gas          = flag.Uint64("gas", 21000, "default gas limit, in case some chain requires more")
+	gasPriceFlag = flag.Int64("gasprice", 0, "gas price in gwei")
+	nonceFlag    = flag.Uint64("nonce", 0, "nonce")
+	zeroValue    = flag.Bool("zerovalue", false, "whether to send a value of 0")
 
 	bgCtx = context.Background()
 	// chainid to rpc endpoint
@@ -68,10 +71,21 @@ func sendETH(ec *ethclient.Client, from, to eth.Addr, bal *big.Int, signer bind.
 	var rawTx *types.Transaction
 	head, err := ec.HeaderByNumber(bgCtx, nil)
 	chkErr(err, "HeaderByNumber")
-	nonce, err := ec.PendingNonceAt(bgCtx, from)
-	chkErr(err, "PendingNonceAt")
-	gasPrice, err := ec.SuggestGasPrice(bgCtx)
-	chkErr(err, "SuggestGasPrice")
+	var nonce uint64
+	if *nonceFlag != 0 {
+		nonce = *nonceFlag
+	} else {
+		nonce, err = ec.PendingNonceAt(bgCtx, from)
+		chkErr(err, "PendingNonceAt")
+	}
+	var gasPrice *big.Int
+	if *gasPriceFlag != 0 {
+		gasPrice = big.NewInt(*gasPriceFlag * 1e9)
+	} else {
+		gasPrice, err = ec.SuggestGasPrice(bgCtx)
+		chkErr(err, "SuggestGasPrice")
+	}
+	var value *big.Int
 	if head.BaseFee != nil {
 		// eip 1559, new dynamic tx, per spec we should do
 		// maxPriorityFeePerGas: eth_gasPrice - base_fee or just use the eth_maxPriorityFeePerGas rpc
@@ -82,22 +96,32 @@ func sendETH(ec *ethclient.Client, from, to eth.Addr, bal *big.Int, signer bind.
 		// but the risk is if eth becomes busy, our tx may pending for a long time. as here our gas is only 21K, we are ok w/ base_fee*gas residual
 		gasFeeCap := new(big.Int).Add(gasPrice, head.BaseFee)
 		gasCost := new(big.Int).Mul(gasFeeCap, big.NewInt(int64(*gas)))
+		if *zeroValue {
+			value = big.NewInt(0)
+		} else {
+			value = new(big.Int).Sub(bal, gasCost)
+		}
 		rawTx = types.NewTx(&types.DynamicFeeTx{
 			Nonce:     nonce,
 			To:        &to,
 			Gas:       *gas,
 			GasTipCap: new(big.Int).Sub(gasPrice, head.BaseFee),
 			GasFeeCap: gasFeeCap,
-			Value:     new(big.Int).Sub(bal, gasCost),
+			Value:     value,
 		})
 
 	} else {
+		if *zeroValue {
+			value = big.NewInt(0)
+		} else {
+			value = new(big.Int).Sub(bal, new(big.Int).Mul(gasPrice, big.NewInt(int64(*gas))))
+		}
 		rawTx = types.NewTx(&types.LegacyTx{
 			Nonce:    nonce,
 			To:       &to,
 			Gas:      *gas,
 			GasPrice: gasPrice,
-			Value:    new(big.Int).Sub(bal, new(big.Int).Mul(gasPrice, big.NewInt(int64(*gas)))),
+			Value:    value,
 		})
 	}
 	signedTx, err := signer(from, rawTx)
