@@ -76,8 +76,21 @@ func (c *CbrOneChain) verifyPegbrDeposit(eLog *ethtypes.Log, cliCtx client.Conte
 	}
 	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
 
+	done, approve, depositLog := c.verifyEventLog(
+		eLog, eth.PegVault, pegtypes.PegbrEventDeposited, c.pegContracts.vault.Address, logmsg)
+	if depositLog == nil {
+		return done, approve
+	}
+	depositEv, err := c.pegContracts.vault.ParseDeposited(*depositLog)
+	if err != nil {
+		log.Errorln(logmsg, "parse log err:", err)
+		return true, false
+	}
+	if !ev.Equal(depositEv) {
+		log.Errorln(logmsg, "ev not equal. got:", depositEv.String(), "expect:", ev.String())
+		return true, false
+	}
 	return c.verifyOriginalTokenRecord(ev.DepositId, eLog.BlockNumber, cliCtx, logmsg)
-
 }
 
 func (c *CbrOneChain) verifyPegbrWithdrawn(eLog *ethtypes.Log, cliCtx client.Context, logmsg string) (done, approve bool) {
@@ -88,7 +101,11 @@ func (c *CbrOneChain) verifyPegbrWithdrawn(eLog *ethtypes.Log, cliCtx client.Con
 		return true, false
 	}
 	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
-
+	withdrawId := pegtypes.CalcWithdrawId(ev.Receiver, ev.Token, ev.Amount, ev.BurnAccount, ev.RefChainId, ev.RefId)
+	if withdrawId != ev.WithdrawId {
+		log.Errorf("%s. mismatch withdrawId ev has %x, calc: %x", logmsg, ev.WithdrawId, withdrawId)
+		return true, false
+	}
 	return c.verifyOriginalTokenRecord(ev.WithdrawId, eLog.BlockNumber, cliCtx, logmsg)
 }
 
@@ -101,6 +118,20 @@ func (c *CbrOneChain) verifyPegbrBurn(eLog *ethtypes.Log, cliCtx client.Context,
 	}
 	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
 
+	done, approve, burnLog := c.verifyEventLog(
+		eLog, eth.PegBridge, pegtypes.PegbrEventBurn, c.pegContracts.bridge.Address, logmsg)
+	if burnLog == nil {
+		return done, approve
+	}
+	burnEv, err := c.pegContracts.bridge.ParseBurn(*burnLog)
+	if err != nil {
+		log.Errorln(logmsg, "parse log err:", err)
+		return true, false
+	}
+	if !ev.Equal(burnEv) {
+		log.Errorln(logmsg, "ev not equal. got:", burnEv.String(), "expect:", ev.String())
+		return true, false
+	}
 	return c.verifyPeggedTokenRecord(ev.BurnId, eLog.BlockNumber, cliCtx, logmsg)
 }
 
@@ -112,7 +143,11 @@ func (c *CbrOneChain) verifyPegbrMint(eLog *ethtypes.Log, cliCtx client.Context,
 		return true, false
 	}
 	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
-
+	mintId := pegtypes.CalcMintId(ev.Account, ev.Token, ev.Amount, ev.Depositor, ev.RefChainId, ev.RefId)
+	if mintId != ev.MintId {
+		log.Errorf("%s. mismatch mintId ev has %x, calc: %x", logmsg, ev.MintId, mintId)
+		return true, false
+	}
 	return c.verifyPeggedTokenRecord(ev.MintId, eLog.BlockNumber, cliCtx, logmsg)
 }
 
