@@ -70,12 +70,20 @@ message RelayGasCostParam {
 // if an asset is not used by any chain as native gas token, no need to set chain_id. eg. USDT
 // if an asset is native gas token for some chains, set the chain_ids
 // it's possible an asset is only native gas token but NOT used for transfers (ie. not in CbrConfig.assets)
-// price is in int(USD float * 1e4)
+// price is in int(USD float * 1e(4+extra_power10))
 message AssetPrice {
   string symbol = 1;
   // these chains uses this asset as native gas token, eg. ETH is gas token for both ethereum and Arbitrum
   repeated uint64 chain_ids = 2;
-  uint32 price = 3;  // int(USD float * 1e4), eg. $12.34 -> 123400
+  uint32 price = 3;  // int(USD float * 1e(4+extra_power10)), eg. $12.34 -> 123400 if extra_power10 is 0
+  // in case asset price < $0.0001, we need to add extra power10 in addition to the default 4
+  // eg. USD float is $0.0000123, then price field is 123, extra_power10 is 3, so total scale is 1e(3+4)
+  // by default this is 0, so no effect
+  // if in the future we have an asset price USD float > MaxUint32/1e4 ~$429,496, we should change above price field
+  // to uint64 instead of uint32
+  // why not use float64 directly: extra caution to avoid any inconsistency in float handling, so sgn consensus
+  // is always determinstic
+  uint32 extra_power10 = 4;
 }
 
 // each chainid's gas price, as it's very dynamic, the goal is only to avoid off too much

@@ -120,10 +120,11 @@ func SgnFeeKey(chid uint64, token eth.Addr) []byte {
 5. pick lp size, how many LPs on first select. value is big.Int bytes
 6. chid -> gas price big.Int.Bytes.
 7. chid -> GasTokenSymbol string.
-8. symbol -> uint32(USD price * 1e4)
+8. symbol -> uint32(USD price * 1e(4+ExtraPower10) if ExtraPower10 isn't set, just 1e4
 9. chid -> GasCostParam
 10. chid -> GasCost
 11. symbol-chid1-chid2 -> ChainPair. per (chainpair, token) info override
+12. symbol -> uint32 ExtraPower10, only exist if asset USD float < $0.0001
 */
 
 var (
@@ -157,6 +158,10 @@ func CfgKeyChain2GasTokenSymbol(chid uint64) []byte {
 
 func CfgKeySymbol2UsdPrice(sym string) []byte {
 	return []byte(fmt.Sprintf("cfg-symbol2usdprice-%s", sym))
+}
+
+func CfgKeySymbol2ExtraPower10(sym string) []byte {
+	return []byte(fmt.Sprintf("cfg-symbol2extrapower10-%s", sym))
 }
 
 func GetSymbolFromStakeToken(token string) string {
