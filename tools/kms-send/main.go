@@ -17,12 +17,13 @@ import (
 var (
 	keyA         = flag.String("a", "sgnv2-test-0", "kms alias like sgnv2-prod-0")
 	dst          = flag.String("d", "", "dest addr hex")
-	chid         = flag.Int64("i", 0, "which chainid to send eth, if 0, do all known chains in chmap")
+	chid         = flag.Int64("i", 0, "which chainid to send eth, if -1, do all known chains in chmap")
 	minb         = flag.Uint64("min", 1e17, "minimal balance in wei, if less than this, skip send")
 	gas          = flag.Uint64("gas", 21000, "default gas limit, in case some chain requires more")
 	gasPriceFlag = flag.Int64("gasprice", 0, "gas price in gwei")
 	nonceFlag    = flag.Uint64("nonce", 0, "nonce")
-	zeroValue    = flag.Bool("zerovalue", false, "whether to send a value of 0")
+	valueFlag    = flag.Uint64("value", 0, "the value to send")
+	sendAll      = flag.Bool("sendall", false, "whether to send the entire balance minus gas fees. Overrides value if true")
 
 	bgCtx = context.Background()
 	// chainid to rpc endpoint
@@ -39,14 +40,18 @@ var (
 
 func main() {
 	flag.Parse()
-	if *chid > 0 {
-		doOne(*chid, chmap[*chid])
+
+	if *dst == "" {
+		log.Println("skip due to empty dst")
+	}
+	if *chid == -1 {
+		// note go map iter is random order
+		for id, rpc := range chmap {
+			doOne(id, rpc)
+		}
 		return
 	}
-	// note go map iter is random order
-	for id, rpc := range chmap {
-		doOne(id, rpc)
-	}
+	doOne(*chid, chmap[*chid])
 }
 
 func doOne(chid int64, rpc string) {
@@ -96,10 +101,10 @@ func sendETH(ec *ethclient.Client, from, to eth.Addr, bal *big.Int, signer bind.
 		// but the risk is if eth becomes busy, our tx may pending for a long time. as here our gas is only 21K, we are ok w/ base_fee*gas residual
 		gasFeeCap := new(big.Int).Add(gasPrice, head.BaseFee)
 		gasCost := new(big.Int).Mul(gasFeeCap, big.NewInt(int64(*gas)))
-		if *zeroValue {
-			value = big.NewInt(0)
-		} else {
+		if *sendAll {
 			value = new(big.Int).Sub(bal, gasCost)
+		} else {
+			value = new(big.Int).SetUint64(*valueFlag)
 		}
 		rawTx = types.NewTx(&types.DynamicFeeTx{
 			Nonce:     nonce,
@@ -111,10 +116,10 @@ func sendETH(ec *ethclient.Client, from, to eth.Addr, bal *big.Int, signer bind.
 		})
 
 	} else {
-		if *zeroValue {
-			value = big.NewInt(0)
-		} else {
+		if *sendAll {
 			value = new(big.Int).Sub(bal, new(big.Int).Mul(gasPrice, big.NewInt(int64(*gas))))
+		} else {
+			value = new(big.Int).SetUint64(*valueFlag)
 		}
 		rawTx = types.NewTx(&types.LegacyTx{
 			Nonce:    nonce,
