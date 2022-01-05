@@ -247,15 +247,20 @@ func GetGasTokenSymbol(kv sdk.KVStore, chid uint64) string {
 	return string(kv.Get(types.CfgKeyChain2GasTokenSymbol(chid)))
 }
 
-// if not found, return 0. price is int(usd price * 1e4)
+// return int(usd price * 1e(4+extraPower10)), extraPower10
+// if not found, return 0,0. see GetAssetUsdPrice for details
 // this is a helper to make get gas token price a bit simpler
-func GetGasTokenUsdPrice(kv sdk.KVStore, chid uint64) uint32 {
-	return GetAssetUsdPrice(kv, GetGasTokenSymbol(kv, chid))
+func GetGasTokenUsdPrice(kv sdk.KVStore, chid uint64) (uint32, uint32) {
+	sym := GetGasTokenSymbol(kv, chid)
+	return GetAssetUsdPrice(kv, sym)
 }
 
-// if not found, return 0. price is int(usd price * 1e4)
-func GetAssetUsdPrice(kv sdk.KVStore, sym string) uint32 {
-	return getUint32(kv, types.CfgKeySymbol2UsdPrice(sym))
+// by default we scale up asset USD float by 1e4 to get uint32. however, if float < 0.0001,
+// we need extra power10 to make an uint32. eg. 0.000012 will return 12, 2
+// we could also add extra power10 if we want more precision of price
+// extra power10 should not be set for most assets and 0 is returned
+func GetAssetUsdPrice(kv sdk.KVStore, sym string) (uint32, uint32) {
+	return getUint32(kv, types.CfgKeySymbol2UsdPrice(sym)), getUint32(kv, types.CfgKeySymbol2ExtraPower10(sym))
 }
 
 // set both chid->symbol and symbol->usd price uint32
@@ -266,6 +271,10 @@ func SetAssetPrice(kv sdk.KVStore, ap []*types.AssetPrice) {
 			kv.Set(types.CfgKeyChain2GasTokenSymbol(chainId), []byte(sym))
 		}
 		setUint32(kv, types.CfgKeySymbol2UsdPrice(sym), it.Price)
+		if it.ExtraPower10 > 0 {
+			// only set if ExtraPower10 > 0 to save kv write as non-exist key return 0 too
+			setUint32(kv, types.CfgKeySymbol2ExtraPower10(sym), it.ExtraPower10)
+		}
 	}
 }
 

@@ -434,8 +434,8 @@ func (k Keeper) CalcBaseFee(ctx sdk.Context, symbol string, assetChainId uint64,
 // base fee only depends on asset price, dest chain gas token price, dest chain gas price and relay gas cost
 func CalcBaseFee(kv sdk.KVStore, assetSym string, assetChainId uint64, destChid uint64) (baseFee *big.Int) {
 	baseFee = new(big.Int)
-	gasTokenUsdPrice := GetGasTokenUsdPrice(kv, destChid)
-	assetUsdPrice := GetAssetUsdPrice(kv, assetSym)
+	gasTokenUsdPrice, gasExtP10 := GetGasTokenUsdPrice(kv, destChid)
+	assetUsdPrice, assetExtP10 := GetAssetUsdPrice(kv, assetSym)
 	assetInfo := GetAssetInfo(kv, assetSym, assetChainId)
 	gasCost := getUint32(kv, types.CfgKeyChain2EstimateRelayGasCost(destChid))
 
@@ -447,8 +447,15 @@ func CalcBaseFee(kv sdk.KVStore, assetSym string, assetChainId uint64, destChid 
 	}
 	baseFee.Mul(gasPrice, big.NewInt(int64(gasCost)))
 	baseFee.Mul(baseFee, big.NewInt(int64(gasTokenUsdPrice)))
+	// note: we mul first to avoid int rounding as much as possible. we could use one Mul or Div w/ exponent equals gasExtP10 - assetExtP10
+	// but it's less obvious. besides, as most asset extra power10 are 0, check > 0 first is slightly faster as avoid big.Int func
+	if assetExtP10 > 0 {
+		// if assetUsdPrice has extra power10 in it, we mul first so we are aligned when div assetUsdPrice
+		baseFee.Mul(baseFee, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(assetExtP10)), nil))
+	}
 	baseFee.Div(baseFee, big.NewInt(int64(assetUsdPrice)))
-	baseFee.Div(baseFee, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(18-assetInfo.Decimal)), nil)) // gas token always 18 decimal
+	// if gasExtP10 >0, we div here
+	baseFee.Div(baseFee, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(18-assetInfo.Decimal+gasExtP10)), nil)) // EVM gas token always 18 decimal
 	log.Debugf("basefee: %s, chid: %d, gasprice: %s, gascost: %d, gastokenusd: %d, assetusd: %d", baseFee, destChid, gasPrice, gasCost, gasTokenUsdPrice, assetUsdPrice)
 	return
 }
