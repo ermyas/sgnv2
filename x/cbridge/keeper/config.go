@@ -59,6 +59,11 @@ func (k Keeper) SetCbrConfig(ctx sdk.Context, cfg types.CbrConfig) {
 	for _, relayGasCost := range cfg.GetRelayGasCost() {
 		raw, _ := relayGasCost.Marshal()
 		kv.Set(types.CfgKeyChain2RelayGasCostParam(relayGasCost.GetChainId()), raw)
+		latestSigners, found := k.GetLatestSigners(ctx)
+		if cfg.GetUpdateGasCost() && found {
+			// handle situation when gov after reset signer. must wait a while till GetLatestSigners return found to work
+			SetRelayGasCostBySignersAndGasCostParam(kv, relayGasCost.GetChainId(), latestSigners.GetSortedSigners(), relayGasCost)
+		}
 	}
 	for _, chainContract := range cfg.GetCbrContracts() {
 		raw, _ := chainContract.Marshal()

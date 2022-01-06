@@ -291,3 +291,12 @@ func GetRelayGasCostParam(kv sdk.KVStore, chid uint64) *types.RelayGasCostParam 
 	}
 	return ret
 }
+
+func SetRelayGasCostBySignersAndGasCostParam(store sdk.KVStore, chainId uint64, s []*types.Signer, param *types.RelayGasCostParam) {
+	var gasCost uint32
+	if param != nil {
+		gasCost = param.GetCostBase() + param.GetPerValidator()*uint32(len(s)) +
+			param.GetPerSig()*types.MinSigsForQuorum(s)
+	}
+	setUint32(store, types.CfgKeyChain2EstimateRelayGasCost(chainId), gasCost)
+}
