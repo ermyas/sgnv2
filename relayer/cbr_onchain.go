@@ -1,6 +1,7 @@
 package relayer
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"time"
@@ -13,6 +14,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
+
+const PendingNonceLimit = 20
 
 var evNames = []string{
 	cbrtypes.CbrEventSend,
@@ -185,6 +188,11 @@ func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 // send relay tx onchain to cbridge contract, no wait mine
 func (c *CbrOneChain) SendRelay(relayBytes []byte, sigs [][]byte, curss currentSigners, relayMsg *cbrtypes.RelayOnChain) (string, error) {
 	logmsg := fmt.Sprintf("srcXferId %x chain %d->%d", relayMsg.GetSrcTransferId(), relayMsg.GetSrcChainId(), relayMsg.GetDstChainId())
+	err := c.checkPendingNonce()
+	if err != nil {
+		log.Warnf("Pending nonce check failed: %s. %s", err, logmsg)
+		return "", fmt.Errorf("Pending nonce check failed. %w", err)
+	}
 	tx, err := c.Transactor.Transact(
 		&ethutils.TransactionStateHandler{
 			OnMined: func(receipt *ethtypes.Receipt) {
@@ -211,4 +219,19 @@ func (c *CbrOneChain) SendRelay(relayBytes []byte, sigs [][]byte, curss currentS
 
 func (c *CbrOneChain) existTransferId(transferId eth.Hash) (bool, error) {
 	return c.cbrContract.BridgeCaller.Transfers(&bind.CallOpts{}, transferId)
+}
+
+func (c *CbrOneChain) checkPendingNonce() error {
+	nonce, err := c.Client.NonceAt(context.Background(), c.Transactor.Address(), nil)
+	if err != nil {
+		return fmt.Errorf("NonceAt %w", err)
+	}
+	pendingNonce, err := c.Client.PendingNonceAt(context.Background(), c.Transactor.Address())
+	if err != nil {
+		return fmt.Errorf("PendingNonceAt %w", err)
+	}
+	if pendingNonce-nonce > PendingNonceLimit {
+		return fmt.Errorf("pendingNonce %d nonce %d", pendingNonce, nonce)
+	}
+	return nil
 }

@@ -175,7 +175,8 @@ func (r *Relayer) submitMint(mintRequest MintRequest) {
 
 		if strings.Contains(err.Error(), "Pausable: paused") ||
 			strings.Contains(err.Error(), "volume exceeds cap") ||
-			strings.Contains(err.Error(), "Mismatch current signers") {
+			strings.Contains(err.Error(), "Mismatch current signers") ||
+			strings.Contains(err.Error(), "Pending nonce check failed") {
 			if mintRequest.RetryCount > 0 {
 				mintRequest.RetryCount -= 1
 			}
@@ -301,7 +302,8 @@ func (r *Relayer) submitWithdraw(wdRequest WithdrawRequest) {
 
 		if strings.Contains(err.Error(), "Pausable: paused") ||
 			strings.Contains(err.Error(), "volume exceeds cap") ||
-			strings.Contains(err.Error(), "Mismatch current signers") {
+			strings.Contains(err.Error(), "Mismatch current signers") ||
+			strings.Contains(err.Error(), "Pending nonce check failed") {
 			if wdRequest.RetryCount > 0 {
 				wdRequest.RetryCount -= 1
 			}

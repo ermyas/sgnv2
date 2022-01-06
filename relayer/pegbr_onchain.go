@@ -150,6 +150,11 @@ func (c *CbrOneChain) SendMint(mintBytes []byte, sigs [][]byte, curss currentSig
 	logmsg := fmt.Sprintf(
 		"mint %s of token %x for user %x, refChainId %d, refId %x, mintChainId %d, depositor %x",
 		new(big.Int).SetBytes(mint.GetAmount()).String(), mint.GetToken(), mint.GetAccount(), mint.GetRefChainId(), mint.GetRefId(), c.chainid, mint.GetDepositor())
+	err := c.checkPendingNonce()
+	if err != nil {
+		log.Warnf("Pending nonce check failed: %s. %s", err, logmsg)
+		return "", fmt.Errorf("Pending nonce check failed. %w", err)
+	}
 	tx, err := c.Transactor.Transact(
 		&ethutils.TransactionStateHandler{
 			OnMined: func(receipt *ethtypes.Receipt) {
@@ -179,6 +184,11 @@ func (c *CbrOneChain) SendWithdraw(wdBytes []byte, sigs [][]byte, curss currentS
 	logmsg := fmt.Sprintf(
 		"withdraw %s of token %x for user %x, refChainId %d, refId %x, withdrawChainId %d, burnAccount %x",
 		new(big.Int).SetBytes(withdraw.GetAmount()).String(), withdraw.GetToken(), withdraw.GetReceiver(), withdraw.GetRefChainId(), withdraw.GetRefId(), c.chainid, withdraw.BurnAccount)
+	err := c.checkPendingNonce()
+	if err != nil {
+		log.Warnf("Pending nonce check failed: %s. %s", err, logmsg)
+		return "", fmt.Errorf("Pending nonce check failed. %w", err)
+	}
 	tx, err := c.Transactor.Transact(
 		&ethutils.TransactionStateHandler{
 			OnMined: func(receipt *ethtypes.Receipt) {
