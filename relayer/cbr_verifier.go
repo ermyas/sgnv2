@@ -118,42 +118,9 @@ func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, lo
 	// check in store
 
 	// check on chain
-	receipt, err := c.TransactionReceipt(context.Background(), eLog.TxHash)
-	if err != nil {
-		log.Warnln(logmsg, "TransactionReceipt err:", err)
-		return false, false
-	}
-	// We MUST be extra careful dealing with log as attacker could generate same topics using their own contract
-	// WARNING: must check log Address!!! other projects have been hacked by missing the check
-	addLiqLog := eth.FindMatchCbrEvent(cbrtypes.CbrEventLiqAdd, c.cbrContract.Address, receipt.Logs)
-
-	if addLiqLog == nil { // no match event in the tx, could be forged tx
-		log.Errorln(logmsg, "no match event found in tx:", eLog.TxHash)
-		return true, false
-	}
-	if addLiqLog.Removed {
-		log.Errorln(logmsg, "log removed")
-		return true, false
-	}
-	// not possible as we check addr in FindMatchCbrEvent, keep here for extra safety
-	if addLiqLog.Address != c.cbrContract.Address {
-		log.Errorln(logmsg, "mismatch contract addr. log has:", addLiqLog.Address, "expect:", c.cbrContract.Address)
-		return true, false
-	}
-	// check blocknumber and index because they are used in key
-	if addLiqLog.BlockNumber != eLog.BlockNumber {
-		log.Errorln(logmsg, "mismatch blknum. proposal has:", eLog.BlockNumber, "log from receipt has:", addLiqLog.BlockNumber)
-		return true, false
-	}
-	if addLiqLog.Index != eLog.Index {
-		log.Errorln(logmsg, "mismatch event index. proposal has:", eLog.Index, "log from receipt has:", addLiqLog.Index)
-		return true, false
-	}
-	// make sure addLiqLog.BlockNumber isn't too recent
-	blk := c.mon.GetCurrentBlockNumber().Uint64()
-	if addLiqLog.BlockNumber > blk-c.blkDelay {
-		log.Warnf("%s evblk %d too soon, should only up to blk %d", logmsg, addLiqLog.BlockNumber, blk-c.blkDelay)
-		return false, false
+	done, approve, addLiqLog := c.verifyEventLog(eLog, eth.LiquidityBridge, cbrtypes.CbrEventLiqAdd, c.cbrContract.Address, logmsg)
+	if addLiqLog == nil {
+		return done, approve
 	}
 	addLiqEv, err := c.cbrContract.ParseLiquidityAdded(*addLiqLog)
 	if err != nil {
@@ -293,6 +260,48 @@ func (c *CbrOneChain) verifyWithdraw(eLog *ethtypes.Log, cliCtx client.Context, 
 	// to be more acceptable of event
 	log.Infof("%s, success", logmsg)
 	return true, true
+}
+
+func (c *CbrOneChain) verifyEventLog(
+	eLog *ethtypes.Log, ctype eth.ContractType, evName string, expAddr eth.Addr, logmsg string) (done, approve bool, resLog *ethtypes.Log) {
+
+	receipt, err := c.TransactionReceipt(context.Background(), eLog.TxHash)
+	if err != nil {
+		log.Warnln(logmsg, "TransactionReceipt err:", err)
+		return false, false, nil
+	}
+
+	resLog = eth.FindMatchContractEvent(ctype, evName, expAddr, receipt.Logs)
+
+	if resLog == nil { // no match event in the tx, could be forged tx
+		log.Errorln(logmsg, "no match event found in tx:", eLog.TxHash)
+		return true, false, nil
+	}
+	if resLog.Removed {
+		log.Errorln(logmsg, "log removed")
+		return true, false, nil
+	}
+	// not possible as we check addr in FindMatchContractEvent, keep here for extra safety
+	if resLog.Address != expAddr {
+		log.Errorln(logmsg, "mismatch contract addr. log has:", resLog.Address, "expect:", expAddr)
+		return true, false, nil
+	}
+	// check blocknumber and index because they are used in key
+	if resLog.BlockNumber != eLog.BlockNumber {
+		log.Errorln(logmsg, "mismatch blknum. proposal has:", eLog.BlockNumber, "log from receipt has:", resLog.BlockNumber)
+		return true, false, nil
+	}
+	if resLog.Index != eLog.Index {
+		log.Errorln(logmsg, "mismatch event index. proposal has:", eLog.Index, "log from receipt has:", resLog.Index)
+	}
+	// make sure addLiqLog.BlockNumber isn't too recent
+	blk := c.mon.GetCurrentBlockNumber().Uint64()
+	if resLog.BlockNumber > blk-c.blkDelay {
+		log.Warnf("%s evblk %d too soon, should only up to blk %d", logmsg, resLog.BlockNumber, blk-c.blkDelay)
+		return false, false, nil
+	}
+
+	return true, true, resLog
 }
 
 func (c *CbrOneChain) verifySigners(eLog *ethtypes.Log, cliCtx client.Context, logmsg string) (done, approve bool) {

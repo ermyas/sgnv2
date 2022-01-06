@@ -15,6 +15,14 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
+type ContractType int
+
+const (
+	LiquidityBridge ContractType = iota
+	PegVault
+	PegBridge
+)
+
 var (
 	ErrPeersNotMatch = errors.New("channel peers not match")
 )
@@ -80,9 +88,19 @@ func SignerBytes(addrs []Addr, powers []*big.Int) []byte {
 // if evname not found, all 0 hash (default value) will be returned
 // as this func parse abi internally, caller should call once and save the return
 // instead of keep calling it.
-func GetBridgeEventID(evname string) Hash {
-	cbrabi, _ := abi.JSON(strings.NewReader(BridgeABI))
-	return cbrabi.Events[evname].ID
+func GetContractEventID(ctype ContractType, evname string) Hash {
+	var contractAbi abi.ABI
+	switch ctype {
+	case LiquidityBridge:
+		contractAbi, _ = abi.JSON(strings.NewReader(BridgeABI))
+	case PegVault:
+		contractAbi, _ = abi.JSON(strings.NewReader(OriginalTokenVaultABI))
+	case PegBridge:
+		contractAbi, _ = abi.JSON(strings.NewReader(PeggedTokenBridgeABI))
+	default:
+		return ZeroHash
+	}
+	return contractAbi.Events[evname].ID
 }
 
 // given list of logs, find matching event (log.topics[0] == GetBridgeEventID(cbrEvName) && log.Address == expAddr)
@@ -93,8 +111,8 @@ func GetBridgeEventID(evname string) Hash {
 // why search backwards in logs: we were assuming our event is the last so just do receipt.Logs[len(receipt.Logs)-1],
 // but Polygon adds its own event and breaks this assumption. So now we go backwards and search for first matched event.
 // WARNING: must check log Address!!! other projects have been hacked by missing the check
-func FindMatchCbrEvent(cbrEvName string, expAddr Addr, logs []*ethtypes.Log) *ethtypes.Log {
-	evID := GetBridgeEventID(cbrEvName)
+func FindMatchContractEvent(ctype ContractType, evName string, expAddr Addr, logs []*ethtypes.Log) *ethtypes.Log {
+	evID := GetContractEventID(ctype, evName)
 	if evID == ZeroHash {
 		return nil
 	}
@@ -268,6 +286,47 @@ func ToPadBytes(v interface{}, rlen ...int) []byte {
 	ret := make([]byte, retlen)
 	copy(ret[retlen-len(orig):], orig)
 	return ret
+}
+
+func (ev *OriginalTokenVaultDeposited) Equal(d *OriginalTokenVaultDeposited) bool {
+	if ev.DepositId != d.DepositId {
+		return false
+	}
+	if ev.Depositor != d.Depositor {
+		return false
+	}
+	if ev.Token != d.Token {
+		return false
+	}
+	if ev.Amount.Cmp(d.Amount) != 0 {
+		return false
+	}
+	if ev.MintChainId != d.MintChainId {
+		return false
+	}
+	if ev.MintAccount != d.MintAccount {
+		return false
+	}
+	return true
+}
+
+func (ev *PeggedTokenBridgeBurn) Equal(b *PeggedTokenBridgeBurn) bool {
+	if ev.BurnId != b.BurnId {
+		return false
+	}
+	if ev.Account != b.Account {
+		return false
+	}
+	if ev.Token != b.Token {
+		return false
+	}
+	if ev.Amount.Cmp(b.Amount) != 0 {
+		return false
+	}
+	if ev.WithdrawAccount != b.WithdrawAccount {
+		return false
+	}
+	return true
 }
 
 // onchid is the chainid this event happen

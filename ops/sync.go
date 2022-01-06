@@ -83,7 +83,8 @@ $ %s ops sync signers --chainid=883 --txhash="0xxx"
 				return err
 			}
 
-			elog := eth.FindMatchCbrEvent(cbrtypes.CbrEventSignersUpdated, cbr.contract.Address, txReceipt.Logs)
+			elog := eth.FindMatchContractEvent(
+				eth.LiquidityBridge, cbrtypes.CbrEventSignersUpdated, cbr.contract.Address, txReceipt.Logs)
 
 			if elog == nil {
 				log.Errorln("no match event found in tx:", txhash)
@@ -178,7 +179,7 @@ func SyncCbrEvent(cliCtx client.Context, chainid uint64, txhash string, evname s
 		return err
 	}
 
-	elog := eth.FindMatchCbrEvent(evname, cbr.contract.Address, txReceipt.Logs)
+	elog := eth.FindMatchContractEvent(eth.LiquidityBridge, evname, cbr.contract.Address, txReceipt.Logs)
 
 	if elog == nil {
 		log.Errorln("no match event found in tx:", txhash)
