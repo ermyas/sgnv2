@@ -24,13 +24,7 @@ func (k Keeper) SetChainSigners(ctx sdk.Context, s *types.ChainSigners) {
 
 	// when signers changed, remember to update gas cost
 	gasCostParam := GetRelayGasCostParam(store, s.ChainId)
-	var gasCost uint32
-	if gasCostParam == nil {
-		gasCost = 0
-	}
-	gasCost = gasCostParam.GetCostBase() + gasCostParam.GetPerValidator()*uint32(len(s.GetSortedSigners())) +
-		gasCostParam.GetPerSig()*types.MinSigsForQuorum(s.GetSortedSigners())
-	setUint32(store, types.CfgKeyChain2EstimateRelayGasCost(s.ChainId), gasCost)
+	SetRelayGasCostBySignersAndGasCostParam(store, s.ChainId, s.GetSortedSigners(), gasCostParam)
 }
 
 func (k Keeper) GetLatestSigners(ctx sdk.Context) (signers types.LatestSigners, found bool) {

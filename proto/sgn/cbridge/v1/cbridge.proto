@@ -47,6 +47,10 @@ message CbrConfig {
   // dest amount must <= 101% of send amount. value is perc * 1M, eg. value 1000 means 0.1%
   // if not set/default 0, means no cap
   uint32 max_gain_perc = 8;
+
+  // if false gas cost in kv will not be updated, only gas cost param in kv will be updated
+  // can always set to true if wants to gov gas cost to work
+  bool update_gas_cost = 9;
 }
 
 // needed for base fee calculation. the value set in genesis is only used when first start.
