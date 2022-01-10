@@ -447,22 +447,17 @@ func WaitPbrDepositWithEmptyMintId(transactor *transactor.Transactor, depositId 
 	return nil
 }
 
-func StartClaimPegbridgeRefund(
-	transactor *transactor.Transactor, depositId string, user *TestEthClient) error {
+func StartClaimPegbridgeRefund(transactor *transactor.Transactor, depositId string) error {
 	msg := &pegbrtypes.MsgClaimRefund{
 		DepositId: depositId,
 		Sender:    transactor.Key.GetAddress().String(),
 	}
-	signature := user.SignMsg(eth.Hex2Bytes(depositId))
-	msg.Signature = signature
-
 	_, err := pegbrcli.InitClaimRefund(transactor, msg)
 	return err
 }
 
-func FakeStartClaimPegbridgeRefund(
-	transactor *transactor.Transactor, depositId string, user *TestEthClient) error {
-	err := StartClaimPegbridgeRefund(transactor, depositId, user)
+func FakeStartClaimPegbridgeRefund(transactor *transactor.Transactor, depositId string) error {
+	err := StartClaimPegbridgeRefund(transactor, depositId)
 	if err != nil {
 		return nil
 	}

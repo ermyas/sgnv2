@@ -231,21 +231,13 @@ func (k msgServer) ClaimRefund(goCtx context.Context, msg *types.MsgClaimRefund)
 	}
 	if len(depositInfo.MintId) > 0 {
 		// a non-empty mintId indicates a valid deposit.
-		return nil, fmt.Errorf("there is no refund for this deposit:%s", msg.DepositId)
+		return nil, fmt.Errorf("there is no refund for this deposit:%s", depositId.Hex())
 	}
 	// get depositRefund:withdrawOnChain
 	withdraw, found := k.GetDepositRefund(ctx, depositId)
 	if !found {
 		// this refund has already been claimed.
-		return nil, fmt.Errorf("failed to fetch deposit refund, no withdrawOnChain found for %s", msg.DepositId)
-	}
-	// check claimRefund requester is withdraw.Receiver
-	signer, err := ethutils.RecoverSigner(eth.Hex2Bytes(msg.DepositId), msg.Signature)
-	if err != nil {
-		return nil, fmt.Errorf("recover signer err: %w", err)
-	}
-	if signer != eth.Bytes2Addr(withdraw.Receiver) {
-		return nil, fmt.Errorf("invalid signature")
+		return nil, fmt.Errorf("failed to fetch deposit refund, no withdrawOnChain found for %s", depositId.Hex())
 	}
 	withdrawId := types.CalcWithdrawId(eth.Bytes2Addr(withdraw.Receiver), eth.Bytes2Addr(withdraw.Token),
 		new(big.Int).SetBytes(withdraw.Amount), eth.Bytes2Addr(withdraw.BurnAccount), withdraw.RefChainId, eth.Bytes2Hash(withdraw.RefId))
