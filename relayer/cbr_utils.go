@@ -5,19 +5,18 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
-	"github.com/gogo/protobuf/proto"
-	"github.com/spf13/viper"
-
-	"time"
-
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	"github.com/cosmos/cosmos-sdk/version"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/gogo/protobuf/jsonpb"
+	"github.com/gogo/protobuf/proto"
 	"github.com/lthibault/jitterbug"
+	"github.com/spf13/viper"
 	"gopkg.in/resty.v1"
 )
 
@@ -77,8 +76,9 @@ func (r *Relayer) startReportCurrentBlockNumber(interval time.Duration) {
 
 func (r *Relayer) reportCurrentBlockNumber() {
 	var report = &CurrentBlockNumberReport{
-		Timestamp: common.TsMilli(time.Now()),
-		BlockNums: make(map[string]uint64),
+		Timestamp:   common.TsMilli(time.Now()),
+		BlockNums:   make(map[string]uint64),
+		SgndVersion: version.Version,
 	}
 	for chainId, oneChain := range r.cbrMgr {
 		blockNumber := oneChain.mon.GetCurrentBlockNumber()
