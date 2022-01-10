@@ -14,6 +14,7 @@ message CurrentBlockNumberReport {
   uint64 timestamp = 1;
   // key is chainId, value is block number
   map<string, uint64> block_nums = 2;
+  string sgnd_version = 3;
 }
 
 message ReportCurrentBlockNumberResponse {
