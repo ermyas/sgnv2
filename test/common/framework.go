@@ -32,11 +32,13 @@ var (
 )
 
 type CbrChain struct {
-	ChainId    uint64
-	Ec         *ethclient.Client
-	Auth       *bind.TransactOpts // etherbase auth
-	Users      []*TestEthClient
-	Delegators []*TestEthClient
+	ChainId          uint64
+	Ec               *ethclient.Client
+	Auth             *bind.TransactOpts // etherbase auth
+	Users            []*TestEthClient
+	Validators       []*TestEthClient
+	ValidatorSigners []*TestEthClient
+	Delegators       []*TestEthClient
 	// contract addr
 	CbrAddr, USDTAddr eth.Addr
 	CbrContract       *eth.BridgeContract
