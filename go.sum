@@ -162,8 +162,8 @@ github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792/go.mod h1:ghJtE
 github.com/btcsuite/winsvc v1.0.0/go.mod h1:jsenWakMcC0zFBFurPLEAyrnc/teJEM1O46fmI40EZs=
 github.com/c-bata/go-prompt v0.2.2/go.mod h1:VzqtzE2ksDBcdln8G7mk2RX9QyGjH+OVqOCSiVIqS34=
 github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n9yuLkIJQ=
-github.com/celer-network/endpoint-proxy v0.0.9 h1:Knjy+Vt4GW0feSLvAktQYWKmM6n2W1Mm/7JpBQNjb+U=
-github.com/celer-network/endpoint-proxy v0.0.9/go.mod h1:zyRTvdnbG+UMp9aYJgwIeNahJv0gMqAwMcWY/mIDvlI=
+github.com/celer-network/endpoint-proxy v0.1.1 h1:9yVa7mhzRWGQq9ibLcQ3DG+J81Rwtg2o3Q90UUerK6I=
+github.com/celer-network/endpoint-proxy v0.1.1/go.mod h1:zyRTvdnbG+UMp9aYJgwIeNahJv0gMqAwMcWY/mIDvlI=
 github.com/celer-network/goutils v0.1.38/go.mod h1:YLfSj4GfqY0+OZkFjnOpAdCdn2lKEXEQp37aS31sYjY=
 github.com/celer-network/goutils v0.1.41 h1:xrRweR1wqjSPxGy3VhL6xumBLQKx4OHO1tgmk6lwKvY=
 github.com/celer-network/goutils v0.1.41/go.mod h1:YLfSj4GfqY0+OZkFjnOpAdCdn2lKEXEQp37aS31sYjY=
@@ -665,6 +665,7 @@ github.com/mattn/go-runewidth v0.0.4/go.mod h1:LwmH8dsx7+W8Uxz3IHJYH5QSwggIsqBzp
 github.com/mattn/go-runewidth v0.0.9 h1:Lm995f3rfxdpd6TSmuVCHVb/QhupuXlYr8sCI/QdE+0=
 github.com/mattn/go-runewidth v0.0.9/go.mod h1:H031xJmbD/WCDINGzjvQ9THkh0rPKHF+m2gUSrubnMI=
 github.com/mattn/go-sqlite3 v1.11.0/go.mod h1:FPy6KqzDD04eiIsT53CuJW3U88zkxoIYsOqkbpncsNc=
+github.com/mattn/go-sqlite3 v2.0.3+incompatible h1:gXHsfypPkaMZrKbD5209QV9jbUTJKjyR5WD3HYQSd+U=
 github.com/mattn/go-sqlite3 v2.0.3+incompatible/go.mod h1:FPy6KqzDD04eiIsT53CuJW3U88zkxoIYsOqkbpncsNc=
 github.com/mattn/go-tty v0.0.0-20180907095812-13ff1204f104/go.mod h1:XPvLUNfbS4fJH25nqRHfWLMa1ONC8Amw+mIA639KxkE=
 github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0jegS5sx/RkqARlsWZ6pIwiU=
