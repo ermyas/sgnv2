@@ -49,6 +49,17 @@ func (m *MintInfo) String() string {
 		m.ChainId, eth.Bytes2Hex(m.MintProtoBytes), mintOnChain.String(), m.BaseFee, m.PercentageFee, m.LastReqTime, m.SignersStr(), m.SigsStr(), m.Success)
 }
 
+func (m *MintInfo) GetSortedSigsBytes() [][]byte {
+	if m != nil {
+		sigs := make([][]byte, len(m.Signatures))
+		for i := range m.Signatures {
+			sigs[i] = m.Signatures[i].SigBytes
+		}
+		return sigs
+	}
+	return nil
+}
+
 func (w *WithdrawInfo) GetAddrSigs() []*cbrtypes.AddrSig {
 	addrSigs := make([]*cbrtypes.AddrSig, 0)
 	for _, sig := range w.Signatures {

@@ -423,27 +423,25 @@ func GetPegBridgeFeeClaimWithdrawInfoWithSigs(
 
 func CheckTotalSupply(
 	transactor *transactor.Transactor,
-	origChainId uint64,
 	peggedChainId uint64,
 	peggedAddress eth.Addr,
 	expected string,
 ) {
-	_, total, err := pegbrcli.QuerySupplyInfo(transactor.CliCtx, origChainId, peggedChainId, peggedAddress)
+	_, total, err := pegbrcli.QuerySupplyInfo(transactor.CliCtx, peggedChainId, peggedAddress)
 	ChkErr(err, "failed to query supply info")
 	if total == expected {
 		return
 	}
-	log.Fatalf("Total supply for %s from chain %d to chain %d is %s, expected %s",
-		eth.Addr2Hex(peggedAddress), origChainId, peggedChainId, total, expected)
+	log.Fatalf("Total supply for %s on chain %d is %s, expected %s",
+		eth.Addr2Hex(peggedAddress), peggedChainId, total, expected)
 }
 
 func GetSupplyCap(
 	transactor *transactor.Transactor,
-	origChainId uint64,
 	peggedChainId uint64,
 	peggedAddress eth.Addr,
 ) string {
-	cap, _, err := pegbrcli.QuerySupplyInfo(transactor.CliCtx, origChainId, peggedChainId, peggedAddress)
+	cap, _, err := pegbrcli.QuerySupplyInfo(transactor.CliCtx, peggedChainId, peggedAddress)
 	ChkErr(err, "failed to query supply info")
 	return cap
 }
@@ -466,10 +464,28 @@ func WaitPbrDepositWithEmptyMintId(transactor *transactor.Transactor, depositId 
 	return nil
 }
 
-func StartClaimPegbridgeRefund(transactor *transactor.Transactor, depositId string) error {
+func WaitPbrBurnWithEmptyWithdrawId(transactor *transactor.Transactor, burnId string) error {
+	var err error
+	log.Infoln("wait for burn with empty withdraw id", burnId)
+	for retry := 0; retry < RetryLimit; retry++ {
+		burnInfo, err := pegbrcli.QueryBurnInfo(transactor.CliCtx, burnId)
+		if err == nil {
+			if len(burnInfo.WithdrawId) == 0 {
+				return nil
+			} else {
+				return fmt.Errorf("burnInfo found but with non-empty withdrawId: %s", eth.Bytes2Hex(burnInfo.WithdrawId))
+			}
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryBurnInfo")
+	return nil
+}
+
+func StartClaimPegbridgeRefund(transactor *transactor.Transactor, refId string) error {
 	msg := &pegbrtypes.MsgClaimRefund{
-		DepositId: depositId,
-		Sender:    transactor.Key.GetAddress().String(),
+		RefId:  refId,
+		Sender: transactor.Key.GetAddress().String(),
 	}
 	_, err := pegbrcli.InitClaimRefund(transactor, msg)
 	return err
@@ -517,4 +533,40 @@ func GetRefundWithdrawInfoWithSigs(
 		log.Fatalf("QueryWithdrawInfo expected sigNum %d, actual %d", expSigNum, len(withdrawInfo.Signatures))
 	}
 	return withdrawId, withdrawInfo
+}
+
+func GetRefundMintInfoWithSigs(
+	transactor *transactor.Transactor, burnId string, expSigNum int) (
+	mintId string, mintInfo *pegbrtypes.MintInfo) {
+	var err error
+	// query refundClaimInfo, in order to get mintId
+	for retry := 0; retry < RetryLimit; retry++ {
+		mintId, err = pegbrcli.QueryRefundClaimInfo(
+			transactor.CliCtx,
+			burnId,
+		)
+		if err == nil {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryRefundClaimInfo")
+	// Then wait for MintInfo with enough signatures
+	var mtInfo pegbrtypes.MintInfo
+	for retry := 0; retry < RetryLimit; retry++ {
+		mtInfo, err = pegbrcli.QueryMintInfo(
+			transactor.CliCtx,
+			mintId,
+		)
+		if err == nil && len(mtInfo.Signatures) == expSigNum {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryMintInfo")
+	mintInfo = &mtInfo
+	if len(mintInfo.Signatures) != expSigNum {
+		log.Fatalf("QueryMintInfo expected sigNum %d, actual %d", expSigNum, len(mintInfo.Signatures))
+	}
+	return mintId, mintInfo
 }

@@ -207,14 +207,14 @@ func (k Keeper) IterateAllFeeClaimInfos(
 	}
 }
 
-func (k Keeper) SetTotalSupply(ctx sdk.Context, origChainId uint64, peggedChainId uint64, peggedAddress eth.Addr, amount *big.Int) {
+func (k Keeper) SetTotalSupply(ctx sdk.Context, peggedChainId uint64, peggedAddress eth.Addr, amount *big.Int) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(types.GetTotalSupplyKey(origChainId, peggedChainId, peggedAddress), amount.Bytes())
+	store.Set(types.GetTotalSupplyKey(peggedChainId, peggedAddress), amount.Bytes())
 }
 
-func (k Keeper) GetTotalSupply(ctx sdk.Context, origChainId uint64, peggedChainId uint64, peggedAddress eth.Addr) (amount *big.Int, found bool) {
+func (k Keeper) GetTotalSupply(ctx sdk.Context, peggedChainId uint64, peggedAddress eth.Addr) (amount *big.Int, found bool) {
 	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.GetTotalSupplyKey(origChainId, peggedChainId, peggedAddress))
+	bz := store.Get(types.GetTotalSupplyKey(peggedChainId, peggedAddress))
 	if bz == nil {
 		return amount, false
 	}
@@ -222,14 +222,14 @@ func (k Keeper) GetTotalSupply(ctx sdk.Context, origChainId uint64, peggedChainI
 	return amount.SetBytes(bz), true
 }
 
-func (k Keeper) HasTotalSupply(ctx sdk.Context, origChainId uint64, peggedChainId uint64, peggedAddress eth.Addr) bool {
+func (k Keeper) HasTotalSupply(ctx sdk.Context, peggedChainId uint64, peggedAddress eth.Addr) bool {
 	store := ctx.KVStore(k.storeKey)
-	return store.Has(types.GetTotalSupplyKey(origChainId, peggedChainId, peggedAddress))
+	return store.Has(types.GetTotalSupplyKey(peggedChainId, peggedAddress))
 }
 
-func (k Keeper) DeleteTotalSupply(ctx sdk.Context, origChainId uint64, peggedChainId uint64, peggedAddress eth.Addr) {
+func (k Keeper) DeleteTotalSupply(ctx sdk.Context, peggedChainId uint64, peggedAddress eth.Addr) {
 	store := ctx.KVStore(k.storeKey)
-	store.Delete(types.GetTotalSupplyKey(origChainId, peggedChainId, peggedAddress))
+	store.Delete(types.GetTotalSupplyKey(peggedChainId, peggedAddress))
 }
 
 func (k Keeper) IterateAllTotalSupplies(
@@ -247,12 +247,12 @@ func (k Keeper) IterateAllTotalSupplies(
 
 func (k Keeper) SetDepositRefund(ctx sdk.Context, depositId eth.Hash, wdOnChain types.WithdrawOnChain) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(types.GetDepositRefundKey(depositId), k.cdc.MustMarshal(&wdOnChain))
+	store.Set(types.GetRefundKey(depositId), k.cdc.MustMarshal(&wdOnChain))
 }
 
 func (k Keeper) GetDepositRefund(ctx sdk.Context, depositId eth.Hash) (wdOnChain types.WithdrawOnChain, found bool) {
 	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.GetDepositRefundKey(depositId))
+	bz := store.Get(types.GetRefundKey(depositId))
 	if bz == nil {
 		return wdOnChain, false
 	}
@@ -260,26 +260,39 @@ func (k Keeper) GetDepositRefund(ctx sdk.Context, depositId eth.Hash) (wdOnChain
 	return wdOnChain, true
 }
 
-func (k Keeper) HasDepositRefund(ctx sdk.Context, depositId eth.Hash) bool {
+func (k Keeper) SetBurnRefund(ctx sdk.Context, burnId eth.Hash, mintOnChain types.MintOnChain) {
 	store := ctx.KVStore(k.storeKey)
-	return store.Has(types.GetDepositRefundKey(depositId))
+	store.Set(types.GetRefundKey(burnId), k.cdc.MustMarshal(&mintOnChain))
 }
 
-func (k Keeper) DeleteDepositRefund(ctx sdk.Context, depositId eth.Hash) {
+func (k Keeper) GetBurnRefund(ctx sdk.Context, burnId eth.Hash) (mintOnChain types.MintOnChain, found bool) {
 	store := ctx.KVStore(k.storeKey)
-	store.Delete(types.GetDepositRefundKey(depositId))
+	bz := store.Get(types.GetRefundKey(burnId))
+	if bz == nil {
+		return mintOnChain, false
+	}
+	k.cdc.MustUnmarshal(bz, &mintOnChain)
+	return mintOnChain, true
 }
 
-func (k Keeper) IterateAllDepositRefunds(
-	ctx sdk.Context, handler func(wdOnChain types.WithdrawOnChain) (stop bool),
+func (k Keeper) HasRefund(ctx sdk.Context, refId eth.Hash) bool {
+	store := ctx.KVStore(k.storeKey)
+	return store.Has(types.GetRefundKey(refId))
+}
+
+func (k Keeper) DeleteRefund(ctx sdk.Context, refId eth.Hash) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(types.GetRefundKey(refId))
+}
+
+func (k Keeper) IterateAllRefunds(
+	ctx sdk.Context, handler func(sthOnChain []byte) (stop bool),
 ) {
 	store := ctx.KVStore(k.storeKey)
-	iter := sdk.KVStorePrefixIterator(store, types.DepositRefundPrefix)
+	iter := sdk.KVStorePrefixIterator(store, types.RefundPrefix)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
-		var wdOnChain types.WithdrawOnChain
-		k.cdc.MustUnmarshal(iter.Value(), &wdOnChain)
-		if handler(wdOnChain) {
+		if handler(iter.Value()) {
 			break
 		}
 	}

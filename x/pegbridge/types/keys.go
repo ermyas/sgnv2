@@ -37,7 +37,7 @@ var (
 	BurnInfoPrefix           = []byte{0x08}
 	FeeClaimInfoPrefix       = []byte{0x09}
 	TotalSupplyPrefix        = []byte{0x0a}
-	DepositRefundPrefix      = []byte{0x0b}
+	RefundPrefix             = []byte{0x0b}
 	RefundClaimInfoPrefix    = []byte{0x0c}
 )
 
@@ -101,13 +101,13 @@ func GetFeeClaimInfoKey(address eth.Addr, nonce uint64) []byte {
 	return append(FeeClaimInfoPrefix, append(address.Bytes(), nonceBytes...)...)
 }
 
-func GetTotalSupplyKey(origChainId uint64, peggedChainId uint64, peggedAddress eth.Addr) []byte {
-	composalKeyBytes := []byte(fmt.Sprintf("%d-%d-%x", origChainId, peggedChainId, peggedAddress))
+func GetTotalSupplyKey(peggedChainId uint64, peggedAddress eth.Addr) []byte {
+	composalKeyBytes := []byte(fmt.Sprintf("%d-%x", peggedChainId, peggedAddress))
 	return append(TotalSupplyPrefix, composalKeyBytes...)
 }
 
-func GetDepositRefundKey(depositId eth.Hash) []byte {
-	return append(DepositRefundPrefix, depositId.Bytes()...)
+func GetRefundKey(depositId eth.Hash) []byte {
+	return append(RefundPrefix, depositId.Bytes()...)
 }
 
 func GetRefundClaimInfoKey(depositId eth.Hash) []byte {

@@ -146,7 +146,7 @@ func (k Keeper) SupplyInfo(c context.Context, req *types.QuerySupplyInfoRequest)
 	if !found {
 		return nil, errors.New("orig-pegged pair not found")
 	}
-	total, found := k.GetTotalSupply(ctx, req.OrigChainId, req.PeggedChainId, eth.Hex2Addr(req.PeggedAddress))
+	total, found := k.GetTotalSupply(ctx, req.PeggedChainId, eth.Hex2Addr(req.PeggedAddress))
 	if !found {
 		total = new(big.Int).SetInt64(0)
 	}

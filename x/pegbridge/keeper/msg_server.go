@@ -8,7 +8,7 @@ import (
 	"math/big"
 
 	ethutils "github.com/celer-network/goutils/eth"
-	log "github.com/celer-network/goutils/log"
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/pegbridge/types"
@@ -224,47 +224,120 @@ func (k msgServer) isSenderBondedValidator(ctx sdk.Context, sender string) (stak
 
 func (k msgServer) ClaimRefund(goCtx context.Context, msg *types.MsgClaimRefund) (*types.MsgClaimRefundResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
-	depositId := eth.Hex2Hash(msg.DepositId)
-	depositInfo, found := k.GetDepositInfo(ctx, depositId)
-	if !found {
-		return nil, types.WrapErrNoInfoFound(depositId)
+	refId := eth.Hex2Hash(msg.RefId)
+	depositInfo, isDeposit := k.GetDepositInfo(ctx, refId)
+	if !isDeposit {
+		burnInfo, isBurn := k.GetBurnInfo(ctx, refId)
+		if !isBurn {
+			return nil, types.WrapErrNoInfoFound(refId)
+		}
+		burnId := refId
+		if len(burnInfo.WithdrawId) > 0 {
+			// a non-empty withdrawId indicates a valid burn.
+			return nil, fmt.Errorf("there is no refund for this burn:%s", burnId.Hex())
+		}
+		// get burnRefund:mintOnChain
+		mint, found := k.GetBurnRefund(ctx, burnId)
+		if !found {
+			// this refund has already been claimed.
+			return nil, fmt.Errorf("this burn has already been refunded:%s", burnId.Hex())
+		}
+		mintAmount := new(big.Int).SetBytes(mint.Amount)
+
+		// check supply cap and increase total supply
+		pair, pairFound := k.GetOrigPeggedPairByPegged(ctx, mint.RefChainId, eth.Bytes2Addr(mint.Token))
+		if !pairFound {
+			// pegged pair should be found
+			return nil, fmt.Errorf("failed to get supply cap, pegged pair not exists, peggedChainId:%d, peggedTokenAddress:%s", mint.RefChainId, eth.Bytes2Hex(mint.Token))
+		}
+		supplyCap := new(big.Int).SetInt64(0)
+		if pair.SupplyCap != "" {
+			// supply cap string was checked during config set
+			supplyCap.SetString(pair.SupplyCap, 10)
+		}
+		if supplyCap.Sign() == 0 {
+			// do nothing
+		} else {
+			beforeMintTotalSupply, found := k.GetTotalSupply(ctx, mint.RefChainId, eth.Bytes2Addr(mint.Token))
+			if !found {
+				beforeMintTotalSupply = new(big.Int).SetInt64(0)
+			}
+			// check if mint would exceed supply cap
+			afterMintTotalSupply := new(big.Int).Add(beforeMintTotalSupply, mintAmount)
+			if supplyCap.Cmp(afterMintTotalSupply) == -1 {
+				return nil, fmt.Errorf("ongoing refund type mint would exceed supply cap, mintAmount %s current totalSupply %s supplyCap %s", mintAmount, beforeMintTotalSupply, supplyCap)
+			}
+			// reset totalSupply
+			k.SetTotalSupply(ctx, mint.RefChainId, eth.Bytes2Addr(mint.Token), afterMintTotalSupply)
+		}
+
+		mintId := types.CalcMintId(eth.Bytes2Addr(mint.Account), eth.Bytes2Addr(mint.Token),
+			mintAmount, eth.Bytes2Addr(mint.Depositor), mint.RefChainId, eth.Bytes2Hash(mint.RefId))
+		// record a mintInfo
+		mintProtoBytes := k.cdc.MustMarshal(&mint)
+		mintInfo := types.MintInfo{
+			ChainId:        mint.RefChainId,
+			MintProtoBytes: mintProtoBytes,
+			Signatures:     make([]commontypes.Signature, 0),
+			BaseFee:        "",
+			PercentageFee:  "",
+			LastReqTime:    ctx.BlockTime().Unix(),
+		}
+		k.SetMintInfo(ctx, mintId, mintInfo)
+		// record a refundClaimInfo
+		// Although the invalid burnId is stored deeply in mintInfo.
+		// We'd still like to keep a forward link from invalid burnId to its corresponding mintId.
+		k.SetRefundClaimInfo(ctx, burnId, mintId)
+		// delete burnRefund:mintOnChain in case of double refunding
+		k.DeleteRefund(ctx, burnId)
+		// emit event for validators to sign
+		ctx.EventManager().EmitEvent(sdk.NewEvent(
+			types.EventTypeMintToSign,
+			sdk.NewAttribute(types.AttributeKeyMintId, mintId.Hex()),
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		))
+		log.Infof("x/pegbr claim refund, burnId: %x, mintId: %x, sender: %s",
+			burnId, mintId, msg.Sender)
+		return &types.MsgClaimRefundResponse{}, nil
+	} else {
+		depositId := refId
+		if len(depositInfo.MintId) > 0 {
+			// a non-empty mintId indicates a valid deposit.
+			return nil, fmt.Errorf("there is no refund for this deposit:%s", depositId.Hex())
+		}
+		// get depositRefund:withdrawOnChain
+		withdraw, found := k.GetDepositRefund(ctx, depositId)
+		if !found {
+			// this refund has already been claimed.
+			return nil, fmt.Errorf("this deposit has already been refunded:%s", depositId.Hex())
+		}
+		withdrawId := types.CalcWithdrawId(eth.Bytes2Addr(withdraw.Receiver), eth.Bytes2Addr(withdraw.Token),
+			new(big.Int).SetBytes(withdraw.Amount), eth.Bytes2Addr(withdraw.BurnAccount), withdraw.RefChainId, eth.Bytes2Hash(withdraw.RefId))
+		// record a withdrawInfo
+		withdrawProtoBytes := k.cdc.MustMarshal(&withdraw)
+		wdInfo := types.WithdrawInfo{
+			ChainId:            withdraw.RefChainId,
+			WithdrawProtoBytes: withdrawProtoBytes,
+			Signatures:         make([]commontypes.Signature, 0),
+			BaseFee:            "",
+			PercentageFee:      "",
+			LastReqTime:        ctx.BlockTime().Unix(),
+		}
+		k.SetWithdrawInfo(ctx, withdrawId, wdInfo)
+		// record a refundClaimInfo
+		// Although the invalid depositId is stored deeply in withdrawInfo.
+		// We'd still like to keep a forward link from invalid depositId to its corresponding withdrawId.
+		k.SetRefundClaimInfo(ctx, depositId, withdrawId)
+		// delete depositRefund:withdrawOnChain in case of double refunding
+		k.DeleteRefund(ctx, depositId)
+		// emit event for validators to sign
+		ctx.EventManager().EmitEvent(sdk.NewEvent(
+			types.EventTypeWithdrawToSign,
+			sdk.NewAttribute(types.AttributeKeyWithdrawId, withdrawId.Hex()),
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		))
+		log.Infof("x/pegbr claim refund, depositId: %x, withdrawId: %x, sender: %s",
+			depositId, withdrawId, msg.Sender)
+		return &types.MsgClaimRefundResponse{}, nil
 	}
-	if len(depositInfo.MintId) > 0 {
-		// a non-empty mintId indicates a valid deposit.
-		return nil, fmt.Errorf("there is no refund for this deposit:%s", depositId.Hex())
-	}
-	// get depositRefund:withdrawOnChain
-	withdraw, found := k.GetDepositRefund(ctx, depositId)
-	if !found {
-		// this refund has already been claimed.
-		return nil, fmt.Errorf("failed to fetch deposit refund, no withdrawOnChain found for %s", depositId.Hex())
-	}
-	withdrawId := types.CalcWithdrawId(eth.Bytes2Addr(withdraw.Receiver), eth.Bytes2Addr(withdraw.Token),
-		new(big.Int).SetBytes(withdraw.Amount), eth.Bytes2Addr(withdraw.BurnAccount), withdraw.RefChainId, eth.Bytes2Hash(withdraw.RefId))
-	// record a withdrawInfo
-	withdrawProtoBytes := k.cdc.MustMarshal(&withdraw)
-	wdInfo := types.WithdrawInfo{
-		ChainId:            withdraw.RefChainId,
-		WithdrawProtoBytes: withdrawProtoBytes,
-		Signatures:         make([]commontypes.Signature, 0),
-		BaseFee:            "",
-		PercentageFee:      "",
-		LastReqTime:        ctx.BlockTime().Unix(),
-	}
-	k.SetWithdrawInfo(ctx, withdrawId, wdInfo)
-	// record a refundClaimInfo
-	// Although the invalid depositId is stored deeply in withdrawInfo.
-	// We'd like to keep a forward link from invalid depositId to its corresponding withdrawId.
-	k.SetRefundClaimInfo(ctx, depositId, withdrawId)
-	// delete depositRefund:withdrawOnChain in case of double refunding
-	k.DeleteDepositRefund(ctx, depositId)
-	// emit event for validators to sign
-	ctx.EventManager().EmitEvent(sdk.NewEvent(
-		types.EventTypeWithdrawToSign,
-		sdk.NewAttribute(types.AttributeKeyWithdrawId, withdrawId.Hex()),
-		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
-	))
-	log.Infof("x/pegbr claim refund, depositId: %x, withdrawId: %x, sender: %s",
-		depositId, withdrawId, msg.Sender)
-	return &types.MsgClaimRefundResponse{}, nil
 }

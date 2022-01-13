@@ -172,12 +172,14 @@ message MintOnChain {
 
   // ref_chain_id defines the reference chain ID, taking values of:
   // 1. The common case of deposit-mint: the chain ID on which the corresponding deposit happened;
-  // 2. Governance-triggered mint: the chain ID on which the minting will happen.
+  // 2. Pegbridge refund claim: the chain ID on which the corresponding burn happened;
+  // 3. Governance-triggered mint: the chain ID on which the minting will happen.
   uint64 ref_chain_id = 5;
 
   // ref_id defines a unique reference ID, taking values of:
   // 1. The common case of deposit-mint: the deposit ID;
-  // 2. Governance-triggered mint: ID as needed.
+  // 2. Refund for wrong burn: the burn ID;
+  // 3. Governance-triggered mint: ID as needed.
   bytes ref_id = 6;
 }
 

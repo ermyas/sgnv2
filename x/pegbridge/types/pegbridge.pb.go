@@ -676,11 +676,13 @@ type MintOnChain struct {
 	Depositor []byte `protobuf:"bytes,4,opt,name=depositor,proto3" json:"depositor,omitempty"`
 	// ref_chain_id defines the reference chain ID, taking values of:
 	// 1. The common case of deposit-mint: the chain ID on which the corresponding deposit happened;
-	// 2. Governance-triggered mint: the chain ID on which the minting will happen.
+	// 2. Pegbridge refund claim: the chain ID on which the corresponding burn happened;
+	// 3. Governance-triggered mint: the chain ID on which the minting will happen.
 	RefChainId uint64 `protobuf:"varint,5,opt,name=ref_chain_id,json=refChainId,proto3" json:"ref_chain_id,omitempty"`
 	// ref_id defines a unique reference ID, taking values of:
 	// 1. The common case of deposit-mint: the deposit ID;
-	// 2. Governance-triggered mint: ID as needed.
+	// 2. Refund for wrong burn: the burn ID;
+	// 3. Governance-triggered mint: ID as needed.
 	RefId []byte `protobuf:"bytes,6,opt,name=ref_id,json=refId,proto3" json:"ref_id,omitempty"`
 }
 

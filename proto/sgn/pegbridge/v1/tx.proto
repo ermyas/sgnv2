@@ -125,8 +125,8 @@ message MsgClaimFeeResponse {}
 
 // MsgClaimRefund defines the Msg/ClaimRefund request type.
 message MsgClaimRefund {
-  // deposit_id defines the deposit ID, represents the deposit to be refunded
-  string deposit_id = 1 [(gogoproto.moretags) = "yaml:\"deposit_id\""];
+  // ref_id defines the reference ID, represents the deposit/burn to be refunded
+  string ref_id = 1 [(gogoproto.moretags) = "yaml:\"ref_id\""];
   // sender defines the SGN account sending this Msg
   string sender = 2 [(gogoproto.moretags) = "yaml:\"sender\""];
 }

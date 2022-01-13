@@ -67,6 +67,6 @@ func handleTotalSupplyUpdateProposal(ctx sdk.Context, k pegkeeper.Keeper, p *typ
 			return fmt.Errorf("invalid total supply, must be smaller than supply cap")
 		}
 	}
-	k.SetTotalSupply(ctx, inputPair.Orig.ChainId, inputPair.Pegged.ChainId, eth.Hex2Addr(inputPair.Pegged.Address), totalSupply)
+	k.SetTotalSupply(ctx, expectedPair.Pegged.ChainId, eth.Hex2Addr(expectedPair.Pegged.Address), totalSupply)
 	return nil
 }

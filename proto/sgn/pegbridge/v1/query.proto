@@ -160,9 +160,8 @@ message QueryFeeClaimInfoResponse {
 
 // QuerySupplyInfoRequest is the request type for the Query/SupplyInfo RPC method.
 message QuerySupplyInfoRequest {
-  uint64 orig_chain_id = 1;
-  uint64 pegged_chain_id = 2;
-  string pegged_address = 3;
+  uint64 pegged_chain_id = 1;
+  string pegged_address = 2;
 }
 
 // QuerySupplyInfoResponse is the response type for the Query/SupplyInfo RPC method.

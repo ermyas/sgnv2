@@ -284,10 +284,9 @@ func QueryEstimatedAmountFees(cliCtx client.Context, params *types.QueryEstimate
 	return
 }
 
-func QuerySupplyInfo(cliCtx client.Context, origChainId uint64, peggedChainId uint64, peggedAddress eth.Addr) (cap, total string, err error) {
+func QuerySupplyInfo(cliCtx client.Context, peggedChainId uint64, peggedAddress eth.Addr) (cap, total string, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
 	res, err := queryClient.SupplyInfo(context.Background(), &types.QuerySupplyInfoRequest{
-		OrigChainId:   origChainId,
 		PeggedChainId: peggedChainId,
 		PeggedAddress: eth.Addr2Hex(peggedAddress),
 	})
