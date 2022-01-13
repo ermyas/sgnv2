@@ -43,15 +43,17 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		if !found {
 			// in reason of invalid params, this deposit would be refunded
 			k.manageDataForDepositRefund(ctx, depositChainId, ev)
-			log.Infof("deposit to be refunded, depositId:%x, refund reason:%s", ev.DepositId, "invalid params")
-			return true, fmt.Errorf("pegged pair not exists")
+			log.Errorf("deposit to be refunded, depositId:%x, refund reason:%s", ev.DepositId,
+				fmt.Sprintf("pegged pair not exists, srcChainId %d, dstChainId %d, tokenAddress %s", depositChainId, ev.MintChainId, ev.Token.Hex()))
+			return true, nil
 		}
 		mintAmount, baseFee, percFee := k.CalcAmountAndFees(ctx, pair, ev.Amount, true /* isPeggedDest */)
 		if mintAmount.Sign() <= 0 {
 			// in reason of too small deposit amount, this deposit would be refunded
 			k.manageDataForDepositRefund(ctx, depositChainId, ev)
-			log.Infof("deposit to be refunded, depositId:%x, refund reason:%s", ev.DepositId, "deposit amount too small")
-			return true, fmt.Errorf("amount too small to cover fees, mintAmount %s baseFee %s percFee %s", mintAmount, baseFee, percFee)
+			log.Infof("deposit to be refunded, depositId:%x, refund reason:%s", ev.DepositId,
+				fmt.Sprintf("deposit amount too small to cover fees, mintAmount %s baseFee %s percFee %s", mintAmount, baseFee, percFee))
+			return true, nil
 		}
 		// get supplyCap
 		supplyCap := new(big.Int).SetInt64(0)
@@ -65,8 +67,8 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			// do nothing
 		} else if supplyCap.Sign() == -1 {
 			k.manageDataForDepositRefund(ctx, depositChainId, ev)
-			log.Infof("deposit to be refunded, depositId:%x, refund reason:%s", ev.DepositId, "negative supply cap")
-			return true, fmt.Errorf("negative supply cap:%s", supplyCap)
+			log.Infof("deposit to be refunded, depositId:%x, refund reason:%s", ev.DepositId, fmt.Sprintf("burn ONLY, negative supply cap %s", supplyCap))
+			return true, nil
 		} else {
 			// get totalSupply
 			beforeMintTotalSupply, found := k.GetTotalSupply(ctx, ev.MintChainId, eth.Hex2Addr(pair.Pegged.Address))
@@ -78,8 +80,9 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			if supplyCap.Cmp(afterMintTotalSupply) == -1 {
 				// in reason of big mint amount that would exceed the supply cap, this deposit would be refunded
 				k.manageDataForDepositRefund(ctx, depositChainId, ev)
-				log.Infof("deposit to be refunded, depositId:%x, refund reason:%s", ev.DepositId, "deposit hits supply cap")
-				return true, fmt.Errorf("ongoing mint would exceed supply cap, mintAmount %s current totalSupply %s supplyCap %s", mintAmount, beforeMintTotalSupply, supplyCap)
+				log.Warnf("deposit to be refunded, depositId:%x, refund reason:%s", ev.DepositId,
+					fmt.Sprintf("deposit hits supply cap, mintAmount %s current totalSupply %s supplyCap %s", mintAmount, beforeMintTotalSupply, supplyCap))
+				return true, nil
 			}
 			// reset totalSupply
 			k.SetTotalSupply(ctx, ev.MintChainId, eth.Hex2Addr(pair.Pegged.Address), afterMintTotalSupply)
@@ -147,8 +150,9 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		if !pairFound {
 			// pegged pair should be found. if not, an ERROR log would be printed.
 			// this burn couldn't be refunded, because totalSupply in sgn was not updated.
-			log.Errorf("burn rejected, burnId:%x, reject reason:%s", ev.BurnId, "pegged pair not exists")
-			return false, fmt.Errorf("pegged pair not exists")
+			log.Errorf("burn rejected, burnId:%x, reject reason:%s", ev.BurnId,
+				fmt.Sprintf("pegged pair not exists, dstChainId %d, peggedTokenAddress %s", burnChainId, ev.Token.Hex()))
+			return false, nil
 		}
 
 		// TotalSupply should be updated before any check, just because a burn comes from onchain event. And in order to
@@ -182,8 +186,9 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		if withdrawAmt.Sign() <= 0 {
 			// in reason of too small burn amount, this burn would be refunded
 			k.manageDataForBurnRefund(ctx, burnChainId, ev)
-			log.Infof("burn to be refunded, burnId:%x, refund reason:%s", ev.BurnId, "burn amount too small")
-			return true, fmt.Errorf("amount too small to cover fees, withdrawAmt %s baseFee %s percFee %s", withdrawAmt, baseFee, percFee)
+			log.Infof("burn to be refunded, burnId:%x, refund reason:%s", ev.BurnId,
+				fmt.Sprintf("burn amount too small to cover fees, withdrawAmt %s baseFee %s percFee %s", withdrawAmt, baseFee, percFee))
+			return true, nil
 		}
 
 		wdTokenAddr := pair.Orig.Address
