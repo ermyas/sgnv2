@@ -78,8 +78,7 @@ func (k Keeper) withdrawLP(ctx sdk.Context, wdReq *types.WithdrawReq, lpAddr eth
 			// 2. transfer the withdrawn amt to the exit chain (similar to send/relay flow)
 			// 3. add the transfer recv amt (after slippage and fee) at exit chain to the total recvAmt
 			randBytes := crypto.Keccak256Hash([]byte(fmt.Sprintf("%x-%d-%d", lpAddr, wdReq.ReqId, ctx.BlockTime().Unix())))
-			status, recvAmount, destTk, _, _, err := k.transfer(
-				ctx, token, amt, wd.FromChainId, wdReq.ExitChainId, wd.MaxSlippage, lpAddr, randBytes.Bytes()[0:4])
+			status, recvAmount, destTk, _, _, err := k.transfer(ctx, wdReq.GetXferId(), token, amt, wd.FromChainId, wdReq.ExitChainId, wd.MaxSlippage, lpAddr, randBytes.Bytes()[0:4])
 			wdmsg = fmt.Sprintf("%s recv_amt:%s", wdmsg, recvAmount)
 			if err != nil {
 				wdmsg = fmt.Sprintf("%s err:%s", wdmsg, err)
@@ -146,8 +145,7 @@ func (k Keeper) claimFeeShare(ctx sdk.Context, wdReq *types.WithdrawReq, delAddr
 			destToken = token
 		} else {
 			randBytes := crypto.Keccak256Hash([]byte(fmt.Sprintf("%x-%d-%d", delAddr, wdReq.ReqId, ctx.BlockTime().Unix())))
-			status, recvAmt, destTk, _, _, err := k.transfer(
-				ctx, token, amt, wd.FromChainId, wdReq.ExitChainId, wd.MaxSlippage, delAddr, randBytes.Bytes()[0:4])
+			status, recvAmt, destTk, _, _, err := k.transfer(ctx, wdReq.GetXferId(), token, amt, wd.FromChainId, wdReq.ExitChainId, wd.MaxSlippage, delAddr, randBytes.Bytes()[0:4])
 			wdmsg = fmt.Sprintf("%sRecvAmt %s ", wdmsg, recvAmt)
 			if err != nil {
 				wdmsg = fmt.Sprintf("%s err %s", wdmsg, err)

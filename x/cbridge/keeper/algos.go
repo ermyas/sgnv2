@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
+	"github.com/celer-network/sgn-v2/relayer"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -128,8 +130,7 @@ type AddrHexAmtInt struct {
 // pick LPs, minus each's destChain liquidity and add srcChain liq
 // fee and add liq on src are calculated based on ratio this LP contributed into destAmount
 // WARNING: this func doesn't care base fee BY DESIGN!!!
-func (k Keeper) PickLPsAndAdjustLiquidity(
-	ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdTokenAddr, srcAmount, destAmount, fee *big.Int, destDecimal uint32, sender eth.Addr, lpPre []byte) error {
+func (k Keeper) PickLPsAndAdjustLiquidity(ctx sdk.Context, kv sdk.KVStore, xferId string, src, dest *ChainIdTokenAddr, srcAmount, destAmount, fee *big.Int, destDecimal uint32, sender eth.Addr, lpPre []byte) error {
 	// don't write to kv before possible return error because it'll cause wrong state
 	start := time.Now()
 	pickedLPs, useByRatio := pickLPs(kv, dest.ChId, dest.TokenAddr, sender, destAmount, lpPre)
@@ -183,7 +184,7 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 			for usedLPs[lpIdx] {
 				lpIdx = (lpIdx + 1) % numLPs
 			}
-			negAmt, srcAdd := k.updateOneLP(ctx, kv, src, dest, pickedLPs[lpIdx], toAllocate, totalLpFee, srcAmount, destAmount)
+			negAmt, srcAdd := k.updateOneLP(ctx, kv, xferId, src, dest, pickedLPs[lpIdx], toAllocate, totalLpFee, srcAmount, destAmount)
 			usedLPs[lpIdx] = true
 			log.Infoln("use lpIdx", lpIdx, pickedLPs[lpIdx].AddrHex, negAmt)
 			totalDestNeg.Add(totalDestNeg, negAmt) // negative!
@@ -195,7 +196,7 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 	} else {
 		// from first in pickedLPs, one by one
 		for _, lp := range pickedLPs {
-			negAmt, srcAdd := k.updateOneLP(ctx, kv, src, dest, lp, toAllocate, totalLpFee, srcAmount, destAmount)
+			negAmt, srcAdd := k.updateOneLP(ctx, kv, xferId, src, dest, lp, toAllocate, totalLpFee, srcAmount, destAmount)
 			log.Infoln("use lp:", lp.AddrHex, negAmt)
 			totalDestNeg.Add(totalDestNeg, negAmt) // negative!
 			totalSrcAdd.Add(totalSrcAdd, srcAdd)
@@ -218,7 +219,7 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 // and >=0 big.Int on src chain to add
 // will also reduce toAllocate and lp.AmtInt by amount used. Note here it can't be
 // negamt because we only consider liquidity in toAllocate
-func (k Keeper) updateOneLP(ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdTokenAddr, lp *AddrHexAmtInt, toAllocate, totalLpFee, srcAmount, destAmount *big.Int) (*big.Int, *big.Int) {
+func (k Keeper) updateOneLP(ctx sdk.Context, kv sdk.KVStore, xferId string, src, dest *ChainIdTokenAddr, lp *AddrHexAmtInt, toAllocate, totalLpFee, srcAmount, destAmount *big.Int) (*big.Int, *big.Int) {
 	used := new(big.Int)
 	if lp.AmtInt.Cmp(toAllocate) >= 0 {
 		// this lp has enough for all remaining needed liquidity
@@ -238,6 +239,20 @@ func (k Keeper) updateOneLP(ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdT
 	negAmt := new(big.Int).Sub(earnedFee, used)
 	k.ChangeLiquidity(ctx, kv, dest.ChId, dest.TokenAddr, lpAddr, negAmt)
 	AddLPFee(kv, dest.ChId, dest.TokenAddr, lpAddr, earnedFee)
+	tokenSymbol := GetAssetSymbol(kv, &ChainIdTokenAddr{dest.ChId, dest.TokenAddr})
+	relayer.LiquidityProviderFeeEarningLogList = append(relayer.LiquidityProviderFeeEarningLogList,
+		&relayer.LiquidityProviderFeeEarningLog{
+			LiquidityProviderAddr:   lpAddr.Hex(),
+			Timestamp:               common.TsMilli(time.Now()),
+			TransferId:              xferId,
+			TransferTokenSymbol:     tokenSymbol,
+			TokenDecimal:            GetAssetInfo(kv, tokenSymbol, dest.ChId).GetDecimal(),
+			SrcChainId:              src.ChId,
+			DstChainId:              dest.ChId,
+			LiquidityUsedOnDstChain: used.String(),
+			EarnedFee:               earnedFee.String(),
+		})
+	log.Debugln("LiquidityProviderFeeEarningLogList:", relayer.LiquidityProviderFeeEarningLogList)
 	// add LP liquidity on src chain, toadd = srcAmt * used/destAmt
 	addOnSrc := new(big.Int).Mul(used, srcAmount)
 	addOnSrc.Div(addOnSrc, destAmount)

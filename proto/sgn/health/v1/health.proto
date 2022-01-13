@@ -15,6 +15,21 @@ message CurrentBlockNumberReport {
   // key is chainId, value is block number
   map<string, uint64> block_nums = 2;
   string sgnd_version = 3;
+  repeated LiquidityProviderFeeEarningLog lp_fee_earning_logs = 4;
+}
+
+message LiquidityProviderFeeEarningLog {
+  // 0x
+  string liquidity_provider_addr = 1;
+  // in millis
+  uint64 timestamp = 2;
+  string transfer_id = 3;
+  string transfer_token_symbol = 4;
+  uint32 token_decimal = 5;
+  uint64 src_chain_id = 6;
+  uint64 dst_chain_id = 7;
+  string liquidity_used_on_dst_chain = 8;
+  string earned_fee = 9;
 }
 
 message ReportCurrentBlockNumberResponse {
