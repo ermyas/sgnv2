@@ -80,23 +80,8 @@ func (ap AddPoolProposal) ValidateBasic() error {
 	if ap.ProposalType() != ProposalTypeAddPool {
 		return sdkerrors.Wrap(govtypes.ErrInvalidProposalType, ap.ProposalType())
 	}
-	if len(ap.PoolName) == 0 {
-		return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "pool name is required")
-	}
-	if ap.StakeToken.Symbol == "" {
-		return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "stake token symbol is required")
-	}
-	for _, rewardToken := range ap.RewardTokens {
-		if rewardToken.Symbol == "" {
-			return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "reward token symbol is required")
-		}
-	}
-	for _, rewardInput := range ap.InitialRewardInputs {
-		if rewardInput.AddAmount.Denom == "" {
-			return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "reward input denom is required")
-		}
-	}
-	return nil
+	addPoolInfo := ap.GetAddPoolInfo()
+	return addPoolInfo.ValidateBasic()
 }
 
 // String returns a human readable string representation of an AddPoolProposal
@@ -112,4 +97,33 @@ func (ap AddPoolProposal) String() string {
  InitialRewardInputs:	%v
 `, ap.Title, ap.Description, ap.ProposalType(), ap.PoolName, ap.StakeToken, ap.RewardTokens, ap.InitialRewardInputs))
 	return b.String()
+}
+
+func (ap AddPoolProposal) GetAddPoolInfo() AddPoolInfo {
+	return AddPoolInfo{
+		PoolName:            ap.PoolName,
+		StakeToken:          ap.StakeToken,
+		RewardTokens:        ap.RewardTokens,
+		InitialRewardInputs: ap.InitialRewardInputs,
+	}
+}
+
+func (apInfo AddPoolInfo) ValidateBasic() error {
+	if len(apInfo.PoolName) == 0 {
+		return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "pool name is required")
+	}
+	if apInfo.StakeToken.Symbol == "" {
+		return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "stake token symbol is required")
+	}
+	for _, rewardToken := range apInfo.RewardTokens {
+		if rewardToken.Symbol == "" {
+			return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "reward token symbol is required")
+		}
+	}
+	for _, rewardInput := range apInfo.InitialRewardInputs {
+		if rewardInput.AddAmount.Denom == "" {
+			return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "reward input denom is required")
+		}
+	}
+	return nil
 }

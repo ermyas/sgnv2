@@ -13,6 +13,11 @@ import (
 
 // HandleAdjustRewardProposal is a handler for executing a passed AdjustRewardProposal
 func HandleAdjustRewardProposal(ctx sdk.Context, k Keeper, p *types.AdjustRewardProposal) error {
+	adjustRewardInfo := p.GetAdjustRewardInfo()
+	return handleAdjustRewardProposalByAdjustRewardInfo(ctx, k, &adjustRewardInfo)
+}
+
+func handleAdjustRewardProposalByAdjustRewardInfo(ctx sdk.Context, k Keeper, p *types.AdjustRewardInfo) error {
 	pool, tokensFromInputs, err := k.CheckAdjustRewardProposal(ctx, p)
 	if err != nil {
 		return err
@@ -104,7 +109,7 @@ func HandleAdjustRewardProposal(ctx sdk.Context, k Keeper, p *types.AdjustReward
 }
 
 // CheckAdjustRewardProposal checks the validity of an AdjustRewardProposal
-func (k Keeper) CheckAdjustRewardProposal(ctx sdk.Context, p *types.AdjustRewardProposal) (*types.FarmingPool, []commontypes.ERC20Token, error) {
+func (k Keeper) CheckAdjustRewardProposal(ctx sdk.Context, p *types.AdjustRewardInfo) (*types.FarmingPool, []commontypes.ERC20Token, error) {
 	// 1.1. Check pool existence
 	pool, found := k.GetFarmingPool(ctx, p.PoolName)
 	if !found {

@@ -73,15 +73,8 @@ func (arp AdjustRewardProposal) ValidateBasic() error {
 	if arp.ProposalType() != ProposalTypeAdjustReward {
 		return sdkerrors.Wrap(govtypes.ErrInvalidProposalType, arp.ProposalType())
 	}
-	if len(arp.PoolName) == 0 {
-		return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "pool name is required")
-	}
-	for _, rewardAdjustmentInput := range arp.RewardAdjustmentInputs {
-		if rewardAdjustmentInput.AddAmount.Denom == "" {
-			return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "reward token symbol is required")
-		}
-	}
-	return nil
+	adjustRewardInfo := arp.GetAdjustRewardInfo()
+	return adjustRewardInfo.ValidateBasic()
 }
 
 // String returns a human readable string representation of an AdjustRewardProposal
@@ -95,4 +88,23 @@ func (arp AdjustRewardProposal) String() string {
  RewardAdjustmentInputs:	%v
 `, arp.Title, arp.Description, arp.ProposalType(), arp.PoolName, arp.RewardAdjustmentInputs))
 	return b.String()
+}
+
+func (arp AdjustRewardProposal) GetAdjustRewardInfo() AdjustRewardInfo {
+	return AdjustRewardInfo{
+		PoolName:               arp.PoolName,
+		RewardAdjustmentInputs: arp.RewardAdjustmentInputs,
+	}
+}
+
+func (arInfo AdjustRewardInfo) ValidateBasic() error {
+	if len(arInfo.PoolName) == 0 {
+		return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "pool name is required")
+	}
+	for _, rewardAdjustmentInput := range arInfo.RewardAdjustmentInputs {
+		if rewardAdjustmentInput.AddAmount.Denom == "" {
+			return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "reward token symbol is required")
+		}
+	}
+	return nil
 }

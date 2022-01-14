@@ -15,8 +15,14 @@ func NewProposalHandler(k keeper.Keeper) govtypes.Handler {
 		case *types.AddPoolProposal:
 			err = keeper.HandleAddPoolProposal(ctx, k, c)
 			return err
+		case *types.BatchAddPoolProposal:
+			err = keeper.HandleBatchAddPoolProposal(ctx, k, c)
+			return err
 		case *types.AdjustRewardProposal:
 			err = keeper.HandleAdjustRewardProposal(ctx, k, c)
+			return err
+		case *types.BatchAdjustRewardProposal:
+			err = keeper.HandleBatchAdjustRewardProposal(ctx, k, c)
 			return err
 		case *types.AddTokensProposal:
 			err = keeper.HandleAddTokensProposal(ctx, k, c)

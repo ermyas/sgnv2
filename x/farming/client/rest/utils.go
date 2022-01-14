@@ -22,6 +22,17 @@ type (
 		Deposit             sdk.Coins                     `json:"deposit" yaml:"deposit"`
 	}
 
+	// BatchAddPoolProposalReq defines an BatchAddPoolProposal request body.
+	BatchAddPoolProposalReq struct {
+		BaseReq rest.BaseReq `json:"base_req" yaml:"base_req"`
+
+		Title        string              `json:"title" yaml:"title"`
+		Description  string              `json:"description" yaml:"description"`
+		AddPoolInfos []types.AddPoolInfo `json:"add_pool_infos" yaml:"add_pool_infos"`
+		Proposer     sdk.AccAddress      `json:"proposer" yaml:"proposer"`
+		Deposit      sdk.Coins           `json:"deposit" yaml:"deposit"`
+	}
+
 	// AddTokensProposalReq defines an AddTokensProposal request body.
 	AddTokensProposalReq struct {
 		BaseReq rest.BaseReq `json:"base_req" yaml:"base_req"`
@@ -43,6 +54,17 @@ type (
 		RewardAdjustmentInputs []types.RewardAdjustmentInput `json:"reward_adjustment_inputs" yaml:"reward_adjustment_inputs"`
 		Proposer               sdk.AccAddress                `json:"proposer" yaml:"proposer"`
 		Deposit                sdk.Coins                     `json:"deposit" yaml:"deposit"`
+	}
+
+	// BatchAdjustRewardProposalReq defines an BatchAdjustRewardProposal request body.
+	BatchAdjustRewardProposalReq struct {
+		BaseReq rest.BaseReq `json:"base_req" yaml:"base_req"`
+
+		Title             string                   `json:"title" yaml:"title"`
+		Description       string                   `json:"description" yaml:"description"`
+		AdjustRewardInfos []types.AdjustRewardInfo `json:"adjust_reward_infos" yaml:"adjust_reward_infos"`
+		Proposer          sdk.AccAddress           `json:"proposer" yaml:"proposer"`
+		Deposit           sdk.Coins                `json:"deposit" yaml:"deposit"`
 	}
 
 	// SetRewardContractsProposalReq defines an SetRewardContractsProposal request body.

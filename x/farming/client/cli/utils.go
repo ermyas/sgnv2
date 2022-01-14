@@ -23,6 +23,22 @@ func ParseAddPoolProposalWithDeposit(cdc codec.JSONCodec, proposalFile string) (
 	return proposal, nil
 }
 
+// ParseBatchAddPoolProposalWithDeposit reads and parses a BatchAddPoolProposalWithDeposit from a JSON file.
+func ParseBatchAddPoolProposalWithDeposit(cdc codec.JSONCodec, proposalFile string) (
+	types.BatchAddPoolProposalWithDeposit, error) {
+	proposal := types.BatchAddPoolProposalWithDeposit{}
+
+	contents, err := ioutil.ReadFile(proposalFile)
+	if err != nil {
+		return proposal, err
+	}
+	if err = cdc.UnmarshalJSON(contents, &proposal); err != nil {
+		return proposal, err
+	}
+
+	return proposal, nil
+}
+
 // ParseAddTokensProposalWithDeposit reads and parses an AddTokensProposalWithDeposit from a JSON file.
 func ParseAddTokensProposalWithDeposit(cdc codec.JSONCodec, proposalFile string) (
 	types.AddTokensProposalWithDeposit, error) {
@@ -43,6 +59,22 @@ func ParseAddTokensProposalWithDeposit(cdc codec.JSONCodec, proposalFile string)
 func ParseAdjustRewardProposalWithDeposit(cdc codec.JSONCodec, proposalFile string) (
 	types.AdjustRewardProposalWithDeposit, error) {
 	proposal := types.AdjustRewardProposalWithDeposit{}
+
+	contents, err := ioutil.ReadFile(proposalFile)
+	if err != nil {
+		return proposal, err
+	}
+	if err = cdc.UnmarshalJSON(contents, &proposal); err != nil {
+		return proposal, err
+	}
+
+	return proposal, nil
+}
+
+// ParseBatchAdjustRewardProposalWithDeposit reads and parses a batchAdjustRewardProposalWithDeposit from a JSON file.
+func ParseBatchAdjustRewardProposalWithDeposit(cdc codec.JSONCodec, proposalFile string) (
+	types.BatchAdjustRewardProposalWithDeposit, error) {
+	proposal := types.BatchAdjustRewardProposalWithDeposit{}
 
 	contents, err := ioutil.ReadFile(proposalFile)
 	if err != nil {

@@ -9,7 +9,9 @@ import (
 // Aliases for gov NewProposalHandler
 var (
 	AddPoolProposalHandler            = govcli.NewProposalHandler(cli.GetCmdSubmitAddPoolProposal, rest.AddPoolProposalRESTHandler)
+	BatchAddPoolProposalHandler       = govcli.NewProposalHandler(cli.GetCmdSubmitBatchAddPoolProposal, rest.BatchAddPoolProposalRESTHandler)
 	AddTokensProposalHandler          = govcli.NewProposalHandler(cli.GetCmdSubmitAddTokensProposal, rest.AddTokensProposalRESTHandler)
 	AdjustRewardProposalHandler       = govcli.NewProposalHandler(cli.GetCmdSubmitAdjustRewardProposal, rest.AdjustRewardProposalRESTHandler)
+	BatchAdjustRewardProposalHandler  = govcli.NewProposalHandler(cli.GetCmdSubmitBatchAdjustRewardProposal, rest.BatchAdjustRewardProposalRESTHandler)
 	SetRewardContractsProposalHandler = govcli.NewProposalHandler(cli.GetCmdSubmitSetRewardContractsProposal, rest.SetRewardContractsProposalRESTHandler)
 )
