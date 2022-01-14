@@ -43,7 +43,6 @@ const (
 	FlagSgnKeyringBackend         = "sgnd.keyring_backend"
 	FlagSgnGasAdjustment          = "sgnd.gas_adjustment"
 	FlagSgnLivenessReportEndpoint = "sgnd.liveness_report_endpoint"
-	FlagSgnReportLpFeeEarningFlag = "sgnd.report_lp_fee_earning"
 
 	FlagSgnCheckIntervalSlash    = "sgnd.check_interval.slash"
 	FlagSgnCheckIntervalCbridge  = "sgnd.check_interval.cbridge"
