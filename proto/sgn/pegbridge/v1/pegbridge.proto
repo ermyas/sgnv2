@@ -167,7 +167,7 @@ message MintOnChain {
   bytes amount = 3;
 
   // depositor defines the account address that made deposit at the original token chain.
-  // Not applicable to governance-triggered mints.
+  // Not applicable to refund claims and governance-triggered mints.
   bytes depositor = 4;
 
   // ref_chain_id defines the reference chain ID, taking values of:
