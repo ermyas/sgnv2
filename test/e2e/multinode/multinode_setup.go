@@ -438,6 +438,7 @@ func DeployPegBridgeContract() {
 			BurnFeePips: 500,
 			MaxMintFee:  "1000000000000000000",
 			MaxBurnFee:  "1000000000000000000",
+			SupplyCap:   "100000000000000000000",
 		}}
 		config := pegbrtypes.PegConfig{
 			PeggedTokenBridges:  peggedTokenBridges,
@@ -447,11 +448,12 @@ func DeployPegBridgeContract() {
 		genesisViper.Set("app_state.pegbridge.config", config)
 		genesisViper.Set("app_state.pegbridge.params.trigger_sign_cooldown", "10s")
 
-		// Also update cbr config to add original UNI, required by base fee calculation
+		// Also update cbr config to add original UNI and pegged UNI, required by base fee calculation
 		cbrConfig := new(cbrtypes.CbrConfig)
 		jsonByte, _ := json.Marshal(genesisViper.Get("app_state.cbridge.config"))
 		json.Unmarshal(jsonByte, cbrConfig)
 		cbrConfig.Assets[2].Addr = eth.Addr2Hex(tc.CbrChain1.UNIAddr)
+		cbrConfig.Assets[3].Addr = eth.Addr2Hex(tc.CbrChain2.PeggedUNIAddr)
 		genesisViper.Set("app_state.cbridge.config", cbrConfig)
 
 		err = genesisViper.WriteConfig()

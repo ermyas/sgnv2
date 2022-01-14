@@ -59,6 +59,16 @@ service Query {
   rpc FeeClaimInfo(QueryFeeClaimInfoRequest) returns (QueryFeeClaimInfoResponse) {
     option (google.api.http).get = "/sgn/pegbridge/v1/fee_claim_info";
   }
+
+  // SupplyInfo queries the total supply and supply cap
+  rpc SupplyInfo(QuerySupplyInfoRequest) returns (QuerySupplyInfoResponse) {
+    option (google.api.http).get = "/sgn/pegbridge/v1/supply_info";
+  }
+
+  // RefundClaimInfo queries the corresponding withdrawId of certain depositId
+  rpc RefundClaimInfo(QueryRefundClaimInfoRequest) returns (QueryRefundClaimInfoResponse) {
+    option (google.api.http).get = "/sgn/pegbridge/v1/refund_claim_info";
+  }
 }
 
 // QueryParamsRequest is the request type for the Query/Params RPC method.
@@ -146,4 +156,26 @@ message QueryFeeClaimInfoRequest {
 // QueryFeeClaimInfoResponse is the response type for the Query/FeeClaimInfo RPC method.
 message QueryFeeClaimInfoResponse {
   FeeClaimInfo fee_claim_info = 1 [(gogoproto.nullable) = false];
+}
+
+// QuerySupplyInfoRequest is the request type for the Query/SupplyInfo RPC method.
+message QuerySupplyInfoRequest {
+  uint64 pegged_chain_id = 1;
+  string pegged_address = 2;
+}
+
+// QuerySupplyInfoResponse is the response type for the Query/SupplyInfo RPC method.
+message QuerySupplyInfoResponse {
+  string total = 1;
+  string cap = 2;
+}
+
+// QueryRefundClaimInfoRequest is the request type for the Query/RefundClaimInfo RPC method.
+message QueryRefundClaimInfoRequest {
+  string deposit_id = 1;
+}
+
+// QueryRefundClaimInfoResponse is the response type for the Query/RefundClaimInfo RPC method.
+message QueryRefundClaimInfoResponse {
+  string withdraw_id = 1;
 }

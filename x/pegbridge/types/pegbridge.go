@@ -49,6 +49,17 @@ func (m *MintInfo) String() string {
 		m.ChainId, eth.Bytes2Hex(m.MintProtoBytes), mintOnChain.String(), m.BaseFee, m.PercentageFee, m.LastReqTime, m.SignersStr(), m.SigsStr(), m.Success)
 }
 
+func (m *MintInfo) GetSortedSigsBytes() [][]byte {
+	if m != nil {
+		sigs := make([][]byte, len(m.Signatures))
+		for i := range m.Signatures {
+			sigs[i] = m.Signatures[i].SigBytes
+		}
+		return sigs
+	}
+	return nil
+}
+
 func (w *WithdrawInfo) GetAddrSigs() []*cbrtypes.AddrSig {
 	addrSigs := make([]*cbrtypes.AddrSig, 0)
 	for _, sig := range w.Signatures {
@@ -166,6 +177,12 @@ func (p *OrigPeggedPair) Validate() error {
 		maxBurnFee, good := new(big.Int).SetString(p.MaxBurnFee, 10)
 		if !good || maxBurnFee.Sign() == -1 {
 			return fmt.Errorf("invalid max burn fee")
+		}
+	}
+	if p.SupplyCap != "" {
+		_, good := new(big.Int).SetString(p.SupplyCap, 10)
+		if !good {
+			return fmt.Errorf("invalid supply cap")
 		}
 	}
 	return nil

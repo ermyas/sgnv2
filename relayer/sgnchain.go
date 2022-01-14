@@ -238,6 +238,10 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 					Sender:    r.Transactor.Key.GetAddress().String(),
 				}
 				r.Transactor.AddTxMsg(msg)
+				// a zeroAddr of depositor indicates a refund type mint.
+				if eth.Bytes2Addr(mintOnChain.Depositor) == eth.ZeroAddr {
+					continue
+				}
 				mintRequest := NewMintRequest(eth.Hex2Bytes(mintId), mintInfo.ChainId, mintOnChain.RefChainId, mintOnChain.RefId)
 				err = r.dbSet(GetPegbrMintKey(mintInfo.ChainId, mintRequest.DepositChainId, mintRequest.DepositId), mintRequest.MustMarshal())
 				if err != nil {
@@ -293,6 +297,10 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 
 				// RefChainId = 0 means fee claim, don't add a WithdrawRequest
 				if wdOnChain.RefChainId == 0 {
+					continue
+				}
+				// a zeroAddr of burnAccount indicates a refund type withdraw. This case also covers the fee claiming.
+				if eth.Bytes2Addr(wdOnChain.BurnAccount) == eth.ZeroAddr {
 					continue
 				}
 				wdRequest := NewWithdrawRequest(eth.Hex2Bytes(wdId), wdInfo.ChainId, wdOnChain.RefChainId, wdOnChain.RefId)

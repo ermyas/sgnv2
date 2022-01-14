@@ -55,6 +55,9 @@ message OrigPeggedPair {
 
   // max_burn_fee defines the max burn fee chargeable.
   string max_burn_fee = 6 [(gogoproto.moretags) = "yaml:\"max_burn_fee\""];
+
+  // supply_cap defines the max mint amount of the bridge used by this pair
+  string supply_cap = 7 [(gogoproto.moretags) = "yaml:\"supply_cap\""];
 }
 
 // PeggedOrigIndex describes the reverse lookup index from a pegged token to the original token, if exists.
@@ -164,17 +167,19 @@ message MintOnChain {
   bytes amount = 3;
 
   // depositor defines the account address that made deposit at the original token chain.
-  // Not applicable to governance-triggered mints.
+  // Not applicable to refund claims and governance-triggered mints.
   bytes depositor = 4;
 
   // ref_chain_id defines the reference chain ID, taking values of:
   // 1. The common case of deposit-mint: the chain ID on which the corresponding deposit happened;
-  // 2. Governance-triggered mint: the chain ID on which the minting will happen.
+  // 2. Pegbridge refund claim: the chain ID on which the corresponding burn happened;
+  // 3. Governance-triggered mint: the chain ID on which the minting will happen.
   uint64 ref_chain_id = 5;
 
   // ref_id defines a unique reference ID, taking values of:
   // 1. The common case of deposit-mint: the deposit ID;
-  // 2. Governance-triggered mint: ID as needed.
+  // 2. Refund for wrong burn: the burn ID;
+  // 3. Governance-triggered mint: ID as needed.
   bytes ref_id = 6;
 }
 
@@ -192,13 +197,14 @@ message WithdrawOnChain {
   bytes amount = 3;
 
   // burn_account defines the account that burned the pegged token.
-  // Not applicable to fee claims and governance-triggered withdrawals.
+  // Not applicable to fee claims, refund claims and governance-triggered withdrawals.
   bytes burn_account = 4;
 
   // ref_chain_id defines the reference chain ID, taking values of:
   // 1. The common case of burn-withdraw: the chain ID on which the corresponding burn happened;
   // 2. Pegbridge fee claim: zero / Not applicable;
-  // 3. Other governance-triggered withdrawals: the chain ID on which the withdrawal will happen.
+  // 3. Pegbridge refund claim: the chain ID on which the corresponding deposit happened;
+  // 4. Other governance-triggered withdrawals: the chain ID on which the withdrawal will happen.
   uint64 ref_chain_id = 5;
 
   // ref_id defines a unique reference ID, taking values of:
@@ -232,4 +238,21 @@ message PairDeleteProposal {
   OrigPeggedPair pair_to_delete = 3;
   // deposit defines the amount for MsgSubmitProposal
   string deposit = 4 [(gogoproto.nullable) = false, (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int"];
+}
+
+// TotalSupplyUpdateProposal describes a proposal to update the current totalSupply of a certain pair.
+// No need to supply a full-content pair, only orig and pegged will be used.
+// This proposal is only used for backward compatibility (manually set the total supply for pegged tokens
+// that were already supported before this supply tracking feature is launched).
+message TotalSupplyUpdateProposal {
+  option (cosmos_proto.implements_interface) = "Content";
+  option (gogoproto.equal) = false;
+
+  string title = 1;
+  string description = 2;
+  OrigPeggedPair pair = 3;
+  // total supply amount that will be set for the pair
+  string total_supply = 4;
+  // deposit defines the amount for MsgSubmitProposal
+  string deposit = 5 [(gogoproto.nullable) = false, (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int"];
 }

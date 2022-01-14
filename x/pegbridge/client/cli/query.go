@@ -283,3 +283,29 @@ func QueryEstimatedAmountFees(cliCtx client.Context, params *types.QueryEstimate
 	resp = res
 	return
 }
+
+func QuerySupplyInfo(cliCtx client.Context, peggedChainId uint64, peggedAddress eth.Addr) (cap, total string, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	res, err := queryClient.SupplyInfo(context.Background(), &types.QuerySupplyInfoRequest{
+		PeggedChainId: peggedChainId,
+		PeggedAddress: eth.Addr2Hex(peggedAddress),
+	})
+	if err != nil {
+		return
+	}
+	cap = res.Cap
+	total = res.Total
+	return
+}
+
+func QueryRefundClaimInfo(cliCtx client.Context, depositId string) (withdrawId string, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	res, err := queryClient.RefundClaimInfo(context.Background(), &types.QueryRefundClaimInfoRequest{
+		DepositId: depositId,
+	})
+	if err != nil {
+		return
+	}
+	withdrawId = res.WithdrawId
+	return
+}

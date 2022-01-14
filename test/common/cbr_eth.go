@@ -235,6 +235,18 @@ func (c *CbrChain) OnchainPegVaultWithdraw(info *pegbrtypes.WithdrawInfo, signer
 	return nil
 }
 
+func (c *CbrChain) OnchainPegBridgeMint(info *pegbrtypes.MintInfo, signers []*cbrtypes.Signer) error {
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
+	addrs, powers := cbrtypes.SignersToEthArrays(signers)
+	tx, err := c.PegBridgeContract.Mint(c.Auth, info.MintProtoBytes, info.GetSortedSigsBytes(), addrs, powers)
+	if err != nil {
+		return err
+	}
+	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "OnchainPegBridgeMint")
+	return nil
+}
+
 func (c *CbrChain) CheckUNIBalance(uid uint64, expectedAmt *big.Int) {
 	var err error
 	var expected bool

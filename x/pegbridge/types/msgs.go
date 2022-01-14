@@ -189,3 +189,38 @@ func (msg *MsgClaimFee) ValidateBasic() error {
 	}
 	return nil
 }
+
+func NewMsgClaimRefund(sender string) *MsgClaimRefund {
+	return &MsgClaimRefund{
+		Sender: sender,
+	}
+}
+
+func (msg *MsgClaimRefund) Route() string {
+	return RouterKey
+}
+
+func (msg *MsgClaimRefund) Type() string {
+	return "ClaimRefund"
+}
+
+func (msg *MsgClaimRefund) GetSigners() []sdk.AccAddress {
+	sender, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		panic(err)
+	}
+	return []sdk.AccAddress{sender}
+}
+
+func (msg *MsgClaimRefund) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+func (msg *MsgClaimRefund) ValidateBasic() error {
+	_, err := sdk.AccAddressFromBech32(msg.Sender)
+	if err != nil {
+		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid sender address (%s)", err)
+	}
+	return nil
+}
