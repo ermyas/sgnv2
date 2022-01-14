@@ -125,7 +125,7 @@ func (k Keeper) claimFeeShare(ctx sdk.Context, wdReq *types.WithdrawReq, delAddr
 	if err != nil {
 		return nil, err
 	}
-	logmsg := fmt.Sprintf("delegator %x ReqId %d ExitChainId %d", delAddr, wdReq.ReqId, wdReq.ExitChainId)
+	logmsg := fmt.Sprintf("EthAddr %x ReqId %d ExitChainId %d", delAddr, wdReq.ReqId, wdReq.ExitChainId)
 	var wdmsgs string
 	var destToken common.Address
 	totalRecvAmt := big.NewInt(0)
@@ -159,11 +159,11 @@ func (k Keeper) claimFeeShare(ctx sdk.Context, wdReq *types.WithdrawReq, delAddr
 			destToken = destTk
 		}
 		wdmsg = fmt.Sprintf("%sreqAmt %s", wdmsg, amt)
-		wdmsgs += fmt.Sprintf("<%s>\n", wdmsg)
+		wdmsgs += fmt.Sprintf("<%s> ", wdmsg)
 	}
 
-	logmsg = fmt.Sprintf("%s\n%s FeeToken %x, TotalRecvAmt %s", logmsg, wdmsgs, destToken, totalRecvAmt)
-	log.Infof("x/cbr handle claim fee share, creator %s:\n%s", creator, logmsg)
+	logmsg = fmt.Sprintf("%s %s FeeToken %x, TotalRecvAmt %s", logmsg, wdmsgs, destToken, totalRecvAmt)
+	log.Infof("x/cbr handle claim fee share: %s creator:%s", logmsg, creator)
 	// Use 0x1 to represent fee share claims. Must be of length 32.
 	refId := eth.Hash{}
 	refId[31] = 1

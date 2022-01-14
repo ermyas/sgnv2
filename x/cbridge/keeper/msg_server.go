@@ -51,6 +51,16 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 			return nil, types.Error(types.ErrCode_XFER_NOT_REFUNDABLE, "xfer %d not refundable", xferId)
 		}
 		signer = eth.Bytes2Addr(wdOnchain.Receiver)
+	} else if wdReq.WithdrawType == types.ValidatorClaimFeeShare {
+		senderSgnAcct, err := sdk.AccAddressFromBech32(req.Creator)
+		if err != nil {
+			return nil, types.Error(types.ErrCode_INVALID_REQ, "invalid creator accnt")
+		}
+		validator, found := k.stakingKeeper.GetValidatorBySgnAddr(sdkCtx, senderSgnAcct)
+		if !found {
+			return nil, types.Error(types.ErrCode_NOT_FOUND, "creator accnt %s not validator", senderSgnAcct)
+		}
+		signer = validator.GetEthAddr()
 	} else {
 		// check reqid, recover user addr, ensure no existing wdDetail-%x-%d
 		signer, err = ethutils.RecoverSigner(req.WithdrawReq, req.UserSig)
@@ -80,7 +90,7 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 		if err != nil {
 			return nil, err
 		}
-	case types.ClaimFeeShare:
+	case types.ClaimFeeShare, types.ValidatorClaimFeeShare:
 		wdOnchain, err = k.claimFeeShare(sdkCtx, wdReq, signer, req.Creator)
 		if err != nil {
 			return nil, err

@@ -435,11 +435,10 @@ func (t *Transactor) waitMined(txHash string) (*sdk.TxResponse, error) {
 }
 
 func (t *Transactor) CliSendTxMsgWaitMined(msg sdk.Msg) {
-	t.checkSigner([]sdk.Msg{msg})
-	t.cliSendTxMsgsWaitMined([]sdk.Msg{msg})
+	t.CliSendTxMsgsWaitMined([]sdk.Msg{msg})
 }
 
-func (t *Transactor) cliSendTxMsgsWaitMined(msgs []sdk.Msg) {
+func (t *Transactor) CliSendTxMsgsWaitMined(msgs []sdk.Msg) {
 	res, err := t.SendTxMsgsWaitMined(msgs)
 	t.CliCtx.OutputFormat = "text"
 	if err == nil {

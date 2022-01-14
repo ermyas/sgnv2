@@ -16,6 +16,10 @@ import (
 // sleep, check if syncer, if yes, check if update_epoch is newer
 func (r *Relayer) pullPriceChange() {
 	interval := viper.GetInt32(common.FlagSgnCheckIntervalCbrPrice)
+	if interval == 0 {
+		log.Infoln("pull cbr price disabled")
+		return
+	}
 	log.Infoln("start pull cbr price change, interval:", interval)
 	for {
 		time.Sleep(time.Second * time.Duration(interval))

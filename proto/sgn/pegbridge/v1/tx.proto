@@ -118,6 +118,8 @@ message MsgClaimFee {
 
   // sender defines the SGN account sending the claim Msg.
   string sender = 6 [(gogoproto.moretags) = "yaml:\"sender\""];
+
+  bool is_validator = 7 [(gogoproto.moretags) = "yaml:\"is_validator\""];
 }
 
 // MsgClaimFeeResponse defines the Msg/ClaimFee response type.

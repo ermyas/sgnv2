@@ -18,6 +18,7 @@ import (
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	pegbrcli "github.com/celer-network/sgn-v2/x/pegbridge/client/cli"
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -231,6 +232,35 @@ func (c *CbrChain) startWithdrawClaimCbrFeeShare(
 		UserSig:     client.SignMsg(wdBytes),
 		Creator:     transactor.Key.GetAddress().String(),
 	})
+	return err
+}
+
+func StartValidatorMultiWithdrawClaimCbrFeeShares(vid, reqid uint64, wdLqs []*cbrtypes.WithdrawLq) error {
+	txr := NewTestTransactor(
+		SgnHomes[vid],
+		SgnChainID,
+		SgnNodeURI,
+		ValSgnAddrStrs[vid],
+		SgnPassphrase,
+	)
+
+	var msgs []sdk.Msg
+	for _, wd := range wdLqs {
+		withdrawReq := &cbrtypes.WithdrawReq{
+			Withdraws:    []*cbrtypes.WithdrawLq{wd},
+			ExitChainId:  wd.FromChainId,
+			ReqId:        reqid,
+			WithdrawType: cbrtypes.ValidatorClaimFeeShare,
+		}
+		reqid += 1
+		wdBytes, _ := withdrawReq.Marshal()
+		msg := &cbrtypes.MsgInitWithdraw{
+			WithdrawReq: wdBytes,
+			Creator:     txr.Key.GetAddress().String(),
+		}
+		msgs = append(msgs, msg)
+	}
+	_, err := txr.SendTxMsgsWaitMined(msgs)
 	return err
 }
 

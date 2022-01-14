@@ -100,6 +100,14 @@ func newOneChain(chainId uint64) (*CbrOneChain, error) {
 	signerKey, signerPass := viper.GetString(common.FlagEthSignerKeystore), viper.GetString(common.FlagEthSignerPassphrase)
 	for _, cfg := range mcc {
 		if cfg.ChainID == chainId {
+
+			// Temporary hack for local manual test
+			if chainId == 883 {
+				cfg.Gateway = "http://127.0.0.1:8545"
+			} else if chainId == 884 {
+				cfg.Gateway = "http://127.0.0.1:8547"
+			}
+
 			ec, err := ethclient.Dial(cfg.Gateway)
 			if err != nil {
 				log.Fatalln("dial", cfg.Gateway, "err:", err)

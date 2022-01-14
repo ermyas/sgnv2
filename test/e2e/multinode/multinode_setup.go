@@ -126,7 +126,7 @@ func SetupMainchain2ForBridge() {
 	mainchain2Started = true
 }
 
-func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool, manual bool) {
+func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool, manual bool, report bool) {
 	log.Infoln("Deploy Staking and SGN contracts")
 	if contractParams == nil {
 		contractParams = &tc.ContractParams{
@@ -188,6 +188,10 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool, manual bool
 		configFileViper.BindEnv(common.FlagGatewayAwsS3Bucket, "GATEWAY_AWS_S3_BUCKET")
 		configFileViper.BindEnv(common.FlagGatewayAwsKey, "GATEWAY_AWS_KEY")
 		configFileViper.BindEnv(common.FlagGatewayAwsSecret, "GATEWAY_AWS_SECRET")
+		if !report {
+			configFileViper.Set(common.FlagSgnCheckIntervalCbrPrice, 0)
+			configFileViper.Set(common.FlagSgnLivenessReportEndpoint, "")
+		}
 
 		err = configFileViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")

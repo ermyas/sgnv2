@@ -171,7 +171,8 @@ func GetCmdQueryWithdraw() *cobra.Command {
 				return err
 			}
 			fmt.Printf("status: %s\n", resp.Status)
-			fmt.Printf("withdraw message: %s, %s \n", withdrawOnChain.String(), resp.Detail.SignersStr())
+			fmt.Printf("withdraw message: %s, %s, last req time %s \n",
+				withdrawOnChain.String(), resp.Detail.SignersStr(), common.TsSecToTime(uint64(resp.Detail.LastReqTime)))
 			return nil
 		},
 	}

@@ -35,7 +35,7 @@ func setupCbridge() {
 		ValidatorBondInterval: big.NewInt(0),
 		MaxSlashFactor:        big.NewInt(1e5),
 	}
-	SetupNewSgnEnv(p, true, false)
+	SetupNewSgnEnv(p, true, false, false)
 	tc.SleepWithLog(10, "sgn being ready")
 }
 
@@ -314,14 +314,12 @@ func cbridgeTest(t *testing.T) {
 	feeShareWdLq1 = &cbrtypes.WithdrawLq{
 		FromChainId: tc.CbrChain1.ChainId,
 		TokenAddr:   tc.CbrChain1.USDTAddr.Hex(),
-		Ratio:       100000000, // 100%
-		MaxSlippage: 1000000,   // 100%
+		MaxSlippage: 1000000, // 100%
 	}
 	feeShareWdLq2 = &cbrtypes.WithdrawLq{
 		FromChainId: tc.CbrChain2.ChainId,
 		TokenAddr:   tc.CbrChain2.USDTAddr.Hex(),
-		Ratio:       100000000, // 100%
-		MaxSlippage: 1000000,   // 100%
+		MaxSlippage: 1000000, // 100%
 	}
 	err = tc.CbrChain1.StartValidatorWithdrawClaimCbrFeeShare(transactor, reqid, 0, []*cbrtypes.WithdrawLq{feeShareWdLq1, feeShareWdLq2})
 	tc.ChkErr(err, "val0 chain1 start claim fee share")
@@ -330,6 +328,33 @@ func cbridgeTest(t *testing.T) {
 	curss, err = tc.GetCurSortedSigners(transactor, tc.CbrChain1.ChainId)
 	tc.ChkErr(err, "chain1 GetCurSortedSigners")
 	err = tc.CbrChain1.OnchainCbrWithdraw(detail, curss)
+	tc.ChkErr(err, "chain1 onchain withdraw fee share")
+
+	log.Infoln("======================== Validator 1 claim fee share all chains ===========================")
+	startReqId := uint64(time.Now().Unix())
+	feeShareWdLq1 = &cbrtypes.WithdrawLq{
+		FromChainId: tc.CbrChain1.ChainId,
+		TokenAddr:   tc.CbrChain1.USDTAddr.Hex(),
+	}
+	feeShareWdLq2 = &cbrtypes.WithdrawLq{
+		FromChainId: tc.CbrChain2.ChainId,
+		TokenAddr:   tc.CbrChain2.USDTAddr.Hex(),
+	}
+	err = tc.StartValidatorMultiWithdrawClaimCbrFeeShares(1, startReqId, []*cbrtypes.WithdrawLq{feeShareWdLq1, feeShareWdLq2})
+	tc.ChkErr(err, "val1 start claim fee share on all chains")
+
+	log.Infoln("claim fee share withdraw reqid:", startReqId)
+	detail = tc.GetWithdrawDetailWithSigs(transactor, tc.CbrChain1.Validators[1].Address, startReqId, 3)
+	curss, err = tc.GetCurSortedSigners(transactor, tc.CbrChain1.ChainId)
+	tc.ChkErr(err, "chain1 GetCurSortedSigners")
+	err = tc.CbrChain1.OnchainCbrWithdraw(detail, curss)
+	tc.ChkErr(err, "chain1 onchain withdraw fee share")
+
+	log.Infoln("claim fee share withdraw reqid:", startReqId+1)
+	detail = tc.GetWithdrawDetailWithSigs(transactor, tc.CbrChain1.Validators[1].Address, startReqId+1, 3)
+	curss, err = tc.GetCurSortedSigners(transactor, tc.CbrChain2.ChainId)
+	tc.ChkErr(err, "chain1 GetCurSortedSigners")
+	err = tc.CbrChain2.OnchainCbrWithdraw(detail, curss)
 	tc.ChkErr(err, "chain1 onchain withdraw fee share")
 }
 
