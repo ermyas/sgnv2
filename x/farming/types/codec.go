@@ -16,8 +16,10 @@ func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(&MsgClaimAllRewards{}, "sgn-v2/MsgClaimAllRewards", nil)
 
 	cdc.RegisterConcrete(&AddPoolProposal{}, "sgn-v2/AddPoolProposal", nil)
+	cdc.RegisterConcrete(&BatchAddPoolProposal{}, "sgn-v2/BatchAddPoolProposal", nil)
 	cdc.RegisterConcrete(&RemovePoolProposal{}, "sgn-v2/RemovePoolProposal", nil)
 	cdc.RegisterConcrete(&AdjustRewardProposal{}, "sgn-v2/AdjustRewardProposal", nil)
+	cdc.RegisterConcrete(&BatchAdjustRewardProposal{}, "sgn-v2/BatchAdjustRewardProposal", nil)
 	cdc.RegisterConcrete(&AddTokensProposal{}, "sgn-v2/AddTokensProposal", nil)
 	cdc.RegisterConcrete(&SetRewardContractsProposal{}, "sgn-v2/SetRewardContractsProposal", nil)
 }
@@ -31,8 +33,10 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations(
 		(*govtypes.Content)(nil),
 		&AddPoolProposal{},
+		&BatchAddPoolProposal{},
 		&RemovePoolProposal{},
 		&AdjustRewardProposal{},
+		&BatchAdjustRewardProposal{},
 		&AddTokensProposal{},
 		&SetRewardContractsProposal{},
 	)

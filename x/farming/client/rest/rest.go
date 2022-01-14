@@ -31,6 +31,14 @@ func AddPoolProposalRESTHandler(clientCtx client.Context) govrest.ProposalRESTHa
 	}
 }
 
+// BatchAddPoolProposalRESTHandler returns an BatchAddPoolProposalRESTHandler that exposes the add pool REST handler with a given sub-route.
+func BatchAddPoolProposalRESTHandler(clientCtx client.Context) govrest.ProposalRESTHandler {
+	return govrest.ProposalRESTHandler{
+		SubRoute: "farming_batch_add_pool",
+		Handler:  postBatchAddPoolProposalHandlerFn(clientCtx),
+	}
+}
+
 func postAddPoolProposalHandlerFn(clientCtx client.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req AddPoolProposalReq
@@ -46,6 +54,34 @@ func postAddPoolProposalHandlerFn(clientCtx client.Context) http.HandlerFunc {
 		content := types.NewAddPoolProposal(
 			req.Title, req.Description,
 			req.PoolName, req.StakeToken, req.RewardTokens, req.InitialRewardInputs)
+
+		msg, err := govtypes.NewMsgSubmitProposal(content, req.Deposit[0].Amount, req.Proposer)
+		if rest.CheckBadRequestError(w, err) {
+			return
+		}
+		if rest.CheckBadRequestError(w, msg.ValidateBasic()) {
+			return
+		}
+
+		tx.WriteGeneratedTxResponse(clientCtx, w, req.BaseReq, msg)
+	}
+}
+
+func postBatchAddPoolProposalHandlerFn(clientCtx client.Context) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req BatchAddPoolProposalReq
+		if !rest.ReadRESTReq(w, r, clientCtx.LegacyAmino, &req) {
+			return
+		}
+
+		req.BaseReq = req.BaseReq.Sanitize()
+		if !req.BaseReq.ValidateBasic(w) {
+			return
+		}
+
+		content := types.NewBatchAddPoolProposal(
+			req.Title, req.Description,
+			req.AddPoolInfos)
 
 		msg, err := govtypes.NewMsgSubmitProposal(content, req.Deposit[0].Amount, req.Proposer)
 		if rest.CheckBadRequestError(w, err) {
@@ -101,6 +137,14 @@ func AdjustRewardProposalRESTHandler(clientCtx client.Context) govrest.ProposalR
 	}
 }
 
+// BatchAdjustRewardProposalRESTHandler returns an BatchAdjustRewardProposalRESTHandler that exposes the adjust reward REST handler with a given sub-route.
+func BatchAdjustRewardProposalRESTHandler(clientCtx client.Context) govrest.ProposalRESTHandler {
+	return govrest.ProposalRESTHandler{
+		SubRoute: "farming_batch_adjust_reward",
+		Handler:  postBatchAdjustRewardProposalHandlerFn(clientCtx),
+	}
+}
+
 func postAdjustRewardProposalHandlerFn(clientCtx client.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req AdjustRewardProposalReq
@@ -114,6 +158,32 @@ func postAdjustRewardProposalHandlerFn(clientCtx client.Context) http.HandlerFun
 		}
 
 		content := types.NewAdjustRewardProposal(req.Title, req.Description, req.PoolName, req.RewardAdjustmentInputs)
+
+		msg, err := govtypes.NewMsgSubmitProposal(content, req.Deposit[0].Amount, req.Proposer)
+		if rest.CheckBadRequestError(w, err) {
+			return
+		}
+		if rest.CheckBadRequestError(w, msg.ValidateBasic()) {
+			return
+		}
+
+		tx.WriteGeneratedTxResponse(clientCtx, w, req.BaseReq, msg)
+	}
+}
+
+func postBatchAdjustRewardProposalHandlerFn(clientCtx client.Context) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req BatchAdjustRewardProposalReq
+		if !rest.ReadRESTReq(w, r, clientCtx.LegacyAmino, &req) {
+			return
+		}
+
+		req.BaseReq = req.BaseReq.Sanitize()
+		if !req.BaseReq.ValidateBasic(w) {
+			return
+		}
+
+		content := types.NewBatchAdjustRewardProposal(req.Title, req.Description, req.AdjustRewardInfos)
 
 		msg, err := govtypes.NewMsgSubmitProposal(content, req.Deposit[0].Amount, req.Proposer)
 		if rest.CheckBadRequestError(w, err) {

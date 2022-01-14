@@ -10,6 +10,11 @@ import (
 
 // HandleAddPoolProposal is a handler for executing a passed AddPoolProposal
 func HandleAddPoolProposal(ctx sdk.Context, k Keeper, p *types.AddPoolProposal) error {
+	addPoolInfo := p.GetAddPoolInfo()
+	return handleAddPoolProposalByAddPoolInfo(ctx, k, &addPoolInfo)
+}
+
+func handleAddPoolProposalByAddPoolInfo(ctx sdk.Context, k Keeper, p *types.AddPoolInfo) error {
 	if err := k.CheckAddPoolProposal(ctx, p); err != nil {
 		return err
 	}
@@ -76,8 +81,7 @@ func HandleAddPoolProposal(ctx sdk.Context, k Keeper, p *types.AddPoolProposal) 
 	return nil
 }
 
-// CheckAddPoolProposal checks the validity of an AddPoolProposal
-func (k Keeper) CheckAddPoolProposal(ctx sdk.Context, p *types.AddPoolProposal) error {
+func (k Keeper) CheckAddPoolProposal(ctx sdk.Context, p *types.AddPoolInfo) error {
 	// 1. Check pool existence
 	_, found := k.GetFarmingPool(ctx, p.PoolName)
 	if found {

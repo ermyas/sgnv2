@@ -169,6 +169,87 @@ Where proposal.json contains:
 	}
 }
 
+// GetCmdSubmitBatchAddPoolProposal implements a command handler for submitting a BatchAddPoolProposal
+func GetCmdSubmitBatchAddPoolProposal() *cobra.Command {
+	return &cobra.Command{
+		Use:   "farming-batch-add-pool [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit a BatchAddPoolProposal",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit a BatchAddPoolProposal along with an initial deposit.
+The proposal details must be supplied via a JSON file.
+
+Example:
+$ %s gov submit-proposal farming-batch-add-pool <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+{
+  "title": "Batch Add cbridge-DAI/1 pool",
+  "description": "batch add a CBridge farming pool for DAI on Ethereum",
+  "add_pool_infos": [
+    {
+      "pool_name": "cbridge-DAI/1",
+      "stake_token": {
+        "chain_id": 1,
+        "symbol": "CB-DAI",
+        "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
+        "decimals": 18
+      },
+      "reward_tokens": [
+        {
+          "chain_id": 1,
+          "symbol": "CELR",
+          "address": "0x4f9254c83eb525f9fcf346490bbb3ed28a81c667",
+          "decimals": 18
+        }
+      ],
+      "initial_reward_inputs": [
+        {
+          "add_amount": {
+            "denom": "CELR/1",
+            "amount": "100000000000000000000000"
+          },
+          "reward_start_block_delay": 0,
+          "new_reward_amount_per_block": "100000000000000000"
+        }
+      ]
+    }
+  ],
+  "deposit": "10000000%s"
+}
+`, version.AppName, stakingtypes.StakeDenom,
+			)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+			proposal, err := ParseBatchAddPoolProposalWithDeposit(clientCtx.Codec, args[0])
+			if err != nil {
+				return err
+			}
+			deposit, err := sdk.ParseCoinsNormalized(proposal.Deposit)
+			if err != nil {
+				return err
+			}
+			from := clientCtx.GetFromAddress()
+			content :=
+				types.NewBatchAddPoolProposal(
+					proposal.Title,
+					proposal.Description,
+					proposal.AddPoolInfos,
+				)
+
+			msg, err := govtypes.NewMsgSubmitProposal(content, deposit[0].Amount, from)
+			if err != nil {
+				return err
+			}
+
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+		},
+	}
+}
+
 // GetCmdSubmitAddTokensProposal implements a command handler for submitting an AddTokensProposal
 func GetCmdSubmitAddTokensProposal() *cobra.Command {
 	return &cobra.Command{
@@ -297,6 +378,81 @@ Where proposal.json contains:
 					proposal.Description,
 					proposal.PoolName,
 					proposal.RewardAdjustmentInputs,
+				)
+
+			msg, err := govtypes.NewMsgSubmitProposal(content, deposit[0].Amount, from)
+			if err != nil {
+				return err
+			}
+
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+		},
+	}
+}
+
+// GetCmdSubmitBatchAdjustRewardProposal implements a command handler for submitting a BatchAdjustRewardProposal
+func GetCmdSubmitBatchAdjustRewardProposal() *cobra.Command {
+	return &cobra.Command{
+		Use:   "farming-batch-adjust-reward [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit an batchAdjustRewardProposal",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit a BatchAdjustRewardProposal along with an initial deposit.
+The proposal details must be supplied via a JSON file.
+
+Example:
+$ %s gov submit-proposal farming-batch-adjust-reward <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+{
+  "title": "cbridge-DAI/1 reward adjustment",
+  "description": "Add DAI reward for cbridge-DAI/1 and adjust CELR reward",
+  "adjust_reward_infos": [
+    {
+      "pool_name": "cbridge-DAI/1",
+      "reward_adjustment_inputs": [
+        {
+          "add_amount": {
+            "denom": "CELR/1",
+            "amount": "100000000000000000000000"
+          },
+          "reward_start_block_delay": 0,
+          "new_reward_amount_per_block": "500000000000000000"
+        },
+        {
+          "add_amount": {
+            "denom": "USDT/1",
+            "amount": "100000000000"
+          },
+          "reward_start_block_delay": 3,
+          "new_reward_amount_per_block": "1000000"
+        }
+      ]
+    }
+  ],
+  "deposit": "10000000%s"
+}
+`, version.AppName, stakingtypes.StakeDenom,
+			)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+			proposal, err := ParseBatchAdjustRewardProposalWithDeposit(clientCtx.Codec, args[0])
+			if err != nil {
+				return err
+			}
+			deposit, err := sdk.ParseCoinsNormalized(proposal.Deposit)
+			if err != nil {
+				return err
+			}
+			from := clientCtx.GetFromAddress()
+			content :=
+				types.NewBatchAdjustRewardProposal(
+					proposal.Title,
+					proposal.Description,
+					proposal.AdjustRewardInfos,
 				)
 
 			msg, err := govtypes.NewMsgSubmitProposal(content, deposit[0].Amount, from)

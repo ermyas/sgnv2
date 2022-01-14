@@ -187,6 +187,26 @@ message AddPoolProposal {
       [(gogoproto.moretags) = "yaml:\"initial_reward_inputs\"", (gogoproto.nullable) = false];
 }
 
+// BatchAddPoolProposal details a proposal including batch of farming pools.
+message BatchAddPoolProposal {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.goproto_stringer) = false;
+
+  string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
+  string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
+
+  repeated AddPoolInfo add_pool_infos = 3 [(gogoproto.moretags) = "yaml:\"add_pool_infos\"", (gogoproto.nullable) = false];
+}
+
+message AddPoolInfo {
+  string pool_name = 1 [(gogoproto.moretags) = "yaml:\"pool_name\""];
+  sgn.common.v1.ERC20Token stake_token = 2 [(gogoproto.moretags) = "yaml:\"stake_token\"", (gogoproto.nullable) = false];
+  repeated sgn.common.v1.ERC20Token reward_tokens = 3 [(gogoproto.moretags) = "yaml:\"reward_tokens\"", (gogoproto.nullable) = false];
+  repeated RewardAdjustmentInput initial_reward_inputs = 4
+  [(gogoproto.moretags) = "yaml:\"initial_reward_inputs\"", (gogoproto.nullable) = false];
+}
+
 // AddPoolProposalWithDeposit defines an AddPoolProposal with a deposit, for CLI usage.
 message AddPoolProposalWithDeposit {
   option (gogoproto.goproto_getters) = false;
@@ -207,6 +227,18 @@ message AddPoolProposalWithDeposit {
   string deposit = 7 [(gogoproto.moretags) = "yaml:\"deposit\""];
 }
 
+// BatchAddPoolProposalWithDeposit defines BatchAddPoolProposal with a deposit, for CLI usage.
+message BatchAddPoolProposalWithDeposit {
+  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.goproto_stringer) = true;
+
+  string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
+  string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
+  repeated AddPoolInfo add_pool_infos = 3 [(gogoproto.moretags) = "yaml:\"add_pool_infos\"", (gogoproto.jsontag) = "add_pool_infos,omitempty", (gogoproto.nullable) = false];
+
+  string deposit = 4 [(gogoproto.moretags) = "yaml:\"deposit\""];
+}
+
 // AdjustRewardProposal details a proposal to adjust reward tokens in a pool.
 message AdjustRewardProposal {
   option (gogoproto.equal) = false;
@@ -220,6 +252,24 @@ message AdjustRewardProposal {
       [(gogoproto.moretags) = "yaml:\"reward_adjustment_inputs\"", (gogoproto.nullable) = false];
 }
 
+// BatchAdjustRewardProposal details a proposal to adjust reward tokens in batch pools.
+message BatchAdjustRewardProposal {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.goproto_stringer) = false;
+
+  string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
+  string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
+
+  repeated AdjustRewardInfo adjust_reward_infos = 3 [(gogoproto.moretags) = "yaml:\"adjust_reward_infos\"", (gogoproto.nullable) = false];
+}
+
+message AdjustRewardInfo {
+  string pool_name = 1 [(gogoproto.moretags) = "yaml:\"pool_name\""];
+  repeated RewardAdjustmentInput reward_adjustment_inputs = 2
+  [(gogoproto.moretags) = "yaml:\"reward_adjustment_inputs\"", (gogoproto.nullable) = false];
+}
+
 // AdjustRewardProposalWithDeposit defines an AdjustRewardProposal with a deposit, for CLI usage.
 message AdjustRewardProposalWithDeposit {
   option (gogoproto.goproto_getters) = false;
@@ -231,6 +281,18 @@ message AdjustRewardProposalWithDeposit {
   repeated RewardAdjustmentInput reward_adjustment_inputs = 4
       [(gogoproto.moretags) = "yaml:\"reward_adjustment_inputs\"", (gogoproto.nullable) = false];
   string deposit = 5 [(gogoproto.moretags) = "yaml:\"deposit\""];
+}
+
+// BatchAdjustRewardProposalWithDeposit defines BatchAdjustRewardProposal with a deposit, for CLI usage.
+message BatchAdjustRewardProposalWithDeposit {
+  option (gogoproto.goproto_getters) = false;
+  option (gogoproto.goproto_stringer) = true;
+
+  string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
+  string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
+  repeated AdjustRewardInfo adjust_reward_infos = 3 [(gogoproto.moretags) = "yaml:\"adjust_reward_infos\"", (gogoproto.nullable) = false];
+
+  string deposit = 4 [(gogoproto.moretags) = "yaml:\"deposit\""];
 }
 
 // RemovePoolProposal details a proposal to remove a finished farming pool.
