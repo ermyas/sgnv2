@@ -144,7 +144,7 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 	totalLpFee.Div(totalLpFee, big.NewInt(100))
 	sgnFee := new(big.Int).Sub(fee, totalLpFee)
 	if isPos(sgnFee) {
-		k.AddSgnFee(ctx, kv, dest.ChId, dest.TokenAddr, sgnFee)
+		k.MintSgnFee(ctx, kv, dest.ChId, dest.TokenAddr, sgnFee)
 	}
 
 	// update LP's liquidity

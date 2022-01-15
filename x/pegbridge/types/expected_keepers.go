@@ -25,6 +25,7 @@ type BankKeeper interface {
 // StakingKeeper expected staking keeper (noalias)
 type StakingKeeper interface {
 	GetValidatorBySgnAddr(sdk.Context, sdk.AccAddress) (stakingtypes.ValidatorI, bool)
+	GetSyncer(ctx sdk.Context) *stakingtypes.Syncer
 }
 
 type CbridgeKeeper interface {

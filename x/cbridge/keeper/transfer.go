@@ -118,11 +118,11 @@ func (k Keeper) transfer(
 	}
 	log.Info("perfxxx pickLPs took: ", time.Since(start))
 
-	// baseFee goes to sgn, if we ever want to support accurate baseFee attribution,
+	// Attribute baseFee to current syncer in SGN. If we ever want to support accurate baseFee attribution,
 	// we need to save baseFee in relay detail, and upon seeing the relay event, figure out
 	// its sender and add to that address. Note there is no way we can make baseFee equal the actual
-	// onchain tx cost because gasprice and token usd prices are all changing constantly
-	k.AddSgnFee(ctx, kv, dest.ChId, dest.TokenAddr, baseFee)
+	// onchain tx cost because gasprice and token usd prices are all changing constantly.
+	k.MintSgnFeeAndSendToSyncer(ctx, kv, dest.ChId, dest.TokenAddr, baseFee)
 	status = types.XferStatus_OK_TO_RELAY
 	return
 }

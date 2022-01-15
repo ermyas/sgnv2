@@ -123,7 +123,14 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 
 		// Mint fees to distribution module
 		// NOTE: pegbridge fees are always claimed in the form of original tokens
-		k.MintFee(ctx, pair.Orig, new(big.Int).Add(baseFee, percFee))
+		err = k.MintFeeAndSendToSyncer(ctx, pair.Orig, baseFee)
+		if err != nil {
+			return false, err
+		}
+		_, err = k.MintFee(ctx, pair.Orig, percFee)
+		if err != nil {
+			return false, err
+		}
 
 		ctx.EventManager().EmitEvent(sdk.NewEvent(
 			types.EventTypeMintToSign,
@@ -227,7 +234,14 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 
 		// Mint fees to distribution module
 		// NOTE: pegbridge fees are always claimed in the form of original tokens
-		k.MintFee(ctx, pair.Orig, new(big.Int).Add(baseFee, percFee))
+		err = k.MintFeeAndSendToSyncer(ctx, pair.Orig, baseFee)
+		if err != nil {
+			return false, err
+		}
+		_, err = k.MintFee(ctx, pair.Orig, percFee)
+		if err != nil {
+			return false, err
+		}
 
 		ctx.EventManager().EmitEvent(sdk.NewEvent(
 			types.EventTypeWithdrawToSign,
