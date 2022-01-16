@@ -15,6 +15,8 @@ service Query {
   rpc QueryCheckChainTokenValid(CheckChainTokenValidRequest) returns (CheckChainTokenValidResponse) {}
   rpc QueryChkLiqSum(CheckLiqSumRequest) returns (CheckLiqSumResponse) {}
   rpc QueryDebugAny(QueryDebugAnyRequest) returns (QueryDebugAnyResponse) {}
+  rpc QueryAssets(EmptyRequest) returns (QueryAssetsResponse) {}
+  rpc QueryAssetPrice(QueryAssetPriceRequest) returns (QueryAssetPriceResponse) {}
 
   // for gateway query only below
   rpc ChainTokensConfig(ChainTokensConfigRequest) returns (ChainTokensConfigResponse) {}
@@ -63,6 +65,17 @@ message QueryDebugAnyRequest{
 }
 message QueryDebugAnyResponse {
     bytes data = 1;
+}
+
+message QueryAssetsResponse {
+  repeated ChainAsset assets = 1;
+}
+message QueryAssetPriceRequest {
+  string symbol = 1;
+}
+message QueryAssetPriceResponse {
+  uint32 price = 1;
+  uint32 extra_power10 = 2;
 }
 
 message QueryLPsRequest {

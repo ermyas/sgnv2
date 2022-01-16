@@ -3,16 +3,25 @@ package cli
 import (
 	"context"
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
+	distrcli "github.com/celer-network/sgn-v2/x/distribution/client/cli"
 	"github.com/cosmos/cosmos-sdk/client"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/cobra"
+)
+
+const (
+	flagWdList = "wdlist"
+	flagMinUSD = "min-usd"
 )
 
 // GetQueryCmd returns the cli query commands for this module
@@ -35,6 +44,8 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 		GetCmdQueryChainSigners(),
 		GetCmdQueryLatestSigners(),
 		GetCmdQueryChkLiqSum(),
+		GetCmdQueryFeeShareInfo(),
+		GetCmdQueryAssetPrice(),
 		qDebugAnyCmd,
 	)
 	// this line is used by starport scaffolding # 1
@@ -256,6 +267,122 @@ func GetCmdQueryChkLiqSum() *cobra.Command {
 	}
 }
 
+func GetCmdQueryFeeShareInfo() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "fee-share [validator/delegator-eth-addr]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Query fee share of a sgn validator or delgator",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			feeInfo, err := distrcli.QueryCBridgeFeeShareInfo(context.Background(), cliCtx, args[0])
+			if err != nil {
+				return err
+			}
+
+			type AssetPrice struct {
+				Price        uint32
+				ExtraPower10 uint32
+			}
+			assetsPrice := make(map[string]*AssetPrice)
+
+			assets := make(map[string]map[uint64]*types.ChainAsset) // symbol -> (chainId -> asset)
+			assetsList, err := QueryAssets(cliCtx)
+			for _, asset := range assetsList {
+				_, ok := assets[asset.Symbol]
+				if !ok {
+					assets[asset.Symbol] = make(map[uint64]*types.ChainAsset)
+					price, extraPower10, err2 := QueryAssetPrice(cliCtx, asset.Symbol)
+					if err2 != nil {
+						return err2
+					}
+					assetsPrice[asset.Symbol] = &AssetPrice{Price: price, ExtraPower10: extraPower10}
+
+				}
+				assets[asset.Symbol][asset.ChainId] = asset
+			}
+
+			ts := time.Now().Unix()
+			genWdList, err := cmd.Flags().GetBool(flagWdList)
+			if err != nil {
+				return err
+			}
+			minUsd, err := cmd.Flags().GetUint32(flagMinUSD)
+			if err != nil {
+				return err
+			}
+
+			var totalValue float64
+			var wdList []string
+			fmt.Printf("claimable fee amounts:\n\n")
+			for _, coin := range feeInfo.ClaimableFeeAmounts {
+				amount := coin.Amount
+				denom := coin.Denom
+				symch := strings.TrimPrefix(denom, types.CBridgeFeeDenomPrefix)
+				symbol := strings.Split(symch, "/")[0]
+				chainId, err := strconv.Atoi(strings.Split(symch, "/")[1])
+				if err != nil {
+					return err
+				}
+				asset := assets[symbol][uint64(chainId)]
+				fmt.Println("token:", symbol, "-", chainId, "-", asset.Addr)
+				fmt.Println("amount: ", amount)
+
+				famt, err := amount.QuoInt(
+					sdk.NewIntFromBigInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(asset.Decimal)), nil))).Float64()
+				if err != nil {
+					return err
+				}
+				value := famt * float64(assetsPrice[symbol].Price) / math.Pow10(4+int(assetsPrice[symbol].ExtraPower10))
+				totalValue += value
+				fmt.Printf("usd value: %0.2f\n\n", value)
+
+				if value >= float64(minUsd) {
+					wdList = append(wdList, fmt.Sprintf("%d %d %s", ts, chainId, asset.Addr))
+					ts += 1
+				}
+			}
+			fmt.Printf("total usd value: %0.2f\n", totalValue)
+
+			if genWdList {
+				fmt.Printf("\nvalidator withdraw fee inputs:\n")
+				for _, wd := range wdList {
+					fmt.Println(wd)
+				}
+			}
+			return nil
+		},
+	}
+	cmd.Flags().Bool(flagWdList, false, "generate withdraw file content")
+	cmd.Flags().Uint32(flagMinUSD, 0, "minimal USD value to generate withraw request")
+
+	return cmd
+}
+
+func GetCmdQueryAssetPrice() *cobra.Command {
+	return &cobra.Command{
+		Use:   "asset-price [symbol]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Query asset price",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			price, extraPower10, err := QueryAssetPrice(cliCtx, args[0])
+			if err != nil {
+				log.Errorln("query error", err)
+				return err
+			}
+			fmt.Printf("%s price: %f USD (%d %d)\n", args[0], float64(price)/math.Pow10(4+int(extraPower10)), price, extraPower10)
+			return nil
+		},
+	}
+}
+
 // it's by design this doesn't have pkg level func so it can only be called via cmd line
 var qDebugAnyCmd = &cobra.Command{
 	Use:   "getany [internal-db-key]",
@@ -417,5 +544,22 @@ func QueryLatestSigners(cliCtx client.Context) (latestSigners *types.LatestSigne
 	if resp != nil {
 		latestSigners = resp.GetLatestSigners()
 	}
+	return
+}
+
+func QueryAssets(cliCtx client.Context) (assets []*types.ChainAsset, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err := queryClient.QueryAssets(context.Background(), &types.EmptyRequest{})
+	if resp != nil {
+		assets = resp.GetAssets()
+	}
+	return
+}
+
+func QueryAssetPrice(cliCtx client.Context, symbol string) (price, extraPower10 uint32, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err := queryClient.QueryAssetPrice(context.Background(), &types.QueryAssetPriceRequest{Symbol: symbol})
+	price = resp.GetPrice()
+	extraPower10 = resp.GetExtraPower10()
 	return
 }

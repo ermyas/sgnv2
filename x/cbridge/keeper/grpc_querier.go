@@ -345,3 +345,25 @@ func (k Keeper) QueryLPs(c context.Context, req *types.QueryLPsRequest) (*types.
 	}
 	return &types.QueryLPsResponse{Lps: addrs}, nil
 }
+
+func (k Keeper) QueryAssets(c context.Context, request *types.EmptyRequest) (*types.QueryAssetsResponse, error) {
+	ctx := sdk.UnwrapSDKContext(c)
+	assets := make([]*types.ChainAsset, 0)
+	store := ctx.KVStore(k.storeKey)
+	iter := sdk.KVStorePrefixIterator(store, []byte("cfg-sym2info-"))
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		assetRaw := iter.Value()
+		asset := new(types.ChainAsset)
+		asset.Unmarshal(assetRaw)
+		assets = append(assets, asset)
+	}
+	return &types.QueryAssetsResponse{Assets: assets}, nil
+}
+
+func (k Keeper) QueryAssetPrice(c context.Context, request *types.QueryAssetPriceRequest) (*types.QueryAssetPriceResponse, error) {
+	ctx := sdk.UnwrapSDKContext(c)
+	store := ctx.KVStore(k.storeKey)
+	price, extraPower := GetAssetUsdPrice(store, request.GetSymbol())
+	return &types.QueryAssetPriceResponse{Price: price, ExtraPower10: extraPower}, nil
+}
