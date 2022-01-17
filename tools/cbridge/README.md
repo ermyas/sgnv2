@@ -14,9 +14,9 @@ Also, you can get this file from your sgn config path.
 --chain according to you .toml file.
 ## Add Liq
 ```
-./cbridge --cfg ./manual_test_cbridge.toml --chain geth1 --ks ../../test/keys/cethks0.json addLiq usdt 100
+./cbridge --cfg ./manual_test_cbridge.toml --chain geth1 --ks ../../test/keys/cethks0.json addLiq USDT 1000000000000
 ```
 ## Send
 ```
-./cbridge --cfg ./manual_test_cbridge.toml --chain geth1 --ks ../../test/keys/cethks0.json send usdt 884 100 500000
+./cbridge --cfg ./manual_test_cbridge.toml --chain geth2 --ks ../../test/keys/cethks0.json send USDT 883 100000000 500000
 ```

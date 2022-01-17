@@ -21,6 +21,41 @@ message ReportCurrentBlockNumberResponse {
   ErrMsg err = 1;
 }
 
+message ReportSgnAnalyticsRequest {
+  // serialized SgnAnalyticsReport
+  bytes report = 1;
+  bytes sig = 2;
+}
+
+message SgnAnalyticsReport {
+  // in millis
+  uint64 timestamp = 1;
+  // key is chainId, value is current block number
+  map<string, uint64> block_nums = 2;
+  string sgnd_version = 3;
+  // key is nanoseconds timestamp, so histories are group by transfer (lp picks belong to one transfer are the same time)
+  map<uint64, LPFeeEarningHistory> lp_fee_earning_histories = 4;
+}
+
+// each LPFeeEarningHistory represents one transfer history
+message LPFeeEarningHistory {
+  // 0x
+  string dst_token_addr = 1;
+  uint64 dst_chain_id = 2;
+  // key is lp_addr (0x)
+  map<string, LPFeeEarningLog> logs = 3;
+}
+
+message LPFeeEarningLog {
+  string dst_chain_liquidity_used = 1;
+  string earned_fee = 2;
+  string dst_chain_liquidity_remained = 3;
+}
+
+message ReportSgnAnalyticsResponse {
+  ErrMsg err = 1;
+}
+
 message ErrMsg {
   ErrCode code = 1;
   string msg = 2;
