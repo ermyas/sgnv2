@@ -62,3 +62,21 @@ func (k Keeper) withdrawAllDelegatorRewards(ctx sdk.Context, delAddr eth.Addr) e
 	}
 	return nil
 }
+
+func (k Keeper) withdrawRewardsAndCommission(ctx sdk.Context, addr eth.Addr) error {
+	// 1. Withdraw reward for all validators
+	err := k.withdrawAllDelegatorRewards(ctx, addr)
+	if err != nil {
+		return err
+	}
+
+	// 2. If addr is a validator address, withdraw its commission
+	accumCommission := k.GetValidatorAccumulatedCommission(ctx, addr)
+	if !accumCommission.Commission.IsZero() {
+		_, err = k.WithdrawValidatorCommission(ctx, addr)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

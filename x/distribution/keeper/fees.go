@@ -13,8 +13,8 @@ func (k Keeper) GetWithdrawableBalance(ctx sdk.Context, delAddr eth.Addr, coin s
 }
 
 func (k Keeper) ClaimCBridgeFeeShare(ctx sdk.Context, delAddr eth.Addr) error {
-	// 1. Withdraw reward for all validators
-	err := k.withdrawAllDelegatorRewards(ctx, delAddr)
+	// 1. Withdraw reward for all validators. If delAddr is a validator address, withdraw its commission.
+	err := k.withdrawRewardsAndCommission(ctx, delAddr)
 	if err != nil {
 		return err
 	}
@@ -29,8 +29,8 @@ func (k Keeper) ClaimCBridgeFeeShare(ctx sdk.Context, delAddr eth.Addr) error {
 }
 
 func (k Keeper) ClaimPegBridgeFees(ctx sdk.Context, delAddr eth.Addr) error {
-	// 1. Withdraw reward for all validators
-	err := k.withdrawAllDelegatorRewards(ctx, delAddr)
+	// 1. Withdraw reward for all validators. If delAddr is a validator address, withdraw its commission.
+	err := k.withdrawRewardsAndCommission(ctx, delAddr)
 	if err != nil {
 		return err
 	}

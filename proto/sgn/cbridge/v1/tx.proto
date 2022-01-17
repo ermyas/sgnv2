@@ -61,6 +61,7 @@ enum WithdrawType {
   WITHDRAW_TYPE_REMOVE_LIQUIDITY = 0 [(gogoproto.enumvalue_customname) = "RemoveLiquidity"];
   WITHDRAW_TYPE_REFUND_TRANSFER = 1 [(gogoproto.enumvalue_customname) = "RefundTransfer"];
   WITHDRAW_TYPE_CLAIM_FEE_SHARE = 2 [(gogoproto.enumvalue_customname) = "ClaimFeeShare"];
+  WITHDRAW_TYPE_VALIDATOR_CLAIM_FEE_SHARE = 3 [(gogoproto.enumvalue_customname) = "ValidatorClaimFeeShare"];
 }
 
 message WithdrawReq {

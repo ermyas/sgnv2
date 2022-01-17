@@ -124,9 +124,9 @@ func (k msgServer) ClaimAllStakingReward(goCtx context.Context, msg *types.MsgCl
 		return nil, err
 	}
 
-	// 2. Withdraw reward for all validators
+	// 2. Withdraw reward for all validators. If delAddr is a validator address, withdraw its commission.
 	delAddr := eth.Hex2Addr(msg.DelegatorAddress)
-	err = k.withdrawAllDelegatorRewards(ctx, delAddr)
+	err = k.withdrawRewardsAndCommission(ctx, delAddr)
 	if err != nil {
 		return nil, err
 	}

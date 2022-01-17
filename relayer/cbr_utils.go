@@ -59,10 +59,15 @@ func (c *CbrOneChain) delEvent(name string, blknum, idx uint64) error {
 }
 
 func (r *Relayer) startReportCurrentBlockNumber(interval time.Duration) {
+	endpoint := viper.GetString(common.FlagSgnLivenessReportEndpoint)
+	if endpoint == "" {
+		log.Info("report current block number disabled")
+		return
+	}
 	go func() {
 		// let gateway start upfront
 		time.Sleep(15 * time.Second)
-		log.Infoln("start Report Current Block Number,", viper.GetString(common.FlagSgnLivenessReportEndpoint))
+		log.Infoln("report current block number to", endpoint)
 		ticker := jitterbug.New(
 			interval,
 			&jitterbug.Norm{Stdev: 3 * time.Second},

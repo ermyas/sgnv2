@@ -8,6 +8,7 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -114,37 +115,54 @@ func (k Keeper) withdrawLP(ctx sdk.Context, wdReq *types.WithdrawReq, lpAddr eth
 	}, nil
 }
 
-// TODO: Support multi-chain claim
 func (k Keeper) claimFeeShare(ctx sdk.Context, wdReq *types.WithdrawReq, delAddr eth.Addr, creator string) (*types.WithdrawOnchain, error) {
 	kv := ctx.KVStore(k.storeKey)
-	if len(wdReq.Withdraws) != 1 {
-		return nil, types.Error(types.ErrCode_INVALID_REQ, "only support claiming a single fee")
-	}
-	if wdReq.ExitChainId != wdReq.Withdraws[0].FromChainId {
-		return nil, types.Error(types.ErrCode_INVALID_REQ, "only support claiming fee on the same chain")
+	if len(wdReq.Withdraws) < 1 {
+		return nil, types.Error(types.ErrCode_INVALID_REQ, "no Withdraw in WithdrawReq")
 	}
 	// 1. Claim cBridge fee share in distribution module
 	err := k.distrKeeper.ClaimCBridgeFeeShare(ctx, delAddr)
 	if err != nil {
 		return nil, err
 	}
-	logmsg := fmt.Sprintf("claimFeeShare:%x request_id:%d exit_chain_id:%d", delAddr, wdReq.ReqId, wdReq.ExitChainId)
+	logmsg := fmt.Sprintf("EthAddr %x ReqId %d ExitChainId %d", delAddr, wdReq.ReqId, wdReq.ExitChainId)
 	var wdmsgs string
-	wd := wdReq.Withdraws[0]
-	wdmsg := wd.String()
-	feeTokenAddr := eth.Hex2Addr(wd.TokenAddr)
-	// 2. Take the fee balance in the distribution module and generate a WithdrawOnchain
-	symbol := GetAssetSymbol(kv, &ChainIdTokenAddr{wd.FromChainId, feeTokenAddr})
-	denom := fmt.Sprintf("%s%s/%d", types.CBridgeFeeDenomPrefix, symbol, wd.FromChainId)
-	coin := k.distrKeeper.GetWithdrawableBalance(ctx, delAddr, sdk.NewCoin(denom, sdk.ZeroInt()))
-	err = k.BurnFeeShare(ctx, delAddr, coin)
-	if err != nil {
-		return nil, err
+	var destToken common.Address
+	totalRecvAmt := big.NewInt(0)
+	// 2. Take the fee balance in the distribution module for each chain and generate a WithdrawOnchain
+	for _, wd := range wdReq.Withdraws {
+		token := eth.Hex2Addr(wd.TokenAddr)
+		wdmsg := wd.String()
+		symbol := GetAssetSymbol(kv, &ChainIdTokenAddr{wd.FromChainId, token})
+		denom := fmt.Sprintf("%s%s/%d", types.CBridgeFeeDenomPrefix, symbol, wd.FromChainId)
+		coin := k.distrKeeper.GetWithdrawableBalance(ctx, delAddr, sdk.NewCoin(denom, sdk.ZeroInt()))
+		err = k.BurnFeeShare(ctx, delAddr, coin)
+		if err != nil {
+			return nil, err
+		}
+		amt := coin.Amount.BigInt()
+		if wd.FromChainId == wdReq.ExitChainId {
+			totalRecvAmt = totalRecvAmt.Add(totalRecvAmt, amt)
+			destToken = token
+		} else {
+			randBytes := crypto.Keccak256Hash([]byte(fmt.Sprintf("%x-%d-%d", delAddr, wdReq.ReqId, ctx.BlockTime().Unix())))
+			status, recvAmt, destTk, _, _, err := k.transfer(
+				ctx, token, amt, wd.FromChainId, wdReq.ExitChainId, wd.MaxSlippage, delAddr, randBytes.Bytes()[0:4])
+			wdmsg = fmt.Sprintf("%sRecvAmt %s ", wdmsg, recvAmt)
+			if err != nil {
+				wdmsg = fmt.Sprintf("%s err %s", wdmsg, err)
+			}
+			if status != types.XferStatus_OK_TO_RELAY {
+				return nil, types.Error(types.ErrCode_WD_INTERNAL_XFER_FAILURE, "%s %s internal transfer failed %s", logmsg, wdmsg, status)
+			}
+			totalRecvAmt = totalRecvAmt.Add(totalRecvAmt, recvAmt)
+			destToken = destTk
+		}
+		wdmsg = fmt.Sprintf("%sreqAmt %s", wdmsg, amt)
+		wdmsgs += fmt.Sprintf("<%s> ", wdmsg)
 	}
-	amount := coin.Amount.BigInt()
-	wdmsg = fmt.Sprintf("%sreqAmt:%s", wdmsg, amount)
-	wdmsgs += fmt.Sprintf("<%s> ", wdmsg)
-	logmsg = fmt.Sprintf("%s %sfee_token:%x, amt:%s", logmsg, wdmsgs, feeTokenAddr, amount)
+
+	logmsg = fmt.Sprintf("%s %s FeeToken %x, TotalRecvAmt %s", logmsg, wdmsgs, destToken, totalRecvAmt)
 	log.Infof("x/cbr handle claim fee share: %s creator:%s", logmsg, creator)
 	// Use 0x1 to represent fee share claims. Must be of length 32.
 	refId := eth.Hash{}
@@ -152,8 +170,8 @@ func (k Keeper) claimFeeShare(ctx sdk.Context, wdReq *types.WithdrawReq, delAddr
 	return &types.WithdrawOnchain{
 		Chainid:  wdReq.ExitChainId,
 		Receiver: delAddr.Bytes(),
-		Token:    feeTokenAddr.Bytes(),
-		Amount:   amount.Bytes(),
+		Token:    destToken.Bytes(),
+		Amount:   totalRecvAmt.Bytes(),
 		Seqnum:   wdReq.ReqId,
 		Refid:    refId[:],
 	}, nil

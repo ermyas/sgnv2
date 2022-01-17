@@ -18,6 +18,7 @@ import (
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	pegbrcli "github.com/celer-network/sgn-v2/x/pegbridge/client/cli"
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -206,10 +207,20 @@ func (c *CbrChain) StartWithdrawRemoveLiquidity(transactor *transactor.Transacto
 	return err
 }
 
-func (c *CbrChain) StartWithdrawClaimCbrFeeShare(transactor *transactor.Transactor, reqid, uid uint64, wdLq *cbrtypes.WithdrawLq) error {
-	// NOTE: Only support single wdLq for now
+func (c *CbrChain) StartDelegatorWithdrawClaimCbrFeeShare(
+	transactor *transactor.Transactor, reqid, uid uint64, wdLqs []*cbrtypes.WithdrawLq) error {
+	return c.startWithdrawClaimCbrFeeShare(transactor, reqid, c.Delegators[uid], wdLqs)
+}
+
+func (c *CbrChain) StartValidatorWithdrawClaimCbrFeeShare(
+	transactor *transactor.Transactor, reqid, uid uint64, wdLqs []*cbrtypes.WithdrawLq) error {
+	return c.startWithdrawClaimCbrFeeShare(transactor, reqid, c.Validators[uid], wdLqs)
+}
+
+func (c *CbrChain) startWithdrawClaimCbrFeeShare(
+	transactor *transactor.Transactor, reqid uint64, client *TestEthClient, wdLqs []*cbrtypes.WithdrawLq) error {
 	withdrawReq := &cbrtypes.WithdrawReq{
-		Withdraws:    []*cbrtypes.WithdrawLq{wdLq},
+		Withdraws:    wdLqs,
 		ExitChainId:  c.ChainId,
 		ReqId:        reqid,
 		WithdrawType: cbrtypes.ClaimFeeShare,
@@ -218,9 +229,38 @@ func (c *CbrChain) StartWithdrawClaimCbrFeeShare(transactor *transactor.Transact
 
 	_, err := cbrcli.InitWithdraw(transactor, &cbrtypes.MsgInitWithdraw{
 		WithdrawReq: wdBytes,
-		UserSig:     c.Delegators[uid].SignMsg(wdBytes),
+		UserSig:     client.SignMsg(wdBytes),
 		Creator:     transactor.Key.GetAddress().String(),
 	})
+	return err
+}
+
+func StartValidatorMultiWithdrawClaimCbrFeeShares(vid, reqid uint64, wdLqs []*cbrtypes.WithdrawLq) error {
+	txr := NewTestTransactor(
+		SgnHomes[vid],
+		SgnChainID,
+		SgnNodeURI,
+		ValSgnAddrStrs[vid],
+		SgnPassphrase,
+	)
+
+	var msgs []sdk.Msg
+	for _, wd := range wdLqs {
+		withdrawReq := &cbrtypes.WithdrawReq{
+			Withdraws:    []*cbrtypes.WithdrawLq{wd},
+			ExitChainId:  wd.FromChainId,
+			ReqId:        reqid,
+			WithdrawType: cbrtypes.ValidatorClaimFeeShare,
+		}
+		reqid += 1
+		wdBytes, _ := withdrawReq.Marshal()
+		msg := &cbrtypes.MsgInitWithdraw{
+			WithdrawReq: wdBytes,
+			Creator:     txr.Key.GetAddress().String(),
+		}
+		msgs = append(msgs, msg)
+	}
+	_, err := txr.SendTxMsgsWaitMined(msgs)
 	return err
 }
 
@@ -346,17 +386,26 @@ func GetPegBridgeFeesInfo(transactor *transactor.Transactor, delId uint64) (*dis
 	return distrcli.QueryPegBridgeFeesInfo(context.Background(), transactor.CliCtx, eth.Addr2Hex(DelEthAddrs[delId]))
 }
 
-func (c *CbrChain) StartClaimPegBridgeFee(
+func (c *CbrChain) StartDelegatorClaimPegBridgeFee(
 	transactor *transactor.Transactor, uid uint64, chainId uint64, tokenAddress eth.Addr, nonce uint64) error {
-	delegator := c.Delegators[uid]
+	return c.startClaimPegBridgeFee(transactor, c.Delegators[uid], chainId, tokenAddress, nonce)
+}
+
+func (c *CbrChain) StartValidatorClaimPegBridgeFee(
+	transactor *transactor.Transactor, uid uint64, chainId uint64, tokenAddress eth.Addr, nonce uint64) error {
+	return c.startClaimPegBridgeFee(transactor, c.Validators[uid], chainId, tokenAddress, nonce)
+}
+
+func (c *CbrChain) startClaimPegBridgeFee(
+	transactor *transactor.Transactor, client *TestEthClient, chainId uint64, tokenAddress eth.Addr, nonce uint64) error {
 	msg := &pegbrtypes.MsgClaimFee{
-		DelegatorAddress: delegator.Address.Hex(),
+		DelegatorAddress: client.Address.Hex(),
 		ChainId:          chainId,
 		TokenAddress:     eth.Addr2Hex(tokenAddress),
 		Nonce:            nonce,
 		Sender:           transactor.Key.GetAddress().String(),
 	}
-	signature := delegator.SignMsg(msg.EncodeDataToSignByDelegator())
+	signature := client.SignMsg(msg.EncodeDataToSignByDelegator())
 	msg.Signature = signature
 
 	_, err := pegbrcli.InitClaimFee(transactor, msg)

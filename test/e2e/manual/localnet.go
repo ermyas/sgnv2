@@ -28,7 +28,7 @@ var (
 	start   = flag.Bool("start", false, "start local testnet")
 	cbr     = flag.Bool("cbr", false, "start with cbridge")
 	op      = flag.Bool("op", false, "proceed with sample operations")
-	gateway = flag.Bool("gateway", false, "start with gateway")
+	report  = flag.Bool("report", false, "liveness report and price sync")
 	full    = flag.Bool("full", false, "start with full stack setup")
 	auto    = flag.Bool("auto", false, "auto-add all validators")
 	down    = flag.Bool("down", false, "shutdown local testnet")
@@ -45,7 +45,6 @@ func main() {
 	repoRoot, _ := filepath.Abs("../../..")
 	if *full {
 		*cbr = true
-		*gateway = true
 		*auto = true
 	}
 	if *start {
@@ -67,7 +66,7 @@ func main() {
 			ValidatorBondInterval: big.NewInt(0),
 			MaxSlashFactor:        big.NewInt(1e5),
 		}
-		multinode.SetupNewSgnEnv(p, *cbr, *gateway, true)
+		multinode.SetupNewSgnEnv(p, *cbr, true, *report)
 		if *cbr {
 			amts := []*big.Int{big.NewInt(1e18)}
 			tc.CbrChain1.SetInitSigners(amts)
@@ -356,6 +355,7 @@ func cbrOps() {
 	xferId, err := tc.CbrChain1.Send(0, xferAmt, tc.CbrChain2.ChainId, 1)
 	tc.ChkErr(err, "u0 chain1 send")
 	tc.CheckXfer(txr, xferId[:])
+	log.Infof("--- transfer Id %x", xferId)
 
 	log.Infoln("======================== LP withdraw liquidity ===========================")
 	reqid := uint64(time.Now().Unix())
@@ -363,7 +363,7 @@ func cbrOps() {
 	wdLq2 := tc.CbrChain2.GetWithdrawLq(10000000) // withdraw 10%
 	err = tc.CbrChain1.StartWithdrawRemoveLiquidity(txr, reqid, 0, wdLq1, wdLq2)
 	tc.ChkErr(err, "u0 chain1 start withdraw")
-	log.Infoln("withdraw reqid:", reqid)
+	log.Infoln("--- withdraw reqid:", reqid)
 	detail := tc.GetWithdrawDetailWithSigs(txr, tc.CbrChain1.Users[0].Address, reqid, 4)
 	curss, err := tc.GetCurSortedSigners(txr, tc.CbrChain1.ChainId)
 	tc.ChkErr(err, "chain1 GetCurSortedSigners")
@@ -376,6 +376,14 @@ func cbrOps() {
 	})
 	tc.ChkErr(err, "cli Query")
 	log.Infoln("QueryLiquidityDetailList resp:", res.String())
+
+	log.Infoln("======================== Xfer back ===========================")
+	err = tc.CbrChain2.ApproveUSDT(0, xferAmt)
+	tc.ChkErr(err, "u0 chain2 approve")
+	xferId, err = tc.CbrChain2.Send(0, xferAmt, tc.CbrChain1.ChainId, 1)
+	tc.ChkErr(err, "u0 chain2 send")
+	tc.CheckXfer(txr, xferId[:])
+	log.Infof("--- transfer Id %x", xferId)
 
 	log.Infoln("======================== LP claim farming reward on-chain ===========================")
 	err = tc.StartClaimFarmingRewards(txr, 0)

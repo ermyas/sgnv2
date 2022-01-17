@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"math/big"
 
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/pegbridge/types"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
@@ -156,17 +156,30 @@ func (k msgServer) ClaimFee(goCtx context.Context, msg *types.MsgClaimFee) (*typ
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	logMsg := "x/pegbridge handle ClaimFee"
-	withdrawAddr := eth.Hex2Addr(msg.DelegatorAddress)
-	if k.HasFeeClaimInfo(ctx, withdrawAddr, msg.Nonce) {
-		return nil, errors.New("fee claim nonce used")
+	var withdrawAddr eth.Addr
+	if msg.IsValidator {
+		senderSgnAcct, err := sdk.AccAddressFromBech32(msg.Sender)
+		if err != nil {
+			return nil, fmt.Errorf("invalid sender accnt")
+		}
+		validator, found := k.stakingKeeper.GetValidatorBySgnAddr(ctx, senderSgnAcct)
+		if !found {
+			return nil, fmt.Errorf("sender accnt %s not validator", senderSgnAcct)
+		}
+		withdrawAddr = validator.GetEthAddr()
+	} else {
+		withdrawAddr = eth.Hex2Addr(msg.DelegatorAddress)
+		signer, err := ethutils.RecoverSigner(msg.EncodeDataToSignByDelegator(), msg.Signature)
+		if err != nil {
+			return nil, fmt.Errorf("recover signer err: %w", err)
+		}
+		if signer != withdrawAddr {
+			return nil, fmt.Errorf("%s invalid signature", logMsg)
+		}
 	}
 
-	signer, err := ethutils.RecoverSigner(msg.EncodeDataToSignByDelegator(), msg.Signature)
-	if err != nil {
-		return nil, fmt.Errorf("recover signer err: %w", err)
-	}
-	if signer != withdrawAddr {
-		return nil, fmt.Errorf("%s invalid signature", logMsg)
+	if k.HasFeeClaimInfo(ctx, withdrawAddr, msg.Nonce) {
+		return nil, errors.New("fee claim nonce used")
 	}
 
 	tokenAddr := eth.Hex2Addr(msg.TokenAddress)

@@ -222,7 +222,7 @@ func pegbridgeTest(t *testing.T) {
 	assert.True(t, fee0.Amount.LT(sdk.NewDec(1e15)))
 
 	nonce = uint64(time.Now().Unix())
-	err = tc.CbrChain1.StartClaimPegBridgeFee(transactor, 0, tc.CbrChain1.ChainId, tc.CbrChain1.UNIAddr, nonce)
+	err = tc.CbrChain1.StartDelegatorClaimPegBridgeFee(transactor, 0, tc.CbrChain1.ChainId, tc.CbrChain1.UNIAddr, nonce)
 	tc.ChkErr(err, "del0 chain1 start claim pegbridge fee")
 	withdrawId, withdrawInfo = tc.GetPegBridgeFeeClaimWithdrawInfoWithSigs(
 		transactor, tc.CbrChain1.Delegators[0].Address, nonce, 3)
@@ -236,4 +236,16 @@ func pegbridgeTest(t *testing.T) {
 	tc.ChkErr(err, "del0 get pegbridge fees info after claim")
 	log.Infoln("feesInfo.ClaimableFeeAmounts after claim", feesInfo.ClaimableFeeAmounts)
 	assert.Equal(t, 0, len(feesInfo.ClaimableFeeAmounts), "Should have 0 fee")
+
+	log.Infoln("======================== Validator 0 claim fee ===========================")
+	nonce = uint64(time.Now().Unix())
+	err = tc.CbrChain1.StartValidatorClaimPegBridgeFee(transactor, 0, tc.CbrChain1.ChainId, tc.CbrChain1.UNIAddr, nonce)
+	tc.ChkErr(err, "val0 chain1 start claim pegbridge fee")
+	withdrawId, withdrawInfo = tc.GetPegBridgeFeeClaimWithdrawInfoWithSigs(
+		transactor, tc.CbrChain1.Validators[0].Address, nonce, 3)
+	log.Infoln("val0 claim pegbridge fees withdrawId:", withdrawId)
+	curss, err = tc.GetCurSortedSigners(transactor, tc.CbrChain1.ChainId)
+	tc.ChkErr(err, "chain1 GetCurSortedSigners")
+	err = tc.CbrChain1.OnchainPegVaultWithdraw(withdrawInfo, curss)
+	tc.ChkErr(err, "chain1 onchain withdraw pegbridge fee")
 }

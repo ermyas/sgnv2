@@ -672,7 +672,7 @@ type MintOnChain struct {
 	// amount defines the mint amount.
 	Amount []byte `protobuf:"bytes,3,opt,name=amount,proto3" json:"amount,omitempty"`
 	// depositor defines the account address that made deposit at the original token chain.
-	// Not applicable to governance-triggered mints.
+	// Not applicable to refund claims and governance-triggered mints.
 	Depositor []byte `protobuf:"bytes,4,opt,name=depositor,proto3" json:"depositor,omitempty"`
 	// ref_chain_id defines the reference chain ID, taking values of:
 	// 1. The common case of deposit-mint: the chain ID on which the corresponding deposit happened;

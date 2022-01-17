@@ -3,7 +3,6 @@ package ops
 import (
 	"errors"
 	"fmt"
-	"math/big"
 	"strings"
 
 	"github.com/celer-network/goutils/log"
@@ -101,13 +100,8 @@ $ %s ops submit-relay --xferid=xxxxx"
 			re, err := cbr.Transactor.TransactWaitMined(
 				"cli submit relay",
 				func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
-					var curssAddrs []eth.Addr
-					var curssPowers []*big.Int
-					for _, signer := range curss {
-						curssAddrs = append(curssAddrs, eth.Bytes2Addr(signer.GetAddr()))
-						curssPowers = append(curssPowers, new(big.Int).SetBytes(signer.GetPower()))
-					}
-					return cbr.contract.Relay(opts, relay.Relay, sigsBytes, curssAddrs, curssPowers)
+					signers, powers := cbrtypes.SignersToEthArrays(curss)
+					return cbr.contract.Relay(opts, relay.Relay, sigsBytes, signers, powers)
 				},
 			)
 			if err != nil {
