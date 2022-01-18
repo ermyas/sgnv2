@@ -138,7 +138,7 @@ func WithdrawValidatorFeeCmd() *cobra.Command {
 							},
 						)
 						if err != nil {
-							fmt.Printf("submit withdraw chain %d reqid %d. err: %s\n", chainId, reqId, err)
+							fmt.Printf("submit withdraw chain %d reqid %d. err: %s\n\n", chainId, reqId, err)
 							continue
 						}
 						fmt.Printf("submit withdraw chain %d reqid %d. tx hash %x\n", chainId, reqId, tx.Hash())
