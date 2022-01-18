@@ -162,8 +162,8 @@ github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792/go.mod h1:ghJtE
 github.com/btcsuite/winsvc v1.0.0/go.mod h1:jsenWakMcC0zFBFurPLEAyrnc/teJEM1O46fmI40EZs=
 github.com/c-bata/go-prompt v0.2.2/go.mod h1:VzqtzE2ksDBcdln8G7mk2RX9QyGjH+OVqOCSiVIqS34=
 github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n9yuLkIJQ=
-github.com/celer-network/endpoint-proxy v0.1.1 h1:9yVa7mhzRWGQq9ibLcQ3DG+J81Rwtg2o3Q90UUerK6I=
-github.com/celer-network/endpoint-proxy v0.1.1/go.mod h1:zyRTvdnbG+UMp9aYJgwIeNahJv0gMqAwMcWY/mIDvlI=
+github.com/celer-network/endpoint-proxy v0.1.2 h1:UY4OAbwPgFjJ1mKMsg8Tn/h0GQ/qf1BFXWlrXyYGv2k=
+github.com/celer-network/endpoint-proxy v0.1.2/go.mod h1:zyRTvdnbG+UMp9aYJgwIeNahJv0gMqAwMcWY/mIDvlI=
 github.com/celer-network/goutils v0.1.38/go.mod h1:YLfSj4GfqY0+OZkFjnOpAdCdn2lKEXEQp37aS31sYjY=
 github.com/celer-network/goutils v0.1.41 h1:xrRweR1wqjSPxGy3VhL6xumBLQKx4OHO1tgmk6lwKvY=
 github.com/celer-network/goutils v0.1.41/go.mod h1:YLfSj4GfqY0+OZkFjnOpAdCdn2lKEXEQp37aS31sYjY=
