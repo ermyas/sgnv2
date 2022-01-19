@@ -165,8 +165,8 @@ github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n
 github.com/celer-network/endpoint-proxy v0.1.2 h1:UY4OAbwPgFjJ1mKMsg8Tn/h0GQ/qf1BFXWlrXyYGv2k=
 github.com/celer-network/endpoint-proxy v0.1.2/go.mod h1:zyRTvdnbG+UMp9aYJgwIeNahJv0gMqAwMcWY/mIDvlI=
 github.com/celer-network/goutils v0.1.38/go.mod h1:YLfSj4GfqY0+OZkFjnOpAdCdn2lKEXEQp37aS31sYjY=
-github.com/celer-network/goutils v0.1.41 h1:xrRweR1wqjSPxGy3VhL6xumBLQKx4OHO1tgmk6lwKvY=
-github.com/celer-network/goutils v0.1.41/go.mod h1:YLfSj4GfqY0+OZkFjnOpAdCdn2lKEXEQp37aS31sYjY=
+github.com/celer-network/goutils v0.1.42 h1:ma11hGPmhTu9GzbektjsoFWxi09/Pm8iCzDvQZGaoQ4=
+github.com/celer-network/goutils v0.1.42/go.mod h1:YLfSj4GfqY0+OZkFjnOpAdCdn2lKEXEQp37aS31sYjY=
 github.com/cenkalti/backoff v2.2.1+incompatible h1:tNowT99t7UNflLxfYYSlKYsBpXdEet03Pg2g16Swow4=
 github.com/cenkalti/backoff v2.2.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
