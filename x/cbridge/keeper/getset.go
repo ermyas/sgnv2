@@ -271,6 +271,10 @@ func SetAssetPrice(kv sdk.KVStore, ap []*types.AssetPrice) {
 			kv.Set(types.CfgKeyChain2GasTokenSymbol(chainId), []byte(sym))
 		}
 		setUint32(kv, types.CfgKeySymbol2UsdPrice(sym), it.Price)
+		origExtraPower10 := getUint32(kv, types.CfgKeySymbol2ExtraPower10(sym))
+		if it.ExtraPower10 == 0 && origExtraPower10 != 0 {
+			kv.Delete(types.CfgKeySymbol2ExtraPower10(sym))
+		}
 		if it.ExtraPower10 > 0 {
 			// only set if ExtraPower10 > 0 to save kv write as non-exist key return 0 too
 			setUint32(kv, types.CfgKeySymbol2ExtraPower10(sym), it.ExtraPower10)
