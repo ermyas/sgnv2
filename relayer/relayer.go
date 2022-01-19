@@ -102,7 +102,7 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 	go r.monitorSgnPegMintToSign()
 	go r.monitorSgnPegWithdrawToSign()
 
-	r.startReportCurrentBlockNumber(time.Minute * 5)
+	r.startReportSgnAnalytics()
 
 	go r.processPullerQueue()
 	go r.processSlashQueue()
