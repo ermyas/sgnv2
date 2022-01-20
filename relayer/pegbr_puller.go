@@ -460,7 +460,7 @@ func (c *CbrOneChain) skipSyncPegbrDeposit(
 	}
 
 	resp, err := pegbrcli.QueryDepositInfo(cliCtx, eth.Bytes2Hex(ev.DepositId[:]))
-	if err != nil && !strings.Contains(err.Error(), "no info found") {
+	if err != nil && !strings.Contains(err.Error(), pegbrtypes.ErrNoInfoFound.Error()) {
 		// log only, will not skip if request failed
 		log.Errorf("QueryDepositInfo err: %s", err)
 		return

@@ -80,6 +80,38 @@ func DeployPegVaultContract(
 	return
 }
 
+func DeployMessageBusContract(ethClient *ethclient.Client, auth *bind.TransactOpts, bridge, pegBridge, pegVault eth.Addr) (eth.Addr, *eth.MessageBus) {
+	addr, tx, contract, err := eth.DeployMessageBus(auth, ethClient, bridge, bridge, pegBridge, pegVault)
+	ChkErr(err, "failed to deploy MessageBus")
+	log.Infoln("MessageBuss address", addr)
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployMessageBusContract")
+	return addr, contract
+}
+
+func DeployBatchTransferContract(ethClient *ethclient.Client, auth *bind.TransactOpts, bus, bridge eth.Addr) (eth.Addr, *eth.BatchTransfer) {
+	addr, tx, contract, err := eth.DeployBatchTransfer(auth, ethClient, bus)
+	ChkErr(err, "failed to deploy BatchTransfer")
+	log.Infoln("BatchTransfer address", addr)
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployBatchTransferContract")
+	return addr, contract
+}
+
+func DeployTransferMessageContract(ethClient *ethclient.Client, auth *bind.TransactOpts, bus eth.Addr) (eth.Addr, *eth.TransferMessage) {
+	addr, tx, contract, err := eth.DeployTransferMessage(auth, ethClient, bus)
+	ChkErr(err, "failed to deploy TransferMessage")
+	log.Infoln("TransferMessage address", addr)
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployTransferMessageContract")
+	return addr, contract
+}
+
+func DeployTestRefundContract(ethClient *ethclient.Client, auth *bind.TransactOpts, bus eth.Addr) (eth.Addr, *eth.TestRefund) {
+	addr, tx, contract, err := eth.DeployTestRefund(auth, ethClient, bus)
+	ChkErr(err, "failed to deploy TestRefund")
+	log.Infoln("TestRefund address", addr)
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployTestRefundContract")
+	return addr, contract
+}
+
 func DeploySgnStakingContracts(contractParams *ContractParams) *types.Transaction {
 	Contracts = &eth.Contracts{}
 	stakingContractAddr, _, staking, err := eth.DeployStaking(

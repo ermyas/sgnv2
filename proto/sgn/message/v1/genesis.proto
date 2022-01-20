@@ -1,0 +1,17 @@
+syntax = "proto3";
+package sgn.message.v1;
+
+option go_package = "github.com/celer-network/sgn-v2/x/message/types";
+
+import "gogoproto/gogo.proto";
+import "sgn/common/v1/common.proto";
+import "sgn/message/v1/message.proto";
+
+// GenesisState defines the message module's genesis state.
+message GenesisState {
+  // params defines all the parameters of the module.
+  Params params = 1 [(gogoproto.nullable) = false];
+
+  // message_buses defines the MessageBus contract infos on each chain.
+  repeated MessageBusInfo message_buses = 2 [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"message_buses\""];
+}

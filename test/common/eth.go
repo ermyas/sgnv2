@@ -174,7 +174,6 @@ func InitializeValidator(auth *bind.TransactOpts, signerAddr eth.Addr, sgnAddr s
 		return err
 	}
 	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "Approve")
-
 	tx, err = Contracts.Staking.InitializeValidator(auth, signerAddr, minSelfDelegation, commissionRate)
 	if err != nil {
 		return err

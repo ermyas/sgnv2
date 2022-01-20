@@ -26,7 +26,7 @@ func (k Keeper) claimFee(
 		return true
 	})
 	denom := fmt.Sprintf("%s%s/%d", types.PegBridgeFeeDenomPrefix, symbol, chainId)
-	coin := k.distrKeeper.GetWithdrawableBalance(ctx, delAddr, sdk.NewCoin(denom, sdk.ZeroInt()))
+	coin := k.distrKeeper.GetWithdrawableBalance(ctx, delAddr, denom)
 	err = k.BurnFee(ctx, delAddr, coin)
 	if err != nil {
 		return nil, nil, err

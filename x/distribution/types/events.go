@@ -11,6 +11,7 @@ const (
 	EventTypeClaimAllStakingReward = "claim_all_staking_reward"
 	EventTypeClaimCBridgeFeeShare  = "claim_cbridge_fee_share"
 	EventTypeClaimPegBridgeFees    = "claim_pegbridge_fees"
+	EventTypeClaimMessageFees      = "claim_message_fees"
 
 	AttributeKeyWithdrawAddress  = "withdraw_address"
 	AttributeKeyValidator        = "validator"

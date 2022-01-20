@@ -217,3 +217,27 @@ func (o *PegVaultContract) GetAddr() Addr {
 func (o *PegVaultContract) GetABI() string {
 	return OriginalTokenVaultABI
 }
+
+type MsgBusContract struct {
+	*MessageBus
+	Address Addr
+}
+
+func NewMsgBusContract(address Addr, client *ethclient.Client) (*MsgBusContract, error) {
+	bus, err := NewMessageBus(address, client)
+	if err != nil {
+		return nil, err
+	}
+	return &MsgBusContract{
+		MessageBus: bus,
+		Address:    address,
+	}, nil
+}
+
+func (c *MsgBusContract) GetAddr() Addr {
+	return c.Address
+}
+
+func (c *MessageBus) GetABI() string {
+	return MessageBusABI
+}

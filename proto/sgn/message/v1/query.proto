@@ -1,0 +1,165 @@
+syntax = "proto3";
+package sgn.message.v1;
+
+option go_package = "github.com/celer-network/sgn-v2/x/message/types";
+
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "sgn/common/v1/common.proto";
+import "sgn/message/v1/message.proto";
+
+// Query defines the gRPC querier service.
+service Query {
+  // Params queries the parameters of the module.
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/sgn/v1/message/params";
+  }
+
+  // ExecutionContexts returns the execution contexts of all messages that have enough signatures and are ready for execution.
+  // Note that it may return messages that are being or have been executed by an executor.
+  // The SGN will monitor the execution event on-chain. Once it reaches consensus that a message has been executed, the query will stop
+  // returning the info about that particular message.
+  //
+  // The query can be optionally filtered by destination chain IDs and / or destination contract addresses.
+  rpc ExecutionContexts(QueryExecutionContextsRequest) returns (QueryExecutionContextsResponse) {
+    option (google.api.http).get = "/sgn/v1/message/execution_contexts";
+  }
+
+  // Message queries the message details.
+  rpc Message(QueryMessageRequest) returns (QueryMessageResponse) {
+    option (google.api.http).get = "/sgn/message/v1/message/{message_id}";
+  }
+
+  // Message queries whether a message exists.
+  rpc MessageExists(QueryMessageExistsRequest) returns (QueryMessageExistsResponse) {
+    option (google.api.http).get = "/sgn/message/v1/message_exists/{message_id}";
+  }
+
+  // Message queries whether a message is active.
+  rpc IsMessageActive(IsMessageActiveRequest) returns (IsMessageActiveResponse) {
+    option (google.api.http).get = "/sgn/message/v1/is_message_active/{message_id}";
+  }
+  // Message queries whether a message exists.
+  rpc RefundExists(QueryRefundExistsRequest) returns (QueryRefundExistsResponse) {
+    option (google.api.http).get = "/sgn/message/v1/refund_exists/{src_transfer_id}";
+  }
+
+  // Transfer queries the optional transfer details associated with a message.
+  rpc Transfer(QueryTransferRequest) returns (QueryTransferResponse) {
+    option (google.api.http).get = "/sgn/message/v1/transfer/{message_id}";
+  }
+
+  // MessageBus queries the message bus contract info.
+  rpc MessageBus(QueryMessageBusRequest) returns (QueryMessageBusResponse) {
+    option (google.api.http).get = "/sgn/message/v1/message_bus/{chain_id}";
+  }
+
+  // FeeClaimInfo queries the info for claiming message fees on-chain.
+  rpc FeeClaimInfo(QueryFeeClaimInfoRequest) returns (QueryFeeClaimInfoResponse) {
+    option (google.api.http).get = "/sgn/message/v1/fee_claim_info/{address}";
+  }
+}
+
+// QueryParamsRequest is request type for the Query/Params RPC method.
+message QueryParamsRequest {}
+
+// QueryParamsResponse is response type for the Query/Params RPC method.
+message QueryParamsResponse {
+  // params holds all the parameters of this module.
+  Params params = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryExecutionContextsRequest is request type for the Query/ExecutionContexts RPC method.
+message QueryExecutionContextsRequest {
+  // contract_infos optionally filter request by chain IDs and / or contract addresses.
+  repeated sgn.common.v1.ContractInfo contract_infos = 1;
+}
+
+// QueryExecutionContextsRequest is response type for the Query/ExecutionContexts RPC method.
+message QueryExecutionContextsResponse {
+  // execution_contexts is the execution contexts.
+  repeated ExecutionContext execution_contexts = 1 [(gogoproto.nullable) = false];
+}
+
+// IsMessageActiveRequest is request type for the Query/IsMessageActive RPC method.
+message IsMessageActiveRequest {
+  string message_id = 1;  // message_id is from Message.ComputeMessageId()
+}
+
+// IsMessageActiveResponse is response type for the Query/IsMessageActive RPC method.
+message IsMessageActiveResponse {
+  bool exists = 1;
+}
+
+// QueryMessageExistsRequest is request type for the Query/MessageExists RPC method.
+message QueryMessageExistsRequest {
+  string message_id = 1;  // message_id is from Message.ComputeMessageId()
+}
+
+// QueryMessageExistsResponse is response type for the Query/MessageExists RPC method.
+message QueryMessageExistsResponse {
+  bool exists = 1;
+}
+
+// QueryRefundExistsRequest is request type for the Query/RefundExists RPC method.
+message QueryRefundExistsRequest {
+  string src_transfer_id = 1;  // message_id is from Message.ComputeMessageId()
+}
+
+// QueryRefundExistsResponse is response type for the Query/RefundExists RPC method.
+message QueryRefundExistsResponse {
+  bool exists = 1;
+}
+
+// QueryMessageRequest is request type for the Query/Message RPC method.
+message QueryMessageRequest {
+  // message_id is the message id
+  string message_id = 1;
+}
+
+// QueryMessageResponse is response type for the Query/Message RPC method.
+message QueryMessageResponse {
+  // message is the message queried
+  Message message = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryTransferRequest is request type for the Query/Transfer RPC method.
+message QueryTransferRequest {
+  // message_id is the message id
+  string message_id = 1;
+}
+
+// QueryTransferResponse is response type for the Query/Transfer RPC method.
+message QueryTransferResponse {
+  // transfer is the transfer queried
+  Transfer transfer = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryMessageBusRequest is request type for the Query/MessageBus RPC method.
+message QueryMessageBusRequest {
+  // chain_id is the chain id
+  uint64 chain_id = 1;
+}
+
+// QueryMessageBusResponse is response type for the Query/MessageBus RPC method.
+message QueryMessageBusResponse {
+  // message_bus is the MessageBus info
+  MessageBusInfo message_bus = 1 [(gogoproto.nullable) = false];
+}
+
+// QueryFeeClaimInfoRequest is the request type for the
+// Query/FeeClaimInfo RPC method.
+message QueryFeeClaimInfoRequest {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // address defines the account address to query for.
+  string address = 1;
+}
+
+// QueryFeeClaimInfoResponse is the response type for the
+// Query/FeeClaimInfo RPC method.
+message QueryFeeClaimInfoResponse {
+  // fee_claim_info defines the fee claim info.
+  FeeClaimInfo fee_claim_info = 1 [(gogoproto.nullable) = false];
+}

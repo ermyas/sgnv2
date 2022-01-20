@@ -2,6 +2,7 @@ package relayer
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -104,4 +105,12 @@ func (r *Relayer) validateSigs(signedValidators mapset.Set) (pass bool) {
 	}
 	quorumStake := totalStake.MulRaw(2).QuoRaw(3)
 	return votingStake.GT(quorumStake)
+}
+
+func RunWithInterval(run func(), checkIntervalSeconds uint64) {
+	interval := time.Duration(checkIntervalSeconds) * time.Second
+	for {
+		time.Sleep(interval)
+		run()
+	}
 }

@@ -25,6 +25,7 @@ type BankKeeper interface {
 // StakingKeeper expected staking keeper (noalias)
 type StakingKeeper interface {
 	GetValidatorBySgnAddr(sdk.Context, sdk.AccAddress) (stakingtypes.ValidatorI, bool)
+	CheckSenderBondedValidator(ctx sdk.Context, sender string) (stakingtypes.ValidatorI, error)
 	GetSyncer(ctx sdk.Context) *stakingtypes.Syncer
 }
 
@@ -34,5 +35,5 @@ type CbridgeKeeper interface {
 
 type DistributionKeeper interface {
 	ClaimPegBridgeFees(ctx sdk.Context, delAddr eth.Addr) error
-	GetWithdrawableBalance(ctx sdk.Context, delAddr eth.Addr, coin sdk.Coin) sdk.Coin
+	GetWithdrawableBalance(ctx sdk.Context, delAddr eth.Addr, denom string) sdk.Coin
 }

@@ -155,7 +155,8 @@ type GenesisState struct {
 	PoolHistoricalRewards []PoolHistoricalRewardsRecord `protobuf:"bytes,4,rep,name=pool_historical_rewards,json=poolHistoricalRewards,proto3" json:"pool_historical_rewards" yaml:"pool_historical_rewards"`
 	// pool_current_rewards defines the current rewards of all pools at genesis.
 	PoolCurrentRewards []PoolCurrentRewardsRecord `protobuf:"bytes,5,rep,name=pool_current_rewards,json=poolCurrentRewards,proto3" json:"pool_current_rewards" yaml:"pool_current_rewards"`
-	RewardContracts    []types.ContractInfo       `protobuf:"bytes,6,rep,name=reward_contracts,json=rewardContracts,proto3" json:"reward_contracts" yaml:"reward_contracts"`
+	// reward_contracts defines the FarmingRewards contract addresses on each chain.
+	RewardContracts []types.ContractInfo `protobuf:"bytes,6,rep,name=reward_contracts,json=rewardContracts,proto3" json:"reward_contracts" yaml:"reward_contracts"`
 }
 
 func (m *GenesisState) Reset()         { *m = GenesisState{} }

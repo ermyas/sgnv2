@@ -93,6 +93,10 @@ func (c *CbrChain) ApproveUNI(uid uint64, amt *big.Int) error {
 	return c.ApproveErc20(c.UNIContract, uid, amt, c.PegVaultAddr)
 }
 
+func (c *CbrChain) ApproveUNIForBatchTransfer(uid uint64, amt *big.Int) error {
+	return c.ApproveErc20(c.UNIContract, uid, amt, c.BatchTransferAddr)
+}
+
 func (c *CbrChain) ApproveErc20(erc20 *eth.Erc20, uid uint64, amt *big.Int, spender eth.Addr) error {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
@@ -115,6 +119,17 @@ func (c *CbrChain) ApprovePeggedUNI(uid uint64, amt *big.Int) error {
 	return nil
 }
 
+func (c *CbrChain) ApprovePeggedUNIForBatchTransfer(uid uint64, amt *big.Int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
+	tx, err := c.PeggedUNIContract.Approve(c.Users[uid].Auth, c.BatchTransferAddr, amt)
+	if err != nil {
+		return err
+	}
+	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "Approve")
+	return nil
+}
+
 func (c *CbrChain) AddLiq(uid uint64, amt *big.Int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
@@ -128,7 +143,7 @@ func (c *CbrChain) AddLiq(uid uint64, amt *big.Int) error {
 
 // only used for test
 func (c *CbrChain) Send(uid uint64, amt *big.Int, dstChainId, nonce uint64) (eth.Hash, error) {
-	return c.SendAny(uid, uid, amt, dstChainId, nonce, 100000) //10% slippage
+	return c.SendAny(uid, uid, amt, dstChainId, nonce, 100000) // 10% slippage
 }
 
 func (c *CbrChain) SendAny(fromUid, toUid uint64, amt *big.Int, dstChainId, nonce uint64, maxSlippage uint32) (eth.Hash, error) {
@@ -268,11 +283,32 @@ func (c *CbrChain) OnchainPegBridgeMint(info *pegbrtypes.MintInfo, signers []*cb
 	return nil
 }
 
+func (c *CbrChain) CheckUSDTBalance(uid uint64, expectedAmt *big.Int) {
+	var err error
+	var expected bool
+	balanceStr := ""
+	for retry := 0; retry < RetryLimit*2; retry++ {
+		balance, err := c.USDTContract.BalanceOf(&bind.CallOpts{}, c.Users[uid].Address)
+		balanceStr = balance.String()
+		if err == nil && balance.Cmp(expectedAmt) == 0 {
+			expected = true
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to CheckUSDTBalance")
+	if !expected {
+		log.Fatalf("CheckUSDTBalance failed,now:%s, expect:%s", balanceStr, expectedAmt)
+	}
+}
+
 func (c *CbrChain) CheckUNIBalance(uid uint64, expectedAmt *big.Int) {
 	var err error
 	var expected bool
+	balanceStr := ""
 	for retry := 0; retry < RetryLimit*2; retry++ {
 		balance, err := c.UNIContract.BalanceOf(&bind.CallOpts{}, c.Users[uid].Address)
+		balanceStr = balance.String()
 		if err == nil && balance.Cmp(expectedAmt) == 0 {
 			expected = true
 			break
@@ -281,15 +317,17 @@ func (c *CbrChain) CheckUNIBalance(uid uint64, expectedAmt *big.Int) {
 	}
 	ChkErr(err, "failed to CheckUNIBalance")
 	if !expected {
-		log.Fatal("CheckUNIBalance failed")
+		log.Fatalf("CheckUNIBalance failed,now:%s, expect:%s", balanceStr, expectedAmt)
 	}
 }
 
 func (c *CbrChain) CheckPeggedUNIBalance(uid uint64, expectedAmt *big.Int) {
 	var err error
 	var expected bool
+	balanceStr := ""
 	for retry := 0; retry < RetryLimit*2; retry++ {
 		balance, err := c.PeggedUNIContract.BalanceOf(&bind.CallOpts{}, c.Users[uid].Address)
+		balanceStr = balance.String()
 		if err == nil && balance.Cmp(expectedAmt) == 0 {
 			expected = true
 			break
@@ -298,6 +336,103 @@ func (c *CbrChain) CheckPeggedUNIBalance(uid uint64, expectedAmt *big.Int) {
 	}
 	ChkErr(err, "failed to CheckPeggedUNIBalance")
 	if !expected {
-		log.Fatal("CheckPeggedUNIBalance failed")
+		log.Fatalf("CheckPeggedUNIBalance failed, now:%s, expect:%s", balanceStr, expectedAmt)
 	}
+}
+
+func (c *CbrChain) TransferMsg(uid uint64, receiver eth.Addr, dstChainId uint64, message []byte) error {
+	tx, err := c.TransferMessageContract.TransferMessage(
+		c.Users[uid].Auth,
+		receiver,
+		dstChainId,
+		message,
+	)
+	if err != nil {
+		return err
+	}
+	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
+	if err != nil {
+		return err
+	}
+	// last log is MessageWithTransfer event (NOTE: test only)
+	msgLog := receipt.Logs[len(receipt.Logs)-1]
+	msgEv, err := c.MessageBusContract.ParseMessage(*msgLog)
+	if err != nil {
+		return fmt.Errorf("parse log %+v err: %w", msgEv, err)
+	}
+	log.Infof("SendMessage tx success, message: %x", msgEv.Message)
+	return nil
+}
+
+func (c *CbrChain) BatchTransfer(
+	uid uint64, receiver eth.Addr, token eth.Addr, amount *big.Int, dstChainId uint64, maxSlippage uint32,
+	bridgeType uint8, accounts []eth.Addr, amounts []*big.Int) (xferId eth.Hash, err error) {
+
+	tx, err := c.BatchTransferContract.BatchTransfer(
+		c.Users[uid].Auth,
+		receiver,
+		token,
+		amount,
+		dstChainId,
+		maxSlippage,
+		bridgeType,
+		accounts,
+		amounts,
+	)
+	if err != nil {
+		return eth.ZeroHash, err
+	}
+	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
+	if err != nil {
+		return eth.ZeroHash, err
+	}
+	// last log is MessageWithTransfer event (NOTE: test only)
+	msgLog := receipt.Logs[len(receipt.Logs)-1]
+	msgEv, err := c.MessageBusContract.ParseMessageWithTransfer(*msgLog)
+	if err != nil {
+		return eth.ZeroHash, fmt.Errorf("parse log %+v err: %w", msgEv, err)
+	}
+	log.Infof("SendMessageWithTransfer tx success, srcTransferId: %x", msgEv.SrcTransferId)
+	return msgEv.SrcTransferId, nil
+}
+
+func (c *CbrChain) BatchTransferForDeposit(
+	uid uint64, receiver eth.Addr, token eth.Addr, amount *big.Int, dstChainId uint64, maxSlippage uint32,
+	bridgeType uint8, accounts []eth.Addr, amounts []*big.Int) (xferId eth.Hash, err error) {
+
+	tx, err := c.BatchTransferContract.BatchTransfer(
+		c.Users[uid].Auth,
+		receiver,
+		token,
+		amount,
+		dstChainId,
+		maxSlippage,
+		bridgeType,
+		accounts,
+		amounts,
+	)
+	if err != nil {
+		return eth.ZeroHash, err
+	}
+	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
+	if err != nil {
+		return eth.ZeroHash, err
+	}
+	// last log is MessageWithTransfer event (NOTE: test only)
+	msgLog := receipt.Logs[len(receipt.Logs)-1]
+	msgEv, err := c.MessageBusContract.ParseMessageWithTransfer(*msgLog)
+	if err != nil {
+		return eth.ZeroHash, fmt.Errorf("parse log %+v err: %w", msgEv, err)
+	}
+	log.Infof("SendMessageWithTransfer tx success, srcTransferId: %x", msgEv.SrcTransferId)
+	return msgEv.SrcTransferId, nil
+}
+
+func (c *CbrChain) ApproveUSDTForBatchTransfer(uid uint64, amt *big.Int) error {
+	return c.ApproveErc20(c.USDTContract, uid, amt, c.BatchTransferAddr)
+}
+
+func (c *CbrChain) SendMessageWithTransfer(fromUid uint64, amt *big.Int, mintChainId uint64, nonce uint64) error {
+
+	return nil
 }

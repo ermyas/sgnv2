@@ -50,6 +50,12 @@ func (c *CbrOneChain) startMon() {
 	c.monPegbrBurn(blkNum)
 	smallDelay()
 	c.monPegbrWithdrawn(blkNum)
+	smallDelay()
+	c.monMessageWithTransfer(blkNum)
+	smallDelay()
+	c.monMessageBusEventExecuted(blkNum)
+	smallDelay()
+	c.monMessage(blkNum)
 }
 
 func (c *CbrOneChain) monSend(blk *big.Int) {

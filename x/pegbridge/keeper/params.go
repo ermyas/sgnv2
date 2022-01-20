@@ -8,8 +8,8 @@ import (
 )
 
 // GetParams returns the total set of pegbridge parameters.
-func (k Keeper) GetParams(clientCtx sdk.Context) (params types.Params) {
-	k.paramSpace.GetParamSet(clientCtx, &params)
+func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
+	k.paramSpace.GetParamSet(ctx, &params)
 	return params
 }
 

@@ -45,10 +45,11 @@ const (
 	FlagSgnLivenessReportEndpoint = "sgnd.liveness_report_endpoint"
 	FlagSgnReportLpFeeEarningFlag = "sgnd.report_lp_fee_earning"
 
-	FlagSgnCheckIntervalSlash    = "sgnd.check_interval.slash"
-	FlagSgnCheckIntervalCbridge  = "sgnd.check_interval.cbridge"
-	FlagSgnCheckIntervalVerifier = "sgnd.check_interval.verifier"
-	FlagSgnCheckIntervalCbrPrice = "sgnd.check_interval.cbr_price"
+	FlagSgnCheckIntervalSlash     = "sgnd.check_interval.slash"
+	FlagSgnCheckIntervalCbridge   = "sgnd.check_interval.cbridge"
+	FlagSgnCheckIntervalVerifier  = "sgnd.check_interval.verifier"
+	FlagSgnCheckIntervalCbrPrice  = "sgnd.check_interval.cbr_price"
+	FlagSgnCheckIntervalMsgRefund = "sgnd.check_interval.msg_refund"
 
 	FlagConsensusTimeoutCommit = "consensus.timeout_commit"
 

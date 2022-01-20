@@ -37,5 +37,5 @@ type FarmingKeeper interface {
 
 type DistributionKeeper interface {
 	ClaimCBridgeFeeShare(ctx sdk.Context, delAddr eth.Addr) error
-	GetWithdrawableBalance(ctx sdk.Context, delAddr eth.Addr, coin sdk.Coin) sdk.Coin
+	GetWithdrawableBalance(ctx sdk.Context, delAddr eth.Addr, denom string) sdk.Coin
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math/big"
 	"testing"
 	"time"
 
@@ -16,6 +17,8 @@ import (
 	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
 	farmingcli "github.com/celer-network/sgn-v2/x/farming/client/cli"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
+	msgcli "github.com/celer-network/sgn-v2/x/message/client/cli"
+	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
 	pegbrcli "github.com/celer-network/sgn-v2/x/pegbridge/client/cli"
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -39,6 +42,18 @@ func CheckAddLiquidityStatus(transactor *transactor.Transactor, chainId, seqNum 
 	if resp.Status != cbrtypes.WithdrawStatus_WD_COMPLETED {
 		log.Fatalln("incorrect status")
 	}
+}
+
+func QueryTotalLiquidity(transactor *transactor.Transactor, chainId uint64, token eth.Addr) (*big.Int, error) {
+	res, err := cbrcli.QueryTotalLiquidity(transactor.CliCtx, &cbrtypes.QueryTotalLiquidityRequest{ChainId: chainId, TokenAddr: token.Hex()})
+	if err != nil {
+		return nil, err
+	}
+	liq, ok := new(big.Int).SetString(res.TotalLiq, 10)
+	if !ok {
+		return nil, fmt.Errorf("failed to convert liq to big int")
+	}
+	return liq, nil
 }
 
 func CheckXfer(transactor *transactor.Transactor, xferId []byte) {
@@ -470,6 +485,40 @@ func GetPegBridgeFeeClaimWithdrawInfoWithSigs(
 		log.Fatalf("QueryWithdrawInfo expected sigNum %d, actual %d", expSigNum, len(withdrawInfo.Signatures))
 	}
 	return withdrawId, withdrawInfo
+}
+
+func WaitForMessageExecuted(transactor *transactor.Transactor, expectedStatus msgtypes.ExecutionStatus) {
+	var err error
+	var resp *msgtypes.QueryExecutionContextsResponse
+	log.Infoln("finding active message id...")
+	for retry := 0; retry < RetryLimit; retry++ {
+		resp, err = msgcli.QueryExecutionContexts(transactor.CliCtx, &msgtypes.QueryExecutionContextsRequest{})
+		if err == nil && len(resp.ExecutionContexts) == 1 {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryExecutionContexts")
+	if len(resp.ExecutionContexts) == 0 {
+		log.Fatalf("QueryExecutionContexts expected more than 1 result, actual %d result", len(resp.ExecutionContexts))
+	}
+
+	msgId := eth.Bytes2Hash(resp.ExecutionContexts[0].MessageId)
+	var expected bool
+	log.Infoln("checking message", msgId)
+	for retry := 0; retry < RetryLimit; retry++ {
+		message, err := msgcli.QueryMessage(transactor.CliCtx, msgId.Hex())
+		if err == nil && message.ExecutionStatus == expectedStatus {
+			expected = true
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryMessage")
+	if !expected {
+		log.Fatal("message check failed")
+	}
+	log.Infof("message executed with expected status:%s", expectedStatus.String())
 }
 
 func CheckTotalSupply(

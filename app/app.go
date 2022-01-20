@@ -27,6 +27,10 @@ import (
 	govclient "github.com/celer-network/sgn-v2/x/gov/client"
 	govkeeper "github.com/celer-network/sgn-v2/x/gov/keeper"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
+	"github.com/celer-network/sgn-v2/x/message"
+	msgclient "github.com/celer-network/sgn-v2/x/message/client"
+	msgkeeper "github.com/celer-network/sgn-v2/x/message/keeper"
+	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
 	"github.com/celer-network/sgn-v2/x/mint"
 	mintclient "github.com/celer-network/sgn-v2/x/mint/client"
 	mintkeeper "github.com/celer-network/sgn-v2/x/mint/keeper"
@@ -120,12 +124,14 @@ var (
 			farmingclient.AdjustRewardProposalHandler,
 			farmingclient.BatchAdjustRewardProposalHandler,
 			farmingclient.SetRewardContractsProposalHandler,
+			msgclient.MsgUpdateProposalHandler,
 		),
 		slashing.AppModule{},
 		sync.AppModule{},
 		staking.AppModuleBasic{},
 		cbridge.AppModuleBasic{},
 		pegbridge.AppModuleBasic{},
+		message.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -180,6 +186,7 @@ type SgnApp struct {
 	StakingKeeper  stakingkeeper.Keeper
 	CbridgeKeeper  cbridgekeeper.Keeper
 	PegbrKeeper    pegkeeper.Keeper
+	MsgKeeper      msgkeeper.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -251,7 +258,7 @@ func NewSgnApp(
 		paramstypes.StoreKey, upgradetypes.StoreKey,
 		minttypes.StoreKey, distrtypes.StoreKey, farmingtypes.StoreKey,
 		govtypes.StoreKey, slashingtypes.StoreKey, synctypes.StoreKey, stakingtypes.StoreKey,
-		cbrtypes.MemStoreKey, cbrtypes.StoreKey, pegtypes.StoreKey,
+		cbrtypes.MemStoreKey, cbrtypes.StoreKey, pegtypes.StoreKey, msgtypes.StoreKey,
 	)
 	tKeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 
@@ -317,8 +324,19 @@ func NewSgnApp(
 		app.DistrKeeper,
 		authtypes.FeeCollectorName,
 	)
+	app.MsgKeeper = msgkeeper.NewKeeper(
+		appCodec,
+		keys[msgtypes.StoreKey],
+		app.GetSubspace(msgtypes.ModuleName),
+		app.BankKeeper,
+		&stakingKeeper,
+		app.CbridgeKeeper,
+		app.PegbrKeeper,
+		app.DistrKeeper,
+		authtypes.FeeCollectorName,
+	)
 	app.SyncKeeper = synckeeper.NewKeeper(
-		appCodec, keys[synctypes.StoreKey], &stakingKeeper, app.GetSubspace(synctypes.ModuleName), app.CbridgeKeeper, app.PegbrKeeper,
+		appCodec, keys[synctypes.StoreKey], &stakingKeeper, app.GetSubspace(synctypes.ModuleName), app.CbridgeKeeper, app.PegbrKeeper, app.MsgKeeper,
 	)
 
 	govRouter := govtypes.NewRouter()
@@ -328,7 +346,8 @@ func NewSgnApp(
 		AddRoute(cbrtypes.RouterKey, cbridge.NewCbrProposalHandler(app.CbridgeKeeper)).
 		AddRoute(pegtypes.RouterKey, pegbridge.NewPegProposalHandler(app.PegbrKeeper)).
 		AddRoute(farmingtypes.RouterKey, farming.NewProposalHandler(app.FarmingKeeper)).
-		AddRoute(minttypes.RouterKey, mint.NewProposalHandler(app.MintKeeper))
+		AddRoute(minttypes.RouterKey, mint.NewProposalHandler(app.MintKeeper)).
+		AddRoute(msgtypes.RouterKey, message.NewMsgProposalHandler(app.MsgKeeper))
 	app.GovKeeper = govkeeper.NewKeeper(
 		appCodec,
 		keys[govtypes.StoreKey],
@@ -367,6 +386,7 @@ func NewSgnApp(
 		sync.NewAppModule(app.SyncKeeper),
 		cbridge.NewAppModule(appCodec, app.CbridgeKeeper),
 		pegbridge.NewAppModule(appCodec, app.PegbrKeeper),
+		message.NewAppModule(appCodec, app.MsgKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -402,6 +422,7 @@ func NewSgnApp(
 		synctypes.ModuleName,
 		cbrtypes.ModuleName,
 		pegtypes.ModuleName,
+		msgtypes.ModuleName,
 	)
 
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter(), legacyAmino)
@@ -618,12 +639,18 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(synctypes.ModuleName).WithKeyTable(synctypes.ParamKeyTable())
 	paramsKeeper.Subspace(cbrtypes.ModuleName).WithKeyTable(cbrtypes.ParamKeyTable())
 	paramsKeeper.Subspace(pegtypes.ModuleName).WithKeyTable(pegtypes.ParamKeyTable())
+	paramsKeeper.Subspace(msgtypes.ModuleName).WithKeyTable(msgtypes.ParamKeyTable())
 
 	return paramsKeeper
 }
 
 func (app *SgnApp) setUpgradeHandlers() {
 	app.UpgradeKeeper.SetUpgradeHandler("pegbr-upgrade",
+		func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+			return app.mm.RunMigrations(ctx, app.configurator, fromVM)
+		})
+
+	app.UpgradeKeeper.SetUpgradeHandler("msg-upgrade",
 		func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 			return app.mm.RunMigrations(ctx, app.configurator, fromVM)
 		})
@@ -636,6 +663,15 @@ func (app *SgnApp) setUpgradeHandlers() {
 	if upgradeInfo.Name == "pegbr-upgrade" && !app.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
 		storeUpgrades := storetypes.StoreUpgrades{
 			Added: []string{"pegbridge"},
+		}
+
+		// configure store loader that checks if version == upgradeHeight and applies store upgrades
+		app.SetStoreLoader(upgradetypes.UpgradeStoreLoader(upgradeInfo.Height, &storeUpgrades))
+	}
+
+	if upgradeInfo.Name == "msg-upgrade" && !app.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
+		storeUpgrades := storetypes.StoreUpgrades{
+			Added: []string{"message"},
 		}
 
 		// configure store loader that checks if version == upgradeHeight and applies store upgrades

@@ -3,7 +3,9 @@ package relayer
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
+	"github.com/celer-network/sgn-v2/eth"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
@@ -11,11 +13,13 @@ import (
 var (
 	RelayerDbPrefix = []byte("relay")
 
-	PullerKeyPrefix    = []byte{0x01} // Key prefix for puller
-	SlashKeyPrefix     = []byte{0x11} // Key prefix for slash
-	CbrXferKeyPrefix   = []byte{0x12} // Key prefix for cbridge transfer
-	PegbrMintKeyPrefix = []byte{0x13}
-	PegbrWdKeyPrefix   = []byte{0x14}
+	PullerKeyPrefix        = []byte{0x01} // Key prefix for puller
+	SlashKeyPrefix         = []byte{0x11} // Key prefix for slash
+	CbrXferKeyPrefix       = []byte{0x12} // Key prefix for cbridge transfer
+	PegbrMintKeyPrefix     = []byte{0x13}
+	PegbrWdKeyPrefix       = []byte{0x14}
+	MsgRefundKeyPrefix     = []byte{0x15}
+	XferMsgRefundKeyPrefix = []byte{0x16}
 )
 
 // get puller key from mainchain txHash
@@ -53,4 +57,23 @@ func GetPegbrWdKey(wdChid uint64, burnChid uint64, burnId []byte) []byte {
 
 func GetPegbrWdPrefix(wdChid uint64) []byte {
 	return append(PegbrWdKeyPrefix, []byte(fmt.Sprintf("-%d-", wdChid))...)
+}
+
+func GetMsgRefundKey(srcChainId uint64, xferId eth.Hash) []byte {
+	return append(MsgRefundKeyPrefix, []byte(fmt.Sprintf("%d-%s", srcChainId, xferId.Hex()))...)
+}
+
+func GetXferMsgRefundKey(xferId eth.Hash) []byte {
+	return append(XferMsgRefundKeyPrefix, xferId.Bytes()...)
+}
+
+func ParseMsgRefundKey(msgRefundKey []byte) (srcChainId uint64, srcXferId eth.Hash) {
+	content := msgRefundKey[len(MsgRefundKeyPrefix):]
+	fields := strings.Split(string(content), "-")
+	srcChainId, err := strconv.ParseUint(fields[0], 10, 64)
+	if err != nil {
+		srcChainId = 0
+	}
+	srcXferId = eth.Hex2Hash(fields[1])
+	return
 }

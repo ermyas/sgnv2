@@ -96,11 +96,13 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 	go r.monitorSgnSlash()
 	go r.monitorSgnFarmingClaimAllEvent()
 	go r.monitorSgnDistributionClaimAllStakingRewardEvent()
+	go r.monitorSgnDistributionClaimMessageFeesEvent()
 
 	r.cbrMgr = NewCbridgeMgr(db, r.Transactor.CliCtx) // cbrMgr should be initialized before verifyPendingUpdates
 	go r.monitorSgnCbrDataToSign()                    // cbr monitor set after cbrMgr initialization
 	go r.monitorSgnPegMintToSign()
 	go r.monitorSgnPegWithdrawToSign()
+	go r.monitorSgnMsgDataToSign()
 
 	r.startReportSgnAnalytics()
 
@@ -114,6 +116,8 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 
 	go r.doPegbrSync(r.cbrMgr)
 	r.doPegbrOnchain(r.cbrMgr) // internal use goroutine
+
+	go r.doMsgbrSync(r.cbrMgr)
 
 	go r.checkSyncer()
 }

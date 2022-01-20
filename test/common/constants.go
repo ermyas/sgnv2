@@ -106,11 +106,47 @@ var (
 		eth.Hex2Addr("c310195e2844791cfd11d158bd13e5649bae832d"),
 	}
 
+	// executor
+	ExecutorEthKs   = "../../keys/eethks.json"
+	ExecutorEthAddr = eth.Hex2Addr("5047fcf61b30685a0aabd569668cb46a4898404e")
+
 	// used by local manual tests
 	SgnNodeURIs = [...]string{
 		"tcp://localhost:26657",
 		"tcp://localhost:26660",
 		"tcp://localhost:26662",
 		"tcp://localhost:26664",
+	}
+
+	Addrs = []eth.Addr{
+		ValEthAddrs[0],
+		ValEthAddrs[1],
+		ValEthAddrs[2],
+		ValEthAddrs[3],
+		ValSignerAddrs[0],
+		ValSignerAddrs[1],
+		ValSignerAddrs[2],
+		ValSignerAddrs[3],
+		DelEthAddrs[0],
+		DelEthAddrs[1],
+		DelEthAddrs[2],
+		DelEthAddrs[3],
+		ClientEthAddrs[0],
+		ClientEthAddrs[1],
+		ClientEthAddrs[2],
+		ClientEthAddrs[3],
+		ExecutorEthAddr,
+	}
+
+	Addrs2 = []eth.Addr{
+		ValSignerAddrs[0],
+		ValSignerAddrs[1],
+		ValSignerAddrs[2],
+		ValSignerAddrs[3],
+		ClientEthAddrs[0],
+		ClientEthAddrs[1],
+		ClientEthAddrs[2],
+		ClientEthAddrs[3],
+		ExecutorEthAddr,
 	}
 )

@@ -14,6 +14,7 @@ enum DataType {
   CbrOnchainEvent = 5; // syncer saw a new onchain event
   CbrUpdateCbrPrice = 6; // use PendingUpdate.data as serialized CbrPrice msg
   PegbrOnChainEvent = 7;
+  MsgbrOnChainEvent = 8;
 }
 
 enum VoteOption {

@@ -5,6 +5,9 @@ import (
 	"crypto/ecdsa"
 	"io/ioutil"
 	"math/big"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -91,4 +94,22 @@ func NewBigInt(nonZeroDigits, trailingZeros int) *big.Int {
 		log.Fatalf("invalid NewBigInt input %d %d", nonZeroDigits, trailingZeros)
 	}
 	return value
+}
+
+func RunCmd(name string, args ...string) {
+	argstr := strings.Join(args, " ")
+	cmdstr := name + " " + argstr
+	err := RunCmdNoChkErr(name, args...)
+	ChkErr(err, "Failed to "+cmdstr)
+}
+
+func RunCmdNoChkErr(name string, args ...string) error {
+	argstr := strings.Join(args, " ")
+	log.Infoln(name, argstr)
+	cmd := exec.Command(name, args...)
+	cmd.Dir, _ = filepath.Abs("../../..")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	return err
 }

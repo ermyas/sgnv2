@@ -59,6 +59,7 @@ message GenesisState {
   repeated PoolCurrentRewardsRecord pool_current_rewards = 5
       [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"pool_current_rewards\""];
 
+  // reward_contracts defines the FarmingRewards contract addresses on each chain.
   repeated sgn.common.v1.ContractInfo reward_contracts = 6
       [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"reward_contracts\""];
 }

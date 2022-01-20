@@ -1,0 +1,188 @@
+syntax = "proto3";
+package sgn.message.v1;
+
+option go_package = "github.com/celer-network/sgn-v2/x/message/types";
+
+import "cosmos_proto/cosmos.proto";
+import "cosmos/base/v1beta1/coin.proto";
+import "gogoproto/gogo.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "sgn/common/v1/common.proto";
+
+// Params defines the parameters for the module.
+message Params {
+  option (gogoproto.goproto_stringer) = false;
+
+  // trigger_sign_cooldown defines the minimal time between two trigger signing requests.
+  google.protobuf.Duration trigger_sign_cooldown = 1 [
+    (gogoproto.nullable) = false,
+    (gogoproto.stdduration) = true,
+    (gogoproto.jsontag) = "trigger_sign_cooldown,omitempty",
+    (gogoproto.moretags) = "yaml:\"trigger_sign_cooldown\""
+  ];
+}
+
+// TransferType defines the type of a transfer associated with a message, if applicable.
+enum TransferType {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  // TRANSFER_TYPE_NULL indicates no transfer association.
+  TRANSFER_TYPE_NULL = 0;
+  // TRANSFER_TYPE_LIQUIDITY_SEND defines a send transfer via a liquidity bridge.
+  TRANSFER_TYPE_LIQUIDITY_SEND = 1;
+  // TRANSFER_TYPE_LIQUIDITY_WITHDRAW defines a withdraw transfer from a liquidity bridge.
+  TRANSFER_TYPE_LIQUIDITY_WITHDRAW = 2;
+  // TRANSFER_TYPE_PEG_MINT defines a mint transfer via a pegged token bridge.
+  TRANSFER_TYPE_PEG_MINT = 3;
+  // TRANSFER_TYPE_PEG_MINT defines a withdraw transfer from an original token vault.
+  TRANSFER_TYPE_PEG_WITHDRAW = 4;
+}
+
+// ExecutionStatus defines the on-chain execution status of a message.
+enum ExecutionStatus {
+  option (gogoproto.goproto_enum_prefix) = false;
+
+  // EXECUTION_STATUS_PENDING defines the pending on-chain execution status.
+  EXECUTION_STATUS_PENDING = 0;
+  // EXECUTION_STATUS_SUCCESS defines the successful on-chain execution status.
+  EXECUTION_STATUS_SUCCESS = 1;
+  // EXECUTION_STATUS_FAILURE defines the failed on-chain execution status.
+  EXECUTION_STATUS_FAILURE = 2;
+  // EXECUTION_STATUS_FALLBACK defines the fallback on-chain execution status.
+  EXECUTION_STATUS_FALLBACK = 3;
+}
+
+// MsgType defines enum in contract MessageReceiver.sol
+enum MsgType {
+  MSG_TYPE_MESSAGE_WITH_TRANSFER = 0;
+  MSG_TYPE_MESSAGE = 1;
+}
+
+// Message describes the info of a cross-chain message.
+message Message {
+  // src_chain_id defines the source EVM chain ID.
+  uint64 src_chain_id = 1 [(gogoproto.moretags) = "yaml:\"src_chain_id\""];
+
+  // sender defines the sender EVM address.
+  string sender = 2 [(gogoproto.moretags) = "yaml:\"sender\""];
+
+  // dst_chain_id defines the destination EVM chain ID.
+  uint64 dst_chain_id = 3 [(gogoproto.moretags) = "yaml:\"dst_chain_id\""];
+
+  // receiver defines the receiver EVM address.
+  string receiver = 4 [(gogoproto.moretags) = "yaml:\"receiver\""];
+
+  // data defines the message data.
+  bytes data = 5 [(gogoproto.moretags) = "yaml:\"data\""];
+
+  // fee defines the message fee paid to SGN.
+  string fee = 6 [(gogoproto.moretags) = "yaml:\"fee\""];
+
+  // transfer_type defines the associated type of transfer.
+  TransferType transfer_type = 7 [(gogoproto.moretags) = "yaml:\"transfer_type\""];
+
+  // execution_status defines the on-chain execution status.
+  ExecutionStatus execution_status = 8 [(gogoproto.moretags) = "yaml:\"execution_status\""];
+
+  // signatures defines the signatures to be verified on MessageBus.
+  repeated sgn.common.v1.Signature signatures = 9 [(gogoproto.moretags) = "yaml:\"signatures\"", (gogoproto.nullable) = false];
+
+  // last_sig_req_time defines the latest timestamp a signing request was made.
+  // Used for anti-dos.
+  int64 last_sig_req_time = 10 [(gogoproto.moretags) = "yaml:\"last_sig_req_time\""];
+}
+
+// Transfer defines the optional transfer info associated with a message.
+message Transfer {
+  // token defines the token address of a transfer.
+  bytes token = 1 [(gogoproto.moretags) = "yaml:\"token\""];
+
+  // amount defines the amount of a transfer.
+  string amount = 2 [(gogoproto.moretags) = "yaml:\"amount\""];
+
+  // seq_num defines the sequence number required for withdrawals from a liquidity bridge.
+  uint64 seq_num = 3 [(gogoproto.moretags) = "yaml:\"seq_num\""];
+
+  // ref_id defines the reference ID of the transfer.
+  // For sending via a liquidity bridge, ref_id is the src transfer ID.
+  // For mint / withdrawal via a pegged bridge, ref_id is the reference ID of the pegged transfer.
+  bytes ref_id = 4 [(gogoproto.moretags) = "yaml:\"ref_id\""];
+}
+
+// ExecutionContext defines all the info needed for executing a message.
+message ExecutionContext {
+  // message_id defines the message ID.
+  bytes message_id = 1 [(gogoproto.moretags) = "yaml:\"message_id\""];
+
+  // message defines the message to be executed, along with the required relayer signatures.
+  Message message = 2 [(gogoproto.moretags) = "yaml:\"message\"", (gogoproto.nullable) = false];
+
+  // transfer defines the optional transfer info associated with the message.
+  Transfer transfer = 3 [(gogoproto.moretags) = "yaml:\"transfer\""];
+
+  // powers defines the powers of the message signers in the same order.
+  // Given as string representations of big.Int in base 10.
+  repeated string powers = 4 [(gogoproto.moretags) = "yaml:\"powers\""];
+}
+
+// FeeClaimDetails describes the fees to be claimed on the EVM chain.
+message FeeClaimDetails {
+  // chain_id defines the EVM chain ID for the claim.
+  uint64 chain_id = 1;
+
+  // cumulative_fee_amount defines the cumulative fees claimable on the EVM chain.
+  cosmos.base.v1beta1.DecCoin cumulative_fee_amount = 2
+      [(gogoproto.moretags) = "yaml:\"cumulative_fee_amount\"", (gogoproto.nullable) = false];
+
+  // signatures defines the signatures to be verified on the EVM chain.
+  repeated sgn.common.v1.Signature signatures = 3 [(gogoproto.moretags) = "yaml:\"signatures\"", (gogoproto.nullable) = false];
+}
+
+// FeeClaimInfo describes the fee claim metadata and details for a recipient.
+message FeeClaimInfo {
+  // recipient defines the Ethereum address of the fee recipient.
+  string recipient = 1;
+
+  // last_claim_time defines the last time a fee claim was signed by the validators.
+  google.protobuf.Timestamp last_claim_time = 2
+      [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"last_claim_time\""];
+
+  // fee_claim_details_list defines the list of fee claim details
+  repeated FeeClaimDetails fee_claim_details_list = 3
+      [(gogoproto.moretags) = "yaml:\"fee_claim_details_list\"", (gogoproto.nullable) = false];
+}
+
+// -------------------- Governance Proposals --------------------
+
+// MessageBusInfo defines the info of a MessageBus contract.
+message MessageBusInfo {
+  // contract_info defines the MessageBus contract info.
+  sgn.common.v1.ContractInfo contract_info = 1 [(gogoproto.moretags) = "yaml:\"contract_info\""];
+
+  // fee_token_symbol defines the symbol of the native gas token to pay message fees.
+  string fee_token_symbol = 2 [(gogoproto.moretags) = "yaml:\"fee_token_symbol\""];
+}
+
+// MsgProposal describes a message config proposal, note it must be a whole json
+message MsgProposal {
+  option (cosmos_proto.implements_interface) = "Content";
+  option (gogoproto.equal) = false;
+
+  // title defines the title of the proposal.
+  string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
+
+  // description defines the proposal description.
+  string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
+  ;
+
+  // message_buses defines the list of MessageBus infos to update.
+  repeated MessageBusInfo message_buses = 3 [(gogoproto.moretags) = "yaml:\"message_buses\""];
+
+  // deposit defines the amount for MsgSubmitProposal
+  string deposit = 4 [
+    (gogoproto.nullable) = false,
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.moretags) = "yaml:\"deposit\""
+  ];
+}

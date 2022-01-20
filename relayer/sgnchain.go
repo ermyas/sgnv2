@@ -10,6 +10,8 @@ import (
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
+	msgbrcli "github.com/celer-network/sgn-v2/x/message/client/cli"
+	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
 	pegbrcli "github.com/celer-network/sgn-v2/x/pegbridge/client/cli"
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	slashingcli "github.com/celer-network/sgn-v2/x/slashing/client/cli"
@@ -32,7 +34,11 @@ var (
 		fmt.Sprintf("%s.%s='%s'", pegbrtypes.EventTypeWithdrawToSign, sdk.AttributeKeyModule, pegbrtypes.ModuleName)).String()
 	EventQueryFarmingClaimAll = tmquery.MustParse(
 		fmt.Sprintf("tm.event='Tx' AND %s.%s EXISTS", farmingtypes.EventTypeClaimAll, farmingtypes.AttributeKeyAddress)).String()
-
+	EventQueryMsgData = tmquery.MustParse(
+		fmt.Sprintf("%s.%s='%s'", msgtypes.EventTypeMessageToSign, sdk.AttributeKeyModule, msgtypes.ModuleName)).String()
+	EventQueryDistributionClaimMessageFees = tmquery.MustParse(
+		fmt.Sprintf("tm.event='Tx' AND %s.%s EXISTS",
+			distrtypes.EventTypeClaimMessageFees, distrtypes.AttributeKeyDelegatorAddress)).String()
 	EventQueryDistributionClaimAllStakingReward = tmquery.MustParse(
 		fmt.Sprintf("tm.event='Tx' AND %s.%s EXISTS",
 			distrtypes.EventTypeClaimAllStakingReward, distrtypes.AttributeKeyDelegatorAddress)).String()
@@ -366,6 +372,44 @@ func (r *Relayer) monitorSgnFarmingClaimAllEvent() {
 		})
 }
 
+func (r *Relayer) monitorSgnMsgDataToSign() {
+	MonitorTendermintEvent(
+		r.Transactor.CliCtx.NodeURI,
+		EventQueryMsgData,
+		func(events map[string][]string) {
+			if !r.isBonded() {
+				return
+			}
+			tmEventType := events["tm.event"][0]
+			if tmEventType != tm.EventTx && tmEventType != tm.EventNewBlock {
+				return
+			}
+
+			messageIds := events[fmt.Sprintf("%s.%s", msgtypes.EventTypeMessageToSign, msgtypes.AttributeKeyMessageId)]
+			for _, msgId := range messageIds {
+				// sign data first
+				messageInfo, err := msgbrcli.QueryMessage(r.Transactor.CliCtx, msgId)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+				sig, err := r.EthClient.SignEthMessage(
+					messageInfo.EncodeDataToSign(eth.Hex2Hash(msgId), r.cbrMgr[messageInfo.DstChainId].msgContracts.Address))
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+
+				msg := &msgtypes.MsgSignMessage{
+					MessageId: msgId,
+					Sender:    r.Transactor.Key.GetAddress().String(),
+					Signature: sig,
+				}
+				r.Transactor.AddTxMsg(msg)
+			}
+		})
+}
+
 func (r *Relayer) monitorSgnDistributionClaimAllStakingRewardEvent() {
 	MonitorTendermintEvent(
 		r.Transactor.CliCtx.NodeURI,
@@ -395,6 +439,57 @@ func (r *Relayer) monitorSgnDistributionClaimAllStakingRewardEvent() {
 					continue
 				}
 				msg := distrtypes.NewMsgSignStakingReward(eth.Hex2Addr(addr), r.Transactor.Key.GetAddress(), sig)
+				r.Transactor.AddTxMsg(msg)
+			}
+		})
+}
+
+func (r *Relayer) monitorSgnDistributionClaimMessageFeesEvent() {
+	MonitorTendermintEvent(
+		r.Transactor.CliCtx.NodeURI,
+		EventQueryDistributionClaimMessageFees,
+		func(events map[string][]string) {
+			if !r.isBonded() {
+				return
+			}
+			for _, addr := range events[fmt.Sprintf("%s.%s",
+				distrtypes.EventTypeClaimMessageFees, distrtypes.AttributeKeyDelegatorAddress)] {
+				queryClient := msgtypes.NewQueryClient(r.Transactor.CliCtx)
+				feeClaimInfoResp, err := queryClient.FeeClaimInfo(
+					context.Background(),
+					&msgtypes.QueryFeeClaimInfoRequest{
+						Address: addr,
+					},
+				)
+				if err != nil {
+					log.Errorf("Query FeeClaimInfo err %s", err)
+					continue
+				}
+				var signatureDetailsList []msgtypes.SignatureDetails
+				for _, details := range feeClaimInfoResp.FeeClaimInfo.FeeClaimDetailsList {
+					messageBusResp, err := queryClient.MessageBus(context.Background(),
+						&msgtypes.QueryMessageBusRequest{
+							ChainId: details.ChainId,
+						})
+					if err != nil {
+						log.Errorf("Query MessageBus err %s", err)
+						continue
+					}
+					dataToSign := details.EncodeDataToSign(eth.Hex2Addr(messageBusResp.MessageBus.ContractInfo.Address))
+					sig, err := r.EthClient.SignEthMessage(dataToSign)
+					if err != nil {
+						log.Errorln("SignEthMessage err", err)
+						continue
+					}
+					signatureDetailsList = append(signatureDetailsList, msgtypes.SignatureDetails{
+						ChainId:   details.ChainId,
+						Signature: sig,
+					})
+				}
+				if len(signatureDetailsList) == 0 {
+					continue
+				}
+				msg := msgtypes.NewMsgSignFees(eth.Hex2Addr(addr), r.Transactor.Key.GetAddress(), signatureDetailsList)
 				r.Transactor.AddTxMsg(msg)
 			}
 		})

@@ -12,7 +12,6 @@ import (
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/pegbridge/types"
-	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -31,7 +30,7 @@ var _ types.MsgServer = msgServer{}
 func (k msgServer) SignMint(goCtx context.Context, msg *types.MsgSignMint) (*types.MsgSignMintResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
-	validator, err := k.isSenderBondedValidator(ctx, msg.Sender)
+	validator, err := k.stakingKeeper.CheckSenderBondedValidator(ctx, msg.Sender)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +60,7 @@ func (k msgServer) SignMint(goCtx context.Context, msg *types.MsgSignMint) (*typ
 func (k msgServer) SignWithdraw(goCtx context.Context, msg *types.MsgSignWithdraw) (*types.MsgSignWithdrawResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
-	validator, err := k.isSenderBondedValidator(ctx, msg.Sender)
+	validator, err := k.stakingKeeper.CheckSenderBondedValidator(ctx, msg.Sender)
 	if err != nil {
 		return nil, err
 	}
@@ -218,21 +217,6 @@ func (k msgServer) ClaimFee(goCtx context.Context, msg *types.MsgClaimFee) (*typ
 	))
 
 	return &types.MsgClaimFeeResponse{}, nil
-}
-
-func (k msgServer) isSenderBondedValidator(ctx sdk.Context, sender string) (stakingtypes.ValidatorI, error) {
-	senderAcct, err := sdk.AccAddressFromBech32(sender)
-	if err != nil {
-		return nil, fmt.Errorf("invalid address: %s", sender)
-	}
-	validator, found := k.stakingKeeper.GetValidatorBySgnAddr(ctx, senderAcct)
-	if !found {
-		return nil, fmt.Errorf("sender is not a validator")
-	}
-	if !validator.IsBonded() {
-		return nil, fmt.Errorf("validator is not bonded")
-	}
-	return validator, nil
 }
 
 func (k msgServer) ClaimRefund(goCtx context.Context, msg *types.MsgClaimRefund) (*types.MsgClaimRefundResponse, error) {

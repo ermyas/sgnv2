@@ -50,6 +50,14 @@ type CbrChain struct {
 	UNIContract                 *eth.Erc20
 	PeggedUNIContract           *eth.PeggedToken
 	UNIAddr, PeggedUNIAddr      eth.Addr
+	MessageBusContract          *eth.MessageBus
+	MessageBusAddr              eth.Addr
+	BatchTransferContract       *eth.BatchTransfer
+	BatchTransferAddr           eth.Addr
+	TransferMessageContract     *eth.TransferMessage
+	TransferMessageAddr         eth.Addr
+	TestRefundContract          *eth.TestRefund
+	TestRefundAddr              eth.Addr
 }
 
 type TestEthClient struct {

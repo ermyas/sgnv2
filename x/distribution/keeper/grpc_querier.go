@@ -11,6 +11,7 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/celer-network/sgn-v2/x/distribution/types"
+	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -271,6 +272,19 @@ func (k Keeper) PegBridgeFeesInfo(
 	ctx := sdk.UnwrapSDKContext(c)
 	feesInfo := k.getClaimableFeesInfo(ctx, eth.Hex2Addr(req.DelegatorAddress), pegbrtypes.PegBridgeFeeDenomPrefix)
 	return &types.QueryPegBridgeFeesInfoResponse{FeesInfo: feesInfo}, nil
+}
+
+func (k Keeper) MessageFeesInfo(
+	c context.Context, req *types.QueryMessageFeesInfoRequest) (*types.QueryMessageFeesInfoResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid request")
+	}
+	if req.DelegatorAddress == "" {
+		return nil, status.Error(codes.InvalidArgument, "empty delegator address")
+	}
+	ctx := sdk.UnwrapSDKContext(c)
+	feesInfo := k.getClaimableFeesInfo(ctx, eth.Hex2Addr(req.DelegatorAddress), msgtypes.MessageFeeDenomPrefix)
+	return &types.QueryMessageFeesInfoResponse{FeesInfo: feesInfo}, nil
 }
 
 func (k Keeper) getClaimableFeesInfo(

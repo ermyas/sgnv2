@@ -35,14 +35,14 @@ func setupCbridge() {
 		ValidatorBondInterval: big.NewInt(0),
 		MaxSlashFactor:        big.NewInt(1e5),
 	}
-	SetupNewSgnEnv(p, true, false, false)
+	SetupNewSgnEnv(p, true, false, false, false)
 	tc.SleepWithLog(10, "sgn being ready")
 }
 
 func TestCbridge(t *testing.T) {
 	t.Run("e2e-cbridge", func(t *testing.T) {
 		t.Run("cbridgeTest", cbridgeTest)
-		//t.Run("cbrSignersTest", cbrSignersTest)
+		// t.Run("cbrSignersTest", cbrSignersTest)
 	})
 }
 

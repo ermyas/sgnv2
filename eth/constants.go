@@ -31,3 +31,12 @@ const (
 
 	CommissionRateBase = 10000
 )
+
+type MessageReceiverStatus int32
+
+const (
+	MessageReceiverTxStatusNull MessageReceiverStatus = iota
+	MessageReceiverTxStatusSuccess
+	MessageReceiverTxStatusFail
+	MessageReceiverTxStatusFallback
+)

@@ -296,3 +296,18 @@ func (k Keeper) SetTransactors(
 	store.Set(validatorTransactorsKey, k.cdc.MustMarshal(txsproto))
 	return nil
 }
+
+func (k Keeper) CheckSenderBondedValidator(ctx sdk.Context, sender string) (types.ValidatorI, error) {
+	senderAcct, err := sdk.AccAddressFromBech32(sender)
+	if err != nil {
+		return nil, fmt.Errorf("invalid address: %s", sender)
+	}
+	validator, found := k.GetValidatorBySgnAddr(ctx, senderAcct)
+	if !found {
+		return nil, fmt.Errorf("sender is not a validator")
+	}
+	if !validator.IsBonded() {
+		return nil, fmt.Errorf("validator is not bonded")
+	}
+	return validator, nil
+}

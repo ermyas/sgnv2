@@ -17,6 +17,7 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/cosmos/cosmos-sdk/client"
+	ec "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
@@ -33,6 +34,19 @@ import (
 const (
 	cbrDbPrefix = "cbr-"
 )
+
+type MsgContracts struct {
+	*eth.MessageBus
+	Address eth.Addr
+}
+
+func (m MsgContracts) GetAddr() ec.Address {
+	return m.Address
+}
+
+func (m MsgContracts) GetABI() string {
+	return eth.MessageBusABI
+}
 
 type PegContracts struct {
 	bridge *eth.PegBridgeContract
@@ -74,10 +88,12 @@ type CbrOneChain struct {
 	mon          *monitor.Service
 	cbrContract  *eth.BridgeContract
 	pegContracts *PegContracts
+	msgContracts *MsgContracts
 	db           *dbm.PrefixDB // cbr-xxx xxx is chainid
 	curss        currentSigners
 	lock         sync.RWMutex
 	pegbrLock    sync.RWMutex
+	msgbrLock    sync.RWMutex
 
 	// chainid and blkdelay and forwardblkdelay for verify/easy logging
 	chainid, blkDelay, forwardBlkDelay, blkInterval uint64
@@ -147,6 +163,10 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 	if err != nil {
 		log.Fatalln("PeggedTokenBridge contract at", cfg.PTBridge, "err:", err)
 	}
+	msg, err := eth.NewMessageBus(eth.Hex2Addr(cfg.MsgBus), ec)
+	if err != nil {
+		log.Fatalln("MessageBus contract at", cfg.MsgBus, "err:", err)
+	}
 	signerKey, signerPass := viper.GetString(common.FlagEthSignerKeystore), viper.GetString(common.FlagEthSignerPassphrase)
 	signer, addr, err := eth.CreateSigner(signerKey, signerPass, chid)
 	if err != nil {
@@ -175,6 +195,10 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 		pegContracts: &PegContracts{
 			vault:  otv,
 			bridge: ptb,
+		},
+		msgContracts: &MsgContracts{
+			MessageBus: msg,
+			Address:    eth.Hex2Addr(cfg.MsgBus),
 		},
 		db:              dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID))),
 		chainid:         cfg.ChainID,
@@ -244,4 +268,10 @@ func (s currentSigners) String() string {
 		out += fmt.Sprintf("<addr %x power %s> ", addr, s.powers[i])
 	}
 	return fmt.Sprintf("< %s>", out)
+}
+
+func (m CbrMgr) ForEach(run func(*CbrOneChain)) {
+	for _, onech := range m {
+		run(onech)
+	}
 }

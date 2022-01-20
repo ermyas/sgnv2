@@ -4,18 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"os"
 	"os/exec"
-	"path/filepath"
+	"time"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/goutils/sqldb"
 	"github.com/celer-network/sgn-v2/common"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
+	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -27,51 +30,19 @@ import (
 var mainchain2Started bool
 
 func SetupMainchain() {
-	repoRoot, _ := filepath.Abs("../../..")
-	log.Infoln("make localnet-down")
-	cmd := exec.Command("make", "localnet-down")
-	cmd.Dir = repoRoot
-	if err := cmd.Run(); err != nil {
-		log.Fatal(err)
-	}
+	tc.RunCmd("make", "localnet-down")
 
-	log.Infoln("build dockers, get geth, build sgn binary")
-	cmd = exec.Command("make", "prepare-docker-env")
-	cmd.Dir = repoRoot
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		log.Fatal(err)
-	}
+	tc.RunCmd("make", "build-node")
+	tc.RunCmd("make", "build-geth")
+	tc.RunCmd("make", "build-linux")
 
-	log.Infoln("start geth container")
-	cmd = exec.Command("make", "localnet-start-geth")
-	cmd.Dir = repoRoot
-	if err := cmd.Run(); err != nil {
-		log.Fatal(err)
-	}
+	tc.RunCmd("make", "prepare-geth-data")
+	tc.RunCmd("make", "localnet-start-geth")
 	tc.SleepWithLog(5, "geth start")
 
 	// set up mainchain: deploy contracts, fund addrs, etc
-	addrs := []eth.Addr{
-		tc.ValEthAddrs[0],
-		tc.ValEthAddrs[1],
-		tc.ValEthAddrs[2],
-		tc.ValEthAddrs[3],
-		tc.ValSignerAddrs[0],
-		tc.ValSignerAddrs[1],
-		tc.ValSignerAddrs[2],
-		tc.ValSignerAddrs[3],
-		tc.DelEthAddrs[0],
-		tc.DelEthAddrs[1],
-		tc.DelEthAddrs[2],
-		tc.DelEthAddrs[3],
-		tc.ClientEthAddrs[0],
-		tc.ClientEthAddrs[1],
-		tc.ClientEthAddrs[2],
-		tc.ClientEthAddrs[3],
-	}
 	log.Infoln("fund each test addr 100 ETH")
-	err := tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20), tc.LocalGeth, int64(tc.ChainID))
+	err := tc.FundAddrsETH(tc.Addrs, tc.NewBigInt(1, 20), tc.LocalGeth, int64(tc.ChainID))
 	tc.ChkErr(err, "fund each test addr 100 ETH")
 
 	log.Infoln("set up mainchain")
@@ -80,7 +51,7 @@ func SetupMainchain() {
 
 	// fund CELR to each eth account
 	log.Infoln("fund each test addr 10 million CELR")
-	err = tc.FundAddrsErc20(tc.CelrAddr, addrs, tc.NewBigInt(1, 25), tc.EthClient, tc.EtherBaseAuth)
+	err = tc.FundAddrsErc20(tc.CelrAddr, tc.Addrs, tc.NewBigInt(1, 25), tc.EthClient, tc.EtherBaseAuth)
 	tc.ChkErr(err, "fund each test addr 10 million CELR")
 }
 
@@ -90,35 +61,13 @@ func SetupMainchain2ForBridge() {
 		log.Infoln("mainchain2 already started")
 		return
 	}
-	repoRoot, _ := filepath.Abs("../../..")
-	log.Infoln("prepare geth2 env")
-	cmd := exec.Command("make", "prepare-geth2-env")
-	cmd.Dir = repoRoot
-	if err := cmd.Run(); err != nil {
-		log.Error(err)
-	}
-
-	log.Infoln("start geth2 container")
-	cmd = exec.Command("make", "localnet-start-geth2")
-	cmd.Dir = repoRoot
-	if err := cmd.Run(); err != nil {
-		log.Fatal(err)
-	}
+	tc.RunCmd("make", "prepare-geth2-env")
+	tc.RunCmd("make", "localnet-start-geth2")
 	tc.SleepWithLog(5, "geth2 start")
 
 	// set up mainchain: deploy contracts, fund addrs, etc
-	addrs := []eth.Addr{
-		tc.ValSignerAddrs[0],
-		tc.ValSignerAddrs[1],
-		tc.ValSignerAddrs[2],
-		tc.ValSignerAddrs[3],
-		tc.ClientEthAddrs[0],
-		tc.ClientEthAddrs[1],
-		tc.ClientEthAddrs[2],
-		tc.ClientEthAddrs[3],
-	}
 	log.Infoln("fund each test addr 100 ETH")
-	err := tc.FundAddrsETH(addrs, tc.NewBigInt(1, 20), tc.LocalGeth2, int64(tc.Geth2ChainID))
+	err := tc.FundAddrsETH(tc.Addrs2, tc.NewBigInt(1, 20), tc.LocalGeth2, int64(tc.Geth2ChainID))
 	tc.ChkErr(err, "fund each test addr 100 ETH")
 
 	log.Infoln("set up mainchain2")
@@ -126,7 +75,7 @@ func SetupMainchain2ForBridge() {
 	mainchain2Started = true
 }
 
-func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool, manual bool, report bool) {
+func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool, msg, manual bool, report bool) {
 	log.Infoln("Deploy Staking and SGN contracts")
 	if contractParams == nil {
 		contractParams = &tc.ContractParams{
@@ -145,36 +94,18 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool, manual bool
 	tx := tc.DeploySgnStakingContracts(contractParams)
 	tc.WaitMinedWithChk(context.Background(), tc.EthClient, tx, tc.BlockDelay, tc.PollingInterval, "DeploySgnStakingContracts")
 
-	log.Infoln("make localnet-down-nodes")
-	cmd := exec.Command("make", "localnet-down-nodes")
-	repoRoot, _ := filepath.Abs("../../..")
-	cmd.Dir = repoRoot
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	tc.ChkErr(err, "Failed to make localnet-down-nodes")
-
-	log.Infoln("make prepare-sgn-data")
-	cmd = exec.Command("make", "prepare-sgn-data")
-	cmd.Dir = repoRoot
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
+	tc.RunCmd("make", "localnet-down-nodes")
+	err := tc.RunCmdNoChkErr("make", "prepare-sgn-data")
 	if err != nil {
-		cmd = exec.Command("make", "prepare-sgn-data-sudo")
-		cmd.Dir = repoRoot
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		err = cmd.Run()
+		tc.RunCmd("make", "prepare-sgn-data-sudo")
 	}
-	tc.ChkErr(err, "Failed to make prepare-sgn-data")
 
 	log.Infoln("Updating config files of SGN nodes")
 	for i := 0; i < len(tc.ValEthKs); i++ {
 		configPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/sgn.toml", i)
 		configFileViper := viper.New()
 		configFileViper.SetConfigFile(configPath)
-		err = configFileViper.ReadInConfig()
+		err := configFileViper.ReadInConfig()
 		tc.ChkErr(err, "Failed to read config")
 		configFileViper.Set(common.FlagEthContractCelr, tc.CelrAddr.Hex())
 		configFileViper.Set(common.FlagEthContractStaking, tc.Contracts.Staking.Address.Hex())
@@ -244,6 +175,10 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool, manual bool
 		CreateFarmingPools()
 		FundUsdtFarmingReward()
 	}
+	if msg {
+		DeployBatchTransferAndMessageTransferAndMessageBusContracts()
+		PrepareExecutor()
+	}
 
 	// Update global viper
 	node0ConfigPath := "../../../docker-volumes/node0/sgnd/config/sgn.toml"
@@ -251,13 +186,7 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge bool, manual bool
 	err = viper.ReadInConfig()
 	tc.ChkErr(err, "Failed to read config")
 
-	log.Infoln("make localnet-up-nodes")
-	cmd = exec.Command("make", "localnet-up-nodes")
-	cmd.Dir = repoRoot
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	tc.ChkErr(err, "Failed to make localnet-up-nodes")
+	tc.RunCmd("make", "localnet-up-nodes")
 }
 
 func DeployUsdtForBridge() {
@@ -326,7 +255,6 @@ func DeployBridgeContract() {
 		genesisViper.Set("app_state.cbridge.config", cbrConfig)
 		err = genesisViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write genesis")
-
 	}
 }
 
@@ -340,7 +268,7 @@ func DeployPegBridgeContract() {
 	tc.CbrChain2.PeggedUNIAddr, tc.CbrChain2.PeggedUNIContract =
 		tc.DeployPeggedTokenContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, "UNI", "UNI", 18, tc.CbrChain2.PegBridgeAddr)
 
-	// fund UNI to each user
+	// fund UNI and PEGUNI to each user
 	addrs := []eth.Addr{
 		tc.ClientEthAddrs[0],
 		tc.ClientEthAddrs[1],
@@ -416,6 +344,112 @@ func DeployPegBridgeContract() {
 		err = genesisViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write genesis")
 	}
+}
+
+func DeployBatchTransferAndMessageTransferAndMessageBusContracts() {
+	tc.CbrChain1.MessageBusAddr, tc.CbrChain1.MessageBusContract =
+		tc.DeployMessageBusContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.CbrAddr, tc.CbrChain1.PegBridgeAddr, tc.CbrChain1.PegVaultAddr)
+
+	tc.CbrChain2.MessageBusAddr, tc.CbrChain2.MessageBusContract =
+		tc.DeployMessageBusContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.CbrAddr, tc.CbrChain2.PegBridgeAddr, tc.CbrChain2.PegVaultAddr)
+
+	tc.CbrChain1.BatchTransferAddr, tc.CbrChain1.BatchTransferContract =
+		tc.DeployBatchTransferContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.MessageBusAddr, tc.CbrChain1.CbrAddr)
+
+	tc.CbrChain2.BatchTransferAddr, tc.CbrChain2.BatchTransferContract =
+		tc.DeployBatchTransferContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.MessageBusAddr, tc.CbrChain2.CbrAddr)
+
+	tc.CbrChain1.TransferMessageAddr, tc.CbrChain1.TransferMessageContract =
+		tc.DeployTransferMessageContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.MessageBusAddr)
+
+	tc.CbrChain2.TransferMessageAddr, tc.CbrChain2.TransferMessageContract =
+		tc.DeployTransferMessageContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.MessageBusAddr)
+
+	tc.CbrChain1.TestRefundAddr, tc.CbrChain1.TestRefundContract =
+		tc.DeployTestRefundContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.MessageBusAddr)
+
+	tc.CbrChain2.TestRefundAddr, tc.CbrChain2.TestRefundContract =
+		tc.DeployTestRefundContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.MessageBusAddr)
+
+	messageBuses := make([]msgtypes.MessageBusInfo, 0)
+	bus1 := msgtypes.MessageBusInfo{
+		ContractInfo: &commontypes.ContractInfo{
+			ChainId: tc.CbrChain1.ChainId,
+			Address: eth.Addr2Hex(tc.CbrChain1.MessageBusAddr),
+		},
+		FeeTokenSymbol: "ETH",
+	}
+	bus2 := msgtypes.MessageBusInfo{
+		ContractInfo: &commontypes.ContractInfo{
+			ChainId: tc.CbrChain2.ChainId,
+			Address: eth.Addr2Hex(tc.CbrChain2.MessageBusAddr),
+		},
+		FeeTokenSymbol: "ETH",
+	}
+	messageBuses = append(messageBuses, bus1, bus2)
+	for i := 0; i < len(tc.ValEthKs); i++ {
+		cbrCfgPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/cbridge.toml", i)
+		cbrViper := viper.New()
+		cbrViper.SetConfigFile(cbrCfgPath)
+		err := cbrViper.ReadInConfig()
+		tc.ChkErr(err, "Failed to read config")
+		multichains := cbrViper.Get("multichain").([]interface{})
+		multichains[0].(map[string]interface{})["msgbus"] = bus1.ContractInfo.Address
+		multichains[1].(map[string]interface{})["msgbus"] = bus2.ContractInfo.Address
+		cbrViper.Set("multichain", multichains)
+		err = cbrViper.WriteConfig()
+		tc.ChkErr(err, "Failed to write config")
+
+		genesisPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/genesis.json", i)
+		genesisViper := viper.New()
+		genesisViper.SetConfigFile(genesisPath)
+		err = genesisViper.ReadInConfig()
+		tc.ChkErr(err, "Failed to read genesis")
+		genesisViper.Set("app_state.message.message_buses", messageBuses)
+		genesisViper.Set("app_state.message.params.trigger_sign_cooldown", "10s")
+		err = genesisViper.WriteConfig()
+		tc.ChkErr(err, "Failed to write genesis")
+	}
+}
+
+func PrepareExecutor() {
+	// prepare crdb
+	tc.RunCmd("make", "localnet-start-crdb")
+
+	time.Sleep(4 * time.Second)                                                                           // sleep to wait for crdb fully started
+	_db, err := sqldb.NewDb("postgres", "postgresql://root@localhost:26257/defaultdb?sslmode=disable", 2) // docker port maps to local port
+	tc.ChkErr(err, "Failed to connect db")
+	defer _db.Close()
+	schema, err := ioutil.ReadFile("../../../executor/schema.sql")
+	tc.ChkErr(err, "Failed to read schema.sql")
+	_, err = _db.Exec(string(schema))
+	tc.ChkErr(err, "Failed to execute schema.sql")
+
+	// prepare test data
+	tc.RunCmd("make", "prepare-executor-data")
+	SetupExecutorConfig()
+	tc.RunCmd("make", "build-executor")
+	tc.RunCmd("docker-compose", "up", "-d", "executor")
+}
+
+func SetupExecutorConfig() {
+	// setup cbridge.toml contract addresses
+	msgViper := viper.New()
+	msgViper.SetConfigFile("../../../docker-volumes/executor/config/cbridge.toml")
+	err := msgViper.ReadInConfig()
+	tc.ChkErr(err, "Failed to read config")
+	multichains := msgViper.Get("multichain").([]interface{})
+	multichains[0].(map[string]interface{})["cbridge"] = tc.CbrChain1.CbrAddr.Hex()
+	multichains[1].(map[string]interface{})["cbridge"] = tc.CbrChain2.CbrAddr.Hex()
+	multichains[0].(map[string]interface{})["msgbus"] = tc.CbrChain1.MessageBusAddr.Hex()
+	multichains[1].(map[string]interface{})["msgbus"] = tc.CbrChain2.MessageBusAddr.Hex()
+	multichains[0].(map[string]interface{})["otvault"] = tc.CbrChain1.PegVaultAddr.Hex()
+	multichains[1].(map[string]interface{})["otvault"] = tc.CbrChain2.PegVaultAddr.Hex()
+	multichains[0].(map[string]interface{})["ptbridge"] = tc.CbrChain1.PegBridgeAddr.Hex()
+	multichains[1].(map[string]interface{})["ptbridge"] = tc.CbrChain2.PegBridgeAddr.Hex()
+	msgViper.Set("multichain", multichains)
+	err = msgViper.WriteConfig()
+	tc.ChkErr(err, "Failed to write config")
 }
 
 func CreateFarmingPools() {

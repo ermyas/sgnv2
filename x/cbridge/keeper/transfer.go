@@ -126,3 +126,12 @@ func (k Keeper) transfer(
 	status = types.XferStatus_OK_TO_RELAY
 	return
 }
+
+func (k Keeper) QueryXferStatus(ctx sdk.Context, srcXferId eth.Hash) types.XferStatus {
+	return GetEvSendStatus(ctx.KVStore(k.storeKey), srcXferId)
+}
+
+func (k Keeper) QueryXferRefund(ctx sdk.Context, srcXferId eth.Hash) *types.WithdrawOnchain {
+	kv := ctx.KVStore(k.storeKey)
+	return GetXferRefund(kv, srcXferId)
+}

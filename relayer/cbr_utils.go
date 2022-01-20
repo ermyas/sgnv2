@@ -41,9 +41,3 @@ func (c *CbrOneChain) saveEvent(name string, elog ethtypes.Log) error {
 	val, _ := json.Marshal(elog)
 	return c.db.Set([]byte(key), val)
 }
-
-func (c *CbrOneChain) delEvent(name string, blknum, idx uint64) error {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	return c.db.Delete([]byte(fmt.Sprintf("%s-%d-%d", name, blknum, idx)))
-}

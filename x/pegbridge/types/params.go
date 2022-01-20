@@ -9,6 +9,8 @@ import (
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
+var _ paramtypes.ParamSet = (*Params)(nil)
+
 // Parameter keys
 var (
 	ParamStoreKeyTriggerSignCooldown = []byte("triggersigncooldown")
@@ -19,7 +21,7 @@ func ParamKeyTable() paramtypes.KeyTable {
 	return paramtypes.NewKeyTable().RegisterParamSet(&Params{})
 }
 
-// DefaultParams returns default distribution parameters
+// DefaultParams returns default pegbridge parameters
 func DefaultParams() Params {
 	return Params{
 		TriggerSignCooldown: time.Minute, // 1 minute

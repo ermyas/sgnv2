@@ -241,7 +241,7 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 			}
 			exist, err := stakingcli.QuerySgnAccount(cliCtx, sdk.AccAddress(sgnAddr).String())
 			if err != nil {
-				if strings.Contains(err.Error(), "sgn account not found") {
+				if strings.Contains(err.Error(), stakingtypes.ErrSgnAccountNotFound.Error()) {
 					exist = false
 				} else {
 					log.Errorf("Failed to query SGN account address err: %s", err)
@@ -273,11 +273,11 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 			}
 
 			storeVal, err := stakingcli.QueryValidator(cliCtx, valAddr)
-			if err != nil && !strings.Contains(err.Error(), "validator not found") {
+			if err != nil && !strings.Contains(err.Error(), stakingtypes.ErrValidatorNotFound.Error()) {
 				return err
 			}
 
-			if (err != nil && strings.Contains(err.Error(), "validator not found")) || storeVal == nil {
+			if (err != nil && strings.Contains(err.Error(), stakingtypes.ErrValidatorNotFound.Error())) || storeVal == nil {
 				serverCtx := server.GetServerContextFromCmd(cmd)
 				filePV := privval.LoadOrGenFilePV(serverCtx.Config.PrivValidatorKeyFile(), serverCtx.Config.PrivValidatorStateFile())
 				tmValPubKey, err := filePV.GetPubKey()

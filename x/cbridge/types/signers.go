@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"sort"
 
+	comtypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/cosmos/cosmos-sdk/codec"
 	solsha3 "github.com/miguelmota/go-solidity-sha3"
@@ -46,6 +47,10 @@ func (ss *ChainSigners) SetByEvent(e *eth.BridgeSignersUpdated) {
 	for i, addr := range e.Signers {
 		ss.SortedSigners[i] = &Signer{addr.Bytes(), e.Powers[i].Bytes()}
 	}
+}
+
+func (ss *ChainSigners) GetAddrsPowers() ([]eth.Addr, []*big.Int) {
+	return SignersToEthArrays(ss.GetSortedSigners())
 }
 
 func MustMarshalChainSigners(cdc codec.BinaryCodec, signers *ChainSigners) []byte {
@@ -175,6 +180,15 @@ func ValidateSigQuorum(sortedSigs []*AddrSig, curss []*Signer) (pass bool, sigsB
 	}
 
 	return false, nil
+}
+
+// ValidateSignatureQuorum wraps ValidateSigQuorum, converting param Signature type to AddrSig type
+func ValidateSignatureQuorum(sortedSigs []comtypes.Signature, curss []*Signer) (pass bool, sigsBytes [][]byte) {
+	sigs := []*AddrSig{}
+	for _, sig := range sortedSigs {
+		sigs = append(sigs, &AddrSig{Sig: sig.SigBytes, Addr: eth.Hex2Bytes(sig.Signer)})
+	}
+	return ValidateSigQuorum(sigs, curss)
 }
 
 func MinSigsForQuorum(signers []*Signer) uint32 {

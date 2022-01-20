@@ -21,6 +21,7 @@ const (
 	LiquidityBridge ContractType = iota
 	PegVault
 	PegBridge
+	MsgBridge
 )
 
 var (
@@ -51,7 +52,7 @@ func GetTxSender(ec *ethclient.Client, txHashStr string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get tx: %w", err)
 	}
-	msg, err := tx.AsMessage(ethtypes.NewLondonSigner(tx.ChainId()), nil) //TODO: base fee
+	msg, err := tx.AsMessage(ethtypes.NewLondonSigner(tx.ChainId()), nil) // TODO: base fee
 	if err != nil {
 		return "", fmt.Errorf("failed to get msg: %w", err)
 	}
@@ -97,6 +98,8 @@ func GetContractEventID(ctype ContractType, evname string) Hash {
 		contractAbi, _ = abi.JSON(strings.NewReader(OriginalTokenVaultABI))
 	case PegBridge:
 		contractAbi, _ = abi.JSON(strings.NewReader(PeggedTokenBridgeABI))
+	case MsgBridge:
+		contractAbi, _ = abi.JSON(strings.NewReader(MessageBusABI))
 	default:
 		return ZeroHash
 	}
@@ -212,6 +215,63 @@ func (ev *BridgeLiquidityAdded) Equal(b *BridgeLiquidityAdded) bool {
 	return true
 }
 
+func (ev *MessageBusMessage) Equal(b *MessageBusMessage) bool {
+	if ev.Sender != b.Sender {
+		return false
+	}
+	if ev.DstChainId.Cmp(b.DstChainId) != 0 {
+		return false
+	}
+	if ev.Receiver != b.Receiver {
+		return false
+	}
+	if len(ev.Message) != len(b.Message) {
+		return false
+	}
+	if ev.Fee.Cmp(b.Fee) != 0 {
+		return false
+	}
+	return true
+}
+
+func (ev *MessageBusMessageWithTransfer) Equal(b *MessageBusMessageWithTransfer) bool {
+	if ev.Bridge != b.Bridge {
+		return false
+	}
+	if ev.SrcTransferId != b.SrcTransferId {
+		return false
+	}
+	if ev.Sender != b.Sender {
+		return false
+	}
+	if ev.DstChainId.Cmp(b.DstChainId) != 0 {
+		return false
+	}
+	if ev.Receiver != b.Receiver {
+		return false
+	}
+	if len(ev.Message) != len(b.Message) {
+		return false
+	}
+	if ev.Fee.Cmp(b.Fee) != 0 {
+		return false
+	}
+	return true
+}
+
+func (ev *MessageBusExecuted) Equal(b *MessageBusExecuted) bool {
+	if ev.Id != b.Id {
+		return false
+	}
+	if ev.Status != b.Status {
+		return false
+	}
+	if ev.MsgType != b.MsgType {
+		return false
+	}
+	return true
+}
+
 // onchid is the chainid this event happen
 func (ev *BridgeLiquidityAdded) PrettyLog(onchid uint64) string {
 	return fmt.Sprintf("cbr-liqadd-%d-%d token: %x lp: %x amt: %s", onchid, ev.Seqnum, ev.Token, ev.Provider, ev.Amount)
@@ -228,6 +288,30 @@ func (ev *BridgeRelay) PrettyLog(onchid uint64) string {
 
 func (ev *BridgeSignersUpdated) PrettyLog(onchid uint64) string {
 	return fmt.Sprintf("cbr-signersUpdated-%d: %s", onchid, ev.String())
+}
+
+func (ev *MessageBusMessage) PrettyLog(onchid uint64) string {
+	return fmt.Sprintf("Message-%d: %s", onchid, ev.String())
+}
+
+func (ev *MessageBusMessageWithTransfer) PrettyLog(onchid uint64) string {
+	return fmt.Sprintf("MessageWithTransfer-%d: %s", onchid, ev.String())
+}
+
+func (ev *MessageBusExecuted) PrettyLog(onchid uint64) string {
+	return fmt.Sprintf("MessageExecuted-%d: %s", onchid, ev.String())
+}
+
+func (ev *MessageBusExecuted) String() string {
+	return fmt.Sprintf("id: %s,status: %d, msgType: %d", Hash(ev.Id), ev.Status, ev.MsgType)
+}
+
+func (ev *MessageBusMessage) String() string {
+	return fmt.Sprintf("sender: %s,receiver: %s, dstChainId: %s, Message: %x", ev.Sender, ev.Receiver, ev.DstChainId, ev.Message)
+}
+
+func (ev *MessageBusMessageWithTransfer) String() string {
+	return fmt.Sprintf("sender: %s,receiver: %s, dstChainId: %s, bridgeAddr: %s, transferId: %x, Message: %s", ev.Sender, ev.Receiver, ev.DstChainId, ev.Bridge, ev.SrcTransferId, string(ev.Message))
 }
 
 func (r *BridgeRelay) String() string {

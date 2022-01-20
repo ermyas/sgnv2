@@ -1,0 +1,93 @@
+syntax = "proto3";
+package sgn.message.v1;
+
+option go_package = "github.com/celer-network/sgn-v2/x/message/types";
+
+import "gogoproto/gogo.proto";
+
+// Msg defines the Msg service.
+service Msg {
+  // SignMessage defines a method for validators to co-sign a message request to
+  // a MessageBus contract.
+  rpc SignMessage(MsgSignMessage) returns (MsgSignMessageResponse);
+
+  // TriggerSignMessage defines a method to trigger validators to co-sign a message request.
+  // Used if automatic event syncing failed.
+  rpc TriggerSignMessage(MsgTriggerSignMessage) returns (MsgTriggerSignMessageResponse);
+
+  // ClaimAllFees defines a method for SGN delegators to trigger a claim of all the message fees.
+  rpc ClaimAllFees(MsgClaimAllFees) returns (MsgClaimAllFeesResponse);
+}
+
+// MsgSignMessage signs a message request.
+message MsgSignMessage {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // message_id defines the message ID calculated with
+  // keccak256(abi.encodePacked(sender, receiver, srcChainId, message));
+  string message_id = 1 [(gogoproto.moretags) = "yaml:\"message_id\""];
+
+  // sender defines the SGN account sending the signing Msg.
+  string sender = 2 [(gogoproto.moretags) = "yaml:\"sender\""];
+
+  // signature defines the signature.
+  bytes signature = 3 [(gogoproto.moretags) = "yaml:\"signature\""];
+}
+
+// MsgSignMessageResponse defines the Msg/SignMessage response type.
+message MsgSignMessageResponse {}
+
+message MsgTriggerSignMessage {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // message_id defines the message ID
+  string message_id = 1;
+
+  // sender defines the SGN account sending the trigger Msg.
+  string sender = 2;
+}
+
+message MsgTriggerSignMessageResponse {}
+
+// MsgClaimAllFees defines the Msg/ClaimAllFees request type.
+message MsgClaimAllFees {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // delegator_address defines the delegator's Ethereum address.
+  string delegator_address = 1 [(gogoproto.moretags) = "yaml:\"delegator_address\""];
+
+  // sender defines the SGN account sending the claim Msg.
+  string sender = 2 [(gogoproto.moretags) = "yaml:\"sender\""];
+}
+
+// MsgClaimAllFeesResponse defines the Msg/ClaimAllFees response type.
+message MsgClaimAllFeesResponse {}
+
+// SignatureDetails defines the details of a signature.
+message SignatureDetails {
+  // chain_id defines the EVM chain ID of the fee claim.
+  uint64 chain_id = 1 [(gogoproto.moretags) = "yaml:\"chain_id\""];
+  // signature defines the signature bytes.
+  bytes signature = 2;
+}
+
+// MsgSignRewards signs a fees claim.
+message MsgSignFees {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // address defines the Ethereum account address claiming the fees.
+  string address = 1;
+  // sender defines the SGN account sending the signing Msg.
+  string sender = 2;
+  // signature_details_list defines the list of signature details.
+  repeated SignatureDetails signature_details_list = 3
+      [(gogoproto.moretags) = "yaml:\"signature_details_list\"", (gogoproto.nullable) = false];
+  ;
+}
+
+// MsgSignFeesResponse defines the Msg/SignFees response type.
+message MsgSignFeesResponse {}

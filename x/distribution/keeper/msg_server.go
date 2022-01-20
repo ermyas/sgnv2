@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/armon/go-metrics"
@@ -169,29 +168,18 @@ func (k msgServer) accumulateStakingReward(ctx sdk.Context, delAddr eth.Addr, cl
 	// 1. Update CumulativeRewardAmount
 	withdrawAddr := k.GetDelegatorWithdrawAddr(ctx, delAddr)
 	derivedRewardAccount := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, withdrawAddr)
-	rewards := k.bankKeeper.GetAllBalances(ctx, derivedRewardAccount)
-	if rewards.Empty() {
-		// TODO: Check
-		return errors.New("no reward")
+	denom := types.StakingRewardDenom
+	cumulativeReward := k.bankKeeper.GetBalance(ctx, derivedRewardAccount, denom)
+	cumulativeRewardAmount := cumulativeReward.Amount
+	// Set initial CumulativeRewardAmount
+	if claimInfo.CumulativeRewardAmount == (sdk.DecCoin{}) {
+		claimInfo.CumulativeRewardAmount = sdk.NewDecCoin(denom, sdk.ZeroInt())
 	}
-	for _, reward := range rewards {
-		denom := reward.Denom
-		// NOTE: Only accumulate staking reward token
-		if denom == types.StakingRewardDenom {
-			cumulativeReward := k.bankKeeper.GetBalance(ctx, derivedRewardAccount, denom)
-			cumulativeRewardAmount := cumulativeReward.Amount
-			// Set initial CumulativeRewardAmount
-			if claimInfo.CumulativeRewardAmount == (sdk.DecCoin{}) {
-				claimInfo.CumulativeRewardAmount = sdk.NewDecCoin(denom, sdk.ZeroInt())
-			}
-			existing := sdk.NewDecCoinFromDec(denom, claimInfo.CumulativeRewardAmount.Amount)
-			updated := sdk.NewDecCoin(denom, cumulativeRewardAmount)
-			if !existing.Amount.Equal(updated.Amount) {
-				claimInfo.CumulativeRewardAmount =
-					claimInfo.CumulativeRewardAmount.Sub(existing).Add(updated)
-			}
-			break
-		}
+	existing := sdk.NewDecCoinFromDec(denom, claimInfo.CumulativeRewardAmount.Amount)
+	updated := sdk.NewDecCoin(denom, cumulativeRewardAmount)
+	if !existing.Amount.Equal(updated.Amount) {
+		claimInfo.CumulativeRewardAmount =
+			claimInfo.CumulativeRewardAmount.Sub(existing).Add(updated)
 	}
 	// 2. Reconstruct RewardProtoBytes with updated CumulativeRewardAmount
 	// Marshal RewardProtoBytes

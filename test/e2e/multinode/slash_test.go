@@ -31,15 +31,15 @@ func setupSlash(t *testing.T) {
 		ValidatorBondInterval: big.NewInt(0),
 		MaxSlashFactor:        big.NewInt(1e5),
 	}
-	SetupNewSgnEnv(p, false, false, false)
+	SetupNewSgnEnv(p, false, false, false, false)
 	tc.SleepWithLog(10, "sgn being ready")
 }
 
 func TestSlash(t *testing.T) {
 	t.Run("e2e-slash", func(t *testing.T) {
 		t.Run("slashTest", slashTest)
-		//t.Run("disableSlashTest", disableSlashTest)
-		//t.Run("expireSlashTest", expireSlashTest)
+		// t.Run("disableSlashTest", disableSlashTest)
+		// t.Run("expireSlashTest", expireSlashTest)
 	})
 }
 

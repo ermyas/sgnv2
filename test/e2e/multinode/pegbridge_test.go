@@ -36,7 +36,7 @@ func setupPegbridge() {
 		ValidatorBondInterval: big.NewInt(0),
 		MaxSlashFactor:        big.NewInt(1e5),
 	}
-	SetupNewSgnEnv(p, true, false, false)
+	SetupNewSgnEnv(p, true, false, false, false)
 	tc.SleepWithLog(10, "sgn being ready")
 }
 
@@ -166,8 +166,8 @@ func pegbridgeTest(t *testing.T) {
 	tc.ChkErr(err, "u0 balance before burn")
 	burnAmt := new(big.Int).Mul(big.NewInt(50), big.NewInt(1e18))
 	// burn action does not need approve.
-	//err = tc.CbrChain2.ApprovePeggedUNI(0, burnAmt)
-	//tc.ChkErr(err, "u0 chain2 approve")
+	// err = tc.CbrChain2.ApprovePeggedUNI(0, burnAmt)
+	// tc.ChkErr(err, "u0 chain2 approve")
 	burnId, err := tc.CbrChain2.PbrBurn(0, burnAmt, 1234)
 	tc.ChkErr(err, "u0 chain2 burn")
 

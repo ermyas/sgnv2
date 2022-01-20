@@ -253,7 +253,10 @@ func GetAMN(kv sdk.KVStore, srcChid, destChid uint64, sym string) (float64, floa
 	}
 	return A, m, n, nil
 }
-
+func (k Keeper) GetCbrContractAddr(ctx sdk.Context, chid uint64) (eth.Addr, bool) {
+	kv := ctx.KVStore(k.storeKey)
+	return GetCbrContract(kv, chid)
+}
 func GetCbrContract(kv sdk.KVStore, chid uint64) (eth.Addr, bool) {
 	raw := kv.Get(types.CfgKeyCbrContract(chid))
 	if raw == nil {

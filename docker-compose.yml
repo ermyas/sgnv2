@@ -88,6 +88,15 @@ services:
       localnet:
         ipv4_address: 192.168.10.7
 
+  executor:
+    container_name: executor
+    image: "celer-network/executor"
+    volumes:
+      - ./docker-volumes/executor:/executor/env:Z
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.8
+
 networks:
   localnet:
     driver: bridge

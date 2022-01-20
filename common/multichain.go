@@ -16,6 +16,8 @@ type OneChainConfig struct {
 	OTVault string
 	// PeggedTokenBridge contract address
 	PTBridge string
+	// MsgBus contract address
+	MsgBus string
 	// if ProxyPort > 0, a proxy with this port will be created to support some special chain such as harmony, celo.
 	// chainID will be used to determined which type proxy to create, so make sure the chainID is supported in the "endpoint-proxy"
 	// create a proxy to the Gateway, and eth-client will be created to "127.0.0.1:ProxyPort"
