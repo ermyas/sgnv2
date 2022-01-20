@@ -100,8 +100,6 @@ func GetCmdValidatorClaimFee() *cobra.Command {
 				log.Error(err)
 				return err
 			}
-			var wds []*types.WithdrawLq
-
 			chainId, err := cmd.Flags().GetUint64(flagChain)
 			if err != nil {
 				return err
@@ -115,52 +113,17 @@ func GetCmdValidatorClaimFee() *cobra.Command {
 				return err
 			}
 
-			var reqIds []uint64
-			if file != "" {
-				f, err := os.Open(file)
-				if err != nil {
-					return err
-				}
-				defer f.Close()
-				scanner := bufio.NewScanner(f)
-				for scanner.Scan() {
-					line := scanner.Text()
-					fields := strings.Fields(line)
-					if len(fields) != 3 {
-						return fmt.Errorf("invalid file input: %s", line)
-					}
-					reqId, err := strconv.Atoi(fields[0])
-					if err != nil {
-						return err
-					}
-					reqIds = append(reqIds, uint64(reqId))
-
-					chainId, err := strconv.Atoi(fields[1])
-					if err != nil {
-						return err
-					}
-					token = fields[2]
-					wd := &types.WithdrawLq{
-						FromChainId: uint64(chainId),
-						TokenAddr:   token,
-					}
-					wds = append(wds, wd)
-				}
-			} else if chainId != 0 && token != "" {
-				wd := &types.WithdrawLq{
-					FromChainId: chainId,
-					TokenAddr:   token,
-				}
-				wds = append(wds, wd)
-				reqId := uint64(time.Now().Unix())
-				reqIds = append(reqIds, reqId)
-				fmt.Println("Withdraw request Id:", reqId)
-			} else {
-				return fmt.Errorf("invalid flag inputs")
+			reqIds, chainIds, tokens, err := ValidatorCalimFeeHelper(chainId, token, file)
+			if err != nil {
+				return fmt.Errorf("ValidatorCalimFeeHelper err: %s", err)
 			}
 
 			var msgs []sdk.Msg
-			for i, wd := range wds {
+			for i, chainId := range chainIds {
+				wd := &types.WithdrawLq{
+					FromChainId: chainId,
+					TokenAddr:   tokens[i],
+				}
 				withdrawReq := &types.WithdrawReq{
 					Withdraws:    []*types.WithdrawLq{wd},
 					ExitChainId:  wd.FromChainId,
@@ -174,8 +137,8 @@ func GetCmdValidatorClaimFee() *cobra.Command {
 				}
 				msgs = append(msgs, msg)
 			}
-			txr.CliSendTxMsgsWaitMined(msgs)
 
+			txr.CliSendTxMsgsWaitMined(msgs)
 			return nil
 		},
 	}
@@ -231,4 +194,44 @@ func SignAgain(t *transactor.Transactor, req *types.MsgSignAgain) (resp *types.M
 	req.Creator = t.Key.GetAddress().String() // make sure the msg creator is the transactor
 	_, err = t.LockSendTx(req)
 	return
+}
+
+func ValidatorCalimFeeHelper(chainId uint64, token, file string) (reqIds []uint64, chainIds []uint64, tokens []string, err error) {
+	if file != "" {
+		f, err := os.Open(file)
+		if err != nil {
+			return reqIds, chainIds, tokens, err
+		}
+		defer f.Close()
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			line := scanner.Text()
+			fields := strings.Fields(line)
+			if len(fields) != 3 {
+				return reqIds, chainIds, tokens, fmt.Errorf("invalid file input: %s", line)
+			}
+			reqId, err := strconv.Atoi(fields[0])
+			if err != nil {
+				return reqIds, chainIds, tokens, err
+			}
+			reqIds = append(reqIds, uint64(reqId))
+
+			chainId, err := strconv.Atoi(fields[1])
+			if err != nil {
+				return reqIds, chainIds, tokens, err
+			}
+			chainIds = append(chainIds, uint64(chainId))
+			token = fields[2]
+			tokens = append(tokens, token)
+		}
+	} else if chainId != 0 && token != "" {
+		reqId := uint64(time.Now().Unix())
+		reqIds = append(reqIds, reqId)
+		chainIds = append(chainIds, chainId)
+		tokens = append(tokens, token)
+		fmt.Println("Withdraw request Id:", reqId)
+	} else {
+		return reqIds, chainIds, tokens, fmt.Errorf("invalid flag inputs")
+	}
+	return reqIds, chainIds, tokens, nil
 }

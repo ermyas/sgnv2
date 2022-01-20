@@ -248,4 +248,16 @@ func pegbridgeTest(t *testing.T) {
 	tc.ChkErr(err, "chain1 GetCurSortedSigners")
 	err = tc.CbrChain1.OnchainPegVaultWithdraw(withdrawInfo, curss)
 	tc.ChkErr(err, "chain1 onchain withdraw pegbridge fee")
+
+	log.Infoln("======================== Validator 1 claim fee by himself and without sig ===========================")
+	nonce = uint64(time.Now().Unix())
+	err = tc.StartValidatorSelfClaimPegbrFee(1, tc.CbrChain1.ChainId, tc.CbrChain1.UNIAddr, nonce)
+	tc.ChkErr(err, "val1 chain1 start claim pegbridge fee")
+	withdrawId, withdrawInfo = tc.GetPegBridgeFeeClaimWithdrawInfoWithSigs(
+		transactor, tc.CbrChain1.Validators[1].Address, nonce, 3)
+	log.Infoln("val1 claim pegbridge fees withdrawId:", withdrawId)
+	curss, err = tc.GetCurSortedSigners(transactor, tc.CbrChain1.ChainId)
+	tc.ChkErr(err, "chain1 GetCurSortedSigners")
+	err = tc.CbrChain1.OnchainPegVaultWithdraw(withdrawInfo, curss)
+	tc.ChkErr(err, "chain1 onchain withdraw pegbridge fee")
 }

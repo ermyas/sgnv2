@@ -88,7 +88,7 @@ $ %s ops submit-relay --xferid=xxxxx"
 			if err != nil {
 				log.Fatal("newOneChain err:", err)
 			}
-			existRelay, existRelayErr := cbr.contract.BridgeCaller.Transfers(&bind.CallOpts{}, relayTransferId)
+			existRelay, existRelayErr := cbr.cbrContract.BridgeCaller.Transfers(&bind.CallOpts{}, relayTransferId)
 			if existRelayErr != nil {
 				// if fail to query, continue to send this relay, because we can not make sure whether the relay already exist.
 				log.Warnln("fail to query transfer err:", existRelayErr)
@@ -101,7 +101,7 @@ $ %s ops submit-relay --xferid=xxxxx"
 				"cli submit relay",
 				func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
 					signers, powers := cbrtypes.SignersToEthArrays(curss)
-					return cbr.contract.Relay(opts, relay.Relay, sigsBytes, signers, powers)
+					return cbr.cbrContract.Relay(opts, relay.Relay, sigsBytes, signers, powers)
 				},
 			)
 			if err != nil {

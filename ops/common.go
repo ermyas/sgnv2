@@ -85,10 +85,16 @@ type cbrContract struct {
 	Address eth.Addr
 }
 
+type pegbrContracts struct {
+	Bridge *eth.PegBridgeContract
+	Vault  *eth.PegVaultContract
+}
+
 type CbrOneChain struct {
 	*ethclient.Client
 	*ethutils.Transactor
-	contract *cbrContract
+	cbrContract    *cbrContract
+	pegbrContracts *pegbrContracts
 }
 
 func newOneChain(chainId uint64) (*CbrOneChain, error) {
@@ -123,6 +129,14 @@ func newOneChain(chainId uint64) (*CbrOneChain, error) {
 			if err != nil {
 				log.Fatalln("cbridge contract at", cfg.CBridge, "err:", err)
 			}
+			otv, err := eth.NewPegVaultContract(eth.Hex2Addr(cfg.OTVault), ec)
+			if err != nil {
+				log.Fatalln("otvault contract at", cfg.OTVault, "err:", err)
+			}
+			pegbr, err := eth.NewPegBridgeContract(eth.Hex2Addr(cfg.PTBridge), ec)
+			if err != nil {
+				log.Fatalln("pegbridge contract at", cfg.PTBridge, "err:", err)
+			}
 			signer, addr, err := eth.CreateSigner(signerKey, signerPass, chid)
 			if err != nil {
 				log.Fatalln("CreateSigner err:", err)
@@ -144,9 +158,13 @@ func newOneChain(chainId uint64) (*CbrOneChain, error) {
 			c := &CbrOneChain{
 				Client:     ec,
 				Transactor: transactor,
-				contract: &cbrContract{
+				cbrContract: &cbrContract{
 					Bridge:  cbr,
 					Address: eth.Hex2Addr(cfg.CBridge),
+				},
+				pegbrContracts: &pegbrContracts{
+					Vault:  otv,
+					Bridge: pegbr,
 				},
 			}
 			return c, nil
