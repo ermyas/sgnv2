@@ -180,7 +180,7 @@ func (msg *MsgClaimFee) GetSignBytes() []byte {
 }
 
 func (msg *MsgClaimFee) ValidateBasic() error {
-	if msg.DelegatorAddress == "" {
+	if msg.DelegatorAddress == "" && !msg.IsValidator {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid delegator address")
 	}
 	_, err := sdk.AccAddressFromBech32(msg.Sender)

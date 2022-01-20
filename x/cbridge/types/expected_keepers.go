@@ -25,6 +25,7 @@ type BankKeeper interface {
 type StakingKeeper interface {
 	GetBondedValidators(ctx sdk.Context) (validators stakingtypes.Validators)
 	GetValidatorBySgnAddr(ctx sdk.Context, sgnAddr sdk.AccAddress) (validator stakingtypes.ValidatorI, found bool)
+	GetSyncer(ctx sdk.Context) *stakingtypes.Syncer
 }
 
 type FarmingKeeper interface {

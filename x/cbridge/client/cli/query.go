@@ -14,6 +14,7 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	distrcli "github.com/celer-network/sgn-v2/x/distribution/client/cli"
+	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/spf13/cobra"
@@ -278,34 +279,6 @@ func GetCmdQueryFeeShareInfo() *cobra.Command {
 				return err
 			}
 
-			feeInfo, err := distrcli.QueryCBridgeFeeShareInfo(context.Background(), cliCtx, args[0])
-			if err != nil {
-				return err
-			}
-
-			type AssetPrice struct {
-				Price        uint32
-				ExtraPower10 uint32
-			}
-			assetsPrice := make(map[string]*AssetPrice)
-
-			assets := make(map[string]map[uint64]*types.ChainAsset) // symbol -> (chainId -> asset)
-			assetsList, err := QueryAssets(cliCtx)
-			for _, asset := range assetsList {
-				_, ok := assets[asset.Symbol]
-				if !ok {
-					assets[asset.Symbol] = make(map[uint64]*types.ChainAsset)
-					price, extraPower10, err2 := QueryAssetPrice(cliCtx, asset.Symbol)
-					if err2 != nil {
-						return err2
-					}
-					assetsPrice[asset.Symbol] = &AssetPrice{Price: price, ExtraPower10: extraPower10}
-
-				}
-				assets[asset.Symbol][asset.ChainId] = asset
-			}
-
-			ts := time.Now().Unix()
 			genWdList, err := cmd.Flags().GetBool(flagWdList)
 			if err != nil {
 				return err
@@ -315,38 +288,10 @@ func GetCmdQueryFeeShareInfo() *cobra.Command {
 				return err
 			}
 
-			var totalValue float64
-			var wdList []string
-			fmt.Printf("claimable fee amounts:\n\n")
-			for _, coin := range feeInfo.ClaimableFeeAmounts {
-				amount := coin.Amount
-				denom := coin.Denom
-				symch := strings.TrimPrefix(denom, types.CBridgeFeeDenomPrefix)
-				symbol := strings.Split(symch, "/")[0]
-				chainId, err := strconv.Atoi(strings.Split(symch, "/")[1])
-				if err != nil {
-					return err
-				}
-				asset := assets[symbol][uint64(chainId)]
-				fmt.Println("token:", symbol, "-", chainId, "-", asset.Addr)
-				fmt.Println("amount: ", amount)
-
-				famt, err := amount.QuoInt(
-					sdk.NewIntFromBigInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(asset.Decimal)), nil))).Float64()
-				if err != nil {
-					return err
-				}
-				value := famt * float64(assetsPrice[symbol].Price) / math.Pow10(4+int(assetsPrice[symbol].ExtraPower10))
-				totalValue += value
-				fmt.Printf("usd value: %0.2f\n\n", value)
-
-				if value >= float64(minUsd) {
-					wdList = append(wdList, fmt.Sprintf("%d %d %s", ts, chainId, asset.Addr))
-					ts += 1
-				}
+			wdList, err := GenerateClaimFeeWdList(cliCtx, args[0], minUsd, types.CBridgeFeeDenomPrefix, false)
+			if err != nil {
+				return fmt.Errorf("GenerateClaimFeeWdList err: %s", err)
 			}
-			fmt.Printf("total usd value: %0.2f\n", totalValue)
-
 			if genWdList {
 				fmt.Printf("\nvalidator withdraw fee inputs:\n")
 				for _, wd := range wdList {
@@ -562,4 +507,74 @@ func QueryAssetPrice(cliCtx client.Context, symbol string) (price, extraPower10 
 	price = resp.GetPrice()
 	extraPower10 = resp.GetExtraPower10()
 	return
+}
+
+func GenerateClaimFeeWdList(cliCtx client.Context, delAddr string, minUsd uint32, denomPrefix string, isPegbr bool) ([]string, error) {
+	var feeInfo *distrtypes.ClaimableFeesInfo
+	var err error
+	if isPegbr {
+		feeInfo, err = distrcli.QueryPegBridgeFeesInfo(context.Background(), cliCtx, delAddr)
+	} else {
+		feeInfo, err = distrcli.QueryCBridgeFeeShareInfo(context.Background(), cliCtx, delAddr)
+	}
+	if err != nil {
+		return []string{}, err
+	}
+
+	type AssetPrice struct {
+		Price        uint32
+		ExtraPower10 uint32
+	}
+	assetsPrice := make(map[string]*AssetPrice)
+
+	assets := make(map[string]map[uint64]*types.ChainAsset) // symbol -> (chainId -> asset)
+	assetsList, err := QueryAssets(cliCtx)
+	for _, asset := range assetsList {
+		_, ok := assets[asset.Symbol]
+		if !ok {
+			assets[asset.Symbol] = make(map[uint64]*types.ChainAsset)
+			price, extraPower10, err2 := QueryAssetPrice(cliCtx, asset.Symbol)
+			if err2 != nil {
+				return []string{}, err2
+			}
+			assetsPrice[asset.Symbol] = &AssetPrice{Price: price, ExtraPower10: extraPower10}
+
+		}
+		assets[asset.Symbol][asset.ChainId] = asset
+	}
+
+	ts := time.Now().Unix()
+
+	var totalValue float64
+	var wdList []string
+	fmt.Printf("claimable fee amounts:\n\n")
+	for _, coin := range feeInfo.ClaimableFeeAmounts {
+		amount := coin.Amount
+		denom := coin.Denom
+		symch := strings.TrimPrefix(denom, denomPrefix)
+		symbol := strings.Split(symch, "/")[0]
+		chainId, err := strconv.Atoi(strings.Split(symch, "/")[1])
+		if err != nil {
+			return []string{}, err
+		}
+		asset := assets[symbol][uint64(chainId)]
+		fmt.Println("token:", symbol, "-", chainId, "-", asset.Addr)
+		fmt.Println("amount: ", amount)
+
+		famt, err := amount.QuoInt(
+			sdk.NewIntFromBigInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(asset.Decimal)), nil))).Float64()
+		if err != nil {
+			return []string{}, err
+		}
+		value := famt * float64(assetsPrice[symbol].Price) / math.Pow10(4+int(assetsPrice[symbol].ExtraPower10))
+		totalValue += value
+		fmt.Printf("usd value: %0.2f\n\n", value)
+
+		if value >= float64(minUsd) {
+			wdList = append(wdList, fmt.Sprintf("%d %d %s", ts, chainId, asset.Addr))
+			ts += 1
+		}
+	}
+	fmt.Printf("total usd value: %0.2f\n", totalValue)
+	return wdList, nil
 }

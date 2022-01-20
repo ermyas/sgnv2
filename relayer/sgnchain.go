@@ -226,7 +226,13 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 					continue
 				}
 
-				sig, err := r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(r.cbrMgr[mintInfo.ChainId].pegContracts.bridge.Address))
+				cbrOneChain := r.cbrMgr[mintInfo.ChainId]
+				if cbrOneChain == nil {
+					log.Errorf("cbrOneChain not exists, mint chainId: %d", mintInfo.ChainId)
+					continue
+				}
+
+				sig, err := r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(cbrOneChain.pegContracts.bridge.Address))
 				if err != nil {
 					log.Error(err)
 					continue

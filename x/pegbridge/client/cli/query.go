@@ -6,9 +6,15 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
+	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/pegbridge/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/spf13/cobra"
+)
+
+const (
+	flagWdList = "wdlist"
+	flagMinUSD = "min-usd"
 )
 
 // GetQueryCmd returns the cli query commands for this module
@@ -29,6 +35,7 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 		GetCmdQueryWithdraw(),
 		GetCmdQueryMint(),
 		GetCmdQueryBurn(),
+		GetCmdQueryFeeInfo(),
 	)
 
 	return cmd
@@ -184,6 +191,45 @@ func GetCmdQueryBurn() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func GetCmdQueryFeeInfo() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "fee [validator/delegator-eth-addr]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Query fee of a sgn validator or delgator",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			genWdList, err := cmd.Flags().GetBool(flagWdList)
+			if err != nil {
+				return err
+			}
+			minUsd, err := cmd.Flags().GetUint32(flagMinUSD)
+			if err != nil {
+				return err
+			}
+
+			wdList, err := cbrcli.GenerateClaimFeeWdList(cliCtx, args[0], minUsd, types.PegBridgeFeeDenomPrefix, true)
+			if err != nil {
+				return fmt.Errorf("GenerateClaimFeeWdList err: %s", err)
+			}
+			if genWdList {
+				fmt.Printf("\nvalidator withdraw fee inputs:\n")
+				for _, wd := range wdList {
+					fmt.Println(wd)
+				}
+			}
+			return nil
+		},
+	}
+	cmd.Flags().Bool(flagWdList, false, "generate withdraw file content")
+	cmd.Flags().Uint32(flagMinUSD, 0, "minimal USD value to generate withraw request")
+
+	return cmd
 }
 
 func QueryParams(cliCtx client.Context) (params *types.Params, err error) {

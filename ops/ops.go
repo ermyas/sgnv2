@@ -24,7 +24,8 @@ func OpsCommand() *cobra.Command {
 		SubmitRelayCmd(),
 		EthViewerCommand(),
 		SyncFarmingCommand(),
-		WithdrawValidatorFeeCmd(),
+		WithdrawValidatorCbrFeeCmd(),
+		WithdrawValidatorPegbrFeeCmd(),
 	)
 
 	return cmd

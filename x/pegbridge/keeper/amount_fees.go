@@ -111,26 +111,41 @@ func (k Keeper) CalcPercFee(
 	return percFee
 }
 
-// MintFee mints coins to distribution module's fee collector account
-func (k Keeper) MintFee(ctx sdk.Context, token commontypes.ERC20Token, amount *big.Int) error {
-	// TODO: Do we need extra bookkeeping in pegbridge?
-	denom := fmt.Sprintf("%s%s/%d", types.PegBridgeFeeDenomPrefix, token.Symbol, token.ChainId)
-	coin := sdk.NewCoin(denom, sdk.NewIntFromBigInt(amount))
-	if err := k.bankKeeper.MintCoins(ctx, k.feeCollectorName, sdk.NewCoins(coin)); err != nil {
+// MintFeeAndSendToSyncer mints base fee to distribution module's fee collector account, then sends it to the active syncer directly.
+func (k Keeper) MintFeeAndSendToSyncer(ctx sdk.Context, token commontypes.ERC20Token, amount *big.Int) error {
+	coin, err := k.MintFee(ctx, token, amount)
+	if err != nil {
+		return err
+	}
+	syncer := k.stakingKeeper.GetSyncer(ctx)
+	// Send coins from module to the active syncer address directly, bypassing distribution mechanism.
+	derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(distrtypes.ModuleName, eth.Hex2Addr(syncer.GetEthAddress()))
+	err = k.bankKeeper.SendCoinsFromModuleToAccount(ctx, k.feeCollectorName, derivedAccAddress, sdk.NewCoins(coin))
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
-// BurnFee burns coins from distribution module's fee collector account
-func (k Keeper) BurnFee(ctx sdk.Context, delAddr eth.Addr, coin sdk.Coin) error {
-	// Send coins from delegator address to module
-	derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(distrtypes.ModuleName, delAddr)
+// MintFee mints fee to distribution module's fee collector account.
+func (k Keeper) MintFee(ctx sdk.Context, token commontypes.ERC20Token, amount *big.Int) (coin sdk.Coin, err error) {
+	denom := fmt.Sprintf("%s%s/%d", types.PegBridgeFeeDenomPrefix, token.Symbol, token.ChainId)
+	coin = sdk.NewCoin(denom, sdk.NewIntFromBigInt(amount))
+	if err = k.bankKeeper.MintCoins(ctx, k.feeCollectorName, sdk.NewCoins(coin)); err != nil {
+		return coin, err
+	}
+	return coin, nil
+}
+
+// BurnFee burns coins from distribution module's fee collector account.
+func (k Keeper) BurnFee(ctx sdk.Context, addr eth.Addr, coin sdk.Coin) error {
+	// Send coins from address to module.
+	derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(distrtypes.ModuleName, addr)
 	err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, derivedAccAddress, k.feeCollectorName, sdk.NewCoins(coin))
 	if err != nil {
 		return err
 	}
-	// Burn coins
+	// Burn coins.
 	err = k.bankKeeper.BurnCoins(ctx, k.feeCollectorName, sdk.NewCoins(coin))
 	if err != nil {
 		return err

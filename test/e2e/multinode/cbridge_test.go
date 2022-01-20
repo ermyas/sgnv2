@@ -228,9 +228,9 @@ func cbridgeTest(t *testing.T) {
 	fee1 := feeShareInfo.ClaimableFeeAmounts[1]
 	assert.Equal(t, fmt.Sprintf("CBF-USDT/%d", tc.CbrChain1.ChainId), fee0.Denom)
 	assert.Equal(t, fmt.Sprintf("CBF-USDT/%d", tc.CbrChain2.ChainId), fee1.Denom)
-	assert.True(t, fee0.Amount.GT(sdk.NewDec(1e5)))
+	assert.True(t, fee0.Amount.GT(sdk.NewDec(5e4)))
 	assert.True(t, fee0.Amount.LT(sdk.NewDec(2e5)))
-	assert.True(t, fee1.Amount.GT(sdk.NewDec(1e5)))
+	assert.True(t, fee1.Amount.GT(sdk.NewDec(5e4)))
 	assert.True(t, fee1.Amount.LT(sdk.NewDec(2e5)))
 
 	reqid = uint64(time.Now().Unix())
@@ -255,7 +255,7 @@ func cbridgeTest(t *testing.T) {
 	assert.Equal(t, 1, len(feeShareInfo.ClaimableFeeAmounts), "Should have 1 fee")
 	fee0 = feeShareInfo.ClaimableFeeAmounts[0]
 	assert.Equal(t, fmt.Sprintf("CBF-USDT/%d", tc.CbrChain2.ChainId), fee0.Denom)
-	assert.True(t, fee0.Amount.GT(sdk.NewDec(1e5)))
+	assert.True(t, fee0.Amount.GT(sdk.NewDec(5e4)))
 	assert.True(t, fee0.Amount.LT(sdk.NewDec(2e5)))
 
 	// transfer from chain 2 to 1 again to generate fee for testing single delegator reward claim
@@ -277,9 +277,9 @@ func cbridgeTest(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("CBF-USDT/%d", tc.CbrChain1.ChainId), fee0.Denom)
 	assert.Equal(t, fmt.Sprintf("CBF-USDT/%d", tc.CbrChain2.ChainId), fee1.Denom)
 	// count in the fact that due to one additional xfer from chain 2 to chain 1, the slippage causes fee to be smaller than 1e5
-	assert.True(t, fee0.Amount.GT(sdk.NewDec(90000)))
-	assert.True(t, fee0.Amount.LT(sdk.NewDec(1e5)))
-	assert.True(t, fee1.Amount.GT(sdk.NewDec(1e5)))
+	assert.True(t, fee0.Amount.GT(sdk.NewDec(5e4)))
+	assert.True(t, fee0.Amount.LT(sdk.NewDec(2e5)))
+	assert.True(t, fee1.Amount.GT(sdk.NewDec(5e4)))
 	assert.True(t, fee1.Amount.LT(sdk.NewDec(2e5)))
 
 	reqid = uint64(time.Now().Unix())

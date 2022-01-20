@@ -209,21 +209,36 @@ func GetSgnFee(kv sdk.KVStore, chid uint64, token eth.Addr) *big.Int {
 	return new(big.Int).SetBytes(value)
 }
 
-// add new fee, return new sum
-func (k Keeper) AddSgnFee(ctx sdk.Context, kv sdk.KVStore, chid uint64, token eth.Addr, delta *big.Int) *big.Int {
-	feeKey := types.SgnFeeKey(chid, token)
-	had := new(big.Int).SetBytes(kv.Get(feeKey))
-	had.Add(had, delta)
-	kv.Set(feeKey, had.Bytes())
-	// Tell distribution module to add fees
-	symbol := GetAssetSymbol(kv, &ChainIdTokenAddr{chid, token})
-	denom := fmt.Sprintf("%s%s/%d", types.CBridgeFeeDenomPrefix, symbol, chid)
-	coin := sdk.NewCoin(denom, sdk.NewIntFromBigInt(delta))
-	err := k.AddFeeShare(ctx, coin)
+func (k Keeper) MintSgnFee(ctx sdk.Context, kv sdk.KVStore, chid uint64, token eth.Addr, delta *big.Int) *big.Int {
+	coin, sum := k.addSgnFee(ctx, kv, chid, token, delta)
+	err := k.MintFeeShare(ctx, coin)
 	if err != nil {
 		panic(err)
 	}
-	return had
+	return sum
+}
+
+func (k Keeper) MintSgnFeeAndSendToSyncer(ctx sdk.Context, kv sdk.KVStore, chid uint64, token eth.Addr, delta *big.Int) *big.Int {
+	coin, sum := k.addSgnFee(ctx, kv, chid, token, delta)
+	syncer := k.stakingKeeper.GetSyncer(ctx)
+	err := k.MintAndSendFeeShare(ctx, eth.Hex2Addr(syncer.GetEthAddress()), coin)
+	if err != nil {
+		panic(err)
+	}
+	return sum
+}
+
+// add new fee, return new sum
+func (k Keeper) addSgnFee(ctx sdk.Context, kv sdk.KVStore, chid uint64, token eth.Addr, delta *big.Int) (coin sdk.Coin, sum *big.Int) {
+	feeKey := types.SgnFeeKey(chid, token)
+	sum = new(big.Int).SetBytes(kv.Get(feeKey))
+	sum.Add(sum, delta)
+	kv.Set(feeKey, sum.Bytes())
+	// Tell distribution module to add fees
+	symbol := GetAssetSymbol(kv, &ChainIdTokenAddr{chid, token})
+	denom := fmt.Sprintf("%s%s/%d", types.CBridgeFeeDenomPrefix, symbol, chid)
+	coin = sdk.NewCoin(denom, sdk.NewIntFromBigInt(delta))
+	return coin, sum
 }
 
 // if not found, return 0

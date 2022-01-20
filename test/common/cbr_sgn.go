@@ -412,6 +412,27 @@ func (c *CbrChain) startClaimPegBridgeFee(
 	return err
 }
 
+func StartValidatorSelfClaimPegbrFee(vid uint64, chainId uint64, tokenAddress eth.Addr, nonce uint64) error {
+	txr := NewTestTransactor(
+		SgnHomes[vid],
+		SgnChainID,
+		SgnNodeURI,
+		ValSgnAddrStrs[vid],
+		SgnPassphrase,
+	)
+	msg := &pegbrtypes.MsgClaimFee{
+		DelegatorAddress: "",
+		ChainId:          chainId,
+		TokenAddress:     eth.Addr2Hex(tokenAddress),
+		Nonce:            nonce,
+		Signature:        []byte{},
+		Sender:           txr.Key.GetAddress().String(),
+		IsValidator:      true,
+	}
+	_, err := txr.LockSendTx(msg)
+	return err
+}
+
 func GetPegBridgeFeeClaimWithdrawInfoWithSigs(
 	transactor *transactor.Transactor, delAddr eth.Addr, nonce uint64, expSigNum int) (
 	withdrawId string, withdrawInfo *pegbrtypes.WithdrawInfo) {
