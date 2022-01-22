@@ -66,7 +66,7 @@ func (r *Relayer) verifyMsgbrEventUpdate(update *synctypes.PendingUpdate) (done,
 
 func (c *CbrOneChain) verifyMessage(cliCtx client.Context, eLog *ethtypes.Log, logmsg string) (done, approve bool) {
 	// parse event
-	ev, err := c.msgContracts.ParseMessage(*eLog)
+	ev, err := c.msgContract.ParseMessage(*eLog)
 	if err != nil {
 		log.Errorf("%s. parse eLog error %s", logmsg, err)
 		return true, false
@@ -76,12 +76,12 @@ func (c *CbrOneChain) verifyMessage(cliCtx client.Context, eLog *ethtypes.Log, l
 	// check in store
 
 	// check on chain
-	done, approve, msgLog := c.verifyEventLog(eLog, eth.MsgBridge, msgbrtypes.MsgEventMessage, c.msgContracts.Address, logmsg)
+	done, approve, msgLog := c.verifyEventLog(eLog, eth.MsgBridge, msgbrtypes.MsgEventMessage, c.msgContract.Address, logmsg)
 	if msgLog == nil {
 		return done, approve
 	}
 
-	msgEv, err := c.msgContracts.ParseMessage(*msgLog)
+	msgEv, err := c.msgContract.ParseMessage(*msgLog)
 	if err != nil {
 		log.Errorln(logmsg, "parse log err:", err)
 		return true, false
@@ -97,7 +97,7 @@ func (c *CbrOneChain) verifyMessage(cliCtx client.Context, eLog *ethtypes.Log, l
 
 func (c *CbrOneChain) verifyMessageEventTransfer(cliCtx client.Context, eLog *ethtypes.Log, logmsg string) (done, approve bool) {
 	// parse event
-	ev, err := c.msgContracts.ParseMessageWithTransfer(*eLog)
+	ev, err := c.msgContract.ParseMessageWithTransfer(*eLog)
 	if err != nil {
 		log.Errorf("%s. parse eLog error %s", logmsg, err)
 		return true, false
@@ -107,12 +107,12 @@ func (c *CbrOneChain) verifyMessageEventTransfer(cliCtx client.Context, eLog *et
 	// check in store
 
 	// check on chain
-	done, approve, msgLog := c.verifyEventLog(eLog, eth.MsgBridge, msgbrtypes.MsgEventMessageWithTransfer, c.msgContracts.Address, logmsg)
+	done, approve, msgLog := c.verifyEventLog(eLog, eth.MsgBridge, msgbrtypes.MsgEventMessageWithTransfer, c.msgContract.Address, logmsg)
 	if msgLog == nil {
 		return done, approve
 	}
 
-	msgEv, err := c.msgContracts.ParseMessageWithTransfer(*msgLog)
+	msgEv, err := c.msgContract.ParseMessageWithTransfer(*msgLog)
 	if err != nil {
 		log.Errorln(logmsg, "parse log err:", err)
 		return true, false
@@ -129,7 +129,7 @@ func (c *CbrOneChain) verifyMessageEventTransfer(cliCtx client.Context, eLog *et
 
 func (c *CbrOneChain) verifyMessageEventExecuted(cliCtx client.Context, eLog *ethtypes.Log, logmsg string) (done, approve bool) {
 	// parse event
-	ev, err := c.msgContracts.ParseExecuted(*eLog)
+	ev, err := c.msgContract.ParseExecuted(*eLog)
 	if err != nil {
 		log.Errorf("%s. parse eLog error %s", logmsg, err)
 		return true, false
@@ -139,12 +139,12 @@ func (c *CbrOneChain) verifyMessageEventExecuted(cliCtx client.Context, eLog *et
 	// check in store
 
 	// check on chain
-	done, approve, msgLog := c.verifyEventLog(eLog, eth.MsgBridge, msgbrtypes.MsgEventExecuted, c.msgContracts.Address, logmsg)
+	done, approve, msgLog := c.verifyEventLog(eLog, eth.MsgBridge, msgbrtypes.MsgEventExecuted, c.msgContract.Address, logmsg)
 	if msgLog == nil {
 		return done, approve
 	}
 
-	msgEv, err := c.msgContracts.ParseExecuted(*msgLog)
+	msgEv, err := c.msgContract.ParseExecuted(*msgLog)
 	if err != nil {
 		log.Errorln(logmsg, "parse log err:", err)
 		return true, false
@@ -156,7 +156,7 @@ func (c *CbrOneChain) verifyMessageEventExecuted(cliCtx client.Context, eLog *et
 	}
 
 	// check status
-	executedStatus, err := c.msgContracts.ExecutedMessages(&bind.CallOpts{}, ev.Id)
+	executedStatus, err := c.msgContract.ExecutedMessages(&bind.CallOpts{}, ev.Id)
 	if err != nil {
 		log.Errorln("could not verify MessageEventExecuted", err)
 		return true, false

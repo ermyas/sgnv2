@@ -20,11 +20,12 @@ func (c *CbrOneChain) monPegbrDeposited(blk *big.Int) {
 	}
 
 	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    pegtypes.PegbrEventDeposited,
-		Contract:     c.pegContracts.vault,
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
+		ChainId:       c.chainid,
+		EventName:     pegtypes.PegbrEventDeposited,
+		Contract:      c.pegContracts.vault,
+		StartBlock:    blk,
+		ForwardDelay:  c.forwardBlkDelay,
+		CheckInterval: c.getEventCheckInterval(pegtypes.PegbrEventDeposited),
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.pegContracts.vault.ParseDeposited(eLog)
@@ -49,11 +50,12 @@ func (c *CbrOneChain) monPegbrMint(blk *big.Int) {
 	}
 
 	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    pegtypes.PegbrEventMint,
-		Contract:     c.pegContracts.bridge,
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
+		ChainId:       c.chainid,
+		EventName:     pegtypes.PegbrEventMint,
+		Contract:      c.pegContracts.bridge,
+		StartBlock:    blk,
+		ForwardDelay:  c.forwardBlkDelay,
+		CheckInterval: c.getEventCheckInterval(pegtypes.PegbrEventMint),
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.pegContracts.bridge.ParseMint(eLog)
@@ -85,11 +87,12 @@ func (c *CbrOneChain) monPegbrBurn(blk *big.Int) {
 	}
 
 	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    pegtypes.PegbrEventBurn,
-		Contract:     c.pegContracts.bridge,
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
+		ChainId:       c.chainid,
+		EventName:     pegtypes.PegbrEventBurn,
+		Contract:      c.pegContracts.bridge,
+		StartBlock:    blk,
+		ForwardDelay:  c.forwardBlkDelay,
+		CheckInterval: c.getEventCheckInterval(pegtypes.PegbrEventBurn),
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.pegContracts.bridge.ParseBurn(eLog)
@@ -115,11 +118,12 @@ func (c *CbrOneChain) monPegbrWithdrawn(blk *big.Int) {
 	}
 
 	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    pegtypes.PegbrEventWithdrawn,
-		Contract:     c.pegContracts.vault,
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
+		ChainId:       c.chainid,
+		EventName:     pegtypes.PegbrEventWithdrawn,
+		Contract:      c.pegContracts.vault,
+		StartBlock:    blk,
+		ForwardDelay:  c.forwardBlkDelay,
+		CheckInterval: c.getEventCheckInterval(pegtypes.PegbrEventWithdrawn),
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.pegContracts.vault.ParseWithdrawn(eLog)

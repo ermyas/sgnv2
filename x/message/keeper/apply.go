@@ -127,11 +127,11 @@ func (k Keeper) applyMessageExecuted(ctx sdk.Context, applyEvent *cbrtypes.OnCha
 	if err != nil {
 		return false, err
 	}
-	msgContracts, err := eth.NewMessageBusFilterer(eth.ZeroAddr, nil)
+	msgContract, err := eth.NewMessageBusFilterer(eth.ZeroAddr, nil)
 	if err != nil {
 		return false, err
 	}
-	ev, err := msgContracts.ParseExecuted(*evlog)
+	ev, err := msgContract.ParseExecuted(*evlog)
 	if err != nil {
 		log.Errorln("getMessageId: cannot parse event:", err)
 		return false, err
@@ -163,11 +163,11 @@ func buildExecutionContextForMessageNoTransfer(ctx sdk.Context, event *cbrtypes.
 	if err != nil {
 		return nil, err
 	}
-	msgContracts, err := eth.NewMessageBusFilterer(eth.ZeroAddr, nil)
+	msgContract, err := eth.NewMessageBusFilterer(eth.ZeroAddr, nil)
 	if err != nil {
 		return nil, err
 	}
-	ev, err := msgContracts.ParseMessage(*evlog)
+	ev, err := msgContract.ParseMessage(*evlog)
 	if err != nil {
 		return nil, err
 	}
@@ -283,11 +283,11 @@ func parseMessageWithTransfer(event *cbrtypes.OnChainEvent) (*eth.MessageBusMess
 	if err != nil {
 		return nil, err
 	}
-	msgContracts, err := eth.NewMessageBusFilterer(eth.ZeroAddr, nil)
+	msgContract, err := eth.NewMessageBusFilterer(eth.ZeroAddr, nil)
 	if err != nil {
 		return nil, err
 	}
-	msgXfer, err := msgContracts.ParseMessageWithTransfer(*evlog)
+	msgXfer, err := msgContract.ParseMessageWithTransfer(*evlog)
 	return msgXfer, err
 }
 

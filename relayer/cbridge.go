@@ -35,16 +35,16 @@ const (
 	cbrDbPrefix = "cbr-"
 )
 
-type MsgContracts struct {
+type MsgContract struct {
 	*eth.MessageBus
 	Address eth.Addr
 }
 
-func (m MsgContracts) GetAddr() ec.Address {
+func (m MsgContract) GetAddr() ec.Address {
 	return m.Address
 }
 
-func (m MsgContracts) GetABI() string {
+func (m MsgContract) GetABI() string {
 	return eth.MessageBusABI
 }
 
@@ -88,7 +88,7 @@ type CbrOneChain struct {
 	mon          *monitor.Service
 	cbrContract  *eth.BridgeContract
 	pegContracts *PegContracts
-	msgContracts *MsgContracts
+	msgContract  *MsgContract
 	db           *dbm.PrefixDB // cbr-xxx xxx is chainid
 	curss        currentSigners
 	lock         sync.RWMutex
@@ -97,6 +97,8 @@ type CbrOneChain struct {
 
 	// chainid and blkdelay and forwardblkdelay for verify/easy logging
 	chainid, blkDelay, forwardBlkDelay, blkInterval uint64
+
+	checkIntervals map[string]uint64
 }
 
 // key is chainid
@@ -184,6 +186,12 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 		ethutils.WithAddGasGwei(cfg.AddGasGwei),
 		ethutils.WithMaxFeePerGasGwei(cfg.MaxFeePerGasGwei),
 	)
+
+	checkIntervals := make(map[string]uint64)
+	for name, interval := range cfg.CheckInterval {
+		checkIntervals[name] = uint64(interval.(int64))
+	}
+
 	ret := &CbrOneChain{
 		Client:     ec,
 		Transactor: transactor,
@@ -196,7 +204,7 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 			vault:  otv,
 			bridge: ptb,
 		},
-		msgContracts: &MsgContracts{
+		msgContract: &MsgContract{
 			MessageBus: msg,
 			Address:    eth.Hex2Addr(cfg.MsgBus),
 		},
@@ -205,6 +213,7 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 		blkDelay:        cfg.BlkDelay,
 		forwardBlkDelay: cfg.ForwardBlkDelay,
 		blkInterval:     cfg.BlkInterval,
+		checkIntervals:  checkIntervals,
 	}
 	chainSigners, err := cbrcli.QueryChainSigners(cliCtx, cfg.ChainID)
 	if err != nil {

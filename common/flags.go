@@ -68,6 +68,8 @@ const (
 	FlagGatewayIncentiveRewardsBscContractAddress = "gateway.incentive_rewards.bsc_contract_address"
 
 	FlagMultiChain = "multichain" // array of toml tables, each table represents one chain, see common/multichain.go for details
+
+	FlagBridgeDefaultCheckInterval = "bridge.default_check_interval"
 )
 
 const (

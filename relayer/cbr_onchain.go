@@ -60,11 +60,12 @@ func (c *CbrOneChain) startMon() {
 
 func (c *CbrOneChain) monSend(blk *big.Int) {
 	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    cbrtypes.CbrEventSend,
-		Contract:     c.cbrContract,
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
+		ChainId:       c.chainid,
+		EventName:     cbrtypes.CbrEventSend,
+		Contract:      c.cbrContract,
+		StartBlock:    blk,
+		ForwardDelay:  c.forwardBlkDelay,
+		CheckInterval: c.getEventCheckInterval(cbrtypes.CbrEventSend),
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.cbrContract.ParseSend(eLog)
@@ -85,11 +86,12 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 
 func (c *CbrOneChain) monRelay(blk *big.Int) {
 	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    cbrtypes.CbrEventRelay,
-		Contract:     c.cbrContract,
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
+		ChainId:       c.chainid,
+		EventName:     cbrtypes.CbrEventRelay,
+		Contract:      c.cbrContract,
+		StartBlock:    blk,
+		ForwardDelay:  c.forwardBlkDelay,
+		CheckInterval: c.getEventCheckInterval(cbrtypes.CbrEventRelay),
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.cbrContract.ParseRelay(eLog)
@@ -117,11 +119,12 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 
 func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    cbrtypes.CbrEventLiqAdd,
-		Contract:     c.cbrContract,
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
+		ChainId:       c.chainid,
+		EventName:     cbrtypes.CbrEventLiqAdd,
+		Contract:      c.cbrContract,
+		StartBlock:    blk,
+		ForwardDelay:  c.forwardBlkDelay,
+		CheckInterval: c.getEventCheckInterval(cbrtypes.CbrEventLiqAdd),
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.cbrContract.ParseLiquidityAdded(eLog)
@@ -142,11 +145,12 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 
 func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    cbrtypes.CbrEventWithdraw,
-		Contract:     c.cbrContract,
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
+		ChainId:       c.chainid,
+		EventName:     cbrtypes.CbrEventWithdraw,
+		Contract:      c.cbrContract,
+		StartBlock:    blk,
+		ForwardDelay:  c.forwardBlkDelay,
+		CheckInterval: c.getEventCheckInterval(cbrtypes.CbrEventWithdraw),
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.cbrContract.ParseWithdrawDone(eLog)
@@ -167,11 +171,12 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 
 func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    cbrtypes.CbrEventSignersUpdated,
-		Contract:     c.cbrContract,
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
+		ChainId:       c.chainid,
+		EventName:     cbrtypes.CbrEventSignersUpdated,
+		Contract:      c.cbrContract,
+		StartBlock:    blk,
+		ForwardDelay:  c.forwardBlkDelay,
+		CheckInterval: c.getEventCheckInterval(cbrtypes.CbrEventSignersUpdated),
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.cbrContract.ParseSignersUpdated(eLog)

@@ -1,3 +1,22 @@
+# here we make the full list as examples
+# only list values not equal to 1 in production
+[bridge.default_check_interval]
+# cbridge events
+send = 1
+relay = 1
+liquidity_added = 1
+withdraw_done = 1
+signers_updated = 1
+# pegbridge events
+deposited = 1
+mint = 1
+burn = 1
+withdrawn = 1
+# message events
+message = 1
+message_with_transfer = 1
+executed = 1
+
 # multichain configs
 
 [[multichain]]
@@ -11,6 +30,13 @@ cbridge = ""
 otvault = ""
 ptbridge = ""
 maxfeepergasgwei = 2
+[multichain.checkinterval]
+# cbridge events
+withdraw_done = 1
+# pegbridge events
+withdrawn = 1
+# message events
+message = 1
 
 [[multichain]]
 chainID = 884

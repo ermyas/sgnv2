@@ -79,7 +79,7 @@ func (r *Relayer) isCbrSsUpdating() bool {
 
 func getEventCheckInterval(name string) uint64 {
 	m := viper.GetStringMap(common.FlagEthCheckInterval)
-	eventNameInConfig := strcase.ToSnake(string(name))
+	eventNameInConfig := strcase.ToSnake(name)
 	if m[eventNameInConfig] != nil {
 		return uint64(m[eventNameInConfig].(int64))
 	}

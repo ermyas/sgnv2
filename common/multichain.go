@@ -22,7 +22,8 @@ type OneChainConfig struct {
 	// chainID will be used to determined which type proxy to create, so make sure the chainID is supported in the "endpoint-proxy"
 	// create a proxy to the Gateway, and eth-client will be created to "127.0.0.1:ProxyPort"
 	// more detail, https://github.com/celer-network/endpoint-proxy
-	ProxyPort int
+	ProxyPort     int
+	CheckInterval map[string]interface{}
 }
 
 type MultiChainConfig []*OneChainConfig

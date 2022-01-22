@@ -278,7 +278,7 @@ func (c *CbrOneChain) skipMessageWithTransfer(evlog *ethtypes.Log, cliCtx client
 }
 
 func (c *CbrOneChain) skipMessageWithTransferRefund(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
-	ev, err := c.msgContracts.ParseMessageWithTransfer(*evlog)
+	ev, err := c.msgContract.ParseMessageWithTransfer(*evlog)
 	if err != nil {
 		log.Warnf("getMessageId from messageWithTransfer evlog err: %s", err)
 		return
@@ -315,7 +315,7 @@ func (c *CbrOneChain) checkRefundExists(srcXferId string, cliCtx client.Context)
 }
 
 func (c *CbrOneChain) getMessageIdFromExecutedEvent(evlog *ethtypes.Log) (string, error) {
-	ev, err := c.msgContracts.ParseExecuted(*evlog)
+	ev, err := c.msgContract.ParseExecuted(*evlog)
 	if err != nil {
 		log.Errorln("getMessageId: cannot parse event:", err)
 		return "", err
@@ -324,7 +324,7 @@ func (c *CbrOneChain) getMessageIdFromExecutedEvent(evlog *ethtypes.Log) (string
 }
 
 func (c *CbrOneChain) getMessageIdFromMessageNoTransferEvent(cliCtx client.Context, evlog *ethtypes.Log) (string, error) {
-	ev, err := c.msgContracts.ParseMessage(*evlog)
+	ev, err := c.msgContract.ParseMessage(*evlog)
 	if err != nil {
 		log.Errorln("getMessageIdFromMessageEvent: cannot parse event:", err)
 		return "", err
@@ -341,7 +341,7 @@ func (c *CbrOneChain) getMessageIdFromMessageNoTransferEvent(cliCtx client.Conte
 }
 
 func (c *CbrOneChain) getMessageIdFromMessageWithTransferEvent(cliCtx client.Context, evlog *ethtypes.Log) (string, error) {
-	ev, err := c.msgContracts.ParseMessageWithTransfer(*evlog)
+	ev, err := c.msgContract.ParseMessageWithTransfer(*evlog)
 	if err != nil {
 		log.Errorln("getMessageIdFromMessageWithTransferEvent: cannot parse event:", err)
 		return "", err

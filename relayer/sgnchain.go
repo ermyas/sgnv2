@@ -394,7 +394,7 @@ func (r *Relayer) monitorSgnMsgDataToSign() {
 					continue
 				}
 				sig, err := r.EthClient.SignEthMessage(
-					messageInfo.EncodeDataToSign(eth.Hex2Hash(msgId), r.cbrMgr[messageInfo.DstChainId].msgContracts.Address))
+					messageInfo.EncodeDataToSign(eth.Hex2Hash(msgId), r.cbrMgr[messageInfo.DstChainId].msgContract.Address))
 				if err != nil {
 					log.Error(err)
 					continue
