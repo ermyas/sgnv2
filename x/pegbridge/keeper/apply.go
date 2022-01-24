@@ -123,7 +123,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 
 		// Mint fees to distribution module
 		// NOTE: pegbridge fees are always claimed in the form of original tokens
-		err = k.MintFeeAndSendToSyncer(ctx, pair.Orig, baseFee)
+		err = k.MintFeeAndSendToSyncer(ctx, pair.Orig, baseFee, depositChainId, ev.MintChainId)
 		if err != nil {
 			return false, err
 		}
@@ -234,7 +234,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 
 		// Mint fees to distribution module
 		// NOTE: pegbridge fees are always claimed in the form of original tokens
-		err = k.MintFeeAndSendToSyncer(ctx, pair.Orig, baseFee)
+		err = k.MintFeeAndSendToSyncer(ctx, pair.Orig, baseFee, burnChainId, withdrawChainId)
 		if err != nil {
 			return false, err
 		}

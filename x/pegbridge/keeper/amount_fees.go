@@ -3,10 +3,12 @@ package keeper
 import (
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/celer-network/sgn-v2/common"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
+	"github.com/celer-network/sgn-v2/relayer"
 	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
 	"github.com/celer-network/sgn-v2/x/pegbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -112,18 +114,21 @@ func (k Keeper) CalcPercFee(
 }
 
 // MintFeeAndSendToSyncer mints base fee to distribution module's fee collector account, then sends it to the active syncer directly.
-func (k Keeper) MintFeeAndSendToSyncer(ctx sdk.Context, token commontypes.ERC20Token, amount *big.Int) error {
+func (k Keeper) MintFeeAndSendToSyncer(ctx sdk.Context, token commontypes.ERC20Token, amount *big.Int,
+	srcChainId uint64, dstChainId uint64) error {
 	coin, err := k.MintFee(ctx, token, amount)
 	if err != nil {
 		return err
 	}
 	syncer := k.stakingKeeper.GetSyncer(ctx)
 	// Send coins from module to the active syncer address directly, bypassing distribution mechanism.
-	derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(distrtypes.ModuleName, eth.Hex2Addr(syncer.GetEthAddress()))
+	syncerAddr := eth.Hex2Addr(syncer.GetEthAddress())
+	derivedAccAddress := common.DeriveSdkAccAddressFromEthAddress(distrtypes.ModuleName, syncerAddr)
 	err = k.bankKeeper.SendCoinsFromModuleToAccount(ctx, k.feeCollectorName, derivedAccAddress, sdk.NewCoins(coin))
 	if err != nil {
 		return err
 	}
+	relayer.ReportBaseFeeDistribution(relayer.BridgeType_BRIDGE_TYPE_PEGGED, syncerAddr, time.Now(), amount, token.GetSymbol(), token.GetDecimals(), srcChainId, dstChainId)
 	return nil
 }
 

@@ -20,6 +20,9 @@ import (
 var lpFeeEarningHistoryMap = make(map[uint64]*LPFeeEarningHistory)
 var lpFeeEarningHistoryLock sync.RWMutex
 
+var baseFeeDistributionHistoryMap = make(map[uint64]*BaseFeeDistributionHistory)
+var baseFeeDistributionHistoryLock sync.RWMutex
+
 func (r *Relayer) startReportSgnAnalytics() {
 	endpoint := viper.GetString(common.FlagSgnLivenessReportEndpoint)
 	if endpoint == "" {
@@ -43,10 +46,11 @@ func (r *Relayer) startReportSgnAnalytics() {
 
 func (r *Relayer) reportSgnAnalytics() {
 	var report = &SgnAnalyticsReport{
-		Timestamp:             common.TsMilli(time.Now()),
-		BlockNums:             make(map[string]uint64),
-		SgndVersion:           version.Version,
-		LpFeeEarningHistories: getAndClearLpEarningFeeHistory(),
+		Timestamp:                    common.TsMilli(time.Now()),
+		BlockNums:                    make(map[string]uint64),
+		SgndVersion:                  version.Version,
+		LpFeeEarningHistories:        getAndClearLpEarningFeeHistory(),
+		BaseFeeDistributionHistories: getAndClearBaseFeeDistributionHistory(),
 	}
 	for chainId, oneChain := range r.cbrMgr {
 		blockNumber := oneChain.mon.GetCurrentBlockNumber()
@@ -121,6 +125,23 @@ func AppendLpPickHistoryLog(lpAddr, tokenAddr eth.Addr, lpAmt *big.Int, dstChain
 	}
 }
 
+func ReportBaseFeeDistribution(bridgeType BridgeType, syncerAddr eth.Addr, start time.Time, baseFee *big.Int, tokenSymbol string, tokenDecimal uint32, srcChainId, dstChainId uint64) {
+	if viper.GetBool(common.FlagSgnReportLpFeeEarningFlag) {
+		baseFeeDistributionHistoryLock.Lock()
+		defer baseFeeDistributionHistoryLock.Unlock()
+		t := uint64(start.UnixNano())
+		baseFeeDistributionHistoryMap[t] = &BaseFeeDistributionHistory{
+			BridgeType:          bridgeType,
+			BaseFeeReceiverAddr: syncerAddr.Hex(),
+			BaseFeeAmt:          baseFee.String(),
+			TokenSymbol:         tokenSymbol,
+			TokenDecimal:        tokenDecimal,
+			SrcChainId:          srcChainId,
+			DstChainId:          dstChainId,
+		}
+	}
+}
+
 func getAndClearLpEarningFeeHistory() map[uint64]*LPFeeEarningHistory {
 	// only node 0 report
 	if !viper.GetBool(common.FlagSgnReportLpFeeEarningFlag) {
@@ -133,5 +154,20 @@ func getAndClearLpEarningFeeHistory() map[uint64]*LPFeeEarningHistory {
 		t[nanoTs] = history
 	}
 	lpFeeEarningHistoryMap = make(map[uint64]*LPFeeEarningHistory)
+	return t
+}
+
+func getAndClearBaseFeeDistributionHistory() map[uint64]*BaseFeeDistributionHistory {
+	// only node 0 report
+	if !viper.GetBool(common.FlagSgnReportLpFeeEarningFlag) {
+		return make(map[uint64]*BaseFeeDistributionHistory)
+	}
+	baseFeeDistributionHistoryLock.Lock()
+	defer baseFeeDistributionHistoryLock.Unlock()
+	t := make(map[uint64]*BaseFeeDistributionHistory)
+	for nanoTs, history := range baseFeeDistributionHistoryMap {
+		t[nanoTs] = history
+	}
+	baseFeeDistributionHistoryMap = make(map[uint64]*BaseFeeDistributionHistory)
 	return t
 }

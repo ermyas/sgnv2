@@ -130,9 +130,9 @@ type AddrHexAmtInt struct {
 // fee and add liq on src are calculated based on ratio this LP contributed into destAmount
 // WARNING: this func doesn't care base fee BY DESIGN!!!
 func (k Keeper) PickLPsAndAdjustLiquidity(
-	ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdTokenAddr, srcAmount, destAmount, fee *big.Int, destDecimal uint32, sender eth.Addr, lpPre []byte) error {
+	ctx sdk.Context, kv sdk.KVStore, src, dest *ChainIdTokenAddr, srcAmount, destAmount, fee *big.Int,
+	destDecimal uint32, sender eth.Addr, lpPre []byte, start time.Time) error {
 	// don't write to kv before possible return error because it'll cause wrong state
-	start := time.Now()
 	pickedLPs, useByRatio := pickLPs(kv, dest.ChId, dest.TokenAddr, sender, destAmount, lpPre)
 	numLPs := len(pickedLPs)
 	log.Infoln("perfxxx picked", numLPs, "lps, byratio:", useByRatio, "took:", time.Since(start))

@@ -3,9 +3,11 @@ package keeper
 import (
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
+	"github.com/celer-network/sgn-v2/relayer"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -218,13 +220,15 @@ func (k Keeper) MintSgnFee(ctx sdk.Context, kv sdk.KVStore, chid uint64, token e
 	return sum
 }
 
-func (k Keeper) MintSgnFeeAndSendToSyncer(ctx sdk.Context, kv sdk.KVStore, chid uint64, token eth.Addr, delta *big.Int) *big.Int {
-	coin, sum := k.addSgnFee(ctx, kv, chid, token, delta)
+func (k Keeper) MintSgnFeeAndSendToSyncer(ctx sdk.Context, kv sdk.KVStore, dstChainId uint64, token eth.Addr, delta *big.Int, start time.Time, srcChainId uint64, sym string, decimal uint32) *big.Int {
+	coin, sum := k.addSgnFee(ctx, kv, dstChainId, token, delta)
 	syncer := k.stakingKeeper.GetSyncer(ctx)
-	err := k.MintAndSendFeeShare(ctx, eth.Hex2Addr(syncer.GetEthAddress()), coin)
+	syncerAddr := eth.Hex2Addr(syncer.GetEthAddress())
+	err := k.MintAndSendFeeShare(ctx, syncerAddr, coin)
 	if err != nil {
 		panic(err)
 	}
+	relayer.ReportBaseFeeDistribution(relayer.BridgeType_BRIDGE_TYPE_LIQUIDITY, syncerAddr, start, delta, sym, decimal, srcChainId, dstChainId)
 	return sum
 }
 

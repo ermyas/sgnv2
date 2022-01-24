@@ -110,7 +110,7 @@ func (k Keeper) transfer(
 	// pick LPs, minus each's destChain liquidity, add src liquidity
 	// this func DOESN'T care baseFee BY DESIGN!
 	start := time.Now()
-	err = k.PickLPsAndAdjustLiquidity(ctx, kv, src, dest, amount, destAmount, percFee, destToken.Decimal, lpSender, startLpPre)
+	err = k.PickLPsAndAdjustLiquidity(ctx, kv, src, dest, amount, destAmount, percFee, destToken.Decimal, lpSender, startLpPre, start)
 	if err != nil {
 		log.Error(err)
 		status = types.XferStatus_BAD_LIQUIDITY
@@ -122,7 +122,7 @@ func (k Keeper) transfer(
 	// we need to save baseFee in relay detail, and upon seeing the relay event, figure out
 	// its sender and add to that address. Note there is no way we can make baseFee equal the actual
 	// onchain tx cost because gasprice and token usd prices are all changing constantly.
-	k.MintSgnFeeAndSendToSyncer(ctx, kv, dest.ChId, dest.TokenAddr, baseFee)
+	k.MintSgnFeeAndSendToSyncer(ctx, kv, dest.ChId, dest.TokenAddr, baseFee, start, src.ChId, assetSym, destToken.Decimal)
 	status = types.XferStatus_OK_TO_RELAY
 	return
 }

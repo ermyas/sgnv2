@@ -3,24 +3,6 @@ package sgn.health.v1;
 
 option go_package = "github.com/celer-network/sgn-v2/relayer";
 
-message ReportCurrentBlockNumberRequest {
-  // serialized CurrentBlockNumberReport
-  bytes report = 1;
-  bytes sig = 2;
-}
-
-message CurrentBlockNumberReport {
-  // in millis
-  uint64 timestamp = 1;
-  // key is chainId, value is block number
-  map<string, uint64> block_nums = 2;
-  string sgnd_version = 3;
-}
-
-message ReportCurrentBlockNumberResponse {
-  ErrMsg err = 1;
-}
-
 message ReportSgnAnalyticsRequest {
   // serialized SgnAnalyticsReport
   bytes report = 1;
@@ -35,6 +17,24 @@ message SgnAnalyticsReport {
   string sgnd_version = 3;
   // key is nanoseconds timestamp, so histories are group by transfer (lp picks belong to one transfer are the same time)
   map<uint64, LPFeeEarningHistory> lp_fee_earning_histories = 4;
+  // key is nanoseconds timestamp, so histories are group by transfer
+  map<uint64, BaseFeeDistributionHistory> base_fee_distribution_histories = 5;
+}
+
+enum BridgeType {
+  BRIDGE_TYPE_UNDEFINED = 0;
+  BRIDGE_TYPE_LIQUIDITY = 1;
+  BRIDGE_TYPE_PEGGED = 2;
+}
+
+message BaseFeeDistributionHistory {
+  BridgeType bridge_type = 1;
+  string base_fee_receiver_addr = 2;
+  string base_fee_amt = 3;
+  string token_symbol = 4;
+  uint32 token_decimal = 5;
+  uint64 src_chain_id = 6;
+  uint64 dst_chain_id = 7;
 }
 
 // each LPFeeEarningHistory represents one transfer history
