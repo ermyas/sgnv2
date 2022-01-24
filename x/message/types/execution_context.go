@@ -6,11 +6,12 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/ethereum/go-ethereum/common"
 	solsha3 "github.com/miguelmota/go-solidity-sha3"
 )
 
-func NewExecutionContext(
+func NewMsgXferExecutionContext(
 	ev *eth.MessageBusMessageWithTransfer,
 	chainId uint64,
 	dstToken eth.Addr,
@@ -38,6 +39,53 @@ func NewExecutionContext(
 		Transfer: transfer,
 	}
 	execCtx.MessageId = execCtx.ComputeMessageId(dstBridge)
+	return execCtx
+}
+
+func NewMsgXferRefundExecutionContext(
+	ev *eth.MessageBusMessageWithTransfer,
+	wdOnchain *cbrtypes.WithdrawOnchain,
+	nonce uint64,
+	bridge eth.Addr) *ExecutionContext {
+
+	transfer := &Transfer{
+		Amount: new(big.Int).SetBytes(wdOnchain.Amount).String(),
+		Token:  wdOnchain.Token,
+		SeqNum: nonce,
+		RefId:  ev.SrcTransferId[:],
+	}
+	message := &Message{
+		SrcChainId:      wdOnchain.Chainid,
+		DstChainId:      wdOnchain.Chainid,
+		Sender:          ev.Sender.String(),
+		Receiver:        ev.Sender.String(),
+		Data:            ev.Message,
+		TransferType:    TRANSFER_TYPE_LIQUIDITY_WITHDRAW,
+		ExecutionStatus: EXECUTION_STATUS_PENDING,
+		Fee:             "0",
+	}
+	execCtx := &ExecutionContext{
+		Message:  *message,
+		Transfer: transfer,
+	}
+	execCtx.PopulateMessageId(bridge)
+	return execCtx
+}
+
+func NewMsgExecutionContext(ev *eth.MessageBusMessage, srcChainId uint64) *ExecutionContext {
+	message := Message{
+		SrcChainId:      srcChainId,
+		Sender:          ev.Sender.String(),
+		DstChainId:      ev.DstChainId.Uint64(),
+		Receiver:        ev.Receiver.String(),
+		Data:            ev.Message,
+		Fee:             "0", // ev.Fee.String(),
+		ExecutionStatus: EXECUTION_STATUS_PENDING,
+	}
+	execCtx := &ExecutionContext{
+		Message: message,
+	}
+	execCtx.MessageId = message.ComputeMessageIdNoTransfer()
 	return execCtx
 }
 

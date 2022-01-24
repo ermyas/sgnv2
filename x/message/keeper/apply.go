@@ -25,7 +25,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 	log.Debugf("x/message applied:%+v", applyEvent.String())
 	switch applyEvent.GetEvtype() {
 	case types.MsgEventMessage:
-		return k.applyMessageNoTransfer(ctx, applyEvent)
+		return k.applyMessage(ctx, applyEvent)
 	case types.MsgEventMessageWithTransfer:
 		return k.applyMessageWithTransfer(ctx, applyEvent)
 	case types.MsgEventExecuted:
@@ -34,13 +34,13 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 	return true, nil
 }
 
-func (k Keeper) applyMessageNoTransfer(ctx sdk.Context, applyEvent *cbrtypes.OnChainEvent) (bool, error) {
-	execCtx, err := buildExecutionContextForMessageNoTransfer(ctx, applyEvent)
+func (k Keeper) applyMessage(ctx sdk.Context, applyEvent *cbrtypes.OnChainEvent) (bool, error) {
+	ev, err := parseEventMessage(applyEvent)
 	if err != nil {
 		return false, err
 	}
+	execCtx := types.NewMsgExecutionContext(ev, applyEvent.Chainid)
 	msg := execCtx.Message
-	// The messageId for a message without a transfer
 	messageId := eth.Bytes2Hash(execCtx.MessageId)
 	if k.HasMessage(ctx, messageId) {
 		log.Infof("skip already applied message (id %s)", messageId.String())
@@ -57,45 +57,127 @@ func (k Keeper) applyMessageNoTransfer(ctx sdk.Context, applyEvent *cbrtypes.OnC
 	if err != nil {
 		return false, err
 	}
-	log.Debugln("emitting tendermint event with messageId", messageId.Hex())
-	ctx.EventManager().EmitEvent(sdk.NewEvent(
-		types.EventTypeMessageToSign,
-		sdk.NewAttribute(types.AttributeKeyMessageId, messageId.Hex()),
-		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
-	))
+	emitMessageToSign(ctx, messageId.Hex())
 	return true, nil
 }
 
 func (k Keeper) applyMessageWithTransfer(ctx sdk.Context, applyEvent *cbrtypes.OnChainEvent) (bool, error) {
-	ev, err := parseMessageWithTransfer(applyEvent)
+	ev, err := parseEventMessageWithTransfer(applyEvent)
 	if err != nil {
 		return false, err
 	}
 	srcXferId := eth.Bytes2Hash(ev.SrcTransferId[:])
 	srcChainId := applyEvent.Chainid
 	transferType := k.getTransferType(ctx, ev.Bridge, srcChainId)
+	dstChainId := ev.DstChainId.Uint64()
 
-	// Query the respective x modules to check if the transfer is in refund status
+	errMsg := fmt.Sprintf(
+		"cannot apply message with transfer (srcXferId %s, srcChainId %d, tranferType %v): ",
+		srcXferId.Hex(), srcChainId, transferType)
+
 	switch transferType {
 	case types.TRANSFER_TYPE_LIQUIDITY_SEND:
 		xferStatus := k.cbridgeKeeper.QueryXferStatus(ctx, srcXferId)
-		if shouldRefund(xferStatus) {
+		if shouldRefundXfer(xferStatus) {
 			return k.applyTransferRefund(ctx, ev)
 		}
-	case types.TRANSFER_TYPE_PEG_MINT:
-		// TODO
-	case types.TRANSFER_TYPE_PEG_WITHDRAW:
-		// TODO
-	default:
-		return false, fmt.Errorf("cannot determine refund status: msg (xferId %s) transfer type (%s) not supported", ev.SrcTransferId, transferType)
-	}
+		relay, found := k.cbridgeKeeper.GetXferRelay(ctx, srcXferId)
+		relayOnChain := new(cbrtypes.RelayOnChain)
+		if !found {
+			return false, fmt.Errorf(errMsg + "relay not found")
+		}
+		err = relayOnChain.Unmarshal(relay.GetRelay())
+		if err != nil {
+			return false, fmt.Errorf(errMsg+"failed to unmarshal relay %v", relay.GetRelay())
+		}
+		dstToken := relayOnChain.GetToken()
+		dstAmt := new(big.Int).SetBytes(relayOnChain.GetAmount()).String()
+		dstBridge, found := k.cbridgeKeeper.GetCbrContractAddr(ctx, dstChainId)
+		if !found {
+			return false, fmt.Errorf(errMsg+"bridge addr not found for relay. dstChainId %d", dstChainId)
+		}
+		execCtx := types.NewMsgXferExecutionContext(ev, srcChainId, eth.Bytes2Addr(dstToken), dstAmt, dstBridge, transferType)
+		return k.processMessageWithTransfer(ctx, execCtx)
 
-	// process successful transfer case
-	dstToken, dstAmt, dstBridge, err := k.getTransferInfo(ctx, srcXferId, transferType, ev.DstChainId.Uint64())
-	if err != nil {
-		return false, fmt.Errorf("getTransferByTransferId: cannot get transfer:%s now, err:%s", srcXferId, err)
+	case types.TRANSFER_TYPE_PEG_MINT:
+		deposit, found := k.pegbridgeKeeper.GetDepositInfo(ctx, srcXferId)
+		if !found {
+			return false, fmt.Errorf(errMsg + "deposit info not found")
+		}
+		if len(deposit.GetMintId()) == 0 {
+			// TODO handle refund
+		}
+		mint, found := k.pegbridgeKeeper.GetMintInfo(ctx, eth.Bytes2Hash(deposit.GetMintId()))
+		if !found {
+			return false, fmt.Errorf(errMsg+"mint info (id %x) not found", deposit.GetMintId())
+		}
+		mintOnChain := new(pegbrtypes.MintOnChain)
+		err = mintOnChain.Unmarshal(mint.GetMintProtoBytes())
+		if err != nil {
+			return false, fmt.Errorf(errMsg+"unable to unmarshal mintOnchain %v", mint.GetMintProtoBytes())
+		}
+		dstAmt := new(big.Int).SetBytes(mintOnChain.GetAmount()).String()
+		dstToken := mintOnChain.GetToken()
+		dstBridge, found := k.pegbridgeKeeper.GetPeggedTokenBridge(ctx, dstChainId)
+		if !found {
+			return false, fmt.Errorf(errMsg+"pegged token bridge not found for dstChainId %d", dstChainId)
+		}
+		execCtx := types.NewMsgXferExecutionContext(
+			ev, srcChainId, eth.Bytes2Addr(dstToken), dstAmt, eth.Hex2Addr(dstBridge.Address), transferType)
+		return k.processMessageWithTransfer(ctx, execCtx)
+
+	case types.TRANSFER_TYPE_PEG_WITHDRAW:
+		burn, found := k.pegbridgeKeeper.GetBurnInfo(ctx, srcXferId)
+		if !found {
+			return false, fmt.Errorf(errMsg + "burn info not found")
+		}
+		if len(burn.GetWithdrawId()) == 0 {
+			// TODO handle refund
+		}
+		withdraw, found := k.pegbridgeKeeper.GetWithdrawInfo(ctx, eth.Bytes2Hash(burn.GetWithdrawId()))
+		if !found {
+			return false, fmt.Errorf(errMsg+"withdraw info (id %x) not found", burn.GetWithdrawId())
+		}
+		withdrawOnChain := new(pegbrtypes.WithdrawOnChain)
+		err = withdrawOnChain.Unmarshal(withdraw.GetWithdrawProtoBytes())
+		if err != nil {
+			return false, fmt.Errorf(errMsg+"unable to unmarshal withdrawOnchain %v", withdraw.GetWithdrawProtoBytes())
+		}
+		dstAmt := new(big.Int).SetBytes(withdrawOnChain.GetAmount()).String()
+		dstToken := withdrawOnChain.GetToken()
+		dstBridge, found := k.pegbridgeKeeper.GetOriginalTokenVault(ctx, dstChainId)
+		if !found {
+			return false, fmt.Errorf(errMsg+"pegged token vault not found for dstChainId %d", dstChainId)
+		}
+		execCtx := types.NewMsgXferExecutionContext(
+			ev, srcChainId, eth.Bytes2Addr(dstToken), dstAmt, eth.Hex2Addr(dstBridge.Address), transferType)
+		return k.processMessageWithTransfer(ctx, execCtx)
 	}
-	execCtx := types.NewExecutionContext(ev, srcChainId, eth.Bytes2Addr(dstToken), dstAmt, dstBridge, transferType)
+	return false, fmt.Errorf(errMsg+"transfer type (%s) not supported", srcXferId.String(), transferType)
+}
+
+func (k Keeper) applyTransferRefund(ctx sdk.Context, ev *eth.MessageBusMessageWithTransfer) (bool, error) {
+	if k.HasRefund(ctx, ev.SrcTransferId) {
+		log.Infof("skip already applied message (srcXferId %x) with transfer refund", ev.SrcTransferId)
+		return false, nil
+	}
+	log.Debugf("applying transfer refund for sender app\n%s", ev.PrettyLog(0))
+	nonce := k.incrRefundNonce(ctx)
+	wdOnchain := k.cbridgeKeeper.QueryXferRefund(ctx, ev.SrcTransferId)
+	if wdOnchain == nil {
+		return false, fmt.Errorf("wdOnchain not found for srcXferId %x", ev.SrcTransferId)
+	}
+	log.Debugf("found WdOnchain: %+v", wdOnchain)
+	bridge, found := k.cbridgeKeeper.GetCbrContractAddr(ctx, wdOnchain.Chainid)
+	if !found {
+		return false, fmt.Errorf("bridge addr not found for chainId %d", wdOnchain.Chainid)
+	}
+	execCtx := types.NewMsgXferRefundExecutionContext(ev, wdOnchain, nonce, bridge)
+	k.SetRefund(ctx, eth.Bytes2Hash(ev.SrcTransferId[:]), execCtx)
+	return k.processMessageWithTransfer(ctx, execCtx)
+}
+
+func (k Keeper) processMessageWithTransfer(ctx sdk.Context, execCtx *types.ExecutionContext) (bool, error) {
 	messageId := eth.Bytes2Hash(execCtx.MessageId)
 	if k.HasMessage(ctx, messageId) {
 		log.Infof("skip already applied message with transfer (id %s)", messageId.String())
@@ -111,27 +193,17 @@ func (k Keeper) applyMessageWithTransfer(ctx sdk.Context, applyEvent *cbrtypes.O
 	if !success {
 		return false, errors.New("invalid fee")
 	}
-	err = k.MintFee(ctx, msg.SrcChainId, fee)
+	err := k.MintFee(ctx, msg.SrcChainId, fee)
 	if err != nil {
 		return false, err
 	}
-	log.Debugln("emitting tendermint event with messageId", messageId.Hex())
 	emitMessageToSign(ctx, messageId.Hex())
 	return true, nil
 }
 
 // DeleteActiveMessageId and set message completed after executed
 func (k Keeper) applyMessageExecuted(ctx sdk.Context, applyEvent *cbrtypes.OnChainEvent) (bool, error) {
-	evlog := new(ethtypes.Log)
-	err := json.Unmarshal(applyEvent.GetElog(), evlog)
-	if err != nil {
-		return false, err
-	}
-	msgContract, err := eth.NewMessageBusFilterer(eth.ZeroAddr, nil)
-	if err != nil {
-		return false, err
-	}
-	ev, err := msgContract.ParseExecuted(*evlog)
+	ev, err := parseEventExecuted(applyEvent)
 	if err != nil {
 		log.Errorln("getMessageId: cannot parse event:", err)
 		return false, err
@@ -156,39 +228,6 @@ func (k Keeper) applyMessageExecuted(ctx sdk.Context, applyEvent *cbrtypes.OnCha
 	return true, nil
 }
 
-func buildExecutionContextForMessageNoTransfer(ctx sdk.Context, event *cbrtypes.OnChainEvent) (*types.ExecutionContext, error) {
-	chainId := event.Chainid
-	evlog := new(ethtypes.Log)
-	err := json.Unmarshal(event.GetElog(), evlog)
-	if err != nil {
-		return nil, err
-	}
-	msgContract, err := eth.NewMessageBusFilterer(eth.ZeroAddr, nil)
-	if err != nil {
-		return nil, err
-	}
-	ev, err := msgContract.ParseMessage(*evlog)
-	if err != nil {
-		return nil, err
-	}
-
-	message := types.Message{
-		SrcChainId:      chainId,
-		Sender:          ev.Sender.String(),
-		DstChainId:      ev.DstChainId.Uint64(),
-		Receiver:        ev.Receiver.String(),
-		Data:            ev.Message,
-		Fee:             "0", // ev.Fee.String(),
-		ExecutionStatus: types.EXECUTION_STATUS_PENDING,
-	}
-
-	execCtx := &types.ExecutionContext{
-		Message: message,
-	}
-	execCtx.MessageId = message.ComputeMessageIdNoTransfer()
-	return execCtx, nil
-}
-
 func (k Keeper) getTransferType(ctx sdk.Context, bridgeAddr eth.Addr, srcChainId uint64) types.TransferType {
 	vault, vaultFound := k.pegbridgeKeeper.GetOriginalTokenVault(ctx, srcChainId)
 	pegbr, pegbrFound := k.pegbridgeKeeper.GetPeggedTokenBridge(ctx, srcChainId)
@@ -205,79 +244,7 @@ func (k Keeper) getTransferType(ctx sdk.Context, bridgeAddr eth.Addr, srcChainId
 	}
 }
 
-func (k Keeper) getTransferInfo(
-	c sdk.Context, srcTransferId eth.Hash, transferType types.TransferType, dstChainId uint64) (token []byte, amt string, dstBridgeAddr eth.Addr, err error) {
-	ctx := sdk.WrapSDKContext(c)
-	switch transferType {
-	case types.TRANSFER_TYPE_LIQUIDITY_SEND:
-		var relay *cbrtypes.QueryRelayResponse
-		relay, err = k.cbridgeKeeper.QueryRelay(ctx, &cbrtypes.QueryRelayRequest{XrefId: srcTransferId.Bytes()})
-		relayOnChain := new(cbrtypes.RelayOnChain)
-		if err == nil {
-			err = relayOnChain.Unmarshal(relay.GetXferRelay().GetRelay())
-		}
-		if err == nil {
-			token = relayOnChain.GetToken()
-			amt = new(big.Int).SetBytes(relayOnChain.GetAmount()).String()
-		}
-		found := false
-		dstBridgeAddr, found = k.cbridgeKeeper.GetCbrContractAddr(c, dstChainId)
-		if !found {
-			err = fmt.Errorf("bridge addr not found for relay. dstChainId %d", dstChainId)
-		}
-	case types.TRANSFER_TYPE_PEG_MINT:
-		var deposit *pegbrtypes.QueryDepositInfoResponse
-		deposit, err = k.pegbridgeKeeper.DepositInfo(ctx, &pegbrtypes.QueryDepositInfoRequest{DepositId: srcTransferId.String()})
-		if err == nil {
-			var mint *pegbrtypes.QueryMintInfoResponse
-			mint, err = k.pegbridgeKeeper.MintInfo(ctx, &pegbrtypes.QueryMintInfoRequest{MintId: eth.Bytes2Hash(deposit.DepositInfo.GetMintId()).String()})
-			if err == nil {
-				mintOnChain := new(pegbrtypes.MintOnChain)
-				err = mintOnChain.Unmarshal(mint.MintInfo.GetMintProtoBytes())
-				if err != nil {
-					log.Errorf("Unmarshal mintInfo.MintProtoBytes err %s", err)
-					return
-				}
-				amt = new(big.Int).SetBytes(mintOnChain.GetAmount()).String()
-				token = mintOnChain.GetToken()
-				vault, found := k.pegbridgeKeeper.GetPeggedTokenBridge(c, dstChainId)
-				if !found {
-					err = fmt.Errorf("bridge addr not found for mint. dstChainId %d", dstChainId)
-				} else {
-					dstBridgeAddr = eth.Hex2Addr(vault.GetAddress())
-				}
-			}
-		}
-	case types.TRANSFER_TYPE_PEG_WITHDRAW:
-		var burn *pegbrtypes.QueryBurnInfoResponse
-		burn, err = k.pegbridgeKeeper.BurnInfo(ctx, &pegbrtypes.QueryBurnInfoRequest{BurnId: srcTransferId.String()})
-		if err == nil {
-			var withdraw *pegbrtypes.QueryWithdrawInfoResponse
-			withdraw, err = k.pegbridgeKeeper.WithdrawInfo(ctx, &pegbrtypes.QueryWithdrawInfoRequest{WithdrawId: eth.Bytes2Hash(burn.BurnInfo.GetWithdrawId()).String()})
-			if err == nil {
-				withdrawOnChain := new(pegbrtypes.WithdrawOnChain)
-				err = withdrawOnChain.Unmarshal(withdraw.WithdrawInfo.GetWithdrawProtoBytes())
-				if err != nil {
-					log.Errorf("Unmarshal withdrawInfo.WithdrawProtoBytes err %s", err)
-					return
-				}
-				amt = new(big.Int).SetBytes(withdrawOnChain.GetAmount()).String()
-				token = withdrawOnChain.GetToken()
-				pegBridge, found := k.pegbridgeKeeper.GetOriginalTokenVault(c, dstChainId)
-				if !found {
-					err = fmt.Errorf("bridge addr not found for withdraw. dstChainId %d", dstChainId)
-				} else {
-					dstBridgeAddr = eth.Hex2Addr(pegBridge.GetAddress())
-				}
-			}
-		}
-	default:
-		err = fmt.Errorf("unknown transfer type")
-	}
-	return
-}
-
-func parseMessageWithTransfer(event *cbrtypes.OnChainEvent) (*eth.MessageBusMessageWithTransfer, error) {
+func parseEventMessageWithTransfer(event *cbrtypes.OnChainEvent) (*eth.MessageBusMessageWithTransfer, error) {
 	evlog := new(ethtypes.Log)
 	err := json.Unmarshal(event.GetElog(), evlog)
 	if err != nil {
@@ -291,18 +258,51 @@ func parseMessageWithTransfer(event *cbrtypes.OnChainEvent) (*eth.MessageBusMess
 	return msgXfer, err
 }
 
-func emitMessageToSign(ctx sdk.Context, id string) {
-	ctx.EventManager().EmitEvent(sdk.NewEvent(
-		types.EventTypeMessageToSign,
-		sdk.NewAttribute(types.AttributeKeyMessageId, id),
-		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
-	))
+func parseEventMessage(event *cbrtypes.OnChainEvent) (*eth.MessageBusMessage, error) {
+	evlog := new(ethtypes.Log)
+	err := json.Unmarshal(event.GetElog(), evlog)
+	if err != nil {
+		return nil, err
+	}
+	msgContract, err := eth.NewMessageBusFilterer(eth.ZeroAddr, nil)
+	if err != nil {
+		return nil, err
+	}
+	msg, err := msgContract.ParseMessage(*evlog)
+	return msg, err
 }
 
-func shouldRefund(s cbrtypes.XferStatus) (shouldRefund bool) {
+func parseEventExecuted(event *cbrtypes.OnChainEvent) (*eth.MessageBusExecuted, error) {
+	evlog := new(ethtypes.Log)
+	err := json.Unmarshal(event.GetElog(), evlog)
+	if err != nil {
+		return nil, err
+	}
+	msgContract, err := eth.NewMessageBusFilterer(eth.ZeroAddr, nil)
+	if err != nil {
+		return nil, err
+	}
+	executed, err := msgContract.ParseExecuted(*evlog)
+	if err != nil {
+		log.Errorln("getMessageId: cannot parse event:", err)
+		return nil, err
+	}
+	return executed, nil
+}
+
+func shouldRefundXfer(s cbrtypes.XferStatus) (shouldRefund bool) {
 	return s == cbrtypes.XferStatus_BAD_LIQUIDITY ||
 		s == cbrtypes.XferStatus_BAD_SLIPPAGE ||
 		s == cbrtypes.XferStatus_BAD_XFER_DISABLED ||
 		s == cbrtypes.XferStatus_BAD_DEST_CHAIN ||
 		s == cbrtypes.XferStatus_EXCEED_MAX_OUT_AMOUNT
+}
+
+func emitMessageToSign(ctx sdk.Context, id string) {
+	log.Debugln("emitting tendermint event with messageId", id)
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeMessageToSign,
+		sdk.NewAttribute(types.AttributeKeyMessageId, id),
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+	))
 }

@@ -1,8 +1,6 @@
 package types
 
 import (
-	"context"
-
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -34,7 +32,7 @@ type StakingKeeper interface {
 type CbridgeKeeper interface {
 	GetChainSigners(ctx sdk.Context, chainId uint64) (signers cbrtypes.ChainSigners, found bool)
 	GetCbrContractAddr(ctx sdk.Context, chid uint64) (eth.Addr, bool)
-	QueryRelay(c context.Context, request *cbrtypes.QueryRelayRequest) (*cbrtypes.QueryRelayResponse, error)
+	GetXferRelay(ctx sdk.Context, xferId eth.Hash) (*cbrtypes.XferRelay, bool)
 	QueryXferStatus(ctx sdk.Context, srcXferId eth.Hash) cbrtypes.XferStatus
 	QueryXferRefund(ctx sdk.Context, srcXferId eth.Hash) *cbrtypes.WithdrawOnchain
 }
@@ -42,10 +40,10 @@ type CbridgeKeeper interface {
 type PegbridgeKeeper interface {
 	GetOriginalTokenVault(ctx sdk.Context, chainId uint64) (vault commontypes.ContractInfo, found bool)
 	GetPeggedTokenBridge(ctx sdk.Context, chainId uint64) (bridge commontypes.ContractInfo, found bool)
-	DepositInfo(c context.Context, req *types.QueryDepositInfoRequest) (*types.QueryDepositInfoResponse, error)
-	WithdrawInfo(c context.Context, req *types.QueryWithdrawInfoRequest) (*types.QueryWithdrawInfoResponse, error)
-	MintInfo(c context.Context, req *types.QueryMintInfoRequest) (*types.QueryMintInfoResponse, error)
-	BurnInfo(c context.Context, req *types.QueryBurnInfoRequest) (*types.QueryBurnInfoResponse, error)
+	GetDepositInfo(ctx sdk.Context, depositId eth.Hash) (info types.DepositInfo, found bool)
+	GetMintInfo(ctx sdk.Context, mintId eth.Hash) (info types.MintInfo, found bool)
+	GetBurnInfo(ctx sdk.Context, burnId eth.Hash) (info types.BurnInfo, found bool)
+	GetWithdrawInfo(ctx sdk.Context, withdrawId eth.Hash) (info types.WithdrawInfo, found bool)
 }
 
 type DistributionKeeper interface {

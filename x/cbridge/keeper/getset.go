@@ -42,6 +42,17 @@ func (k Keeper) ChangeLiquidity(ctx sdk.Context, kv sdk.KVStore, chid uint64, to
 	return had
 }
 
+func (k Keeper) GetXferRelay(ctx sdk.Context, xferId eth.Hash) (*types.XferRelay, bool) {
+	kv := ctx.KVStore(k.storeKey)
+	raw := kv.Get(types.XferRelayKey(xferId))
+	if raw == nil {
+		return nil, false
+	}
+	res := new(types.XferRelay)
+	res.Unmarshal(raw)
+	return res, true
+}
+
 // if not found in liq map, return 0
 func GetLPBalance(kv sdk.KVStore, chid uint64, token, lp eth.Addr) *big.Int {
 	lqKey := types.LiqMapKey(chid, token, lp)

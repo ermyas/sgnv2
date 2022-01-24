@@ -226,7 +226,7 @@ func getTransferInfo(cliCtx client.Context, srcTransferId eth.Hash, transferType
 		if err != nil {
 			return makeErr(err)
 		}
-		if deposit.GetMintId() == nil {
+		if len(deposit.GetMintId()) == 0 {
 			return foundRefund()
 		}
 		mint, err := pegcli.QueryMintInfo(cliCtx, eth.Bytes2Hash(deposit.GetMintId()).String())
@@ -245,7 +245,7 @@ func getTransferInfo(cliCtx client.Context, srcTransferId eth.Hash, transferType
 		if err != nil {
 			return makeErr(err)
 		}
-		if burn.GetWithdrawId() == nil {
+		if len(burn.GetWithdrawId()) == 0 {
 			return foundRefund()
 		}
 		withdraw, err := pegcli.QueryWithdrawInfo(cliCtx, eth.Bytes2Hash(burn.GetWithdrawId()).String())

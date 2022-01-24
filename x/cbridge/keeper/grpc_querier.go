@@ -39,8 +39,8 @@ func (k Keeper) QueryRelay(c context.Context, request *types.QueryRelayRequest) 
 	ctx := sdk.UnwrapSDKContext(c)
 	var xferId eth.Hash
 	copy(xferId[:], request.XrefId)
-	relay := GetXferRelay(ctx.KVStore(k.storeKey), xferId)
-	if relay == nil {
+	relay, found := k.GetXferRelay(ctx, xferId)
+	if !found {
 		return nil, sdkerrors.ErrKeyNotFound.Wrap("relay does not exist")
 	}
 	return &types.QueryRelayResponse{
