@@ -1,4 +1,4 @@
-name: Run multinode tests
+name: Run multinode tests (all)
 
 on: 
   pull_request:

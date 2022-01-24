@@ -1,4 +1,4 @@
-name: Run multinode tests
+name: Run multinode tests (smoke)
 
 on: 
   pull_request:
