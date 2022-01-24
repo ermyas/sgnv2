@@ -1,6 +1,9 @@
 name: Run multinode tests
 
-on: [pull_request]
+on: 
+  pull_request:
+    branches:
+      - prod2
 
 jobs:
   run-multinode-tests:

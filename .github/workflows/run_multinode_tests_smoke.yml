@@ -1,0 +1,54 @@
+name: Run multinode tests
+
+on: 
+  pull_request:
+    branches-ignore:
+      - prod2
+
+jobs:
+  run-multinode-tests:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v2
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          src:
+            - '.github/workflows/run_multinode_tests.yml'
+            - 'app/**'
+            - 'cmd/**'
+            - 'common/**'
+            - 'eth/**'
+            - 'networks/**'
+            - 'proto/eth/**'
+            - 'proto/sgn/!(gateway/**)/**'
+            - 'relayer/**'
+            - 'seal/**'
+            - 'test/**'
+            - 'transactor/**'
+            - 'x/**'
+            - 'docker-compose.yml'
+            - 'Dockerfile'
+            - 'Makefile'
+            - 'go.mod'
+            - 'go.sum'
+    - uses: actions/setup-go@v2
+      with:
+        go-version: '1.17'
+    - name: Install Docker
+      if: steps.filter.outputs.src == 'true'
+      run: |
+         sudo apt-get update
+         sudo apt-get install apt-transport-https ca-certificates curl gnupg lsb-release
+         curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+         echo \
+           "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+           $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+         sudo apt-get update
+         sudo apt-get install docker-ce docker-ce-cli containerd.io
+    - name: Run multinode tests
+      if: steps.filter.outputs.src == 'true'
+      run: |
+        go test -failfast -v -timeout 60m github.com/celer-network/sgn-v2/test/e2e/multinode -run "TestCbridge｜TestMessage"
