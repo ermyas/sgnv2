@@ -293,6 +293,7 @@ func (c *CbrOneChain) verifyEventLog(
 	}
 	if resLog.Index != eLog.Index {
 		log.Errorln(logmsg, "mismatch event index. proposal has:", eLog.Index, "log from receipt has:", resLog.Index)
+		return true, false, nil
 	}
 	// make sure addLiqLog.BlockNumber isn't too recent
 	blk := c.mon.GetCurrentBlockNumber().Uint64()
