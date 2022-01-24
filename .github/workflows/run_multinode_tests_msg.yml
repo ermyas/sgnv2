@@ -16,24 +16,9 @@ jobs:
       with:
         filters: |
           src:
-            - '.github/workflows/run_multinode_tests.yml'
-            - 'app/**'
-            - 'cmd/**'
-            - 'common/**'
-            - 'eth/**'
-            - 'networks/**'
-            - 'proto/eth/**'
-            - 'proto/sgn/!(gateway/**)/**'
-            - 'relayer/**'
-            - 'seal/**'
-            - 'test/**'
-            - 'transactor/**'
-            - 'x/**'
-            - 'docker-compose.yml'
-            - 'Dockerfile'
-            - 'Makefile'
-            - 'go.mod'
-            - 'go.sum'
+            - 'relayer/msgbr_*'
+            - 'executor/**'
+            - 'x/message/**'
     - uses: actions/setup-go@v2
       with:
         go-version: '1.17'
@@ -51,4 +36,4 @@ jobs:
     - name: Run multinode tests
       if: steps.filter.outputs.src == 'true'
       run: |
-        go test -failfast -v -timeout 60m github.com/celer-network/sgn-v2/test/e2e/multinode -run "TestCbridge|TestPegbridge"
+        go test -failfast -v -timeout 60m github.com/celer-network/sgn-v2/test/e2e/multinode -run "TestMessage"
