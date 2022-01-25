@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 	"path/filepath"
 
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/executor"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -15,19 +15,24 @@ import (
 
 var (
 	home = flag.String("home", os.ExpandEnv("$HOME/.executor"), "home path")
+	test = flag.Bool("test", false, "start in CI test mode (internal use only)")
 )
 
 func main() {
 	flag.Parse()
+	if *test {
+		log.Infoln("Starting executor with test mode")
+	} else {
+		log.Infoln("Starting executor")
+	}
 	setupConfig()
 	dal := executor.NewDAL()
-	sgn := executor.NewSgnClient()
-	chains := executor.NewChainMgr(dal)
-	ex := executor.NewExecutor(dal, sgn, chains)
+	ex := executor.NewExecutor(dal, *test)
 	ex.Start()
 }
 
 func setupConfig() {
+	log.Infoln("Reading executor configs")
 	// sets account address prefix for transactors
 	sdkConfig := sdk.GetConfig()
 	sdkConfig.SetBech32PrefixForAccount(common.Bech32PrefixAccAddr, common.Bech32PrefixAccPub)

@@ -2,7 +2,9 @@ package executor
 
 // flags
 const (
-	FlagExecutorDbUrl = "db.url"
+	FlagExecutorDbUrl     = "db.url"
+	FlagExecutorContracts = "executor.contracts"
+	FlagGatewayUrl        = "sgnd.gateway"
 )
 
 // monitor event names

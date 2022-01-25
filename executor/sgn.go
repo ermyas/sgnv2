@@ -46,15 +46,12 @@ func newSgnTransactors() *transactor.TransactorPool {
 	return txrs
 }
 
-func (c *SgnClient) GetExecutionContexts(chainIds ...uint64) ([]msgtypes.ExecutionContext, error) {
+func (c *SgnClient) GetExecutionContexts(filters []*commontypes.ContractInfo) ([]msgtypes.ExecutionContext, error) {
 	qc := msgtypes.NewQueryClient(c.txrs.GetTransactor().CliCtx)
-	var contractInfos []*commontypes.ContractInfo
-	for _, chainId := range chainIds {
-		contractInfos = append(contractInfos, &commontypes.ContractInfo{ChainId: chainId, Address: ""})
-	}
 	req := &msgtypes.QueryExecutionContextsRequest{
-		ContractInfos: contractInfos,
+		ContractInfos: filters,
 	}
+	log.Debugf("fetching execution contexts with filter %v", filters)
 	res, err := qc.ExecutionContexts(context.Background(), req)
 	if err != nil {
 		log.Errorln("failed to query messages from sgn", err)

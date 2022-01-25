@@ -13,4 +13,4 @@ FROM alpine:latest
 VOLUME /executor/env
 WORKDIR /executor/env
 COPY --from=builder /sgn-v2/bin/executor /usr/local/bin
-CMD ["/bin/sh", "-c", "executor -loglevel=debug -home=/executor/env 2> /executor/env/app.log"]
+CMD ["/bin/sh", "-c", "executor -test -loglevel=debug -home=/executor/env 2> /executor/env/app.log"]

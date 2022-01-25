@@ -7,27 +7,50 @@ import (
 
 	"github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	ethtypes "github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/executor/types"
 	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	gethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/spf13/viper"
 )
 
 type Executor struct {
-	dal         *DAL
-	chains      *ChainMgr
-	sgn         *SgnClient
-	wg          sync.WaitGroup
-	parallelism int
+	dal             *DAL
+	chains          *ChainMgr
+	sgn             *SgnClient
+	gateway         *GatewayClient
+	wg              sync.WaitGroup
+	contractFilters []*commontypes.ContractInfo
+	parallelism     int
+	testMode        bool
 }
 
-func NewExecutor(dal *DAL, sgn *SgnClient, chains *ChainMgr) *Executor {
+func NewExecutor(dal *DAL, testMode bool) *Executor {
+	var gateway *GatewayClient
+	if !testMode {
+		gateway = NewGatewayClient(viper.GetString(FlagGatewayUrl))
+	}
+	sgn := NewSgnClient()
+	chains := NewChainMgr(dal)
+
+	contracts := []*commontypes.ContractInfo{}
+	err := viper.UnmarshalKey(FlagExecutorContracts, &contracts)
+	if err != nil {
+		log.Fatalln("failed to initialize contract filters", err)
+	}
+	if len(contracts) == 0 {
+		log.Fatalln("empty executor contract filter")
+	}
 	return &Executor{
-		dal:         dal,
-		chains:      chains,
-		sgn:         sgn,
-		parallelism: 10, // hardcode 10 for now
+		dal:             dal,
+		chains:          chains,
+		sgn:             sgn,
+		gateway:         gateway,
+		contractFilters: contracts,
+		parallelism:     10, // hardcode 10 for now
+		testMode:        testMode,
 	}
 }
 
@@ -43,7 +66,7 @@ func (e *Executor) startFetchingExecCtxsFromSgn() {
 	log.Infoln("Start fetching execution contexts from SGN")
 	for {
 		time.Sleep(3 * time.Second)
-		execCtxs, err := e.sgn.GetExecutionContexts(e.chains.GetAllChainIds()...)
+		execCtxs, err := e.sgn.GetExecutionContexts(e.contractFilters)
 		if err != nil {
 			log.Errorln("failed to get messages", err)
 			continue
@@ -167,7 +190,13 @@ func (e *Executor) initAndExecuteWithdraw(execCtx *msgtypes.ExecutionContext) {
 	srcXferId := execCtx.Transfer.RefId
 
 	log.Infof("initializing withdrawal: srcTransferId %x, nonce %d", srcXferId, nonce)
-	err := e.sgn.InitWithdraw(srcXferId, nonce)
+	var err error
+	if e.testMode {
+		// sgn-v2 github CI doesn't have gateway, send InitWithdraw tx to sgn directly to work around this issue
+		err = e.sgn.InitWithdraw(srcXferId, nonce)
+	} else {
+		err = e.gateway.InitWithdraw(srcXferId, nonce)
+	}
 	if err != nil {
 		log.Errorf("cannot init withdraw: %s", err.Error())
 		return

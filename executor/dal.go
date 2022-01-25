@@ -1,6 +1,7 @@
 package executor
 
 import (
+	_ "embed"
 	"fmt"
 
 	"github.com/celer-network/goutils/log"
@@ -15,13 +16,22 @@ type DAL struct {
 	*sqldb.Db
 }
 
+//go:embed schema.sql
+var schema string
+
 var Dal *DAL
 
 func NewDAL() *DAL {
+	log.Infoln("Creating DB connection")
 	url := viper.GetString(FlagExecutorDbUrl)
 	db, err := sqldb.NewDb("postgres", fmt.Sprintf("postgresql://root@%s/executor?sslmode=disable", url), 4)
 	if err != nil {
 		log.Fatalf("Failed to create db with url %s: %+v", url, err)
+	}
+	log.Infoln("Syncing DB schemas")
+	_, err = db.Exec(schema)
+	if err != nil {
+		log.Fatalln("failed to initialize tables", err)
 	}
 	Dal = &DAL{db}
 	return Dal

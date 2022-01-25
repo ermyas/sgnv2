@@ -99,16 +99,6 @@ func (m *ChainMgr) GetChain(chid uint64) (*Chain, error) {
 	return chain, nil
 }
 
-func (m *ChainMgr) GetAllChainIds() []uint64 {
-	chainIds := make([]uint64, len(m.chains))
-	i := 0
-	for chainId := range m.chains {
-		chainIds[i] = chainId
-		i++
-	}
-	return chainIds
-}
-
 func (m *ChainMgr) GetAllContractAddrs() []eth.Addr {
 	return m.contractAddrs
 }

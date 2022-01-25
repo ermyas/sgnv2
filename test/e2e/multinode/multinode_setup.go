@@ -4,14 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"os/exec"
 	"time"
 
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/goutils/sqldb"
 	"github.com/celer-network/sgn-v2/common"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
@@ -415,15 +413,7 @@ func DeployBatchTransferAndMessageTransferAndMessageBusContracts() {
 func PrepareExecutor() {
 	// prepare crdb
 	tc.RunCmd("make", "localnet-start-crdb")
-
-	time.Sleep(4 * time.Second)                                                                           // sleep to wait for crdb fully started
-	_db, err := sqldb.NewDb("postgres", "postgresql://root@localhost:26257/defaultdb?sslmode=disable", 2) // docker port maps to local port
-	tc.ChkErr(err, "Failed to connect db")
-	defer _db.Close()
-	schema, err := ioutil.ReadFile("../../../executor/schema.sql")
-	tc.ChkErr(err, "Failed to read schema.sql")
-	_, err = _db.Exec(string(schema))
-	tc.ChkErr(err, "Failed to execute schema.sql")
+	time.Sleep(4 * time.Second)
 
 	// prepare test data
 	tc.RunCmd("make", "prepare-executor-data")
@@ -448,6 +438,39 @@ func SetupExecutorConfig() {
 	multichains[0].(map[string]interface{})["ptbridge"] = tc.CbrChain1.PegBridgeAddr.Hex()
 	multichains[1].(map[string]interface{})["ptbridge"] = tc.CbrChain2.PegBridgeAddr.Hex()
 	msgViper.Set("multichain", multichains)
+	err = msgViper.WriteConfig()
+	tc.ChkErr(err, "Failed to write config")
+
+	msgViper.SetConfigFile("../../../docker-volumes/executor/config/executor.toml")
+	err = msgViper.ReadInConfig()
+	tc.ChkErr(err, "Failed to read config")
+
+	var contracts []interface{}
+	contractInfo1 := make(map[string]interface{})
+	contractInfo1["address"] = tc.CbrChain1.BatchTransferAddr.Hex()
+	contractInfo1["chainid"] = tc.CbrChain1.ChainId
+	contracts = append(contracts, contractInfo1)
+	contractInfo2 := make(map[string]interface{})
+	contractInfo2["address"] = tc.CbrChain1.TestRefundAddr.Hex()
+	contractInfo2["chainid"] = tc.CbrChain1.ChainId
+	contracts = append(contracts, contractInfo2)
+	contractInfo3 := make(map[string]interface{})
+	contractInfo3["address"] = tc.CbrChain1.TransferMessageAddr.Hex()
+	contractInfo3["chainid"] = tc.CbrChain1.ChainId
+	contracts = append(contracts, contractInfo3)
+	contractInfo4 := make(map[string]interface{})
+	contractInfo4["address"] = tc.CbrChain2.BatchTransferAddr.Hex()
+	contractInfo4["chainid"] = tc.CbrChain2.ChainId
+	contracts = append(contracts, contractInfo4)
+	contractInfo5 := make(map[string]interface{})
+	contractInfo5["address"] = tc.CbrChain2.TestRefundAddr.Hex()
+	contractInfo5["chainid"] = tc.CbrChain2.ChainId
+	contracts = append(contracts, contractInfo5)
+	contractInfo6 := make(map[string]interface{})
+	contractInfo6["address"] = tc.CbrChain2.TransferMessageAddr.Hex()
+	contractInfo6["chainid"] = tc.CbrChain2.ChainId
+	contracts = append(contracts, contractInfo6)
+	msgViper.Set("executor.contracts", contracts)
 	err = msgViper.WriteConfig()
 	tc.ChkErr(err, "Failed to write config")
 }
