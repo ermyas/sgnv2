@@ -8,11 +8,12 @@ const (
 	// initial default status
 	ExecutionStatus_Unexecuted ExecutionStatus = iota
 
-	// status branch: if the msg is the "withdraw" kind of message
-	// executor needs to do InitWithdraw first before executing the message
-	ExecutionStatus_WD_Executing
+	// status branch: if the msg is the "refund" kind of message
+	// executor needs to do InitWithdraw (if liq bridge) or ClaimRefund (if peg bridge) first before executing the message
+	ExecutionStatus_Init_Refund_Executing
 	// executor only executes the "refund" message at msgbus if the message is in this status
-	ExecutionStatus_WD_Executed
+	ExecutionStatus_Init_Refund_Executed
+	ExecutionStatus_Init_Refund_Failed
 
 	ExecutionStatus_Executing
 

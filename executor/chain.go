@@ -182,37 +182,53 @@ func newTransactor(config *common.OneChainConfig, ec *ethclient.Client) *ethutil
 	)
 }
 
-type ExecuteWithdraw func(wdOnchain []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) error
+type ExecuteRefund func(wdOnchain []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) error
 
-func (c *Chain) NewExecuteWithdrawHandler(messageId []byte) ExecuteWithdraw {
+type RefundTxFunc func(opts *bind.TransactOpts, wdOnchain []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) (*gethtypes.Transaction, error)
+
+func (c *Chain) NewExecuteRefundHandler(messageId []byte, withdraw RefundTxFunc) ExecuteRefund {
 	// returns a handler function
-	return func(wdOnchain []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) error {
-		log.Infof("executing withdraw (messageId %x)", messageId)
-		err := Dal.UpdateStatus(messageId, types.ExecutionStatus_WD_Executing)
+	return func(req []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) error {
+		log.Infof("executing refund init (messageId %x)", messageId)
+		err := Dal.UpdateStatus(messageId, types.ExecutionStatus_Init_Refund_Executing)
 		if err != nil {
 			return err
 		}
 		tx, err := c.Transactor.Transact(&ethutils.TransactionStateHandler{
 			OnMined: func(receipt *gethtypes.Receipt) {
-				log.Infof("executeWithdrawal: tx %x mined, status %v message id", receipt.TxHash, receipt.Status)
-				status := types.ExecutionStatus_WD_Executed
+				log.Infof("execute refund init (messageId %x): tx %x mined, status %v", messageId, receipt.TxHash, receipt.Status)
+				status := types.ExecutionStatus_Init_Refund_Executed
 				if receipt.Status == gethtypes.ReceiptStatusFailed {
 					status = types.ExecutionStatus_Failed
 				}
 				Dal.UpdateStatus(messageId, status)
 			},
 			OnError: func(tx *gethtypes.Transaction, err error) {
-				log.Errorf("executeWithdrawal error: txhash %s, err %v", tx.Hash(), err)
+				log.Errorf("execute refund init error: txhash %s, err %v", tx.Hash(), err)
 				Dal.UpdateStatus(messageId, types.ExecutionStatus_Failed)
 			},
 		}, func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*gethtypes.Transaction, error) {
-			return c.LiqBridge.Withdraw(opts, wdOnchain, sortedSigs, signers, powers)
+			return withdraw(opts, req, sortedSigs, signers, powers)
 		})
-
 		if err != nil {
 			return err
 		}
-		log.Infof("executed withdraw (id %x): txhash %x", messageId, tx.Hash())
+		log.Infof("executed refund init (messageId %x): txhash %x", messageId, tx.Hash())
 		return nil
 	}
+}
+
+func (c *Chain) ExecuteLiqWithdraw(
+	opts *bind.TransactOpts, wdOnchain []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) (*gethtypes.Transaction, error) {
+	return c.LiqBridge.Withdraw(opts, wdOnchain, sortedSigs, signers, powers)
+}
+
+func (c *Chain) ExecutePegWithdraw(
+	opts *bind.TransactOpts, wdOnchain []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) (*gethtypes.Transaction, error) {
+	return c.PegVault.OriginalTokenVault.Withdraw(opts, wdOnchain, sortedSigs, signers, powers)
+}
+
+func (c *Chain) ExecutePegMint(
+	opts *bind.TransactOpts, wdOnchain []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) (*gethtypes.Transaction, error) {
+	return c.PegBridge.PeggedTokenBridge.Mint(opts, wdOnchain, sortedSigs, signers, powers)
 }

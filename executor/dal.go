@@ -39,7 +39,7 @@ func NewDAL() *DAL {
 
 func (dal *DAL) GetExecutionContextsToExecute() ([]*msgtypes.ExecutionContext, []types.ExecutionStatus) {
 	q := `SELECT exec_ctx, status FROM execution_context WHERE status in ($1, $2)`
-	rows, err := dal.Db.Query(q, types.ExecutionStatus_Unexecuted, types.ExecutionStatus_WD_Executed)
+	rows, err := dal.Db.Query(q, types.ExecutionStatus_Unexecuted, types.ExecutionStatus_Init_Refund_Executed)
 	if err != nil {
 		log.Errorf("failed to get execution context with status %d: %v", types.ExecutionStatus_Unexecuted, err)
 	}

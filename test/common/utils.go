@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	ethutils "github.com/celer-network/goutils/eth"
@@ -112,4 +113,16 @@ func RunCmdNoChkErr(name string, args ...string) error {
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	return err
+}
+
+func RunAllAndWait(funcs ...func()) {
+	var wg sync.WaitGroup
+	for _, run := range funcs {
+		wg.Add(1)
+		go func(run func()) {
+			run()
+			wg.Done()
+		}(run)
+	}
+	wg.Wait()
 }

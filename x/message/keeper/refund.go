@@ -17,6 +17,10 @@ func (k Keeper) HasRefund(ctx sdk.Context, srcXferId eth.Hash) bool {
 	return ctx.KVStore(k.storeKey).Has(types.GetMessageRefundKey(srcXferId))
 }
 
+func (k Keeper) DeleteRefund(ctx sdk.Context, srcXferId eth.Hash) {
+	ctx.KVStore(k.storeKey).Delete(types.GetMessageRefundKey(srcXferId))
+}
+
 func (k Keeper) incrRefundNonce(ctx sdk.Context) uint64 {
 	kv := ctx.KVStore(k.storeKey)
 	key := types.GetRefundNonceKey()

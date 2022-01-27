@@ -105,7 +105,7 @@ func (k Keeper) applyMessageWithTransfer(ctx sdk.Context, applyEvent *cbrtypes.O
 			return false, fmt.Errorf(errMsg + "deposit info not found")
 		}
 		if len(deposit.GetMintId()) == 0 {
-			// TODO handle refund
+			return k.applyPegDepositRefund(ctx, ev)
 		}
 		mint, found := k.pegbridgeKeeper.GetMintInfo(ctx, eth.Bytes2Hash(deposit.GetMintId()))
 		if !found {
@@ -132,7 +132,7 @@ func (k Keeper) applyMessageWithTransfer(ctx sdk.Context, applyEvent *cbrtypes.O
 			return false, fmt.Errorf(errMsg + "burn info not found")
 		}
 		if len(burn.GetWithdrawId()) == 0 {
-			// TODO handle refund
+			return k.applyPegBurnRefund(ctx, ev)
 		}
 		withdraw, found := k.pegbridgeKeeper.GetWithdrawInfo(ctx, eth.Bytes2Hash(burn.GetWithdrawId()))
 		if !found {
@@ -161,19 +161,61 @@ func (k Keeper) applyTransferRefund(ctx sdk.Context, ev *eth.MessageBusMessageWi
 		log.Infof("skip already applied message (srcXferId %x) with transfer refund", ev.SrcTransferId)
 		return false, nil
 	}
-	log.Debugf("applying transfer refund for sender app\n%s", ev.PrettyLog(0))
+	log.Debugf("applying msg transfer refund %s", ev.PrettyLog(0))
 	nonce := k.incrRefundNonce(ctx)
 	wdOnchain := k.cbridgeKeeper.QueryXferRefund(ctx, ev.SrcTransferId)
 	if wdOnchain == nil {
 		return false, fmt.Errorf("wdOnchain not found for srcXferId %x", ev.SrcTransferId)
 	}
-	log.Debugf("found WdOnchain: %+v", wdOnchain)
+	log.Debugf("found xfer WdOnchain: %+v", wdOnchain)
 	bridge, found := k.cbridgeKeeper.GetCbrContractAddr(ctx, wdOnchain.Chainid)
 	if !found {
 		return false, fmt.Errorf("bridge addr not found for chainId %d", wdOnchain.Chainid)
 	}
 	execCtx := types.NewMsgXferRefundExecutionContext(ev, wdOnchain, nonce, bridge)
 	k.SetRefund(ctx, eth.Bytes2Hash(ev.SrcTransferId[:]), execCtx)
+	return k.processMessageWithTransfer(ctx, execCtx)
+}
+
+func (k Keeper) applyPegDepositRefund(ctx sdk.Context, ev *eth.MessageBusMessageWithTransfer) (bool, error) {
+	depositId := ev.SrcTransferId
+	if k.HasRefund(ctx, depositId) {
+		log.Infof("skip already applied peg deposit refund for message (srcXferId %x)", depositId)
+		return false, nil
+	}
+	log.Debugf("applying msg peg deposit refund %s", ev.PrettyLog(0))
+	wdOnChain, found := k.pegbridgeKeeper.GetDepositRefund(ctx, depositId)
+	if !found {
+		return false, fmt.Errorf("wdOnChain not found for srcXferId %x", depositId)
+	}
+	log.Debugf("found peg WdOnchain: %+v", wdOnChain)
+	bridge, found := k.pegbridgeKeeper.GetOriginalTokenVault(ctx, wdOnChain.RefChainId)
+	if !found {
+		return false, fmt.Errorf("otvault addr not found for chainId %d", wdOnChain.RefChainId)
+	}
+	execCtx := types.NewMsgPegDepositRefundExecutionContext(ev, wdOnChain, bridge.Address)
+	k.SetRefund(ctx, eth.Bytes2Hash(depositId[:]), execCtx)
+	return k.processMessageWithTransfer(ctx, execCtx)
+}
+
+func (k Keeper) applyPegBurnRefund(ctx sdk.Context, ev *eth.MessageBusMessageWithTransfer) (bool, error) {
+	burnId := ev.SrcTransferId
+	if k.HasRefund(ctx, burnId) {
+		log.Infof("skip already applied peg burn refund for message (srcXferId %x)", burnId)
+		return false, nil
+	}
+	log.Debugf("applying msg peg burn refund %s", ev.PrettyLog(0))
+	mintOnChain, found := k.pegbridgeKeeper.GetBurnRefund(ctx, burnId)
+	if !found {
+		return false, fmt.Errorf("mintOnChain not found for srcXferId %x", burnId)
+	}
+	log.Debugf("found peg WdOnchain: %+v", mintOnChain)
+	bridge, found := k.pegbridgeKeeper.GetPeggedTokenBridge(ctx, mintOnChain.RefChainId)
+	if !found {
+		return false, fmt.Errorf("ptbridge addr not found for chainId %d", mintOnChain.RefChainId)
+	}
+	execCtx := types.NewMsgPegBurnRefundExecutionContext(ev, mintOnChain, bridge.Address)
+	k.SetRefund(ctx, eth.Bytes2Hash(burnId[:]), execCtx)
 	return k.processMessageWithTransfer(ctx, execCtx)
 }
 
@@ -218,13 +260,27 @@ func (k Keeper) applyMessageExecuted(ctx sdk.Context, applyEvent *cbrtypes.OnCha
 	if !found {
 		return false, fmt.Errorf("msg not found for ev.Id: %x", ev.Id)
 	}
+
+	// remove the active message record
 	k.DeleteActiveMessageId(ctx, msg.GetDstChainId(), eth.Hex2Addr(msg.GetReceiver()), ev.Id)
 	status := types.ExecutionStatus(ev.Status)
 	if status == types.EXECUTION_STATUS_PENDING {
 		return false, fmt.Errorf("error pending status for ev.Id:%s", ev.Id)
 	}
+
+	// update msg status
 	msg.ExecutionStatus = status
 	k.SetMessage(ctx, ev.Id, msg)
+
+	// remove the refund record
+	xfer, found := k.GetTransfer(ctx, ev.Id)
+	if !found {
+		return true, nil
+	}
+	srcXferId := eth.Bytes2Hash(xfer.RefId)
+	if k.HasRefund(ctx, srcXferId) {
+		k.DeleteRefund(ctx, srcXferId)
+	}
 	return true, nil
 }
 

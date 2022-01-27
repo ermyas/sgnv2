@@ -18,6 +18,7 @@ type GatewayClient struct {
 }
 
 func NewGatewayClient(gatewayUrl string) *GatewayClient {
+	log.Infof("Dialing gateway grpc: %s", gatewayUrl)
 	opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
 	context, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	conn, err := grpc.DialContext(context, gatewayUrl, opts...)

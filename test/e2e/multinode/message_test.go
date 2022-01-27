@@ -23,9 +23,6 @@ import (
 )
 
 func setupMessage() {
-	log.Infoln("Set up another mainchain for bridge")
-	SetupMainchain2ForBridge()
-
 	log.Infoln("Set up new sgn env")
 	p := &tc.ContractParams{
 		CelrAddr:              tc.CelrAddr,
@@ -74,8 +71,10 @@ func messageTest(t *testing.T) {
 	log.Infoln("======================= Message Only Test =====================")
 	messageOnlyTest(transactor, msgtypes.EXECUTION_STATUS_SUCCESS)
 
-	log.Infoln("======================= Refund Test =====================")
-	refundTest(t, transactor)
+	log.Infoln("======================= Refund Tests =====================")
+	refundTransferTest(t, transactor)
+	refundPegDepositTest(t, transactor)
+	// refundPegBurnTest(t, transactor)
 
 	log.Infoln("======================= Batch Transfer FallBack Test =====================")
 	batchTransferTest(transactor, big.NewInt(10*1000000), big.NewInt(5*1000000), msgtypes.EXECUTION_STATUS_FALLBACK)
@@ -232,7 +231,7 @@ func messageOnlyTest(transactor *transactor.Transactor, expectedStatus msgtypes.
 	tc.WaitForMessageExecuted(transactor, expectedStatus)
 }
 
-func refundTest(t *testing.T, transactor *transactor.Transactor) {
+func refundTransferTest(t *testing.T, transactor *transactor.Transactor) {
 	log.Infoln("-------------------- Refund Test ---------------------")
 	u := tc.CbrChain1.Users[0]
 	balBefore, err := tc.CbrChain1.USDTContract.BalanceOf(&bind.CallOpts{}, u.Address)
@@ -243,6 +242,60 @@ func refundTest(t *testing.T, transactor *transactor.Transactor) {
 	err = tc.CbrChain1.ApproveErc20(tc.CbrChain1.USDTContract, 0, amount, tc.CbrChain1.TestRefundAddr)
 	tc.ChkErr(err, "approve USDT")
 	tx, err := tc.CbrChain1.TestRefundContract.SendWithTransfer(u.Auth, u.Address, token, amount, tc.CbrChain2.ChainId, 1, 1, uint8(1))
+	tc.ChkErr(err, "SendWithTransfer")
+	_, err = ethutils.WaitMined(context.Background(), tc.CbrChain1.Ec, tx, ethutils.WithPollingInterval(time.Second))
+	tc.ChkErr(err, "SendWithTransfer WaitMined")
+	balAfter := new(big.Int)
+	for i := 0; i < 10; i++ {
+		time.Sleep(10 * time.Second)
+		balAfter, err = tc.CbrChain1.USDTContract.BalanceOf(&bind.CallOpts{}, u.Address)
+		tc.ChkErr(err, "bal after")
+		log.Infof("%d bal after, %s", i, balAfter.String())
+		if balAfter.Cmp(balBefore) == 0 {
+			return
+		}
+	}
+	log.Fatalf("balAfter (%s) not equal to balBefore (%s)", balAfter, balBefore)
+}
+
+func refundPegDepositTest(t *testing.T, transactor *transactor.Transactor) {
+	log.Infoln("-------------------- Refund Peg Deposit Test ---------------------")
+	u := tc.CbrChain1.Users[0]
+	balBefore, err := tc.CbrChain1.USDTContract.BalanceOf(&bind.CallOpts{}, u.Address)
+	tc.ChkErr(err, "bal before")
+	log.Infof("bal before, %s", balBefore.String())
+	token := tc.CbrChain1.USDTAddr
+	amount := big.NewInt(300000 * 1e6)
+	err = tc.CbrChain1.ApproveErc20(tc.CbrChain1.USDTContract, 0, amount, tc.CbrChain1.TestRefundAddr)
+	tc.ChkErr(err, "approve USDT")
+	tx, err := tc.CbrChain1.TestRefundContract.SendWithTransfer(u.Auth, u.Address, token, amount, tc.CbrChain2.ChainId, 1, 1, uint8(2))
+	tc.ChkErr(err, "SendWithTransfer")
+	_, err = ethutils.WaitMined(context.Background(), tc.CbrChain1.Ec, tx, ethutils.WithPollingInterval(time.Second))
+	tc.ChkErr(err, "SendWithTransfer WaitMined")
+	balAfter := new(big.Int)
+	for i := 0; i < 10; i++ {
+		time.Sleep(10 * time.Second)
+		balAfter, err = tc.CbrChain1.USDTContract.BalanceOf(&bind.CallOpts{}, u.Address)
+		tc.ChkErr(err, "bal after")
+		log.Infof("%d bal after, %s", i, balAfter.String())
+		if balAfter.Cmp(balBefore) == 0 {
+			return
+		}
+	}
+	log.Fatalf("balAfter (%s) not equal to balBefore (%s)", balAfter, balBefore)
+}
+
+func refundPegBurnTest(t *testing.T, transactor *transactor.Transactor) {
+	log.Infoln("-------------------- Refund Peg Burn Test ---------------------")
+	u := tc.CbrChain1.Users[0]
+	balBefore, err := tc.CbrChain1.USDTContract.BalanceOf(&bind.CallOpts{}, u.Address)
+	tc.ChkErr(err, "bal before")
+	log.Infof("bal before, %s", balBefore.String())
+	token := tc.CbrChain1.USDTAddr
+	amount := big.NewInt(300000 * 1e6)
+	err = tc.CbrChain1.ApproveErc20(tc.CbrChain1.USDTContract, 0, amount, tc.CbrChain1.TestRefundAddr)
+	tc.ChkErr(err, "approve USDT")
+	tx, err := tc.CbrChain1.TestRefundContract.SendWithTransfer(u.Auth, u.Address, token, amount, tc.CbrChain2.ChainId, 1, 1, uint8(2))
 	tc.ChkErr(err, "SendWithTransfer")
 	_, err = ethutils.WaitMined(context.Background(), tc.CbrChain1.Ec, tx, ethutils.WithPollingInterval(time.Second))
 	tc.ChkErr(err, "SendWithTransfer WaitMined")
@@ -277,8 +330,11 @@ func prepareValidators(t *testing.T, transactor *transactor.Transactor) {
 	tc.ChkErr(err, "fund validator accounts")
 	numVals := len(vAmts)
 	tc.SetupValidators(t, transactor, vAmts)
-	tc.CbrChain1.SetInitSigners(vAmts)
-	tc.CbrChain2.SetInitSigners(vAmts)
+	tc.RunAllAndWait(func() {
+		tc.CbrChain1.SetInitSigners(vAmts)
+	}, func() {
+		tc.CbrChain2.SetInitSigners(vAmts)
+	})
 	expSigners := genSortedSigners([]eth.Addr{tc.ValSignerAddrs[0], tc.ValSignerAddrs[1], tc.ValSignerAddrs[2]}, vAmts)
 	tc.CheckChainSigners(t, transactor, tc.CbrChain1.ChainId, expSigners)
 	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
@@ -295,21 +351,25 @@ func prepareValidators(t *testing.T, transactor *transactor.Transactor) {
 	for i := 0; i < numVals; i++ {
 		tc.Delegate(tc.DelAuths[0], tc.ValEthAddrs[i], dAmts[i])
 	}
+
+	checkFuncs := []func(){}
 	for i := 0; i < numVals; i++ {
 		expDel := &stakingtypes.Delegation{
 			DelegatorAddress: eth.Addr2Hex(tc.DelEthAddrs[0]),
 			ValidatorAddress: eth.Addr2Hex(tc.ValEthAddrs[i]),
 			Shares:           sdk.NewIntFromBigInt(dAmts[i]),
 		}
-		tc.CheckDelegation(t, transactor, expDel)
+		checkFuncs = append(checkFuncs, func() {
+			tc.CheckDelegation(t, transactor, expDel)
+		})
 	}
+	tc.RunAllAndWait(checkFuncs...)
 
 	log.Infoln("================== Prepare validators done =================")
 	log.Infoln("************************************************************")
 }
 
 func prepareCbrLiquidity(transactor *transactor.Transactor) {
-
 	log.Infoln("------------------------ Add liquidity on chain 1 ------------------------")
 	addAmt := big.NewInt(500000 * 1e6)
 	var i uint64

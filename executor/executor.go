@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -127,18 +128,55 @@ func (e *Executor) execute(execCtxs []*msgtypes.ExecutionContext, statuses []typ
 }
 
 func (e *Executor) routeExecution(execCtx *msgtypes.ExecutionContext, status types.ExecutionStatus) {
-	xferType := execCtx.Message.TransferType
-	switch xferType {
+	if status == types.ExecutionStatus_Init_Refund_Executed {
+		e.executeMsgWithTransferRefund(execCtx)
+		return
+	}
+
+	isRefund := execCtx.Message.SrcChainId == execCtx.Message.DstChainId
+	unexecuted := status == types.ExecutionStatus_Unexecuted
+	initRefundExecuted := status == types.ExecutionStatus_Init_Refund_Executed
+
+	if isRefund && unexecuted {
+		err := e.routeInitRefund(execCtx)
+		if err != nil {
+			log.Errorln("init refund failed", err)
+			Dal.UpdateStatus(execCtx.MessageId, types.ExecutionStatus_Init_Refund_Failed)
+		}
+		return
+	}
+
+	if isRefund && initRefundExecuted {
+		e.executeMsgWithTransferRefund(execCtx)
+		return
+	}
+
+	switch execCtx.Message.TransferType {
 	case msgtypes.TRANSFER_TYPE_NULL:
 		e.executeMsgNoTransfer(execCtx)
-	case msgtypes.TRANSFER_TYPE_LIQUIDITY_WITHDRAW:
-		if status == types.ExecutionStatus_Unexecuted {
-			e.initAndExecuteWithdraw(execCtx)
-		} else if status == types.ExecutionStatus_WD_Executed {
-			e.executeMsgWithTransferRefund(execCtx)
-		}
-	default:
+	case msgtypes.TRANSFER_TYPE_LIQUIDITY_SEND:
 		e.executeMsgWithTransfer(execCtx)
+	case msgtypes.TRANSFER_TYPE_PEG_MINT:
+		e.executeMsgWithTransfer(execCtx)
+	case msgtypes.TRANSFER_TYPE_PEG_WITHDRAW:
+		e.executeMsgWithTransfer(execCtx)
+	default:
+		log.Errorf("normal execution not possible for message (id %x) transfer type %v, status %d",
+			execCtx.MessageId, execCtx.Message.TransferType, status)
+	}
+}
+
+func (e *Executor) routeInitRefund(execCtx *msgtypes.ExecutionContext) error {
+	switch execCtx.Message.TransferType {
+	case msgtypes.TRANSFER_TYPE_LIQUIDITY_WITHDRAW:
+		return e.initAndExecuteWithdraw(execCtx)
+	case msgtypes.TRANSFER_TYPE_PEG_MINT:
+		return e.initAndExecutePegRefundMint(execCtx)
+	case msgtypes.TRANSFER_TYPE_PEG_WITHDRAW:
+		return e.initAndExecutePegRefundWithdraw(execCtx)
+	default:
+		return fmt.Errorf("init refund not possible for message (id %x) transfer type %v",
+			execCtx.MessageId, execCtx.Message.TransferType)
 	}
 }
 
@@ -183,7 +221,49 @@ func (e *Executor) executeMsgNoTransfer(execCtx *msgtypes.ExecutionContext) {
 	log.Infof("executed msg (id %x): txhash %x", id, tx.Hash())
 }
 
-func (e *Executor) initAndExecuteWithdraw(execCtx *msgtypes.ExecutionContext) {
+func (e *Executor) initAndExecutePegRefundMint(execCtx *msgtypes.ExecutionContext) error {
+	message := &execCtx.Message
+	burnId := execCtx.Transfer.RefId
+
+	var err error
+	if e.testMode {
+		err = e.sgn.InitPegRefund(burnId)
+	} else {
+		// TODO call gateway
+	}
+	if err != nil {
+		return fmt.Errorf("failed to init claim refund: %s", err.Error())
+	}
+	chain, err := e.chains.GetChain(message.DstChainId)
+	if err != nil {
+		return fmt.Errorf("failed to initAndExecuteWithdraw: %s", err.Error())
+	}
+	mintExecutor := chain.NewExecuteRefundHandler(execCtx.MessageId, chain.ExecutePegWithdraw)
+	return e.sgn.PollAndExecutePegRefundMint(burnId, message.DstChainId, mintExecutor)
+}
+
+func (e *Executor) initAndExecutePegRefundWithdraw(execCtx *msgtypes.ExecutionContext) error {
+	message := &execCtx.Message
+	depositId := execCtx.Transfer.RefId
+
+	var err error
+	if e.testMode {
+		err = e.sgn.InitPegRefund(depositId)
+	} else {
+		// TODO call gateway
+	}
+	if err != nil {
+		return fmt.Errorf("failed to init claim refund: %s", err.Error())
+	}
+	chain, err := e.chains.GetChain(message.DstChainId)
+	if err != nil {
+		return fmt.Errorf("failed to initAndExecuteWithdraw: %s", err.Error())
+	}
+	withdrawExecutor := chain.NewExecuteRefundHandler(execCtx.MessageId, chain.ExecutePegWithdraw)
+	return e.sgn.PollAndExecutePegRefundWithdraw(depositId, message.DstChainId, withdrawExecutor)
+}
+
+func (e *Executor) initAndExecuteWithdraw(execCtx *msgtypes.ExecutionContext) error {
 	receiver := execCtx.Message.Receiver
 	nonce := execCtx.Transfer.SeqNum
 	chainId := execCtx.Message.DstChainId
@@ -198,16 +278,14 @@ func (e *Executor) initAndExecuteWithdraw(execCtx *msgtypes.ExecutionContext) {
 		err = e.gateway.InitWithdraw(srcXferId, nonce)
 	}
 	if err != nil {
-		log.Errorf("cannot init withdraw: %s", err.Error())
-		return
+		return fmt.Errorf("cannot init withdraw: %s", err.Error())
 	}
 	chain, err := e.chains.GetChain(chainId)
 	if err != nil {
-		log.Errorf("failed to initAndExecuteWithdraw: %s", err.Error())
-		return
+		return fmt.Errorf("failed to initAndExecuteWithdraw: %s", err.Error())
 	}
-	execHandler := chain.NewExecuteWithdrawHandler(execCtx.MessageId)
-	e.sgn.PollAndExecuteWithdraw(receiver, nonce, chainId, execHandler)
+	execHandler := chain.NewExecuteRefundHandler(execCtx.MessageId, chain.ExecuteLiqWithdraw)
+	return e.sgn.PollAndExecuteWithdraw(receiver, nonce, chainId, execHandler)
 }
 
 func (e *Executor) executeMsgWithTransferRefund(execCtx *msgtypes.ExecutionContext) {
@@ -221,13 +299,20 @@ func (e *Executor) executeMsgWithTransferRefund(execCtx *msgtypes.ExecutionConte
 
 	transfer := execCtx.Transfer
 	amount, _ := new(big.Int).SetString(transfer.Amount, 10)
+	refId, err := execCtx.GetRefIdBytes32()
+	if err != nil {
+		log.Errorf("failed to get refId from execCtx %+v", execCtx)
+		return
+	}
 	xfer := ethtypes.MessageBusReceiverTransferInfo{
-		T:        uint8(message.TransferType),
-		Receiver: ethtypes.Hex2Addr(message.Receiver),
-		Token:    ethtypes.Bytes2Addr(transfer.Token),
-		Amount:   amount,
-		Seqnum:   transfer.SeqNum,
-		// other fields are not needed for refund
+		T:          uint8(message.TransferType),
+		Sender:     ethtypes.Hex2Addr(message.Sender),
+		Receiver:   ethtypes.Hex2Addr(message.Receiver),
+		Token:      ethtypes.Bytes2Addr(transfer.Token),
+		Amount:     amount,
+		Seqnum:     transfer.SeqNum,
+		SrcChainId: message.SrcChainId,
+		RefId:      refId,
 	}
 
 	err = Dal.UpdateStatus(id, types.ExecutionStatus_Executing)

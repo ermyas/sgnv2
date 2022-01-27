@@ -44,6 +44,8 @@ type PegbridgeKeeper interface {
 	GetMintInfo(ctx sdk.Context, mintId eth.Hash) (info types.MintInfo, found bool)
 	GetBurnInfo(ctx sdk.Context, burnId eth.Hash) (info types.BurnInfo, found bool)
 	GetWithdrawInfo(ctx sdk.Context, withdrawId eth.Hash) (info types.WithdrawInfo, found bool)
+	GetDepositRefund(ctx sdk.Context, depositId eth.Hash) (wdOnChain types.WithdrawOnChain, found bool)
+	GetBurnRefund(ctx sdk.Context, burnId eth.Hash) (mintOnChain types.MintOnChain, found bool)
 }
 
 type DistributionKeeper interface {

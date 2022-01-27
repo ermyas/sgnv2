@@ -7,9 +7,27 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	"github.com/ethereum/go-ethereum/common"
 	solsha3 "github.com/miguelmota/go-solidity-sha3"
 )
+
+func NewMsgExecutionContext(ev *eth.MessageBusMessage, srcChainId uint64) *ExecutionContext {
+	message := Message{
+		SrcChainId:      srcChainId,
+		Sender:          ev.Sender.String(),
+		DstChainId:      ev.DstChainId.Uint64(),
+		Receiver:        ev.Receiver.String(),
+		Data:            ev.Message,
+		Fee:             "0", // ev.Fee.String(),
+		ExecutionStatus: EXECUTION_STATUS_PENDING,
+	}
+	execCtx := &ExecutionContext{
+		Message: message,
+	}
+	execCtx.MessageId = message.ComputeMessageIdNoTransfer()
+	return execCtx
+}
 
 func NewMsgXferExecutionContext(
 	ev *eth.MessageBusMessageWithTransfer,
@@ -57,7 +75,7 @@ func NewMsgXferRefundExecutionContext(
 	message := &Message{
 		SrcChainId:      wdOnchain.Chainid,
 		DstChainId:      wdOnchain.Chainid,
-		Sender:          ev.Sender.String(),
+		Sender:          eth.ZeroAddrHex,
 		Receiver:        ev.Sender.String(),
 		Data:            ev.Message,
 		TransferType:    TRANSFER_TYPE_LIQUIDITY_WITHDRAW,
@@ -72,20 +90,59 @@ func NewMsgXferRefundExecutionContext(
 	return execCtx
 }
 
-func NewMsgExecutionContext(ev *eth.MessageBusMessage, srcChainId uint64) *ExecutionContext {
-	message := Message{
-		SrcChainId:      srcChainId,
-		Sender:          ev.Sender.String(),
-		DstChainId:      ev.DstChainId.Uint64(),
-		Receiver:        ev.Receiver.String(),
+func NewMsgPegDepositRefundExecutionContext(
+	ev *eth.MessageBusMessageWithTransfer,
+	wdOnChain pegbrtypes.WithdrawOnChain,
+	bridge string) *ExecutionContext {
+
+	transfer := &Transfer{
+		Amount: new(big.Int).SetBytes(wdOnChain.Amount).String(),
+		Token:  wdOnChain.Token,
+		RefId:  wdOnChain.RefId,
+	}
+	message := &Message{
+		SrcChainId:      wdOnChain.RefChainId,
+		DstChainId:      wdOnChain.RefChainId,
+		Sender:          eth.ZeroAddrHex,
+		Receiver:        eth.Bytes2AddrHex(wdOnChain.Receiver),
 		Data:            ev.Message,
-		Fee:             "0", // ev.Fee.String(),
+		TransferType:    TRANSFER_TYPE_PEG_WITHDRAW,
 		ExecutionStatus: EXECUTION_STATUS_PENDING,
+		Fee:             "0",
 	}
 	execCtx := &ExecutionContext{
-		Message: message,
+		Message:  *message,
+		Transfer: transfer,
 	}
-	execCtx.MessageId = message.ComputeMessageIdNoTransfer()
+	execCtx.PopulateMessageId(eth.Hex2Addr(bridge))
+	return execCtx
+}
+
+func NewMsgPegBurnRefundExecutionContext(
+	ev *eth.MessageBusMessageWithTransfer,
+	mintOnChain pegbrtypes.MintOnChain,
+	bridge string) *ExecutionContext {
+
+	transfer := &Transfer{
+		Amount: new(big.Int).SetBytes(mintOnChain.Amount).String(),
+		Token:  mintOnChain.Token,
+		RefId:  mintOnChain.RefId,
+	}
+	message := &Message{
+		SrcChainId:      mintOnChain.RefChainId,
+		DstChainId:      mintOnChain.RefChainId,
+		Sender:          eth.ZeroAddrHex,
+		Receiver:        eth.Bytes2AddrHex(mintOnChain.Account),
+		Data:            ev.Message,
+		TransferType:    TRANSFER_TYPE_PEG_MINT,
+		ExecutionStatus: EXECUTION_STATUS_PENDING,
+		Fee:             "0",
+	}
+	execCtx := &ExecutionContext{
+		Message:  *message,
+		Transfer: transfer,
+	}
+	execCtx.PopulateMessageId(eth.Hex2Addr(bridge))
 	return execCtx
 }
 

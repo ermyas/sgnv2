@@ -14,3 +14,8 @@ const (
 	PegBridgeEventMint      = "Mint"
 	PegVaultEventWithdrawn  = "Withdrawn"
 )
+
+const (
+	MaxPollingRetries   = 10
+	PollingSleepSeconds = 6
+)

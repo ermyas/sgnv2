@@ -33,6 +33,16 @@ func (m *Message) GetSigBytes() [][]byte {
 }
 
 func (m *Message) EncodeDataToSign(messageId eth.Hash, messageBusAddr common.Address) []byte {
+	// refund msg
+	if m.SrcChainId == m.DstChainId {
+		domain := solsha3.SoliditySHA3(
+			[]string{"uint256", "address", "string"},
+			new(big.Int).SetUint64(m.DstChainId), messageBusAddr, "MessageWithTransferRefund",
+		)
+		data := append(domain, messageId.Bytes()...)
+		return append(data, m.Data...)
+	}
+	// normal msg
 	if m.TransferType == TRANSFER_TYPE_NULL {
 		messageId := m.ComputeMessageIdNoTransfer()
 		domain := solsha3.SoliditySHA3(
@@ -40,13 +50,6 @@ func (m *Message) EncodeDataToSign(messageId eth.Hash, messageBusAddr common.Add
 			new(big.Int).SetUint64(m.DstChainId), messageBusAddr, "Message",
 		)
 		return append(domain, messageId...)
-	} else if m.TransferType == TRANSFER_TYPE_LIQUIDITY_WITHDRAW {
-		domain := solsha3.SoliditySHA3(
-			[]string{"uint256", "address", "string"},
-			new(big.Int).SetUint64(m.DstChainId), messageBusAddr, "MessageWithTransferRefund",
-		)
-		data := append(domain, messageId.Bytes()...)
-		return append(data, m.Data...)
 	} else {
 		domain := solsha3.SoliditySHA3(
 			[]string{"uint256", "address", "string"},

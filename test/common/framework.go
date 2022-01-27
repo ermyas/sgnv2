@@ -71,6 +71,14 @@ func (c *TestEthClient) SignMsg(data []byte) []byte {
 	return ret
 }
 
+func GetChain(num uint64) *CbrChain {
+	if num == 1 {
+		return CbrChain1
+	} else {
+		return CbrChain2
+	}
+}
+
 type ContractParams struct {
 	CelrAddr              eth.Addr
 	ProposalDeposit       *big.Int
