@@ -278,6 +278,7 @@ func (e *Executor) initAndExecuteWithdraw(execCtx *msgtypes.ExecutionContext) er
 		err = e.gateway.InitWithdraw(srcXferId, nonce)
 	}
 	if err != nil {
+		Dal.UpdateStatus(execCtx.MessageId, types.ExecutionStatus_Failed)
 		return fmt.Errorf("cannot init withdraw: %s", err.Error())
 	}
 	chain, err := e.chains.GetChain(chainId)

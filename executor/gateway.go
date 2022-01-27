@@ -47,7 +47,7 @@ func (g *GatewayClient) InitWithdraw(srcXferId []byte, nonce uint64) error {
 	if err != nil {
 		return err
 	}
-	if res.Err.Code != types.ErrCode_ERROR_CODE_UNDEFINED {
+	if res.Err.GetCode() != types.ErrCode_ERROR_CODE_UNDEFINED {
 		return fmt.Errorf("initWithdraw err: %s", res.Err.Msg)
 	}
 	return nil
