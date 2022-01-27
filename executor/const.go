@@ -1,5 +1,7 @@
 package executor
 
+import "time"
+
 // flags
 const (
 	FlagExecutorDbUrl     = "db.url"
@@ -16,6 +18,7 @@ const (
 )
 
 const (
-	MaxPollingRetries   = 10
-	PollingSleepSeconds = 6
+	MaxPollingRetries = 10
+	PollingInterval   = 6 * time.Second
+	GatewayTimeout    = 5 * time.Second
 )

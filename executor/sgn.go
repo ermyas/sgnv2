@@ -12,7 +12,6 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
-	ethtypes "github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/transactor"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -97,7 +96,7 @@ func (c *SgnClient) InitPegRefund(refId []byte) error {
 func (c *SgnClient) PollAndExecuteWithdraw(addr string, nonce uint64, chainId uint64, execute ExecuteRefund) error {
 	for try := 1; try <= MaxPollingRetries; try++ {
 		log.Debugf("polling withdraw status (try %d/%d): addr %s, nonce %d, chainId %d", try, MaxPollingRetries, addr, nonce, chainId)
-		time.Sleep(PollingSleepSeconds * time.Second)
+		time.Sleep(PollingInterval)
 		// poll withdraw status until its status reaches WD_WAITING_FOR_LP
 		detail, status, err := c.GetWithdrawStatus(addr, nonce, chainId)
 		if err != nil {
@@ -135,12 +134,12 @@ func (c *SgnClient) PollAndExecutePegRefundMint(burnId []byte, chainId uint64, e
 	cliCtx := c.txrs.GetTransactor().CliCtx
 	for try := 1; try <= MaxPollingRetries; try++ {
 		log.Debugf("polling ClaimRefund status (try %d/%d): burnId %x, chainId %d", try, MaxPollingRetries, burnId, chainId)
-		time.Sleep(PollingSleepSeconds * time.Second)
+		time.Sleep(PollingInterval)
 		res, err := cbrcli.QueryChainSigners(cliCtx, chainId)
 		if err != nil {
 			return fmt.Errorf("failed to query chain signers: %s", err.Error())
 		}
-		mintId, err := pegbrcli.QueryRefundClaimInfo(cliCtx, ethtypes.Bytes2Hex(burnId))
+		mintId, err := pegbrcli.QueryRefundClaimInfo(cliCtx, eth.Bytes2Hex(burnId))
 		if err != nil {
 			return fmt.Errorf("failed to query refund claim info for deposit (id %x): %s", burnId, err.Error())
 		}
@@ -172,12 +171,12 @@ func (c *SgnClient) PollAndExecutePegRefundWithdraw(depositId []byte, chainId ui
 	cliCtx := c.txrs.GetTransactor().CliCtx
 	for try := 1; try <= MaxPollingRetries; try++ {
 		log.Debugf("polling ClaimRefund status (try %d/%d): depositId %x, chainId %d", try, MaxPollingRetries, depositId, chainId)
-		time.Sleep(PollingSleepSeconds * time.Second)
+		time.Sleep(PollingInterval)
 		res, err := cbrcli.QueryChainSigners(cliCtx, chainId)
 		if err != nil {
 			return fmt.Errorf("failed to query chain signers %s", err.Error())
 		}
-		withdrawId, err := pegbrcli.QueryRefundClaimInfo(cliCtx, ethtypes.Bytes2Hex(depositId))
+		withdrawId, err := pegbrcli.QueryRefundClaimInfo(cliCtx, eth.Bytes2Hex(depositId))
 		if err != nil {
 			return fmt.Errorf("failed to query refund claim info for deposit (id %x): %s", depositId, err.Error())
 		}

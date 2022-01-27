@@ -42,13 +42,29 @@ func (g *GatewayClient) InitWithdraw(srcXferId []byte, nonce uint64) error {
 	if err != nil {
 		return err
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), GatewayTimeout)
+	defer cancel()
 	req := &types.InitWithdrawRequest{WithdrawReq: wdReqBytes}
-	res, err := g.cli.InitWithdraw(context.Background(), req)
+	res, err := g.cli.InitWithdraw(ctx, req)
 	if err != nil {
 		return err
 	}
 	if res.Err.GetCode() != types.ErrCode_ERROR_CODE_UNDEFINED {
 		return fmt.Errorf("initWithdraw err: %s", res.Err.Msg)
+	}
+	return nil
+}
+
+func (g *GatewayClient) InitPegRefund(refId []byte) error {
+	ctx, cancel := context.WithTimeout(context.Background(), GatewayTimeout)
+	defer cancel()
+	req := &types.InitPegRefundRequest{RefId: refId}
+	res, err := g.cli.InitPegRefund(ctx, req)
+	if err != nil {
+		return err
+	}
+	if res.Err.GetCode() != types.ErrCode_ERROR_CODE_UNDEFINED {
+		return fmt.Errorf("InitPegRefund err: %s", res.Err.Msg)
 	}
 	return nil
 }

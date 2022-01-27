@@ -229,7 +229,7 @@ func (e *Executor) initAndExecutePegRefundMint(execCtx *msgtypes.ExecutionContex
 	if e.testMode {
 		err = e.sgn.InitPegRefund(burnId)
 	} else {
-		// TODO call gateway
+		err = e.gateway.InitPegRefund(burnId)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to init claim refund: %s", err.Error())
@@ -250,7 +250,7 @@ func (e *Executor) initAndExecutePegRefundWithdraw(execCtx *msgtypes.ExecutionCo
 	if e.testMode {
 		err = e.sgn.InitPegRefund(depositId)
 	} else {
-		// TODO call gateway
+		err = e.gateway.InitPegRefund(depositId)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to init claim refund: %s", err.Error())
