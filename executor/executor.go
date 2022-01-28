@@ -67,7 +67,13 @@ func (e *Executor) startFetchingExecCtxsFromSgn() {
 	log.Infoln("Start fetching execution contexts from SGN")
 	for {
 		time.Sleep(3 * time.Second)
-		execCtxs, err := e.sgn.GetExecutionContexts(e.contractFilters)
+		var execCtxs []msgtypes.ExecutionContext
+		var err error
+		if e.testMode {
+			execCtxs, err = e.sgn.GetExecutionContexts(e.contractFilters)
+		} else {
+			execCtxs, err = e.gateway.GetExecutionContexts(e.contractFilters)
+		}
 		if err != nil {
 			log.Errorln("failed to get messages", err)
 			continue

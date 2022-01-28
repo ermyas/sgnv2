@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/executor/types"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
 	"google.golang.org/grpc"
 )
 
@@ -30,6 +32,19 @@ func NewGatewayClient(gatewayUrl string) *GatewayClient {
 		conn: conn,
 		cli:  types.NewWebClient(conn),
 	}
+}
+
+func (g *GatewayClient) GetExecutionContexts(filters []*commontypes.ContractInfo) ([]msgtypes.ExecutionContext, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), GatewayTimeout)
+	defer cancel()
+	req := &msgtypes.QueryExecutionContextsRequest{
+		ContractInfos: filters,
+	}
+	res, err := g.cli.ExecutionContexts(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return res.ExecutionContexts, nil
 }
 
 func (g *GatewayClient) InitWithdraw(srcXferId []byte, nonce uint64) error {
