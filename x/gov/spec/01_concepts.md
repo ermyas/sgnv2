@@ -29,15 +29,15 @@ Proposals below are supported as of the writing of this spec:
   automatically by the proposal handler upon conclusion of the voting period.
 - Software upgrade related proposals:
   - `SoftwareUpgradeProposal`. If accepted, validators are expected to update
-  their software in accordance with the proposal. 
+  their software in accordance with the proposal.
   - `CancelSoftwareUpgradeProposal` is a gov Content type for cancelling a software upgrade.
 - Cbridge related proposals:
   - `CbrProposal`, to add chains/tokens/contract addresses and update fees etc.
 - Pegbridge related proposals:
-  - `PegProposal`, to add pagged pairs and update fees etc.
+  - `PegProposal`, to add pegged token pairs and update fees etc.
   - `PairDeleteProposal`, to remove a pair.
   - `TotalSupplyUpdateProposal`, to update total supply of a mint token according to the onchain data.
-- Farming related proposals: 
+- Farming related proposals:
   - `AddPoolProposal`
   - `BatchAddPoolProposal`
   - `AdjustRewardProposal`
@@ -83,7 +83,7 @@ other users do not get the right to participate in governance.
 Once a proposal reaches `MinDeposit`, it immediately enters `Voting period`. We
 define `Voting period` as the interval between the moment the vote opens and
 the moment the vote closes. `Voting period` should always be shorter than
-`Unbonding period` to prevent double voting. 
+`Unbonding period` to prevent double voting.
 
 ### Option set
 
