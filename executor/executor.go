@@ -10,6 +10,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	ethtypes "github.com/celer-network/sgn-v2/eth"
+	"github.com/celer-network/sgn-v2/executor/sgn"
 	"github.com/celer-network/sgn-v2/executor/types"
 	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -20,7 +21,7 @@ import (
 type Executor struct {
 	dal             *DAL
 	chains          *ChainMgr
-	sgn             *SgnClient
+	sgn             *sgn.SgnClient
 	gateway         *GatewayClient
 	wg              sync.WaitGroup
 	contractFilters []*commontypes.ContractInfo
@@ -31,13 +32,13 @@ type Executor struct {
 func NewExecutor(dal *DAL, testMode bool) *Executor {
 	var gateway *GatewayClient
 	if !testMode {
-		gateway = NewGatewayClient(viper.GetString(FlagGatewayUrl))
+		gateway = NewGatewayClient(viper.GetString(types.FlagGatewayGrpcUrl))
 	}
-	sgn := NewSgnClient()
+	sgn := sgn.NewSgnClient(viper.GetString(types.FlagSgnGrpcUrl), testMode)
 	chains := NewChainMgr(dal)
 
 	contracts := []*commontypes.ContractInfo{}
-	err := viper.UnmarshalKey(FlagExecutorContracts, &contracts)
+	err := viper.UnmarshalKey(types.FlagExecutorContracts, &contracts)
 	if err != nil {
 		log.Fatalln("failed to initialize contract filters", err)
 	}
@@ -60,6 +61,7 @@ func (e *Executor) Start() {
 	go e.startFetchingExecCtxsFromSgn()
 	go e.startProcessingExecCtxsFromDb()
 	go e.chains.StartMonitoring()
+	log.Info("executor started")
 	<-done
 }
 
@@ -417,7 +419,11 @@ func (e *Executor) executeMsgWithTransfer(execCtx *msgtypes.ExecutionContext) {
 func (e *Executor) getMsgSignInfo(execCtx *msgtypes.ExecutionContext) (msg []byte, sigs [][]byte, signers []ethtypes.Addr, powers []*big.Int, err error) {
 	msg = execCtx.Message.Data
 	sigs = execCtx.Message.GetSigBytes()
-	signers, powers, err = e.sgn.QueryChainSigners(execCtx.Message.DstChainId)
+	chainSigners, err := e.sgn.GetChainSigners(execCtx.Message.DstChainId)
+	if err != nil {
+		return
+	}
+	signers, powers = chainSigners.GetAddrsPowers()
 	return
 }
 

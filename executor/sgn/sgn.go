@@ -1,37 +1,46 @@
-package executor
+package sgn
 
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"strings"
 	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/app"
 	"github.com/celer-network/sgn-v2/common"
-	commontypes "github.com/celer-network/sgn-v2/common/types"
-	"github.com/celer-network/sgn-v2/eth"
+	"github.com/celer-network/sgn-v2/executor/types"
 	"github.com/celer-network/sgn-v2/transactor"
-	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
-	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
-	pegbrcli "github.com/celer-network/sgn-v2/x/pegbridge/client/cli"
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/viper"
+	"google.golang.org/grpc"
 )
 
 type SgnClient struct {
-	txrs *transactor.TransactorPool
+	txrs     *transactor.TransactorPool
+	grpcConn *grpc.ClientConn
 }
 
-func NewSgnClient() *SgnClient {
-	txrs := newSgnTransactors()
-	return &SgnClient{txrs}
+func NewSgnClient(sgnUrl string, testMode bool) *SgnClient {
+	txrs := newSgnTransactors(testMode)
+	log.Infof("Dialing sgn node grpc: %s", sgnUrl)
+	opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
+	context, cancel := context.WithTimeout(context.Background(), types.GatewayTimeout)
+	defer cancel()
+	grpcConn, err := grpc.DialContext(context, sgnUrl, opts...)
+	defer cancel()
+	if err != nil {
+		log.Fatalln("failed to initialize sgn node grpc connection", err)
+	}
+	return &SgnClient{txrs, grpcConn}
 }
 
-func newSgnTransactors() *transactor.TransactorPool {
+func newSgnTransactors(testMode bool) *transactor.TransactorPool {
+	if !testMode {
+		return nil
+	}
 	encoding := app.MakeEncodingConfig()
 	txrAddrs := viper.GetStringSlice(common.FlagSgnTransactors)
 	chainId := viper.GetString(common.FlagSgnChainId)
@@ -50,55 +59,12 @@ func newSgnTransactors() *transactor.TransactorPool {
 	return txrs
 }
 
-func (c *SgnClient) GetExecutionContexts(filters []*commontypes.ContractInfo) ([]msgtypes.ExecutionContext, error) {
-	qc := msgtypes.NewQueryClient(c.txrs.GetTransactor().CliCtx)
-	req := &msgtypes.QueryExecutionContextsRequest{
-		ContractInfos: filters,
-	}
-	res, err := qc.ExecutionContexts(context.Background(), req)
-	if err != nil {
-		log.Errorln("failed to query messages from sgn", err)
-		return nil, err
-	}
-	return res.GetExecutionContexts(), nil
-}
-
-func (c *SgnClient) InitWithdraw(srcXferId []byte, nonce uint64) error {
-	txr := c.txrs.GetTransactor()
-	wdReq := &cbrtypes.WithdrawReq{
-		XferId:       eth.Bytes2Hex(srcXferId),
-		ReqId:        nonce,
-		WithdrawType: cbrtypes.RefundTransfer,
-	}
-	wdReqBytes, err := wdReq.Marshal()
-	if err != nil {
-		return err
-	}
-	msg := &cbrtypes.MsgInitWithdraw{
-		WithdrawReq: wdReqBytes,
-		Creator:     txr.Key.GetAddress().String(),
-	}
-	_, err = cbrcli.InitWithdraw(txr, msg)
-	return err
-}
-
-func (c *SgnClient) InitPegRefund(refId []byte) error {
-	txr := c.txrs.GetTransactor()
-	msg := &pegbrtypes.MsgClaimRefund{
-		RefId:  eth.Bytes2Hex(refId),
-		Sender: txr.Key.GetAddress().String(),
-	}
-	log.Infof("init peg refund (refId %x)", refId)
-	_, err := pegbrcli.InitClaimRefund(txr, msg)
-	return err
-}
-
-func (c *SgnClient) PollAndExecuteWithdraw(addr string, nonce uint64, chainId uint64, execute ExecuteRefund) error {
-	for try := 1; try <= MaxPollingRetries; try++ {
-		log.Debugf("polling withdraw status (try %d/%d): addr %s, nonce %d, chainId %d", try, MaxPollingRetries, addr, nonce, chainId)
-		time.Sleep(PollingInterval)
+func (c *SgnClient) PollAndExecuteWithdraw(addr string, nonce uint64, chainId uint64, execute types.ExecuteRefund) error {
+	for try := 1; try <= types.MaxPollingRetries; try++ {
+		log.Debugf("polling withdraw status (try %d/%d): addr %s, nonce %d, chainId %d", try, types.MaxPollingRetries, addr, nonce, chainId)
+		time.Sleep(types.PollingInterval)
 		// poll withdraw status until its status reaches WD_WAITING_FOR_LP
-		detail, status, err := c.GetWithdrawStatus(addr, nonce, chainId)
+		detail, status, err := c.GetXferWithdrawStatus(addr, nonce, chainId)
 		if err != nil {
 			return fmt.Errorf("failed to get withdraw status (addr %x, nonce %d, chainId %d): %s", addr, nonce, chainId, err.Error())
 		}
@@ -113,10 +79,11 @@ func (c *SgnClient) PollAndExecuteWithdraw(addr string, nonce uint64, chainId ui
 			return nil
 		}
 		// prepare withdraw req info
-		signers, powers, err := c.QueryChainSigners(chainId)
+		res, err := c.GetChainSigners(chainId)
 		if err != nil {
 			return fmt.Errorf("failed to query chain signers with chainId %d", chainId)
 		}
+		signers, powers := res.GetAddrsPowers()
 		wdOnchain, sortedSigs := detail.GetWdOnchain(), detail.GetSortedSigsBytes()
 
 		// execute the withdraw req onchain
@@ -130,20 +97,19 @@ func (c *SgnClient) PollAndExecuteWithdraw(addr string, nonce uint64, chainId ui
 	return fmt.Errorf("PollAndExecuteWithdraw max retry reached for user %s, nonce %d, chainId %d", addr, nonce, chainId)
 }
 
-func (c *SgnClient) PollAndExecutePegRefundMint(burnId []byte, chainId uint64, execute ExecuteRefund) error {
-	cliCtx := c.txrs.GetTransactor().CliCtx
-	for try := 1; try <= MaxPollingRetries; try++ {
-		log.Debugf("polling ClaimRefund status (try %d/%d): burnId %x, chainId %d", try, MaxPollingRetries, burnId, chainId)
-		time.Sleep(PollingInterval)
-		res, err := cbrcli.QueryChainSigners(cliCtx, chainId)
+func (c *SgnClient) PollAndExecutePegRefundMint(burnId []byte, chainId uint64, execute types.ExecuteRefund) error {
+	for try := 1; try <= types.MaxPollingRetries; try++ {
+		log.Debugf("polling ClaimRefund status (try %d/%d): burnId %x, chainId %d", try, types.MaxPollingRetries, burnId, chainId)
+		time.Sleep(types.PollingInterval)
+		res, err := c.GetChainSigners(chainId)
 		if err != nil {
 			return fmt.Errorf("failed to query chain signers: %s", err.Error())
 		}
-		mintId, err := pegbrcli.QueryRefundClaimInfo(cliCtx, eth.Bytes2Hex(burnId))
+		mintId, err := c.GetPegRefundClaimId(burnId)
 		if err != nil {
 			return fmt.Errorf("failed to query refund claim info for deposit (id %x): %s", burnId, err.Error())
 		}
-		mintInfo, err := pegbrcli.QueryMintInfo(cliCtx, mintId)
+		mintInfo, err := c.GetPegMintInfo(mintId)
 		if err != nil {
 			if strings.Contains(err.Error(), pegbrtypes.ErrNoInfoFound.Error()) {
 				log.Infof("peg mint info for burnId %x not found yet", burnId)
@@ -167,20 +133,19 @@ func (c *SgnClient) PollAndExecutePegRefundMint(burnId []byte, chainId uint64, e
 	return fmt.Errorf("PollAndExecutePegRefundMint max retry reached for burnId %x chainId %d", burnId, chainId)
 }
 
-func (c *SgnClient) PollAndExecutePegRefundWithdraw(depositId []byte, chainId uint64, execute ExecuteRefund) error {
-	cliCtx := c.txrs.GetTransactor().CliCtx
-	for try := 1; try <= MaxPollingRetries; try++ {
-		log.Debugf("polling ClaimRefund status (try %d/%d): depositId %x, chainId %d", try, MaxPollingRetries, depositId, chainId)
-		time.Sleep(PollingInterval)
-		res, err := cbrcli.QueryChainSigners(cliCtx, chainId)
+func (c *SgnClient) PollAndExecutePegRefundWithdraw(depositId []byte, chainId uint64, execute types.ExecuteRefund) error {
+	for try := 1; try <= types.MaxPollingRetries; try++ {
+		log.Debugf("polling ClaimRefund status (try %d/%d): depositId %x, chainId %d", try, types.MaxPollingRetries, depositId, chainId)
+		time.Sleep(types.PollingInterval)
+		res, err := c.GetChainSigners(chainId)
 		if err != nil {
 			return fmt.Errorf("failed to query chain signers %s", err.Error())
 		}
-		withdrawId, err := pegbrcli.QueryRefundClaimInfo(cliCtx, eth.Bytes2Hex(depositId))
+		withdrawId, err := c.GetPegRefundClaimId(depositId)
 		if err != nil {
 			return fmt.Errorf("failed to query refund claim info for deposit (id %x): %s", depositId, err.Error())
 		}
-		withdrawInfo, err := pegbrcli.QueryWithdrawInfo(cliCtx, withdrawId)
+		withdrawInfo, err := c.GetPegWithdrawInfo(withdrawId)
 		if err != nil {
 			if strings.Contains(err.Error(), pegbrtypes.ErrNoInfoFound.Error()) {
 				log.Infof("peg withdraw info for depositId %x not found yet", depositId)
@@ -202,30 +167,4 @@ func (c *SgnClient) PollAndExecutePegRefundWithdraw(depositId []byte, chainId ui
 		}
 	}
 	return fmt.Errorf("PollAndExecutePegRefundWithdraw max retry reached for depositId %x chainId %d", depositId, chainId)
-}
-
-func (c *SgnClient) GetWithdrawStatus(
-	addr string, nonce uint64, chainId uint64) (*cbrtypes.WithdrawDetail, cbrtypes.WithdrawStatus, error) {
-
-	txr := c.txrs.GetTransactor()
-	req := &cbrtypes.QueryWithdrawLiquidityStatusRequest{
-		SeqNum:  nonce,
-		UsrAddr: addr,
-	}
-	res, err := cbrcli.QueryWithdrawLiquidityStatus(txr.CliCtx, req)
-	if err != nil {
-		return nil, cbrtypes.WithdrawStatus_WD_UNKNOWN, err
-	}
-	log.Debugf("withdraw status %v", res.GetStatus())
-
-	return res.GetDetail(), res.GetStatus(), nil
-}
-
-func (c *SgnClient) QueryChainSigners(chainId uint64) (addrs []eth.Addr, powers []*big.Int, err error) {
-	res, err := cbrcli.QueryChainSigners(c.txrs.GetTransactor().CliCtx, chainId)
-	if err != nil {
-		return
-	}
-	addrs, powers = res.GetAddrsPowers()
-	return
 }

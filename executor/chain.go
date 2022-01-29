@@ -182,11 +182,7 @@ func newTransactor(config *common.OneChainConfig, ec *ethclient.Client) *ethutil
 	)
 }
 
-type ExecuteRefund func(wdOnchain []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) error
-
-type RefundTxFunc func(opts *bind.TransactOpts, wdOnchain []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) (*gethtypes.Transaction, error)
-
-func (c *Chain) NewExecuteRefundHandler(messageId []byte, withdraw RefundTxFunc) ExecuteRefund {
+func (c *Chain) NewExecuteRefundHandler(messageId []byte, execute types.RefundTxFunc) types.ExecuteRefund {
 	// returns a handler function
 	return func(req []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) error {
 		log.Infof("executing refund init (messageId %x)", messageId)
@@ -208,7 +204,7 @@ func (c *Chain) NewExecuteRefundHandler(messageId []byte, withdraw RefundTxFunc)
 				Dal.UpdateStatus(messageId, types.ExecutionStatus_Failed)
 			},
 		}, func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*gethtypes.Transaction, error) {
-			return withdraw(opts, req, sortedSigs, signers, powers)
+			return execute(opts, req, sortedSigs, signers, powers)
 		})
 		if err != nil {
 			return err

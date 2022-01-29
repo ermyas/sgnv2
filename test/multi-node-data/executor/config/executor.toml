@@ -4,12 +4,15 @@
 # address = ""
 
 [sgnd]
+# for testing
 node_uri = "tcp://192.168.10.2:26657"                        # node0
 transactors = ["sgn15h2geedmud70gvpajdwpcaxfs4qcrw4z92zlqe"]
 passphrase = "12341234"
 keyring_backend = "file"
 chain_id = "sgn-localnet-1000"
-gateway = "localhost:18081"
+sgn_grpc = "192.168.10.2:9090"
+# for production
+gateway_grpc = "localhost:20000"
 
 [eth]
 signer_keystore = "./keys/signer.json"

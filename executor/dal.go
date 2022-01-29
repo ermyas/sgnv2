@@ -23,7 +23,7 @@ var Dal *DAL
 
 func NewDAL() *DAL {
 	log.Infoln("Creating DB connection")
-	url := viper.GetString(FlagExecutorDbUrl)
+	url := viper.GetString(types.FlagExecutorDbUrl)
 	db, err := sqldb.NewDb("postgres", fmt.Sprintf("postgresql://root@%s/executor?sslmode=disable", url), 4)
 	if err != nil {
 		log.Fatalf("Failed to create db with url %s: %+v", url, err)

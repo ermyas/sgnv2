@@ -35,7 +35,7 @@ func NewGatewayClient(gatewayUrl string) *GatewayClient {
 }
 
 func (g *GatewayClient) GetExecutionContexts(filters []*commontypes.ContractInfo) ([]msgtypes.ExecutionContext, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), GatewayTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), types.GatewayTimeout)
 	defer cancel()
 	req := &msgtypes.QueryExecutionContextsRequest{
 		ContractInfos: filters,
@@ -57,7 +57,7 @@ func (g *GatewayClient) InitWithdraw(srcXferId []byte, nonce uint64) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), GatewayTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), types.GatewayTimeout)
 	defer cancel()
 	req := &types.InitWithdrawRequest{WithdrawReq: wdReqBytes}
 	res, err := g.cli.InitWithdraw(ctx, req)
@@ -71,7 +71,7 @@ func (g *GatewayClient) InitWithdraw(srcXferId []byte, nonce uint64) error {
 }
 
 func (g *GatewayClient) InitPegRefund(refId []byte) error {
-	ctx, cancel := context.WithTimeout(context.Background(), GatewayTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), types.GatewayTimeout)
 	defer cancel()
 	req := &types.InitPegRefundRequest{RefId: refId}
 	res, err := g.cli.InitPegRefund(ctx, req)

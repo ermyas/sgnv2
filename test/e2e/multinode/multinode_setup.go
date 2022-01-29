@@ -74,8 +74,6 @@ func SetupMainchain2ForBridge() {
 }
 
 func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge, msg, manual, report bool) {
-	log.Infoln("Set up another mainchain for bridge")
-
 	tc.RunAllAndWait(SetupMainchain2ForBridge, func() {
 		deployContractsAndPrepareSgnData(contractParams, cbridge, msg, manual, report)
 	})
@@ -86,10 +84,7 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge, msg, manual, rep
 		DeployPegBridgeContract()
 		CreateFarmingPools()
 		FundUsdtFarmingReward()
-	}
-	if msg {
 		DeployBatchTransferAndMessageTransferAndMessageBusContracts()
-		PrepareExecutor()
 	}
 
 	// Update global viper
@@ -99,6 +94,9 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge, msg, manual, rep
 	tc.ChkErr(err, "Failed to read config")
 
 	tc.RunCmd("make", "localnet-up-nodes")
+	if msg {
+		PrepareExecutor()
+	}
 }
 
 func deployContractsAndPrepareSgnData(contractParams *tc.ContractParams, cbridge, msg, manual, report bool) {

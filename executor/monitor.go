@@ -23,7 +23,7 @@ func (c *Chain) startMonitoring() {
 }
 
 func (c *Chain) monitorBridgeRelay() {
-	cfg := c.makeDefaultMonConf(LiqBridgeEventRelay, c.LiqBridge)
+	cfg := c.makeDefaultMonConf(types.LiqBridgeEventRelay, c.LiqBridge)
 	c.monitor.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) bool {
 		e, err := c.LiqBridge.ParseRelay(eLog)
 		if err != nil {
@@ -42,7 +42,7 @@ func (c *Chain) monitorBridgeRelay() {
 }
 
 func (c *Chain) monitorPegMint() {
-	cfg := c.makeDefaultMonConf(PegBridgeEventMint, c.PegBridge)
+	cfg := c.makeDefaultMonConf(types.PegBridgeEventMint, c.PegBridge)
 	c.monitor.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) bool {
 		e, err := c.PegBridge.ParseMint(eLog)
 		if err != nil {
@@ -77,7 +77,7 @@ func (c *Chain) monitorPegMint() {
 }
 
 func (c *Chain) monitorPegWithdrawn() {
-	cfg := c.makeDefaultMonConf(PegVaultEventWithdrawn, c.PegVault)
+	cfg := c.makeDefaultMonConf(types.PegVaultEventWithdrawn, c.PegVault)
 	c.monitor.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) bool {
 		e, err := c.PegVault.ParseWithdrawn(eLog)
 		if err != nil {
@@ -112,7 +112,7 @@ func (c *Chain) monitorPegWithdrawn() {
 }
 
 func (c *Chain) monitorBusExecuted() {
-	cfg := c.makeDefaultMonConf(MessageBusEventExecuted, c.MsgBus)
+	cfg := c.makeDefaultMonConf(types.MessageBusEventExecuted, c.MsgBus)
 	c.monitor.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) bool {
 		e, err := c.MsgBus.ParseExecuted(eLog)
 		if err != nil {

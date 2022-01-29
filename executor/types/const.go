@@ -1,4 +1,4 @@
-package executor
+package types
 
 import "time"
 
@@ -6,7 +6,8 @@ import "time"
 const (
 	FlagExecutorDbUrl     = "db.url"
 	FlagExecutorContracts = "executor.contracts"
-	FlagGatewayUrl        = "sgnd.gateway"
+	FlagGatewayGrpcUrl    = "sgnd.gateway_grpc"
+	FlagSgnGrpcUrl        = "sgnd.sgn_grpc"
 )
 
 // monitor event names
