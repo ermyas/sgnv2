@@ -20,7 +20,7 @@ The farming module implements a liquidity mining mechanism using the he mechanis
     - [MsgClaimRewards](03_messages.md#msgclaimrewards)
     - [MsgClaimAllRewards](03_messages.md#msgclaimallrewards)
     - [MsgSignRewards](03_messages.md#msgsignrewards)
-    - [Common calculations](03_messages.md#common-calculations)
+    - [Common calculations](03_messages.md#common-operations)
 4. **[Events](04_events.md)**
     - [Handlers](04_events.md#handlers)
 5. **[Parameters](05_params.md)**
