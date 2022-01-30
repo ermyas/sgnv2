@@ -60,6 +60,27 @@ func GetLPBalance(kv sdk.KVStore, chid uint64, token, lp eth.Addr) *big.Int {
 	return new(big.Int).SetBytes(value)
 }
 
+func GetLPsBalanceAtChain(kv sdk.KVStore, chid uint64, token eth.Addr) map[string]string {
+	iter := sdk.KVStorePrefixIterator(kv, []byte(fmt.Sprintf("lm-%d-%x", chid, token)))
+	m := make(map[string]string)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		key := iter.Key()
+		value := kv.Get(key)
+		amt := new(big.Int).SetBytes(value)
+		if amt.Cmp(new(big.Int)) <= 0 {
+			continue
+		}
+		lpAddr, err := types.GetLpAddrFromLiqMapKey(key)
+		if err != nil {
+			log.Errorf("failed to get lpAddr from LiqMap key %s: %v", string(key), err)
+			continue
+		}
+		m[lpAddr.Hex()] = amt.String()
+	}
+	return m
+}
+
 // to save storage, we only set a single byte, could be more complicated if need
 func SetEvLiqAdd(kv sdk.KVStore, chid, seq uint64) {
 	kv.Set(types.EvLiqAddKey(chid, seq), []byte{1})

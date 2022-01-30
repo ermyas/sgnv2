@@ -30,6 +30,7 @@ service Query {
   rpc QueryTotalLiquidity(QueryTotalLiquidityRequest) returns (QueryTotalLiquidityResponse) {}
   rpc QueryAddLiquidityStatus(QueryAddLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {}
   rpc QueryWithdrawLiquidityStatus(QueryWithdrawLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {}
+  rpc QueryLiquidity(QueryLiquidityRequest) returns (QueryLiquidityResponse) {}
 
   // for sync farming tool
   rpc QueryLPs(QueryLPsRequest) returns (QueryLPsResponse) {}
@@ -40,31 +41,31 @@ service Query {
 message EmptyRequest {
 }
 message QueryParamsResponse {
-    Params params = 1;
+  Params params = 1;
 }
 message QueryConfigResponse {
-    CbrConfig cbrConfig = 1;
+  CbrConfig cbrConfig = 1;
 }
 message QueryRelayRequest {
-    bytes xref_id = 1;
+  bytes xref_id = 1;
 }
 message QueryRelayResponse {
-    XferRelay xfer_relay = 1;
+  XferRelay xfer_relay = 1;
 }
 message QueryChainSignersRequest {
-    uint64 chain_id = 1;
+  uint64 chain_id = 1;
 }
 message QueryChainSignersResponse {
-    ChainSigners chain_signers = 1;
+  ChainSigners chain_signers = 1;
 }
 message QueryLatestSignersResponse {
-    LatestSigners latest_signers = 1;
+  LatestSigners latest_signers = 1;
 }
 message QueryDebugAnyRequest{
-    bytes key = 1;
+  bytes key = 1;
 }
 message QueryDebugAnyResponse {
-    bytes data = 1;
+  bytes data = 1;
 }
 
 message QueryAssetsResponse {
@@ -91,13 +92,13 @@ message QueryLPsResponse {
 // get both liqsum and sum of all lm- and compare if they are equal
 // rpc CheckLiqSum (CheckLiqSumRequest) returns (CheckLiqSumResponse) {}
 message CheckLiqSumRequest {
-    uint64 chain_id = 1;
-    string token_addr = 2; // hex string
+  uint64 chain_id = 1;
+  string token_addr = 2; // hex string
 }
 
 message CheckLiqSumResponse {
-    string liqsum = 1; // big.Int decimal string of liqsum key
-    string sumiter = 2; // GetLiqIterSum sum over all lm-%d-%x-%x
+  string liqsum = 1; // big.Int decimal string of liqsum key
+  string sumiter = 2; // GetLiqIterSum sum over all lm-%d-%x-%x
 }
 
 message ChainTokensConfigRequest {}
@@ -189,6 +190,16 @@ message QueryLiquidityStatusResponse {
   WithdrawDetail detail = 2;
 }
 
+message QueryLiquidityRequest {
+  uint64 chain_id = 1;
+  string token_addr = 2;
+}
+
+message QueryLiquidityResponse {
+  // key is LP addr, value is balance amt
+  map<string, string> lp_balance = 1;
+}
+
 message CheckChainTokenValidRequest {
   uint64 src_chain_id = 1;
   string src_token_addr = 2;
@@ -228,7 +239,7 @@ enum WithdrawStatus {
   WD_FAILED = 5;
 
   WD_DELAYED = 6;  // relayer has successfully called onchain relay() but the onchain contract decides that the amt is greater than its
-                   // delayThreshold
+  // delayThreshold
 }
 
 enum TransferHistoryStatus {
@@ -244,5 +255,5 @@ enum TransferHistoryStatus {
   TRANSFER_CONFIRMING_YOUR_REFUND = 9;        // user: mark refund has been submitted on chain
   TRANSFER_REFUNDED = 10;                     // relayer: on refund(withdraw liquidity actually) tx event
   TRANSFER_DELAYED = 11;  // relayer has successfully called onchain relay() but the onchain contract decides that the amt is greater than
-                          // its delayThreshold
+  // its delayThreshold
 }

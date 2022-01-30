@@ -331,6 +331,14 @@ func (k Keeper) QueryWithdrawLiquidityStatus(c context.Context, request *types.Q
 	return resp, nil
 }
 
+func (k Keeper) QueryLiquidity(c context.Context, request *types.QueryLiquidityRequest) (*types.QueryLiquidityResponse, error) {
+	ctx := sdk.UnwrapSDKContext(c)
+	store := ctx.KVStore(k.storeKey)
+	return &types.QueryLiquidityResponse{
+		LpBalance: GetLPsBalanceAtChain(store, request.GetChainId(), eth.Hex2Addr(request.GetTokenAddr())),
+	}, nil
+}
+
 func (k Keeper) QueryLPs(c context.Context, req *types.QueryLPsRequest) (*types.QueryLPsResponse, error) {
 	ctx := sdk.UnwrapSDKContext(c)
 	store := ctx.KVStore(k.storeKey)

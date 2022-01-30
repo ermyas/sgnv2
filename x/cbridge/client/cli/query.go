@@ -474,6 +474,12 @@ func QueryWithdrawLiquidityStatus(cliCtx client.Context, request *types.QueryWit
 	return
 }
 
+func QueryLiquidity(cliCtx client.Context, request *types.QueryLiquidityRequest) (resp *types.QueryLiquidityResponse, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err = queryClient.QueryLiquidity(context.Background(), request)
+	return
+}
+
 func QueryChainSigners(cliCtx client.Context, chainId uint64) (chainSigners *types.ChainSigners, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
 	resp, err := queryClient.QueryChainSigners(context.Background(), &types.QueryChainSignersRequest{ChainId: chainId})
