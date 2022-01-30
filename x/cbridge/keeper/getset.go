@@ -68,7 +68,7 @@ func GetLPsBalanceAtChain(kv sdk.KVStore, chid uint64, token eth.Addr) map[strin
 		key := iter.Key()
 		value := kv.Get(key)
 		amt := new(big.Int).SetBytes(value)
-		if amt.Cmp(new(big.Int)) <= 0 {
+		if amt.Sign() <= 0 {
 			continue
 		}
 		lpAddr, err := types.GetLpAddrFromLiqMapKey(key)
