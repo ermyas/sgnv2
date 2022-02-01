@@ -6,17 +6,17 @@ order: 1
 
 ## Message & Execution Context
 
-"Message" and "Execution Context" basically mean the same thing in this module and will be used interchangably.
+"Message" and "Execution Context" basically mean the same thing in this module and will be used interchangeably.
 
 Execution Context is a data structure that carries all the necessary information of a message and is used as a body of communication with systems outside of this module. This context can be queried by external parties (notably the third-party-run executor) through the `ExecutionContexts` querier.
 
 ## Active Execution Context
 
-An execution context is said to be "active" and is thus queriable through the `ExecutionContexts` rpc if it has an `activeMessageId` **AND** if its signatures reaches quorum.
+An execution context is said to be "active" and can thus be queried through the `ExecutionContexts` rpc if it has an `activeMessageId` **AND** if its signatures have reached quorum.
 
 # Flows
 
-Update proposals of on-chain events (MessageWithTransfer, Message) emitted from MessageBus are built into execution contexts and are saved to the application state. x/message assigns the execution context an `activeMessageId` and emits `EventTypeMessageToSign`. Once enough signatures are appplied, execution contexts can be queried through `ExecutionContexts` rpc.
+Update proposals of on-chain events (MessageWithTransfer, Message) emitted from MessageBus are built into execution contexts and are saved to the application state. x/message assigns the execution context an `activeMessageId` and emits `EventTypeMessageToSign`. Once enough signatures are applied, execution contexts can be queried through `ExecutionContexts` rpc.
 
 ## Message With Transfer
 

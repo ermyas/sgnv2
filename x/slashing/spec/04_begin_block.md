@@ -89,7 +89,7 @@ for `DowntimeJailDuration`, and have the following values reset:
 ```
 
 ## Double Sign Tracking
-At the begining of each block, we will also check if any validator signs two blocks at the same height. And if found any, they will be slashed by `DoubleSign`.
+At the beginning of each block, we will also check if any validator signs two blocks at the same height. And if found any, they will be slashed by `DoubleSign`.
 
 ```go
 	consAddr := sdk.ConsAddress(addr)
