@@ -232,6 +232,9 @@ func (r *Relayer) verifyDelegatorShares(update *synctypes.PendingUpdate) (done, 
 	if err != nil {
 		return true, false
 	}
+	if eth.Hex2Addr(updateDel.DelegatorAddress) == eth.ZeroAddr {
+		return true, false
+	}
 	logmsg := fmt.Sprintf("verify update id %d, shares for delegator: %s", update.Id, updateDel.String())
 
 	storeDel, err := validatorcli.QueryDelegation(r.Transactor.CliCtx, updateDel.ValidatorAddress, updateDel.DelegatorAddress)

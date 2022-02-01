@@ -68,7 +68,9 @@ func (r *Relayer) processPullerQueue() {
 			case *eth.StakingDelegationUpdate:
 				log.Infof("%s. delegation update validator %x tokens %s delta %s, delegator %x shares %s",
 					logmsg, e.ValAddr, e.ValTokens, e.TokenDiff, e.DelAddr, e.DelShares)
-				delegators[getDelegatorKey(e.ValAddr, e.DelAddr)] = true
+				if e.DelAddr != eth.ZeroAddr { // zero address means slashing
+					delegators[getDelegatorKey(e.ValAddr, e.DelAddr)] = true
+				}
 				v := validators[e.ValAddr]
 				v.states = r.isBootstrapped()
 				validators[e.ValAddr] = v
