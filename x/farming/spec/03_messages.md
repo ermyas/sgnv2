@@ -31,11 +31,11 @@ This message is sent by the validators to co-sign farming rewards upon seeing a 
 
 [Msg reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/tx.proto#L62)
 
-## Common operations
+## Common Operations
 
 These operations take place during different messages.
 
-### Update stake info
+### Update StakeInfo
 
 Each time a user's stake is changed, the rewards are withdrawn and the `StakeInfo` is updated.
 Updating a `StakeInfo` increments the pool period and keeps track of the starting period of the `StakeInfo`.

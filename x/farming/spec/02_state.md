@@ -9,10 +9,10 @@ order: 2
 All parameters for a farming pool are stored within the
 `FarmingPool` struct. Rewards are collected and added to the reward pool and distributed to users.
 
-Note that the reward pool holds decimal coins (`DecCoins`) to allow
+Note that the reward pool holds decimal coins ([`DecCoins`](https://github.com/cosmos/cosmos-sdk/blob/59d7dc4679b1a3bb2a992b1e3da374743f3c2c9c/proto/cosmos/base/v1beta1/coin.proto#L25)) to allow
 for fractions of coins to be received from operations like inflation.
 When coins are distributed from the pool they are truncated back to
-`sdk.Coins` which are non-decimal.
+[`sdk.Coins`](https://github.com/cosmos/cosmos-sdk/blob/59d7dc4679b1a3bb2a992b1e3da374743f3c2c9c/proto/cosmos/base/v1beta1/coin.proto#L14) which are non-decimal.
 
 - FarmingPool: `0x01 | PoolName -> ProtocolBuffer(FarmingPool)`
 
@@ -26,7 +26,7 @@ This key is used to track the users in each farming pool.
 
 ## StakeInfo
 
-`StakeInfo` tracks the stake of a user in a farming pool.
+This key tracks the stake of a user in a farming pool.
 
 - StakeInfo: `0x03 | UserAddr | PoolName -> ProtocolBuffer(StakeInfo)`
 
@@ -34,7 +34,7 @@ This key is used to track the users in each farming pool.
 
 ## PoolHistoricalRewards
 
-`PoolHistoricalRewards` records the reward ratio of one user in a pool.
+This key records the reward ratio of one user in a pool.
 
 - PoolHistoricalRewards: `0x04 | PoolName -> ProtocolBuffer(PoolHistoricalRewards)`
 
@@ -42,7 +42,7 @@ This key is used to track the users in each farming pool.
 
 ## PoolCurrentRewards
 
-`PoolCurrentRewards` records the rewards in the current period.
+This key records the rewards in the current period.
 
 - PoolCurrentRewards: `0x05 | PoolName -> ProtocolBuffer(PoolCurrentRewards)`
 
@@ -50,7 +50,7 @@ This key is used to track the users in each farming pool.
 
 ## RewardClaimInfo
 
-`RewardClaimInfo` describes the reward claim metadata and details for a recipient.
+This key describes the reward claim metadata and details for a recipient.
 
 - RewardClaimInfo: `0x06 | UserAddr -> ProtocolBuffer(RewardClaimInfo)`
 
@@ -58,7 +58,7 @@ This key is used to track the users in each farming pool.
 
 ## ERC20Token
 
-`ERC20Token` describes an ERC20 token on a specific EVM-compatible chain.
+This key describes an ERC20 token on a specific EVM-compatible chain.
 
 - ERC20Token: `0x07 | ChainId | Symbol -> ProtocolBuffer(ERC20Token)`
 

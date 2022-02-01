@@ -27,21 +27,21 @@ const (
 // Keys for distribution store
 // Items are stored with the following key: values
 //
-// - 0x00<proposalID_Bytes>: FeePol
+// - 0x00<proposalID_Bytes>: FeePool
 //
 // - 0x01: sdk.ConsAddress
 //
 // - 0x02<valAddrLen (1 Byte)><valAddr_Bytes>: ValidatorOutstandingRewards
 //
-// - 0x03<accAddrLen (1 Byte)><accAddr_Bytes>: eth.Addr
+// - 0x03<delAddrLen (1 Byte)><delAddr_Bytes>: eth.Addr
 //
-// - 0x04<valAddrLen (1 Byte)><valAddr_Bytes><accAddrLen (1 Byte)><accAddr_Bytes>: DelegatorStartingInfo
+// - 0x04<valAddrLen (1 Byte)><valAddr_Bytes><delAddrLen (1 Byte)><delAddr_Bytes>: DelegatorStartingInfo
 //
 // - 0x05<valAddrLen (1 Byte)><valAddr_Bytes><period_Bytes>: ValidatorHistoricalRewards
 //
 // - 0x06<valAddrLen (1 Byte)><valAddr_Bytes>: ValidatorCurrentRewards
 //
-// - 0x07<valAddrLen (1 Byte)><valAddr_Bytes>: ValidatorCurrentCommission
+// - 0x07<valAddrLen (1 Byte)><valAddr_Bytes>: ValidatorAccumulatedCommission
 //
 // - 0x08<delAddr_Bytes>: StakingRewardClaimInfo
 var (
@@ -55,7 +55,7 @@ var (
 	ValidatorCurrentRewardsPrefix        = []byte{0x06} // key for current validator rewards
 	ValidatorAccumulatedCommissionPrefix = []byte{0x07} // key for accumulated validator commission
 
-	StakingRewardClaimInfoPrefix = []byte{0x08}
+	StakingRewardClaimInfoPrefix = []byte{0x08} // key for delegator staking reward claim info
 )
 
 // GetValidatorOutstandingRewardsAddress creates an address from a validator's outstanding rewards key.
@@ -75,7 +75,7 @@ func GetValidatorOutstandingRewardsAddress(key []byte) (valAddr eth.Addr) {
 // GetDelegatorWithdrawInfoAddress creates an address from a delegator's withdraw info key.
 func GetDelegatorWithdrawInfoAddress(key []byte) (delAddr eth.Addr) {
 	// key is in the format:
-	// 0x03<accAddrLen (1 Byte)><accAddr_Bytes>
+	// 0x03<delAddrLen (1 Byte)><delAddr_Bytes>
 
 	// Remove prefix and address length.
 	addr := key[2:]
