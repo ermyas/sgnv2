@@ -19,7 +19,7 @@ import (
 
 func TestPegbridge(t *testing.T) {
 	t.Run("e2e-pegbridge", func(t *testing.T) {
-		//t.Run("pegbridgeTest", pegbridgeTest)
+		//t.Run("pegbridgeTest", pegbridgeTest) // comment this out when commit, as it duplicates TestBridge
 	})
 }
 

@@ -20,7 +20,7 @@ import (
 
 func TestCbridge(t *testing.T) {
 	t.Run("e2e-cbridge", func(t *testing.T) {
-		//t.Run("cbridgeTest", cbridgeTest)
+		//t.Run("cbridgeTest", cbridgeTest) // comment this out when commit, as it duplicates TestBridge
 		//t.Run("cbrSignersTest", cbrSignersTest)
 	})
 }
@@ -42,80 +42,6 @@ func cbridgeTest(t *testing.T) {
 	prepareValidators(t, transactor)
 
 	cbrTest(t, transactor)
-}
-
-func cbrSignersTest(t *testing.T) {
-	log.Infoln("===================================================================")
-	log.Infoln("======================== Test cBridge signers ===========================")
-	setupBridgeTest()
-
-	transactor := tc.NewTestTransactor(
-		tc.SgnHomes[0],
-		tc.SgnChainID,
-		tc.SgnNodeURI,
-		tc.ValSgnAddrStrs[0],
-		tc.SgnPassphrase,
-	)
-
-	log.Infoln("================== Init bridge signers ======================")
-	initSignerPowers := []*big.Int{big.NewInt(1e18)}
-	tc.CbrChain1.SetInitSigners(initSignerPowers)
-	tc.CbrChain2.SetInitSigners(initSignerPowers)
-	tc.Sleep(5)
-	expSigners := genSortedSigners([]eth.Addr{tc.ValSignerAddrs[0]}, initSignerPowers)
-	tc.CheckChainSigners(t, transactor, tc.CbrChain1.ChainId, expSigners)
-	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
-
-	log.Infoln("================== Add validators ======================")
-	tc.AddValidator(t, transactor, 0, big.NewInt(3e18), eth.CommissionRate(0.03))
-
-	tc.AddValidator(t, transactor, 1, big.NewInt(2e18), eth.CommissionRate(0.02))
-	expSigners = genSortedSigners(
-		[]eth.Addr{tc.ValSignerAddrs[0], tc.ValSignerAddrs[1]},
-		[]*big.Int{big.NewInt(3e18), big.NewInt(2e18)})
-	tc.CheckLatestSigners(t, transactor, expSigners)
-	tc.CheckChainSigners(t, transactor, tc.CbrChain1.ChainId, expSigners)
-	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
-
-	tc.AddValidator(t, transactor, 2, big.NewInt(4e18), eth.CommissionRate(0.01))
-	expSigners = genSortedSigners(
-		[]eth.Addr{tc.ValSignerAddrs[0], tc.ValSignerAddrs[1], tc.ValSignerAddrs[2]},
-		[]*big.Int{big.NewInt(3e18), big.NewInt(2e18), big.NewInt(4e18)})
-	tc.CheckLatestSigners(t, transactor, expSigners)
-	tc.CheckChainSigners(t, transactor, tc.CbrChain1.ChainId, expSigners)
-	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
-
-	log.Infoln("============= Update validator signer =================")
-	ShutdownNode(0)
-	configPath := "../../../docker-volumes/node1/sgnd/config/sgn.toml"
-	configFileViper := viper.New()
-	configFileViper.SetConfigFile(configPath)
-	err := configFileViper.ReadInConfig()
-	tc.ChkErr(err, "Failed to read config")
-	configFileViper.Set(common.FlagEthSignerKeystore, "./keys/vethks1.json")
-	err = configFileViper.WriteConfig()
-	tc.ChkErr(err, "Failed to write config")
-	BringupNode(0)
-
-	tc.UpdateValidatorSigner(tc.ValAuths[1], tc.ValEthAddrs[1])
-	expSigners = genSortedSigners(
-		[]eth.Addr{tc.ValEthAddrs[1], tc.ValSignerAddrs[0], tc.ValSignerAddrs[2]},
-		[]*big.Int{big.NewInt(2e18), big.NewInt(3e18), big.NewInt(4e18)})
-	tc.CheckLatestSigners(t, transactor, expSigners)
-	tc.CheckChainSigners(t, transactor, tc.CbrChain1.ChainId, expSigners)
-	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
-}
-
-func genSortedSigners(addrs []eth.Addr, amts []*big.Int) []*cbrtypes.Signer {
-	var ss []*cbrtypes.Signer
-	for i, amt := range amts {
-		ss = append(ss,
-			&cbrtypes.Signer{
-				Addr:  addrs[i].Bytes(),
-				Power: amt.Bytes(),
-			})
-	}
-	return ss
 }
 
 func cbrTest(t *testing.T, transactor *transactor.Transactor) {
@@ -390,4 +316,78 @@ func cbrTest(t *testing.T, transactor *transactor.Transactor) {
 		},
 	)
 	log.Infoln("======================== Finish cBridge Test ===========================")
+}
+
+func cbrSignersTest(t *testing.T) {
+	log.Infoln("===================================================================")
+	log.Infoln("======================== Test cBridge signers ===========================")
+	setupBridgeTest()
+
+	transactor := tc.NewTestTransactor(
+		tc.SgnHomes[0],
+		tc.SgnChainID,
+		tc.SgnNodeURI,
+		tc.ValSgnAddrStrs[0],
+		tc.SgnPassphrase,
+	)
+
+	log.Infoln("================== Init bridge signers ======================")
+	initSignerPowers := []*big.Int{big.NewInt(1e18)}
+	tc.CbrChain1.SetInitSigners(initSignerPowers)
+	tc.CbrChain2.SetInitSigners(initSignerPowers)
+	tc.Sleep(5)
+	expSigners := genSortedSigners([]eth.Addr{tc.ValSignerAddrs[0]}, initSignerPowers)
+	tc.CheckChainSigners(t, transactor, tc.CbrChain1.ChainId, expSigners)
+	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
+
+	log.Infoln("================== Add validators ======================")
+	tc.AddValidator(t, transactor, 0, big.NewInt(3e18), eth.CommissionRate(0.03))
+
+	tc.AddValidator(t, transactor, 1, big.NewInt(2e18), eth.CommissionRate(0.02))
+	expSigners = genSortedSigners(
+		[]eth.Addr{tc.ValSignerAddrs[0], tc.ValSignerAddrs[1]},
+		[]*big.Int{big.NewInt(3e18), big.NewInt(2e18)})
+	tc.CheckLatestSigners(t, transactor, expSigners)
+	tc.CheckChainSigners(t, transactor, tc.CbrChain1.ChainId, expSigners)
+	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
+
+	tc.AddValidator(t, transactor, 2, big.NewInt(4e18), eth.CommissionRate(0.01))
+	expSigners = genSortedSigners(
+		[]eth.Addr{tc.ValSignerAddrs[0], tc.ValSignerAddrs[1], tc.ValSignerAddrs[2]},
+		[]*big.Int{big.NewInt(3e18), big.NewInt(2e18), big.NewInt(4e18)})
+	tc.CheckLatestSigners(t, transactor, expSigners)
+	tc.CheckChainSigners(t, transactor, tc.CbrChain1.ChainId, expSigners)
+	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
+
+	log.Infoln("============= Update validator signer =================")
+	ShutdownNode(0)
+	configPath := "../../../docker-volumes/node1/sgnd/config/sgn.toml"
+	configFileViper := viper.New()
+	configFileViper.SetConfigFile(configPath)
+	err := configFileViper.ReadInConfig()
+	tc.ChkErr(err, "Failed to read config")
+	configFileViper.Set(common.FlagEthSignerKeystore, "./keys/vethks1.json")
+	err = configFileViper.WriteConfig()
+	tc.ChkErr(err, "Failed to write config")
+	BringupNode(0)
+
+	tc.UpdateValidatorSigner(tc.ValAuths[1], tc.ValEthAddrs[1])
+	expSigners = genSortedSigners(
+		[]eth.Addr{tc.ValEthAddrs[1], tc.ValSignerAddrs[0], tc.ValSignerAddrs[2]},
+		[]*big.Int{big.NewInt(2e18), big.NewInt(3e18), big.NewInt(4e18)})
+	tc.CheckLatestSigners(t, transactor, expSigners)
+	tc.CheckChainSigners(t, transactor, tc.CbrChain1.ChainId, expSigners)
+	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
+}
+
+func genSortedSigners(addrs []eth.Addr, amts []*big.Int) []*cbrtypes.Signer {
+	var ss []*cbrtypes.Signer
+	for i, amt := range amts {
+		ss = append(ss,
+			&cbrtypes.Signer{
+				Addr:  addrs[i].Bytes(),
+				Power: amt.Bytes(),
+			})
+	}
+	return ss
 }

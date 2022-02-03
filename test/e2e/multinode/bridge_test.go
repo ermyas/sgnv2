@@ -42,7 +42,7 @@ func TestBridge(t *testing.T) {
 // Test pegbridge
 func bridgeTest(t *testing.T) {
 	log.Infoln("===================================================================")
-	log.Infoln("======================== Test Bridge ===========================")
+	log.Infoln("============ Test Bridge (Both cBridge and pegBridge) =============")
 	setupBridgeTest()
 
 	transactor := tc.NewTestTransactor(
