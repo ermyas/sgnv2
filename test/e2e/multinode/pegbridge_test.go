@@ -133,9 +133,9 @@ func pbrTest(t *testing.T, transactor *transactor.Transactor) {
 			log.Infoln("user0 claim refund initiated with success")
 			mintId, mintInfo := tc.GetRefundMintInfoWithSigs(transactor, burnId, 3)
 			log.Infoln("user0 claim pegbridge refund, mintId:", mintId)
-			curss2, err := tc.GetCurSortedSigners(transactor, tc.CbrChain2.ChainId)
+			curss, err := tc.GetCurSortedSigners(transactor, tc.CbrChain2.ChainId)
 			tc.ChkErr(err, "chain2 GetCurSortedSigners")
-			err = tc.CbrChain2.OnchainPegBridgeMint(mintInfo, curss2)
+			err = tc.CbrChain2.OnchainPegBridgeMint(mintInfo, curss)
 			tc.ChkErr(err, "chain2 onchain mint pegbridge refund")
 			tc.CbrChain2.CheckPeggedUNIBalance(0, balance2)
 			log.Infoln("user0 claims refund with success, balance:", balance2)
@@ -157,10 +157,10 @@ func pbrTest(t *testing.T, transactor *transactor.Transactor) {
 			nonce := rand.Uint64()
 			err = tc.CbrChain1.StartDelegatorClaimPegBridgeFee(transactor, 0, tc.CbrChain1.ChainId, tc.CbrChain1.UNIAddr, nonce)
 			tc.ChkErr(err, "del0 chain1 start claim pegbridge fee")
-			withdrawId, withdrawInfo = tc.GetPegBridgeFeeClaimWithdrawInfoWithSigs(
+			withdrawId, withdrawInfo := tc.GetPegBridgeFeeClaimWithdrawInfoWithSigs(
 				transactor, tc.CbrChain1.Delegators[0].Address, nonce, 3)
 			log.Infoln("del0 claim pegbridge fees withdrawId:", withdrawId)
-			curss, err = tc.GetCurSortedSigners(transactor, tc.CbrChain1.ChainId)
+			curss, err := tc.GetCurSortedSigners(transactor, tc.CbrChain1.ChainId)
 			tc.ChkErr(err, "chain1 GetCurSortedSigners")
 			err = tc.CbrChain1.OnchainPegVaultWithdraw(withdrawInfo, curss)
 			tc.ChkErr(err, "chain1 onchain withdraw pegbridge fee")
@@ -175,10 +175,10 @@ func pbrTest(t *testing.T, transactor *transactor.Transactor) {
 			nonce := rand.Uint64()
 			err = tc.CbrChain1.StartValidatorClaimPegBridgeFee(transactor, 0, tc.CbrChain1.ChainId, tc.CbrChain1.UNIAddr, nonce)
 			tc.ChkErr(err, "val0 chain1 start claim pegbridge fee")
-			withdrawId, withdrawInfo = tc.GetPegBridgeFeeClaimWithdrawInfoWithSigs(
+			withdrawId, withdrawInfo := tc.GetPegBridgeFeeClaimWithdrawInfoWithSigs(
 				transactor, tc.CbrChain1.Validators[0].Address, nonce, 3)
 			log.Infoln("val0 claim pegbridge fees withdrawId:", withdrawId)
-			curss, err = tc.GetCurSortedSigners(transactor, tc.CbrChain1.ChainId)
+			curss, err := tc.GetCurSortedSigners(transactor, tc.CbrChain1.ChainId)
 			tc.ChkErr(err, "chain1 GetCurSortedSigners")
 			err = tc.CbrChain1.OnchainPegVaultWithdraw(withdrawInfo, curss)
 			tc.ChkErr(err, "chain1 onchain withdraw pegbridge fee")
@@ -188,10 +188,10 @@ func pbrTest(t *testing.T, transactor *transactor.Transactor) {
 			nonce := rand.Uint64()
 			err = tc.StartValidatorSelfClaimPegbrFee(1, tc.CbrChain1.ChainId, tc.CbrChain1.UNIAddr, nonce)
 			tc.ChkErr(err, "val1 chain1 start claim pegbridge fee")
-			withdrawId, withdrawInfo = tc.GetPegBridgeFeeClaimWithdrawInfoWithSigs(
+			withdrawId, withdrawInfo := tc.GetPegBridgeFeeClaimWithdrawInfoWithSigs(
 				transactor, tc.CbrChain1.Validators[1].Address, nonce, 3)
 			log.Infoln("val1 claim pegbridge fees withdrawId:", withdrawId)
-			curss, err = tc.GetCurSortedSigners(transactor, tc.CbrChain1.ChainId)
+			curss, err := tc.GetCurSortedSigners(transactor, tc.CbrChain1.ChainId)
 			tc.ChkErr(err, "chain1 GetCurSortedSigners")
 			err = tc.CbrChain1.OnchainPegVaultWithdraw(withdrawInfo, curss)
 			tc.ChkErr(err, "chain1 onchain withdraw pegbridge fee")
