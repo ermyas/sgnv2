@@ -326,10 +326,11 @@ func GetCurSortedSigners(transactor *transactor.Transactor, chid uint64) ([]*cbr
 
 // StartClaimFarmingRewards sends MsgClaimAll to the farming module
 func StartClaimFarmingRewards(transactor *transactor.Transactor, uid uint64) error {
-	_, err := farmingcli.ClaimAllRewards(transactor, &farmingtypes.MsgClaimAllRewards{
-		Address: eth.Addr2Hex(ClientEthAddrs[uid]),
-		Sender:  transactor.Key.GetAddress().String(),
-	})
+	_, err := transactor.LockSendTx(
+		&farmingtypes.MsgClaimAllRewards{
+			Address: eth.Addr2Hex(ClientEthAddrs[uid]),
+			Sender:  transactor.Key.GetAddress().String(),
+		})
 	return err
 }
 

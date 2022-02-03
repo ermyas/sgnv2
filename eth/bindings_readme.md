@@ -1,5 +1,7 @@
 # Steps to generate contract go bindings
 
+In [sgn-v2-contract](https://github.com/celer-network/sgn-v2-contracts) repo, go to `contracts` folder, download `openzeppelin-contracts-4.2.0`
+
 ## Staking and reward contracts bindings
 
 [bindings.go](./bindings.go)
@@ -10,10 +12,6 @@ Auto generated along with [sgn-v2-contract](https://github.com/celer-network/sgn
 
 [bindings_cbr.go](./bindings_cbr.go)
 
-In [sgn-v2-contract](https://github.com/celer-network/sgn-v2-contracts) repo, go to `contracts` folder, download `openzeppelin-contracts-4.2.0`
-
-Then run
-
 ```
 solc --base-path $PWD --allow-paths . --overwrite --optimize --optimize-runs 800 --abi --bin -o . '@openzeppelin/'=openzeppelin-contracts-4.2.0/ Bridge.sol
 abigen --abi Bridge.abi --bin Bridge.bin --pkg eth --type Bridge > ../../sgn-v2/eth/bindings_cbr.go
@@ -23,14 +21,19 @@ abigen --abi Bridge.abi --bin Bridge.bin --pkg eth --type Bridge > ../../sgn-v2/
 
 [bindings_pegged.go](./bindings_pegged.go)
 
-In [sgn-v2-contract](https://github.com/celer-network/sgn-v2-contracts) repo, go to `contracts` folder, download `openzeppelin-contracts-4.2.0`
+```
+solc --base-path $PWD --allow-paths . --overwrite --optimize --optimize-runs 800 --pretty-json --combined-json abi,bin -o . '@openzeppelin/'=openzeppelin-contracts-4.2.0/ pegged/OriginalTokenVault.sol pegged/PeggedTokenBridge.sol
+jq '."contracts"|=with_entries(select(.key| test("^openzeppelin") or test("^interfaces") or test("^libraries") or test("^safeguard") | not))' combined.json > pegged.json
+abigen -combined-json ./pegged.json -pkg eth -out ../../sgn-v2/eth/bindings_pegged.go
+```
 
-Then run
+## Bridge test token bindings
+
+[bindings_bridge_test_token.go](./bindings_test_token.go)
 
 ```
-solc --base-path $PWD --allow-paths . --overwrite --optimize --optimize-runs 800 --pretty-json --combined-json abi,bin -o . '@openzeppelin/'=openzeppelin-contracts-4.2.0/ pegged/*.sol
-jq '."contracts"|=with_entries(select(.key| test("^openzeppelin") or test("^interfaces") or test("^libraries") or test("^safeguard/Pauser") | not))' combined.json > pegged.json
-abigen -combined-json ./pegged.json -pkg eth -out ../../sgn-v2/eth/bindings_pegged.go
+solc --base-path $PWD --allow-paths . --overwrite --optimize --optimize-runs 800 --abi --bin -o . '@openzeppelin/'=openzeppelin-contracts-4.2.0/ pegged/tokens/MintSwapCanonicalToken.sol
+abigen --abi MintSwapCanonicalToken.abi --bin MintSwapCanonicalToken.bin --pkg eth --type BridgeTestToken > ../../sgn-v2/eth/bindings_test_token.go
 ```
 
 ## OVM GasPriceOracle bindings

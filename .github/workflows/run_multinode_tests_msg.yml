@@ -19,6 +19,7 @@ jobs:
             - 'relayer/msgbr_*'
             - 'executor/**'
             - 'x/message/**'
+            - 'test/e2e/multinode/message_test.go'
     - uses: actions/setup-go@v2
       with:
         go-version: '1.17'

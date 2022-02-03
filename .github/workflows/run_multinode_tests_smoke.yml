@@ -51,4 +51,4 @@ jobs:
     - name: Run multinode tests
       if: steps.filter.outputs.src == 'true'
       run: |
-        go test -failfast -v -timeout 60m github.com/celer-network/sgn-v2/test/e2e/multinode -run "TestCbridge|TestPegbridge"
+        go test -failfast -v -timeout 60m github.com/celer-network/sgn-v2/test/e2e/multinode -run "TestBridge"

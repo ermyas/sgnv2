@@ -67,7 +67,6 @@ func AddValidator(
 	err := InitializeValidator(
 		ValAuths[valIndex], ValSignerAddrs[valIndex], ValSgnAddrs[valIndex], amt, commissionRate)
 	ChkErr(err, "failed to initialize validator")
-	Sleep(5)
 	expVal := &stakingtypes.Validator{
 		EthAddress:      eth.Addr2Hex(ValEthAddrs[valIndex]),
 		EthSigner:       eth.Addr2Hex(ValSignerAddrs[valIndex]),

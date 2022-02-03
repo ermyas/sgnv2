@@ -212,6 +212,33 @@ func Delegate(auth *bind.TransactOpts, valAddr eth.Addr, amt *big.Int) error {
 	return nil
 }
 
+func MultiDelegate(auth *bind.TransactOpts, valAddrs []eth.Addr, amts []*big.Int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
+
+	log.Infof("%x calls staking contract to delegate to multiple validators", auth.From)
+	tx, err := CelrContract.Approve(auth, Contracts.Staking.Address, NewBigInt(1, 28))
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "Approve")
+
+	auth.GasLimit = 8000000
+	for i := range valAddrs {
+		tx, err = Contracts.Staking.Delegate(auth, valAddrs[i], amts[i])
+		if err != nil {
+			auth.GasLimit = 0
+			log.Error(err)
+			return err
+		}
+	}
+	auth.GasLimit = 0
+	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "Delegate")
+
+	return nil
+}
+
 func Undelegate(auth *bind.TransactOpts, valAddr eth.Addr, amt *big.Int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()

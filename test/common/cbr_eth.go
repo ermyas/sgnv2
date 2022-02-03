@@ -85,52 +85,42 @@ func (c *CbrChain) SetupTestEthClients() {
 	c.Delegators = dels
 }
 
+func (c *CbrChain) ApproveBridgeTestToken(token *eth.BridgeTestToken, uid uint64, amt *big.Int, spender eth.Addr) error {
+	c.txLock.Lock()
+	defer c.txLock.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
+	tx, err := token.Approve(c.Users[uid].Auth, spender, amt)
+	if err != nil {
+		return err
+	}
+	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "Approve")
+	return nil
+}
+
 func (c *CbrChain) ApproveUSDT(uid uint64, amt *big.Int) error {
-	return c.ApproveErc20(c.USDTContract, uid, amt, c.CbrAddr)
+	return c.ApproveBridgeTestToken(c.USDTContract, uid, amt, c.CbrAddr)
 }
 
 func (c *CbrChain) ApproveUNI(uid uint64, amt *big.Int) error {
-	return c.ApproveErc20(c.UNIContract, uid, amt, c.PegVaultAddr)
+	return c.ApproveBridgeTestToken(c.UNIContract, uid, amt, c.PegVaultAddr)
 }
 
 func (c *CbrChain) ApproveUNIForBatchTransfer(uid uint64, amt *big.Int) error {
-	return c.ApproveErc20(c.UNIContract, uid, amt, c.BatchTransferAddr)
-}
-
-func (c *CbrChain) ApproveErc20(erc20 *eth.Erc20, uid uint64, amt *big.Int, spender eth.Addr) error {
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
-	defer cancel()
-	tx, err := erc20.Approve(c.Users[uid].Auth, spender, amt)
-	if err != nil {
-		return err
-	}
-	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "Approve")
-	return nil
+	return c.ApproveBridgeTestToken(c.UNIContract, uid, amt, c.BatchTransferAddr)
 }
 
 func (c *CbrChain) ApprovePeggedUNI(uid uint64, amt *big.Int) error {
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
-	defer cancel()
-	tx, err := c.PeggedUNIContract.Approve(c.Users[uid].Auth, c.PegBridgeAddr, amt)
-	if err != nil {
-		return err
-	}
-	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "Approve")
-	return nil
+	return c.ApproveBridgeTestToken(c.UNIContract, uid, amt, c.PegBridgeAddr)
 }
 
 func (c *CbrChain) ApprovePeggedUNIForBatchTransfer(uid uint64, amt *big.Int) error {
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
-	defer cancel()
-	tx, err := c.PeggedUNIContract.Approve(c.Users[uid].Auth, c.BatchTransferAddr, amt)
-	if err != nil {
-		return err
-	}
-	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "Approve")
-	return nil
+	return c.ApproveBridgeTestToken(c.UNIContract, uid, amt, c.BatchTransferAddr)
 }
 
 func (c *CbrChain) AddLiq(uid uint64, amt *big.Int) error {
+	c.txLock.Lock()
+	defer c.txLock.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 	tx, err := c.CbrContract.AddLiquidity(c.Users[uid].Auth, c.USDTAddr, amt)
@@ -147,6 +137,8 @@ func (c *CbrChain) Send(uid uint64, amt *big.Int, dstChainId, nonce uint64) (eth
 }
 
 func (c *CbrChain) SendAny(fromUid, toUid uint64, amt *big.Int, dstChainId, nonce uint64, maxSlippage uint32) (eth.Hash, error) {
+	c.txLock.Lock()
+	defer c.txLock.Unlock()
 	tx, err := c.CbrContract.Send(
 		c.Users[fromUid].Auth, c.Users[toUid].Address, c.USDTAddr, amt, dstChainId, nonce, maxSlippage)
 	if err != nil {
@@ -165,6 +157,8 @@ func (c *CbrChain) SendAny(fromUid, toUid uint64, amt *big.Int, dstChainId, nonc
 }
 
 func (c *CbrChain) OnchainCbrWithdraw(wdDetail *cbrtypes.WithdrawDetail, signers []*cbrtypes.Signer) error {
+	c.txLock.Lock()
+	defer c.txLock.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 	addrs, powers := cbrtypes.SignersToEthArrays(signers)
@@ -198,7 +192,8 @@ func OnchainClaimFarmingRewards(details *farmingtypes.RewardClaimDetails) error 
 	for _, signature := range details.Signatures {
 		sigs = append(sigs, signature.SigBytes)
 	}
-	tx, err := Contracts.FarmingRewards.ClaimRewards(EtherBaseAuth, details.RewardProtoBytes, sigs, nil, nil)
+	// use valAuth[0] instead of etherbase to reduce nonce conflict chance
+	tx, err := Contracts.FarmingRewards.ClaimRewards(ValAuths[0], details.RewardProtoBytes, sigs, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -213,7 +208,8 @@ func OnchainClaimStakingReward(claimInfo *distrtypes.StakingRewardClaimInfo) err
 	for _, signature := range claimInfo.Signatures {
 		sigs = append(sigs, signature.SigBytes)
 	}
-	tx, err := Contracts.StakingReward.ClaimReward(EtherBaseAuth, claimInfo.RewardProtoBytes, sigs)
+	// use valAuth[0] instead of etherbase to reduce nonce conflict chance
+	tx, err := Contracts.StakingReward.ClaimReward(ValAuths[0], claimInfo.RewardProtoBytes, sigs)
 	if err != nil {
 		return err
 	}
@@ -222,6 +218,8 @@ func OnchainClaimStakingReward(claimInfo *distrtypes.StakingRewardClaimInfo) err
 }
 
 func (c *CbrChain) PbrDeposit(fromUid uint64, amt *big.Int, mintChainId uint64, nonce uint64) (string, error) {
+	c.txLock.Lock()
+	defer c.txLock.Unlock()
 	tx, err := c.PegVaultContract.Deposit(c.Users[fromUid].Auth, c.UNIAddr, amt, mintChainId, c.Users[fromUid].Address, nonce)
 	if err != nil {
 		return "", err
@@ -241,7 +239,9 @@ func (c *CbrChain) PbrDeposit(fromUid uint64, amt *big.Int, mintChainId uint64, 
 }
 
 func (c *CbrChain) PbrBurn(fromUid uint64, amt *big.Int, nonce uint64) (string, error) {
-	tx, err := c.PegBridgeContract.Burn(c.Users[fromUid].Auth, c.PeggedUNIAddr, amt, c.Users[fromUid].Address, nonce)
+	c.txLock.Lock()
+	defer c.txLock.Unlock()
+	tx, err := c.PegBridgeContract.Burn(c.Users[fromUid].Auth, c.UNIAddr, amt, c.Users[fromUid].Address, nonce)
 	if err != nil {
 		return "", err
 	}
@@ -260,6 +260,8 @@ func (c *CbrChain) PbrBurn(fromUid uint64, amt *big.Int, nonce uint64) (string, 
 }
 
 func (c *CbrChain) OnchainPegVaultWithdraw(info *pegbrtypes.WithdrawInfo, signers []*cbrtypes.Signer) error {
+	c.txLock.Lock()
+	defer c.txLock.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 	addrs, powers := cbrtypes.SignersToEthArrays(signers)
@@ -272,6 +274,8 @@ func (c *CbrChain) OnchainPegVaultWithdraw(info *pegbrtypes.WithdrawInfo, signer
 }
 
 func (c *CbrChain) OnchainPegBridgeMint(info *pegbrtypes.MintInfo, signers []*cbrtypes.Signer) error {
+	c.txLock.Lock()
+	defer c.txLock.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
 	addrs, powers := cbrtypes.SignersToEthArrays(signers)
@@ -326,7 +330,7 @@ func (c *CbrChain) CheckPeggedUNIBalance(uid uint64, expectedAmt *big.Int) {
 	var expected bool
 	balanceStr := ""
 	for retry := 0; retry < RetryLimit*2; retry++ {
-		balance, err := c.PeggedUNIContract.BalanceOf(&bind.CallOpts{}, c.Users[uid].Address)
+		balance, err := c.UNIContract.BalanceOf(&bind.CallOpts{}, c.Users[uid].Address)
 		balanceStr = balance.String()
 		if err == nil && balance.Cmp(expectedAmt) == 0 {
 			expected = true
@@ -429,7 +433,7 @@ func (c *CbrChain) BatchTransferForDeposit(
 }
 
 func (c *CbrChain) ApproveUSDTForBatchTransfer(uid uint64, amt *big.Int) error {
-	return c.ApproveErc20(c.USDTContract, uid, amt, c.BatchTransferAddr)
+	return c.ApproveBridgeTestToken(c.USDTContract, uid, amt, c.BatchTransferAddr)
 }
 
 func (c *CbrChain) SendMessageWithTransfer(fromUid uint64, amt *big.Int, mintChainId uint64, nonce uint64) error {

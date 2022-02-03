@@ -2,6 +2,7 @@ package common
 
 import (
 	"math/big"
+	"sync"
 
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
@@ -39,25 +40,29 @@ type CbrChain struct {
 	Validators       []*TestEthClient
 	ValidatorSigners []*TestEthClient
 	Delegators       []*TestEthClient
-	// contract addr
-	CbrAddr, USDTAddr eth.Addr
-	CbrContract       *eth.BridgeContract
-	USDTContract      *eth.Erc20
 
-	PegBridgeContract           *eth.PegBridgeContract
-	PegVaultContract            *eth.PegVaultContract
-	PegBridgeAddr, PegVaultAddr eth.Addr
-	UNIContract                 *eth.Erc20
-	PeggedUNIContract           *eth.PeggedToken
-	UNIAddr, PeggedUNIAddr      eth.Addr
-	MessageBusContract          *eth.MessageBus
-	MessageBusAddr              eth.Addr
-	BatchTransferContract       *eth.BatchTransfer
-	BatchTransferAddr           eth.Addr
-	TransferMessageContract     *eth.TransferMessage
-	TransferMessageAddr         eth.Addr
-	TestRefundContract          *eth.TestRefund
-	TestRefundAddr              eth.Addr
+	// contract addr
+	CbrContract *eth.BridgeContract
+	CbrAddr     eth.Addr
+
+	PegBridgeContract *eth.PegBridgeContract
+	PegVaultContract  *eth.PegVaultContract
+	PegBridgeAddr     eth.Addr
+	PegVaultAddr      eth.Addr
+
+	USDTContract, UNIContract *eth.BridgeTestToken
+	USDTAddr, UNIAddr         eth.Addr
+
+	MessageBusContract      *eth.MessageBus
+	MessageBusAddr          eth.Addr
+	BatchTransferContract   *eth.BatchTransfer
+	BatchTransferAddr       eth.Addr
+	TransferMessageContract *eth.TransferMessage
+	TransferMessageAddr     eth.Addr
+	TestRefundContract      *eth.TestRefund
+	TestRefundAddr          eth.Addr
+
+	txLock sync.Mutex
 }
 
 type TestEthClient struct {

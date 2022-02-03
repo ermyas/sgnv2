@@ -74,9 +74,12 @@ func SetupMainchain2ForBridge() {
 }
 
 func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge, msg, manual, report bool) {
-	tc.RunAllAndWait(SetupMainchain2ForBridge, func() {
-		deployContractsAndPrepareSgnData(contractParams, cbridge, msg, manual, report)
-	})
+	tc.RunAllAndWait(
+		SetupMainchain2ForBridge,
+		func() {
+			deployContractsAndPrepareSgnData(contractParams, cbridge, msg, manual, report)
+		},
+	)
 
 	if cbridge {
 		DeployUsdtForBridge()
@@ -84,6 +87,8 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge, msg, manual, rep
 		DeployPegBridgeContract()
 		CreateFarmingPools()
 		FundUsdtFarmingReward()
+	}
+	if msg {
 		DeployBatchTransferAndMessageTransferAndMessageBusContracts()
 	}
 
@@ -194,11 +199,16 @@ func deployContractsAndPrepareSgnData(contractParams *tc.ContractParams, cbridge
 }
 
 func DeployUsdtForBridge() {
-	tc.RunAllAndWait(func() {
-		tc.CbrChain1.USDTAddr, tc.CbrChain1.USDTContract = tc.DeployERC20Contract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, "USDT", "USDT", 6)
-	}, func() {
-		tc.CbrChain2.USDTAddr, tc.CbrChain2.USDTContract = tc.DeployERC20Contract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, "USDT", "USDT", 6)
-	})
+	tc.RunAllAndWait(
+		func() {
+			tc.CbrChain1.USDTAddr, tc.CbrChain1.USDTContract =
+				tc.DeployBridgeTestTokenContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, "USDT", "USDT", 6)
+		},
+		func() {
+			tc.CbrChain2.USDTAddr, tc.CbrChain2.USDTContract =
+				tc.DeployBridgeTestTokenContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, "USDT", "USDT", 6)
+		},
+	)
 
 	// fund usdt to each user
 	addrs := []eth.Addr{
@@ -208,13 +218,16 @@ func DeployUsdtForBridge() {
 		tc.ClientEthAddrs[3],
 	}
 	log.Infoln("fund each test addr 10 million usdt on each chain")
-	tc.RunAllAndWait(func() {
-		err := tc.FundAddrsErc20(tc.CbrChain1.USDTAddr, addrs, tc.NewBigInt(1, 13), tc.CbrChain1.Ec, tc.CbrChain1.Auth)
-		tc.ChkErr(err, "fund each test addr 10 million usdt on chain 1")
-	}, func() {
-		err := tc.FundAddrsErc20(tc.CbrChain2.USDTAddr, addrs, tc.NewBigInt(1, 13), tc.CbrChain2.Ec, tc.CbrChain2.Auth)
-		tc.ChkErr(err, "fund each test addr 10 million usdt on chain 2")
-	})
+	tc.RunAllAndWait(
+		func() {
+			err := tc.FundAddrsErc20(tc.CbrChain1.USDTAddr, addrs, tc.NewBigInt(1, 13), tc.CbrChain1.Ec, tc.CbrChain1.Auth)
+			tc.ChkErr(err, "fund each test addr 10 million usdt on chain 1")
+		},
+		func() {
+			err := tc.FundAddrsErc20(tc.CbrChain2.USDTAddr, addrs, tc.NewBigInt(1, 13), tc.CbrChain2.Ec, tc.CbrChain2.Auth)
+			tc.ChkErr(err, "fund each test addr 10 million usdt on chain 2")
+		},
+	)
 
 	log.Infoln("Updating config files of SGN nodes")
 	for i := 0; i < len(tc.ValEthKs); i++ {
@@ -235,11 +248,14 @@ func DeployUsdtForBridge() {
 }
 
 func DeployBridgeContract() {
-	tc.RunAllAndWait(func() {
-		tc.CbrChain1.CbrAddr, tc.CbrChain1.CbrContract = tc.DeployBridgeContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth)
-	}, func() {
-		tc.CbrChain2.CbrAddr, tc.CbrChain2.CbrContract = tc.DeployBridgeContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth)
-	})
+	tc.RunAllAndWait(
+		func() {
+			tc.CbrChain1.CbrAddr, tc.CbrChain1.CbrContract = tc.DeployBridgeContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth)
+		},
+		func() {
+			tc.CbrChain2.CbrAddr, tc.CbrChain2.CbrContract = tc.DeployBridgeContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth)
+		},
+	)
 
 	for i := 0; i < len(tc.ValEthKs); i++ {
 		cbrCfgPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/cbridge.toml", i)
@@ -271,27 +287,35 @@ func DeployBridgeContract() {
 }
 
 func DeployPegBridgeContract() {
-	tc.RunAllAndWait(func() {
-		tc.CbrChain1.PegVaultAddr, tc.CbrChain1.PegVaultContract =
-			tc.DeployPegVaultContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.CbrAddr)
-		tc.CbrChain1.UNIAddr, tc.CbrChain1.UNIContract =
-			tc.DeployERC20Contract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, "UNI", "UNI", 18)
-	}, func() {
-		tc.CbrChain2.PegBridgeAddr, tc.CbrChain2.PegBridgeContract =
-			tc.DeployPegBridgeContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.CbrAddr)
-		tc.CbrChain2.PeggedUNIAddr, tc.CbrChain2.PeggedUNIContract =
-			tc.DeployPeggedTokenContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, "UNI", "UNI", 18, tc.CbrChain2.PegBridgeAddr)
-	})
-	// fund UNI and PEGUNI to each user
-	addrs := []eth.Addr{
-		tc.ClientEthAddrs[0],
-		tc.ClientEthAddrs[1],
-		tc.ClientEthAddrs[2],
-		tc.ClientEthAddrs[3],
-	}
-	log.Infoln("fund each test addr 10 million UNI on chain 1")
-	err := tc.FundAddrsErc20(tc.CbrChain1.UNIAddr, addrs, tc.NewBigInt(1, 25), tc.CbrChain1.Ec, tc.CbrChain1.Auth)
-	tc.ChkErr(err, "fund each test addr 10 million UNI on chain 1")
+	tc.RunAllAndWait(
+		func() {
+			tc.CbrChain1.PegVaultAddr, tc.CbrChain1.PegVaultContract =
+				tc.DeployPegVaultContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.CbrAddr)
+			tc.CbrChain1.UNIAddr, tc.CbrChain1.UNIContract =
+				tc.DeployBridgeTestTokenContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, "UNI", "UNI", 18)
+			// fund UNI to each user on chan 1
+			addrs := []eth.Addr{
+				tc.ClientEthAddrs[0],
+				tc.ClientEthAddrs[1],
+				tc.ClientEthAddrs[2],
+				tc.ClientEthAddrs[3],
+			}
+			log.Infoln("fund each test addr 10 million UNI on chain 1")
+			err := tc.FundAddrsErc20(tc.CbrChain1.UNIAddr, addrs, tc.NewBigInt(1, 25), tc.CbrChain1.Ec, tc.CbrChain1.Auth)
+			tc.ChkErr(err, "fund each test addr 10 million UNI on chain 1")
+		},
+		func() {
+			tc.CbrChain2.PegBridgeAddr, tc.CbrChain2.PegBridgeContract =
+				tc.DeployPegBridgeContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.CbrAddr)
+			tc.CbrChain2.UNIAddr, tc.CbrChain2.UNIContract =
+				tc.DeployBridgeTestTokenContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, "UNI", "UNI", 18)
+
+			tx, err := tc.CbrChain2.UNIContract.UpdateBridgeSupplyCap(
+				tc.CbrChain2.Auth, tc.CbrChain2.PegBridgeAddr, tc.NewBigInt(1, 28))
+			tc.ChkErr(err, "failed to update bridge supply cap")
+			tc.WaitMinedWithChk(context.Background(), tc.CbrChain2.Ec, tx, tc.BlockDelay, tc.PollingInterval, "UpdateBridgeSupplyCap")
+		},
+	)
 
 	for i := 0; i < len(tc.ValEthKs); i++ {
 		cbrCfgPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/cbridge.toml", i)
@@ -330,7 +354,7 @@ func DeployPegBridgeContract() {
 			Pegged: commontypes.ERC20Token{
 				Symbol:   "UNI",
 				ChainId:  tc.CbrChain2.ChainId,
-				Address:  eth.Addr2Hex(tc.CbrChain2.PeggedUNIAddr),
+				Address:  eth.Addr2Hex(tc.CbrChain2.UNIAddr),
 				Decimals: 18,
 			},
 			MintFeePips: 100,
@@ -352,7 +376,7 @@ func DeployPegBridgeContract() {
 		jsonByte, _ := json.Marshal(genesisViper.Get("app_state.cbridge.config"))
 		json.Unmarshal(jsonByte, cbrConfig)
 		cbrConfig.Assets[2].Addr = eth.Addr2Hex(tc.CbrChain1.UNIAddr)
-		cbrConfig.Assets[3].Addr = eth.Addr2Hex(tc.CbrChain2.PeggedUNIAddr)
+		cbrConfig.Assets[3].Addr = eth.Addr2Hex(tc.CbrChain2.UNIAddr)
 		genesisViper.Set("app_state.cbridge.config", cbrConfig)
 
 		err = genesisViper.WriteConfig()
@@ -361,25 +385,26 @@ func DeployPegBridgeContract() {
 }
 
 func DeployBatchTransferAndMessageTransferAndMessageBusContracts() {
-	tc.RunAllAndWait(func() {
-		tc.CbrChain1.MessageBusAddr, tc.CbrChain1.MessageBusContract =
-			tc.DeployMessageBusContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.CbrAddr, tc.CbrChain1.PegBridgeAddr, tc.CbrChain1.PegVaultAddr)
-		tc.CbrChain1.BatchTransferAddr, tc.CbrChain1.BatchTransferContract =
-			tc.DeployBatchTransferContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.MessageBusAddr, tc.CbrChain1.CbrAddr)
-		tc.CbrChain1.TransferMessageAddr, tc.CbrChain1.TransferMessageContract =
-			tc.DeployTransferMessageContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.MessageBusAddr)
-		tc.CbrChain1.TestRefundAddr, tc.CbrChain1.TestRefundContract =
-			tc.DeployTestRefundContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.MessageBusAddr)
-	}, func() {
-		tc.CbrChain2.MessageBusAddr, tc.CbrChain2.MessageBusContract =
-			tc.DeployMessageBusContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.CbrAddr, tc.CbrChain2.PegBridgeAddr, tc.CbrChain2.PegVaultAddr)
-		tc.CbrChain2.BatchTransferAddr, tc.CbrChain2.BatchTransferContract =
-			tc.DeployBatchTransferContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.MessageBusAddr, tc.CbrChain2.CbrAddr)
-		tc.CbrChain2.TransferMessageAddr, tc.CbrChain2.TransferMessageContract =
-			tc.DeployTransferMessageContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.MessageBusAddr)
-		tc.CbrChain2.TestRefundAddr, tc.CbrChain2.TestRefundContract =
-			tc.DeployTestRefundContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.MessageBusAddr)
-	})
+	tc.RunAllAndWait(
+		func() {
+			tc.CbrChain1.MessageBusAddr, tc.CbrChain1.MessageBusContract =
+				tc.DeployMessageBusContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.CbrAddr, tc.CbrChain1.PegBridgeAddr, tc.CbrChain1.PegVaultAddr)
+			tc.CbrChain1.BatchTransferAddr, tc.CbrChain1.BatchTransferContract =
+				tc.DeployBatchTransferContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.MessageBusAddr, tc.CbrChain1.CbrAddr)
+			tc.CbrChain1.TransferMessageAddr, tc.CbrChain1.TransferMessageContract =
+				tc.DeployTransferMessageContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.MessageBusAddr)
+			tc.CbrChain1.TestRefundAddr, tc.CbrChain1.TestRefundContract =
+				tc.DeployTestRefundContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.MessageBusAddr)
+		}, func() {
+			tc.CbrChain2.MessageBusAddr, tc.CbrChain2.MessageBusContract =
+				tc.DeployMessageBusContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.CbrAddr, tc.CbrChain2.PegBridgeAddr, tc.CbrChain2.PegVaultAddr)
+			tc.CbrChain2.BatchTransferAddr, tc.CbrChain2.BatchTransferContract =
+				tc.DeployBatchTransferContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.MessageBusAddr, tc.CbrChain2.CbrAddr)
+			tc.CbrChain2.TransferMessageAddr, tc.CbrChain2.TransferMessageContract =
+				tc.DeployTransferMessageContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.MessageBusAddr)
+			tc.CbrChain2.TestRefundAddr, tc.CbrChain2.TestRefundContract =
+				tc.DeployTestRefundContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.MessageBusAddr)
+		})
 
 	messageBuses := make([]msgtypes.MessageBusInfo, 0)
 	bus1 := msgtypes.MessageBusInfo{
@@ -423,13 +448,17 @@ func DeployBatchTransferAndMessageTransferAndMessageBusContracts() {
 }
 
 func PrepareExecutor() {
-	tc.RunAllAndWait(func() {
-		tc.RunCmd("make", "localnet-start-crdb")
-	}, func() {
-		SetupExecutorConfig()
-	}, func() {
-		tc.RunCmd("make", "build-executor")
-	})
+	tc.RunAllAndWait(
+		func() {
+			tc.RunCmd("make", "localnet-start-crdb")
+		},
+		func() {
+			SetupExecutorConfig()
+		},
+		func() {
+			tc.RunCmd("make", "build-executor")
+		},
+	)
 	tc.RunCmd("docker-compose", "up", "-d", "executor")
 }
 

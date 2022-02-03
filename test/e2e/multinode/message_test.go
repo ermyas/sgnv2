@@ -16,8 +16,6 @@ import (
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
-	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/gogo/protobuf/proto"
 )
@@ -99,9 +97,9 @@ func batchPegDepositTest(transactor *transactor.Transactor, sendAmt *big.Int, am
 	u1 := tc.CbrChain1.Users[1]
 	u2 := tc.CbrChain1.Users[2]
 	originBalanceOfU01, _ := tc.CbrChain1.UNIContract.BalanceOf(&bind.CallOpts{}, u0.Address)
-	originBalanceOfU02, _ := tc.CbrChain2.PeggedUNIContract.BalanceOf(&bind.CallOpts{}, u0.Address)
-	originBalanceOfU1, _ := tc.CbrChain2.PeggedUNIContract.BalanceOf(&bind.CallOpts{}, u1.Address)
-	originBalanceOfU2, _ := tc.CbrChain2.PeggedUNIContract.BalanceOf(&bind.CallOpts{}, u2.Address)
+	originBalanceOfU02, _ := tc.CbrChain2.UNIContract.BalanceOf(&bind.CallOpts{}, u0.Address)
+	originBalanceOfU1, _ := tc.CbrChain2.UNIContract.BalanceOf(&bind.CallOpts{}, u1.Address)
+	originBalanceOfU2, _ := tc.CbrChain2.UNIContract.BalanceOf(&bind.CallOpts{}, u2.Address)
 
 	// chain1 -> chain2 deposit -> mint
 	depositId, err := tc.CbrChain1.BatchTransfer(
@@ -141,7 +139,7 @@ func batchPegBurnTest(transactor *transactor.Transactor, sendAmt *big.Int, amtFo
 	u0 := tc.CbrChain2.Users[0]
 	u1 := tc.CbrChain2.Users[1]
 	u2 := tc.CbrChain2.Users[2]
-	originBalanceOfU02, _ := tc.CbrChain2.PeggedUNIContract.BalanceOf(&bind.CallOpts{}, u0.Address)
+	originBalanceOfU02, _ := tc.CbrChain2.UNIContract.BalanceOf(&bind.CallOpts{}, u0.Address)
 	originBalanceOfU01, _ := tc.CbrChain1.UNIContract.BalanceOf(&bind.CallOpts{}, u0.Address)
 	originBalanceOfU1, _ := tc.CbrChain1.UNIContract.BalanceOf(&bind.CallOpts{}, u1.Address)
 	originBalanceOfU2, _ := tc.CbrChain1.UNIContract.BalanceOf(&bind.CallOpts{}, u2.Address)
@@ -150,7 +148,7 @@ func batchPegBurnTest(transactor *transactor.Transactor, sendAmt *big.Int, amtFo
 	burnId, err := tc.CbrChain2.BatchTransfer(
 		0,
 		tc.CbrChain1.BatchTransferAddr,
-		tc.CbrChain2.PeggedUNIAddr,
+		tc.CbrChain2.UNIAddr,
 		sendAmt,
 		tc.CbrChain1.ChainId,
 		100000,
@@ -239,7 +237,7 @@ func refundTransferTest(t *testing.T, transactor *transactor.Transactor) {
 	log.Infof("bal before, %s", balBefore.String())
 	token := tc.CbrChain1.USDTAddr
 	amount := big.NewInt(300000 * 1e6)
-	err = tc.CbrChain1.ApproveErc20(tc.CbrChain1.USDTContract, 0, amount, tc.CbrChain1.TestRefundAddr)
+	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.USDTContract, 0, amount, tc.CbrChain1.TestRefundAddr)
 	tc.ChkErr(err, "approve USDT")
 	tx, err := tc.CbrChain1.TestRefundContract.SendWithTransfer(u.Auth, u.Address, token, amount, tc.CbrChain2.ChainId, 1, 1, uint8(1))
 	tc.ChkErr(err, "SendWithTransfer")
@@ -266,7 +264,7 @@ func refundPegDepositTest(t *testing.T, transactor *transactor.Transactor) {
 	log.Infof("bal before, %s", balBefore.String())
 	token := tc.CbrChain1.USDTAddr
 	amount := big.NewInt(300000 * 1e6)
-	err = tc.CbrChain1.ApproveErc20(tc.CbrChain1.USDTContract, 0, amount, tc.CbrChain1.TestRefundAddr)
+	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.USDTContract, 0, amount, tc.CbrChain1.TestRefundAddr)
 	tc.ChkErr(err, "approve USDT")
 	tx, err := tc.CbrChain1.TestRefundContract.SendWithTransfer(u.Auth, u.Address, token, amount, tc.CbrChain2.ChainId, 1, 1, uint8(2))
 	tc.ChkErr(err, "SendWithTransfer")
@@ -293,7 +291,7 @@ func refundPegBurnTest(t *testing.T, transactor *transactor.Transactor) {
 	log.Infof("bal before, %s", balBefore.String())
 	token := tc.CbrChain1.USDTAddr
 	amount := big.NewInt(300000 * 1e6)
-	err = tc.CbrChain1.ApproveErc20(tc.CbrChain1.USDTContract, 0, amount, tc.CbrChain1.TestRefundAddr)
+	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.USDTContract, 0, amount, tc.CbrChain1.TestRefundAddr)
 	tc.ChkErr(err, "approve USDT")
 	tx, err := tc.CbrChain1.TestRefundContract.SendWithTransfer(u.Auth, u.Address, token, amount, tc.CbrChain2.ChainId, 1, 1, uint8(2))
 	tc.ChkErr(err, "SendWithTransfer")
@@ -310,63 +308,6 @@ func refundPegBurnTest(t *testing.T, transactor *transactor.Transactor) {
 		}
 	}
 	log.Fatalf("balAfter (%s) not equal to balBefore (%s)", balAfter, balBefore)
-}
-
-func prepareValidators(t *testing.T, transactor *transactor.Transactor) {
-	log.Infoln("************************************************************")
-	log.Infoln("================== Prepare validators ======================")
-
-	log.Infoln("================== Setup validators and bridge signers ======================")
-	// Make the stake amounts more realistic to test precision handling when distributing fee share
-	vAmts := []*big.Int{
-		new(big.Int).Mul(big.NewInt(2e8), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(2e8), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(2e8), big.NewInt(1e18)),
-	}
-	vAddrs := []eth.Addr{
-		tc.ValEthAddrs[0], tc.ValEthAddrs[1], tc.ValEthAddrs[2],
-	}
-	err := tc.FundAddrsErc20(tc.CelrAddr, vAddrs, vAmts[0], tc.EthClient, tc.EtherBaseAuth)
-	tc.ChkErr(err, "fund validator accounts")
-	numVals := len(vAmts)
-	tc.SetupValidators(t, transactor, vAmts)
-	tc.RunAllAndWait(func() {
-		tc.CbrChain1.SetInitSigners(vAmts)
-	}, func() {
-		tc.CbrChain2.SetInitSigners(vAmts)
-	})
-	expSigners := genSortedSigners([]eth.Addr{tc.ValSignerAddrs[0], tc.ValSignerAddrs[1], tc.ValSignerAddrs[2]}, vAmts)
-	tc.CheckChainSigners(t, transactor, tc.CbrChain1.ChainId, expSigners)
-	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
-
-	log.Infoln("================== Delegate from delegator 0 to all validators ======================")
-	dAmts := []*big.Int{
-		new(big.Int).Mul(big.NewInt(1e6), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(1e6), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(1e6), big.NewInt(1e18)),
-	}
-	dAddrs := []eth.Addr{tc.DelEthAddrs[0]}
-	err = tc.FundAddrsErc20(tc.CelrAddr, dAddrs, new(big.Int).Mul(big.NewInt(3), dAmts[0]), tc.EthClient, tc.EtherBaseAuth)
-	tc.ChkErr(err, "fund delegator account")
-	for i := 0; i < numVals; i++ {
-		tc.Delegate(tc.DelAuths[0], tc.ValEthAddrs[i], dAmts[i])
-	}
-
-	checkFuncs := []func(){}
-	for i := 0; i < numVals; i++ {
-		expDel := &stakingtypes.Delegation{
-			DelegatorAddress: eth.Addr2Hex(tc.DelEthAddrs[0]),
-			ValidatorAddress: eth.Addr2Hex(tc.ValEthAddrs[i]),
-			Shares:           sdk.NewIntFromBigInt(dAmts[i]),
-		}
-		checkFuncs = append(checkFuncs, func() {
-			tc.CheckDelegation(t, transactor, expDel)
-		})
-	}
-	tc.RunAllAndWait(checkFuncs...)
-
-	log.Infoln("================== Prepare validators done =================")
-	log.Infoln("************************************************************")
 }
 
 func prepareCbrLiquidity(transactor *transactor.Transactor) {

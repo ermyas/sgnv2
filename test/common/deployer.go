@@ -21,22 +21,26 @@ func DeployERC20Contract(ethClient *ethclient.Client, auth *bind.TransactOpts, n
 	initAmt := NewBigInt(1, 28)
 	erc20Addr, tx, erc20, err := eth.DeployErc20(auth, ethClient, name, symbol, initAmt, decimal)
 	ChkErr(err, "failed to deploy ERC20")
-
 	log.Infoln("Erc20 address:", erc20Addr.String())
 	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployERC20")
-
 	return erc20Addr, erc20
 }
 
-func DeployPeggedTokenContract(
-	ethClient *ethclient.Client, auth *bind.TransactOpts, name, symbol string, decimals uint8, controller eth.Addr) (eth.Addr, *eth.PeggedToken) {
-	peggedTokenAddr, tx, erc20, err := eth.DeployPeggedToken(auth, ethClient, name, symbol, decimals, controller)
+func DeployBridgeTestTokenContract(
+	ethClient *ethclient.Client, auth *bind.TransactOpts, name, symbol string, decimals uint8) (eth.Addr, *eth.BridgeTestToken) {
+	tokenAddr, tx, token, err := eth.DeployBridgeTestToken(auth, ethClient, name, symbol, decimals)
 	ChkErr(err, "failed to deploy PeggedToken")
+	log.Infoln("PeggedToken address:", tokenAddr.String())
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployBridgeTestToken")
 
-	log.Infoln("PeggedToken address:", peggedTokenAddr.String())
-	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployPeggedToken")
+	tx, err = token.UpdateBridgeSupplyCap(auth, auth.From, NewBigInt(1, 28))
+	ChkErr(err, "failed to update supply cap")
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "UpdateBridgeSupplyCap")
+	tx, err = token.Mint(auth, auth.From, NewBigInt(1, 28))
+	ChkErr(err, "failed to mint init tokens")
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "Mint")
 
-	return peggedTokenAddr, erc20
+	return tokenAddr, token
 }
 
 func DeployBridgeContract(ethClient *ethclient.Client, auth *bind.TransactOpts) (cbrAddr eth.Addr, cbrContract *eth.BridgeContract) {
@@ -44,11 +48,8 @@ func DeployBridgeContract(ethClient *ethclient.Client, auth *bind.TransactOpts) 
 	ChkErr(err, "failed to deploy bridge contract")
 	cbrContract, err = eth.NewBridgeContract(cbrAddr, ethClient)
 	ChkErr(err, "failed to set bridge contract")
-
 	log.Infoln("bridge address:", cbrAddr.String())
-
 	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployBridgeContract")
-
 	return
 }
 
@@ -58,11 +59,8 @@ func DeployPegBridgeContract(
 	ChkErr(err, "failed to deploy PeggedTokenBridge contract")
 	ptbContract, err = eth.NewPegBridgeContract(ptbAddr, ethClient)
 	ChkErr(err, "failed to set PeggedTokenBridge contract")
-
 	log.Infoln("ptb address:", ptbAddr.String())
-
 	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployPegBridgeContract")
-
 	return
 }
 
@@ -72,11 +70,8 @@ func DeployPegVaultContract(
 	ChkErr(err, "failed to deploy OriginalTokenVault contract")
 	otvContract, err = eth.NewPegVaultContract(otvAddr, ethClient)
 	ChkErr(err, "failed to set OriginalTokenVault contract")
-
 	log.Infoln("otv address:", otvAddr.String())
-
 	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployPegVaultContract")
-
 	return
 }
 
