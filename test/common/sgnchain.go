@@ -63,7 +63,7 @@ func NewTestTransactor(sgnHomeDir, sgnChainID, sgnNodeURI, sgnValAcct, sgnPassph
 
 func AddValidator(
 	t *testing.T, transactor *transactor.Transactor, valIndex int, amt *big.Int, commissionRate uint64) {
-	log.Infoln("Adding validator", ValEthAddrs[valIndex].Hex())
+	log.Infoln("Adding validator", valIndex, ValEthAddrs[valIndex].Hex())
 	err := InitializeValidator(
 		ValAuths[valIndex], ValSignerAddrs[valIndex], ValSgnAddrs[valIndex], amt, commissionRate)
 	ChkErr(err, "failed to initialize validator")
@@ -86,10 +86,12 @@ func AddValidator(
 }
 
 func SetupValidators(t *testing.T, transactor *transactor.Transactor, amts []*big.Int) {
+	var funcs []func()
 	for i := 0; i < len(amts); i++ {
-		log.Infoln("Adding validator", i, ValEthAddrs[i].Hex())
-		AddValidator(t, transactor, i, amts[i], eth.CommissionRate(0.02))
+		index := i
+		funcs = append(funcs, func() { AddValidator(t, transactor, index, amts[index], eth.CommissionRate(0.02)) })
 	}
+	RunAllAndWait(funcs...)
 }
 
 func CheckValidator(t *testing.T, transactor *transactor.Transactor, expVal *stakingtypes.Validator) {

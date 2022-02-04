@@ -48,9 +48,9 @@ func SetupMainchain() {
 	tc.CelrAddr, tc.CelrContract = tc.DeployERC20Contract(tc.EthClient, tc.EtherBaseAuth, "Celer", "CELR", 18)
 
 	// fund CELR to each eth account
-	log.Infoln("fund each test addr 10 million CELR")
-	err = tc.FundAddrsErc20(tc.CelrAddr, tc.Addrs, tc.NewBigInt(1, 25), tc.EthClient, tc.EtherBaseAuth)
-	tc.ChkErr(err, "fund each test addr 10 million CELR")
+	log.Infoln("fund each validator and delegator addr 1 billion CELR")
+	err = tc.FundAddrsErc20(tc.CelrAddr, tc.ValDelAddrs, tc.NewBigInt(1, 27), tc.EthClient, tc.EtherBaseAuth)
+	tc.ChkErr(err, "fund each validator and delegator addr 1 billion CELR")
 }
 
 // should be invoked after mainchain 1 setup

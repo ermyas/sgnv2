@@ -149,4 +149,15 @@ var (
 		ClientEthAddrs[3],
 		ExecutorEthAddr,
 	}
+
+	ValDelAddrs = []eth.Addr{
+		ValEthAddrs[0],
+		ValEthAddrs[1],
+		ValEthAddrs[2],
+		ValEthAddrs[3],
+		DelEthAddrs[0],
+		DelEthAddrs[1],
+		DelEthAddrs[2],
+		DelEthAddrs[3],
+	}
 )

@@ -18,7 +18,7 @@ import (
 )
 
 func DeployERC20Contract(ethClient *ethclient.Client, auth *bind.TransactOpts, name, symbol string, decimal uint8) (eth.Addr, *eth.Erc20) {
-	initAmt := NewBigInt(1, 28)
+	initAmt := NewBigInt(1, 28) // 10 billion in 18 decimal
 	erc20Addr, tx, erc20, err := eth.DeployErc20(auth, ethClient, name, symbol, initAmt, decimal)
 	ChkErr(err, "failed to deploy ERC20")
 	log.Infoln("Erc20 address:", erc20Addr.String())
