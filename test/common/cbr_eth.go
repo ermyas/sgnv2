@@ -19,6 +19,12 @@ import (
 )
 
 func InitCbrChainConfigs() {
+	for i := 1; i < 10; i++ {
+		if EtherBaseAuth != nil {
+			break
+		}
+		Sleep(2)
+	}
 	CbrChain1 = &CbrChain{
 		ChainId: ChainID,
 		Ec:      EthClient,

@@ -21,6 +21,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
 )
 
@@ -34,16 +35,17 @@ func BuildDockers() {
 }
 
 func SetupMainchain() {
+	tc.RunCmd("make", "localnet-stop-geth")
 	tc.RunCmd("make", "prepare-geth-data")
 	tc.RunCmd("make", "localnet-start-geth")
-	tc.SleepWithLog(5, "geth start")
+	waitGethStart(tc.LocalGeth1)
 
 	// set up mainchain: deploy contracts, fund addrs, etc
-	log.Infoln("fund each test addr 100 ETH")
-	err := tc.FundAddrsETH(tc.Addrs, tc.NewBigInt(1, 20), tc.LocalGeth, int64(tc.ChainID))
+	log.Infoln("fund each test addr 100 ETH on chain 1")
+	err := tc.FundAddrsETH(tc.Addrs, tc.NewBigInt(1, 20), tc.LocalGeth1, int64(tc.Geth1ChainID))
 	tc.ChkErr(err, "fund each test addr 100 ETH")
 
-	log.Infoln("set up mainchain")
+	log.Infoln("set up chain 1")
 	tc.SetupEthClients()
 	tc.CelrAddr, tc.CelrContract = tc.DeployERC20Contract(tc.EthClient, tc.EtherBaseAuth, "Celer", "CELR", 18)
 
@@ -56,19 +58,17 @@ func SetupMainchain() {
 // should be invoked after mainchain 1 setup
 func SetupMainchain2ForBridge() {
 	if mainchain2Started {
-		log.Infoln("mainchain2 already started")
+		log.Info("chain 2 already started")
 		return
 	}
-	tc.RunCmd("make", "prepare-geth2-env")
-	tc.RunCmd("make", "localnet-start-geth2")
-	tc.SleepWithLog(5, "geth2 start")
+	waitGethStart(tc.LocalGeth2)
 
 	// set up mainchain: deploy contracts, fund addrs, etc
-	log.Infoln("fund each test addr 100 ETH")
+	log.Infoln("fund each test addr 100 ETH on chain 2")
 	err := tc.FundAddrsETH(tc.Addrs2, tc.NewBigInt(1, 20), tc.LocalGeth2, int64(tc.Geth2ChainID))
 	tc.ChkErr(err, "fund each test addr 100 ETH")
 
-	log.Infoln("set up mainchain2")
+	log.Infoln("set up chain 2")
 	tc.InitCbrChainConfigs()
 	mainchain2Started = true
 }
@@ -660,5 +660,17 @@ func BringupNode(node uint) {
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		log.Error(err)
+	}
+}
+
+func waitGethStart(gethrpc string) {
+	// wait for chain1 to start first
+	conn, _ := ethclient.Dial(gethrpc)
+	for i := 1; i < 10; i++ {
+		head, err := conn.HeaderByNumber(context.Background(), nil)
+		if err == nil && head.Number.Uint64() > 1 {
+			break
+		}
+		tc.Sleep(2)
 	}
 }

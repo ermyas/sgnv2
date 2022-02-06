@@ -114,15 +114,7 @@ build-executor:
 
 # Prepare docker environment for multinode testing
 .PHONY: prepare-docker-env
-prepare-docker-env: build-dockers build-linux prepare-geth-data
-
-# Prepare geth2 environment for cbridge testing
-.PHONY: prepare-geth2-env
-prepare-geth2-env:
-	DOCKER_BUILDKIT=1 docker $(BUILDX) build $(BUILDX_FLAGS) --tag celer-network/geth2 networks/local/geth2
-	rm -rf ./docker-volumes/geth2-env
-	mkdir -p ./docker-volumes
-	cp -r ./test/multi-node-data/geth2-env ./docker-volumes/
+prepare-docker-env: build-dockers build-linux
 
 .PHONY: localnet-start-crdb
 localnet-start-crdb:
@@ -134,16 +126,12 @@ localnet-start-crdb:
 # Run geth
 .PHONY: localnet-start-geth
 localnet-start-geth:
-	docker-compose stop geth
-	docker-compose rm -f geth
-	docker-compose up -d geth
+	docker-compose up -d geth1 geth2
 
-# Run geth2
-.PHONY: localnet-start-geth2
-localnet-start-geth2:
-	docker-compose stop geth2
-	docker-compose rm -f geth2
-	docker-compose up -d geth2
+.PHONY: localnet-stop-geth
+localnet-stop-geth:
+	docker-compose stop geth1 geth2
+	docker-compose rm -f geth1 geth2
 
 # Run a 3-node sgn testnet locally
 .PHONY: localnet-up-nodes
@@ -164,9 +152,9 @@ localnet-down:
 # Prepare geth data
 .PHONY: prepare-geth-data
 prepare-geth-data:
-	rm -rf ./docker-volumes/geth-env
+	rm -rf ./docker-volumes/geth*
 	mkdir -p ./docker-volumes
-	cp -r ./test/multi-node-data/geth-env ./docker-volumes/
+	cp -r ./test/multi-node-data/geth* ./docker-volumes/
 
 # Prepare sgn nodes' data
 .PHONY: prepare-sgn-data

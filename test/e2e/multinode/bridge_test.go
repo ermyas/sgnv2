@@ -13,9 +13,6 @@ import (
 )
 
 func setupBridgeTest() {
-	log.Infoln("Set up another mainchain for bridge")
-	SetupMainchain2ForBridge()
-
 	log.Infoln("Set up new sgn env")
 	p := &tc.ContractParams{
 		CelrAddr:              tc.CelrAddr,

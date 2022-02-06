@@ -1,20 +1,20 @@
 version: "3"
 
 services:
-  geth:
-    container_name: geth
+  geth1:
+    container_name: geth1
     image: "celer-network/geth"
     ports:
       - "8545-8546:8545-8546"
     volumes:
-      - ./docker-volumes/geth-env:/geth/env:Z
+      - ./docker-volumes/geth1-env:/geth/env:Z
     networks:
       localnet:
         ipv4_address: 192.168.10.1
 
   geth2:
     container_name: geth2
-    image: "celer-network/geth2"
+    image: "celer-network/geth"
     ports:
       - "8547-8548:8545-8546"
     volumes:
