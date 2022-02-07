@@ -42,13 +42,6 @@ func SetupEthClients() {
 		}
 		ValAuths = append(ValAuths, auth)
 	}
-	for i := 0; i < len(ValSignerKs); i++ {
-		_, auth, err = GetAuth(ValSignerKs[i], int64(ChainID))
-		if err != nil {
-			log.Fatal(err)
-		}
-		SignerAuths = append(SignerAuths, auth)
-	}
 	for i := 0; i < len(DelEthKs); i++ {
 		_, auth, err = GetAuth(DelEthKs[i], int64(ChainID))
 		if err != nil {
@@ -75,7 +68,38 @@ func SetupTestEthClient(ksfile string, chainId uint64) (*TestEthClient, error) {
 	if err != nil {
 		return nil, err
 	}
+	rpcClient, err := rpc.Dial(GetGethRpc(chainId))
+	if err != nil {
+		return nil, err
+	}
+	testClient.Transactor = ethutils.NewTransactorByExternalSigner(
+		addr, testClient.Signer, ethclient.NewClient(rpcClient), new(big.Int).SetUint64(chainId),
+		ethutils.WithBlockDelay(BlockDelay),
+		ethutils.WithPollingInterval(PollingInterval),
+		ethutils.WithTimeout(WaitMinedTimeout),
+	)
 	return testClient, nil
+}
+
+func GetEtherBaseTransactor(chainId uint64) *ethutils.Transactor {
+	ksBytes, err := ioutil.ReadFile(etherBaseKs)
+	if err != nil {
+		log.Fatal(err)
+	}
+	rpcClient, err := rpc.Dial(GetGethRpc(chainId))
+	if err != nil {
+		log.Fatal(err)
+	}
+	transactor, err := ethutils.NewTransactor(
+		string(ksBytes), "", ethclient.NewClient(rpcClient), new(big.Int).SetUint64(chainId),
+		ethutils.WithBlockDelay(BlockDelay),
+		ethutils.WithPollingInterval(PollingInterval),
+		ethutils.WithTimeout(WaitMinedTimeout),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return transactor
 }
 
 func FundAddrsETH(recipients []eth.Addr, amount *big.Int, gatewayAddr string, chainId int64) error {
@@ -121,7 +145,7 @@ func FundAddrsETH(recipients []eth.Addr, amount *big.Int, gatewayAddr string, ch
 		}
 		lastTx = tx
 	}
-	ctx2, cancel := context.WithTimeout(ctx, waitMinedTimeout)
+	ctx2, cancel := context.WithTimeout(ctx, WaitMinedTimeout)
 	defer cancel()
 	receipt, err := ethutils.WaitMined(ctx2, conn, lastTx, ethutils.WithBlockDelay(BlockDelay), ethutils.WithPollingInterval(PollingInterval))
 	if err != nil {

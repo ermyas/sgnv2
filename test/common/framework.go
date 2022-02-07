@@ -2,7 +2,6 @@ package common
 
 import (
 	"math/big"
-	"sync"
 
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
@@ -13,15 +12,11 @@ import (
 )
 
 var (
-	etherBaseKs  = EnvDir + "/keystore/etherbase.json"
-	ChainID      = uint64(883)
-	Geth1ChainID = ChainID
-	Geth2ChainID = uint64(884)
+	etherBaseKs = EnvDir + "/keystore/etherbase.json"
 
 	EthClient     *ethclient.Client
 	EtherBaseAuth *bind.TransactOpts
 	ValAuths      []*bind.TransactOpts
-	SignerAuths   []*bind.TransactOpts
 	DelAuths      []*bind.TransactOpts
 
 	Contracts    *eth.Contracts
@@ -36,7 +31,8 @@ var (
 type CbrChain struct {
 	ChainId          uint64
 	Ec               *ethclient.Client
-	Auth             *bind.TransactOpts // etherbase auth
+	Auth             *bind.TransactOpts   // etherbase auth
+	Transactor       *ethutils.Transactor // etherbase transactor
 	Users            []*TestEthClient
 	Validators       []*TestEthClient
 	ValidatorSigners []*TestEthClient
@@ -62,27 +58,18 @@ type CbrChain struct {
 	TransferMessageAddr     eth.Addr
 	TestRefundContract      *eth.TestRefund
 	TestRefundAddr          eth.Addr
-
-	txLock sync.Mutex
 }
 
 type TestEthClient struct {
-	Address eth.Addr
-	Auth    *bind.TransactOpts
-	Signer  ethutils.Signer
+	Address    eth.Addr
+	Auth       *bind.TransactOpts
+	Signer     ethutils.Signer
+	Transactor *ethutils.Transactor
 }
 
 func (c *TestEthClient) SignMsg(data []byte) []byte {
 	ret, _ := c.Signer.SignEthMessage(data)
 	return ret
-}
-
-func GetChain(num uint64) *CbrChain {
-	if num == 1 {
-		return CbrChain1
-	} else {
-		return CbrChain2
-	}
 }
 
 type ContractParams struct {

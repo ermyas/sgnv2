@@ -59,7 +59,7 @@ func WaitMinedWithChk(
 	pollingInterval time.Duration,
 	txname string,
 ) {
-	ctx2, cancel := context.WithTimeout(ctx, waitMinedTimeout)
+	ctx2, cancel := context.WithTimeout(ctx, WaitMinedTimeout)
 	defer cancel()
 	receipt, err := ethutils.WaitMined(ctx2, conn, tx, ethutils.WithBlockDelay(blockDelay), ethutils.WithPollingInterval(pollingInterval))
 	ChkErr(err, "WaitMined error")

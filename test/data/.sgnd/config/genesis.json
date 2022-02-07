@@ -85,7 +85,7 @@
     },
     "cbridge": {
       "params": {
-        "signer_update_duration": "30s",
+        "signer_update_duration": "300s",
         "sign_again_cool_down_duration": "30s"
       },
       "config": {

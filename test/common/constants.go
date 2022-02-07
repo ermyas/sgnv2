@@ -12,9 +12,14 @@ const (
 	// the folder will be deleted after test ends successfully
 	OutRootDirPrefix = "/tmp/celer_e2e_"
 	EnvDir           = "../../env"
-	LocalGeth        = "http://127.0.0.1:8545"
-	LocalGeth1       = LocalGeth
-	LocalGeth2       = "http://127.0.0.1:8547"
+
+	ChainID      = uint64(883)
+	Geth1ChainID = ChainID
+	Geth2ChainID = uint64(884)
+
+	LocalGeth  = "http://127.0.0.1:8545"
+	LocalGeth1 = LocalGeth
+	LocalGeth2 = "http://127.0.0.1:8547"
 
 	SgnChainID    = "sgn-localnet-1000"
 	SgnPassphrase = "12341234"
@@ -24,7 +29,7 @@ const (
 
 	SgnBlockInterval = 1
 	DefaultTimeout   = 60 * time.Second
-	waitMinedTimeout = 180 * time.Second
+	WaitMinedTimeout = 180 * time.Second
 	BlockDelay       = 0
 	PollingInterval  = time.Second
 	DisputeTimeout   = 100
@@ -162,3 +167,12 @@ var (
 		DelEthAddrs[3],
 	}
 )
+
+func GetGethRpc(chainId uint64) string {
+	if chainId == Geth1ChainID {
+		return LocalGeth1
+	} else if chainId == Geth2ChainID {
+		return LocalGeth2
+	}
+	return ""
+}

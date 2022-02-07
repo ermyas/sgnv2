@@ -67,11 +67,8 @@ func prepareValidators(t *testing.T, transactor *transactor.Transactor) {
 
 	log.Infoln("================== Setup validators ======================")
 	// Make the stake amounts more realistic to test precision handling when distributing fee share
-	vAmts := []*big.Int{
-		new(big.Int).Mul(big.NewInt(2e8), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(2e8), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(2e8), big.NewInt(1e18)),
-	}
+	vAmt := new(big.Int).Mul(big.NewInt(2e8), big.NewInt(1e18))
+	vAmts := []*big.Int{vAmt, vAmt, vAmt}
 	tc.SetupValidators(t, transactor, vAmts)
 
 	log.Infoln("================== Setup bridge signers ======================")
@@ -80,11 +77,8 @@ func prepareValidators(t *testing.T, transactor *transactor.Transactor) {
 
 	log.Infoln("================== Delegate from delegator 0 to all validators ======================")
 	valAddrs := []eth.Addr{tc.ValEthAddrs[0], tc.ValEthAddrs[1], tc.ValEthAddrs[2]}
-	dAmts := []*big.Int{
-		new(big.Int).Mul(big.NewInt(1e6), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(1e6), big.NewInt(1e18)),
-		new(big.Int).Mul(big.NewInt(1e6), big.NewInt(1e18)),
-	}
+	dAmt := new(big.Int).Mul(big.NewInt(1e6), big.NewInt(1e18))
+	dAmts := []*big.Int{dAmt, dAmt, dAmt}
 	tc.MultiDelegate(tc.DelAuths[0], valAddrs, dAmts)
 	for i := 0; i < 3; i++ {
 		expDel := &stakingtypes.Delegation{
@@ -94,6 +88,10 @@ func prepareValidators(t *testing.T, transactor *transactor.Transactor) {
 		}
 		tc.CheckDelegation(t, transactor, expDel)
 	}
+
+	expSigners := genSortedSigners([]eth.Addr{tc.ValSignerAddrs[0], tc.ValSignerAddrs[1], tc.ValSignerAddrs[2]}, vAmts)
+	tc.CheckChainSigners(t, transactor, tc.CbrChain1.ChainId, expSigners)
+	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
 
 	log.Infoln("================== Prepare validators done =================")
 }

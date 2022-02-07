@@ -86,12 +86,13 @@ func AddValidator(
 }
 
 func SetupValidators(t *testing.T, transactor *transactor.Transactor, amts []*big.Int) {
-	var funcs []func()
+	//var funcs []func()
 	for i := 0; i < len(amts); i++ {
-		index := i
-		funcs = append(funcs, func() { AddValidator(t, transactor, index, amts[index], eth.CommissionRate(0.02)) })
+		AddValidator(t, transactor, i, amts[i], eth.CommissionRate(0.02))
+		//index := i
+		//funcs = append(funcs, func() { AddValidator(t, transactor, index, amts[index], eth.CommissionRate(0.02)) })
 	}
-	RunAllAndWait(funcs...)
+	//RunAllAndWait(funcs...)
 }
 
 func CheckValidator(t *testing.T, transactor *transactor.Transactor, expVal *stakingtypes.Validator) {

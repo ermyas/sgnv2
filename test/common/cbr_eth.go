@@ -14,6 +14,7 @@ import (
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 )
@@ -26,9 +27,10 @@ func InitCbrChainConfigs() {
 		Sleep(2)
 	}
 	CbrChain1 = &CbrChain{
-		ChainId: ChainID,
-		Ec:      EthClient,
-		Auth:    EtherBaseAuth,
+		ChainId:    Geth1ChainID,
+		Ec:         EthClient,
+		Auth:       EtherBaseAuth,
+		Transactor: GetEtherBaseTransactor(Geth1ChainID),
 	}
 	CbrChain1.SetupTestEthClients()
 
@@ -42,9 +44,10 @@ func InitCbrChainConfigs() {
 	}
 
 	CbrChain2 = &CbrChain{
-		ChainId: Geth2ChainID,
-		Ec:      ethclient.NewClient(rpcClient),
-		Auth:    etherBaseAuth,
+		ChainId:    Geth2ChainID,
+		Ec:         ethclient.NewClient(rpcClient),
+		Auth:       etherBaseAuth,
+		Transactor: GetEtherBaseTransactor(Geth2ChainID),
 	}
 	CbrChain2.SetupTestEthClients()
 }
@@ -92,15 +95,18 @@ func (c *CbrChain) SetupTestEthClients() {
 }
 
 func (c *CbrChain) ApproveBridgeTestToken(token *eth.BridgeTestToken, uid uint64, amt *big.Int, spender eth.Addr) error {
-	c.txLock.Lock()
-	defer c.txLock.Unlock()
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
-	defer cancel()
-	tx, err := token.Approve(c.Users[uid].Auth, spender, amt)
+	receipt, err := c.Users[uid].Transactor.TransactWaitMined(
+		"ApproveBridgeTestToken",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return token.Approve(opts, spender, amt)
+		},
+	)
 	if err != nil {
 		return err
 	}
-	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "Approve")
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return fmt.Errorf("tx failed")
+	}
 	return nil
 }
 
@@ -125,15 +131,18 @@ func (c *CbrChain) ApprovePeggedUNIForBatchTransfer(uid uint64, amt *big.Int) er
 }
 
 func (c *CbrChain) AddLiq(uid uint64, amt *big.Int) error {
-	c.txLock.Lock()
-	defer c.txLock.Unlock()
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
-	defer cancel()
-	tx, err := c.CbrContract.AddLiquidity(c.Users[uid].Auth, c.USDTAddr, amt)
+	receipt, err := c.Users[uid].Transactor.TransactWaitMined(
+		"AddLiq",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.CbrContract.AddLiquidity(opts, c.USDTAddr, amt)
+		},
+	)
 	if err != nil {
 		return err
 	}
-	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "AddLiquidity")
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return fmt.Errorf("tx failed")
+	}
 	return nil
 }
 
@@ -143,16 +152,17 @@ func (c *CbrChain) Send(uid uint64, amt *big.Int, dstChainId, nonce uint64) (eth
 }
 
 func (c *CbrChain) SendAny(fromUid, toUid uint64, amt *big.Int, dstChainId, nonce uint64, maxSlippage uint32) (eth.Hash, error) {
-	c.txLock.Lock()
-	defer c.txLock.Unlock()
-	tx, err := c.CbrContract.Send(
-		c.Users[fromUid].Auth, c.Users[toUid].Address, c.USDTAddr, amt, dstChainId, nonce, maxSlippage)
+	receipt, err := c.Users[fromUid].Transactor.TransactWaitMined(
+		"SendAny",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.CbrContract.Send(opts, c.Users[toUid].Address, c.USDTAddr, amt, dstChainId, nonce, maxSlippage)
+		},
+	)
 	if err != nil {
 		return eth.ZeroHash, err
 	}
-	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
-	if err != nil {
-		return eth.ZeroHash, err
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return eth.ZeroHash, fmt.Errorf("tx failed")
 	}
 	sendLog := receipt.Logs[len(receipt.Logs)-1] // last log is Send event (NOTE Polygon breaks this assumption)
 	sendEv, err := c.CbrContract.ParseSend(*sendLog)
@@ -163,31 +173,39 @@ func (c *CbrChain) SendAny(fromUid, toUid uint64, amt *big.Int, dstChainId, nonc
 }
 
 func (c *CbrChain) OnchainCbrWithdraw(wdDetail *cbrtypes.WithdrawDetail, signers []*cbrtypes.Signer) error {
-	c.txLock.Lock()
-	defer c.txLock.Unlock()
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
-	defer cancel()
 	addrs, powers := cbrtypes.SignersToEthArrays(signers)
-	tx, err := c.CbrContract.Withdraw(c.Auth, wdDetail.WdOnchain, wdDetail.GetSortedSigsBytes(), addrs, powers)
+	receipt, err := c.Transactor.TransactWaitMined(
+		"OnchainCbrWithdraw",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.CbrContract.Withdraw(opts, wdDetail.WdOnchain, wdDetail.GetSortedSigsBytes(), addrs, powers)
+		},
+	)
 	if err != nil {
 		return err
 	}
-	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "OnchainCbrWithdraw")
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return fmt.Errorf("tx failed")
+	}
 	return nil
 }
 
 func (c *CbrChain) SetInitSigners(amts []*big.Int) error {
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
-	defer cancel()
 	var addrs []eth.Addr
 	for i := range amts {
 		addrs = append(addrs, ValSignerAddrs[i])
 	}
-	tx, err := c.CbrContract.ResetSigners(c.Auth, addrs, amts)
+	receipt, err := c.Transactor.TransactWaitMined(
+		"TransactWaitMined",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.CbrContract.ResetSigners(opts, addrs, amts)
+		},
+	)
 	if err != nil {
 		return err
 	}
-	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "SetInitSigners")
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return fmt.Errorf("tx failed")
+	}
 	return nil
 }
 
@@ -224,15 +242,17 @@ func OnchainClaimStakingReward(claimInfo *distrtypes.StakingRewardClaimInfo) err
 }
 
 func (c *CbrChain) PbrDeposit(fromUid uint64, amt *big.Int, mintChainId uint64, nonce uint64) (string, error) {
-	c.txLock.Lock()
-	defer c.txLock.Unlock()
-	tx, err := c.PegVaultContract.Deposit(c.Users[fromUid].Auth, c.UNIAddr, amt, mintChainId, c.Users[fromUid].Address, nonce)
+	receipt, err := c.Users[fromUid].Transactor.TransactWaitMined(
+		"PbrDeposit",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.PegVaultContract.Deposit(opts, c.UNIAddr, amt, mintChainId, c.Users[fromUid].Address, nonce)
+		},
+	)
 	if err != nil {
 		return "", err
 	}
-	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
-	if err != nil {
-		return "", err
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return "", fmt.Errorf("tx failed")
 	}
 	// last log is Deposit event (NOTE: test only)
 	depositLog := receipt.Logs[len(receipt.Logs)-1]
@@ -245,15 +265,17 @@ func (c *CbrChain) PbrDeposit(fromUid uint64, amt *big.Int, mintChainId uint64, 
 }
 
 func (c *CbrChain) PbrBurn(fromUid uint64, amt *big.Int, nonce uint64) (string, error) {
-	c.txLock.Lock()
-	defer c.txLock.Unlock()
-	tx, err := c.PegBridgeContract.Burn(c.Users[fromUid].Auth, c.UNIAddr, amt, c.Users[fromUid].Address, nonce)
+	receipt, err := c.Users[fromUid].Transactor.TransactWaitMined(
+		"PbrBurn",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.PegBridgeContract.Burn(opts, c.UNIAddr, amt, c.Users[fromUid].Address, nonce)
+		},
+	)
 	if err != nil {
 		return "", err
 	}
-	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
-	if err != nil {
-		return "", err
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return "", fmt.Errorf("tx failed")
 	}
 	// last log is Deposit event (NOTE: test only)
 	burnLog := receipt.Logs[len(receipt.Logs)-1]
@@ -266,30 +288,36 @@ func (c *CbrChain) PbrBurn(fromUid uint64, amt *big.Int, nonce uint64) (string, 
 }
 
 func (c *CbrChain) OnchainPegVaultWithdraw(info *pegbrtypes.WithdrawInfo, signers []*cbrtypes.Signer) error {
-	c.txLock.Lock()
-	defer c.txLock.Unlock()
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
-	defer cancel()
 	addrs, powers := cbrtypes.SignersToEthArrays(signers)
-	tx, err := c.PegVaultContract.Withdraw(c.Auth, info.WithdrawProtoBytes, info.GetSortedSigsBytes(), addrs, powers)
+	receipt, err := c.Transactor.TransactWaitMined(
+		"OnchainPegVaultWithdraw",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.PegVaultContract.Withdraw(opts, info.WithdrawProtoBytes, info.GetSortedSigsBytes(), addrs, powers)
+		},
+	)
 	if err != nil {
 		return err
 	}
-	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "OnchainPegVaultWithdraw")
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return fmt.Errorf("tx failed")
+	}
 	return nil
 }
 
 func (c *CbrChain) OnchainPegBridgeMint(info *pegbrtypes.MintInfo, signers []*cbrtypes.Signer) error {
-	c.txLock.Lock()
-	defer c.txLock.Unlock()
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
-	defer cancel()
 	addrs, powers := cbrtypes.SignersToEthArrays(signers)
-	tx, err := c.PegBridgeContract.Mint(c.Auth, info.MintProtoBytes, info.GetSortedSigsBytes(), addrs, powers)
+	receipt, err := c.Transactor.TransactWaitMined(
+		"OnchainPegBridgeMint",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.PegBridgeContract.Mint(opts, info.MintProtoBytes, info.GetSortedSigsBytes(), addrs, powers)
+		},
+	)
 	if err != nil {
 		return err
 	}
-	WaitMinedWithChk(ctx, c.Ec, tx, BlockDelay, PollingInterval, "OnchainPegBridgeMint")
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return fmt.Errorf("tx failed")
+	}
 	return nil
 }
 
