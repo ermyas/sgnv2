@@ -77,6 +77,7 @@ func SetupTestEthClient(ksfile string, chainId uint64) (*TestEthClient, error) {
 		ethutils.WithBlockDelay(BlockDelay),
 		ethutils.WithPollingInterval(PollingInterval),
 		ethutils.WithTimeout(WaitMinedTimeout),
+		ethutils.WithAddGasEstimateRatio(0.5),
 	)
 	return testClient, nil
 }
@@ -95,6 +96,7 @@ func GetEtherBaseTransactor(chainId uint64) *ethutils.Transactor {
 		ethutils.WithBlockDelay(BlockDelay),
 		ethutils.WithPollingInterval(PollingInterval),
 		ethutils.WithTimeout(WaitMinedTimeout),
+		ethutils.WithAddGasEstimateRatio(0.5),
 	)
 	if err != nil {
 		log.Fatal(err)
