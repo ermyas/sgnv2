@@ -14,6 +14,7 @@ import (
 	"github.com/celer-network/sgn-v2/transactor"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
@@ -159,7 +160,12 @@ $ %s ops sync event --chainid=883 --txhash="0xxx" --evname="Send"
 			txhash := viper.GetString(FlagTxHash)
 			evname := viper.GetString(FlagEvName)
 
-			return SyncCbrEvent(cliCtx, chainid, txhash, evname)
+			if isPegvaultEv(evname) || isPegbridgeEv(evname) {
+				return SyncPegbrEvent(cliCtx, chainid, txhash, evname)
+			} else {
+				return SyncCbrEvent(cliCtx, chainid, txhash, evname)
+			}
+
 		},
 	}
 
@@ -199,6 +205,50 @@ func SyncCbrEvent(cliCtx client.Context, chainid uint64, txhash string, evname s
 		return err
 	}
 	err = sendCbrOnchainEvent(cliCtx, chainid, evname, *elog)
+	if err != nil {
+		log.Errorf("sendCbrOnchainEvent err: %s", err)
+		return err
+	}
+	return nil
+}
+
+func SyncPegbrEvent(cliCtx client.Context, chainid uint64, txhash string, evname string) error {
+	cbr, txReceipt, err := setupCbr(chainid, txhash)
+	if err != nil {
+		return err
+	}
+
+	var contractType eth.ContractType
+	var contractAddr eth.Addr
+	if isPegvaultEv(evname) {
+		contractType = eth.PegVault
+		contractAddr = cbr.pegbrContracts.Vault.Address
+	} else if isPegbridgeEv(evname) {
+		contractType = eth.PegBridge
+		contractAddr = cbr.pegbrContracts.Bridge.Address
+	} else {
+		return fmt.Errorf("not pegged evname: %s", evname)
+	}
+	elog := eth.FindMatchContractEvent(contractType, evname, contractAddr, txReceipt.Logs)
+
+	if elog == nil {
+		log.Errorln("no match event found in tx:", txhash)
+		return fmt.Errorf("no match event found in tx: %s", txhash)
+	}
+
+	ev := parsePegbrEv(cbr.pegbrContracts, *elog, evname)
+	if ev == nil {
+		log.Errorf("not a valid bridge event tx: %s", txhash)
+		return fmt.Errorf("not a valid bridge event tx: %s", txhash)
+	}
+	log.Info(ev.PrettyLog(chainid))
+
+	err = verifyEvent(cliCtx, ev, chainid)
+	if err != nil {
+		log.Errorf("verifyEvent err: %s", err)
+		return err
+	}
+	err = sendPegbrOnchainEvent(cliCtx, chainid, evname, *elog)
 	if err != nil {
 		log.Errorf("sendCbrOnchainEvent err: %s", err)
 		return err
@@ -423,6 +473,31 @@ func parseCbrEv(cbr *cbrContract, elog ethtypes.Log, evname string) hasPrettyLog
 	return ev
 }
 
+func parsePegbrEv(pbr *pegbrContracts, elog ethtypes.Log, evname string) hasPrettyLog {
+	var ev hasPrettyLog
+	switch evname {
+	case pegbrtypes.PegbrEventDeposited:
+		ev, _ = pbr.Vault.ParseDeposited(elog)
+	case pegbrtypes.PegbrEventBurn:
+		ev, _ = pbr.Bridge.ParseBurn(elog)
+	case pegbrtypes.PegbrEventMint:
+		ev, _ = pbr.Bridge.ParseMint(elog)
+	case pegbrtypes.PegbrEventWithdrawn:
+		ev, _ = pbr.Vault.ParseWithdrawn(elog)
+	default:
+		ev = nil
+	}
+	return ev
+}
+
+func isPegvaultEv(evname string) bool {
+	return evname == pegbrtypes.PegbrEventDeposited || evname == pegbrtypes.PegbrEventWithdrawn
+}
+
+func isPegbridgeEv(evname string) bool {
+	return evname == pegbrtypes.PegbrEventBurn || evname == pegbrtypes.PegbrEventMint
+}
+
 func verifyEvent(cliCtx client.Context, ev hasPrettyLog, chainid uint64) error {
 	switch e := ev.(type) {
 	case *eth.BridgeLiquidityAdded:
@@ -482,6 +557,21 @@ func sendCbrOnchainEvent(cliCtx client.Context, chainid uint64, evtype string, e
 	data, _ := onchev.Marshal()
 	return sendSgnTxMsg(cliCtx, []*synctypes.ProposeUpdate{{
 		Type:    synctypes.DataType_CbrOnchainEvent,
+		ChainId: chainid,
+		Data:    data,
+	}})
+}
+
+func sendPegbrOnchainEvent(cliCtx client.Context, chainid uint64, evtype string, elog ethtypes.Log) error {
+	elogJson, _ := json.Marshal(elog)
+	onchev := &cbrtypes.OnChainEvent{
+		Chainid: chainid,
+		Evtype:  evtype,
+		Elog:    elogJson,
+	}
+	data, _ := onchev.Marshal()
+	return sendSgnTxMsg(cliCtx, []*synctypes.ProposeUpdate{{
+		Type:    synctypes.DataType_PegbrOnChainEvent,
 		ChainId: chainid,
 		Data:    data,
 	}})
