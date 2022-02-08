@@ -222,7 +222,6 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 		log.Infof("Set chain %d signers %s:", cfg.ChainID, chainSigners.String())
 		ret.setCurss(chainSigners.GetSortedSigners())
 	}
-	ret.startMon()
 	return ret
 }
 

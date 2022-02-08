@@ -113,4 +113,5 @@ message Syncer {
 
 message Params {
   uint64 syncer_duration = 1;
+  repeated string syncer_candidates = 2;
 }

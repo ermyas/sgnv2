@@ -36,10 +36,12 @@ func (r *Relayer) monitorEthValidatorNotice() {
 			if e.Key == "sgn-addr" || e.Key == "signer" || e.Key == "commission" {
 				if e.Key == "sgn-addr" {
 					// TODO: handle non-first-time sgn-addr update
-					event := eth.NewEvent(eth.EventValidatorNotice, eLog)
-					err = r.dbSet(GetPullerKey(eLog), event.MustMarshal())
-					if err != nil {
-						log.Errorln("db Set err", err)
+					if r.chainMonitorStatus != ChainMonitorStatusNo {
+						event := eth.NewEvent(eth.EventValidatorNotice, eLog)
+						err = r.dbSet(GetPullerKey(eLog), event.MustMarshal())
+						if err != nil {
+							log.Errorln("db Set err", err)
+						}
 					}
 					if e.ValAddr == r.Operator.ValAddr {
 						if !r.isBonded() && r.shouldBondValidator() {
@@ -96,10 +98,12 @@ func (r *Relayer) monitorEthValidatorStatusUpdate() {
 				if e.ValAddr == r.Operator.ValAddr {
 					r.clearBonded()
 				}
-				event := eth.NewEvent(eth.EventValidatorStatusUpdate, eLog)
-				err = r.dbSet(GetPullerKey(eLog), event.MustMarshal())
-				if err != nil {
-					log.Errorln("db Set err", err)
+				if r.chainMonitorStatus != ChainMonitorStatusNo {
+					event := eth.NewEvent(eth.EventValidatorStatusUpdate, eLog)
+					err = r.dbSet(GetPullerKey(eLog), event.MustMarshal())
+					if err != nil {
+						log.Errorln("db Set err", err)
+					}
 				}
 			}
 			return false
@@ -121,10 +125,12 @@ func (r *Relayer) monitorEthDelegationUpdate() {
 		},
 		func(cb monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 			log.Infof("Catch event DelegationUpdate, tx hash: %x, blknum: %d", eLog.TxHash, eLog.BlockNumber)
-			event := eth.NewEvent(eth.EventDelegationUpdate, eLog)
-			err := r.dbSet(GetPullerKey(eLog), event.MustMarshal())
-			if err != nil {
-				log.Errorln("db Set err", err)
+			if r.chainMonitorStatus != ChainMonitorStatusNo {
+				event := eth.NewEvent(eth.EventDelegationUpdate, eLog)
+				err := r.dbSet(GetPullerKey(eLog), event.MustMarshal())
+				if err != nil {
+					log.Errorln("db Set err", err)
+				}
 			}
 			if !r.isBonded() {
 				e, err2 := r.EthClient.Contracts.Staking.ParseDelegationUpdate(eLog)

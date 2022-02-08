@@ -20,19 +20,28 @@ import (
 
 type Relayer struct {
 	*Operator
-	db              dbm.DB
-	ethMonitor      *monitor.Service
-	verifiedUpdates *bigcache.BigCache
-	sgnAcct         sdk.AccAddress
-	bonded          bool
-	bootstrapped    bool // SGN is bootstrapped with at least one bonded validator on the eth contract
-	startEthBlock   *big.Int
-	syncer          Syncer
-	lock            sync.RWMutex
-	pegbrLock       sync.RWMutex
-	cbrMgr          CbrMgr
-	cbrSsUpdating   bool
+	db                 dbm.DB
+	ethMonitor         *monitor.Service
+	verifiedUpdates    *bigcache.BigCache
+	sgnAcct            sdk.AccAddress
+	bonded             bool
+	bootstrapped       bool // SGN is bootstrapped with at least one bonded validator on the eth contract
+	startEthBlock      *big.Int
+	syncer             Syncer
+	lock               sync.RWMutex
+	pegbrLock          sync.RWMutex
+	cbrMgr             CbrMgr
+	cbrSsUpdating      bool
+	chainMonitorStatus ChainMonitorStatus
 }
+
+type ChainMonitorStatus int32
+
+const (
+	ChainMonitorStatusNull ChainMonitorStatus = iota // unknown
+	ChainMonitorStatusYes                            // monitoring
+	ChainMonitorStatusNo                             // unmonitoring
+)
 
 var CurRelayerInstance *Relayer
 
@@ -120,6 +129,8 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 	go r.doMsgbrSync(r.cbrMgr)
 
 	go r.checkSyncer()
+
+	go r.monitorChain()
 }
 
 type Syncer struct {
@@ -136,6 +147,7 @@ func (r *Relayer) checkSyncer() {
 		syncer, err := stakingcli.QuerySyncer(r.Transactor.CliCtx)
 		if err != nil {
 			log.Errorln("Get syncer err", err)
+			continue
 		}
 		isSyncerPrev := r.isSyncer()
 		if eth.Hex2Addr(syncer.EthAddress) == r.Operator.ValAddr {
@@ -152,6 +164,49 @@ func (r *Relayer) checkSyncer() {
 			}
 		}
 	}
+}
+
+func (r *Relayer) monitorChain() {
+	sgnBlkTime := viper.GetDuration(common.FlagConsensusTimeoutCommit)
+	log.Infof("check syncer candidates every %s", sgnBlkTime)
+	for {
+		time.Sleep(sgnBlkTime)
+		stakingParams, err := stakingcli.QueryParams(r.Transactor.CliCtx)
+		if err != nil {
+			log.Errorln("Get staking params err", err)
+			continue
+		}
+
+		if len(stakingParams.SyncerCandidates) == 0 || containsAddr(stakingParams.SyncerCandidates, r.Operator.ValAddr) {
+			if r.chainMonitorStatus != ChainMonitorStatusYes {
+				for _, oc := range CbrMgrInstance {
+					oc.startMon()
+				}
+				r.chainMonitorStatus = ChainMonitorStatusYes
+			}
+		} else {
+			if r.chainMonitorStatus == ChainMonitorStatusYes {
+				for _, oc := range CbrMgrInstance {
+					oc.mon.Close()
+				}
+			}
+			r.chainMonitorStatus = ChainMonitorStatusNo
+			// if syncer candidates has been set and I am not the syncer candidate, stop the for loop. As in practice, after syncer candidates is set,
+			// it's rare to change. In case it's changed and I am the syncer candidate again, workaround is to restart the sgnd.
+			break
+		}
+
+	}
+}
+
+func containsAddr(addrs []string, addr eth.Addr) (found bool) {
+	for _, a := range addrs {
+		if eth.Hex2Addr(a) == addr {
+			found = true
+			break
+		}
+	}
+	return
 }
 
 func (r *Relayer) isSyncer() bool {
