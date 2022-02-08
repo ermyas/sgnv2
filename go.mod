@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/allegro/bigcache v1.2.1
 	github.com/armon/go-metrics v0.3.10
-	github.com/celer-network/endpoint-proxy v0.1.3
+	github.com/celer-network/endpoint-proxy v0.1.5
 	github.com/celer-network/goutils v0.1.42
 	github.com/cosmos/cosmos-sdk v0.44.5
 	github.com/cosmos/go-bip39 v1.0.0
