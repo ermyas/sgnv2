@@ -682,6 +682,11 @@ func (app *SgnApp) setUpgradeHandlers() {
 		func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 			return app.mm.RunMigrations(ctx, app.configurator, fromVM)
 		})
+
+	app.UpgradeKeeper.SetUpgradeHandler("syncer-upgrade",
+		func(ctx sdk.Context, plan upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+			return app.mm.RunMigrations(ctx, app.configurator, fromVM)
+		})
 }
 
 func (app *SgnApp) startRelayer(db dbm.DB, tmCfg *tmcfg.Config, homeDir string) {
