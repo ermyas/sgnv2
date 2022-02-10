@@ -23,11 +23,15 @@ const (
 	FlagAmount     = "amount"
 )
 
-func newEthClient() (*eth.EthClient, error) {
+func newEthClient(useSigner bool) (*eth.EthClient, error) {
+	keystore, passphrase := viper.GetString(FlagKeystore), viper.GetString(FlagPassphrase)
+	if useSigner {
+		keystore, passphrase = viper.GetString(common.FlagEthSignerKeystore), viper.GetString(common.FlagEthSignerPassphrase)
+	}
 	return eth.NewEthClient(
 		viper.GetString(common.FlagEthGateway),
-		viper.GetString(FlagKeystore),
-		viper.GetString(FlagPassphrase),
+		keystore,
+		passphrase,
 		&eth.TransactorConfig{
 			BlockDelay:               viper.GetUint64(common.FlagEthBlockDelay),
 			BlockPollingInterval:     viper.GetUint64(common.FlagEthPollInterval),

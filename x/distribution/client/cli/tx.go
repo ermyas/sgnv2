@@ -1,12 +1,13 @@
 package cli
 
 import (
-	"github.com/spf13/cobra"
-
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/distribution/types"
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/spf13/cobra"
 )
 
 // Transaction flags for the x/distribution module
@@ -29,7 +30,9 @@ func NewTxCmd() *cobra.Command {
 		RunE:                       client.ValidateCmd,
 	}
 
-	distTxCmd.AddCommand()
+	distTxCmd.AddCommand(common.PostCommands(
+		GetCmdClaimAllStakingReward(),
+	)...)
 
 	return distTxCmd
 }
@@ -52,4 +55,42 @@ func ClaimAllStakingReward(
 		}
 	}
 	return resp, err
+}
+
+func GetCmdClaimAllStakingReward() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "claim-staking-reward [delegator-address]",
+		Short: "Claim all staking reward of a delegator or a validator",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+			home, err := cmd.Flags().GetString(flags.FlagHome)
+			if err != nil {
+				return err
+			}
+			txr, err := transactor.NewCliTransactor(home, clientCtx.LegacyAmino, clientCtx.Codec, clientCtx.InterfaceRegistry)
+			if err != nil {
+				return err
+			}
+			msg := &types.MsgClaimAllStakingReward{
+				DelegatorAddress: args[0],
+				Sender:           txr.Key.GetAddress().String(),
+			}
+			err = msg.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			_, err = ClaimAllStakingReward(txr, msg)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
+	return cmd
 }

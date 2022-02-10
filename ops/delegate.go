@@ -65,7 +65,7 @@ func CompleteUndelegateCommand() *cobra.Command {
 }
 
 func Delegate() error {
-	ethClient, err := newEthClient()
+	ethClient, err := newEthClient( /*useSigner*/ false)
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func Delegate() error {
 }
 
 func Undelegate() error {
-	ethClient, err := newEthClient()
+	ethClient, err := newEthClient( /*useSigner*/ false)
 	if err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func Undelegate() error {
 }
 
 func CompleteUndelegate() error {
-	ethClient, err := newEthClient()
+	ethClient, err := newEthClient( /*useSigner*/ false)
 	if err != nil {
 		return err
 	}

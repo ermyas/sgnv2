@@ -26,6 +26,7 @@ func OpsCommand() *cobra.Command {
 		SyncFarmingCommand(),
 		WithdrawValidatorCbrFeeCmd(),
 		WithdrawValidatorPegbrFeeCmd(),
+		ClaimValidatorStakingRewardCmd(),
 	)
 
 	return cmd

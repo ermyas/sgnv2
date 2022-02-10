@@ -2,6 +2,7 @@ package ops
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"github.com/celer-network/sgn-v2/transactor"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	distrcli "github.com/celer-network/sgn-v2/x/distribution/client/cli"
 	pegbrcli "github.com/celer-network/sgn-v2/x/pegbridge/client/cli"
 	"github.com/cosmos/cosmos-sdk/client"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -33,6 +35,75 @@ const (
 	BridgeTypeCbridge = iota
 	BridgeTypePegbridge
 )
+
+func ClaimValidatorStakingRewardCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "claim-staking-reward",
+		Short: "validator query and claim staking reward",
+		Args:  cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			queryOnly, err := cmd.Flags().GetBool(flagQuery)
+			if err != nil {
+				return err
+			}
+			err = ClaimValidatorStakingReward(cliCtx, queryOnly)
+			if err != nil {
+				return fmt.Errorf("ClaimValidatorStakingReward err: %s", err)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().Bool(flagQuery, false, "only query the reward claim info")
+
+	return cmd
+}
+
+func ClaimValidatorStakingReward(cliCtx client.Context, queryOnly bool) error {
+	ethClient, err := newEthClient( /*useSigner*/ true)
+	if err != nil {
+		return err
+	}
+	chainSigners, err := cbrcli.QueryChainSigners(cliCtx, ethClient.ChainId)
+	if err != nil && !errors.Is(err, sdkerrors.ErrKeyNotFound) {
+		return fmt.Errorf("QueryChainSigners err: %s", err)
+	}
+	curss := chainSigners.GetSortedSigners()
+	valAddr := viper.GetString(common.FlagEthValidatorAddress)
+	info, err := distrcli.QueryStakingRewardClaimInfo(context.Background(), cliCtx, valAddr)
+	if err != nil {
+		return err
+	}
+	pass, _ := cbrtypes.ValidateSigQuorum(info.GetAddrSigs(), curss)
+	fmt.Printf("valAddr: %s\n", valAddr)
+	if pass {
+		fmt.Printf("status: enough signatures\n")
+	} else {
+		fmt.Printf("status: lack of signature\n")
+	}
+	fmt.Printf("claim reward: %s, %s, last req time %s \n",
+		info.String(), info.SignersStr(), info.LastClaimTime)
+
+	if !queryOnly && pass {
+		tx, err := ethClient.Transactor.TransactWaitMined(
+			"ClaimReward",
+			func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+				return ethClient.Contracts.StakingReward.ClaimReward(opts, info.RewardProtoBytes, info.GetSortedSigsBytes())
+			},
+		)
+		if err != nil {
+			fmt.Printf("submit claim reward, valAddr %s. err: %s\n\n", valAddr, err)
+			return err
+		}
+		fmt.Printf("submit claim reward, valAddr %s. tx hash %x\n", valAddr, tx.TxHash)
+	}
+	fmt.Println()
+
+	return nil
+}
 
 func WithdrawValidatorCbrFeeCmd() *cobra.Command {
 	cmd := &cobra.Command{

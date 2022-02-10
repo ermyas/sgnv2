@@ -113,9 +113,9 @@ func GetCmdValidatorClaimFee() *cobra.Command {
 				return err
 			}
 
-			reqIds, chainIds, tokens, err := ValidatorCalimFeeHelper(chainId, token, file)
+			reqIds, chainIds, tokens, err := ValidatorClaimFeeHelper(chainId, token, file)
 			if err != nil {
-				return fmt.Errorf("ValidatorCalimFeeHelper err: %s", err)
+				return fmt.Errorf("ValidatorClaimFeeHelper err: %s", err)
 			}
 
 			var msgs []sdk.Msg
@@ -196,7 +196,7 @@ func SignAgain(t *transactor.Transactor, req *types.MsgSignAgain) (resp *types.M
 	return
 }
 
-func ValidatorCalimFeeHelper(chainId uint64, token, file string) (reqIds []uint64, chainIds []uint64, tokens []string, err error) {
+func ValidatorClaimFeeHelper(chainId uint64, token, file string) (reqIds []uint64, chainIds []uint64, tokens []string, err error) {
 	if file != "" {
 		f, err := os.Open(file)
 		if err != nil {

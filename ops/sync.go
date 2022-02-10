@@ -271,7 +271,7 @@ $ %s ops sync staking --valaddr="0xxx" --deladdr="0xxx"
 		RunE: func(cmd *cobra.Command, args []string) error {
 			valAddr := viper.GetString(FlagValAddr)
 
-			ethClient, err := newEthClient()
+			ethClient, err := newEthClient( /*useSigner*/ false)
 			if err != nil {
 				log.Fatal("newEthClient err:", err)
 			}

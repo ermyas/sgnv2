@@ -31,7 +31,7 @@ func BondValidatorCommand() *cobra.Command {
 }
 
 func BondValidator() error {
-	ethClient, err := newEthClient()
+	ethClient, err := newEthClient( /*useSigner*/ false)
 	if err != nil {
 		return err
 	}

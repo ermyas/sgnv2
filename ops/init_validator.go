@@ -38,7 +38,7 @@ func InitValidatorCommand() *cobra.Command {
 }
 
 func InitValidator() error {
-	ethClient, err := newEthClient()
+	ethClient, err := newEthClient( /*useSigner*/ false)
 	if err != nil {
 		return err
 	}

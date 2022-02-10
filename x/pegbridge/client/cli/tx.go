@@ -161,9 +161,9 @@ func GetCmdValidatorClaimFee() *cobra.Command {
 				return err
 			}
 
-			reqIds, chainIds, tokens, err := cbrcli.ValidatorCalimFeeHelper(chainId, token, file)
+			reqIds, chainIds, tokens, err := cbrcli.ValidatorClaimFeeHelper(chainId, token, file)
 			if err != nil {
-				return fmt.Errorf("ValidatorCalimFeeHelper err: %s", err)
+				return fmt.Errorf("ValidatorClaimFeeHelper err: %s", err)
 			}
 
 			var msgs []sdk.Msg
