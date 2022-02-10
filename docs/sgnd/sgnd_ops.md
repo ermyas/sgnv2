@@ -16,6 +16,7 @@ sgnd ops [flags]
 
 * [sgnd](sgnd.md)	 - SGN App
 * [sgnd ops bond-validator](sgnd_ops_bond-validator.md)	 - Bond a validator
+* [sgnd ops claim-staking-reward](sgnd_ops_claim-staking-reward.md)	 - validator query and claim staking reward
 * [sgnd ops complete-undelegate](sgnd_ops_complete-undelegate.md)	 - Complete undelegate tokens from a validator
 * [sgnd ops delegate](sgnd_ops_delegate.md)	 - Delegate tokens to a validator
 * [sgnd ops init-validator](sgnd_ops_init-validator.md)	 - Initialize a validator
