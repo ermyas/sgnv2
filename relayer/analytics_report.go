@@ -1,6 +1,7 @@
 package relayer
 
 import (
+	"fmt"
 	"gopkg.in/resty.v1"
 	"math/big"
 	"strconv"
@@ -51,6 +52,7 @@ func (r *Relayer) reportSgnAnalytics() {
 		SgndVersion:                  version.Version,
 		LpFeeEarningHistories:        getAndClearLpEarningFeeHistory(),
 		BaseFeeDistributionHistories: getAndClearBaseFeeDistributionHistory(),
+		ChainConfigs:                 r.getChainConfig(),
 	}
 	for chainId, oneChain := range r.cbrMgr {
 		blockNumber := oneChain.mon.GetCurrentBlockNumber()
@@ -59,11 +61,13 @@ func (r *Relayer) reportSgnAnalytics() {
 	log.Debugln("try to report:", report)
 	bytes, err := proto.Marshal(report)
 	if err != nil {
+		chainConfigReported = false
 		log.Warnln("fail to Marshal CurrentBlockNumberReport,", err)
 		return
 	}
 	sig, err := r.EthClient.SignEthMessage(bytes)
 	if err != nil {
+		chainConfigReported = false
 		log.Warnln("fail to Sign CurrentBlockNumberReport,", err)
 		return
 	}
@@ -75,6 +79,7 @@ func (r *Relayer) reportSgnAnalytics() {
 	marshaler := jsonpb.Marshaler{}
 	str, err := marshaler.MarshalToString(req)
 	if err != nil {
+		chainConfigReported = false
 		log.Warnln("failed to MarshalToString: err ", err)
 		return
 	}
@@ -88,11 +93,13 @@ func (r *Relayer) reportSgnAnalytics() {
 		SetResult(&ReportSgnAnalyticsResponse{}).
 		Post(url)
 	if err != nil || response.StatusCode() != 200 {
+		chainConfigReported = false
 		log.Warnln("fail to reportSgnAnalytics ", req, err, response)
 		return
 	}
 	resp := response.Result().(*ReportSgnAnalyticsResponse)
 	if resp.GetErr() != nil {
+		chainConfigReported = false
 		log.Warnln("fail to reportSgnAnalytics ", req, err, response)
 		return
 	}
@@ -170,4 +177,23 @@ func getAndClearBaseFeeDistributionHistory() map[uint64]*BaseFeeDistributionHist
 	}
 	baseFeeDistributionHistoryMap = make(map[uint64]*BaseFeeDistributionHistory)
 	return t
+}
+
+var chainConfigReported = false
+
+func (r *Relayer) getChainConfig() map[string]*ChainConfig {
+	if chainConfigReported {
+		return nil
+	}
+	m := make(map[string]*ChainConfig)
+	for chainId, oneChain := range r.cbrMgr {
+		m[fmt.Sprintf("%d", chainId)] = &ChainConfig{
+			CbridgeContractAddr:            oneChain.cbrContract.Address.Hex(),
+			OriginalTokenVaultContractAddr: oneChain.pegContracts.vault.Address.Hex(),
+			PeggedTokenBridgeContractAddr:  oneChain.pegContracts.bridge.Address.Hex(),
+			MsgBusContractAddr:             oneChain.msgContract.Address.Hex(),
+		}
+	}
+	chainConfigReported = true
+	return m
 }
