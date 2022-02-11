@@ -37,97 +37,10 @@ func (k msgServer) InitWithdraw(ctx context.Context, req *types.MsgInitWithdraw)
 		return nil, types.Error(types.ErrCode_INVALID_REQ, "fail to unmarshal")
 	}
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	kv := sdkCtx.KVStore(k.storeKey)
-	var signer eth.Addr
-	// if sig is empty AND wd is a refund, we assume it's for a contract sender, so signer equals wdOnchain.Receiver
-	// otherwise for refund, recovered signer must match wdOnchain.Receiver
-	// wdOnchain.Receiver is saved when apply Send event, value is xfer sender
-	if len(req.UserSig) == 0 && wdReq.WithdrawType == types.RefundTransfer {
-		// usersig is not set, assume contract refund, unfortunately we have to duplicate some
-		// logic from k.refund for security reason
-		xferId := eth.Bytes2Hash(eth.Hex2Bytes(wdReq.XferId))
-		wdOnchain := GetXferRefund(kv, xferId)
-		if wdOnchain == nil {
-			return nil, types.Error(types.ErrCode_XFER_NOT_REFUNDABLE, "xfer %d not refundable", xferId)
-		}
-		signer = eth.Bytes2Addr(wdOnchain.Receiver)
-	} else if wdReq.WithdrawType == types.ValidatorClaimFeeShare {
-		senderSgnAcct, err := sdk.AccAddressFromBech32(req.Creator)
-		if err != nil {
-			return nil, types.Error(types.ErrCode_INVALID_REQ, "invalid creator accnt")
-		}
-		validator, found := k.stakingKeeper.GetValidatorBySgnAddr(sdkCtx, senderSgnAcct)
-		if !found {
-			return nil, types.Error(types.ErrCode_NOT_FOUND, "creator accnt %s not validator", senderSgnAcct)
-		}
-		signer = validator.GetEthAddr()
-	} else {
-		// check reqid, recover user addr, ensure no existing wdDetail-%x-%d
-		signer, err = ethutils.RecoverSigner(req.WithdrawReq, req.UserSig)
-		if err != nil {
-			return nil, fmt.Errorf("recover signer err: %w", err)
-		}
+	err = k.initWithdraw(sdkCtx, wdReq, req.UserSig, req.Creator, eth.ZeroAddr, eth.ZeroAddr)
+	if err != nil {
+		return nil, err
 	}
-	// note wdReq.ReqId could be 0, but as long as signer matches expected, we're ok.
-	// note if someone sends in random sig data, it'll recover a random address so this
-	// check will not stop duplicated withdraw, therefore further logic MUST check signer
-	// is expected!!!
-	if GetWithdrawDetail(kv, signer, wdReq.ReqId) != nil {
-		// same reqid already exist
-		return nil, types.Error(types.ErrCode_DUP_REQID, "withdraw %x %d exists", signer, wdReq.ReqId)
-	}
-	var wdOnchain *types.WithdrawOnchain
-	var xferIdBytes []byte
-	switch wdReq.WithdrawType {
-	case types.RemoveLiquidity:
-		wdOnchain, err = k.withdrawLP(sdkCtx, wdReq, signer, req.Creator)
-		if err != nil {
-			return nil, err
-		}
-	case types.RefundTransfer:
-		xferIdBytes = eth.Hex2Bytes(wdReq.XferId)
-		wdOnchain, err = k.refund(sdkCtx, wdReq, signer, req.Creator)
-		if err != nil {
-			return nil, err
-		}
-	case types.ClaimFeeShare, types.ValidatorClaimFeeShare:
-		wdOnchain, err = k.claimFeeShare(sdkCtx, wdReq, signer, req.Creator)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, types.Error(types.ErrCode_INVALID_REQ, "invalid withdraw type %d", wdReq.WithdrawType)
-	}
-
-	// rate limit check
-	assetInfo := GetAssetInfo(kv, GetAssetSymbol(kv, &ChainIdTokenAddr{
-		ChId:      wdOnchain.Chainid,
-		TokenAddr: eth.Bytes2Addr(wdOnchain.Token),
-	}), wdOnchain.Chainid)
-	if assetInfo.GetMaxOutAmt() != "" {
-		maxSend, ok := new(big.Int).SetString(assetInfo.GetMaxOutAmt(), 10)
-		if ok && isPos(maxSend) {
-			wdAmt := new(big.Int).SetBytes(wdOnchain.Amount)
-			if wdAmt.Cmp(maxSend) == 1 {
-				return nil, types.Error(types.ErrCode_WD_EXCEED_MAX_OUT_AMOUNT, "withdrawal amount %s exceeds allowance %s", wdAmt, maxSend)
-			}
-		}
-	}
-
-	wdOnChainRaw, _ := wdOnchain.Marshal()
-	SaveWithdrawDetail(
-		kv, signer, wdReq.ReqId,
-		&types.WithdrawDetail{
-			WdOnchain:   wdOnChainRaw, // only has what to send onchain now
-			LastReqTime: sdkCtx.BlockTime().Unix(),
-			XferId:      xferIdBytes, // nil if not user refund
-		})
-	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
-		types.EventTypeDataToSign,
-		sdk.NewAttribute(types.AttributeKeyType, types.SignDataType_WITHDRAW.String()),
-		sdk.NewAttribute(types.AttributeKeyData, eth.Bytes2Hex(wdOnChainRaw)),
-		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
-	))
 	return new(types.MsgInitWithdrawResp), nil
 }
 

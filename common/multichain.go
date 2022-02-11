@@ -16,6 +16,8 @@ type OneChainConfig struct {
 	OTVault string
 	// PeggedTokenBridge contract address
 	PTBridge string
+	// WithdrawInbox contract address
+	WdInbox string
 	// MsgBus contract address
 	MsgBus string
 	// if ProxyPort > 0, a proxy with this port will be created to support some special chain such as harmony, celo.

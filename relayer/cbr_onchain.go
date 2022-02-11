@@ -23,6 +23,7 @@ var evNames = []string{
 	cbrtypes.CbrEventLiqAdd,
 	cbrtypes.CbrEventWithdraw,
 	cbrtypes.CbrEventSignersUpdated,
+	cbrtypes.CbrEventWithdrawalRequest,
 }
 
 // funcs for monitor cbridge events
@@ -39,6 +40,8 @@ func (c *CbrOneChain) startMon() {
 	c.monLiqAdd(blkNum)
 	smallDelay()
 	c.monWithdraw(blkNum)
+	smallDelay()
+	c.monWithdrawalRequest(blkNum)
 	smallDelay()
 	c.monSignersUpdated(blkNum)
 
@@ -161,6 +164,35 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 
 		err = c.saveEvent(cbrtypes.CbrEventWithdraw, eLog)
+		if err != nil {
+			log.Errorln("saveEvent err:", err)
+			return true // ask to recreate to process event again
+		}
+		return false
+	})
+}
+
+func (c *CbrOneChain) monWithdrawalRequest(blk *big.Int) {
+	if c.wdiContract.Address == eth.ZeroAddr {
+		return
+	}
+
+	cfg := &monitor.Config{
+		ChainId:      c.chainid,
+		EventName:    cbrtypes.CbrEventWithdrawalRequest,
+		Contract:     c.wdiContract,
+		StartBlock:   blk,
+		ForwardDelay: c.forwardBlkDelay,
+	}
+	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
+		ev, err := c.wdiContract.ParseWithdrawalRequest(eLog)
+		if err != nil {
+			log.Errorf("monWithdrawalRequest: chain %d cannot parse event: %s", c.chainid, err)
+			return false
+		}
+		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+
+		err = c.saveEvent(cbrtypes.CbrEventWithdrawalRequest, eLog)
 		if err != nil {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again

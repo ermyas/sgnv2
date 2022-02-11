@@ -75,6 +75,22 @@ func DeployPegVaultContract(
 	return
 }
 
+func DeployWithdrawInboxContract(ethClient *ethclient.Client, auth *bind.TransactOpts) (eth.Addr, *eth.WdInboxContract) {
+	addr, tx, contract, err := eth.DeployWithdrawInbox(auth, ethClient)
+	ChkErr(err, "failed to deploy WithdrawInbox")
+	log.Infoln("WithdrawInbox address", addr)
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployWithdrawInboxContract")
+	return addr, &eth.WdInboxContract{WithdrawInbox: contract, Address: addr}
+}
+
+func DeployContractAsLPContract(ethClient *ethclient.Client, auth *bind.TransactOpts, bridge, wdInbox eth.Addr) (eth.Addr, *eth.CLPContract) {
+	addr, tx, contract, err := eth.DeployContractAsLP(auth, ethClient, bridge, wdInbox)
+	ChkErr(err, "failed to deploy ContractAsLP")
+	log.Infoln("ContractAsLP address", addr)
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployContractAsLPContract")
+	return addr, &eth.CLPContract{ContractAsLP: contract, Address: addr}
+}
+
 func DeployMessageBusContract(ethClient *ethclient.Client, auth *bind.TransactOpts, bridge, pegBridge, pegVault eth.Addr) (eth.Addr, *eth.MessageBus) {
 	addr, tx, contract, err := eth.DeployMessageBus(auth, ethClient, bridge, bridge, pegBridge, pegVault)
 	ChkErr(err, "failed to deploy MessageBus")

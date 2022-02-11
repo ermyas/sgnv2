@@ -39,8 +39,11 @@ type CbrChain struct {
 	Delegators       []*TestEthClient
 
 	// contract addr
-	CbrContract *eth.BridgeContract
-	CbrAddr     eth.Addr
+	CbrContract      *eth.BridgeContract
+	CbrAddr          eth.Addr
+	WdInboxContract  *eth.WdInboxContract
+	CLPContract      *eth.CLPContract
+	WdiAddr, CLPAddr eth.Addr
 
 	PegBridgeContract *eth.PegBridgeContract
 	PegVaultContract  *eth.PegVaultContract

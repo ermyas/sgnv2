@@ -48,6 +48,8 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			log.Infof("skip already applied liq add event: chainid %d seq %d", onchev.Chainid, ev.Seqnum)
 			return false, nil
 		}
+		// record the lp's chain when he first adds liquidity
+		SetLPOrigin(kv, ev.Provider, onchev.Chainid)
 		// note we don't check if config has this chid,token so in case someone addLiq *before* sgn supports it, it'll
 		// be accounted correctly (but can't be used for transfer as that requires asset info)
 		SetEvLiqAdd(kv, onchev.Chainid, ev.Seqnum)
@@ -171,6 +173,41 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 
 		k.SetChainSigners(ctx, chainSigners)
 		log.Infoln("x/cbr applied chainSigners:", chainSigners.String())
+	case types.CbrEventWithdrawalRequest:
+		wdiContract, _ := eth.NewWithdrawInboxFilterer(eth.ZeroAddr, nil)
+		ev, err := wdiContract.ParseWithdrawalRequest(*elog)
+		if err != nil {
+			return false, err
+		}
+		log.Infoln("x/cbr apply withdrawalRequest", ev.String())
+		origin := GetLPOrigin(kv, ev.Sender)
+		if onchev.Chainid != origin {
+			//WithdrawInbox contract should be called on the chain where lp first added their liquidity.
+			log.Errorf("%d(chainid of this event) mismatches %d(chainid recorded on sgn when sender first add liq)", onchev.Chainid, origin)
+			return false, nil
+		}
+		//construct a withdraw request for initiating withdraw
+		var wds []*types.WithdrawLq
+		for i, chain := range ev.FromChains {
+			wd := &types.WithdrawLq{
+				FromChainId: chain,
+				TokenAddr:   eth.Addr2Hex(ev.Tokens[i]),
+				Ratio:       ev.Ratios[i],
+				MaxSlippage: ev.Slippages[i],
+			}
+			wds = append(wds, wd)
+		}
+		wdReq := &types.WithdrawReq{
+			Withdraws:    wds,
+			ExitChainId:  ev.ToChain,
+			ReqId:        ev.SeqNum,
+			WithdrawType: types.ContractRemoveLiquidity,
+		}
+		err = k.initWithdraw(ctx, wdReq, nil, "", ev.Receiver, ev.Sender)
+		if err != nil {
+			return false, err
+		}
+		log.Infof("x/cbr applied withdrawalRequest: from %x to %x on chain %d", ev.Sender, ev.Receiver, ev.ToChain)
 	}
 	return true, nil
 }

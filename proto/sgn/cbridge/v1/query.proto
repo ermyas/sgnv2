@@ -30,6 +30,7 @@ service Query {
   rpc QueryTotalLiquidity(QueryTotalLiquidityRequest) returns (QueryTotalLiquidityResponse) {}
   rpc QueryAddLiquidityStatus(QueryAddLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {}
   rpc QueryWithdrawLiquidityStatus(QueryWithdrawLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {}
+  rpc QueryLPOrigin(QueryLPOriginRequest) returns (QueryLPOriginResponse) {}
   rpc QueryLiquidity(QueryLiquidityRequest) returns (QueryLiquidityResponse) {}
 
   // for sync farming tool
@@ -188,6 +189,14 @@ message QueryWithdrawLiquidityStatusRequest {
 message QueryLiquidityStatusResponse {
   WithdrawStatus status = 1;
   WithdrawDetail detail = 2;
+}
+
+message QueryLPOriginRequest {
+  string usr_addr = 1; // hex string of eth address
+}
+
+message QueryLPOriginResponse {
+  uint64 chain_id = 1;
 }
 
 message QueryLiquidityRequest {

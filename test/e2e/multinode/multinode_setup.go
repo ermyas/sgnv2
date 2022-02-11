@@ -87,6 +87,7 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge, msg, manual, rep
 		DeployPegBridgeContract()
 		CreateFarmingPools()
 		FundUsdtFarmingReward()
+		DeployWdInboxContract()
 	}
 	if msg {
 		DeployBatchTransferAndMessageTransferAndMessageBusContracts()
@@ -283,6 +284,26 @@ func DeployBridgeContract() {
 		genesisViper.Set("app_state.cbridge.config", cbrConfig)
 		err = genesisViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write genesis")
+	}
+}
+
+func DeployWdInboxContract() {
+	tc.CbrChain1.WdiAddr, tc.CbrChain1.WdInboxContract = tc.DeployWithdrawInboxContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth)
+	// let u0 be owner of ContractAsLP
+	tc.CbrChain1.CLPAddr, tc.CbrChain1.CLPContract =
+		tc.DeployContractAsLPContract(tc.CbrChain1.Ec, tc.CbrChain1.Users[0].Auth, tc.CbrChain1.CbrAddr, tc.CbrChain1.WdiAddr)
+
+	for i := 0; i < len(tc.ValEthKs); i++ {
+		cbrCfgPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/cbridge.toml", i)
+		cbrViper := viper.New()
+		cbrViper.SetConfigFile(cbrCfgPath)
+		err := cbrViper.ReadInConfig()
+		tc.ChkErr(err, "Failed to read config")
+		multichains := cbrViper.Get("multichain").([]interface{})
+		multichains[0].(map[string]interface{})["wdinbox"] = tc.CbrChain1.WdiAddr.Hex()
+		cbrViper.Set("multichain", multichains)
+		err = cbrViper.WriteConfig()
+		tc.ChkErr(err, "Failed to write config")
 	}
 }
 

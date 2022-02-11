@@ -10,6 +10,8 @@ const (
 	CbrEventWithdraw      = "WithdrawDone" // could be LP or user
 	CbrEventDelayXferAdd  = "DelayedTransferAdded"
 	CbrEventDelayXferExec = "DelayedTransferExecuted"
+	// from WithdrawInbox.sol
+	CbrEventWithdrawalRequest = "WithdrawalRequest" // contract as LP
 	// from signers.sol
 	CbrEventSignersUpdated = "SignersUpdated"
 )

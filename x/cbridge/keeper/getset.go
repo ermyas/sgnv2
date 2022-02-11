@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math/big"
 	"time"
@@ -89,6 +90,27 @@ func SetEvLiqAdd(kv sdk.KVStore, chid, seq uint64) {
 // if get returns non-nil, return true, otherwise false
 func HasEvLiqAdd(kv sdk.KVStore, chid, seq uint64) bool {
 	return kv.Get(types.EvLiqAddKey(chid, seq)) != nil
+}
+
+func SetLPOrigin(kv sdk.KVStore, lp eth.Addr, chid uint64) {
+	if !HasLPOrigin(kv, lp) {
+		b := make([]byte, 8)
+		binary.PutUvarint(b, chid)
+		kv.Set(types.LPOrigin(lp), b)
+	}
+}
+
+func GetLPOrigin(kv sdk.KVStore, lp eth.Addr) uint64 {
+	b := kv.Get(types.LPOrigin(lp))
+	if b == nil {
+		return 0
+	}
+	chid, _ := binary.Uvarint(b)
+	return chid
+}
+
+func HasLPOrigin(kv sdk.KVStore, lp eth.Addr) bool {
+	return kv.Get(types.LPOrigin(lp)) != nil
 }
 
 func HasEvSend(kv sdk.KVStore, xferId eth.Hash) bool {

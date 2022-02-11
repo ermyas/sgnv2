@@ -87,6 +87,10 @@ func EvSendKey(tid eth.Hash) []byte {
 	return []byte(fmt.Sprintf("evsend-%x", tid))
 }
 
+func LPOrigin(lp eth.Addr) []byte {
+	return []byte(fmt.Sprintf("lporigin-%x", lp))
+}
+
 // serialized relay msg and sigs, add sig when receive msg
 func XferRelayKey(tid eth.Hash) []byte {
 	return []byte(fmt.Sprintf("xferRelay-%x", tid))

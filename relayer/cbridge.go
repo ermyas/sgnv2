@@ -88,6 +88,7 @@ type CbrOneChain struct {
 	mon          *monitor.Service
 	cbrContract  *eth.BridgeContract
 	pegContracts *PegContracts
+	wdiContract  *eth.WdInboxContract
 	msgContract  *MsgContract
 	db           *dbm.PrefixDB // cbr-xxx xxx is chainid
 	curss        currentSigners
@@ -165,6 +166,10 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 	if err != nil {
 		log.Fatalln("PeggedTokenBridge contract at", cfg.PTBridge, "err:", err)
 	}
+	wdi, err := eth.NewWdInboxContract(eth.Hex2Addr(cfg.WdInbox), ec)
+	if err != nil {
+		log.Fatalln("WithdrawInbox contract at", cfg.WdInbox, "err:", err)
+	}
 	msg, err := eth.NewMessageBus(eth.Hex2Addr(cfg.MsgBus), ec)
 	if err != nil {
 		log.Fatalln("MessageBus contract at", cfg.MsgBus, "err:", err)
@@ -204,6 +209,7 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 			vault:  otv,
 			bridge: ptb,
 		},
+		wdiContract: wdi,
 		msgContract: &MsgContract{
 			MessageBus: msg,
 			Address:    eth.Hex2Addr(cfg.MsgBus),

@@ -68,6 +68,9 @@ func (r *Relayer) verifyCbrEventUpdate(update *synctypes.PendingUpdate) (done, a
 	case cbrtypes.CbrEventSignersUpdated:
 		return cbrOneChain.verifySigners(elog, r.Transactor.CliCtx, logmsg)
 
+	case cbrtypes.CbrEventWithdrawalRequest:
+		return cbrOneChain.verifyWithdrawalRequest(elog, r.Transactor.CliCtx, logmsg)
+
 	default:
 		log.Errorf("%s. invalid type", logmsg)
 		return true, false
@@ -353,4 +356,34 @@ func EqualSigners(ss []*cbrtypes.Signer, ev *eth.BridgeSignersUpdated) bool {
 		}
 	}
 	return true
+}
+
+func (c *CbrOneChain) verifyWithdrawalRequest(eLog *ethtypes.Log, cliCtx client.Context, logmsg string) (done, approve bool) {
+	// parse event
+	ev, err := c.wdiContract.ParseWithdrawalRequest(*eLog)
+	if err != nil {
+		log.Errorf("%s. parse eLog error %s", logmsg, err)
+		return true, false
+	}
+	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+
+	// check in store
+
+	// check on chain
+	done, approve, wdReqLog := c.verifyEventLog(eLog, eth.WdInbox, cbrtypes.CbrEventWithdrawalRequest, c.wdiContract.Address, logmsg)
+	if wdReqLog == nil {
+		return done, approve
+	}
+	wdReqEv, err := c.wdiContract.ParseWithdrawalRequest(*wdReqLog)
+	if err != nil {
+		log.Errorln(logmsg, "parse log err:", err)
+		return true, false
+	}
+	// now cmp ev and wdReqEv
+	if !ev.Equal(wdReqEv) {
+		log.Errorln(logmsg, "ev not equal. got:", wdReqEv.String(), "expect:", ev.String())
+		return true, false
+	}
+	log.Infof("%s, success", logmsg)
+	return true, true
 }

@@ -92,6 +92,15 @@ func cbrTest(t *testing.T, transactor *transactor.Transactor) {
 				tc.CheckAddLiquidityStatus(transactor, tc.CbrChain2.ChainId, i+1)
 			}
 		},
+		func() {
+			log.Infoln("======================== ContractLP add liquidity on chain 1 ===========================")
+			err = tc.CbrChain1.ApproveUSDTForContractAsLP(0, addAmt)
+			tc.ChkErr(err, "u0 chain1 approve for ContractAsLP")
+			err = tc.CbrChain1.DepositToContractAsLP(0, addAmt)
+			tc.ChkErr(err, "u0 chain1 deposit to ContractAsLP")
+			err = tc.CbrChain1.AddLiqByContractAsLP(0, addAmt)
+			tc.ChkErr(err, "u0 chain1 add liquidity from ContractAsLP to cbridge")
+		},
 	)
 	res, err = cbrcli.QueryLiquidityDetailList(transactor.CliCtx, &cbrtypes.LiquidityDetailListRequest{
 		LpAddr:     tc.ClientEthAddrs[0].Hex(),
@@ -142,6 +151,25 @@ func cbrTest(t *testing.T, transactor *transactor.Transactor) {
 			})
 			tc.ChkErr(err, "cli Query")
 			log.Infoln("QueryLiquidityDetailList resp:", res.String())
+		},
+		func() {
+			log.Infoln("======================== ContractLP withdraw liquidity to u1 on chain 2 ===========================")
+			balance, err := tc.CbrChain2.USDTContract.BalanceOf(nil, tc.CbrChain1.Users[1].Address)
+			tc.ChkErr(err, "USDT balance of u1 on chain2")
+			log.Infoln("u1 USDT balance on chain2:", balance)
+			wdSeq := uint64(666)
+			log.Infoln("Withdrawal request sequence number ", wdSeq)
+			err = tc.CbrChain1.SendWithdrawRequest(0, wdSeq, 1, tc.CbrChain2.ChainId, []uint64{tc.CbrChain1.ChainId},
+				[]eth.Addr{tc.CbrChain1.USDTAddr}, []uint32{100000000}, []uint32{50000})
+			tc.ChkErr(err, "u0 chain1 send withdraw request to WithdrawInbox")
+			detail := tc.GetWithdrawDetailWithSigs(transactor, tc.CbrChain1.Users[1].Address, wdSeq, 3)
+			curss, err := tc.GetCurSortedSigners(transactor, tc.CbrChain2.ChainId)
+			tc.ChkErr(err, "chain2 GetCurSortedSigners")
+			err = tc.CbrChain2.OnchainCbrWithdraw(detail, curss)
+			tc.ChkErr(err, "chain2 onchain withdraw")
+			balance, err = tc.CbrChain2.USDTContract.BalanceOf(nil, tc.CbrChain1.Users[1].Address)
+			tc.ChkErr(err, "USDT balance of u1 on chain2")
+			log.Infoln("u1 USDT balance on chain2:", balance)
 		},
 		func() {
 			log.Infoln("======================== Xfer back ===========================")

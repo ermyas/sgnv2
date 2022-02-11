@@ -375,3 +375,10 @@ func (k Keeper) QueryAssetPrice(c context.Context, request *types.QueryAssetPric
 	price, extraPower := GetAssetUsdPrice(store, request.GetSymbol())
 	return &types.QueryAssetPriceResponse{Price: price, ExtraPower10: extraPower}, nil
 }
+
+func (k Keeper) QueryLPOrigin(c context.Context, request *types.QueryLPOriginRequest) (*types.QueryLPOriginResponse, error) {
+	ctx := sdk.UnwrapSDKContext(c)
+	store := ctx.KVStore(k.storeKey)
+	chainId := GetLPOrigin(store, eth.Hex2Addr(request.UsrAddr))
+	return &types.QueryLPOriginResponse{ChainId: chainId}, nil
+}

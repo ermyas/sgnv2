@@ -21,6 +21,7 @@ const (
 	LiquidityBridge ContractType = iota
 	PegVault
 	PegBridge
+	WdInbox
 	MsgBridge
 )
 
@@ -98,6 +99,8 @@ func GetContractEventID(ctype ContractType, evname string) Hash {
 		contractAbi, _ = abi.JSON(strings.NewReader(OriginalTokenVaultABI))
 	case PegBridge:
 		contractAbi, _ = abi.JSON(strings.NewReader(PeggedTokenBridgeABI))
+	case WdInbox:
+		contractAbi, _ = abi.JSON(strings.NewReader(WithdrawInboxABI))
 	case MsgBridge:
 		contractAbi, _ = abi.JSON(strings.NewReader(MessageBusABI))
 	default:
@@ -434,7 +437,7 @@ func (ev *PeggedTokenBridgeBurn) PrettyLog(onchid uint64) string {
 
 func (ev *OriginalTokenVaultWithdrawn) PrettyLog(onchid uint64) string {
 	return fmt.Sprintf(
-		"peg-withdrawn-%d withdrawId: %x receiver: %x token: %x amount: %s mintChainId: %d mintId: %x burnAccount: %x",
+		"peg-withdrawn-%d withdrawId: %x receiver: %x token: %x amount: %s burnChainId: %d burnId: %x burnAccount: %x",
 		onchid, ev.WithdrawId, ev.Receiver, ev.Token, ev.Amount, ev.RefChainId, ev.RefId, ev.BurnAccount)
 }
 
@@ -456,4 +459,59 @@ func (ev *PeggedTokenBridgeBurn) String() string {
 func (ev *OriginalTokenVaultWithdrawn) String() string {
 	return fmt.Sprintf("withdrawId %x, receiver %x, token %x, amount %s, burnChainId %d, burnId %x, burnAccount %x",
 		ev.WithdrawId, ev.Receiver, ev.Token, ev.Amount, ev.RefChainId, ev.RefId, ev.BurnAccount)
+}
+
+func (ev *WithdrawInboxWithdrawalRequest) Equal(b *WithdrawInboxWithdrawalRequest) bool {
+	if ev.SeqNum != b.SeqNum {
+		return false
+	}
+	if ev.Sender != b.Sender {
+		return false
+	}
+	if ev.Receiver != b.Receiver {
+		return false
+	}
+	if ev.ToChain != b.ToChain {
+		return false
+	}
+	if !(len(ev.FromChains) == len(ev.Tokens) &&
+		len(ev.FromChains) == len(ev.Ratios) &&
+		len(ev.FromChains) == len(ev.Slippages)) {
+		return false
+	}
+	if !(len(b.FromChains) == len(b.Tokens) &&
+		len(b.FromChains) == len(b.Ratios) &&
+		len(b.FromChains) == len(b.Slippages)) {
+		return false
+	}
+	if len(ev.FromChains) != len(b.FromChains) {
+		return false
+	}
+	for i, fromChain := range ev.FromChains {
+		if fromChain != b.FromChains[i] {
+			return false
+		}
+		if ev.Tokens[i] != b.Tokens[i] {
+			return false
+		}
+		if ev.Ratios[i] != b.Ratios[i] {
+			return false
+		}
+		if ev.Slippages[i] != b.Slippages[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func (ev *WithdrawInboxWithdrawalRequest) PrettyLog(onchid uint64) string {
+	return fmt.Sprintf(
+		"wdi-withdrawalrequest-%d sender: %x receiver: %x toChain: %d fromChains: %v tokens: %v ratios: %v slippages: %v",
+		onchid, ev.Sender, ev.Receiver, ev.ToChain, ev.FromChains, ev.Tokens, ev.Ratios, ev.Slippages)
+}
+
+func (ev *WithdrawInboxWithdrawalRequest) String() string {
+	return fmt.Sprintf(
+		"sender: %x receiver: %x toChain: %d fromChains: %v tokens: %v ratios: %v slippages: %v",
+		ev.Sender, ev.Receiver, ev.ToChain, ev.FromChains, ev.Tokens, ev.Ratios, ev.Slippages)
 }

@@ -42,6 +42,7 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 		GetCmdChainTokensConfig(),
 		GetCmdQueryTransfer(),
 		GetCmdQueryWithdraw(),
+		GetCmdQueryLPOrigin(),
 		GetCmdQueryChainSigners(),
 		GetCmdQueryLatestSigners(),
 		GetCmdQueryChkLiqSum(),
@@ -185,6 +186,29 @@ func GetCmdQueryWithdraw() *cobra.Command {
 			fmt.Printf("status: %s\n", resp.Status)
 			fmt.Printf("withdraw message: %s, %s, last req time %s \n",
 				withdrawOnChain.String(), resp.Detail.SignersStr(), common.TsSecToTime(uint64(resp.Detail.LastReqTime)))
+			return nil
+		},
+	}
+}
+
+func GetCmdQueryLPOrigin() *cobra.Command {
+	return &cobra.Command{
+		Use:   "lp-origin [eth-addr]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Query lp original chain id",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			req := &types.QueryLPOriginRequest{
+				UsrAddr: args[0],
+			}
+			resp, err := QueryLPOrigin(cliCtx, req)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Original chain id of lp:%s is %d\n", args[0], resp.ChainId)
 			return nil
 		},
 	}
@@ -471,6 +495,12 @@ func QueryAddLiquidityStatus(cliCtx client.Context, request *types.QueryAddLiqui
 func QueryWithdrawLiquidityStatus(cliCtx client.Context, request *types.QueryWithdrawLiquidityStatusRequest) (resp *types.QueryLiquidityStatusResponse, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
 	resp, err = queryClient.QueryWithdrawLiquidityStatus(context.Background(), request)
+	return
+}
+
+func QueryLPOrigin(cliCtx client.Context, request *types.QueryLPOriginRequest) (resp *types.QueryLPOriginResponse, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err = queryClient.QueryLPOrigin(context.Background(), request)
 	return
 }
 

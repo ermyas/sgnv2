@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
+	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -11,6 +12,111 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
+
+// inboxReceiver and inboxSender are only supplied for onchain withdrawal request.
+func (k Keeper) initWithdraw(ctx sdk.Context, wdReq *types.WithdrawReq, userSig []byte, creator string, inboxReceiver, inboxSender eth.Addr) error {
+	kv := ctx.KVStore(k.storeKey)
+	var signer eth.Addr
+	var err error
+	// if sig is empty AND wd is a refund, we assume it's for a contract sender, so signer equals wdOnchain.Receiver
+	// otherwise for refund, recovered signer must match wdOnchain.Receiver
+	// wdOnchain.Receiver is saved when apply Send event, value is xfer sender
+	if len(userSig) == 0 && wdReq.WithdrawType == types.RefundTransfer {
+		// usersig is not set, assume contract refund, unfortunately we have to duplicate some
+		// logic from k.refund for security reason
+		xferId := eth.Bytes2Hash(eth.Hex2Bytes(wdReq.XferId))
+		wdOnchain := GetXferRefund(kv, xferId)
+		if wdOnchain == nil {
+			return types.Error(types.ErrCode_XFER_NOT_REFUNDABLE, "xfer %d not refundable", xferId)
+		}
+		signer = eth.Bytes2Addr(wdOnchain.Receiver)
+	} else if wdReq.WithdrawType == types.ValidatorClaimFeeShare {
+		senderSgnAcct, err := sdk.AccAddressFromBech32(creator)
+		if err != nil {
+			return types.Error(types.ErrCode_INVALID_REQ, "invalid creator accnt")
+		}
+		validator, found := k.stakingKeeper.GetValidatorBySgnAddr(ctx, senderSgnAcct)
+		if !found {
+			return types.Error(types.ErrCode_NOT_FOUND, "creator accnt %s not validator", senderSgnAcct)
+		}
+		signer = validator.GetEthAddr()
+	} else if wdReq.WithdrawType == types.ContractRemoveLiquidity {
+		// signer is used as the receiver's address
+		signer = inboxReceiver
+	} else {
+		// check reqid, recover user addr, ensure no existing wdDetail-%x-%d
+		signer, err = ethutils.RecoverSigner(k.cdc.MustMarshal(wdReq), userSig)
+		if err != nil {
+			return fmt.Errorf("recover signer err: %w", err)
+		}
+	}
+	// note wdReq.ReqId could be 0, but as long as signer matches expected, we're ok.
+	// note if someone sends in random sig data, it'll recover a random address so this
+	// check will not stop duplicated withdraw, therefore further logic MUST check signer
+	// is expected!!!
+	if GetWithdrawDetail(kv, signer, wdReq.ReqId) != nil {
+		// same reqid already exist
+		return types.Error(types.ErrCode_DUP_REQID, "withdraw %x %d exists", signer, wdReq.ReqId)
+	}
+	var wdOnchain *types.WithdrawOnchain
+	var xferIdBytes []byte
+	switch wdReq.WithdrawType {
+	case types.RemoveLiquidity:
+		wdOnchain, err = k.withdrawLP(ctx, wdReq, signer, creator)
+		if err != nil {
+			return err
+		}
+	case types.RefundTransfer:
+		xferIdBytes = eth.Hex2Bytes(wdReq.XferId)
+		wdOnchain, err = k.refund(ctx, wdReq, signer, creator)
+		if err != nil {
+			return err
+		}
+	case types.ClaimFeeShare, types.ValidatorClaimFeeShare:
+		wdOnchain, err = k.claimFeeShare(ctx, wdReq, signer, creator)
+		if err != nil {
+			return err
+		}
+	case types.ContractRemoveLiquidity:
+		wdOnchain, err = k.withdrawLPFrom(ctx, wdReq, inboxReceiver, inboxSender)
+		if err != nil {
+			return err
+		}
+	default:
+		return types.Error(types.ErrCode_INVALID_REQ, "invalid withdraw type %d", wdReq.WithdrawType)
+	}
+
+	// rate limit check
+	assetInfo := GetAssetInfo(kv, GetAssetSymbol(kv, &ChainIdTokenAddr{
+		ChId:      wdOnchain.Chainid,
+		TokenAddr: eth.Bytes2Addr(wdOnchain.Token),
+	}), wdOnchain.Chainid)
+	if assetInfo.GetMaxOutAmt() != "" {
+		maxSend, ok := new(big.Int).SetString(assetInfo.GetMaxOutAmt(), 10)
+		if ok && isPos(maxSend) {
+			wdAmt := new(big.Int).SetBytes(wdOnchain.Amount)
+			if wdAmt.Cmp(maxSend) == 1 {
+				return types.Error(types.ErrCode_WD_EXCEED_MAX_OUT_AMOUNT, "withdrawal amount %s exceeds allowance %s", wdAmt, maxSend)
+			}
+		}
+	}
+
+	wdOnChainRaw, _ := wdOnchain.Marshal()
+	SaveWithdrawDetail(
+		kv, signer, wdReq.ReqId,
+		&types.WithdrawDetail{
+			WdOnchain:   wdOnChainRaw, // only has what to send onchain now
+			LastReqTime: ctx.BlockTime().Unix(),
+			XferId:      xferIdBytes, // nil if not user refund
+		})
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeDataToSign,
+		sdk.NewAttribute(types.AttributeKeyType, types.SignDataType_WITHDRAW.String()),
+		sdk.NewAttribute(types.AttributeKeyData, eth.Bytes2Hex(wdOnChainRaw)),
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+	))
+	return nil
+}
 
 func (k Keeper) refund(ctx sdk.Context, wdReq *types.WithdrawReq, signer eth.Addr, creator string) (*types.WithdrawOnchain, error) {
 	// we use non-zero reqid as a way to avoid duplicated refund request, so reqid MUST NOT be 0
@@ -40,6 +146,17 @@ func (k Keeper) refund(ctx sdk.Context, wdReq *types.WithdrawReq, signer eth.Add
 	return wdOnchain, nil
 }
 
+func (k Keeper) withdrawLPFrom(ctx sdk.Context, wdReq *types.WithdrawReq, receiver, sender eth.Addr) (*types.WithdrawOnchain, error) {
+	log.Infof("x/cbr handle contract lp withdrawal request, from(creator):%x, to:%x", sender, receiver)
+	wdOnchain, err := k.withdrawLP(ctx, wdReq, sender, fmt.Sprintf("ETH:%x", sender))
+	if err != nil {
+		return wdOnchain, err
+	}
+	wdOnchain.Receiver = receiver.Bytes()
+	return wdOnchain, nil
+}
+
+// creator would be an eth address if a contractLP withdrawal request is processing
 func (k Keeper) withdrawLP(ctx sdk.Context, wdReq *types.WithdrawReq, lpAddr eth.Addr, creator string) (*types.WithdrawOnchain, error) {
 	kv := ctx.KVStore(k.storeKey)
 	if len(wdReq.Withdraws) == 0 {

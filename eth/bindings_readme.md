@@ -67,3 +67,13 @@ In [sgn-v2](https://github.com/celer-network/sgn-v2) repo, go to `scripts` folde
 ```sh
 sh update_contract_bindings.sh
 ```
+
+## Withdraw Inbox contract bindings
+
+[bindings_wdinbox.go](./bindings_wdinbox.go)
+
+```
+solc --base-path $PWD --allow-paths . --overwrite --optimize --optimize-runs 800 --pretty-json --combined-json abi,bin -o . '@openzeppelin/'=openzeppelin-contracts-4.2.0/ WithdrawInbox.sol test-helpers/ContractAsLP.sol
+jq '."contracts"|=with_entries(select(.key| test("^openzeppelin") or test("^interfaces") or test("^libraries") or test("^safeguard/Pauser") | not))' combined.json > wdinbox.json
+abigen -combined-json wdinbox.json --pkg eth -out ../../sgn-v2/eth/bindings_wdinbox.go
+```

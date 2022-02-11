@@ -118,6 +118,10 @@ func (c *CbrChain) ApproveUNI(uid uint64, amt *big.Int) error {
 	return c.ApproveBridgeTestToken(c.UNIContract, uid, amt, c.PegVaultAddr)
 }
 
+func (c *CbrChain) ApproveUSDTForContractAsLP(uid uint64, amt *big.Int) error {
+	return c.ApproveBridgeTestToken(c.USDTContract, uid, amt, c.CLPAddr)
+}
+
 func (c *CbrChain) ApproveUNIForBatchTransfer(uid uint64, amt *big.Int) error {
 	return c.ApproveBridgeTestToken(c.UNIContract, uid, amt, c.BatchTransferAddr)
 }
@@ -135,6 +139,54 @@ func (c *CbrChain) AddLiq(uid uint64, amt *big.Int) error {
 		"AddLiq",
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
 			return c.CbrContract.AddLiquidity(opts, c.USDTAddr, amt)
+		},
+	)
+	if err != nil {
+		return err
+	}
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return fmt.Errorf("tx failed")
+	}
+	return nil
+}
+
+func (c *CbrChain) DepositToContractAsLP(uid uint64, amt *big.Int) error {
+	receipt, err := c.Users[uid].Transactor.TransactWaitMined(
+		"DepositToContractAsLP",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.CLPContract.Deposit(opts, c.USDTAddr, amt)
+		},
+	)
+	if err != nil {
+		return err
+	}
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return fmt.Errorf("tx failed")
+	}
+	return nil
+}
+
+func (c *CbrChain) AddLiqByContractAsLP(uid uint64, amt *big.Int) error {
+	receipt, err := c.Users[uid].Transactor.TransactWaitMined(
+		"AddLiqByContractAsLP",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.CLPContract.AddLiquidity(opts, c.USDTAddr, amt)
+		},
+	)
+	if err != nil {
+		return err
+	}
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return fmt.Errorf("tx failed")
+	}
+	return nil
+}
+
+func (c *CbrChain) SendWithdrawRequest(uid, wdSeq, toUid, toChain uint64, fromChains []uint64, tokens []eth.Addr, ratios, slippages []uint32) error {
+	receipt, err := c.Users[uid].Transactor.TransactWaitMined(
+		"SendWithdrawRequest",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.CLPContract.Withdraw(opts, wdSeq, c.Users[toUid].Address, toChain, fromChains, tokens, ratios, slippages)
 		},
 	)
 	if err != nil {

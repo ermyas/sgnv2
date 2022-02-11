@@ -218,6 +218,54 @@ func (o *PegVaultContract) GetABI() string {
 	return OriginalTokenVaultABI
 }
 
+type WdInboxContract struct {
+	*WithdrawInbox
+	Address Addr
+}
+
+func NewWdInboxContract(address Addr, client *ethclient.Client) (*WdInboxContract, error) {
+	wdi, err := NewWithdrawInbox(address, client)
+	if err != nil {
+		return nil, err
+	}
+	return &WdInboxContract{
+		WithdrawInbox: wdi,
+		Address:       address,
+	}, nil
+}
+
+func (i *WdInboxContract) GetAddr() Addr {
+	return i.Address
+}
+
+func (i *WdInboxContract) GetABI() string {
+	return WithdrawInboxABI
+}
+
+type CLPContract struct {
+	*ContractAsLP
+	Address Addr
+}
+
+func NewContractAsLPContract(address Addr, client *ethclient.Client) (*CLPContract, error) {
+	cLP, err := NewContractAsLP(address, client)
+	if err != nil {
+		return nil, err
+	}
+	return &CLPContract{
+		ContractAsLP: cLP,
+		Address:      address,
+	}, nil
+}
+
+func (c *CLPContract) GetAddr() Addr {
+	return c.Address
+}
+
+func (c *CLPContract) GetABI() string {
+	return ContractAsLPABI
+}
+
 type MsgBusContract struct {
 	*MessageBus
 	Address Addr
