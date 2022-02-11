@@ -209,7 +209,6 @@ func (r *Relayer) selfSyncValidatorParams() {
 }
 
 func (r *Relayer) selfSyncValidator(options ValSyncOptions) {
-	var i int
 	acctFound := r.waitForSgnAccountFound()
 	if !acctFound {
 		log.Errorf("Sgn account %s not found", r.sgnAcct.String())
@@ -222,8 +221,7 @@ func (r *Relayer) selfSyncValidator(options ValSyncOptions) {
 			return
 		}
 	}
-	// TODO: need more time on wait and retry when open to partners
-	for i = 1; i < 10; i++ {
+	for i := 0; i < 20; i++ {
 		updated := r.SyncValidator(r.Operator.ValAddr, r.getCurrentBlockNumber().Uint64(), options)
 		if updated {
 			log.Debugln("Self validator synced", options)
@@ -236,8 +234,7 @@ func (r *Relayer) selfSyncValidator(options ValSyncOptions) {
 
 func (r *Relayer) waitForSgnAccountFound() bool {
 	var acctFound bool
-	// TODO: need more time on wait and retry when open to partners
-	for i := 1; i < 20; i++ {
+	for i := 0; i < 50; i++ {
 		exist, _ := validatorcli.QuerySgnAccount(r.Transactor.CliCtx, r.sgnAcct.String())
 		if exist {
 			log.Debugf("Sgn account %s found", r.sgnAcct.String())
@@ -251,8 +248,7 @@ func (r *Relayer) waitForSgnAccountFound() bool {
 
 func (r *Relayer) waitForValidatorFound() bool {
 	var valFound bool
-	// TODO: need more time on wait and retry when open to partners
-	for i := 1; i < 20; i++ {
+	for i := 0; i < 50; i++ {
 		storeVal, _ := validatorcli.QueryValidator(r.Transactor.CliCtx, r.Operator.ValAddr.Hex())
 		if storeVal != nil {
 			log.Debugf("Validator %x found", r.Operator.ValAddr)

@@ -101,7 +101,7 @@ func (o *Operator) SyncValidatorMsgs(valAddr eth.Addr, blkNum uint64, options Va
 			updates = append(updates, update)
 		}
 	}
-	if options.params {
+	if options.params { // true only if self validator
 		update, updated.params = o.SyncValidatorParamsMsg(valAddr, blkNum)
 		if update != nil {
 			updates = append(updates, update)
@@ -142,6 +142,7 @@ func (o *Operator) SyncValidatorSgnAddrMsg(valAddr eth.Addr, blkNum uint64) (*sy
 	return update, false
 }
 
+// only self validator
 func (o *Operator) SyncValidatorParamsMsg(valAddr eth.Addr, blkNum uint64) (*synctypes.ProposeUpdate, bool /*updated*/) {
 	logmsg := fmt.Sprintf("Generate sync validator params msg, val %x", valAddr)
 	if o.ValAddr != valAddr {
