@@ -20,7 +20,7 @@ message SgnAnalyticsReport {
   // key is nanoseconds timestamp, so histories are group by transfer
   map<uint64, BaseFeeDistributionHistory> base_fee_distribution_histories = 5;
   // key is chainId. only report once when after node start
-  map<string, ChainConfig> ChainConfigs = 6;
+  map<string, ChainConfig> chain_configs = 6;
 }
 
 message ChainConfig {
