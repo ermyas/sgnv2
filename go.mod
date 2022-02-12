@@ -17,7 +17,6 @@ require (
 	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.3 // indirect
 	github.com/iancoleman/strcase v0.2.0
 	github.com/lthibault/jitterbug v2.0.0+incompatible
 	github.com/miguelmota/go-solidity-sha3 v0.1.1
