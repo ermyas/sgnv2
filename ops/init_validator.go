@@ -20,8 +20,8 @@ const (
 
 func InitValidatorCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "init-validator",
-		Short: "Initialize a validator",
+		Use:   "init",
+		Short: "Initialize a validator (if validator keystore is on local machine)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return InitValidator()
 		},

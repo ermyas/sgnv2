@@ -14,7 +14,7 @@ import (
 func EthViewerCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                        "view",
-		Short:                      "Operation subcommands",
+		Short:                      "View staking status on ethereum",
 		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,
 		RunE:                       client.ValidateCmd,

@@ -108,7 +108,7 @@ func ClaimValidatorStakingReward(cliCtx client.Context, queryOnly bool) error {
 func WithdrawValidatorCbrFeeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "withdraw-cbr-fee",
-		Short: "validator query and submit cbridge fee withdrawal request",
+		Short: "validator query and submit liquidity-pool bridge fee withdrawal request",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx, err := client.GetClientQueryContext(cmd)
@@ -148,7 +148,7 @@ func WithdrawValidatorCbrFeeCmd() *cobra.Command {
 func WithdrawValidatorPegbrFeeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "withdraw-pegbr-fee",
-		Short: "validator query and submit pegbridge fee withdrawal request",
+		Short: "validator query and submit pegged bridge fee withdrawal request",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx, err := client.GetClientQueryContext(cmd)

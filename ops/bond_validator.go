@@ -15,27 +15,21 @@ import (
 
 func BondValidatorCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "bond-validator",
-		Short: "Bond a validator",
+		Use:   "bond",
+		Short: "Bond validator",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return BondValidator()
 		},
 	}
-	cmd.Flags().String(FlagKeystore, "", "Validator or Signer keystore file")
-	cmd.Flags().String(FlagPassphrase, "", "Validator or Signer keystore passphrase")
-	cmd.Flags().String(FlagValidator, "", "Validator ETH address")
-
-	cmd.MarkFlagRequired(FlagKeystore)
-	cmd.MarkFlagRequired(FlagValidator)
 	return cmd
 }
 
 func BondValidator() error {
-	ethClient, err := newEthClient( /*useSigner*/ false)
+	ethClient, err := newEthClient( /*useSigner*/ true)
 	if err != nil {
 		return err
 	}
-	valAddr := eth.Hex2Addr(viper.GetString(FlagValidator))
+	valAddr := eth.Hex2Addr(viper.GetString(common.FlagEthValidatorAddress))
 	shouldBond, err := ethClient.Contracts.Viewer.ShouldBondValidator(&bind.CallOpts{}, valAddr)
 	if err != nil {
 		return fmt.Errorf("check if should bond validator err: %w", err)
@@ -65,5 +59,4 @@ func BondValidator() error {
 		return err
 	}
 	return nil
-
 }

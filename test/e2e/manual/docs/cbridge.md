@@ -24,5 +24,5 @@ sgnd query pegbridge config --home data/node0/sgnd
 ```sh
 sgnd query cbridge fee-share 00078b31fa8b29a76bce074b5ea0d515a6aeaee7
 echo 12341234 | sgnd tx cbridge validator-claim-fee --file data/claim_fee.txt --home data/node0/sgnd
-echo 12341234 | sgnd ops withdraw-cbr-fee --file data/claim_fee.txt --home data/node0/sgnd --query
+echo 12341234 | sgnd ops validator withdraw-cbr-fee --file data/claim_fee.txt --home data/node0/sgnd --query
 ```

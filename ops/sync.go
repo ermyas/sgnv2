@@ -41,24 +41,6 @@ const (
 	FlagDelAddr = "deladdr"
 )
 
-// GetSyncCmd
-func GetSyncCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:                        "sync",
-		Short:                      "Sync an event from onchain to sidechain",
-		SuggestionsMinimumDistance: 2,
-		RunE:                       client.ValidateCmd,
-	}
-
-	cmd.AddCommand(common.PostCommands(
-		GetSyncSigners(),
-		GetSyncCbrEvent(),
-		GetSyncStaking(),
-	)...)
-
-	return cmd
-}
-
 func GetSyncSigners() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "signers",

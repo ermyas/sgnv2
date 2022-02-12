@@ -27,7 +27,7 @@ const (
 func SubmitRelayCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "submit-relay",
-		Short: "submit relay using XferId",
+		Short: "Submit cbridge relay using source transferId",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`
 Example:
