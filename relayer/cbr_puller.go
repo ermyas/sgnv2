@@ -476,9 +476,20 @@ func (c *CbrOneChain) skipSyncCbrWithdrawalRequest(evlog *ethtypes.Log, cliCtx c
 		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
 	}
 
+	// check for lp origin, in order to minimize invalid withdrawal requests synced.
+	lpOriginResp, err := cbrcli.QueryLPOrigin(cliCtx, &cbrtypes.QueryLPOriginRequest{UsrAddr: eth.Addr2Hex(ev.Sender)})
+	if err != nil {
+		log.Errorf("QueryLPOrigin err: %s, lp address: %s", err, ev.Sender.Hex())
+		return
+	}
+	if lpOriginResp.ChainId != c.chainid {
+		return true, fmt.Sprintf("withdrawal with seqNum %d on chain %d is invalid, lp(%x) original chainId is %d",
+			ev.SeqNum, c.chainid, ev.Sender, lpOriginResp.ChainId)
+	}
+
 	resp, err := cbrcli.QueryWithdrawLiquidityStatus(cliCtx, &cbrtypes.QueryWithdrawLiquidityStatusRequest{
 		SeqNum:  ev.SeqNum,
-		UsrAddr: ev.Sender.Hex(),
+		UsrAddr: ev.Receiver.Hex(),
 	})
 	if err != nil {
 		// withdrawal request has not yet been synced or is syncing still.
@@ -487,13 +498,7 @@ func (c *CbrOneChain) skipSyncCbrWithdrawalRequest(evlog *ethtypes.Log, cliCtx c
 	if resp.Status == cbrtypes.WithdrawStatus_WD_WAITING_FOR_SGN ||
 		resp.Status == cbrtypes.WithdrawStatus_WD_WAITING_FOR_LP ||
 		resp.Status == cbrtypes.WithdrawStatus_WD_COMPLETED {
-		// check for lp orgin, in order to minimize invalid withdrawal requests synced.
-		resp, _ := cbrcli.QueryLPOrigin(cliCtx, &cbrtypes.QueryLPOriginRequest{UsrAddr: eth.Addr2Hex(ev.Sender)})
-		if resp.ChainId != c.chainid {
-			return true, fmt.Sprintf("withdrawal with seqNum %d on chain %d is invalid, lp(%x) original chainId is %d",
-				ev.SeqNum, c.chainid, ev.Sender, resp.ChainId)
-		}
-		return true, fmt.Sprintf("withdrawal with seqNum %d on chain %d already synced", ev.SeqNum, c.chainid)
+		return true, fmt.Sprintf("withdrawal with seqNum %d of %s on chain %d already synced", ev.SeqNum, ev.Receiver.Hex(), c.chainid)
 	}
 
 	return
