@@ -476,6 +476,10 @@ func (c *CbrOneChain) skipSyncCbrWithdrawalRequest(evlog *ethtypes.Log, cliCtx c
 		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
 	}
 
+	if len(ev.FromChains) == 0 || len(ev.Tokens) == 0 || len(ev.Ratios) == 0 || len(ev.Slippages) == 0 {
+		return true, fmt.Sprintf("empty withdrawal request of %x with seqNum %d on chain %d", ev.Sender, ev.SeqNum, c.chainid)
+	}
+
 	// check for lp origin, in order to minimize invalid withdrawal requests synced.
 	lpOriginResp, err := cbrcli.QueryLPOrigin(cliCtx, &cbrtypes.QueryLPOriginRequest{UsrAddr: eth.Addr2Hex(ev.Sender)})
 	if err != nil {
