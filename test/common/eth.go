@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"strings"
+	"time"
 
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
@@ -200,6 +201,7 @@ func InitializeValidator(auth *bind.TransactOpts, signerAddr eth.Addr, sgnAddr s
 		return err
 	}
 	WaitMinedWithChk(ctx, EthClient, tx, BlockDelay, PollingInterval, "Approve")
+	time.Sleep(time.Second) // avoid ERC20: transfer amount exceeds balance
 	tx, err = Contracts.Staking.InitializeValidator(auth, signerAddr, minSelfDelegation, commissionRate)
 	if err != nil {
 		return err

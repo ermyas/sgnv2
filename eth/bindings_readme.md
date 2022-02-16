@@ -58,10 +58,6 @@ abigen -combined-json ./contracts/oracle.json -pkg eth -out eth/bindings_ovm_gas
 
 In [sgn-v2-contract](https://github.com/celer-network/sgn-v2-contracts) repo, go to `contracts` folder
 
-```sh
-yarn
-```
-
 In [sgn-v2](https://github.com/celer-network/sgn-v2) repo, go to `scripts` folder
 
 ```sh

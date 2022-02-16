@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -486,6 +487,37 @@ func GetPegBridgeFeeClaimWithdrawInfoWithSigs(
 		log.Fatalf("QueryWithdrawInfo expected sigNum %d, actual %d", expSigNum, len(withdrawInfo.Signatures))
 	}
 	return withdrawId, withdrawInfo
+}
+
+func GetFeeClaimInfoWaitForSigs(txr *transactor.Transactor, addr eth.Addr) (*msgtypes.FeeClaimInfo, error) {
+	for i := 0; i < 10; i++ {
+		time.Sleep(3 * time.Second)
+		res, err := msgcli.QueryFeeClaimInfo(txr.CliCtx, addr)
+		if err != nil {
+			if strings.Contains(err.Error(), "no claim info found for") {
+				log.Infof("claim info not found for %s yet, still trying...", addr.Hex())
+				continue
+			}
+			return nil, err
+		}
+		pass := CheckMsgFeeClaimInfoSigs(txr, &res)
+		if !pass {
+			continue
+		}
+		return &res, nil
+	}
+	return nil, fmt.Errorf("wait for fee claim info sigs timeout")
+}
+
+func CheckMsgFeeClaimInfoSigs(txr *transactor.Transactor, claimInfo *msgtypes.FeeClaimInfo) bool {
+	for _, detail := range claimInfo.FeeClaimDetailsList {
+		pass, _ := CheckSigQuorum(txr, detail.ChainId, detail.Signatures)
+		if !pass {
+			log.Infof("not enough sigs yet for fee claim (delAddr %s)", claimInfo.Recipient)
+			return false
+		}
+	}
+	return true
 }
 
 func WaitForMessageExecuted(transactor *transactor.Transactor, expectedStatus msgtypes.ExecutionStatus) {

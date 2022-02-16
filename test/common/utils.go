@@ -15,7 +15,10 @@ import (
 
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
+	"github.com/celer-network/sgn-v2/transactor"
+	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -37,6 +40,21 @@ func GetAuth(ksfile string, chainId int64) (addr eth.Addr, auth *bind.TransactOp
 		return
 	}
 	return
+}
+
+func CheckSigQuorum(txr *transactor.Transactor, chainId uint64, sigs []types.Signature) (bool, [][]byte) {
+	ss, err := GetCurSortedSigners(txr, chainId)
+	ChkErr(err, "unable to query chain signers")
+	return cbrtypes.ValidateSignatureQuorum(sigs, ss)
+}
+
+func GetChain(chid uint64) *CbrChain {
+	if chid == 883 {
+		return CbrChain1
+	} else if chid == 884 {
+		return CbrChain2
+	}
+	return nil
 }
 
 func GetEthPrivateKey(ksfile string) (*ecdsa.PrivateKey, error) {

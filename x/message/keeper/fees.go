@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/message/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -20,6 +21,7 @@ func (k Keeper) MintFee(ctx sdk.Context, chainId uint64, amount *big.Int) error 
 	if err := k.bankKeeper.MintCoins(ctx, k.feeCollectorName, sdk.NewCoins(coin)); err != nil {
 		return err
 	}
+	log.Debugf("minted message fee %s, chainId %d", amount.String(), chainId)
 	return nil
 }
 

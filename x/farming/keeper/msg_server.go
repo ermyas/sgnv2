@@ -155,7 +155,6 @@ func (k msgServer) accumulateRewards(ctx sdk.Context, addr eth.Addr, claimInfo *
 	}
 	for _, reward := range rewards {
 		denom := reward.Denom
-		cumulativeReward := k.bankKeeper.GetBalance(ctx, derivedRewardAccount, denom)
 		chainId, _, parseErr := common.ParseERC20TokenDenom(denom)
 		if parseErr != nil {
 			return parseErr
@@ -169,7 +168,7 @@ func (k msgServer) accumulateRewards(ctx sdk.Context, addr eth.Addr, claimInfo *
 			}
 			chainIdToDetails[chainId] = details
 		}
-		cumulativeRewardAmount := cumulativeReward.Amount
+		cumulativeRewardAmount := reward.Amount
 		existing := sdk.NewDecCoinFromDec(denom, details.CumulativeRewardAmounts.AmountOf(denom))
 		updated := sdk.NewDecCoin(denom, cumulativeRewardAmount)
 		if !existing.Amount.Equal(updated.Amount) {

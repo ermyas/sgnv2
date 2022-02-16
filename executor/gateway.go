@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
-	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/executor/types"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -34,11 +33,11 @@ func NewGatewayClient(gatewayUrl string) *GatewayClient {
 	}
 }
 
-func (g *GatewayClient) GetExecutionContexts(filters []*commontypes.ContractInfo) ([]msgtypes.ExecutionContext, error) {
+func (g *GatewayClient) GetExecutionContexts(contracts []*types.ContractConfig) ([]msgtypes.ExecutionContext, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), types.GatewayTimeout)
 	defer cancel()
 	req := &msgtypes.QueryExecutionContextsRequest{
-		ContractInfos: filters,
+		ContractInfos: types.MapToContractInfos(contracts),
 	}
 	res, err := g.cli.ExecutionContexts(ctx, req)
 	if err != nil {

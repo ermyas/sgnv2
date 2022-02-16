@@ -475,7 +475,9 @@ func (r *Relayer) monitorSgnDistributionClaimMessageFeesEvent() {
 						log.Errorf("Query MessageBus err %s", err)
 						continue
 					}
-					dataToSign := details.EncodeDataToSign(eth.Hex2Addr(messageBusResp.MessageBus.ContractInfo.Address))
+					msgbus := eth.Hex2Addr(messageBusResp.MessageBus.ContractInfo.Address)
+					receiver := eth.Hex2Addr(feeClaimInfoResp.FeeClaimInfo.Recipient)
+					dataToSign := details.EncodeDataToSign(msgbus, receiver)
 					sig, err := r.EthClient.SignEthMessage(dataToSign)
 					if err != nil {
 						log.Errorln("SignEthMessage err", err)

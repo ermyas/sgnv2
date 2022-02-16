@@ -1,6 +1,7 @@
 CREATE DATABASE IF NOT EXISTS executor;
 
-SET DATABASE TO executor;
+SET
+  DATABASE TO executor;
 
 CREATE TABLE IF NOT EXISTS execution_context (
   -- computed message id, hashed differently from transfer or routing info
@@ -8,7 +9,7 @@ CREATE TABLE IF NOT EXISTS execution_context (
   -- proto serialized bytes of the proto sgn.message.v1.ExecutionContext, 
   exec_ctx BYTES,
   -- see dal.ExecutionStatus
-  status INT DEFAULT 0
+  status INT DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS transfer (id BYTES PRIMARY KEY);

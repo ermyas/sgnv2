@@ -107,7 +107,7 @@ func (dal *DAL) UpdateStatus(id []byte, status types.ExecutionStatus) error {
 	if err != nil {
 		return err
 	}
-	log.Debugf("execution_context (id %x) status changed from %d to %d", id, oldStatus, uint64(status))
+	log.Debugf("execution_context (id %x) status changed from %v to %v", id, types.ExecutionStatus(oldStatus), status)
 	return nil
 }
 

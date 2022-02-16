@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	// "github.com/cosmos/cosmos-sdk/client/flags"
 
+	"github.com/celer-network/sgn-v2/transactor"
 	"github.com/celer-network/sgn-v2/x/message/types"
 )
 
@@ -32,4 +33,11 @@ func GetTxCmd() *cobra.Command {
 	}
 
 	return cmd
+}
+
+// if err not nil, should return immediately when estimate gas
+func ClaimAllFees(t *transactor.Transactor, req *types.MsgClaimAllFees) (resp *types.MsgClaimAllFeesResponse, err error) {
+	req.Sender = t.Key.GetAddress().String()
+	_, err = t.LockSendTx(req)
+	return
 }

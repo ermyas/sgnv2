@@ -19,7 +19,7 @@ func NewMsgExecutionContext(ev *eth.MessageBusMessage, srcChainId uint64) *Execu
 		DstChainId:      ev.DstChainId.Uint64(),
 		Receiver:        ev.Receiver.String(),
 		Data:            ev.Message,
-		Fee:             "0", // ev.Fee.String(),
+		Fee:             ev.Fee.String(),
 		ExecutionStatus: EXECUTION_STATUS_PENDING,
 	}
 	execCtx := &ExecutionContext{
@@ -43,7 +43,7 @@ func NewMsgXferExecutionContext(
 		DstChainId:      ev.DstChainId.Uint64(),
 		Receiver:        ev.Receiver.String(),
 		Data:            ev.Message,
-		Fee:             "0", // ev.Fee.String(),
+		Fee:             ev.Fee.String(),
 		TransferType:    transferType,
 		ExecutionStatus: EXECUTION_STATUS_PENDING,
 	}
@@ -80,7 +80,7 @@ func NewMsgXferRefundExecutionContext(
 		Data:            ev.Message,
 		TransferType:    TRANSFER_TYPE_LIQUIDITY_WITHDRAW,
 		ExecutionStatus: EXECUTION_STATUS_PENDING,
-		Fee:             "0",
+		Fee:             ev.Fee.String(),
 	}
 	execCtx := &ExecutionContext{
 		Message:  *message,
@@ -108,7 +108,7 @@ func NewMsgPegDepositRefundExecutionContext(
 		Data:            ev.Message,
 		TransferType:    TRANSFER_TYPE_PEG_WITHDRAW,
 		ExecutionStatus: EXECUTION_STATUS_PENDING,
-		Fee:             "0",
+		Fee:             ev.Fee.String(),
 	}
 	execCtx := &ExecutionContext{
 		Message:  *message,
@@ -136,7 +136,7 @@ func NewMsgPegBurnRefundExecutionContext(
 		Data:            ev.Message,
 		TransferType:    TRANSFER_TYPE_PEG_MINT,
 		ExecutionStatus: EXECUTION_STATUS_PENDING,
-		Fee:             "0",
+		Fee:             ev.Fee.String(),
 	}
 	execCtx := &ExecutionContext{
 		Message:  *message,

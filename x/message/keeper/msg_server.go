@@ -10,6 +10,7 @@ import (
 	"github.com/celer-network/sgn-v2/common"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
+	disttypes "github.com/celer-network/sgn-v2/x/distribution/types"
 	"github.com/celer-network/sgn-v2/x/message/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -122,7 +123,7 @@ func (k msgServer) SignFees(
 			return nil, fmt.Errorf("MessageBus contract for chain %d not found", signatureDetails.ChainId)
 		}
 		claimDetails := chainIdToFeeClaimDetails[signatureDetails.ChainId]
-		dataToSign := claimDetails.EncodeDataToSign(eth.Hex2Addr(messageBus.ContractInfo.Address))
+		dataToSign := claimDetails.EncodeDataToSign(eth.Hex2Addr(messageBus.ContractInfo.Address), eth.Hex2Addr(msg.Address))
 		addSigErr := claimDetails.AddSig(dataToSign, signatureDetails.Signature, validator.GetSignerAddr().String())
 		if addSigErr != nil {
 			return nil, fmt.Errorf("failed to add sig: %s", addSigErr)
@@ -159,8 +160,9 @@ func (k msgServer) accumulateFees(ctx sdk.Context, delAddr eth.Addr, claimInfo *
 		chainIdToDetails[detail.ChainId] = &detail
 	}
 	// 2. Update CumulativeFeeAmount in details
-	derivedFeeAccount := common.DeriveSdkAccAddressFromEthAddress(types.ModuleName, delAddr)
+	derivedFeeAccount := common.DeriveSdkAccAddressFromEthAddress(disttypes.ModuleName, delAddr)
 	rewards := k.bankKeeper.GetAllBalances(ctx, derivedFeeAccount)
+	log.Debugf("accumulateFees: delAddr %x, drived account %s, rewards %s", delAddr, derivedFeeAccount.String(), rewards.Sort().String())
 	if rewards.Empty() {
 		// TODO: Check
 		return errors.New("no reward")
@@ -170,23 +172,21 @@ func (k msgServer) accumulateFees(ctx sdk.Context, delAddr eth.Addr, claimInfo *
 		if !strings.HasPrefix(denom, types.MessageFeeDenomPrefix) {
 			continue
 		}
-		cumulativeReward := k.bankKeeper.GetBalance(ctx, derivedFeeAccount, denom)
-		chainId, _, parseErr := common.ParseERC20TokenDenom(denom)
-		if parseErr != nil {
-			return parseErr
+		chainId, _, err := common.ParseERC20TokenDenom(denom)
+		if err != nil {
+			return err
 		}
 		details, found := chainIdToDetails[chainId]
 		if !found {
 			// Create details if not existent
 			details = &types.FeeClaimDetails{
 				ChainId:             chainId,
-				CumulativeFeeAmount: sdk.DecCoin{},
+				CumulativeFeeAmount: sdk.NewInt64DecCoin(denom, 0),
 			}
 			chainIdToDetails[chainId] = details
 		}
-		cumulativeFeeAmount := cumulativeReward.Amount
 		existing := sdk.NewDecCoinFromDec(denom, details.CumulativeFeeAmount.Amount)
-		updated := sdk.NewDecCoin(denom, cumulativeFeeAmount)
+		updated := sdk.NewDecCoin(denom, reward.Amount)
 		if existing.Amount.LT(updated.Amount) {
 			details.CumulativeFeeAmount = updated
 		}

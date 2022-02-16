@@ -21,12 +21,15 @@ func (d *FeeClaimDetails) AddSig(msgToSign []byte, sig []byte, expectedSigner st
 	return nil
 }
 
-func (d *FeeClaimDetails) EncodeDataToSign(contractAddr eth.Addr) []byte {
+func (d *FeeClaimDetails) EncodeDataToSign(contractAddr eth.Addr, receiverAddr eth.Addr) []byte {
 	domain := solsha3.SoliditySHA3(
 		[]string{"uint256", "address", "string"},
 		[]interface{}{new(big.Int).SetUint64(d.ChainId), contractAddr, "withdrawFee"},
 	)
-	return append(domain, d.CumulativeFeeAmount.Amount.RoundInt().BigInt().Bytes()...)
+	amount := d.CumulativeFeeAmount.Amount.RoundInt().BigInt()
+	data := append(domain, receiverAddr.Bytes()...)
+	data = append(data, amount.FillBytes(make([]byte, 32))...)
+	return data
 }
 
 func (r FeeClaimInfo) LogStr() string {

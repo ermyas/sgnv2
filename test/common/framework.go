@@ -50,6 +50,11 @@ type CbrChain struct {
 	PegBridgeAddr     eth.Addr
 	PegVaultAddr      eth.Addr
 
+	PegBridgeV2Contract *eth.PegBridgeContract
+	PegVaultV2Contract  *eth.PegVaultContract
+	PegBridgeV2Addr     eth.Addr
+	PegVaultV2Addr      eth.Addr
+
 	USDTContract, UNIContract *eth.BridgeTestToken
 	USDTAddr, UNIAddr         eth.Addr
 

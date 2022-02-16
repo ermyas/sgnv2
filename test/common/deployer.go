@@ -17,6 +17,31 @@ import (
 	"github.com/spf13/viper"
 )
 
+func (c *CbrChain) DeployMessageContracts() {
+	c.MessageBusAddr, c.MessageBusContract =
+		DeployMessageBusContract(c.Ec, c.Auth, c.CbrAddr, c.PegBridgeAddr, c.PegVaultAddr, c.PegBridgeV2Addr, c.PegVaultV2Addr)
+	c.BatchTransferAddr, c.BatchTransferContract =
+		DeployBatchTransferContract(c.Ec, c.Auth, c.MessageBusAddr, c.CbrAddr)
+	c.TransferMessageAddr, c.TransferMessageContract =
+		DeployTransferMessageContract(c.Ec, c.Auth, c.MessageBusAddr)
+	c.TestRefundAddr, c.TestRefundContract =
+		DeployTestRefundContract(c.Ec, c.Auth, c.MessageBusAddr)
+}
+
+func (c *CbrChain) DeployPegVaultContracts() {
+	log.Infof("Deploying peg vault and ")
+	c.PegVaultAddr, c.PegVaultContract = DeployPegVaultContract(c.Ec, c.Auth, c.CbrAddr)
+	c.PegVaultV2Addr, c.PegVaultV2Contract = DeployPegVaultV2Contract(c.Ec, c.Auth, c.CbrAddr)
+	c.UNIAddr, c.UNIContract = DeployBridgeTestTokenContract(c.Ec, c.Auth, "UNI", "UNI", 18)
+}
+
+func (c *CbrChain) DeployPegBridgeContracts() {
+	log.Infof("Deploying peg vault and ")
+	c.PegBridgeAddr, c.PegBridgeContract = DeployPegBridgeContract(c.Ec, c.Auth, c.CbrAddr)
+	c.PegBridgeV2Addr, c.PegBridgeV2Contract = DeployPegBridgeV2Contract(c.Ec, c.Auth, c.CbrAddr)
+	c.UNIAddr, c.UNIContract = DeployBridgeTestTokenContract(c.Ec, c.Auth, "UNI", "UNI", 18)
+}
+
 func DeployERC20Contract(ethClient *ethclient.Client, auth *bind.TransactOpts, name, symbol string, decimal uint8) (eth.Addr, *eth.Erc20) {
 	initAmt := NewBigInt(1, 28) // 10 billion in 18 decimal
 	erc20Addr, tx, erc20, err := eth.DeployErc20(auth, ethClient, name, symbol, initAmt, decimal)
@@ -64,9 +89,31 @@ func DeployPegBridgeContract(
 	return
 }
 
+func DeployPegBridgeV2Contract(
+	ethClient *ethclient.Client, auth *bind.TransactOpts, sigsVerifier eth.Addr) (ptbAddr eth.Addr, ptbContract *eth.PegBridgeContract) {
+	ptbAddr, tx, _, err := eth.DeployPeggedTokenBridgeV2(auth, ethClient, sigsVerifier)
+	ChkErr(err, "failed to deploy PeggedTokenBridge contract")
+	ptbContract, err = eth.NewPegBridgeContract(ptbAddr, ethClient)
+	ChkErr(err, "failed to set PeggedTokenBridge contract")
+	log.Infoln("ptb address:", ptbAddr.String())
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployPegBridgeContract")
+	return
+}
+
 func DeployPegVaultContract(
 	ethClient *ethclient.Client, auth *bind.TransactOpts, sigsVerifier eth.Addr) (otvAddr eth.Addr, otvContract *eth.PegVaultContract) {
 	otvAddr, tx, _, err := eth.DeployOriginalTokenVault(auth, ethClient, sigsVerifier)
+	ChkErr(err, "failed to deploy OriginalTokenVault contract")
+	otvContract, err = eth.NewPegVaultContract(otvAddr, ethClient)
+	ChkErr(err, "failed to set OriginalTokenVault contract")
+	log.Infoln("otv address:", otvAddr.String())
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployPegVaultContract")
+	return
+}
+
+func DeployPegVaultV2Contract(
+	ethClient *ethclient.Client, auth *bind.TransactOpts, sigsVerifier eth.Addr) (otvAddr eth.Addr, otvContract *eth.PegVaultContract) {
+	otvAddr, tx, _, err := eth.DeployOriginalTokenVaultV2(auth, ethClient, sigsVerifier)
 	ChkErr(err, "failed to deploy OriginalTokenVault contract")
 	otvContract, err = eth.NewPegVaultContract(otvAddr, ethClient)
 	ChkErr(err, "failed to set OriginalTokenVault contract")
@@ -91,11 +138,15 @@ func DeployContractAsLPContract(ethClient *ethclient.Client, auth *bind.Transact
 	return addr, &eth.CLPContract{ContractAsLP: contract, Address: addr}
 }
 
-func DeployMessageBusContract(ethClient *ethclient.Client, auth *bind.TransactOpts, bridge, pegBridge, pegVault eth.Addr) (eth.Addr, *eth.MessageBus) {
-	addr, tx, contract, err := eth.DeployMessageBus(auth, ethClient, bridge, bridge, pegBridge, pegVault)
+func DeployMessageBusContract(ethClient *ethclient.Client, auth *bind.TransactOpts, bridge, pegBridge, pegVault, pegBridgeV2, pegVaultV2 eth.Addr) (eth.Addr, *eth.MessageBus) {
+	addr, tx, contract, err := eth.DeployMessageBus(auth, ethClient, bridge, bridge, pegBridge, pegVault, pegBridgeV2, pegVaultV2)
 	ChkErr(err, "failed to deploy MessageBus")
-	log.Infoln("MessageBuss address", addr)
+	log.Infoln("MessageBus address", addr)
 	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployMessageBusContract")
+	// Only set fee base in tests
+	tx, err = contract.SetFeeBase(auth, MsgFeeBase)
+	ChkErr(err, "failed to set message fee base")
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "SetFeeBase")
 	return addr, contract
 }
 

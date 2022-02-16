@@ -14,6 +14,7 @@ import (
 	"github.com/celer-network/sgn-v2/transactor"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	msgcli "github.com/celer-network/sgn-v2/x/message/client/cli"
 	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -60,14 +61,14 @@ func messageTest(t *testing.T) {
 	prepareValidators(t, transactor)
 	prepareCbrLiquidity(transactor)
 
+	log.Infoln("======================= Message Only Test =====================")
+	messageOnlyTest(transactor, msgtypes.EXECUTION_STATUS_SUCCESS)
+
 	log.Infoln("======================= Batch Transfer Test =====================")
 	batchTransferTest(transactor, big.NewInt(100*1000000), big.NewInt(5*1000000), msgtypes.EXECUTION_STATUS_SUCCESS)
 
 	log.Infoln("======================= Batch Pegged Transfer Test =====================")
 	batchPegTransferTest(transactor, new(big.Int).Mul(big.NewInt(50), big.NewInt(1e18)), new(big.Int).Mul(big.NewInt(10), big.NewInt(1e18)), msgtypes.EXECUTION_STATUS_SUCCESS)
-
-	log.Infoln("======================= Message Only Test =====================")
-	messageOnlyTest(transactor, msgtypes.EXECUTION_STATUS_SUCCESS)
 
 	log.Infoln("======================= Refund Tests =====================")
 	refundTransferTest(t, transactor)
@@ -130,6 +131,7 @@ func batchPegDepositTest(transactor *transactor.Transactor, sendAmt *big.Int, am
 	tc.CbrChain2.CheckPeggedUNIBalance(uint64(0), new(big.Int).Add(originBalanceOfU02, delta))
 	tc.CbrChain2.CheckPeggedUNIBalance(uint64(1), new(big.Int).Add(originBalanceOfU1, amtForEveryone))
 	tc.CbrChain2.CheckPeggedUNIBalance(uint64(2), new(big.Int).Add(originBalanceOfU2, amtForEveryone))
+
 }
 
 func batchPegBurnTest(transactor *transactor.Transactor, sendAmt *big.Int, amtForEveryone *big.Int, expectedStatus msgtypes.ExecutionStatus) {
@@ -227,6 +229,17 @@ func messageOnlyTest(transactor *transactor.Transactor, expectedStatus msgtypes.
 	)
 	tc.ChkErr(err, "message only test")
 	tc.WaitForMessageExecuted(transactor, expectedStatus)
+
+	_, err = msgcli.ClaimAllFees(transactor, &msgtypes.MsgClaimAllFees{
+		DelegatorAddress: eth.Addr2Hex(tc.DelEthAddrs[0]),
+	})
+	tc.ChkErr(err, "failed to claim all fees for delegator 0")
+
+	claimInfo, err := tc.GetFeeClaimInfoWaitForSigs(transactor, tc.DelEthAddrs[0])
+	tc.ChkErr(err, "get fee claim info wait for sigs")
+
+	err = tc.WithdrawMsgFeesOnChain(transactor, claimInfo)
+	tc.ChkErr(err, "WithdrawMsgFeesOnChain")
 }
 
 func refundTransferTest(t *testing.T, transactor *transactor.Transactor) {
@@ -239,6 +252,7 @@ func refundTransferTest(t *testing.T, transactor *transactor.Transactor) {
 	amount := big.NewInt(300000 * 1e6)
 	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.USDTContract, 0, amount, tc.CbrChain1.TestRefundAddr)
 	tc.ChkErr(err, "approve USDT")
+	u.Auth.Value = tc.MsgFeeBase
 	tx, err := tc.CbrChain1.TestRefundContract.SendWithTransfer(u.Auth, u.Address, token, amount, tc.CbrChain2.ChainId, 1, 1, uint8(1))
 	tc.ChkErr(err, "SendWithTransfer")
 	_, err = ethutils.WaitMined(context.Background(), tc.CbrChain1.Ec, tx, ethutils.WithPollingInterval(time.Second))

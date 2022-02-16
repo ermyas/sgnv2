@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/celer-network/goutils/log"
-	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/executor/types"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -12,10 +11,10 @@ import (
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 )
 
-func (c *SgnClient) GetExecutionContexts(filters []*commontypes.ContractInfo) ([]msgtypes.ExecutionContext, error) {
+func (c *SgnClient) GetExecutionContexts(contracts []*types.ContractConfig) ([]msgtypes.ExecutionContext, error) {
 	qc := msgtypes.NewQueryClient(c.txrs.GetTransactor().CliCtx)
 	req := &msgtypes.QueryExecutionContextsRequest{
-		ContractInfos: filters,
+		ContractInfos: types.MapToContractInfos(contracts),
 	}
 	res, err := qc.ExecutionContexts(context.Background(), req)
 	if err != nil {

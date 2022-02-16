@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -310,10 +311,7 @@ func DeployWdInboxContract() {
 func DeployPegBridgeContract() {
 	tc.RunAllAndWait(
 		func() {
-			tc.CbrChain1.PegVaultAddr, tc.CbrChain1.PegVaultContract =
-				tc.DeployPegVaultContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.CbrAddr)
-			tc.CbrChain1.UNIAddr, tc.CbrChain1.UNIContract =
-				tc.DeployBridgeTestTokenContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, "UNI", "UNI", 18)
+			tc.CbrChain1.DeployPegVaultContracts()
 			// fund UNI to each user on chan 1
 			addrs := []eth.Addr{
 				tc.ClientEthAddrs[0],
@@ -326,11 +324,7 @@ func DeployPegBridgeContract() {
 			tc.ChkErr(err, "fund each test addr 10 million UNI on chain 1")
 		},
 		func() {
-			tc.CbrChain2.PegBridgeAddr, tc.CbrChain2.PegBridgeContract =
-				tc.DeployPegBridgeContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.CbrAddr)
-			tc.CbrChain2.UNIAddr, tc.CbrChain2.UNIContract =
-				tc.DeployBridgeTestTokenContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, "UNI", "UNI", 18)
-
+			tc.CbrChain2.DeployPegBridgeContracts()
 			tx, err := tc.CbrChain2.UNIContract.UpdateBridgeSupplyCap(
 				tc.CbrChain2.Auth, tc.CbrChain2.PegBridgeAddr, tc.NewBigInt(1, 28))
 			tc.ChkErr(err, "failed to update bridge supply cap")
@@ -408,23 +402,9 @@ func DeployPegBridgeContract() {
 func DeployBatchTransferAndMessageTransferAndMessageBusContracts() {
 	tc.RunAllAndWait(
 		func() {
-			tc.CbrChain1.MessageBusAddr, tc.CbrChain1.MessageBusContract =
-				tc.DeployMessageBusContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.CbrAddr, tc.CbrChain1.PegBridgeAddr, tc.CbrChain1.PegVaultAddr)
-			tc.CbrChain1.BatchTransferAddr, tc.CbrChain1.BatchTransferContract =
-				tc.DeployBatchTransferContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.MessageBusAddr, tc.CbrChain1.CbrAddr)
-			tc.CbrChain1.TransferMessageAddr, tc.CbrChain1.TransferMessageContract =
-				tc.DeployTransferMessageContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.MessageBusAddr)
-			tc.CbrChain1.TestRefundAddr, tc.CbrChain1.TestRefundContract =
-				tc.DeployTestRefundContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth, tc.CbrChain1.MessageBusAddr)
+			tc.CbrChain1.DeployMessageContracts()
 		}, func() {
-			tc.CbrChain2.MessageBusAddr, tc.CbrChain2.MessageBusContract =
-				tc.DeployMessageBusContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.CbrAddr, tc.CbrChain2.PegBridgeAddr, tc.CbrChain2.PegVaultAddr)
-			tc.CbrChain2.BatchTransferAddr, tc.CbrChain2.BatchTransferContract =
-				tc.DeployBatchTransferContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.MessageBusAddr, tc.CbrChain2.CbrAddr)
-			tc.CbrChain2.TransferMessageAddr, tc.CbrChain2.TransferMessageContract =
-				tc.DeployTransferMessageContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.MessageBusAddr)
-			tc.CbrChain2.TestRefundAddr, tc.CbrChain2.TestRefundContract =
-				tc.DeployTestRefundContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, tc.CbrChain2.MessageBusAddr)
+			tc.CbrChain2.DeployMessageContracts()
 		})
 
 	messageBuses := make([]msgtypes.MessageBusInfo, 0)
@@ -472,6 +452,7 @@ func PrepareExecutor() {
 	tc.RunAllAndWait(
 		func() {
 			tc.RunCmd("make", "localnet-start-crdb")
+			time.Sleep(3 * time.Second)
 		},
 		func() {
 			SetupExecutorConfig()
@@ -486,11 +467,11 @@ func PrepareExecutor() {
 func SetupExecutorConfig() {
 	tc.RunCmd("make", "prepare-executor-data")
 	// setup cbridge.toml contract addresses
-	msgViper := viper.New()
-	msgViper.SetConfigFile("../../../docker-volumes/executor/config/cbridge.toml")
-	err := msgViper.ReadInConfig()
-	tc.ChkErr(err, "Failed to read config")
-	multichains := msgViper.Get("multichain").([]interface{})
+	multichain := viper.New()
+	multichain.SetConfigFile("../../../docker-volumes/executor/config/cbridge.toml")
+	err := multichain.ReadInConfig()
+	tc.ChkErr(err, "Failed to read configs")
+	multichains := multichain.Get("multichain").([]interface{})
 	multichains[0].(map[string]interface{})["cbridge"] = tc.CbrChain1.CbrAddr.Hex()
 	multichains[1].(map[string]interface{})["cbridge"] = tc.CbrChain2.CbrAddr.Hex()
 	multichains[0].(map[string]interface{})["msgbus"] = tc.CbrChain1.MessageBusAddr.Hex()
@@ -499,41 +480,43 @@ func SetupExecutorConfig() {
 	multichains[1].(map[string]interface{})["otvault"] = tc.CbrChain2.PegVaultAddr.Hex()
 	multichains[0].(map[string]interface{})["ptbridge"] = tc.CbrChain1.PegBridgeAddr.Hex()
 	multichains[1].(map[string]interface{})["ptbridge"] = tc.CbrChain2.PegBridgeAddr.Hex()
-	msgViper.Set("multichain", multichains)
-	err = msgViper.WriteConfig()
+	multichain.Set("multichain", multichains)
+	err = multichain.WriteConfig()
 	tc.ChkErr(err, "Failed to write config")
 
-	msgViper.SetConfigFile("../../../docker-volumes/executor/config/executor.toml")
-	err = msgViper.ReadInConfig()
+	executor := viper.New()
+	executor.SetConfigFile("../../../docker-volumes/executor/config/executor.toml")
+	err = executor.ReadInConfig()
 	tc.ChkErr(err, "Failed to read config")
-
 	var contracts []interface{}
 	contractInfo1 := make(map[string]interface{})
 	contractInfo1["address"] = tc.CbrChain1.BatchTransferAddr.Hex()
-	contractInfo1["chainid"] = tc.CbrChain1.ChainId
+	contractInfo1["chain_id"] = tc.CbrChain1.ChainId
+	contractInfo1["add_payable_value_for_execution"] = tc.MsgFeeBase
 	contracts = append(contracts, contractInfo1)
 	contractInfo2 := make(map[string]interface{})
 	contractInfo2["address"] = tc.CbrChain1.TestRefundAddr.Hex()
-	contractInfo2["chainid"] = tc.CbrChain1.ChainId
+	contractInfo2["chain_id"] = tc.CbrChain1.ChainId
 	contracts = append(contracts, contractInfo2)
 	contractInfo3 := make(map[string]interface{})
 	contractInfo3["address"] = tc.CbrChain1.TransferMessageAddr.Hex()
-	contractInfo3["chainid"] = tc.CbrChain1.ChainId
+	contractInfo3["chain_id"] = tc.CbrChain1.ChainId
 	contracts = append(contracts, contractInfo3)
 	contractInfo4 := make(map[string]interface{})
 	contractInfo4["address"] = tc.CbrChain2.BatchTransferAddr.Hex()
-	contractInfo4["chainid"] = tc.CbrChain2.ChainId
+	contractInfo4["chain_id"] = tc.CbrChain2.ChainId
+	contractInfo4["add_payable_value_for_execution"] = tc.MsgFeeBase
 	contracts = append(contracts, contractInfo4)
 	contractInfo5 := make(map[string]interface{})
 	contractInfo5["address"] = tc.CbrChain2.TestRefundAddr.Hex()
-	contractInfo5["chainid"] = tc.CbrChain2.ChainId
+	contractInfo5["chain_id"] = tc.CbrChain2.ChainId
 	contracts = append(contracts, contractInfo5)
 	contractInfo6 := make(map[string]interface{})
 	contractInfo6["address"] = tc.CbrChain2.TransferMessageAddr.Hex()
-	contractInfo6["chainid"] = tc.CbrChain2.ChainId
+	contractInfo6["chain_id"] = tc.CbrChain2.ChainId
 	contracts = append(contracts, contractInfo6)
-	msgViper.Set("executor.contracts", contracts)
-	err = msgViper.WriteConfig()
+	executor.Set("executor.contracts", contracts)
+	err = executor.WriteConfig()
 	tc.ChkErr(err, "Failed to write config")
 }
 

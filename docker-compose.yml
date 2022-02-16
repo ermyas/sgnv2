@@ -82,8 +82,6 @@ services:
   crdb:
     container_name: crdb
     image: "celer-network/crdb"
-    ports:
-      - "26257:26257"
     networks:
       localnet:
         ipv4_address: 192.168.10.7

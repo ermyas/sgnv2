@@ -17,6 +17,10 @@ service Msg {
 
   // ClaimAllFees defines a method for SGN delegators to trigger a claim of all the message fees.
   rpc ClaimAllFees(MsgClaimAllFees) returns (MsgClaimAllFeesResponse);
+
+  // SignFees defines a method for validators to co-sign a fee claim request to
+  // a MessageBus contract.
+  rpc SignFees(MsgSignFees) returns (MsgSignFeesResponse);
 }
 
 // MsgSignMessage signs a message request.

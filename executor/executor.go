@@ -8,7 +8,6 @@ import (
 
 	"github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
-	commontypes "github.com/celer-network/sgn-v2/common/types"
 	ethtypes "github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/executor/sgn"
 	"github.com/celer-network/sgn-v2/executor/types"
@@ -19,14 +18,14 @@ import (
 )
 
 type Executor struct {
-	dal             *DAL
-	chains          *ChainMgr
-	sgn             *sgn.SgnClient
-	gateway         *GatewayClient
-	wg              sync.WaitGroup
-	contractFilters []*commontypes.ContractInfo
-	parallelism     int
-	testMode        bool
+	dal         *DAL
+	chains      *ChainMgr
+	sgn         *sgn.SgnClient
+	gateway     *GatewayClient
+	wg          sync.WaitGroup
+	contracts   []*types.ContractConfig
+	parallelism int
+	testMode    bool
 }
 
 func NewExecutor(dal *DAL, testMode bool) *Executor {
@@ -37,7 +36,7 @@ func NewExecutor(dal *DAL, testMode bool) *Executor {
 	sgn := sgn.NewSgnClient(viper.GetString(types.FlagSgnGrpcUrl), testMode)
 	chains := NewChainMgr(dal)
 
-	contracts := []*commontypes.ContractInfo{}
+	contracts := []*types.ContractConfig{}
 	err := viper.UnmarshalKey(types.FlagExecutorContracts, &contracts)
 	if err != nil {
 		log.Fatalln("failed to initialize contract filters", err)
@@ -45,14 +44,19 @@ func NewExecutor(dal *DAL, testMode bool) *Executor {
 	if len(contracts) == 0 {
 		log.Fatalln("empty executor contract filter")
 	}
+	log.Infoln("executor will submit execution for contracts:")
+	for _, contract := range contracts {
+		log.Infof("(chainId %d, addr %s, value %s)",
+			contract.ChainId, contract.Address, contract.PayableValue)
+	}
 	return &Executor{
-		dal:             dal,
-		chains:          chains,
-		sgn:             sgn,
-		gateway:         gateway,
-		contractFilters: contracts,
-		parallelism:     10, // hardcode 10 for now
-		testMode:        testMode,
+		dal:         dal,
+		chains:      chains,
+		sgn:         sgn,
+		gateway:     gateway,
+		contracts:   contracts,
+		parallelism: 10,
+		testMode:    testMode,
 	}
 }
 
@@ -68,13 +72,13 @@ func (e *Executor) Start() {
 func (e *Executor) startFetchingExecCtxsFromSgn() {
 	log.Infoln("Start fetching execution contexts from SGN")
 	for {
-		time.Sleep(3 * time.Second)
+		time.Sleep(8 * time.Second)
 		var execCtxs []msgtypes.ExecutionContext
 		var err error
 		if e.testMode {
-			execCtxs, err = e.sgn.GetExecutionContexts(e.contractFilters)
+			execCtxs, err = e.sgn.GetExecutionContexts(e.contracts)
 		} else {
-			execCtxs, err = e.gateway.GetExecutionContexts(e.contractFilters)
+			execCtxs, err = e.gateway.GetExecutionContexts(e.contracts)
 		}
 		if err != nil {
 			log.Errorln("failed to get messages", err)
@@ -83,6 +87,7 @@ func (e *Executor) startFetchingExecCtxsFromSgn() {
 		if len(execCtxs) == 0 {
 			continue
 		}
+		log.Debugf("Got %d execution contexts", len(execCtxs))
 		execCtxsToSave := []*msgtypes.ExecutionContext{}
 		for i := range execCtxs {
 			execCtxsToSave = append(execCtxsToSave, &execCtxs[i])
@@ -212,10 +217,19 @@ func (e *Executor) executeMsgNoTransfer(execCtx *msgtypes.ExecutionContext) {
 		log.Errorf("failed to query chain signers with chainId %d", execCtx.Message.DstChainId)
 		return
 	}
+	contractConf, found := types.GetContractConfig(e.contracts, execCtx.Message.Receiver)
+	if !found {
+		log.Errorf("message receiver (address %s) not found in contract configs", execCtx.Message.Receiver)
+		return
+	}
 	log.Infof("executing msg (id %x)...", id)
 	tx, err := chain.Transactor.Transact(
 		getTransactionHandler(id, execCtx, "executeMsg"),
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*gethtypes.Transaction, error) {
+			// Executor can be optionally configured to include a payable value for message execution.
+			// This value acts as message fee and is needed when calling executeMessage results in
+			// sending another message.
+			setValue(opts, contractConf.PayableValue)
 			return chain.MsgBus.ExecuteMessage(opts, msg, route, sigs, signers, powers)
 		})
 	if err != nil {
@@ -388,6 +402,11 @@ func (e *Executor) executeMsgWithTransfer(execCtx *msgtypes.ExecutionContext) {
 		SrcChainId: message.SrcChainId,
 		RefId:      refid,
 	}
+	contractConf, found := types.GetContractConfig(e.contracts, execCtx.Message.Receiver)
+	if !found {
+		log.Errorf("message receiver (address %s) not found in contract configs", execCtx.Message.Receiver)
+		return
+	}
 
 	err = Dal.UpdateStatus(id, types.ExecutionStatus_Executing)
 	if err != nil {
@@ -403,6 +422,10 @@ func (e *Executor) executeMsgWithTransfer(execCtx *msgtypes.ExecutionContext) {
 	tx, err := chain.Transactor.Transact(
 		getTransactionHandler(id, execCtx, "executeMsgWithXfer"),
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*gethtypes.Transaction, error) {
+			// Executor can be optionally configured to include a payable value for message execution.
+			// This value acts as message fee and is needed when calling executeMessageWithTransfer results
+			// in sending another message.
+			setValue(opts, contractConf.PayableValue)
 			return chain.MsgBus.ExecuteMessageWithTransfer(opts, msg, xfer, sigs, signers, powers)
 		})
 	if err != nil {
@@ -441,5 +464,14 @@ func getTransactionHandler(id []byte, execCtx *msgtypes.ExecutionContext, logmsg
 			log.Errorf("%s error: txhash %s, err %v", logmsg, tx.Hash(), err)
 			Dal.UpdateStatus(id, types.ExecutionStatus_Failed)
 		},
+	}
+}
+
+func setValue(opts *bind.TransactOpts, value string) {
+	if len(value) > 0 {
+		val, ok := new(big.Int).SetString(value, 10)
+		if ok {
+			opts.Value = val
+		}
 	}
 }

@@ -106,7 +106,7 @@ build-geth:
 
 .PHONY: build-node
 build-node:
-	DOCKER_BUILDKIT=1 docker $(BUILDX) build $(BUILDX_FLAGS) --tag celer-network/sgnnode . \
+	DOCKER_BUILDKIT=1 docker build --tag celer-network/sgnnode . \
 
 .PHONY: build-executor
 build-executor:

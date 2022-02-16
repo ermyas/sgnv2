@@ -5,8 +5,9 @@ import "fmt"
 type ExecutionStatus uint64
 
 const (
+	ExecutionStatus_Unknown ExecutionStatus = iota
 	// initial default status
-	ExecutionStatus_Unexecuted ExecutionStatus = iota
+	ExecutionStatus_Unexecuted
 
 	// status branch: if the msg is the "refund" kind of message
 	// executor needs to do InitWithdraw (if liq bridge) or ClaimRefund (if peg bridge) first before executing the message

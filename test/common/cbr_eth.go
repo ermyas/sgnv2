@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -9,9 +10,11 @@ import (
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
+	"github.com/celer-network/sgn-v2/transactor"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
 	farmingtypes "github.com/celer-network/sgn-v2/x/farming/types"
+	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -216,6 +219,9 @@ func (c *CbrChain) SendAny(fromUid, toUid uint64, amt *big.Int, dstChainId, nonc
 	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
 		return eth.ZeroHash, fmt.Errorf("tx failed")
 	}
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return eth.ZeroHash, errors.New("send tx failed")
+	}
 	sendLog := receipt.Logs[len(receipt.Logs)-1] // last log is Send event (NOTE Polygon breaks this assumption)
 	sendEv, err := c.CbrContract.ParseSend(*sendLog)
 	if err != nil {
@@ -306,6 +312,9 @@ func (c *CbrChain) PbrDeposit(fromUid uint64, amt *big.Int, mintChainId uint64, 
 	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
 		return "", fmt.Errorf("tx failed")
 	}
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return "", errors.New("deposit tx failed")
+	}
 	// last log is Deposit event (NOTE: test only)
 	depositLog := receipt.Logs[len(receipt.Logs)-1]
 	depositEv, err := c.PegVaultContract.ParseDeposited(*depositLog)
@@ -329,6 +338,9 @@ func (c *CbrChain) PbrBurn(fromUid uint64, amt *big.Int, nonce uint64) (string, 
 	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
 		return "", fmt.Errorf("tx failed")
 	}
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return "", errors.New("burn tx failed")
+	}
 	// last log is Deposit event (NOTE: test only)
 	burnLog := receipt.Logs[len(receipt.Logs)-1]
 	burnEv, err := c.PegBridgeContract.ParseBurn(*burnLog)
@@ -337,6 +349,38 @@ func (c *CbrChain) PbrBurn(fromUid uint64, amt *big.Int, nonce uint64) (string, 
 	}
 	log.Infof("Burn tx success, burnId: %x", burnEv.BurnId)
 	return eth.Hash(burnEv.BurnId).Hex(), nil
+}
+
+func WithdrawMsgFeesOnChain(txr *transactor.Transactor, claimInfo *msgtypes.FeeClaimInfo) error {
+	for _, detail := range claimInfo.FeeClaimDetailsList {
+		chain := GetChain(detail.ChainId)
+		if chain == nil {
+			log.Fatalf("chain not found for chainid (%d)", detail.ChainId)
+		}
+
+		log.Infoln("withdraw msg fee on-chain")
+		curss, err := GetCurSortedSigners(txr, chain.ChainId)
+		ChkErr(err, "unable to query chain signers")
+		pass, sigsBytes := cbrtypes.ValidateSignatureQuorum(detail.Signatures, curss)
+		if !pass {
+			return fmt.Errorf("not enough sigs")
+		}
+		receipt, err := chain.Transactor.TransactWaitMined(
+			"WithdrawMsgFeeOnChain",
+			func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+				signers, powers := cbrtypes.SignersToEthArrays(curss)
+				return chain.MessageBusContract.WithdrawFee(
+					opts, eth.Hex2Addr(claimInfo.Recipient), detail.CumulativeFeeAmount.Amount.RoundInt().BigInt(), sigsBytes, signers, powers)
+			},
+		)
+		if err != nil {
+			return err
+		}
+		if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+			return fmt.Errorf("tx failed")
+		}
+	}
+	return nil
 }
 
 func (c *CbrChain) OnchainPegVaultWithdraw(info *pegbrtypes.WithdrawInfo, signers []*cbrtypes.Signer) error {
@@ -431,8 +475,10 @@ func (c *CbrChain) CheckPeggedUNIBalance(uid uint64, expectedAmt *big.Int) {
 }
 
 func (c *CbrChain) TransferMsg(uid uint64, receiver eth.Addr, dstChainId uint64, message []byte) error {
+	auth := c.Users[uid].Auth
+	auth.Value = MsgFeeBase
 	tx, err := c.TransferMessageContract.TransferMessage(
-		c.Users[uid].Auth,
+		auth,
 		receiver,
 		dstChainId,
 		message,
@@ -443,6 +489,9 @@ func (c *CbrChain) TransferMsg(uid uint64, receiver eth.Addr, dstChainId uint64,
 	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
 	if err != nil {
 		return err
+	}
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return errors.New("transferMessage tx failed")
 	}
 	// last log is MessageWithTransfer event (NOTE: test only)
 	msgLog := receipt.Logs[len(receipt.Logs)-1]
@@ -458,8 +507,10 @@ func (c *CbrChain) BatchTransfer(
 	uid uint64, receiver eth.Addr, token eth.Addr, amount *big.Int, dstChainId uint64, maxSlippage uint32,
 	bridgeType uint8, accounts []eth.Addr, amounts []*big.Int) (xferId eth.Hash, err error) {
 
+	auth := c.Users[uid].Auth
+	auth.Value = MsgFeeBase
 	tx, err := c.BatchTransferContract.BatchTransfer(
-		c.Users[uid].Auth,
+		auth,
 		receiver,
 		token,
 		amount,
@@ -469,12 +520,16 @@ func (c *CbrChain) BatchTransfer(
 		accounts,
 		amounts,
 	)
+	auth.Value = big.NewInt(0)
 	if err != nil {
 		return eth.ZeroHash, err
 	}
 	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
 	if err != nil {
 		return eth.ZeroHash, err
+	}
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return eth.ZeroHash, errors.New("batchTransfer tx failed")
 	}
 	// last log is MessageWithTransfer event (NOTE: test only)
 	msgLog := receipt.Logs[len(receipt.Logs)-1]
@@ -507,6 +562,9 @@ func (c *CbrChain) BatchTransferForDeposit(
 	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
 	if err != nil {
 		return eth.ZeroHash, err
+	}
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return eth.ZeroHash, errors.New("batchTransfer tx failed")
 	}
 	// last log is MessageWithTransfer event (NOTE: test only)
 	msgLog := receipt.Logs[len(receipt.Logs)-1]

@@ -1,6 +1,7 @@
 package common
 
 import (
+	"math/big"
 	"time"
 
 	"github.com/celer-network/sgn-v2/eth"
@@ -166,6 +167,8 @@ var (
 		DelEthAddrs[2],
 		DelEthAddrs[3],
 	}
+
+	MsgFeeBase = big.NewInt(1e14)
 )
 
 func GetGethRpc(chainId uint64) string {

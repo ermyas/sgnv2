@@ -15,6 +15,7 @@ import (
 	// "github.com/cosmos/cosmos-sdk/client/flags"
 	// sdk "github.com/cosmos/cosmos-sdk/types"
 
+	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/message/types"
 )
 
@@ -221,5 +222,17 @@ func QueryMessageBus(cliCtx client.Context, chainId uint64) (msgBus types.Messag
 		return
 	}
 	msgBus = res.MessageBus
+	return
+}
+
+func QueryFeeClaimInfo(cliCtx client.Context, delAddr eth.Addr) (feeClaim types.FeeClaimInfo, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	res, err := queryClient.FeeClaimInfo(context.Background(), &types.QueryFeeClaimInfoRequest{
+		Address: eth.Addr2Hex(delAddr),
+	})
+	if err != nil {
+		return
+	}
+	feeClaim = res.FeeClaimInfo
 	return
 }
