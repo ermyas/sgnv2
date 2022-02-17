@@ -20,7 +20,8 @@ import (
 
 // Lengths of hashes and addresses in bytes.
 const (
-	retryTimeout        = 500 * time.Millisecond
+	retryInterval = time.Second
+
 	ERC20DenomSeparator = "/" // NOTE: Cosmos SDK only accepts "/" or "-"
 	// HashLength is the expected length of the hash
 	HashLength = 32
@@ -69,7 +70,7 @@ func SetupUserPassword() error {
 func RobustQuery(cliCtx client.Context, route string) ([]byte, error) {
 	res, _, err := cliCtx.Query(route)
 	if err != nil {
-		time.Sleep(retryTimeout)
+		time.Sleep(retryInterval)
 		res, _, err = cliCtx.Query(route)
 		return res, err
 	}
@@ -80,7 +81,7 @@ func RobustQuery(cliCtx client.Context, route string) ([]byte, error) {
 func RobustQueryWithData(cliCtx client.Context, route string, data []byte) ([]byte, error) {
 	res, _, err := cliCtx.QueryWithData(route, data)
 	if err != nil {
-		time.Sleep(retryTimeout)
+		time.Sleep(retryInterval)
 		res, _, err = cliCtx.QueryWithData(route, data)
 		return res, err
 	}
