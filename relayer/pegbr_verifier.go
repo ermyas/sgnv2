@@ -77,7 +77,7 @@ func (c *CbrOneChain) verifyPegbrDeposit(eLog *ethtypes.Log, cliCtx client.Conte
 		logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
 
 		done, approve, depositLog := c.verifyEventLog(
-			eLog, eth.PegVault, pegtypes.PegbrEventDeposited, c.pegContracts.vault.Address, logmsg)
+			eLog, eth.PegVault, pegtypes.PegbrEventDeposited, c.pegContracts.vault.GetAddr(), logmsg)
 		if depositLog == nil {
 			return done, approve
 		}
@@ -155,7 +155,7 @@ func (c *CbrOneChain) verifyPegbrBurn(eLog *ethtypes.Log, cliCtx client.Context,
 		logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
 
 		done, approve, burnLog := c.verifyEventLog(
-			eLog, eth.PegBridge, pegtypes.PegbrEventBurn, c.pegContracts.bridge.Address, logmsg)
+			eLog, eth.PegBridge, pegtypes.PegbrEventBurn, c.pegContracts.bridge.GetAddr(), logmsg)
 		if burnLog == nil {
 			return done, approve
 		}

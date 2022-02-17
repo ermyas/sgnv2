@@ -2,7 +2,6 @@ package relayer
 
 import (
 	"fmt"
-	"gopkg.in/resty.v1"
 	"math/big"
 	"strconv"
 	"sync"
@@ -16,6 +15,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/lthibault/jitterbug"
 	"github.com/spf13/viper"
+	"gopkg.in/resty.v1"
 )
 
 var lpFeeEarningHistoryMap = make(map[uint64]*LPFeeEarningHistory)
@@ -188,10 +188,10 @@ func (r *Relayer) getChainConfig() map[string]*ChainConfig {
 	m := make(map[string]*ChainConfig)
 	for chainId, oneChain := range r.cbrMgr {
 		m[fmt.Sprintf("%d", chainId)] = &ChainConfig{
-			CbridgeContractAddr:            oneChain.cbrContract.Address.Hex(),
-			OriginalTokenVaultContractAddr: oneChain.pegContracts.vault.Address.Hex(),
-			PeggedTokenBridgeContractAddr:  oneChain.pegContracts.bridge.Address.Hex(),
-			MsgBusContractAddr:             oneChain.msgContract.Address.Hex(),
+			CbridgeContractAddr:            oneChain.cbrContract.GetAddr().Hex(),
+			OriginalTokenVaultContractAddr: oneChain.pegContracts.vault.GetAddr().Hex(),
+			PeggedTokenBridgeContractAddr:  oneChain.pegContracts.bridge.GetAddr().Hex(),
+			MsgBusContractAddr:             oneChain.msgContract.GetAddr().Hex(),
 		}
 	}
 	chainConfigReported = true
