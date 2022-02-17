@@ -168,9 +168,13 @@ func (r *Relayer) checkSyncer() {
 
 func (r *Relayer) monitorChain() {
 	sgnBlkTime := viper.GetDuration(common.FlagConsensusTimeoutCommit)
-	log.Infof("check syncer candidates every %s", sgnBlkTime)
+	time.Sleep(sgnBlkTime)
+	checkInterval := sgnBlkTime * 10
+	log.Infof("check syncer candidates every %s", checkInterval)
 	for {
-		time.Sleep(sgnBlkTime)
+		if r.chainMonitorStatus != ChainMonitorStatusNull {
+			time.Sleep(checkInterval)
+		}
 		stakingParams, err := stakingcli.QueryParams(r.Transactor.CliCtx)
 		if err != nil {
 			log.Errorln("Get staking params err", err)
@@ -179,6 +183,7 @@ func (r *Relayer) monitorChain() {
 
 		if len(stakingParams.SyncerCandidates) == 0 || containsAddr(stakingParams.SyncerCandidates, r.Operator.ValAddr) {
 			if r.chainMonitorStatus != ChainMonitorStatusYes {
+				log.Infoln("start bridge monitoring")
 				for _, oc := range CbrMgrInstance {
 					oc.startMon()
 				}
@@ -186,6 +191,7 @@ func (r *Relayer) monitorChain() {
 			}
 		} else {
 			if r.chainMonitorStatus == ChainMonitorStatusYes {
+				log.Infoln("close bridge monitoring")
 				for _, oc := range CbrMgrInstance {
 					oc.mon.Close()
 				}
@@ -193,9 +199,9 @@ func (r *Relayer) monitorChain() {
 			r.chainMonitorStatus = ChainMonitorStatusNo
 			// if syncer candidates has been set and I am not the syncer candidate, stop the for loop. As in practice, after syncer candidates is set,
 			// it's rare to change. In case it's changed and I am the syncer candidate again, workaround is to restart the sgnd.
+			log.Infoln("not monitoring bridge chains")
 			break
 		}
-
 	}
 }
 

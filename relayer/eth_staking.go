@@ -71,7 +71,6 @@ func (r *Relayer) monitorEthValidatorStatusUpdate() {
 			EventName:     eth.EventValidatorStatusUpdate,
 			Contract:      r.EthClient.Contracts.Staking,
 			StartBlock:    r.startEthBlock,
-			Reset:         true,
 			CheckInterval: getEventCheckInterval(eth.EventValidatorStatusUpdate),
 		},
 		func(cb monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
@@ -120,7 +119,6 @@ func (r *Relayer) monitorEthDelegationUpdate() {
 			EventName:     eth.EventDelegationUpdate,
 			Contract:      r.EthClient.Contracts.Staking,
 			StartBlock:    r.startEthBlock,
-			Reset:         true,
 			CheckInterval: getEventCheckInterval(eth.EventDelegationUpdate),
 		},
 		func(cb monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
