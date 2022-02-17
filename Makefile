@@ -126,12 +126,12 @@ localnet-start-crdb:
 # Run geth
 .PHONY: localnet-start-geth
 localnet-start-geth:
-	docker-compose up -d geth1 geth2
+	docker-compose up -d geth1 geth2 geth3
 
 .PHONY: localnet-stop-geth
 localnet-stop-geth:
-	docker-compose stop geth1 geth2
-	docker-compose rm -f geth1 geth2
+	docker-compose stop geth1 geth2 geth3
+	docker-compose rm -f geth1 geth2 geth3
 
 # Run a 3-node sgn testnet locally
 .PHONY: localnet-up-nodes

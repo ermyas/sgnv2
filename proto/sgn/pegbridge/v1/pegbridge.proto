@@ -22,14 +22,20 @@ message Params {
   ];
 }
 
+message ContractInfo {
+  sgn.common.v1.ContractInfo contract = 1
+      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"pegged_token_bridges\""];
+  uint32 version = 2 [(gogoproto.moretags) = "yaml:\"version\""];
+}
+
 // PegConfig describes the pegbridge specific configs.
 message PegConfig {
   // pegged_token_bridges defines the PeggedTokenBridge contracts.
-  repeated sgn.common.v1.ContractInfo pegged_token_bridges = 1
+  repeated ContractInfo pegged_token_bridges = 1
       [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"pegged_token_bridges\""];
 
   // original_token_vaults defines the OriginalTokenVault contracts.
-  repeated sgn.common.v1.ContractInfo original_token_vaults = 2
+  repeated ContractInfo original_token_vaults = 2
       [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"original_token_vaults\""];
 
   // orig_pegged_pairs defines the original-pegged token pairs.
@@ -58,6 +64,10 @@ message OrigPeggedPair {
 
   // supply_cap defines the max mint amount of the bridge used by this pair
   string supply_cap = 7 [(gogoproto.moretags) = "yaml:\"supply_cap\""];
+
+  uint32 vault_version = 8 [(gogoproto.moretags) = "yaml:\"vault_version\""];
+
+  uint32 bridge_version = 9 [(gogoproto.moretags) = "yaml:\"bridge_version\""];
 }
 
 // PeggedOrigIndex describes the reverse lookup index from a pegged token to the original token, if exists.
@@ -81,6 +91,8 @@ message DepositInfo {
 
   // mint_id defines the corresponding mint ID.
   bytes mint_id = 3 [(gogoproto.moretags) = "yaml:\"mint_id\""];
+
+  uint32 vault_version = 4 [(gogoproto.moretags) = "yaml:\"vault_version\""];
 }
 
 // MintInfo describes the info for an on-chain mint request to be submitted to PeggedTokenBridge.
@@ -106,6 +118,8 @@ message MintInfo {
   bool success = 6 [(gogoproto.moretags) = "yaml:\"success\""];
 
   int64 last_req_time = 7;  // to anti-dos, avoid constant re-signing. if last_req_time is still within x seconds of now, won't resign
+
+  uint32 bridge_version = 8 [(gogoproto.moretags) = "yaml:\"bridge_version\""];;
 }
 
 // BurnInfo describes the info for an on-chain burn tx submitted by a user to PeggedTokenBridge.
@@ -120,6 +134,11 @@ message BurnInfo {
 
   // withdraw_id defines the corresponding withdraw ID.
   bytes withdraw_id = 3 [(gogoproto.moretags) = "yaml:\"withdraw_id\""];
+
+  // mint_id defines the corresponding mint ID.
+  bytes mint_id = 4 [(gogoproto.moretags) = "yaml:\"mint_id\""];
+
+  uint32 bridge_version = 5 [(gogoproto.moretags) = "yaml:\"bridge_version\""];;
 }
 
 // WithdrawInfo describes the info for an on-chain withdraw request to be submitted to OriginalTokenVault.
@@ -145,12 +164,16 @@ message WithdrawInfo {
   bool success = 6 [(gogoproto.moretags) = "yaml:\"success\""];
 
   int64 last_req_time = 7;  // to anti-dos, avoid constant re-signing. if last_req_time is still within x seconds of now, won't resign
+
+  uint32 vault_version = 8 [(gogoproto.moretags) = "yaml:\"vault_version\""];
 }
 
 // FeeClaimInfo describes the info for a pegbridge fee claim.
 message FeeClaimInfo {
   // withdraw_id defines the corresponding withdraw ID
   bytes withdraw_id = 1 [(gogoproto.moretags) = "yaml:\"withdraw_id\""];
+
+  uint32 vault_version = 2 [(gogoproto.moretags) = "yaml:\"vault_version\""];
 }
 
 // MintOnChain describes the mint protobuf to be submitted on-chain.

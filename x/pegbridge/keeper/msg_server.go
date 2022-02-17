@@ -39,18 +39,18 @@ func (k msgServer) SignMint(goCtx context.Context, msg *types.MsgSignMint) (*typ
 	if !found {
 		return nil, types.WrapErrNoInfoFound(mindId)
 	}
-	bridge, found := k.GetPeggedTokenBridge(ctx, mintInfo.ChainId)
+	bridgeAddr, found := k.GetPeggedBridge(ctx, mintInfo.ChainId, mintInfo.BridgeVersion)
 	if !found {
 		return nil, types.WrapErrNoPeggedTokenBridgeFound(mintInfo.ChainId)
 	}
-	msgToSign := mintInfo.EncodeDataToSign(eth.Hex2Addr(bridge.Address))
+	msgToSign := mintInfo.EncodeDataToSign(bridgeAddr)
 	addSigErr := mintInfo.AddSig(
 		msgToSign,
 		msg.Signature,
 		validator.GetSignerAddr().String(),
 	)
 	if addSigErr != nil {
-		return nil, fmt.Errorf("failed to add sig: %s", addSigErr)
+		return nil, fmt.Errorf("failed to add sig for bridge %x: %s", bridgeAddr, addSigErr)
 	}
 	k.SetMintInfo(ctx, mindId, mintInfo)
 	log.Infof("x/pegbridge SignMintInfo add sig mintId:%x signer:%x :sender:%s", mindId, validator.GetSignerAddr(), msg.Sender)
@@ -69,18 +69,18 @@ func (k msgServer) SignWithdraw(goCtx context.Context, msg *types.MsgSignWithdra
 	if !found {
 		return nil, types.WrapErrNoInfoFound(withdrawId)
 	}
-	vaults, found := k.GetOriginalTokenVault(ctx, withdrawInfo.ChainId)
+	vaultAddr, found := k.GetOriginalVault(ctx, withdrawInfo.ChainId, withdrawInfo.VaultVersion)
 	if !found {
 		return nil, types.WrapErrNoOriginalTokenVaultFound(withdrawInfo.ChainId)
 	}
-	msgToSign := withdrawInfo.EncodeDataToSign(eth.Hex2Addr(vaults.Address))
+	msgToSign := withdrawInfo.EncodeDataToSign(vaultAddr)
 	addSigErr := withdrawInfo.AddSig(
 		msgToSign,
 		msg.Signature,
 		validator.GetSignerAddr().String(),
 	)
 	if addSigErr != nil {
-		return nil, fmt.Errorf("failed to add sig: %s", addSigErr)
+		return nil, fmt.Errorf("failed to add sig for vault %x: %s", vaultAddr, addSigErr)
 	}
 	k.SetWithdrawInfo(ctx, withdrawId, withdrawInfo)
 	log.Infof("x/pegbridge SignWithdrawInfo add sig withdrawId:%x signer:%x sender:%s", withdrawId, validator.GetSignerAddr(), msg.Sender)
@@ -182,7 +182,7 @@ func (k msgServer) ClaimFee(goCtx context.Context, msg *types.MsgClaimFee) (*typ
 	}
 
 	tokenAddr := eth.Hex2Addr(msg.TokenAddress)
-	withdrawAmt, withdrawOnChain, err := k.claimFee(ctx, withdrawAddr, msg.ChainId, tokenAddr, msg.Nonce, msg.Sender)
+	withdrawAmt, withdrawOnChain, vaultVersion, err := k.claimFee(ctx, withdrawAddr, msg.ChainId, tokenAddr, msg.Nonce, msg.Sender)
 	if err != nil {
 		return nil, err
 	}
@@ -201,6 +201,7 @@ func (k msgServer) ClaimFee(goCtx context.Context, msg *types.MsgClaimFee) (*typ
 		ChainId:            msg.ChainId,
 		WithdrawProtoBytes: withdrawProtoBytes,
 		LastReqTime:        ctx.BlockTime().Unix(),
+		VaultVersion:       vaultVersion,
 	}
 	// Record WithdrawInfo and FeeClaimInfo
 	k.SetWithdrawInfo(ctx, withdrawId, withdrawInfo)
@@ -240,33 +241,6 @@ func (k msgServer) ClaimRefund(goCtx context.Context, msg *types.MsgClaimRefund)
 			return nil, fmt.Errorf("this burn has already been refunded:%s", burnId.Hex())
 		}
 		mintAmount := new(big.Int).SetBytes(mint.Amount)
-
-		// check supply cap and increase total supply
-		pair, pairFound := k.GetOrigPeggedPairByPegged(ctx, mint.RefChainId, eth.Bytes2Addr(mint.Token))
-		if !pairFound {
-			// pegged pair should be found
-			return nil, fmt.Errorf("failed to get supply cap, pegged pair not exists, peggedChainId:%d, peggedTokenAddress:%s", mint.RefChainId, eth.Bytes2Hex(mint.Token))
-		}
-		supplyCap := new(big.Int).SetInt64(0)
-		if pair.SupplyCap != "" {
-			// supply cap string was checked during config set
-			supplyCap.SetString(pair.SupplyCap, 10)
-		}
-		if supplyCap.Sign() == 0 {
-			// do nothing
-		} else {
-			beforeMintTotalSupply, found := k.GetTotalSupply(ctx, mint.RefChainId, eth.Bytes2Addr(mint.Token))
-			if !found {
-				beforeMintTotalSupply = new(big.Int).SetInt64(0)
-			}
-			// check if mint would exceed supply cap
-			afterMintTotalSupply := new(big.Int).Add(beforeMintTotalSupply, mintAmount)
-			if supplyCap.Cmp(afterMintTotalSupply) == -1 {
-				return nil, fmt.Errorf("ongoing refund type mint would exceed supply cap, mintAmount %s current totalSupply %s supplyCap %s", mintAmount, beforeMintTotalSupply, supplyCap)
-			}
-			// reset totalSupply
-			k.SetTotalSupply(ctx, mint.RefChainId, eth.Bytes2Addr(mint.Token), afterMintTotalSupply)
-		}
 
 		mintId := types.CalcMintId(eth.Bytes2Addr(mint.Account), eth.Bytes2Addr(mint.Token),
 			mintAmount, eth.Bytes2Addr(mint.Depositor), mint.RefChainId, eth.Bytes2Hash(mint.RefId))

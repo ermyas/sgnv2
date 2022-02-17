@@ -16,6 +16,10 @@ type OneChainConfig struct {
 	OTVault string
 	// PeggedTokenBridge contract address
 	PTBridge string
+	// OriginalTokenVaultV2 contract address
+	OTVault2 string
+	// PeggedTokenBridgeV2 contract address
+	PTBridge2 string
 	// WithdrawInbox contract address
 	WdInbox string
 	// MsgBus contract address

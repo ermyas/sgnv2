@@ -22,6 +22,7 @@ const (
 
 	// Byte length of chain ID / nonce occupied
 	Uint64ByteArrayLength = 8
+	Uint32ByteArrayLength = 4
 
 	PegBridgeFeeDenomPrefix = "PBF-"
 )
@@ -39,6 +40,11 @@ var (
 	TotalSupplyPrefix        = []byte{0x0a}
 	RefundPrefix             = []byte{0x0b}
 	RefundClaimInfoPrefix    = []byte{0x0c}
+
+	VersionedVaultPrefix  = []byte{0x11}
+	VersionedBridgePrefix = []byte{0x12}
+	VaultVersionPrefix    = []byte{0x13}
+	BridgeVersionPrefix   = []byte{0x14}
 )
 
 func GetOriginalTokenVaultKey(chainId uint64) []byte {
@@ -112,4 +118,34 @@ func GetRefundKey(depositId eth.Hash) []byte {
 
 func GetRefundClaimInfoKey(depositId eth.Hash) []byte {
 	return append(RefundClaimInfoPrefix, depositId.Bytes()...)
+}
+
+// ---------- new versioned keys -------
+
+func GetVersionedVaultKey(chainId uint64, version uint32) []byte {
+	chainIdBytes := make([]byte, Uint64ByteArrayLength)
+	binary.LittleEndian.PutUint64(chainIdBytes, chainId)
+	versionBytes := make([]byte, Uint32ByteArrayLength)
+	binary.LittleEndian.PutUint32(versionBytes, version)
+	return append(VersionedVaultPrefix, append(chainIdBytes, versionBytes...)...)
+}
+
+func GetVersionedBridgeKey(chainId uint64, version uint32) []byte {
+	chainIdBytes := make([]byte, Uint64ByteArrayLength)
+	binary.LittleEndian.PutUint64(chainIdBytes, chainId)
+	versionBytes := make([]byte, Uint32ByteArrayLength)
+	binary.LittleEndian.PutUint32(versionBytes, version)
+	return append(VersionedBridgePrefix, append(chainIdBytes, versionBytes...)...)
+}
+
+func GetVaultVersionKey(chainId uint64, vaultAddr eth.Addr) []byte {
+	chainIdBytes := make([]byte, Uint64ByteArrayLength)
+	binary.LittleEndian.PutUint64(chainIdBytes, chainId)
+	return append(VaultVersionPrefix, append(chainIdBytes, vaultAddr.Bytes()...)...)
+}
+
+func GetBridgeVersionKey(chainId uint64, vaultAddr eth.Addr) []byte {
+	chainIdBytes := make([]byte, Uint64ByteArrayLength)
+	binary.LittleEndian.PutUint64(chainIdBytes, chainId)
+	return append(BridgeVersionPrefix, append(chainIdBytes, vaultAddr.Bytes()...)...)
 }

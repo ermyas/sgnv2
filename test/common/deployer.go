@@ -54,7 +54,7 @@ func DeployERC20Contract(ethClient *ethclient.Client, auth *bind.TransactOpts, n
 func DeployBridgeTestTokenContract(
 	ethClient *ethclient.Client, auth *bind.TransactOpts, name, symbol string, decimals uint8) (eth.Addr, *eth.BridgeTestToken) {
 	tokenAddr, tx, token, err := eth.DeployBridgeTestToken(auth, ethClient, name, symbol, decimals)
-	ChkErr(err, "failed to deploy PeggedToken")
+	ChkErr(err, "failed to deploy BridgeTestToken")
 	log.Infoln("PeggedToken address:", tokenAddr.String())
 	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployBridgeTestToken")
 
@@ -90,13 +90,13 @@ func DeployPegBridgeContract(
 }
 
 func DeployPegBridgeV2Contract(
-	ethClient *ethclient.Client, auth *bind.TransactOpts, sigsVerifier eth.Addr) (ptbAddr eth.Addr, ptbContract *eth.PegBridgeContract) {
+	ethClient *ethclient.Client, auth *bind.TransactOpts, sigsVerifier eth.Addr) (ptbAddr eth.Addr, ptbContract *eth.PegBridgeV2Contract) {
 	ptbAddr, tx, _, err := eth.DeployPeggedTokenBridgeV2(auth, ethClient, sigsVerifier)
-	ChkErr(err, "failed to deploy PeggedTokenBridge contract")
-	ptbContract, err = eth.NewPegBridgeContract(ptbAddr, ethClient)
-	ChkErr(err, "failed to set PeggedTokenBridge contract")
-	log.Infoln("ptb address:", ptbAddr.String())
-	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployPegBridgeContract")
+	ChkErr(err, "failed to deploy PeggedTokenBridgeV2 contract")
+	ptbContract, err = eth.NewPegBridgeV2Contract(ptbAddr, ethClient)
+	ChkErr(err, "failed to set PeggedTokenBridgeV2 contract")
+	log.Infoln("ptb v2 address:", ptbAddr.String())
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployPegBridgeContractV2")
 	return
 }
 
@@ -112,13 +112,13 @@ func DeployPegVaultContract(
 }
 
 func DeployPegVaultV2Contract(
-	ethClient *ethclient.Client, auth *bind.TransactOpts, sigsVerifier eth.Addr) (otvAddr eth.Addr, otvContract *eth.PegVaultContract) {
+	ethClient *ethclient.Client, auth *bind.TransactOpts, sigsVerifier eth.Addr) (otvAddr eth.Addr, otvContract *eth.PegVaultV2Contract) {
 	otvAddr, tx, _, err := eth.DeployOriginalTokenVaultV2(auth, ethClient, sigsVerifier)
-	ChkErr(err, "failed to deploy OriginalTokenVault contract")
-	otvContract, err = eth.NewPegVaultContract(otvAddr, ethClient)
-	ChkErr(err, "failed to set OriginalTokenVault contract")
-	log.Infoln("otv address:", otvAddr.String())
-	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployPegVaultContract")
+	ChkErr(err, "failed to deploy OriginalTokenVaultV2 contract")
+	otvContract, err = eth.NewPegVaultV2Contract(otvAddr, ethClient)
+	ChkErr(err, "failed to set OriginalTokenVaultV2 contract")
+	log.Infoln("otv v2 address:", otvAddr.String())
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployPegVaultContractV2")
 	return
 }
 

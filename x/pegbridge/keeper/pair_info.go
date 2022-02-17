@@ -55,6 +55,16 @@ func (k Keeper) DeleteOrigPeggedPair(
 	k.DeletePeggedOrigIndex(ctx, peggedChainId, peggedAddress)
 }
 
+func (k Keeper) GetAllOrigPeggedPairs(ctx sdk.Context) (pairs []types.OrigPeggedPair) {
+	k.IterateAllOrigPeggedPairs(ctx,
+		func(pair types.OrigPeggedPair) (stop bool) {
+			pairs = append(pairs, pair)
+			return false
+		},
+	)
+	return
+}
+
 func (k Keeper) IterateAllOrigPeggedPairs(
 	ctx sdk.Context, handler func(pair types.OrigPeggedPair) (stop bool),
 ) {

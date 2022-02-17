@@ -166,7 +166,8 @@ func (r *Relayer) submitMint(mintRequest MintRequest) {
 		return
 	}
 
-	txHash, err := r.cbrMgr[mintRequest.MintChainId].SendMint(mintInfo.MintProtoBytes, sigsBytes, curss, mintOnChain)
+	txHash, err := r.cbrMgr[mintRequest.MintChainId].SendMint(
+		mintInfo.MintProtoBytes, sigsBytes, curss, mintOnChain, mintInfo.BridgeVersion)
 	if err != nil {
 		if strings.Contains(err.Error(), "record exists") {
 			log.Infof("%s. err %s, skip it", logmsg, err)
@@ -293,7 +294,8 @@ func (r *Relayer) submitWithdraw(wdRequest WithdrawRequest) {
 		return
 	}
 
-	txHash, err := r.cbrMgr[wdRequest.WithdrawChainId].SendWithdraw(wdInfo.WithdrawProtoBytes, sigsBytes, curss, wdOnChain)
+	txHash, err := r.cbrMgr[wdRequest.WithdrawChainId].SendWithdraw(
+		wdInfo.WithdrawProtoBytes, sigsBytes, curss, wdOnChain, wdInfo.VaultVersion)
 	if err != nil {
 		if strings.Contains(err.Error(), "record exists") {
 			log.Infof("%s. err %s, skip it", logmsg, err)
@@ -420,13 +422,32 @@ func (c *CbrOneChain) skipPegbrEvent(evn string, evlog *ethtypes.Log, cliCtx cli
 
 func (c *CbrOneChain) skipSyncPegbrDeposit(
 	evlog *ethtypes.Log, cliCtx client.Context, validCache map[string]bool) (skip bool, reason string) {
-
-	ev, err := c.pegContracts.vault.ParseDeposited(*evlog)
-	if err != nil {
-		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+	var token eth.Addr
+	var depositId eth.Hash
+	var mintChainId uint64
+	var evstr string
+	if evlog.Address == c.pegContracts.vault.GetAddr() {
+		ev, err := c.pegContracts.vault.ParseDeposited(*evlog)
+		if err != nil {
+			return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+		}
+		token = ev.Token
+		depositId = ev.DepositId
+		mintChainId = ev.MintChainId
+		evstr = ev.PrettyLog(c.chainid)
+	} else if evlog.Address == c.pegContracts.vault2.GetAddr() {
+		ev, err := c.pegContracts.vault2.ParseDeposited(*evlog)
+		if err != nil {
+			return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+		}
+		token = ev.Token
+		depositId = ev.DepositId
+		mintChainId = ev.MintChainId
+		evstr = ev.PrettyLog(c.chainid)
 	}
+
 	// we should check cache first
-	cacheKey := fmt.Sprintf("%d-%d-%x", c.chainid, ev.MintChainId, ev.Token)
+	cacheKey := fmt.Sprintf("%d-%d-%x", c.chainid, mintChainId, token)
 
 	if validCache != nil {
 		cacheValid, found := validCache[cacheKey]
@@ -438,17 +459,17 @@ func (c *CbrOneChain) skipSyncPegbrDeposit(
 	req := &pegbrtypes.QueryOrigPeggedPairsRequest{
 		Orig: &commontypes.ContractInfo{
 			ChainId: c.chainid,
-			Address: ev.Token.Hex(),
+			Address: token.Hex(),
 		},
 		Pegged: &commontypes.ContractInfo{
-			ChainId: ev.MintChainId,
+			ChainId: mintChainId,
 		},
 	}
 	pairs, err := pegbrcli.QueryOrigPeggedPairs(cliCtx, req)
 	if len(pairs) == 0 {
 		// If request failed, we will not break this flow.
 		// As if invalid token send event go to the apply flow, sgn will also check it and set it to refund flow.
-		log.Errorf("fail to lookup pegged pair, ev:%s, err:%s", ev.PrettyLog(c.chainid), err)
+		log.Errorf("fail to lookup pegged pair, ev:%s, err:%s", evstr, err)
 		// may be call sgn fail, we still send this ev to sgn and sgn to do the check again.
 		return
 	}
@@ -459,14 +480,14 @@ func (c *CbrOneChain) skipSyncPegbrDeposit(
 		validCache[cacheKey] = pair.Pegged.Address != ""
 	}
 
-	resp, err := pegbrcli.QueryDepositInfo(cliCtx, eth.Bytes2Hex(ev.DepositId[:]))
+	resp, err := pegbrcli.QueryDepositInfo(cliCtx, eth.Bytes2Hex(depositId[:]))
 	if err != nil && !strings.Contains(err.Error(), pegbrtypes.ErrNoInfoFound.Error()) {
 		// log only, will not skip if request failed
 		log.Errorf("QueryDepositInfo err: %s", err)
 		return
 	}
 	if resp.DepositId != nil {
-		return true, fmt.Sprintf("deposit %x already synced", ev.DepositId)
+		return true, fmt.Sprintf("deposit %x already synced", depositId)
 	}
 
 	return
@@ -474,13 +495,30 @@ func (c *CbrOneChain) skipSyncPegbrDeposit(
 
 func (c *CbrOneChain) skipSyncPegbrBurn(
 	evlog *ethtypes.Log, cliCtx client.Context, validCache map[string]bool) (skip bool, reason string) {
+	var token eth.Addr
+	var burnId eth.Hash
+	var evstr string
 
-	ev, err := c.pegContracts.bridge.ParseBurn(*evlog)
-	if err != nil {
-		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+	if evlog.Address == c.pegContracts.bridge.GetAddr() {
+		ev, err := c.pegContracts.bridge.ParseBurn(*evlog)
+		if err != nil {
+			return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+		}
+		token = ev.Token
+		burnId = ev.BurnId
+		evstr = ev.PrettyLog(c.chainid)
+	} else if evlog.Address == c.pegContracts.bridge2.GetAddr() {
+		ev, err := c.pegContracts.bridge2.ParseBurn(*evlog)
+		if err != nil {
+			return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+		}
+		token = ev.Token
+		burnId = ev.BurnId
+		evstr = ev.PrettyLog(c.chainid)
 	}
+
 	// we should check cache first
-	cacheKey := fmt.Sprintf("%d-%x", c.chainid, ev.Token)
+	cacheKey := fmt.Sprintf("%d-%x", c.chainid, token)
 
 	if validCache != nil {
 		cacheValid, found := validCache[cacheKey]
@@ -492,7 +530,7 @@ func (c *CbrOneChain) skipSyncPegbrBurn(
 	req := &pegbrtypes.QueryOrigPeggedPairsRequest{
 		Pegged: &commontypes.ContractInfo{
 			ChainId: c.chainid,
-			Address: ev.Token.Hex(),
+			Address: token.Hex(),
 		},
 	}
 
@@ -500,7 +538,7 @@ func (c *CbrOneChain) skipSyncPegbrBurn(
 	if len(pairs) == 0 {
 		// If request failed, we will not break this flow.
 		// As if invalid token send event go to the apply flow, sgn will also check it and set it to refund flow.
-		log.Errorf("fail to lookup pegged pair, ev:%s, err:%s", ev.PrettyLog(c.chainid), err)
+		log.Errorf("fail to lookup pegged pair, ev:%s, err:%s", evstr, err)
 		// may be call sgn fail, we still send this ev to sgn and sgn to do the check again.
 		return
 	}
@@ -511,49 +549,69 @@ func (c *CbrOneChain) skipSyncPegbrBurn(
 		validCache[cacheKey] = pair.Orig.Address != ""
 	}
 
-	resp, err := pegbrcli.QueryBurnInfo(cliCtx, eth.Bytes2Hex(ev.BurnId[:]))
+	resp, err := pegbrcli.QueryBurnInfo(cliCtx, burnId.Hex())
 	if err != nil && !strings.Contains(err.Error(), "no info found") {
 		// log only, will not skip if request failed
 		log.Errorf("QueryBurnInfo err: %s", err)
 		return
 	}
 	if resp.BurnId != nil {
-		return true, fmt.Sprintf("burn %x already synced", ev.BurnId)
+		return true, fmt.Sprintf("burn %x already synced", burnId)
 	}
 
 	return
 }
 
 func (c *CbrOneChain) skipSyncPegbrMint(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
-	ev, err := c.pegContracts.bridge.ParseMint(*evlog)
-	if err != nil {
-		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+	var mintId eth.Hash
+	if evlog.Address == c.pegContracts.bridge.GetAddr() {
+		ev, err := c.pegContracts.bridge.ParseMint(*evlog)
+		if err != nil {
+			return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+		}
+		mintId = eth.Hash(ev.MintId)
+	} else if evlog.Address == c.pegContracts.bridge2.GetAddr() {
+		ev, err := c.pegContracts.bridge2.ParseMint(*evlog)
+		if err != nil {
+			return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+		}
+		mintId = eth.Hash(ev.MintId)
 	}
-	resp, err := pegbrcli.QueryMintInfo(cliCtx, eth.Hash(ev.MintId).Hex())
+	resp, err := pegbrcli.QueryMintInfo(cliCtx, mintId.Hex())
 	if err != nil {
 		// log only, will not skip if request failed
 		log.Errorf("QueryMintInfo err: %s", err)
 		return
 	}
 	if resp.Success {
-		return true, fmt.Sprintf("mint %x already synced", ev.MintId)
+		return true, fmt.Sprintf("mint %x already synced", mintId)
 	}
 	return
 }
 
 func (c *CbrOneChain) skipSyncPegbrWithdrawn(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
-	ev, err := c.pegContracts.vault.ParseWithdrawn(*evlog)
-	if err != nil {
-		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+	var withdrawId eth.Hash
+	if evlog.Address == c.pegContracts.vault.GetAddr() {
+		ev, err := c.pegContracts.vault.ParseWithdrawn(*evlog)
+		if err != nil {
+			return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+		}
+		withdrawId = eth.Hash(ev.WithdrawId)
+	} else if evlog.Address == c.pegContracts.vault2.GetAddr() {
+		ev, err := c.pegContracts.vault2.ParseWithdrawn(*evlog)
+		if err != nil {
+			return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+		}
+		withdrawId = eth.Hash(ev.WithdrawId)
 	}
-	resp, err := pegbrcli.QueryWithdrawInfo(cliCtx, eth.Hash(ev.WithdrawId).Hex())
+	resp, err := pegbrcli.QueryWithdrawInfo(cliCtx, withdrawId.Hex())
 	if err != nil {
 		// log only, will not skip if request failed
 		log.Errorf("QueryWithdrawInfo err: %s", err)
 		return
 	}
 	if resp.Success {
-		return true, fmt.Sprintf("withdraw %x already synced", ev.WithdrawId)
+		return true, fmt.Sprintf("withdraw %x already synced", withdrawId)
 	}
 	return
 }

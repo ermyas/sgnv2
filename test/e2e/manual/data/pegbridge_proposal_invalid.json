@@ -1,0 +1,23 @@
+{
+    "title": "PegBridge pair update",
+    "description": "Update peg bridge pair with inconsistent vault version",
+    "peg_config": {
+        "orig_pegged_pairs": [
+            {
+                "orig": {
+                    "address": "56ca00f1debae06163dccece948c90df435d9c65",
+                    "chain_id": 883,
+                    "decimals": 6,
+                    "symbol": "USDT"
+                },
+                "pegged": {
+                    "address": "fa18ddd2a35eb90b0f2962f6a08eee394c370c8f",
+                    "chain_id": 885,
+                    "decimals": 6,
+                    "symbol": "USDT"
+                }
+            }
+        ]
+    },
+    "deposit": "0"
+}

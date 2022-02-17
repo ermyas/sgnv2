@@ -26,7 +26,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var mainchain2Started bool
+var bridgeChainStarted bool
 
 func BuildDockers() {
 	tc.RunCmd("make", "localnet-down")
@@ -57,26 +57,34 @@ func SetupMainchain() {
 }
 
 // should be invoked after mainchain 1 setup
-func SetupMainchain2ForBridge() {
-	if mainchain2Started {
-		log.Info("chain 2 already started")
+func SetupBridgeChains() {
+	if bridgeChainStarted {
+		log.Info("bridge chains already started")
 		return
 	}
-	waitGethStart(tc.LocalGeth2)
 
-	// set up mainchain: deploy contracts, fund addrs, etc
-	log.Infoln("fund each test addr 100 ETH on chain 2")
-	err := tc.FundAddrsETH(tc.Addrs2, tc.NewBigInt(1, 20), tc.LocalGeth2, int64(tc.Geth2ChainID))
-	tc.ChkErr(err, "fund each test addr 100 ETH")
-
-	log.Infoln("set up chain 2")
+	tc.RunAllAndWait(
+		func() {
+			waitGethStart(tc.LocalGeth2)
+			log.Infoln("fund each test addr 100 ETH on chain 2")
+			err := tc.FundAddrsETH(tc.Addrs2, tc.NewBigInt(1, 20), tc.LocalGeth2, int64(tc.Geth2ChainID))
+			tc.ChkErr(err, "fund each test addr 100 ETH on chain 2")
+		},
+		func() {
+			waitGethStart(tc.LocalGeth3)
+			log.Infoln("fund each test addr 100 ETH on chain 3")
+			err := tc.FundAddrsETH(tc.Addrs2, tc.NewBigInt(1, 20), tc.LocalGeth3, int64(tc.Geth3ChainID))
+			tc.ChkErr(err, "fund each test addr 100 ETH on chain 3")
+		},
+	)
+	log.Infoln("set up bridge chains")
 	tc.InitCbrChainConfigs()
-	mainchain2Started = true
+	bridgeChainStarted = true
 }
 
 func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge, msg, manual, report bool) {
 	tc.RunAllAndWait(
-		SetupMainchain2ForBridge,
+		SetupBridgeChains,
 		func() {
 			deployContractsAndPrepareSgnData(contractParams, cbridge, msg, manual, report)
 		},
@@ -210,6 +218,10 @@ func DeployUsdtForBridge() {
 			tc.CbrChain2.USDTAddr, tc.CbrChain2.USDTContract =
 				tc.DeployBridgeTestTokenContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth, "USDT", "USDT", 6)
 		},
+		func() {
+			tc.CbrChain3.USDTAddr, tc.CbrChain3.USDTContract =
+				tc.DeployBridgeTestTokenContract(tc.CbrChain3.Ec, tc.CbrChain3.Auth, "USDT", "USDT", 6)
+		},
 	)
 
 	// fund usdt to each user
@@ -229,6 +241,10 @@ func DeployUsdtForBridge() {
 			err := tc.FundAddrsErc20(tc.CbrChain2.USDTAddr, addrs, tc.NewBigInt(1, 13), tc.CbrChain2.Ec, tc.CbrChain2.Auth)
 			tc.ChkErr(err, "fund each test addr 10 million usdt on chain 2")
 		},
+		func() {
+			err := tc.FundAddrsErc20(tc.CbrChain3.USDTAddr, addrs, tc.NewBigInt(1, 13), tc.CbrChain3.Ec, tc.CbrChain3.Auth)
+			tc.ChkErr(err, "fund each test addr 10 million usdt on chain 3")
+		},
 	)
 
 	log.Infoln("Updating config files of SGN nodes")
@@ -243,6 +259,7 @@ func DeployUsdtForBridge() {
 		json.Unmarshal(jsonByte, cbrConfig)
 		cbrConfig.Assets[0].Addr = eth.Addr2Hex(tc.CbrChain1.USDTAddr)
 		cbrConfig.Assets[1].Addr = eth.Addr2Hex(tc.CbrChain2.USDTAddr)
+		cbrConfig.Assets[2].Addr = eth.Addr2Hex(tc.CbrChain3.USDTAddr)
 		genesisViper.Set("app_state.cbridge.config", cbrConfig)
 		err = genesisViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write genesis")
@@ -257,6 +274,9 @@ func DeployBridgeContract() {
 		func() {
 			tc.CbrChain2.CbrAddr, tc.CbrChain2.CbrContract = tc.DeployBridgeContract(tc.CbrChain2.Ec, tc.CbrChain2.Auth)
 		},
+		func() {
+			tc.CbrChain3.CbrAddr, tc.CbrChain3.CbrContract = tc.DeployBridgeContract(tc.CbrChain3.Ec, tc.CbrChain3.Auth)
+		},
 	)
 
 	for i := 0; i < len(tc.ValEthKs); i++ {
@@ -268,6 +288,7 @@ func DeployBridgeContract() {
 		multichains := cbrViper.Get("multichain").([]interface{})
 		multichains[0].(map[string]interface{})["cbridge"] = tc.CbrChain1.CbrAddr.Hex()
 		multichains[1].(map[string]interface{})["cbridge"] = tc.CbrChain2.CbrAddr.Hex()
+		multichains[2].(map[string]interface{})["cbridge"] = tc.CbrChain3.CbrAddr.Hex()
 		cbrViper.Set("multichain", multichains)
 		err = cbrViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")
@@ -282,6 +303,7 @@ func DeployBridgeContract() {
 		json.Unmarshal(jsonByte, cbrConfig)
 		cbrConfig.CbrContracts[0].Address = eth.Addr2Hex(tc.CbrChain1.CbrAddr)
 		cbrConfig.CbrContracts[1].Address = eth.Addr2Hex(tc.CbrChain2.CbrAddr)
+		cbrConfig.CbrContracts[2].Address = eth.Addr2Hex(tc.CbrChain3.CbrAddr)
 		genesisViper.Set("app_state.cbridge.config", cbrConfig)
 		err = genesisViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write genesis")
@@ -328,7 +350,18 @@ func DeployPegBridgeContract() {
 			tx, err := tc.CbrChain2.UNIContract.UpdateBridgeSupplyCap(
 				tc.CbrChain2.Auth, tc.CbrChain2.PegBridgeAddr, tc.NewBigInt(1, 28))
 			tc.ChkErr(err, "failed to update bridge supply cap")
+			tx, err = tc.CbrChain2.USDTContract.UpdateBridgeSupplyCap(
+				tc.CbrChain2.Auth, tc.CbrChain2.PegBridgeV2Addr, tc.NewBigInt(1, 15))
+			tc.ChkErr(err, "failed to update bridge supply cap")
 			tc.WaitMinedWithChk(context.Background(), tc.CbrChain2.Ec, tx, tc.BlockDelay, tc.PollingInterval, "UpdateBridgeSupplyCap")
+		},
+		func() {
+			tc.CbrChain3.PegBridgeV2Addr, tc.CbrChain3.PegBridgeV2Contract =
+				tc.DeployPegBridgeV2Contract(tc.CbrChain3.Ec, tc.CbrChain3.Auth, tc.CbrChain3.CbrAddr)
+			tx, err := tc.CbrChain3.USDTContract.UpdateBridgeSupplyCap(
+				tc.CbrChain3.Auth, tc.CbrChain3.PegBridgeV2Addr, tc.NewBigInt(1, 15))
+			tc.ChkErr(err, "failed to update bridge supply cap")
+			tc.WaitMinedWithChk(context.Background(), tc.CbrChain3.Ec, tx, tc.BlockDelay, tc.PollingInterval, "UpdateBridgeSupplyCap")
 		},
 	)
 
@@ -340,7 +373,10 @@ func DeployPegBridgeContract() {
 		tc.ChkErr(err, "Failed to read config")
 		multichains := cbrViper.Get("multichain").([]interface{})
 		multichains[0].(map[string]interface{})["otvault"] = tc.CbrChain1.PegVaultAddr.Hex()
+		multichains[0].(map[string]interface{})["otvault2"] = tc.CbrChain1.PegVaultV2Addr.Hex()
 		multichains[1].(map[string]interface{})["ptbridge"] = tc.CbrChain2.PegBridgeAddr.Hex()
+		multichains[1].(map[string]interface{})["ptbridge2"] = tc.CbrChain2.PegBridgeV2Addr.Hex()
+		multichains[2].(map[string]interface{})["ptbridge2"] = tc.CbrChain3.PegBridgeV2Addr.Hex()
 		cbrViper.Set("multichain", multichains)
 		err = cbrViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")
@@ -351,33 +387,106 @@ func DeployPegBridgeContract() {
 		genesisViper.SetConfigFile(genesisPath)
 		err = genesisViper.ReadInConfig()
 		tc.ChkErr(err, "Failed to read genesis")
-		peggedTokenBridges := []commontypes.ContractInfo{{
-			ChainId: tc.CbrChain2.ChainId,
-			Address: eth.Addr2Hex(tc.CbrChain2.PegBridgeAddr),
-		}}
-		originalTokenVaults := []commontypes.ContractInfo{{
-			ChainId: tc.CbrChain1.ChainId,
-			Address: eth.Addr2Hex(tc.CbrChain1.PegVaultAddr),
-		}}
-		origPeggedPairs := []pegbrtypes.OrigPeggedPair{{
-			Orig: commontypes.ERC20Token{
-				Symbol:   "UNI",
-				ChainId:  tc.CbrChain1.ChainId,
-				Address:  eth.Addr2Hex(tc.CbrChain1.UNIAddr),
-				Decimals: 18,
+		peggedTokenBridges := []pegbrtypes.ContractInfo{
+			{
+				Contract: commontypes.ContractInfo{
+					ChainId: tc.CbrChain2.ChainId,
+					Address: eth.Addr2Hex(tc.CbrChain2.PegBridgeAddr),
+				},
 			},
-			Pegged: commontypes.ERC20Token{
-				Symbol:   "UNI",
-				ChainId:  tc.CbrChain2.ChainId,
-				Address:  eth.Addr2Hex(tc.CbrChain2.UNIAddr),
-				Decimals: 18,
+			{
+				Contract: commontypes.ContractInfo{
+					ChainId: tc.CbrChain2.ChainId,
+					Address: eth.Addr2Hex(tc.CbrChain2.PegBridgeV2Addr),
+				},
+				Version: 2,
 			},
-			MintFeePips: 100,
-			BurnFeePips: 500,
-			MaxMintFee:  "1000000000000000000",
-			MaxBurnFee:  "1000000000000000000",
-			SupplyCap:   "100000000000000000000",
-		}}
+			{
+				Contract: commontypes.ContractInfo{
+					ChainId: tc.CbrChain3.ChainId,
+					Address: eth.Addr2Hex(tc.CbrChain3.PegBridgeV2Addr),
+				},
+				Version: 2,
+			},
+		}
+		originalTokenVaults := []pegbrtypes.ContractInfo{
+			{
+				Contract: commontypes.ContractInfo{
+					ChainId: tc.CbrChain1.ChainId,
+					Address: eth.Addr2Hex(tc.CbrChain1.PegVaultAddr),
+				},
+			},
+			{
+				Contract: commontypes.ContractInfo{
+					ChainId: tc.CbrChain1.ChainId,
+					Address: eth.Addr2Hex(tc.CbrChain1.PegVaultV2Addr),
+				},
+				Version: 2,
+			},
+		}
+		origPeggedPairs := []pegbrtypes.OrigPeggedPair{
+			{
+				Orig: commontypes.ERC20Token{
+					Symbol:   "UNI",
+					ChainId:  tc.CbrChain1.ChainId,
+					Address:  eth.Addr2Hex(tc.CbrChain1.UNIAddr),
+					Decimals: 18,
+				},
+				Pegged: commontypes.ERC20Token{
+					Symbol:   "UNI",
+					ChainId:  tc.CbrChain2.ChainId,
+					Address:  eth.Addr2Hex(tc.CbrChain2.UNIAddr),
+					Decimals: 18,
+				},
+				MintFeePips: 100,
+				BurnFeePips: 500,
+				MaxMintFee:  "1000000000000000000",
+				MaxBurnFee:  "1000000000000000000",
+				SupplyCap:   "100000000000000000000",
+			},
+			{
+				Orig: commontypes.ERC20Token{
+					Symbol:   "USDT",
+					ChainId:  tc.CbrChain1.ChainId,
+					Address:  eth.Addr2Hex(tc.CbrChain1.USDTAddr),
+					Decimals: 6,
+				},
+				Pegged: commontypes.ERC20Token{
+					Symbol:   "USDT",
+					ChainId:  tc.CbrChain2.ChainId,
+					Address:  eth.Addr2Hex(tc.CbrChain2.USDTAddr),
+					Decimals: 6,
+				},
+				MintFeePips:   100,
+				BurnFeePips:   500,
+				MaxMintFee:    "100000000",
+				MaxBurnFee:    "100000000",
+				SupplyCap:     "1000000000000000",
+				BridgeVersion: 2,
+				VaultVersion:  2,
+			},
+			{
+				Orig: commontypes.ERC20Token{
+					Symbol:   "USDT",
+					ChainId:  tc.CbrChain1.ChainId,
+					Address:  eth.Addr2Hex(tc.CbrChain1.USDTAddr),
+					Decimals: 6,
+				},
+				Pegged: commontypes.ERC20Token{
+					Symbol:   "USDT",
+					ChainId:  tc.CbrChain3.ChainId,
+					Address:  eth.Addr2Hex(tc.CbrChain3.USDTAddr),
+					Decimals: 6,
+				},
+				MintFeePips:   100,
+				BurnFeePips:   500,
+				MaxMintFee:    "100000000",
+				MaxBurnFee:    "100000000",
+				SupplyCap:     "1000000000000000",
+				BridgeVersion: 2,
+				VaultVersion:  2,
+			},
+		}
 		config := pegbrtypes.PegConfig{
 			PeggedTokenBridges:  peggedTokenBridges,
 			OriginalTokenVaults: originalTokenVaults,
@@ -390,8 +499,8 @@ func DeployPegBridgeContract() {
 		cbrConfig := new(cbrtypes.CbrConfig)
 		jsonByte, _ := json.Marshal(genesisViper.Get("app_state.cbridge.config"))
 		json.Unmarshal(jsonByte, cbrConfig)
-		cbrConfig.Assets[2].Addr = eth.Addr2Hex(tc.CbrChain1.UNIAddr)
-		cbrConfig.Assets[3].Addr = eth.Addr2Hex(tc.CbrChain2.UNIAddr)
+		cbrConfig.Assets[3].Addr = eth.Addr2Hex(tc.CbrChain1.UNIAddr)
+		cbrConfig.Assets[4].Addr = eth.Addr2Hex(tc.CbrChain2.UNIAddr)
 		genesisViper.Set("app_state.cbridge.config", cbrConfig)
 
 		err = genesisViper.WriteConfig()

@@ -1,6 +1,8 @@
 package eth
 
-import "github.com/ethereum/go-ethereum/ethclient"
+import (
+	"github.com/ethereum/go-ethereum/ethclient"
+)
 
 type StakingContract struct {
 	*Staking
@@ -187,11 +189,41 @@ func NewPegBridgeContract(address Addr, client *ethclient.Client) (*PegBridgeCon
 }
 
 func (p *PegBridgeContract) GetAddr() Addr {
+	if p == nil {
+		return ZeroAddr
+	}
 	return p.Address
 }
 
 func (p *PegBridgeContract) GetABI() string {
 	return PeggedTokenBridgeABI
+}
+
+type PegBridgeV2Contract struct {
+	*PeggedTokenBridgeV2
+	Address Addr
+}
+
+func NewPegBridgeV2Contract(address Addr, client *ethclient.Client) (*PegBridgeV2Contract, error) {
+	ptb, err := NewPeggedTokenBridgeV2(address, client)
+	if err != nil {
+		return nil, err
+	}
+	return &PegBridgeV2Contract{
+		PeggedTokenBridgeV2: ptb,
+		Address:             address,
+	}, nil
+}
+
+func (p *PegBridgeV2Contract) GetAddr() Addr {
+	if p == nil {
+		return ZeroAddr
+	}
+	return p.Address
+}
+
+func (p *PegBridgeV2Contract) GetABI() string {
+	return PeggedTokenBridgeV2ABI
 }
 
 type PegVaultContract struct {
@@ -211,11 +243,41 @@ func NewPegVaultContract(address Addr, client *ethclient.Client) (*PegVaultContr
 }
 
 func (o *PegVaultContract) GetAddr() Addr {
+	if o == nil {
+		return ZeroAddr
+	}
 	return o.Address
 }
 
 func (o *PegVaultContract) GetABI() string {
 	return OriginalTokenVaultABI
+}
+
+type PegVaultV2Contract struct {
+	*OriginalTokenVaultV2
+	Address Addr
+}
+
+func NewPegVaultV2Contract(address Addr, client *ethclient.Client) (*PegVaultV2Contract, error) {
+	otv, err := NewOriginalTokenVaultV2(address, client)
+	if err != nil {
+		return nil, err
+	}
+	return &PegVaultV2Contract{
+		OriginalTokenVaultV2: otv,
+		Address:              address,
+	}, nil
+}
+
+func (o *PegVaultV2Contract) GetAddr() Addr {
+	if o == nil {
+		return ZeroAddr
+	}
+	return o.Address
+}
+
+func (o *PegVaultV2Contract) GetABI() string {
+	return OriginalTokenVaultV2ABI
 }
 
 type WdInboxContract struct {

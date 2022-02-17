@@ -1,15 +1,16 @@
 package keeper
 
 import (
+	"math/big"
+
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/pegbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"math/big"
 )
 
-func (k Keeper) SetDepositInfo(ctx sdk.Context, depositId eth.Hash, info types.DepositInfo) {
+func (k Keeper) SetDepositInfo(ctx sdk.Context, info types.DepositInfo) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(types.GetDepositInfoKey(depositId), k.cdc.MustMarshal(&info))
+	store.Set(types.GetDepositInfoKey(eth.Bytes2Hash(info.DepositId)), k.cdc.MustMarshal(&info))
 }
 
 func (k Keeper) GetDepositInfo(ctx sdk.Context, depositId eth.Hash) (info types.DepositInfo, found bool) {
@@ -127,9 +128,9 @@ func (k Keeper) IterateAllMintInfos(
 	}
 }
 
-func (k Keeper) SetBurnInfo(ctx sdk.Context, burnId eth.Hash, info types.BurnInfo) {
+func (k Keeper) SetBurnInfo(ctx sdk.Context, info types.BurnInfo) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(types.GetBurnInfoKey(burnId), k.cdc.MustMarshal(&info))
+	store.Set(types.GetBurnInfoKey(eth.Bytes2Hash(info.BurnId)), k.cdc.MustMarshal(&info))
 }
 
 func (k Keeper) GetBurnInfo(ctx sdk.Context, burnId eth.Hash) (info types.BurnInfo, found bool) {

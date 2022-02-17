@@ -27,6 +27,14 @@ jq '."contracts"|=with_entries(select(.key| test("^openzeppelin") or test("^inte
 abigen -combined-json ./pegged.json -pkg eth -out ../../sgn-v2/eth/bindings_pegged.go
 ```
 
+[bindings_pegged_v2.go](./bindings_pegged_v2.go)
+
+```
+solc --base-path $PWD --allow-paths . --overwrite --optimize --optimize-runs 800 --pretty-json --combined-json abi,bin -o . '@openzeppelin/'=openzeppelin-contracts-4.2.0/ pegged/OriginalTokenVaultV2.sol pegged/PeggedTokenBridgeV2.sol
+jq '."contracts"|=with_entries(select(.key| test("^openzeppelin") or test("^interfaces") or test("^libraries") or test("^safeguard") | not))' combined.json > pegged.json
+abigen -combined-json ./pegged.json -pkg eth -out ../../sgn-v2/eth/bindings_pegged_v2.go
+```
+
 ## Bridge test token bindings
 
 [bindings_bridge_test_token.go](./bindings_test_token.go)

@@ -53,7 +53,7 @@ func main() {
 		multinode.BuildDockers()
 		multinode.SetupMainchain()
 		if *cbr {
-			multinode.SetupMainchain2ForBridge()
+			multinode.SetupBridgeChains()
 		}
 		tc.SetupSgnchain()
 

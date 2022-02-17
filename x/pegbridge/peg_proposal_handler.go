@@ -2,13 +2,14 @@ package pegbridge
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/celer-network/sgn-v2/eth"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	pegkeeper "github.com/celer-network/sgn-v2/x/pegbridge/keeper"
 	"github.com/celer-network/sgn-v2/x/pegbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"math/big"
 )
 
 func NewPegProposalHandler(k pegkeeper.Keeper) govtypes.Handler {
@@ -30,8 +31,7 @@ func handlePegProposal(ctx sdk.Context, k pegkeeper.Keeper, p *types.PegProposal
 	if err := p.PegConfig.Validate(); err != nil {
 		return err
 	}
-	k.SetPegConfig(ctx, *p.PegConfig)
-	return nil
+	return k.SetPegConfig(ctx, *p.PegConfig)
 }
 
 func handlePairDeleteProposal(ctx sdk.Context, k pegkeeper.Keeper, p *types.PairDeleteProposal) error {

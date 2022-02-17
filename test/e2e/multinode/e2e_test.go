@@ -19,7 +19,7 @@ func TestMain(m *testing.M) {
 	repoRoot, _ := filepath.Abs("../../..")
 
 	BuildDockers()
-	tc.RunAllAndWait(SetupMainchain, SetupMainchain2ForBridge)
+	tc.RunAllAndWait(SetupMainchain, SetupBridgeChains)
 	tc.SetupSgnchain()
 
 	log.Infoln("run all e2e tests")

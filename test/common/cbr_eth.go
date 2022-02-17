@@ -23,36 +23,29 @@ import (
 )
 
 func InitCbrChainConfigs() {
-	for i := 1; i < 10; i++ {
-		if EtherBaseAuth != nil {
-			break
-		}
-		Sleep(2)
-	}
-	CbrChain1 = &CbrChain{
-		ChainId:    Geth1ChainID,
-		Ec:         EthClient,
-		Auth:       EtherBaseAuth,
-		Transactor: GetEtherBaseTransactor(Geth1ChainID),
-	}
-	CbrChain1.SetupTestEthClients()
+	CbrChain1 = NewCbrChain(Geth1ChainID)
+	CbrChain2 = NewCbrChain(Geth2ChainID)
+	CbrChain3 = NewCbrChain(Geth3ChainID)
+}
 
-	rpcClient, err := rpc.Dial(LocalGeth2)
+func NewCbrChain(chainId uint64) *CbrChain {
+	rpcClient, err := rpc.Dial(GetGethRpc(chainId))
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, etherBaseAuth, err := GetAuth(etherBaseKs, int64(Geth2ChainID))
+	_, etherBaseAuth, err := GetAuth(etherBaseKs, int64(chainId))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	CbrChain2 = &CbrChain{
-		ChainId:    Geth2ChainID,
+	cbrChain := &CbrChain{
+		ChainId:    chainId,
 		Ec:         ethclient.NewClient(rpcClient),
 		Auth:       etherBaseAuth,
-		Transactor: GetEtherBaseTransactor(Geth2ChainID),
+		Transactor: GetEtherBaseTransactor(chainId),
 	}
-	CbrChain2.SetupTestEthClients()
+	cbrChain.SetupTestEthClients()
+	return cbrChain
 }
 
 func (c *CbrChain) SetupTestEthClients() {
@@ -219,9 +212,6 @@ func (c *CbrChain) SendAny(fromUid, toUid uint64, amt *big.Int, dstChainId, nonc
 	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
 		return eth.ZeroHash, fmt.Errorf("tx failed")
 	}
-	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
-		return eth.ZeroHash, errors.New("send tx failed")
-	}
 	sendLog := receipt.Logs[len(receipt.Logs)-1] // last log is Send event (NOTE Polygon breaks this assumption)
 	sendEv, err := c.CbrContract.ParseSend(*sendLog)
 	if err != nil {
@@ -299,11 +289,11 @@ func OnchainClaimStakingReward(claimInfo *distrtypes.StakingRewardClaimInfo) err
 	return nil
 }
 
-func (c *CbrChain) PbrDeposit(fromUid uint64, amt *big.Int, mintChainId uint64, nonce uint64) (string, error) {
+func (c *CbrChain) PbrDeposit(fromUid uint64, token eth.Addr, amt *big.Int, mintChainId uint64, nonce uint64) (string, error) {
 	receipt, err := c.Users[fromUid].Transactor.TransactWaitMined(
 		"PbrDeposit",
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
-			return c.PegVaultContract.Deposit(opts, c.UNIAddr, amt, mintChainId, c.Users[fromUid].Address, nonce)
+			return c.PegVaultContract.Deposit(opts, token, amt, mintChainId, c.Users[fromUid].Address, nonce)
 		},
 	)
 	if err != nil {
@@ -312,12 +302,32 @@ func (c *CbrChain) PbrDeposit(fromUid uint64, amt *big.Int, mintChainId uint64, 
 	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
 		return "", fmt.Errorf("tx failed")
 	}
-	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
-		return "", errors.New("deposit tx failed")
-	}
 	// last log is Deposit event (NOTE: test only)
 	depositLog := receipt.Logs[len(receipt.Logs)-1]
 	depositEv, err := c.PegVaultContract.ParseDeposited(*depositLog)
+	if err != nil {
+		return "", fmt.Errorf("parse log %+v err: %w", depositEv, err)
+	}
+	log.Infof("Deposit tx success, depositId: %x", depositEv.DepositId)
+	return eth.Hash(depositEv.DepositId).Hex(), nil
+}
+
+func (c *CbrChain) PbrV2Deposit(fromUid uint64, token eth.Addr, amt *big.Int, mintChainId uint64, nonce uint64) (string, error) {
+	receipt, err := c.Users[fromUid].Transactor.TransactWaitMined(
+		"PbrDeposit",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.PegVaultV2Contract.Deposit(opts, token, amt, mintChainId, c.Users[fromUid].Address, nonce)
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return "", fmt.Errorf("tx failed")
+	}
+	// last log is Deposit event (NOTE: test only)
+	depositLog := receipt.Logs[len(receipt.Logs)-1]
+	depositEv, err := c.PegVaultV2Contract.ParseDeposited(*depositLog)
 	if err != nil {
 		return "", fmt.Errorf("parse log %+v err: %w", depositEv, err)
 	}
@@ -338,12 +348,32 @@ func (c *CbrChain) PbrBurn(fromUid uint64, amt *big.Int, nonce uint64) (string, 
 	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
 		return "", fmt.Errorf("tx failed")
 	}
-	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
-		return "", errors.New("burn tx failed")
-	}
-	// last log is Deposit event (NOTE: test only)
+	// last log is Burn event (NOTE: test only)
 	burnLog := receipt.Logs[len(receipt.Logs)-1]
 	burnEv, err := c.PegBridgeContract.ParseBurn(*burnLog)
+	if err != nil {
+		return "", fmt.Errorf("parse log %+v err: %w", burnEv, err)
+	}
+	log.Infof("Burn tx success, burnId: %x", burnEv.BurnId)
+	return eth.Hash(burnEv.BurnId).Hex(), nil
+}
+
+func (c *CbrChain) PbrV2Burn(fromUid uint64, token eth.Addr, amt *big.Int, toChainId, nonce uint64) (string, error) {
+	receipt, err := c.Users[fromUid].Transactor.TransactWaitMined(
+		"PbrBurn",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.PegBridgeV2Contract.Burn(opts, token, amt, toChainId, c.Users[fromUid].Address, nonce)
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return "", fmt.Errorf("tx failed")
+	}
+	// last log is Burn event (NOTE: test only)
+	burnLog := receipt.Logs[len(receipt.Logs)-1]
+	burnEv, err := c.PegBridgeV2Contract.ParseBurn(*burnLog)
 	if err != nil {
 		return "", fmt.Errorf("parse log %+v err: %w", burnEv, err)
 	}
@@ -388,6 +418,9 @@ func (c *CbrChain) OnchainPegVaultWithdraw(info *pegbrtypes.WithdrawInfo, signer
 	receipt, err := c.Transactor.TransactWaitMined(
 		"OnchainPegVaultWithdraw",
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			if info.VaultVersion == 2 {
+				return c.PegVaultV2Contract.Withdraw(opts, info.WithdrawProtoBytes, info.GetSortedSigsBytes(), addrs, powers)
+			}
 			return c.PegVaultContract.Withdraw(opts, info.WithdrawProtoBytes, info.GetSortedSigsBytes(), addrs, powers)
 		},
 	)
@@ -405,6 +438,9 @@ func (c *CbrChain) OnchainPegBridgeMint(info *pegbrtypes.MintInfo, signers []*cb
 	receipt, err := c.Transactor.TransactWaitMined(
 		"OnchainPegBridgeMint",
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			if info.BridgeVersion == 2 {
+				return c.PegBridgeV2Contract.Mint(opts, info.MintProtoBytes, info.GetSortedSigsBytes(), addrs, powers)
+			}
 			return c.PegBridgeContract.Mint(opts, info.MintProtoBytes, info.GetSortedSigsBytes(), addrs, powers)
 		},
 	)

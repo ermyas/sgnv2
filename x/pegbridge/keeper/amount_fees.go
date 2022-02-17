@@ -22,21 +22,7 @@ func (k Keeper) CalcAmountAndFees(
 	ctx sdk.Context, pair types.OrigPeggedPair, requestAmount *big.Int, isPeggedDest bool) (
 	receiveAmount *big.Int, baseFeeInOrig *big.Int, percFeeInOrig *big.Int) {
 	// Apply decimals diff
-	var srcDecimals, destDecimals uint32
-	if isPeggedDest {
-		srcDecimals = pair.Orig.Decimals
-		destDecimals = pair.Pegged.Decimals
-	} else {
-		srcDecimals = pair.Pegged.Decimals
-		destDecimals = pair.Orig.Decimals
-	}
-	destAmt := new(big.Int).Set(requestAmount)
-	if destDecimals > srcDecimals {
-		destAmt.Mul(destAmt, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(destDecimals-srcDecimals)), nil))
-	} else if destDecimals < srcDecimals {
-		// NOTE: Rounds down as intended
-		destAmt.Div(destAmt, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(srcDecimals-destDecimals)), nil))
-	}
+	destAmt, srcDecimals, destDecimals := ConvertDestAmt(pair, requestAmount, isPeggedDest)
 	// Base fee, denominated in ORIG decimals
 	baseFeeInOrig = k.CalcBaseFee(ctx, pair, isPeggedDest)
 	// NOTE: For amount calculation, we must scale base fee to DEST decimals
@@ -62,6 +48,25 @@ func (k Keeper) CalcAmountAndFees(
 		}
 	}
 	return destAmt, baseFeeInOrig, percFeeInOrig
+}
+
+func ConvertDestAmt(pair types.OrigPeggedPair, srcAmt *big.Int, isPeggedDest bool) (
+	destAmt *big.Int, srcDecimals, destDecimals uint32) {
+	if isPeggedDest {
+		srcDecimals = pair.Orig.Decimals
+		destDecimals = pair.Pegged.Decimals
+	} else {
+		srcDecimals = pair.Pegged.Decimals
+		destDecimals = pair.Orig.Decimals
+	}
+	destAmt = new(big.Int).Set(srcAmt)
+	if destDecimals > srcDecimals {
+		destAmt.Mul(destAmt, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(destDecimals-srcDecimals)), nil))
+	} else if destDecimals < srcDecimals {
+		// NOTE: Rounds down as intended
+		destAmt.Div(destAmt, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(srcDecimals-destDecimals)), nil))
+	}
+	return
 }
 
 // CalcBaseFee calculates the base fee. The base fee is a function of:

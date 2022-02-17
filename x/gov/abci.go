@@ -3,15 +3,13 @@ package gov
 import (
 	"fmt"
 
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/x/gov/keeper"
 	"github.com/celer-network/sgn-v2/x/gov/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// EndBlocker called every block, process inflation, update validator set.
 func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
-	logger := keeper.Logger(ctx)
-
 	// delete inactive proposal from store and its deposits
 	keeper.IterateInactiveProposalsQueue(ctx, ctx.BlockHeader().Time, func(proposal types.Proposal) bool {
 		keeper.DeleteProposal(ctx, proposal.ProposalId)
@@ -25,13 +23,11 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 			),
 		)
 
-		logger.Info(
-			fmt.Sprintf("proposal %d (%s) didn't meet minimum deposit of %s (had only %s); deleted",
-				proposal.ProposalId,
-				proposal.GetTitle(),
-				keeper.GetDepositParams(ctx).MinDeposit,
-				proposal.TotalDeposit,
-			),
+		log.Infof("proposal %d (%s) didn't meet minimum deposit of %s (had only %s); deleted",
+			proposal.ProposalId,
+			proposal.GetTitle(),
+			keeper.GetDepositParams(ctx).MinDeposit,
+			proposal.TotalDeposit,
 		)
 		return false
 	})
@@ -85,11 +81,8 @@ func EndBlocker(ctx sdk.Context, keeper keeper.Keeper) {
 		keeper.SetProposal(ctx, proposal)
 		keeper.RemoveFromActiveProposalQueue(ctx, proposal.ProposalId, proposal.VotingEndTime)
 
-		logger.Info(
-			fmt.Sprintf(
-				"proposal %d (%s) tallied; result: %s",
-				proposal.ProposalId, proposal.GetTitle(), logMsg,
-			),
+		log.Infof("proposal %d (%s) tallied; result: %s",
+			proposal.ProposalId, proposal.GetTitle(), logMsg,
 		)
 
 		ctx.EventManager().EmitEvent(

@@ -45,8 +45,8 @@ func (m *MintInfo) String() string {
 	}
 	mintOnChain := new(MintOnChain)
 	mintOnChain.Unmarshal(m.MintProtoBytes)
-	return fmt.Sprintf("chain_id:%d mint_on_chain_bytes:%s mint_on_chain:[ %s ] base_fee:%s perc_fee:%s last_req_time:%d %s %s success:%t",
-		m.ChainId, eth.Bytes2Hex(m.MintProtoBytes), mintOnChain.String(), m.BaseFee, m.PercentageFee, m.LastReqTime, m.SignersStr(), m.SigsStr(), m.Success)
+	return fmt.Sprintf("chain_id:%d mint_on_chain_bytes:%s mint_on_chain:[ %s ] base_fee:%s perc_fee:%s bridge_version:%d last_req_time:%d %s %s success:%t",
+		m.ChainId, eth.Bytes2Hex(m.MintProtoBytes), mintOnChain.String(), m.BaseFee, m.PercentageFee, m.BridgeVersion, m.LastReqTime, m.SignersStr(), m.SigsStr(), m.Success)
 }
 
 func (m *MintInfo) GetSortedSigsBytes() [][]byte {
@@ -105,8 +105,8 @@ func (w *WithdrawInfo) String() string {
 	}
 	wdOnChain := new(WithdrawOnChain)
 	wdOnChain.Unmarshal(w.WithdrawProtoBytes)
-	return fmt.Sprintf("chain_id:%d withdraw_on_chain_bytes:%s withdraw_on_chain:[ %s ] base_fee:%s perc_fee:%s last_req_time:%d %s %s success:%t",
-		w.ChainId, eth.Bytes2Hex(w.WithdrawProtoBytes), wdOnChain.String(), w.BaseFee, w.PercentageFee, w.LastReqTime, w.SignersStr(), w.SigsStr(), w.Success)
+	return fmt.Sprintf("chain_id:%d withdraw_on_chain_bytes:%s withdraw_on_chain:[ %s ] base_fee:%s perc_fee:%s vault_version:%d last_req_time:%d %s %s success:%t",
+		w.ChainId, eth.Bytes2Hex(w.WithdrawProtoBytes), wdOnChain.String(), w.BaseFee, w.PercentageFee, w.VaultVersion, w.LastReqTime, w.SignersStr(), w.SigsStr(), w.Success)
 }
 
 func (d *DepositInfo) String() string {
@@ -141,12 +141,12 @@ func (w *WithdrawOnChain) String() string {
 
 func (c *PegConfig) Validate() error {
 	for _, v := range c.OriginalTokenVaults {
-		if !common.IsHexAddress(v.Address) {
+		if !common.IsHexAddress(v.Contract.Address) {
 			return fmt.Errorf("invalid vault address %s", v.String())
 		}
 	}
 	for _, b := range c.PeggedTokenBridges {
-		if !common.IsHexAddress(b.Address) {
+		if !common.IsHexAddress(b.Contract.Address) {
 			return fmt.Errorf("invalid vault address %s", b.String())
 		}
 	}

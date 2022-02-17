@@ -64,7 +64,10 @@ func bridgeTest(t *testing.T) {
 			cbrTest(t, transactor)
 		},
 		func() {
-			pbrTest(t, transactor)
+			pbrTest1(t, transactor)
+		},
+		func() {
+			pbrTest2(t, transactor)
 		},
 	)
 }
@@ -81,6 +84,7 @@ func prepareValidators(t *testing.T, transactor *transactor.Transactor) {
 	log.Infoln("================== Setup bridge signers ======================")
 	tc.CbrChain1.SetInitSigners(vAmts)
 	tc.CbrChain2.SetInitSigners(vAmts)
+	tc.CbrChain3.SetInitSigners(vAmts)
 
 	log.Infoln("================== Delegate from delegator 0 to all validators ======================")
 	valAddrs := []eth.Addr{tc.ValEthAddrs[0], tc.ValEthAddrs[1], tc.ValEthAddrs[2]}
@@ -99,6 +103,7 @@ func prepareValidators(t *testing.T, transactor *transactor.Transactor) {
 	expSigners := genSortedSigners([]eth.Addr{tc.ValSignerAddrs[0], tc.ValSignerAddrs[1], tc.ValSignerAddrs[2]}, vAmts)
 	tc.CheckChainSigners(t, transactor, tc.CbrChain1.ChainId, expSigners)
 	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
+	tc.CheckChainSigners(t, transactor, tc.CbrChain3.ChainId, expSigners)
 
 	log.Infoln("================== Prepare validators done =================")
 }

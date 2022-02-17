@@ -25,7 +25,7 @@ var (
 
 	ValSgnAddrs []sdk.AccAddress
 
-	CbrChain1, CbrChain2 *CbrChain
+	CbrChain1, CbrChain2, CbrChain3 *CbrChain
 )
 
 type CbrChain struct {
@@ -50,8 +50,8 @@ type CbrChain struct {
 	PegBridgeAddr     eth.Addr
 	PegVaultAddr      eth.Addr
 
-	PegBridgeV2Contract *eth.PegBridgeContract
-	PegVaultV2Contract  *eth.PegVaultContract
+	PegBridgeV2Contract *eth.PegBridgeV2Contract
+	PegVaultV2Contract  *eth.PegVaultV2Contract
 	PegBridgeV2Addr     eth.Addr
 	PegVaultV2Addr      eth.Addr
 

@@ -20,12 +20,50 @@ func CalcMintId(
 	return eth.Bytes2Hash(hash)
 }
 
+func CalcMintIdV2(
+	account eth.Addr, token eth.Addr, amount *big.Int, depositor eth.Addr, refChainId uint64, refId eth.Hash, bridgeAddr eth.Addr) eth.Hash {
+	hash := solsha3.SoliditySHA3(
+		[]string{"address", "address", "uint256", "address", "uint64", "bytes32", "address"},
+		[]interface{}{account, token, amount, depositor, refChainId, refId, bridgeAddr},
+	)
+	return eth.Bytes2Hash(hash)
+}
+
+func CalcBurnIdV2(
+	account eth.Addr, token eth.Addr, amount *big.Int, toChainId uint64, toAccount eth.Addr,
+	nonce, chainId uint64, bridgeAddr eth.Addr) eth.Hash {
+	hash := solsha3.SoliditySHA3(
+		[]string{"address", "address", "uint256", "uint64", "address", "uint64", "uint64", "address"},
+		[]interface{}{account, token, amount, toChainId, toAccount, nonce, chainId, bridgeAddr},
+	)
+	return eth.Bytes2Hash(hash)
+}
+
+func CalcDepositIdV2(
+	depositor eth.Addr, token eth.Addr, amount *big.Int, mintChainId uint64, mintAccount eth.Addr,
+	nonce, chainId uint64, vaultAddr eth.Addr) eth.Hash {
+	hash := solsha3.SoliditySHA3(
+		[]string{"address", "address", "uint256", "uint64", "address", "uint64", "uint64", "address"},
+		[]interface{}{depositor, token, amount, mintChainId, mintAccount, nonce, chainId, vaultAddr},
+	)
+	return eth.Bytes2Hash(hash)
+}
+
 // CalcWithdrawId calculates withdraw ID with the following
 // keccak256(abi.encodePacked(request.receiver, request.token, request.amount, request.refChainId, request.refId)
 func CalcWithdrawId(receiver eth.Addr, token eth.Addr, amount *big.Int, burnAccount eth.Addr, refChainId uint64, refId eth.Hash) eth.Hash {
 	hash := solsha3.SoliditySHA3(
 		[]string{"address", "address", "uint256", "address", "uint64", "bytes32"},
 		[]interface{}{receiver, token, amount, burnAccount, refChainId, refId},
+	)
+	return eth.Bytes2Hash(hash)
+}
+
+func CalcWithdrawIdV2(
+	receiver eth.Addr, token eth.Addr, amount *big.Int, burnAccount eth.Addr, refChainId uint64, refId eth.Hash, bridgeAddr eth.Addr) eth.Hash {
+	hash := solsha3.SoliditySHA3(
+		[]string{"address", "address", "uint256", "address", "uint64", "bytes32", "address"},
+		[]interface{}{receiver, token, amount, burnAccount, refChainId, refId, bridgeAddr},
 	)
 	return eth.Bytes2Hash(hash)
 }

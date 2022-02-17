@@ -84,9 +84,10 @@ func CheckXfer(transactor *transactor.Transactor, xferId []byte) {
 
 func WaitPbrDeposit(transactor *transactor.Transactor, depositId string) *pegbrtypes.DepositInfo {
 	var err error
+	var resp pegbrtypes.DepositInfo
 	log.Infoln("waiting for deposit", depositId)
 	for retry := 0; retry < RetryLimit*2; retry++ {
-		resp, err := pegbrcli.QueryDepositInfo(transactor.CliCtx, depositId)
+		resp, err = pegbrcli.QueryDepositInfo(transactor.CliCtx, depositId)
 		if err == nil {
 			return &resp
 		}
@@ -138,9 +139,10 @@ func CheckPbrMint(transactor *transactor.Transactor, mintId string) *pegbrtypes.
 
 func WaitPbrBurn(transactor *transactor.Transactor, burnId string) *pegbrtypes.BurnInfo {
 	var err error
+	var resp pegbrtypes.BurnInfo
 	log.Infoln("waiting for burn", burnId)
 	for retry := 0; retry < RetryLimit*2; retry++ {
-		resp, err := pegbrcli.QueryBurnInfo(transactor.CliCtx, burnId)
+		resp, err = pegbrcli.QueryBurnInfo(transactor.CliCtx, burnId)
 		if err == nil {
 			return &resp
 		}
@@ -581,9 +583,10 @@ func GetSupplyCap(
 
 func WaitPbrDepositWithEmptyMintId(transactor *transactor.Transactor, depositId string) error {
 	var err error
+	var depositInfo pegbrtypes.DepositInfo
 	log.Infoln("wait for deposit with empty mint id", depositId)
 	for retry := 0; retry < RetryLimit; retry++ {
-		depositInfo, err := pegbrcli.QueryDepositInfo(transactor.CliCtx, depositId)
+		depositInfo, err = pegbrcli.QueryDepositInfo(transactor.CliCtx, depositId)
 		if err == nil {
 			if len(depositInfo.MintId) == 0 {
 				return nil
@@ -599,9 +602,10 @@ func WaitPbrDepositWithEmptyMintId(transactor *transactor.Transactor, depositId 
 
 func WaitPbrBurnWithEmptyWithdrawId(transactor *transactor.Transactor, burnId string) error {
 	var err error
+	var burnInfo pegbrtypes.BurnInfo
 	log.Infoln("wait for burn with empty withdraw id", burnId)
 	for retry := 0; retry < RetryLimit; retry++ {
-		burnInfo, err := pegbrcli.QueryBurnInfo(transactor.CliCtx, burnId)
+		burnInfo, err = pegbrcli.QueryBurnInfo(transactor.CliCtx, burnId)
 		if err == nil {
 			if len(burnInfo.WithdrawId) == 0 {
 				return nil

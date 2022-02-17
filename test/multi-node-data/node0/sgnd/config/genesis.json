@@ -106,6 +106,13 @@
             "max_fee_amount": "100000000"
           },
           {
+            "symbol": "USDT",
+            "chain_id": 885,
+            "addr": "0x",
+            "decimal": 6,
+            "max_fee_amount": "100000000"
+          },
+          {
             "symbol": "UNI",
             "chain_id": 883,
             "addr": "0x",
@@ -141,6 +148,12 @@
             "cost_base": 86300,
             "per_validator": 2375,
             "per_sig": 5275
+          },
+          {
+            "chain_id": 885,
+            "cost_base": 86200,
+            "per_validator": 2375,
+            "per_sig": 5275
           }
         ],
         "cbr_contracts": [
@@ -150,6 +163,10 @@
           },
           {
             "chain_id": 884,
+            "address": ""
+          },
+          {
+            "chain_id": 885,
             "address": ""
           }
         ]
@@ -167,7 +184,7 @@
           },
           {
             "symbol": "ETH",
-            "chain_ids": [883, 884],
+            "chain_ids": [883, 884, 885],
             "price": 30000000
           }
         ],
@@ -178,6 +195,10 @@
           },
           {
             "chain_id": 884,
+            "price": "2000000000"
+          },
+          {
+            "chain_id": 885,
             "price": "2000000000"
           }
         ]

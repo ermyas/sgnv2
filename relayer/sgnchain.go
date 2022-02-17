@@ -237,10 +237,21 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 					log.Errorf("cbrOneChain not exists, mint chainId: %d", mintInfo.ChainId)
 					continue
 				}
-
-				sig, err := r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(cbrOneChain.pegContracts.bridge.Address))
-				if err != nil {
-					log.Error(err)
+				var sig []byte
+				if mintInfo.BridgeVersion == 0 {
+					sig, err = r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(cbrOneChain.pegContracts.bridge.GetAddr()))
+					if err != nil {
+						log.Error(err)
+						continue
+					}
+				} else if mintInfo.BridgeVersion == 2 {
+					sig, err = r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(cbrOneChain.pegContracts.bridge2.GetAddr()))
+					if err != nil {
+						log.Error(err)
+						continue
+					}
+				} else {
+					log.Errorln("invalid bridge version", mintId, mintInfo.BridgeVersion)
 					continue
 				}
 
@@ -259,6 +270,7 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 				if err != nil {
 					log.Errorf("db Set err: %s", err)
 				}
+				log.Infoln("Sign pegBridge mint:", mintInfo.String())
 			}
 		},
 		// Need to set outCapacity to 2 for both tx and block events
@@ -294,9 +306,21 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 					continue
 				}
 
-				sig, err := r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(r.cbrMgr[wdInfo.ChainId].pegContracts.vault.Address))
-				if err != nil {
-					log.Error(err)
+				var sig []byte
+				if wdInfo.VaultVersion == 0 {
+					sig, err = r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(r.cbrMgr[wdInfo.ChainId].pegContracts.vault.GetAddr()))
+					if err != nil {
+						log.Error(err)
+						continue
+					}
+				} else if wdInfo.VaultVersion == 2 {
+					sig, err = r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(r.cbrMgr[wdInfo.ChainId].pegContracts.vault2.GetAddr()))
+					if err != nil {
+						log.Error(err)
+						continue
+					}
+				} else {
+					log.Errorln("invalid vault version", wdId, wdInfo.VaultVersion)
 					continue
 				}
 
@@ -320,6 +344,7 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 				if err != nil {
 					log.Errorf("db Set err: %s", err)
 				}
+				log.Infoln("Sign pegVault withdraw:", wdInfo.String())
 			}
 		},
 		// Need to set outCapacity to 2 for both tx and block events

@@ -188,6 +188,14 @@ func GetCmdQueryBurn() *cobra.Command {
 				fmt.Println("Withdraw Info:")
 				fmt.Println(withdraw.String())
 			}
+			if burn.MintId != nil {
+				mint, err := QueryMintInfo(cliCtx, eth.Bytes2Hex(burn.MintId))
+				if err != nil {
+					return fmt.Errorf("query mint err: %w", err)
+				}
+				fmt.Println("Mint Info:")
+				fmt.Println(mint.String())
+			}
 			return nil
 		},
 	}

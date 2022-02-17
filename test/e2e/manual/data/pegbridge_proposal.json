@@ -20,8 +20,11 @@
         ],
         "pegged_token_bridges": [
             {
-                "address": "0x0db9888166f26F0416977E6D4B41Cf8C266c942c",
-                "chain_id": 102
+                "contract": {
+                    "address": "0x0db9888166f26F0416977E6D4B41Cf8C266c942c",
+                    "chain_id": 102
+                },
+                "version": 2
             }
         ]
     },

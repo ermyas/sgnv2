@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"strings"
 	"testing"
 
 	"github.com/celer-network/goutils/log"
@@ -38,12 +39,19 @@ func pegbridgeTest(t *testing.T) {
 	)
 
 	prepareValidators(t, transactor)
+	tc.RunAllAndWait(
+		func() {
+			pbrTest1(t, transactor)
+		},
+		func() {
+			pbrTest2(t, transactor)
+		},
+	)
 
-	pbrTest(t, transactor)
 }
 
-func pbrTest(t *testing.T, transactor *transactor.Transactor) {
-	log.Infoln("======================== Deposit ===========================")
+func pbrTest1(t *testing.T, transactor *transactor.Transactor) {
+	log.Infoln("======================== Deposit UNI ===========================")
 	supplyCap := tc.GetSupplyCap(transactor, tc.CbrChain2.ChainId, tc.CbrChain2.UNIAddr)
 	log.Infoln("Supply cap: ", supplyCap)
 	tc.CheckTotalSupply(transactor, tc.CbrChain2.ChainId, tc.CbrChain2.UNIAddr, "0")
@@ -51,7 +59,7 @@ func pbrTest(t *testing.T, transactor *transactor.Transactor) {
 	depositAmt := new(big.Int).Mul(big.NewInt(100), big.NewInt(1e18))
 	err := tc.CbrChain1.ApproveUNI(0, depositAmt)
 	tc.ChkErr(err, "u0 chain1 approve")
-	depositId, err := tc.CbrChain1.PbrDeposit(0, depositAmt, tc.CbrChain2.ChainId, rand.Uint64())
+	depositId, err := tc.CbrChain1.PbrDeposit(0, tc.CbrChain1.UNIAddr, depositAmt, tc.CbrChain2.ChainId, rand.Uint64())
 	tc.ChkErr(err, "u0 chain1 deposit")
 
 	depositInfo := tc.WaitPbrDeposit(transactor, depositId)
@@ -68,7 +76,7 @@ func pbrTest(t *testing.T, transactor *transactor.Transactor) {
 	log.Infoln("======================== Deposit that would exceed supply cap===========================")
 	err = tc.CbrChain1.ApproveUNI(0, depositAmt.Mul(depositAmt, big.NewInt(2)))
 	tc.ChkErr(err, "u0 chain1 approve")
-	depositId, err = tc.CbrChain1.PbrDeposit(0, depositAmt, tc.CbrChain2.ChainId, rand.Uint64())
+	depositId, err = tc.CbrChain1.PbrDeposit(0, tc.CbrChain1.UNIAddr, depositAmt, tc.CbrChain2.ChainId, rand.Uint64())
 	tc.ChkErr(err, "u0 chain1 deposit")
 	err = tc.WaitPbrDepositWithEmptyMintId(transactor, depositId)
 	tc.ChkErr(err, "wait pbr deposit with empty mintId")
@@ -104,7 +112,7 @@ func pbrTest(t *testing.T, transactor *transactor.Transactor) {
 	tc.RunAllAndWait(
 		func() {
 			burnInfo := tc.WaitPbrBurn(transactor, burnId[:])
-			withdrawInfo = tc.CheckPbrWithdraw(transactor, eth.Bytes2Hex(burnInfo.WithdrawId))
+			withdrawInfo := tc.CheckPbrWithdraw(transactor, eth.Bytes2Hex(burnInfo.WithdrawId))
 			var withdrawOnChain pegbrtypes.WithdrawOnChain
 			err = proto.Unmarshal(withdrawInfo.WithdrawProtoBytes, &withdrawOnChain)
 			tc.ChkErr(err, "unmarshal BurnOnChain")
@@ -148,11 +156,16 @@ func pbrTest(t *testing.T, transactor *transactor.Transactor) {
 			feesInfo, err := tc.GetPegBridgeFeesInfo(transactor, 0)
 			tc.ChkErr(err, "del0 get pegbridge fees info before claim")
 			log.Infoln("feesInfo.ClaimableFeeAmounts before claim", feesInfo.ClaimableFeeAmounts)
-			assert.Equal(t, 1, len(feesInfo.ClaimableFeeAmounts), "Should have 1 fee")
-			fee0 := feesInfo.ClaimableFeeAmounts[0]
-			assert.Equal(t, fmt.Sprintf("PBF-UNI/%d", tc.CbrChain1.ChainId), fee0.Denom)
-			assert.True(t, fee0.Amount.GT(sdk.NewDec(1e14)))
-			assert.True(t, fee0.Amount.LT(sdk.NewDec(1e15)))
+			assert.True(t, len(feesInfo.ClaimableFeeAmounts) > 0, "Should have at least 1 fee")
+			uniFee := feesInfo.ClaimableFeeAmounts[0]
+			if !strings.Contains(uniFee.Denom, "UNI") {
+				if len(feesInfo.ClaimableFeeAmounts) > 1 {
+					uniFee = feesInfo.ClaimableFeeAmounts[1]
+				}
+			}
+			assert.Equal(t, fmt.Sprintf("PBF-UNI/%d", tc.CbrChain1.ChainId), uniFee.Denom)
+			assert.True(t, uniFee.Amount.GT(sdk.NewDec(1e14)))
+			assert.True(t, uniFee.Amount.LT(sdk.NewDec(1e15)))
 
 			nonce := rand.Uint64()
 			err = tc.CbrChain1.StartDelegatorClaimPegBridgeFee(transactor, 0, tc.CbrChain1.ChainId, tc.CbrChain1.UNIAddr, nonce)
@@ -168,7 +181,12 @@ func pbrTest(t *testing.T, transactor *transactor.Transactor) {
 			feesInfo, err = tc.GetPegBridgeFeesInfo(transactor, 0)
 			tc.ChkErr(err, "del0 get pegbridge fees info after claim")
 			log.Infoln("feesInfo.ClaimableFeeAmounts after claim", feesInfo.ClaimableFeeAmounts)
-			assert.Equal(t, 0, len(feesInfo.ClaimableFeeAmounts), "Should have 0 fee")
+			assert.True(t, len(feesInfo.ClaimableFeeAmounts) < 2, "Should have at most 1 fee")
+			if len(feesInfo.ClaimableFeeAmounts) == 1 {
+				if strings.Contains(feesInfo.ClaimableFeeAmounts[0].Denom, "UNI") {
+					log.Fatal("no UNI fee should be left")
+				}
+			}
 		},
 		func() {
 			log.Infoln("======================== Validator 0 claim fee ===========================")
@@ -197,5 +215,58 @@ func pbrTest(t *testing.T, transactor *transactor.Transactor) {
 			tc.ChkErr(err, "chain1 onchain withdraw pegbridge fee")
 		},
 	)
-	log.Infoln("======================== Finish PegBridge Test ===========================")
+	log.Infoln("======================== Finish PegBridge Test1 ===========================")
+}
+
+func pbrTest2(t *testing.T, transactor *transactor.Transactor) {
+	log.Infoln("======================== Deposit USDT to vault===========================")
+	uid := uint64(3) // use user (client) 3 to avoid interference with concurrent test
+	balance, err := tc.CbrChain2.USDTContract.BalanceOf(&bind.CallOpts{}, tc.CbrChain2.Users[uid].Address)
+	depositAmt := big.NewInt(5000 * 1e6)
+	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.USDTContract, uid, depositAmt, tc.CbrChain1.PegVaultV2Addr)
+	tc.ChkErr(err, "u3 chain1 approve")
+	depositId, err := tc.CbrChain1.PbrV2Deposit(uid, tc.CbrChain1.USDTAddr, depositAmt, tc.CbrChain2.ChainId, rand.Uint64())
+	tc.ChkErr(err, "u3 chain1 deposit")
+	depositInfo := tc.WaitPbrDeposit(transactor, depositId)
+	mintInfo := tc.CheckPbrMint(transactor, eth.Bytes2Hex(depositInfo.MintId))
+	var mintOnChain pegbrtypes.MintOnChain
+	err = proto.Unmarshal(mintInfo.MintProtoBytes, &mintOnChain)
+	tc.ChkErr(err, "unmarshal MintOnChain")
+	mintAmt1 := new(big.Int).SetBytes(mintOnChain.Amount)
+	tc.CbrChain2.CheckUSDTBalance(uid, new(big.Int).Add(balance, mintAmt1))
+	log.Infoln("depositAmt", depositAmt, "mintAmt", mintAmt1)
+
+	log.Infoln("======================== Burn USDT and withdraw ===========================")
+	balance, err = tc.CbrChain1.USDTContract.BalanceOf(&bind.CallOpts{}, tc.CbrChain1.Users[uid].Address)
+	tc.ChkErr(err, "u3 balance on chain 1 before burn")
+	burnAmt1 := big.NewInt(2000 * 1e6)
+	burnId, err := tc.CbrChain2.PbrV2Burn(uid, tc.CbrChain2.USDTAddr, burnAmt1, 0, rand.Uint64())
+	tc.ChkErr(err, "u3 chain2 burn")
+	burnInfo := tc.WaitPbrBurn(transactor, burnId[:])
+	withdrawInfo := tc.CheckPbrWithdraw(transactor, eth.Bytes2Hex(burnInfo.WithdrawId))
+	var withdrawOnChain pegbrtypes.WithdrawOnChain
+	err = proto.Unmarshal(withdrawInfo.WithdrawProtoBytes, &withdrawOnChain)
+	tc.ChkErr(err, "unmarshal BurnOnChain")
+	withdrawAmt := new(big.Int).SetBytes(withdrawOnChain.Amount)
+	tc.CbrChain1.CheckUSDTBalance(uid, new(big.Int).Add(balance, withdrawAmt))
+	log.Infoln("burnAmt", burnAmt1, "withdrawAmt", withdrawAmt)
+
+	log.Infoln("======================== Burn USDT and mint ===========================")
+	balance, err = tc.CbrChain3.USDTContract.BalanceOf(&bind.CallOpts{}, tc.CbrChain3.Users[uid].Address)
+	tc.ChkErr(err, "u3 balance on chain 3 before burn")
+	burnAmt2 := big.NewInt(1000 * 1e6)
+	burnId, err = tc.CbrChain2.PbrV2Burn(uid, tc.CbrChain2.USDTAddr, burnAmt2, tc.CbrChain3.ChainId, rand.Uint64())
+	tc.ChkErr(err, "u3 chain2 burn")
+	burnInfo = tc.WaitPbrBurn(transactor, burnId[:])
+	mintInfo = tc.CheckPbrMint(transactor, eth.Bytes2Hex(burnInfo.MintId))
+	err = proto.Unmarshal(mintInfo.MintProtoBytes, &mintOnChain)
+	tc.ChkErr(err, "unmarshal MintOnChain")
+	mintAmt2 := new(big.Int).SetBytes(mintOnChain.Amount)
+	tc.CbrChain3.CheckUSDTBalance(uid, new(big.Int).Add(balance, mintAmt2))
+	log.Infoln("burn", burnAmt2, "mintAmt", mintAmt2)
+	expectedChain2Supply := new(big.Int).Sub(new(big.Int).Sub(mintAmt1, burnAmt1), burnAmt2)
+	tc.CheckTotalSupply(transactor, tc.CbrChain2.ChainId, tc.CbrChain2.USDTAddr, expectedChain2Supply.String())
+	tc.CheckTotalSupply(transactor, tc.CbrChain3.ChainId, tc.CbrChain3.USDTAddr, mintAmt2.String())
+
+	log.Infoln("======================== Finish PegBridge Test2 ===========================")
 }

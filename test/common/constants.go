@@ -17,10 +17,12 @@ const (
 	ChainID      = uint64(883)
 	Geth1ChainID = ChainID
 	Geth2ChainID = uint64(884)
+	Geth3ChainID = uint64(885)
 
 	LocalGeth  = "http://127.0.0.1:8545"
 	LocalGeth1 = LocalGeth
 	LocalGeth2 = "http://127.0.0.1:8547"
+	LocalGeth3 = "http://127.0.0.1:8549"
 
 	SgnChainID    = "sgn-localnet-1000"
 	SgnPassphrase = "12341234"
@@ -176,6 +178,8 @@ func GetGethRpc(chainId uint64) string {
 		return LocalGeth1
 	} else if chainId == Geth2ChainID {
 		return LocalGeth2
+	} else if chainId == Geth3ChainID {
+		return LocalGeth3
 	}
 	return ""
 }

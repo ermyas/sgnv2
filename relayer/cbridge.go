@@ -49,8 +49,10 @@ func (m MsgContract) GetABI() string {
 }
 
 type PegContracts struct {
-	bridge *eth.PegBridgeContract
-	vault  *eth.PegVaultContract
+	bridge  *eth.PegBridgeContract
+	vault   *eth.PegVaultContract
+	bridge2 *eth.PegBridgeV2Contract
+	vault2  *eth.PegVaultV2Contract
 }
 
 func (pc *PegContracts) GetPegVaultContract() *eth.PegVaultContract {
@@ -65,20 +67,6 @@ func (pc *PegContracts) GetPegBridgeContract() *eth.PegBridgeContract {
 		return nil
 	}
 	return pc.bridge
-}
-
-func (pc *PegContracts) SetPegVaultContract(v *eth.PegVaultContract) {
-	if pc == nil {
-		return
-	}
-	pc.vault = v
-}
-
-func (pc *PegContracts) SetegBridgeContract(b *eth.PegBridgeContract) {
-	if pc == nil {
-		return
-	}
-	pc.bridge = b
 }
 
 // ethclient etc
@@ -158,13 +146,31 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 	if err != nil {
 		log.Fatalln("cbridge contract at", cfg.CBridge, "err:", err)
 	}
-	otv, err := eth.NewPegVaultContract(eth.Hex2Addr(cfg.OTVault), ec)
-	if err != nil {
-		log.Fatalln("OriginalTokenVault contract at", cfg.OTVault, "err:", err)
+
+	pegContracts := &PegContracts{}
+	if cfg.OTVault != "" {
+		pegContracts.vault, err = eth.NewPegVaultContract(eth.Hex2Addr(cfg.OTVault), ec)
+		if err != nil {
+			log.Fatalln("OriginalTokenVault contract at", cfg.OTVault, "err:", err)
+		}
 	}
-	ptb, err := eth.NewPegBridgeContract(eth.Hex2Addr(cfg.PTBridge), ec)
-	if err != nil {
-		log.Fatalln("PeggedTokenBridge contract at", cfg.PTBridge, "err:", err)
+	if cfg.PTBridge != "" {
+		pegContracts.bridge, err = eth.NewPegBridgeContract(eth.Hex2Addr(cfg.PTBridge), ec)
+		if err != nil {
+			log.Fatalln("PeggedTokenBridge contract at", cfg.PTBridge, "err:", err)
+		}
+	}
+	if cfg.OTVault2 != "" {
+		pegContracts.vault2, err = eth.NewPegVaultV2Contract(eth.Hex2Addr(cfg.OTVault2), ec)
+		if err != nil {
+			log.Fatalln("OriginalTokenVaultV2 contract at", cfg.OTVault2, "err:", err)
+		}
+	}
+	if cfg.PTBridge2 != "" {
+		pegContracts.bridge2, err = eth.NewPegBridgeV2Contract(eth.Hex2Addr(cfg.PTBridge2), ec)
+		if err != nil {
+			log.Fatalln("PeggedTokenBridgeV2 contract at", cfg.PTBridge2, "err:", err)
+		}
 	}
 	wdi, err := eth.NewWdInboxContract(eth.Hex2Addr(cfg.WdInbox), ec)
 	if err != nil {
@@ -205,11 +211,8 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 			Bridge:  cbr,
 			Address: eth.Hex2Addr(cfg.CBridge),
 		},
-		pegContracts: &PegContracts{
-			vault:  otv,
-			bridge: ptb,
-		},
-		wdiContract: wdi,
+		pegContracts: pegContracts,
+		wdiContract:  wdi,
 		msgContract: &MsgContract{
 			MessageBus: msg,
 			Address:    eth.Hex2Addr(cfg.MsgBus),

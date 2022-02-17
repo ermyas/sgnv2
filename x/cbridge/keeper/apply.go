@@ -74,13 +74,6 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			Token:    ev.Token[:],
 			Amount:   ev.Amount.Bytes(),
 		}
-		/*
-			if eth.Bytes2Addr(ev.Sender[:]) != eth.Bytes2Addr(ev.Receiver[:]) {
-				SetEvSendStatus(kv, ev.TransferId, types.XferStatus_BAD_ADDRESS)
-				SetXferRefund(kv, ev.TransferId, wdOnchain)
-				return true, nil
-			}
-		*/
 		randBytes := crypto.Keccak256Hash([]byte(fmt.Sprintf("%x-%d", ev.TransferId, ctx.BlockTime().Unix())))
 		// must set to non-zero before return
 		sendStatus, userReceive, destTokenAddr, percFee, baseFee, err :=

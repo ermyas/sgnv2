@@ -23,6 +23,17 @@ services:
       localnet:
         ipv4_address: 192.168.10.6
 
+  geth3:
+    container_name: geth3
+    image: "celer-network/geth"
+    ports:
+      - "8549-8550:8545-8546"
+    volumes:
+      - ./docker-volumes/geth3-env:/geth/env:Z
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.9
+
   sgnnode0:
     container_name: sgnnode0
     image: "celer-network/sgnnode"

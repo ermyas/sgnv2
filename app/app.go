@@ -644,7 +644,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 }
 
 func (app *SgnApp) setUpgradeHandlers() {
-	app.UpgradeKeeper.SetUpgradeHandler("v1.7.0", app.defaultUpgradeHandler)
+	app.UpgradeKeeper.SetUpgradeHandler("multipegbr-upgrade", app.defaultUpgradeHandler)
 }
 
 // defaultUpgradeHandler would run directly migration without any special process.

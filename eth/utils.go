@@ -461,6 +461,62 @@ func (ev *OriginalTokenVaultWithdrawn) String() string {
 		ev.WithdrawId, ev.Receiver, ev.Token, ev.Amount, ev.RefChainId, ev.RefId, ev.BurnAccount)
 }
 
+func (ev *OriginalTokenVaultV2Deposited) PrettyLog(onchid uint64) string {
+	return fmt.Sprintf(
+		"peg-deposited2-%d depositId: %x account: %x token: %x amount: %s mintChainId: %d mintAccount: %x",
+		onchid, ev.DepositId, ev.Depositor, ev.Token, ev.Amount, ev.MintChainId, ev.MintAccount)
+}
+
+func (ev *PeggedTokenBridgeV2Mint) PrettyLog(onchid uint64) string {
+	return fmt.Sprintf(
+		"peg-mint2-%d mintId: %x token: %x account: %x amount: %s depositChainId: %d depositId: %x depositor: %x",
+		onchid, ev.MintId, ev.Token, ev.Account, ev.Amount, ev.RefChainId, ev.RefId, ev.Depositor)
+}
+
+func (ev *PeggedTokenBridgeV2Burn) PrettyLog(onchid uint64) string {
+	return fmt.Sprintf(
+		"peg-burn2-%d burnId: %x token: %x account: %x amount: %s toChainId %d toAccount: %x",
+		onchid, ev.BurnId, ev.Token, ev.Account, ev.Amount, ev.ToChainId, ev.ToAccount)
+}
+
+func (ev *OriginalTokenVaultV2Withdrawn) PrettyLog(onchid uint64) string {
+	return fmt.Sprintf(
+		"peg-withdrawn2-%d withdrawId: %x receiver: %x token: %x amount: %s mintChainId: %d mintId: %x burnAccount: %x",
+		onchid, ev.WithdrawId, ev.Receiver, ev.Token, ev.Amount, ev.RefChainId, ev.RefId, ev.BurnAccount)
+}
+
+func (ev *OriginalTokenVaultV2Deposited) String() string {
+	return fmt.Sprintf("depositId %x, account %x, token %x, amount %s, mintChainId %d, mintAccount %x, nonce %d",
+		ev.DepositId, ev.Depositor, ev.Token, ev.Amount, ev.MintChainId, ev.MintAccount, ev.Nonce)
+}
+
+func (ev *PeggedTokenBridgeV2Mint) String() string {
+	return fmt.Sprintf("mintId %x, account %x, token %x, amount %s, depositChainId %d, depositId %x, depositor %x",
+		ev.MintId, ev.Account, ev.Token, ev.Amount, ev.RefChainId, ev.RefId, ev.Depositor)
+}
+
+func (ev *PeggedTokenBridgeV2Burn) String() string {
+	return fmt.Sprintf("burnId %x, account %x, token %x, amount %s, toChainId %d, toAccount %x, nonce %d",
+		ev.BurnId, ev.Account, ev.Token, ev.Amount, ev.ToChainId, ev.ToAccount, ev.Nonce)
+}
+
+func (ev *OriginalTokenVaultV2Withdrawn) String() string {
+	return fmt.Sprintf("withdrawId %x, receiver %x, token %x, amount %s, burnChainId %d, burnId %x, burnAccount %x",
+		ev.WithdrawId, ev.Receiver, ev.Token, ev.Amount, ev.RefChainId, ev.RefId, ev.BurnAccount)
+}
+
+func (ev *WithdrawInboxWithdrawalRequest) PrettyLog(onchid uint64) string {
+	return fmt.Sprintf(
+		"wdi-withdrawalrequest-%d sender: %x receiver: %x toChain: %d fromChains: %v tokens: %v ratios: %v slippages: %v",
+		onchid, ev.Sender, ev.Receiver, ev.ToChain, ev.FromChains, ev.Tokens, ev.Ratios, ev.Slippages)
+}
+
+func (ev *WithdrawInboxWithdrawalRequest) String() string {
+	return fmt.Sprintf(
+		"sender: %x receiver: %x toChain: %d fromChains: %v tokens: %v ratios: %v slippages: %v",
+		ev.Sender, ev.Receiver, ev.ToChain, ev.FromChains, ev.Tokens, ev.Ratios, ev.Slippages)
+}
+
 func (ev *WithdrawInboxWithdrawalRequest) Equal(b *WithdrawInboxWithdrawalRequest) bool {
 	if ev.SeqNum != b.SeqNum {
 		return false
@@ -502,16 +558,4 @@ func (ev *WithdrawInboxWithdrawalRequest) Equal(b *WithdrawInboxWithdrawalReques
 		}
 	}
 	return true
-}
-
-func (ev *WithdrawInboxWithdrawalRequest) PrettyLog(onchid uint64) string {
-	return fmt.Sprintf(
-		"wdi-withdrawalrequest-%d sender: %x receiver: %x toChain: %d fromChains: %v tokens: %v ratios: %v slippages: %v",
-		onchid, ev.Sender, ev.Receiver, ev.ToChain, ev.FromChains, ev.Tokens, ev.Ratios, ev.Slippages)
-}
-
-func (ev *WithdrawInboxWithdrawalRequest) String() string {
-	return fmt.Sprintf(
-		"sender: %x receiver: %x toChain: %d fromChains: %v tokens: %v ratios: %v slippages: %v",
-		ev.Sender, ev.Receiver, ev.ToChain, ev.FromChains, ev.Tokens, ev.Ratios, ev.Slippages)
 }
