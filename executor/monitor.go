@@ -23,6 +23,9 @@ func (c *Chain) startMonitoring() {
 }
 
 func (c *Chain) monitorBridgeRelay() {
+	if c.LiqBridge.GetAddr() == eth.ZeroAddr {
+		return
+	}
 	cfg := c.makeDefaultMonConf(types.LiqBridgeEventRelay, c.LiqBridge)
 	c.monitor.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) bool {
 		e, err := c.LiqBridge.ParseRelay(eLog)
@@ -42,6 +45,9 @@ func (c *Chain) monitorBridgeRelay() {
 }
 
 func (c *Chain) monitorPegMint() {
+	if c.PegBridge.GetAddr() == eth.ZeroAddr {
+		return
+	}
 	cfg := c.makeDefaultMonConf(types.PegBridgeEventMint, c.PegBridge)
 	c.monitor.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) bool {
 		e, err := c.PegBridge.ParseMint(eLog)
@@ -77,6 +83,9 @@ func (c *Chain) monitorPegMint() {
 }
 
 func (c *Chain) monitorPegWithdrawn() {
+	if c.PegVault.GetAddr() == eth.ZeroAddr {
+		return
+	}
 	cfg := c.makeDefaultMonConf(types.PegVaultEventWithdrawn, c.PegVault)
 	c.monitor.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) bool {
 		e, err := c.PegVault.ParseWithdrawn(eLog)

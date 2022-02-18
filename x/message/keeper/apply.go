@@ -72,8 +72,8 @@ func (k Keeper) applyMessageWithTransfer(ctx sdk.Context, applyEvent *cbrtypes.O
 	dstChainId := ev.DstChainId.Uint64()
 
 	errMsg := fmt.Sprintf(
-		"cannot apply message with transfer (srcXferId %s, srcChainId %d, tranferType %v): ",
-		srcXferId.Hex(), srcChainId, transferType)
+		"cannot apply message with transfer (srcXferId %x, srcChainId %d, tranferType %v): ",
+		srcXferId, srcChainId, transferType)
 
 	switch transferType {
 	case types.TRANSFER_TYPE_LIQUIDITY_SEND:
@@ -88,7 +88,7 @@ func (k Keeper) applyMessageWithTransfer(ctx sdk.Context, applyEvent *cbrtypes.O
 		}
 		err = relayOnChain.Unmarshal(relay.GetRelay())
 		if err != nil {
-			return false, fmt.Errorf(errMsg+"failed to unmarshal relay %v", relay.GetRelay())
+			return false, fmt.Errorf(errMsg+"failed to unmarshal relay %x", relay.GetRelay())
 		}
 		dstToken := relayOnChain.GetToken()
 		dstAmt := new(big.Int).SetBytes(relayOnChain.GetAmount()).String()
@@ -118,12 +118,12 @@ func (k Keeper) applyMessageWithTransfer(ctx sdk.Context, applyEvent *cbrtypes.O
 		}
 		dstAmt := new(big.Int).SetBytes(mintOnChain.GetAmount()).String()
 		dstToken := mintOnChain.GetToken()
-		dstBridge, found := k.pegbridgeKeeper.GetPeggedTokenBridge(ctx, dstChainId)
+		dstBridge, found := k.pegbridgeKeeper.GetPeggedBridge(ctx, dstChainId, 0)
 		if !found {
 			return false, fmt.Errorf(errMsg+"pegged token bridge not found for dstChainId %d", dstChainId)
 		}
 		execCtx := types.NewMsgXferExecutionContext(
-			ev, srcChainId, eth.Bytes2Addr(dstToken), dstAmt, eth.Hex2Addr(dstBridge.Address), transferType)
+			ev, srcChainId, eth.Bytes2Addr(dstToken), dstAmt, dstBridge, transferType)
 		return k.processMessageWithTransfer(ctx, execCtx)
 
 	case types.TRANSFER_TYPE_PEG_WITHDRAW:
@@ -145,15 +145,15 @@ func (k Keeper) applyMessageWithTransfer(ctx sdk.Context, applyEvent *cbrtypes.O
 		}
 		dstAmt := new(big.Int).SetBytes(withdrawOnChain.GetAmount()).String()
 		dstToken := withdrawOnChain.GetToken()
-		dstBridge, found := k.pegbridgeKeeper.GetOriginalTokenVault(ctx, dstChainId)
+		dstBridge, found := k.pegbridgeKeeper.GetOriginalVault(ctx, dstChainId, 0)
 		if !found {
 			return false, fmt.Errorf(errMsg+"pegged token vault not found for dstChainId %d", dstChainId)
 		}
 		execCtx := types.NewMsgXferExecutionContext(
-			ev, srcChainId, eth.Bytes2Addr(dstToken), dstAmt, eth.Hex2Addr(dstBridge.Address), transferType)
+			ev, srcChainId, eth.Bytes2Addr(dstToken), dstAmt, dstBridge, transferType)
 		return k.processMessageWithTransfer(ctx, execCtx)
 	}
-	return false, fmt.Errorf(errMsg+"transfer type (%s) not supported", srcXferId.String(), transferType)
+	return false, fmt.Errorf(errMsg + "transfer type not supported")
 }
 
 func (k Keeper) applyTransferRefund(ctx sdk.Context, ev *eth.MessageBusMessageWithTransfer) (bool, error) {
@@ -189,11 +189,11 @@ func (k Keeper) applyPegDepositRefund(ctx sdk.Context, ev *eth.MessageBusMessage
 		return false, fmt.Errorf("wdOnChain not found for srcXferId %x", depositId)
 	}
 	log.Debugf("found peg WdOnchain: %+v", wdOnChain)
-	bridge, found := k.pegbridgeKeeper.GetOriginalTokenVault(ctx, wdOnChain.RefChainId)
+	bridge, found := k.pegbridgeKeeper.GetOriginalVault(ctx, wdOnChain.RefChainId, 0)
 	if !found {
 		return false, fmt.Errorf("otvault addr not found for chainId %d", wdOnChain.RefChainId)
 	}
-	execCtx := types.NewMsgPegDepositRefundExecutionContext(ev, wdOnChain, bridge.Address)
+	execCtx := types.NewMsgPegDepositRefundExecutionContext(ev, wdOnChain, eth.Addr2Hex(bridge))
 	k.SetRefund(ctx, eth.Bytes2Hash(depositId[:]), execCtx)
 	return k.processMessageWithTransfer(ctx, execCtx)
 }
@@ -210,11 +210,11 @@ func (k Keeper) applyPegBurnRefund(ctx sdk.Context, ev *eth.MessageBusMessageWit
 		return false, fmt.Errorf("mintOnChain not found for srcXferId %x", burnId)
 	}
 	log.Debugf("found peg WdOnchain: %+v", mintOnChain)
-	bridge, found := k.pegbridgeKeeper.GetPeggedTokenBridge(ctx, mintOnChain.RefChainId)
+	bridge, found := k.pegbridgeKeeper.GetPeggedBridge(ctx, mintOnChain.RefChainId, 0)
 	if !found {
 		return false, fmt.Errorf("ptbridge addr not found for chainId %d", mintOnChain.RefChainId)
 	}
-	execCtx := types.NewMsgPegBurnRefundExecutionContext(ev, mintOnChain, bridge.Address)
+	execCtx := types.NewMsgPegBurnRefundExecutionContext(ev, mintOnChain, eth.Addr2Hex(bridge))
 	k.SetRefund(ctx, eth.Bytes2Hash(burnId[:]), execCtx)
 	return k.processMessageWithTransfer(ctx, execCtx)
 }
@@ -285,15 +285,15 @@ func (k Keeper) applyMessageExecuted(ctx sdk.Context, applyEvent *cbrtypes.OnCha
 }
 
 func (k Keeper) getTransferType(ctx sdk.Context, bridgeAddr eth.Addr, srcChainId uint64) types.TransferType {
-	vault, vaultFound := k.pegbridgeKeeper.GetOriginalTokenVault(ctx, srcChainId)
-	pegbr, pegbrFound := k.pegbridgeKeeper.GetPeggedTokenBridge(ctx, srcChainId)
+	vault, vaultFound := k.pegbridgeKeeper.GetOriginalVault(ctx, srcChainId, 0)
+	pegbr, pegbrFound := k.pegbridgeKeeper.GetPeggedBridge(ctx, srcChainId, 0)
 	cbrContractAddr, cbrFound := k.cbridgeKeeper.GetCbrContractAddr(ctx, srcChainId)
 
 	if cbrFound && cbrContractAddr == bridgeAddr {
 		return types.TRANSFER_TYPE_LIQUIDITY_SEND
-	} else if vaultFound && eth.Hex2Addr(vault.GetAddress()) == bridgeAddr {
+	} else if vaultFound && vault == bridgeAddr {
 		return types.TRANSFER_TYPE_PEG_MINT
-	} else if pegbrFound && eth.Hex2Addr(pegbr.GetAddress()) == bridgeAddr {
+	} else if pegbrFound && pegbr == bridgeAddr {
 		return types.TRANSFER_TYPE_PEG_WITHDRAW
 	} else {
 		return types.TRANSFER_TYPE_NULL

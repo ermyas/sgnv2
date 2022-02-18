@@ -352,7 +352,7 @@ func (c *CbrOneChain) getMessageIdFromMessageWithTransferEvent(cliCtx client.Con
 		return "", fmt.Errorf("getMessageIdFromMessageBusEvent failed, unknown bridge type, msg chainId:%d, transfer bridge:%s", c.chainid, ev.Bridge)
 	}
 
-	log.Debugf("getTransferInfoBySrcTransferId, srcTransferId:%s, type:%s", eth.Hash(ev.SrcTransferId), transferType)
+	log.Debugf("getTransferInfoBySrcTransferId, srcTransferId:%x, type:%s", ev.SrcTransferId, transferType)
 	_, _, token, amt, _, err := getTransferInfoBySrcTransferId(cliCtx, ev.SrcTransferId, transferType)
 	if err != nil {
 		log.Warnf("getTransferInfoBySrcTransferId err:%+v", err)
@@ -387,7 +387,7 @@ func (c *CbrOneChain) getMessageIdFromMessageWithTransferEvent(cliCtx client.Con
 func (c *CbrOneChain) getBridgeAddrOnDstChain(transferType msgbrtypes.TransferType) eth.Addr {
 	switch transferType {
 	case msgbrtypes.TRANSFER_TYPE_LIQUIDITY_SEND:
-		return c.cbrContract.Address
+		return c.cbrContract.GetAddr()
 	case msgbrtypes.TRANSFER_TYPE_PEG_MINT:
 		return c.pegContracts.GetPegBridgeContract().GetAddr()
 	case msgbrtypes.TRANSFER_TYPE_PEG_WITHDRAW:

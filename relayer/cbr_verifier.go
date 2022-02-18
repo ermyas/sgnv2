@@ -121,7 +121,7 @@ func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, lo
 	// check in store
 
 	// check on chain
-	done, approve, addLiqLog := c.verifyEventLog(eLog, eth.LiquidityBridge, cbrtypes.CbrEventLiqAdd, c.cbrContract.Address, logmsg)
+	done, approve, addLiqLog := c.verifyEventLog(eLog, eth.LiquidityBridge, cbrtypes.CbrEventLiqAdd, c.cbrContract.GetAddr(), logmsg)
 	if addLiqLog == nil {
 		return done, approve
 	}
@@ -370,7 +370,7 @@ func (c *CbrOneChain) verifyWithdrawalRequest(eLog *ethtypes.Log, cliCtx client.
 	// check in store
 
 	// check on chain
-	done, approve, wdReqLog := c.verifyEventLog(eLog, eth.WdInbox, cbrtypes.CbrEventWithdrawalRequest, c.wdiContract.Address, logmsg)
+	done, approve, wdReqLog := c.verifyEventLog(eLog, eth.WdInbox, cbrtypes.CbrEventWithdrawalRequest, c.wdiContract.GetAddr(), logmsg)
 	if wdReqLog == nil {
 		return done, approve
 	}

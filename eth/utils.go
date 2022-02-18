@@ -314,7 +314,7 @@ func (ev *MessageBusMessage) String() string {
 }
 
 func (ev *MessageBusMessageWithTransfer) String() string {
-	return fmt.Sprintf("sender: %s,receiver: %s, dstChainId: %s, bridgeAddr: %s, transferId: %x, Message: %s", ev.Sender, ev.Receiver, ev.DstChainId, ev.Bridge, ev.SrcTransferId, string(ev.Message))
+	return fmt.Sprintf("sender: %s,receiver: %s, dstChainId: %s, bridgeAddr: %s, transferId: %x, Message: %x", ev.Sender, ev.Receiver, ev.DstChainId, ev.Bridge, ev.SrcTransferId, ev.Message)
 }
 
 func (r *BridgeRelay) String() string {

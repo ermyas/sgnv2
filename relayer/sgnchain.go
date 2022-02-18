@@ -92,7 +92,7 @@ func (r *Relayer) monitorSgnSlash() {
 				}
 				log.Infof("New slash to %x, reason %s, nonce %d", slash.SlashOnChain.Validator, slash.Reason, slashEvent.Nonce)
 
-				dataToSign := slash.EncodeDataToSign(r.EthClient.ChainId, r.EthClient.Contracts.Staking.Address)
+				dataToSign := slash.EncodeDataToSign(r.EthClient.ChainId, r.EthClient.Contracts.Staking.GetAddr())
 				sig, err := r.EthClient.SignEthMessage(dataToSign)
 				if err != nil {
 					log.Errorln("SignEthMessage err", err)
@@ -145,7 +145,7 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 						log.Errorf("%s, no cbrMgr %d found", logmsg, relay.DstChainId)
 						continue
 					}
-					dataToSign := cbrtypes.EncodeRelayOnChainToSign(relay.DstChainId, chain.cbrContract.Address, data)
+					dataToSign := cbrtypes.EncodeRelayOnChainToSign(relay.DstChainId, chain.cbrContract.GetAddr(), data)
 					sig, err := r.EthClient.SignEthMessage(dataToSign)
 					if err != nil {
 						log.Errorf("%s, sign msg err: %s", logmsg, err)
@@ -172,7 +172,7 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 						log.Errorf("%s, no cbrMgr %d found", logmsg, withdraw.Chainid)
 						continue
 					}
-					dataToSign := cbrtypes.EncodeWithdrawOnchainToSign(withdraw.Chainid, chain.cbrContract.Address, data)
+					dataToSign := cbrtypes.EncodeWithdrawOnchainToSign(withdraw.Chainid, chain.cbrContract.GetAddr(), data)
 					sig, err := r.EthClient.SignEthMessage(dataToSign)
 					if err != nil {
 						log.Errorf("%s, sign msg err: %s", logmsg, err)
@@ -184,7 +184,7 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 				case cbrtypes.SignDataType_SIGNERS.String():
 					msg.Datatype = cbrtypes.SignDataType_SIGNERS
 					for chainId, c := range r.cbrMgr {
-						dataToSign := cbrtypes.EncodeSignersUpdateToSign(chainId, c.cbrContract.Address, data)
+						dataToSign := cbrtypes.EncodeSignersUpdateToSign(chainId, c.cbrContract.GetAddr(), data)
 						sig, err := r.EthClient.SignEthMessage(dataToSign)
 						if err != nil {
 							log.Errorf("%s, sign msg err: %s", logmsg, err)
@@ -377,7 +377,7 @@ func (r *Relayer) monitorSgnFarmingClaimAllEvent() {
 						log.Errorf("Farming reward on chain %d not supported yet", details.ChainId)
 						continue
 					}
-					dataToSign := details.EncodeDataToSign(r.EthClient.Contracts.FarmingRewards.Address)
+					dataToSign := details.EncodeDataToSign(r.EthClient.Contracts.FarmingRewards.GetAddr())
 					sig, err := r.EthClient.SignEthMessage(dataToSign)
 					if err != nil {
 						log.Errorln("SignEthMessage err", err)
@@ -419,7 +419,7 @@ func (r *Relayer) monitorSgnMsgDataToSign() {
 					continue
 				}
 				sig, err := r.EthClient.SignEthMessage(
-					messageInfo.EncodeDataToSign(eth.Hex2Hash(msgId), r.cbrMgr[messageInfo.DstChainId].msgContract.Address))
+					messageInfo.EncodeDataToSign(eth.Hex2Hash(msgId), r.cbrMgr[messageInfo.DstChainId].msgContract.GetAddr()))
 				if err != nil {
 					log.Error(err)
 					continue
@@ -457,7 +457,7 @@ func (r *Relayer) monitorSgnDistributionClaimAllStakingRewardEvent() {
 					continue
 				}
 				dataToSign := stakingRewardClaimInfo.RewardClaimInfo.EncodeDataToSign(
-					r.EthClient.ChainId, r.EthClient.Contracts.StakingReward.Address)
+					r.EthClient.ChainId, r.EthClient.Contracts.StakingReward.GetAddr())
 				sig, err := r.EthClient.SignEthMessage(dataToSign)
 				if err != nil {
 					log.Errorln("SignEthMessage err", err)

@@ -2,8 +2,78 @@ package relayer
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
+
+	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/eth"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
+
+type PegContracts struct {
+	bridge  *eth.PegBridgeContract
+	vault   *eth.PegVaultContract
+	bridge2 *eth.PegBridgeV2Contract
+	vault2  *eth.PegVaultV2Contract
+}
+
+func (pc *PegContracts) GetPegVaultContract() *eth.PegVaultContract {
+	if pc == nil {
+		return nil
+	}
+	return pc.vault
+}
+
+func (pc *PegContracts) GetPegBridgeContract() *eth.PegBridgeContract {
+	if pc == nil {
+		return nil
+	}
+	return pc.bridge
+}
+
+func (pc *PegContracts) GetPegVaultV2Contract() *eth.PegVaultV2Contract {
+	if pc == nil {
+		return nil
+	}
+	return pc.vault2
+}
+
+func (pc *PegContracts) GetPegBridgeV2Contract() *eth.PegBridgeV2Contract {
+	if pc == nil {
+		return nil
+	}
+	return pc.bridge2
+}
+
+func NewPegContracts(cfg *common.OneChainConfig, client *ethclient.Client) (*PegContracts, error) {
+	pegContracts := &PegContracts{}
+	var err error
+	if cfg.OTVault != "" {
+		pegContracts.vault, err = eth.NewPegVaultContract(eth.Hex2Addr(cfg.OTVault), client)
+		if err != nil {
+			return nil, fmt.Errorf("OriginalTokenVault contract at %s, err %w", cfg.OTVault, err)
+		}
+	}
+	if cfg.PTBridge != "" {
+		pegContracts.bridge, err = eth.NewPegBridgeContract(eth.Hex2Addr(cfg.PTBridge), client)
+		if err != nil {
+			return nil, fmt.Errorf("PeggedTokenBridge contract at %s, err %w", cfg.OTVault, err)
+		}
+	}
+	if cfg.OTVault2 != "" {
+		pegContracts.vault2, err = eth.NewPegVaultV2Contract(eth.Hex2Addr(cfg.OTVault2), client)
+		if err != nil {
+			return nil, fmt.Errorf("OriginalTokenVaultV2 contract at %s, err %w", cfg.OTVault, err)
+		}
+	}
+	if cfg.PTBridge2 != "" {
+		pegContracts.bridge2, err = eth.NewPegBridgeV2Contract(eth.Hex2Addr(cfg.PTBridge2), client)
+		if err != nil {
+			return nil, fmt.Errorf("PeggedTokenBridgeV2 contract at %s, err %w", cfg.OTVault, err)
+		}
+	}
+	return pegContracts, nil
+}
 
 type MintRequest struct {
 	MintId         []byte    `json:"mint_id"`

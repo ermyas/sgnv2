@@ -21,6 +21,9 @@ func NewStakingContract(address Addr, client *ethclient.Client) (*StakingContrac
 }
 
 func (c *StakingContract) GetAddr() Addr {
+	if c == nil {
+		return ZeroAddr
+	}
 	return c.Address
 }
 
@@ -45,6 +48,9 @@ func NewSgnContract(address Addr, client *ethclient.Client) (*SgnContract, error
 }
 
 func (c *SgnContract) GetAddr() Addr {
+	if c == nil {
+		return ZeroAddr
+	}
 	return c.Address
 }
 
@@ -69,6 +75,9 @@ func NewStakingRewardContract(address Addr, client *ethclient.Client) (*StakingR
 }
 
 func (c *StakingRewardContract) GetAddr() Addr {
+	if c == nil {
+		return ZeroAddr
+	}
 	return c.Address
 }
 
@@ -93,6 +102,9 @@ func NewFarmingRewardsContract(address Addr, client *ethclient.Client) (*Farming
 }
 
 func (c *FarmingRewardsContract) GetAddr() Addr {
+	if c == nil {
+		return ZeroAddr
+	}
 	return c.Address
 }
 
@@ -117,6 +129,9 @@ func NewGovernContract(address Addr, client *ethclient.Client) (*GovernContract,
 }
 
 func (c *GovernContract) GetAddr() Addr {
+	if c == nil {
+		return ZeroAddr
+	}
 	return c.Address
 }
 
@@ -141,6 +156,9 @@ func NewViewerContract(address Addr, client *ethclient.Client) (*ViewerContract,
 }
 
 func (c *ViewerContract) GetAddr() Addr {
+	if c == nil {
+		return ZeroAddr
+	}
 	return c.Address
 }
 
@@ -165,6 +183,9 @@ func NewBridgeContract(address Addr, client *ethclient.Client) (*BridgeContract,
 }
 
 func (c *BridgeContract) GetAddr() Addr {
+	if c == nil {
+		return ZeroAddr
+	}
 	return c.Address
 }
 
@@ -188,14 +209,14 @@ func NewPegBridgeContract(address Addr, client *ethclient.Client) (*PegBridgeCon
 	}, nil
 }
 
-func (p *PegBridgeContract) GetAddr() Addr {
-	if p == nil {
+func (c *PegBridgeContract) GetAddr() Addr {
+	if c == nil {
 		return ZeroAddr
 	}
-	return p.Address
+	return c.Address
 }
 
-func (p *PegBridgeContract) GetABI() string {
+func (c *PegBridgeContract) GetABI() string {
 	return PeggedTokenBridgeABI
 }
 
@@ -215,14 +236,14 @@ func NewPegBridgeV2Contract(address Addr, client *ethclient.Client) (*PegBridgeV
 	}, nil
 }
 
-func (p *PegBridgeV2Contract) GetAddr() Addr {
-	if p == nil {
+func (c *PegBridgeV2Contract) GetAddr() Addr {
+	if c == nil {
 		return ZeroAddr
 	}
-	return p.Address
+	return c.Address
 }
 
-func (p *PegBridgeV2Contract) GetABI() string {
+func (c *PegBridgeV2Contract) GetABI() string {
 	return PeggedTokenBridgeV2ABI
 }
 
@@ -242,14 +263,14 @@ func NewPegVaultContract(address Addr, client *ethclient.Client) (*PegVaultContr
 	}, nil
 }
 
-func (o *PegVaultContract) GetAddr() Addr {
-	if o == nil {
+func (c *PegVaultContract) GetAddr() Addr {
+	if c == nil {
 		return ZeroAddr
 	}
-	return o.Address
+	return c.Address
 }
 
-func (o *PegVaultContract) GetABI() string {
+func (c *PegVaultContract) GetABI() string {
 	return OriginalTokenVaultABI
 }
 
@@ -269,14 +290,14 @@ func NewPegVaultV2Contract(address Addr, client *ethclient.Client) (*PegVaultV2C
 	}, nil
 }
 
-func (o *PegVaultV2Contract) GetAddr() Addr {
-	if o == nil {
+func (c *PegVaultV2Contract) GetAddr() Addr {
+	if c == nil {
 		return ZeroAddr
 	}
-	return o.Address
+	return c.Address
 }
 
-func (o *PegVaultV2Contract) GetABI() string {
+func (c *PegVaultV2Contract) GetABI() string {
 	return OriginalTokenVaultV2ABI
 }
 
@@ -296,11 +317,14 @@ func NewWdInboxContract(address Addr, client *ethclient.Client) (*WdInboxContrac
 	}, nil
 }
 
-func (i *WdInboxContract) GetAddr() Addr {
-	return i.Address
+func (c *WdInboxContract) GetAddr() Addr {
+	if c == nil {
+		return ZeroAddr
+	}
+	return c.Address
 }
 
-func (i *WdInboxContract) GetABI() string {
+func (c *WdInboxContract) GetABI() string {
 	return WithdrawInboxABI
 }
 
@@ -321,6 +345,9 @@ func NewContractAsLPContract(address Addr, client *ethclient.Client) (*CLPContra
 }
 
 func (c *CLPContract) GetAddr() Addr {
+	if c == nil {
+		return ZeroAddr
+	}
 	return c.Address
 }
 
@@ -345,6 +372,9 @@ func NewMsgBusContract(address Addr, client *ethclient.Client) (*MsgBusContract,
 }
 
 func (c *MsgBusContract) GetAddr() Addr {
+	if c == nil {
+		return ZeroAddr
+	}
 	return c.Address
 }
 

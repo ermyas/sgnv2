@@ -277,7 +277,7 @@ func refundPegDepositTest(t *testing.T, transactor *transactor.Transactor) {
 	tc.ChkErr(err, "bal before")
 	log.Infof("bal before, %s", balBefore.String())
 	token := tc.CbrChain1.USDTAddr
-	amount := big.NewInt(300000 * 1e6)
+	amount := big.NewInt(10)
 	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.USDTContract, 0, amount, tc.CbrChain1.TestRefundAddr)
 	tc.ChkErr(err, "approve USDT")
 	tx, err := tc.CbrChain1.TestRefundContract.SendWithTransfer(u.Auth, u.Address, token, amount, tc.CbrChain2.ChainId, 1, 1, uint8(2))
@@ -304,7 +304,7 @@ func refundPegBurnTest(t *testing.T, transactor *transactor.Transactor) {
 	tc.ChkErr(err, "bal before")
 	log.Infof("bal before, %s", balBefore.String())
 	token := tc.CbrChain1.USDTAddr
-	amount := big.NewInt(300000 * 1e6)
+	amount := big.NewInt(10)
 	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.USDTContract, 0, amount, tc.CbrChain1.TestRefundAddr)
 	tc.ChkErr(err, "approve USDT")
 	tx, err := tc.CbrChain1.TestRefundContract.SendWithTransfer(u.Auth, u.Address, token, amount, tc.CbrChain2.ChainId, 1, 1, uint8(2))

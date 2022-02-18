@@ -11,7 +11,7 @@ import (
 )
 
 func (c *CbrOneChain) monMessage(blk *big.Int) {
-	if c.msgContract.Address == eth.ZeroAddr {
+	if c.msgContract.GetAddr() == eth.ZeroAddr {
 		return
 	}
 
@@ -41,7 +41,7 @@ func (c *CbrOneChain) monMessage(blk *big.Int) {
 }
 
 func (c *CbrOneChain) monMessageWithTransfer(blk *big.Int) {
-	if c.msgContract.Address == eth.ZeroAddr {
+	if c.msgContract.GetAddr() == eth.ZeroAddr {
 		return
 	}
 
@@ -71,7 +71,7 @@ func (c *CbrOneChain) monMessageWithTransfer(blk *big.Int) {
 }
 
 func (c *CbrOneChain) monMessageBusEventExecuted(blk *big.Int) {
-	if c.msgContract.Address == eth.ZeroAddr {
+	if c.msgContract.GetAddr() == eth.ZeroAddr {
 		return
 	}
 

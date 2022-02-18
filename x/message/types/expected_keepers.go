@@ -1,7 +1,6 @@
 package types
 
 import (
-	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"github.com/celer-network/sgn-v2/x/pegbridge/types"
@@ -38,8 +37,8 @@ type CbridgeKeeper interface {
 }
 
 type PegbridgeKeeper interface {
-	GetOriginalTokenVault(ctx sdk.Context, chainId uint64) (vault commontypes.ContractInfo, found bool)
-	GetPeggedTokenBridge(ctx sdk.Context, chainId uint64) (bridge commontypes.ContractInfo, found bool)
+	GetOriginalVault(ctx sdk.Context, chainId uint64, version uint32) (addr eth.Addr, found bool)
+	GetPeggedBridge(ctx sdk.Context, chainId uint64, version uint32) (addr eth.Addr, found bool)
 	GetDepositInfo(ctx sdk.Context, depositId eth.Hash) (info types.DepositInfo, found bool)
 	GetMintInfo(ctx sdk.Context, mintId eth.Hash) (info types.MintInfo, found bool)
 	GetBurnInfo(ctx sdk.Context, burnId eth.Hash) (info types.BurnInfo, found bool)

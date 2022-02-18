@@ -17,7 +17,6 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/cosmos/cosmos-sdk/client"
-	ec "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
@@ -26,48 +25,12 @@ import (
 // NOTE: to keep cbridge related as independent as possible, we create another client for eth mainnet
 // and only use it for cbridge related monitoring
 
-// TODO: re-org code files
-
 // multichain support for cbridge, including eth client,
 // monitor, transactor etc for each chain.
 
 const (
 	cbrDbPrefix = "cbr-"
 )
-
-type MsgContract struct {
-	*eth.MessageBus
-	Address eth.Addr
-}
-
-func (m MsgContract) GetAddr() ec.Address {
-	return m.Address
-}
-
-func (m MsgContract) GetABI() string {
-	return eth.MessageBusABI
-}
-
-type PegContracts struct {
-	bridge  *eth.PegBridgeContract
-	vault   *eth.PegVaultContract
-	bridge2 *eth.PegBridgeV2Contract
-	vault2  *eth.PegVaultV2Contract
-}
-
-func (pc *PegContracts) GetPegVaultContract() *eth.PegVaultContract {
-	if pc == nil {
-		return nil
-	}
-	return pc.vault
-}
-
-func (pc *PegContracts) GetPegBridgeContract() *eth.PegBridgeContract {
-	if pc == nil {
-		return nil
-	}
-	return pc.bridge
-}
 
 // ethclient etc
 type CbrOneChain struct {
@@ -77,12 +40,11 @@ type CbrOneChain struct {
 	cbrContract  *eth.BridgeContract
 	pegContracts *PegContracts
 	wdiContract  *eth.WdInboxContract
-	msgContract  *MsgContract
+	msgContract  *eth.MsgBusContract
 	db           *dbm.PrefixDB // cbr-xxx xxx is chainid
 	curss        currentSigners
-	lock         sync.RWMutex
-	pegbrLock    sync.RWMutex
-	msgbrLock    sync.RWMutex
+	//
+	lock, pegbrLock, msgbrLock sync.RWMutex
 
 	// chainid and blkdelay and forwardblkdelay for verify/easy logging
 	chainid, blkDelay, forwardBlkDelay, blkInterval uint64
@@ -142,41 +104,19 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 	wsvc := watcher.NewWatchService(ec, wdal, cfg.BlkInterval, cfg.MaxBlkDelta)
 	mon := monitor.NewService(wsvc, cfg.BlkDelay, true)
 	mon.Init()
-	cbr, err := eth.NewBridge(eth.Hex2Addr(cfg.CBridge), ec)
+	cbr, err := eth.NewBridgeContract(eth.Hex2Addr(cfg.CBridge), ec)
 	if err != nil {
 		log.Fatalln("cbridge contract at", cfg.CBridge, "err:", err)
 	}
-
-	pegContracts := &PegContracts{}
-	if cfg.OTVault != "" {
-		pegContracts.vault, err = eth.NewPegVaultContract(eth.Hex2Addr(cfg.OTVault), ec)
-		if err != nil {
-			log.Fatalln("OriginalTokenVault contract at", cfg.OTVault, "err:", err)
-		}
-	}
-	if cfg.PTBridge != "" {
-		pegContracts.bridge, err = eth.NewPegBridgeContract(eth.Hex2Addr(cfg.PTBridge), ec)
-		if err != nil {
-			log.Fatalln("PeggedTokenBridge contract at", cfg.PTBridge, "err:", err)
-		}
-	}
-	if cfg.OTVault2 != "" {
-		pegContracts.vault2, err = eth.NewPegVaultV2Contract(eth.Hex2Addr(cfg.OTVault2), ec)
-		if err != nil {
-			log.Fatalln("OriginalTokenVaultV2 contract at", cfg.OTVault2, "err:", err)
-		}
-	}
-	if cfg.PTBridge2 != "" {
-		pegContracts.bridge2, err = eth.NewPegBridgeV2Contract(eth.Hex2Addr(cfg.PTBridge2), ec)
-		if err != nil {
-			log.Fatalln("PeggedTokenBridgeV2 contract at", cfg.PTBridge2, "err:", err)
-		}
+	pegContracts, err := NewPegContracts(cfg, ec)
+	if err != nil {
+		log.Fatalln(err)
 	}
 	wdi, err := eth.NewWdInboxContract(eth.Hex2Addr(cfg.WdInbox), ec)
 	if err != nil {
 		log.Fatalln("WithdrawInbox contract at", cfg.WdInbox, "err:", err)
 	}
-	msg, err := eth.NewMessageBus(eth.Hex2Addr(cfg.MsgBus), ec)
+	msg, err := eth.NewMsgBusContract(eth.Hex2Addr(cfg.MsgBus), ec)
 	if err != nil {
 		log.Fatalln("MessageBus contract at", cfg.MsgBus, "err:", err)
 	}
@@ -204,19 +144,13 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 	}
 
 	ret := &CbrOneChain{
-		Client:     ec,
-		Transactor: transactor,
-		mon:        mon,
-		cbrContract: &eth.BridgeContract{
-			Bridge:  cbr,
-			Address: eth.Hex2Addr(cfg.CBridge),
-		},
-		pegContracts: pegContracts,
-		wdiContract:  wdi,
-		msgContract: &MsgContract{
-			MessageBus: msg,
-			Address:    eth.Hex2Addr(cfg.MsgBus),
-		},
+		Client:          ec,
+		Transactor:      transactor,
+		mon:             mon,
+		cbrContract:     cbr,
+		pegContracts:    pegContracts,
+		wdiContract:     wdi,
+		msgContract:     msg,
 		db:              dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID))),
 		chainid:         cfg.ChainID,
 		blkDelay:        cfg.BlkDelay,

@@ -173,7 +173,7 @@ func (c *CbrOneChain) monWithdraw(blk *big.Int) {
 }
 
 func (c *CbrOneChain) monWithdrawalRequest(blk *big.Int) {
-	if c.wdiContract.Address == eth.ZeroAddr {
+	if c.wdiContract.GetAddr() == eth.ZeroAddr {
 		return
 	}
 

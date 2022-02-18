@@ -28,7 +28,7 @@ func (r *Relayer) monitorEthValidatorNotice() {
 				log.Errorln("parse event err", err)
 				return false
 			}
-			if !(e.From == eth.ZeroAddr || e.From == r.EthClient.Contracts.Sgn.Address) {
+			if !(e.From == eth.ZeroAddr || e.From == r.EthClient.Contracts.Sgn.GetAddr()) {
 				return false
 			}
 			log.Infof("Catch event ValidatorNotice %s, val addr: %x tx hash: %x, blknum: %d",

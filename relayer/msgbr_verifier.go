@@ -76,7 +76,7 @@ func (c *CbrOneChain) verifyMessage(cliCtx client.Context, eLog *ethtypes.Log, l
 	// check in store
 
 	// check on chain
-	done, approve, msgLog := c.verifyEventLog(eLog, eth.MsgBridge, msgbrtypes.MsgEventMessage, c.msgContract.Address, logmsg)
+	done, approve, msgLog := c.verifyEventLog(eLog, eth.MsgBridge, msgbrtypes.MsgEventMessage, c.msgContract.GetAddr(), logmsg)
 	if msgLog == nil {
 		return done, approve
 	}
@@ -107,7 +107,7 @@ func (c *CbrOneChain) verifyMessageEventTransfer(cliCtx client.Context, eLog *et
 	// check in store
 
 	// check on chain
-	done, approve, msgLog := c.verifyEventLog(eLog, eth.MsgBridge, msgbrtypes.MsgEventMessageWithTransfer, c.msgContract.Address, logmsg)
+	done, approve, msgLog := c.verifyEventLog(eLog, eth.MsgBridge, msgbrtypes.MsgEventMessageWithTransfer, c.msgContract.GetAddr(), logmsg)
 	if msgLog == nil {
 		return done, approve
 	}
@@ -139,7 +139,7 @@ func (c *CbrOneChain) verifyMessageEventExecuted(cliCtx client.Context, eLog *et
 	// check in store
 
 	// check on chain
-	done, approve, msgLog := c.verifyEventLog(eLog, eth.MsgBridge, msgbrtypes.MsgEventExecuted, c.msgContract.Address, logmsg)
+	done, approve, msgLog := c.verifyEventLog(eLog, eth.MsgBridge, msgbrtypes.MsgEventExecuted, c.msgContract.GetAddr(), logmsg)
 	if msgLog == nil {
 		return done, approve
 	}
