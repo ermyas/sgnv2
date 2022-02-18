@@ -29,7 +29,6 @@ type Relayer struct {
 	startEthBlock      *big.Int
 	syncer             Syncer
 	lock               sync.RWMutex
-	pegbrLock          sync.RWMutex
 	cbrMgr             CbrMgr
 	cbrSsUpdating      bool
 	chainMonitorStatus ChainMonitorStatus

@@ -43,8 +43,7 @@ type CbrOneChain struct {
 	msgContract  *eth.MsgBusContract
 	db           *dbm.PrefixDB // cbr-xxx xxx is chainid
 	curss        currentSigners
-	//
-	lock, pegbrLock, msgbrLock sync.RWMutex
+	lock         sync.RWMutex
 
 	// chainid and blkdelay and forwardblkdelay for verify/easy logging
 	chainid, blkDelay, forwardBlkDelay, blkInterval uint64

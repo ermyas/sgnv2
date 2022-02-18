@@ -67,11 +67,11 @@ func (c *CbrOneChain) pullMsgbrEvents(chid uint64, cliCtx client.Context, update
 	isUpdateMsgFull = false
 	for _, evn := range msgEvNames {
 		var keys, vals [][]byte
-		c.msgbrLock.RLock()
+		c.lock.RLock()
 		iterator, err := c.db.Iterator([]byte(evn), storetypes.PrefixEndBytes([]byte(evn+"-")))
 		if err != nil {
 			log.Errorln("Create db iterator err", err)
-			c.msgbrLock.RUnlock()
+			c.lock.RUnlock()
 			continue
 		}
 		for ; iterator.Valid(); iterator.Next() {
@@ -79,7 +79,7 @@ func (c *CbrOneChain) pullMsgbrEvents(chid uint64, cliCtx client.Context, update
 			vals = append(vals, iterator.Value())
 		}
 		iterator.Close()
-		c.msgbrLock.RUnlock()
+		c.lock.RUnlock()
 
 		for i, key := range keys {
 			err = c.db.Delete(key)

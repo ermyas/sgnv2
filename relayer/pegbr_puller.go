@@ -83,12 +83,12 @@ func (r *Relayer) processPegbrMintQueue(chid uint64) {
 	}
 
 	var keys, vals [][]byte
-	r.pegbrLock.RLock()
+	r.cbrMgr[chid].lock.RLock()
 	prefix := GetPegbrMintPrefix(chid)
 	iterator, err := r.db.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
 	if err != nil {
 		log.Errorln("Create db iterator err", err)
-		r.pegbrLock.RUnlock()
+		r.cbrMgr[chid].lock.RUnlock()
 		return
 	}
 	for ; iterator.Valid(); iterator.Next() {
@@ -96,7 +96,7 @@ func (r *Relayer) processPegbrMintQueue(chid uint64) {
 		vals = append(vals, iterator.Value())
 	}
 	iterator.Close()
-	r.pegbrLock.RUnlock()
+	r.cbrMgr[chid].lock.RUnlock()
 
 	if len(keys) > 0 {
 		log.Debugf("start process mint queue，current timestamp: %d, queue size: %d, chainid: %d", time.Now().Unix(), len(keys), chid)
@@ -212,12 +212,12 @@ func (r *Relayer) processPegbrWithdrawQueue(chid uint64) {
 	}
 
 	var keys, vals [][]byte
-	r.pegbrLock.RLock()
+	r.cbrMgr[chid].lock.RLock()
 	prefix := GetPegbrWdPrefix(chid)
 	iterator, err := r.db.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
 	if err != nil {
 		log.Errorln("Create db iterator err", err)
-		r.pegbrLock.RUnlock()
+		r.cbrMgr[chid].lock.RUnlock()
 		return
 	}
 	for ; iterator.Valid(); iterator.Next() {
@@ -225,7 +225,7 @@ func (r *Relayer) processPegbrWithdrawQueue(chid uint64) {
 		vals = append(vals, iterator.Value())
 	}
 	iterator.Close()
-	r.pegbrLock.RUnlock()
+	r.cbrMgr[chid].lock.RUnlock()
 
 	if len(keys) > 0 {
 		log.Debugf("start process withdraw queue，current timestamp: %d, queue size: %d, chainid: %d", time.Now().Unix(), len(keys), chid)
@@ -342,11 +342,11 @@ func (c *CbrOneChain) pullPegbrEvents(chid uint64, cliCtx client.Context, update
 	isUpdateMsgFull = false
 	for _, evn := range pegEvNames {
 		var keys, vals [][]byte
-		c.pegbrLock.RLock()
+		c.lock.RLock()
 		iterator, err := c.db.Iterator([]byte(evn), storetypes.PrefixEndBytes([]byte(evn)))
 		if err != nil {
 			log.Errorln("Create db iterator err", err)
-			c.pegbrLock.RUnlock()
+			c.lock.RUnlock()
 			continue
 		}
 		for ; iterator.Valid(); iterator.Next() {
@@ -354,7 +354,7 @@ func (c *CbrOneChain) pullPegbrEvents(chid uint64, cliCtx client.Context, update
 			vals = append(vals, iterator.Value())
 		}
 		iterator.Close()
-		c.pegbrLock.RUnlock()
+		c.lock.RUnlock()
 
 		pegbrUserActionValidCache := make(map[string]bool)
 		for i, key := range keys {

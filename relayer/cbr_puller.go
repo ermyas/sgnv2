@@ -90,12 +90,12 @@ func (r *Relayer) processCbridgeQueue(chid uint64) {
 	}
 
 	var keys, vals [][]byte
-	r.lock.RLock()
+	r.cbrMgr[chid].lock.RLock()
 	prefix := GetCbrChainXferPrefix(chid)
 	iterator, err := r.db.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
 	if err != nil {
 		log.Errorln("Create db iterator err", err)
-		r.lock.RUnlock()
+		r.cbrMgr[chid].lock.RUnlock()
 		return
 	}
 	for ; iterator.Valid(); iterator.Next() {
@@ -103,7 +103,7 @@ func (r *Relayer) processCbridgeQueue(chid uint64) {
 		vals = append(vals, iterator.Value())
 	}
 	iterator.Close()
-	r.lock.RUnlock()
+	r.cbrMgr[chid].lock.RUnlock()
 
 	if len(keys) > 0 {
 		log.Debugf("start process relay queue for dst chain %d queue size: %d", chid, len(keys))
