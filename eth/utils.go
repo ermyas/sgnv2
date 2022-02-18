@@ -530,17 +530,12 @@ func (ev *WithdrawInboxWithdrawalRequest) Equal(b *WithdrawInboxWithdrawalReques
 	if ev.ToChain != b.ToChain {
 		return false
 	}
+	if len(ev.FromChains) != len(b.FromChains) {
+		return false
+	}
 	if !(len(ev.FromChains) == len(ev.Tokens) &&
 		len(ev.FromChains) == len(ev.Ratios) &&
 		len(ev.FromChains) == len(ev.Slippages)) {
-		return false
-	}
-	if !(len(b.FromChains) == len(b.Tokens) &&
-		len(b.FromChains) == len(b.Ratios) &&
-		len(b.FromChains) == len(b.Slippages)) {
-		return false
-	}
-	if len(ev.FromChains) != len(b.FromChains) {
 		return false
 	}
 	for i, fromChain := range ev.FromChains {

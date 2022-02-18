@@ -382,3 +382,28 @@ func (k Keeper) QueryLPOrigin(c context.Context, request *types.QueryLPOriginReq
 	chainId := GetLPOrigin(store, eth.Hex2Addr(request.UsrAddr))
 	return &types.QueryLPOriginResponse{ChainId: chainId}, nil
 }
+
+func (k Keeper) QueryAssetsSymbols(c context.Context, request *types.QueryAssetsSymbolsRequest) (*types.QueryAssetsSymbolsResponse, error) {
+	ctx := sdk.UnwrapSDKContext(c)
+	store := ctx.KVStore(k.storeKey)
+	symbols := make([]string, 0)
+	for _, chainToken := range request.ChainTokens {
+		symbol := GetAssetSymbol(store, &ChainIdTokenAddr{ChId: chainToken.ChainId, TokenAddr: eth.Hex2Addr(chainToken.TokenAddr)})
+		symbols = append(symbols, symbol)
+	}
+	return &types.QueryAssetsSymbolsResponse{Symbols: symbols}, nil
+}
+
+func (k Keeper) QueryAssetsInfos(c context.Context, request *types.QueryAssetsInfosRequest) (*types.QueryAssetsInfosResponse, error) {
+	ctx := sdk.UnwrapSDKContext(c)
+	store := ctx.KVStore(k.storeKey)
+	assets := make([]*types.ChainAsset, 0)
+	if len(request.Symbols) != len(request.ChainIds) {
+		return nil, fmt.Errorf("length mismatch")
+	}
+	for i := range request.Symbols {
+		asset := GetAssetInfo(store, request.Symbols[i], request.ChainIds[i])
+		assets = append(assets, asset)
+	}
+	return &types.QueryAssetsInfosResponse{Assets: assets}, nil
+}

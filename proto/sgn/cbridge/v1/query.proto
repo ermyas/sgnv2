@@ -17,6 +17,8 @@ service Query {
   rpc QueryDebugAny(QueryDebugAnyRequest) returns (QueryDebugAnyResponse) {}
   rpc QueryAssets(EmptyRequest) returns (QueryAssetsResponse) {}
   rpc QueryAssetPrice(QueryAssetPriceRequest) returns (QueryAssetPriceResponse) {}
+  rpc QueryAssetsSymbols(QueryAssetsSymbolsRequest) returns (QueryAssetsSymbolsResponse) {}
+  rpc QueryAssetsInfos(QueryAssetsInfosRequest) returns (QueryAssetsInfosResponse) {}
 
   // for gateway query only below
   rpc ChainTokensConfig(ChainTokensConfigRequest) returns (ChainTokensConfigResponse) {}
@@ -78,6 +80,21 @@ message QueryAssetPriceRequest {
 message QueryAssetPriceResponse {
   uint32 price = 1;
   uint32 extra_power10 = 2;
+}
+
+message QueryAssetsSymbolsRequest {
+  repeated ChainTokenAddrPair chain_tokens = 1;
+}
+message QueryAssetsSymbolsResponse {
+  repeated string symbols = 1;
+}
+
+message QueryAssetsInfosRequest {
+  repeated string symbols = 1;
+  repeated uint64 chain_ids = 2;
+}
+message QueryAssetsInfosResponse {
+  repeated ChainAsset assets = 1;
 }
 
 message QueryLPsRequest {

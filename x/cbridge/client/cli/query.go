@@ -614,3 +614,21 @@ func GenerateClaimFeeWdList(cliCtx client.Context, delAddr string, minUsd uint32
 	fmt.Printf("total usd value: %0.2f\n", totalValue)
 	return wdList, nil
 }
+
+func QueryAssetsSymbols(cliCtx client.Context, chainTokens []*types.ChainTokenAddrPair) (symbols []string, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err := queryClient.QueryAssetsSymbols(context.Background(), &types.QueryAssetsSymbolsRequest{ChainTokens: chainTokens})
+	if resp != nil {
+		symbols = resp.Symbols
+	}
+	return
+}
+
+func QueryAssetsInfos(cliCtx client.Context, symbols []string, chainIds []uint64) (assets []*types.ChainAsset, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	resp, err := queryClient.QueryAssetsInfos(context.Background(), &types.QueryAssetsInfosRequest{Symbols: symbols, ChainIds: chainIds})
+	if resp != nil {
+		assets = resp.Assets
+	}
+	return
+}

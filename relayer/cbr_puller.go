@@ -476,8 +476,29 @@ func (c *CbrOneChain) skipSyncCbrWithdrawalRequest(evlog *ethtypes.Log, cliCtx c
 		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
 	}
 
-	if len(ev.FromChains) == 0 || len(ev.Tokens) == 0 || len(ev.Ratios) == 0 || len(ev.Slippages) == 0 {
-		return true, fmt.Sprintf("empty withdrawal request of %x with seqNum %d on chain %d", ev.Sender, ev.SeqNum, c.chainid)
+	// check if all tokens have the same symbol.
+	var chainTokens []*cbrtypes.ChainTokenAddrPair
+	for i := range ev.FromChains {
+		chainTokens = append(chainTokens, &cbrtypes.ChainTokenAddrPair{ChainId: ev.FromChains[i], TokenAddr: ev.Tokens[i].String()})
+	}
+	symbols, err := cbrcli.QueryAssetsSymbols(cliCtx, chainTokens)
+	if err != nil {
+		log.Errorf("QueryAssetsSymbols err: %s", err)
+		return
+	}
+	for i := 0; i < len(symbols)-1; i++ {
+		if symbols[i] != symbols[i+1] {
+			return true, fmt.Sprintf("different kinds of token found in one withdrawal request, %s and %s", symbols[i], symbols[i+1])
+		}
+	}
+
+	// check if token with the same symbol exists on toChain.
+	assets, err := cbrcli.QueryAssetsInfos(cliCtx, []string{symbols[0]}, []uint64{ev.ToChain})
+	if err != nil {
+		log.Errorf("QueryAssetsInfos err: %s", err)
+	}
+	if assets[0] == nil {
+		return true, fmt.Sprintf("token with symbol %s does not exist on chain %d", symbols[0], ev.ToChain)
 	}
 
 	// check for lp origin, in order to minimize invalid withdrawal requests synced.
