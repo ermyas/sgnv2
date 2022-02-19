@@ -7,11 +7,10 @@ Pegbridge module is designed to implement cross-chain token transferring in form
 
 1. **[Concepts](01_concepts.md)**
    - [Original token](01_concepts.md#original-token)
-   - [Original token vault](01_concepts.md#original-token-vault)
    - [Pegged token](01_concepts.md#pegged-token)
+   - [Original token vault](01_concepts.md#original-token-vault)
    - [Pegged token bridge](01_concepts.md#pegged-token-bridge)
-   - [Deposit&mint](01_concepts.md#depositmint)
-   - [Burn&withdraw](01_concepts.md#burnwithdraw)
+   - [Workflow](01_concepts.md#workflow)
    - [Supply cap](01_concepts.md#supply-cap)
    - [Refund](01_concepts.md#refund)
 2. **[State](02_state.md)**

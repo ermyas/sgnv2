@@ -24,7 +24,7 @@ A represents a transaction to Pegged Token Bridge for minting Pegged Token. Mint
 ### Burn
 A burn represents a valid transaction to Pegged Token Bridge for burning Pegged Token. Burns differ by their Ids ([version 0](https://github.com/celer-network/sgn-v2-contracts/blob/71a195582a/contracts/pegged/PeggedTokenBridge.sol#L106-L109), [version 2](https://github.com/celer-network/sgn-v2-contracts/blob/71a195582a/contracts/pegged/PeggedTokenBridgeV2.sol#L118-L130)).
 
-## Work flow
+## Workflow
 
 ### Vault Deposit -> Pegged Mint
 
