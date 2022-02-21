@@ -21,7 +21,7 @@
 
     ```sh
     # <key-name> is like sgnv2-prod2-<node-id>
-    aws-kms-tools send-tx --region "us-west-2" --alias <key-name> --destination <signer-address> --chainid <chain-id> -nonce <nonce> --gasprice <gas-price-in-gwei>
+    aws-kms-tools send-tx --region "us-west-2" --alias <key-name> --destination <signer-address> --nonce <nonce> --chainid <chain-id> --gasprice <gas-price-gwei>
     ```
 
     Increase `gasprice` if you see error like "replacement transaction underpriced".
@@ -33,7 +33,7 @@
     #!/bin/bash
     for nonce in $(eval echo {$1..$2})
     do
-    aws-kms-tools --region "us-west-2" --alias <key-name> --destination <signer-address> --chainid <chain-id> -nonce $nonce --gasprice <gas-price-in-gwei>
+        aws-kms-tools send-tx --region "us-west-2" --alias <key-name> --destination <signer-address> --nonce $nonce --chainid <chain-id> --gasprice <gas-price-gwei>
     done
     ```
 
