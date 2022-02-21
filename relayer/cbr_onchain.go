@@ -178,11 +178,12 @@ func (c *CbrOneChain) monWithdrawalRequest(blk *big.Int) {
 	}
 
 	cfg := &monitor.Config{
-		ChainId:      c.chainid,
-		EventName:    cbrtypes.CbrEventWithdrawalRequest,
-		Contract:     c.wdiContract,
-		StartBlock:   blk,
-		ForwardDelay: c.forwardBlkDelay,
+		ChainId:       c.chainid,
+		EventName:     cbrtypes.CbrEventWithdrawalRequest,
+		Contract:      c.wdiContract,
+		StartBlock:    blk,
+		ForwardDelay:  c.forwardBlkDelay,
+		CheckInterval: c.getEventCheckInterval(cbrtypes.CbrEventWithdrawalRequest),
 	}
 	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
 		ev, err := c.wdiContract.ParseWithdrawalRequest(eLog)
