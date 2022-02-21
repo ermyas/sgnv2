@@ -3,7 +3,6 @@ package impl
 import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

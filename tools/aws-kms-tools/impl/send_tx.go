@@ -1,13 +1,10 @@
 package impl
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"math/big"
 	"sort"
-	"strconv"
-	"strings"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
@@ -19,8 +16,6 @@ import (
 )
 
 const (
-	FlagRpc              = "rpc"
-	FlagRpcShort         = "r"
 	FlagDestination      = "destination"
 	FlagDestinationShort = "d"
 	FlagValue            = "value"
@@ -33,21 +28,6 @@ const (
 	FlagMinBalance       = "minbalance"
 )
 
-var (
-	bgCtx = context.Background()
-
-	// Common chain ID to JSON-RPC endpoint
-	commonChainIdRpcs = map[uint64]string{
-		1:     "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
-		10:    "https://mainnet.optimism.io",
-		56:    "https://bsc-dataseed.binance.org",
-		137:   "https://polygon-rpc.com",
-		250:   "https://rpc.ftm.tools",
-		42161: "https://arb1.arbitrum.io/rpc",
-		43114: "https://api.avax.network/ext/bc/C/rpc",
-	}
-)
-
 func SendTxCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "send-tx",
@@ -58,15 +38,15 @@ func SendTxCommand() *cobra.Command {
 	}
 	cmd.Flags().StringP(FlagDestination, FlagDestinationShort, "", "Destination to send the tx")
 
-	chainIds := make([]string, 0, len(commonChainIdRpcs))
+	chainIds := make([]int, 0, len(commonChainIdRpcs))
 	for chainId := range commonChainIdRpcs {
-		chainIds = append(chainIds, strconv.FormatUint(chainId, 10))
+		chainIds = append(chainIds, int(chainId))
 	}
-	chainIds = sort.StringSlice(chainIds)
-	cmd.Flags().String(FlagRpc, "", fmt.Sprintf("JSON-RPC endpoint to use, optional if chain ID is in: %s", strings.Join(chainIds, ",")))
+	sort.Ints(chainIds)
+	cmd.Flags().String(FlagRpc, "", fmt.Sprintf("JSON-RPC endpoint to use, optional if chain ID is in: %v", chainIds))
 
 	cmd.Flags().Uint64P(FlagChainId, FlagChainIdShort, 0, "Optional chain ID")
-	cmd.Flags().Uint64(FlagNonce, 0, "Nonce override")
+	cmd.Flags().Uint64P(FlagNonce, FlagNonceShort, 0, "Nonce override")
 	cmd.Flags().Uint64(FlagGasPrice, 0, "Gas price override, NOTE: indicates maxPriorityFeePerGas if chain supports EIP-1559")
 	cmd.Flags().Uint64(FlagGasLimit, 21000, "Gas limit override")
 	cmd.Flags().Uint64(FlagValue, 0, "Native gas value to send with the tx")
@@ -145,6 +125,7 @@ func sendTx(ec *ethclient.Client, from, to eth.Addr, bal *big.Int, signer bind.S
 		if err != nil {
 			return fmt.Errorf("SuggestGasPrice err %w", err)
 		}
+		log.Infoln("suggested gas price:", gasPrice.Uint64()/1e9)
 	}
 	var value *big.Int
 	sendAll := viper.GetBool(FlagSendAll)

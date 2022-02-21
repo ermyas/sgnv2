@@ -1,7 +1,7 @@
 package impl
 
 import (
-	"github.com/celer-network/goutils/log"
+	"fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -22,6 +22,6 @@ func PrintAddress() error {
 	if err != nil {
 		return err
 	}
-	log.Infoln("Ethereum address:", signer.Addr)
+	fmt.Println("Ethereum address:", signer.Addr)
 	return nil
 }

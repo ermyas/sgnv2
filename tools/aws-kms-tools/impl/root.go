@@ -13,6 +13,7 @@ func NewRootCmd() *cobra.Command {
 
 	rootCmd.AddCommand(
 		PrintAddressCommand(),
+		PrintNonceCommand(),
 		SignMessageCommand(),
 		SendTxCommand(),
 	)
