@@ -7,17 +7,17 @@
     go build -o $GOBIN/aws-kms-tools tools/aws-kms-tools/main.go
     ```
 
-2. Get the current pending nonce:
+2. Get the current account nonce and pending nonce:
 
     ```sh
     aws-kms-tools print-nonce --chainid <chain-id> --addr <signer-address>
     ```
-    or use a more reliable private rpc endpoint
+    or use a more reliable private rpc endpoint if available
     ```sh
     aws-kms-tools print-nonce --rpc <endpoint-url> --addr <signer-address>
     ```
 
-3. Send zero value transactions to the signer address itself one by one, up to `pending_nonce - 1`:
+3. Send zero value transactions to the signer address itself one by one, from `account_nonce` up to `pending_nonce - 1`:
 
     ```sh
     # <key-name> is like sgnv2-prod2-<node-id>
@@ -40,7 +40,7 @@
     Run with:
     ```sh
     chmod +x clear_stuck_txs.sh
-    ./clear_stuck_txs <last_confirmed_nonce + 1> <pending_nonce - 1>
+    ./clear_stuck_txs <account_nonce> <pending_nonce - 1>
     ```
 
     **Note**: replace `--chainid <chain-id>` with private `--rpc <endpoint-url>` for better reliablity.

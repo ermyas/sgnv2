@@ -54,7 +54,7 @@ func PrintNonceCommand() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("NonceAt %w", err)
 			}
-			fmt.Println("Latest nonce:", nonce)
+			fmt.Println("Account nonce:", nonce)
 
 			pendingNonce, err := ec.PendingNonceAt(context.Background(), addr)
 			if err != nil {
