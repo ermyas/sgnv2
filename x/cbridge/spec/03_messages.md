@@ -1,5 +1,7 @@
 # Messages
-defined in proto/sgn/cbridge/v1/ folder. proto comments has more details.
+
+Msgs are defined in [proto/sgn/cbridge/v1](../../../proto/sgn/cbridge/v1). The proto comments have more details.
+
 ## cbridge.proto
 - Params: governable param using common govern param flow
 - CbrConfig: cbridge specific configs

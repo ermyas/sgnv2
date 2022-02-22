@@ -1,5 +1,7 @@
 # State / Config
-keys are defined in types/keys.go
+
+The keys are defined in [types/keys.go](../types/keys.go).
+
 ## State keys
 1. liquidity map, lm-chid-token-lp -> amount big.Int.Bytes
 2. processed add liquidity event, evliqadd-chid-seq -> true, to avoid process same event again

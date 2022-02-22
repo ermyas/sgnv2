@@ -1,9 +1,12 @@
 # Pegbridge
 
 ## Overview
-Pegbridge module is designed to implement cross-chain token transferring in form of mint/burn instead of liquidity pool which is used by cbridge module. This would mean that all original tokens transferred by pegbridge would be locked temporally on the chain where they exist(which we call source chain), then nealy equal amount of pegged tokens(deduct transfer fee) would be minted on user specified chain(which we call destination chain). User can claim back their original tokens simply by submitting a burn transaction on destination chain, transfer fee would be deducted of course.
 
-## Concepts
+The pegbridge module implements cross-chain token transfer based on the mint / burn
+mode as opposed to the liquidity pool in the cbridge module. To mint pegged tokens, the user deposits original tokens into a vault on the source chain and the SGN mints the same amount of pegged tokens (minus fees) on the destination chain specified. In the reverse transfer, the user burns the tokens on a pegged token bridge and the SGN unlocks the
+same amount of original tokens (minus fees) on the original token vault.
+
+## Contents
 
 1. **[Concepts](01_concepts.md)**
    - [Original token](01_concepts.md#original-token)
@@ -16,7 +19,7 @@ Pegbridge module is designed to implement cross-chain token transferring in form
 2. **[State](02_state.md)**
 3. **[Messages](03_messages.md)**
    - [MsgSignMint](03_messages.md#msgsignmint)
-   - [MsgSignWithddraw](03_messages.md#msgsignwithdraw)
+   - [MsgSignWithdraw](03_messages.md#msgsignwithdraw)
    - [MsgTriggerSignMint](03_messages.md#msgtriggersignmint)
    - [MsgTriggerSignWithdraw](03_messages.md#msgtriggersignwithdraw)
    - [MsgClaimFee](03_messages.md#msgclaimfee)

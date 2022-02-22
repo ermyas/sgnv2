@@ -127,7 +127,7 @@ func (m *MintOnChain) String() string {
 	if m == nil {
 		return "nil"
 	}
-	return fmt.Sprintf("token:%x account:%x amount%s depositor:%x ref_chain_id:%d ref_id:%x",
+	return fmt.Sprintf("token:%x account:%x amount:%s depositor:%x ref_chain_id:%d ref_id:%x",
 		m.Token, m.Account, new(big.Int).SetBytes(m.Amount), m.Depositor, m.RefChainId, m.RefId)
 }
 
@@ -135,7 +135,7 @@ func (w *WithdrawOnChain) String() string {
 	if w == nil {
 		return "nil"
 	}
-	return fmt.Sprintf("token:%x receiver:%x amount%s burn_account:%x ref_chain_id:%d ref_id:%x",
+	return fmt.Sprintf("token:%x receiver:%x amount:%s burn_account:%x ref_chain_id:%d ref_id:%x",
 		w.Token, w.Receiver, new(big.Int).SetBytes(w.Amount), w.BurnAccount, w.RefChainId, w.RefId)
 }
 

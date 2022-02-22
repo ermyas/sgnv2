@@ -1,9 +1,9 @@
-# State 
+# State
 keys are defined in types/keys.go
 ## State keys
-1. original token vault, `0x01 | ChainId` -> [ConctractInfo](https://github.com/celer-network/sgn-v2/blob/d25f4280b1/proto/sgn/common/v1/common.proto#L17-L22)
+1. original token vault, `0x01 | ChainId` -> [ContractInfo](https://github.com/celer-network/sgn-v2/blob/d25f4280b1/proto/sgn/common/v1/common.proto#L17-L22)
 
-2. pegged token bridge, `0x02 | ChainId` -> [ConctractInfo](https://github.com/celer-network/sgn-v2/blob/d25f4280b1/proto/sgn/common/v1/common.proto#L17-L22)
+2. pegged token bridge, `0x02 | ChainId` -> [ContractInfo](https://github.com/celer-network/sgn-v2/blob/d25f4280b1/proto/sgn/common/v1/common.proto#L17-L22)
 
 3. pair infos of original and pegged tokens, `0x03 | SrcChainId-OrigTokenAddr-DstChainId` -> [OrigPeggedPair](https://github.com/celer-network/sgn-v2/blob/d25f4280b1/proto/sgn/pegbridge/v1/pegbridge.proto#L46-L71)
 
@@ -25,9 +25,9 @@ keys are defined in types/keys.go
 
 12. refund claim info, `0x0c | DepositId/BurnId` -> WithdrawId/MintId
 
-13. versioned token vault, `0x11 | ChainId | Version` -> [ConctractInfo](https://github.com/celer-network/sgn-v2/blob/d25f4280b1/proto/sgn/pegbridge/v1/pegbridge.proto#L25-L29)
+13. versioned token vault, `0x11 | ChainId | Version` -> [ContractInfo](https://github.com/celer-network/sgn-v2/blob/d25f4280b1/proto/sgn/pegbridge/v1/pegbridge.proto#L25-L29)
 
-14. versioned token bridge, `0x12 | ChainId | Version` -> [ConctractInfo](https://github.com/celer-network/sgn-v2/blob/d25f4280b1/proto/sgn/pegbridge/v1/pegbridge.proto#L25-L29)
+14. versioned token bridge, `0x12 | ChainId | Version` -> [ContractInfo](https://github.com/celer-network/sgn-v2/blob/d25f4280b1/proto/sgn/pegbridge/v1/pegbridge.proto#L25-L29)
 
 15. vault version, `0x13 | ChainId | ContractAddr` -> Version
 

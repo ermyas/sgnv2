@@ -1,10 +1,10 @@
 # Concepts
 
-## Original Token 
+## Original Token
 Original token refers to the existing token that is deposited to and locked in Original Token Vault on one chain, which would triggers the mint of corresponding pegged token on a remote chain.
 
 ## Pegged Token
-Pegged token refers to the token that is minted by Pegged Token Bridge on one chain, with value 1:1 pegged to original token locked in the original token vault at a remote chain. 
+Pegged token refers to the token that is minted by Pegged Token Bridge on one chain, with value 1:1 pegged to original token locked in the original token vault at a remote chain.
 
 ## Original Token Vault
 It is a smart contract to deposit (triggers remote pegged mint) and withdraw (triggered by remote pegged burn) original tokens. Each chain can has multiple vault contracts ([version 0](https://github.com/celer-network/sgn-v2-contracts/blob/main/contracts/pegged/OriginalTokenVault.sol), [version 2](https://github.com/celer-network/sgn-v2-contracts/blob/main/contracts/pegged/OriginalTokenVaultV2.sol)). Each original token can only use one vault contract.
