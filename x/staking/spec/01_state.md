@@ -48,7 +48,7 @@ Delegations records the delegators' delegation states on the Ethereum staking co
 
 ## Syncer
 
-Syncer is a validator that is currently responsible for trigger events sync and submit transactions from and to other blockchains. Validators switch syncer role in a round-robin manner for each `SyncerDuration`. Syncer is stored in the following schema:
+Syncer is a validator that is currently responsible for trigger events sync and submit transactions from and to other blockchains. Validators that belongs to the `SyncerCandidates` list switch syncer role in a round-robin manner for each `SyncerDuration`. Syncer is stored in the following schema:
 ```
 0x51 -> SyncerInfo
 ```

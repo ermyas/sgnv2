@@ -6,6 +6,7 @@ order: 4
 
 The staking module contains the following parameter:
 
-| Key                 | Type             | Example          |
-| ------------------- | ---------------- | ---------------- |
-| syncer_duration     | uint64 (block)   | 180              |
+| Key                 | Type             | Example                     |
+| ------------------- | ---------------- | --------------------------- |
+| syncer_duration     | uint64 (block)   | 180                         |
+| syncer_candidates   | []string         | list of validator eth addrs |

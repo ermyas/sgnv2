@@ -5,8 +5,8 @@ The main components involved are the [relayer process](../relayer/) and [x/sync 
 ## Sync other chain events to SGN
 
 - The staking module maintains a list of `syncer candidates` (a subste of bonded validators), which take the **`syncer`** role in turn.
-- When the current `syncer` node catches an event, it'll broadcast msg to other sgn nodes saying "I saw a send event, do you agree"
-- After seeing this msg, every bonded validator will do its own verify onchain and vote `yes` if agree.
+- When the current `syncer` node catches an event, it'll broadcast msg to other sgn nodes to propose state updates triggered by the event.
+- After seeing this msg, every bonded validator will do its own verification about the state and vote `yes` if agree.
 - If more than 2/3 of the validator voting power have voted `yes`, the msg would be applied, which will trigger updates specific to the msg contents.
 
 Figure below shows workflow of sync events from other blockchains to SGN.
