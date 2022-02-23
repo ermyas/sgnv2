@@ -27,3 +27,5 @@ protoc/
 docker-volumes
 test/e2e/manual/data/node*
 tools/cbridge/cbridge
+
+tmp
