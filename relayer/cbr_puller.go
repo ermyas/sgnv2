@@ -476,6 +476,12 @@ func (c *CbrOneChain) skipSyncCbrWithdrawalRequest(evlog *ethtypes.Log, cliCtx c
 		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
 	}
 
+	// check if this withdrawal request is valid
+	deadline := time.Unix(ev.Deadline.Int64(), 0)
+	if time.Now().After(deadline) {
+		return true, fmt.Sprintf("this withdrawal request has passed the deadline %s", deadline.Format(time.Stamp))
+	}
+
 	// check if all tokens have the same symbol.
 	var chainTokens []*cbrtypes.ChainTokenAddrPair
 	for i := range ev.FromChains {

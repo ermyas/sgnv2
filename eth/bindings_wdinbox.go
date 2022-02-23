@@ -1424,8 +1424,8 @@ func (_ContractAsLP *ContractAsLPFilterer) ParseUnpaused(log types.Log) (*Contra
 
 // WithdrawInboxMetaData contains all meta data concerning the WithdrawInbox contract.
 var WithdrawInboxMetaData = &bind.MetaData{
-	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"seqNum\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"toChain\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint64[]\",\"name\":\"fromChains\",\"type\":\"uint64[]\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"tokens\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"uint32[]\",\"name\":\"ratios\",\"type\":\"uint32[]\"},{\"indexed\":false,\"internalType\":\"uint32[]\",\"name\":\"slippages\",\"type\":\"uint32[]\"}],\"name\":\"WithdrawalRequest\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"_wdSeq\",\"type\":\"uint64\"},{\"internalType\":\"address\",\"name\":\"_receiver\",\"type\":\"address\"},{\"internalType\":\"uint64\",\"name\":\"_toChain\",\"type\":\"uint64\"},{\"internalType\":\"uint64[]\",\"name\":\"_fromChains\",\"type\":\"uint64[]\"},{\"internalType\":\"address[]\",\"name\":\"_tokens\",\"type\":\"address[]\"},{\"internalType\":\"uint32[]\",\"name\":\"_ratios\",\"type\":\"uint32[]\"},{\"internalType\":\"uint32[]\",\"name\":\"_slippages\",\"type\":\"uint32[]\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
-	Bin: "0x608060405234801561001057600080fd5b506105bd806100206000396000f3fe608060405234801561001057600080fd5b506004361061002b5760003560e01c8063a485529614610030575b600080fd5b61004361003e3660046102b9565b610045565b005b866100975760405162461bcd60e51b815260206004820152601860248201527f656d707479207769746864726177616c2072657175657374000000000000000060448201526064015b60405180910390fd5b84871480156100a557508287145b80156100b057508087145b6100fc5760405162461bcd60e51b815260206004820152600f60248201527f6c656e677468206d69736d617463680000000000000000000000000000000000604482015260640161008e565b60005b838110156101d157600085858381811061011b5761011b6103b6565b905060200201602081019061013091906103e0565b63ffffffff1611801561017357506305f5e100858583818110610155576101556103b6565b905060200201602081019061016a91906103e0565b63ffffffff1611155b6101bf5760405162461bcd60e51b815260206004820152600d60248201527f696e76616c696420726174696f00000000000000000000000000000000000000604482015260640161008e565b806101c981610402565b9150506100ff565b507ff012d43fa1f6670f2290ecb8f5baea919a5b77c2129c69bde56eda320de155698b338c8c8c8c8c8c8c8c8c8c6040516102179c9b9a999897969594939291906104b8565b60405180910390a15050505050505050505050565b803567ffffffffffffffff8116811461024457600080fd5b919050565b803573ffffffffffffffffffffffffffffffffffffffff8116811461024457600080fd5b60008083601f84011261027f57600080fd5b50813567ffffffffffffffff81111561029757600080fd5b6020830191508360208260051b85010111156102b257600080fd5b9250929050565b600080600080600080600080600080600060e08c8e0312156102da57600080fd5b6102e38c61022c565b9a506102f160208d01610249565b99506102ff60408d0161022c565b985067ffffffffffffffff8060608e0135111561031b57600080fd5b61032b8e60608f01358f0161026d565b909950975060808d013581101561034157600080fd5b6103518e60808f01358f0161026d565b909750955060a08d013581101561036757600080fd5b6103778e60a08f01358f0161026d565b909550935060c08d013581101561038d57600080fd5b5061039e8d60c08e01358e0161026d565b81935080925050509295989b509295989b9093969950565b634e487b7160e01b600052603260045260246000fd5b803563ffffffff8116811461024457600080fd5b6000602082840312156103f257600080fd5b6103fb826103cc565b9392505050565b600060001982141561042457634e487b7160e01b600052601160045260246000fd5b5060010190565b8183526000602080850194508260005b858110156104745773ffffffffffffffffffffffffffffffffffffffff61046183610249565b168752958201959082019060010161043b565b509495945050505050565b8183526000602080850194508260005b858110156104745763ffffffff6104a5836103cc565b168752958201959082019060010161048f565b67ffffffffffffffff8d8116825273ffffffffffffffffffffffffffffffffffffffff8d811660208401528c1660408301528a8116606083015261010060808301819052820189905260009061012083018b835b8c811015610534578361051e8361022c565b168352602092830192919091019060010161050c565b505083810360a0850152610549818a8c61042b565b91505082810360c084015261055f81878961047f565b905082810360e084015261057481858761047f565b9f9e50505050505050505050505050505056fea2646970667358221220249a23d732694a501964902a277dc45dc0d946b6830bacf1b0286c01db36400e64736f6c63430008090033",
+	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"seqNum\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"toChain\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint64[]\",\"name\":\"fromChains\",\"type\":\"uint64[]\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"tokens\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"uint32[]\",\"name\":\"ratios\",\"type\":\"uint32[]\"},{\"indexed\":false,\"internalType\":\"uint32[]\",\"name\":\"slippages\",\"type\":\"uint32[]\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"}],\"name\":\"WithdrawalRequest\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"minimalMaxSlippage\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32\",\"name\":\"_minimalMaxSlippage\",\"type\":\"uint32\"}],\"name\":\"setMinimalMaxSlippage\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_validityPeriod\",\"type\":\"uint256\"}],\"name\":\"setValidityPeriod\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"validityPeriod\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"_wdSeq\",\"type\":\"uint64\"},{\"internalType\":\"address\",\"name\":\"_receiver\",\"type\":\"address\"},{\"internalType\":\"uint64\",\"name\":\"_toChain\",\"type\":\"uint64\"},{\"internalType\":\"uint64[]\",\"name\":\"_fromChains\",\"type\":\"uint64[]\"},{\"internalType\":\"address[]\",\"name\":\"_tokens\",\"type\":\"address[]\"},{\"internalType\":\"uint32[]\",\"name\":\"_ratios\",\"type\":\"uint32[]\"},{\"internalType\":\"uint32[]\",\"name\":\"_slippages\",\"type\":\"uint32[]\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+	Bin: "0x608060405234801561001057600080fd5b5061001a33610025565b611c20600155610075565b600080546001600160a01b038381166001600160a01b0319831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b6109f4806100846000396000f3fe608060405234801561001057600080fd5b506004361061007d5760003560e01c806387e647ed1161005b57806387e647ed146100df5780638da5cb5b146100f2578063a48552961461010d578063f2fde38b1461012057600080fd5b80631e6c3850146100825780632fd1b0a41461009e57806348234126146100ca575b600080fd5b61008b60015481565b6040519081526020015b60405180910390f35b6000546100b590600160a01b900463ffffffff1681565b60405163ffffffff9091168152602001610095565b6100dd6100d8366004610641565b610133565b005b6100dd6100ed366004610663565b6101df565b6000546040516001600160a01b039091168152602001610095565b6100dd61011b3660046106f7565b61024d565b6100dd61012e3660046107f4565b6104cf565b336101466000546001600160a01b031690565b6001600160a01b0316146101a15760405162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e657260448201526064015b60405180910390fd5b6000805463ffffffff909216600160a01b027fffffffffffffffff00000000ffffffffffffffffffffffffffffffffffffffff909216919091179055565b336101f26000546001600160a01b031690565b6001600160a01b0316146102485760405162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e65726044820152606401610198565b600155565b8661029a5760405162461bcd60e51b815260206004820152601860248201527f656d707479207769746864726177616c207265717565737400000000000000006044820152606401610198565b84871480156102a857508287145b80156102b357508087145b6102ff5760405162461bcd60e51b815260206004820152600f60248201527f6c656e677468206d69736d6174636800000000000000000000000000000000006044820152606401610198565b60005b8381101561045f57600085858381811061031e5761031e61080f565b90506020020160208101906103339190610641565b63ffffffff1611801561037657506305f5e1008585838181106103585761035861080f565b905060200201602081019061036d9190610641565b63ffffffff1611155b6103c25760405162461bcd60e51b815260206004820152600d60248201527f696e76616c696420726174696f000000000000000000000000000000000000006044820152606401610198565b600054600160a01b900463ffffffff168383838181106103e4576103e461080f565b90506020020160208101906103f99190610641565b63ffffffff16101561044d5760405162461bcd60e51b815260206004820152601260248201527f736c69707061676520746f6f20736d616c6c00000000000000000000000000006044820152606401610198565b806104578161083b565b915050610302565b506000600154426104709190610856565b90507f7e2b24139224d852dd26bdb9f06f8136f7a1c9227a386d815a4ed8f1b8d7cc958c338d8d8d8d8d8d8d8d8d8d8d6040516104b99d9c9b9a999897969594939291906108ee565b60405180910390a1505050505050505050505050565b336104e26000546001600160a01b031690565b6001600160a01b0316146105385760405162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e65726044820152606401610198565b6001600160a01b0381166105b45760405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201527f64647265737300000000000000000000000000000000000000000000000000006064820152608401610198565b6105bd816105c0565b50565b600080546001600160a01b038381167fffffffffffffffffffffffff0000000000000000000000000000000000000000831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b803563ffffffff8116811461063c57600080fd5b919050565b60006020828403121561065357600080fd5b61065c82610628565b9392505050565b60006020828403121561067557600080fd5b5035919050565b803567ffffffffffffffff8116811461063c57600080fd5b80356001600160a01b038116811461063c57600080fd5b60008083601f8401126106bd57600080fd5b50813567ffffffffffffffff8111156106d557600080fd5b6020830191508360208260051b85010111156106f057600080fd5b9250929050565b600080600080600080600080600080600060e08c8e03121561071857600080fd5b6107218c61067c565b9a5061072f60208d01610694565b995061073d60408d0161067c565b985067ffffffffffffffff8060608e0135111561075957600080fd5b6107698e60608f01358f016106ab565b909950975060808d013581101561077f57600080fd5b61078f8e60808f01358f016106ab565b909750955060a08d01358110156107a557600080fd5b6107b58e60a08f01358f016106ab565b909550935060c08d01358110156107cb57600080fd5b506107dc8d60c08e01358e016106ab565b81935080925050509295989b509295989b9093969950565b60006020828403121561080657600080fd5b61065c82610694565b634e487b7160e01b600052603260045260246000fd5b634e487b7160e01b600052601160045260246000fd5b600060001982141561084f5761084f610825565b5060010190565b6000821982111561086957610869610825565b500190565b8183526000602080850194508260005b858110156108aa576001600160a01b0361089783610694565b168752958201959082019060010161087e565b509495945050505050565b8183526000602080850194508260005b858110156108aa5763ffffffff6108db83610628565b16875295820195908201906001016108c5565b67ffffffffffffffff8e811682526001600160a01b038e811660208401528d1660408301528b166060820152610120608082018190528101899052600061014082018b825b8c8110156109635767ffffffffffffffff61094d8361067c565b1683526020928301929190910190600101610933565b505082810360a0840152610978818a8c61086e565b905082810360c084015261098d81888a6108b5565b905082810360e08401526109a28186886108b5565b915050826101008301529e9d505050505050505050505050505056fea26469706673582212208e28c74959766df1b0d2525418cf050f48ded6e6eb99fded0a61a9b5353b4f8764736f6c63430008090033",
 }
 
 // WithdrawInboxABI is the input ABI used to generate the binding from.
@@ -1595,6 +1595,162 @@ func (_WithdrawInbox *WithdrawInboxTransactorRaw) Transact(opts *bind.TransactOp
 	return _WithdrawInbox.Contract.contract.Transact(opts, method, params...)
 }
 
+// MinimalMaxSlippage is a free data retrieval call binding the contract method 0x2fd1b0a4.
+//
+// Solidity: function minimalMaxSlippage() view returns(uint32)
+func (_WithdrawInbox *WithdrawInboxCaller) MinimalMaxSlippage(opts *bind.CallOpts) (uint32, error) {
+	var out []interface{}
+	err := _WithdrawInbox.contract.Call(opts, &out, "minimalMaxSlippage")
+
+	if err != nil {
+		return *new(uint32), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(uint32)).(*uint32)
+
+	return out0, err
+
+}
+
+// MinimalMaxSlippage is a free data retrieval call binding the contract method 0x2fd1b0a4.
+//
+// Solidity: function minimalMaxSlippage() view returns(uint32)
+func (_WithdrawInbox *WithdrawInboxSession) MinimalMaxSlippage() (uint32, error) {
+	return _WithdrawInbox.Contract.MinimalMaxSlippage(&_WithdrawInbox.CallOpts)
+}
+
+// MinimalMaxSlippage is a free data retrieval call binding the contract method 0x2fd1b0a4.
+//
+// Solidity: function minimalMaxSlippage() view returns(uint32)
+func (_WithdrawInbox *WithdrawInboxCallerSession) MinimalMaxSlippage() (uint32, error) {
+	return _WithdrawInbox.Contract.MinimalMaxSlippage(&_WithdrawInbox.CallOpts)
+}
+
+// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
+//
+// Solidity: function owner() view returns(address)
+func (_WithdrawInbox *WithdrawInboxCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _WithdrawInbox.contract.Call(opts, &out, "owner")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
+//
+// Solidity: function owner() view returns(address)
+func (_WithdrawInbox *WithdrawInboxSession) Owner() (common.Address, error) {
+	return _WithdrawInbox.Contract.Owner(&_WithdrawInbox.CallOpts)
+}
+
+// Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
+//
+// Solidity: function owner() view returns(address)
+func (_WithdrawInbox *WithdrawInboxCallerSession) Owner() (common.Address, error) {
+	return _WithdrawInbox.Contract.Owner(&_WithdrawInbox.CallOpts)
+}
+
+// ValidityPeriod is a free data retrieval call binding the contract method 0x1e6c3850.
+//
+// Solidity: function validityPeriod() view returns(uint256)
+func (_WithdrawInbox *WithdrawInboxCaller) ValidityPeriod(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _WithdrawInbox.contract.Call(opts, &out, "validityPeriod")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// ValidityPeriod is a free data retrieval call binding the contract method 0x1e6c3850.
+//
+// Solidity: function validityPeriod() view returns(uint256)
+func (_WithdrawInbox *WithdrawInboxSession) ValidityPeriod() (*big.Int, error) {
+	return _WithdrawInbox.Contract.ValidityPeriod(&_WithdrawInbox.CallOpts)
+}
+
+// ValidityPeriod is a free data retrieval call binding the contract method 0x1e6c3850.
+//
+// Solidity: function validityPeriod() view returns(uint256)
+func (_WithdrawInbox *WithdrawInboxCallerSession) ValidityPeriod() (*big.Int, error) {
+	return _WithdrawInbox.Contract.ValidityPeriod(&_WithdrawInbox.CallOpts)
+}
+
+// SetMinimalMaxSlippage is a paid mutator transaction binding the contract method 0x48234126.
+//
+// Solidity: function setMinimalMaxSlippage(uint32 _minimalMaxSlippage) returns()
+func (_WithdrawInbox *WithdrawInboxTransactor) SetMinimalMaxSlippage(opts *bind.TransactOpts, _minimalMaxSlippage uint32) (*types.Transaction, error) {
+	return _WithdrawInbox.contract.Transact(opts, "setMinimalMaxSlippage", _minimalMaxSlippage)
+}
+
+// SetMinimalMaxSlippage is a paid mutator transaction binding the contract method 0x48234126.
+//
+// Solidity: function setMinimalMaxSlippage(uint32 _minimalMaxSlippage) returns()
+func (_WithdrawInbox *WithdrawInboxSession) SetMinimalMaxSlippage(_minimalMaxSlippage uint32) (*types.Transaction, error) {
+	return _WithdrawInbox.Contract.SetMinimalMaxSlippage(&_WithdrawInbox.TransactOpts, _minimalMaxSlippage)
+}
+
+// SetMinimalMaxSlippage is a paid mutator transaction binding the contract method 0x48234126.
+//
+// Solidity: function setMinimalMaxSlippage(uint32 _minimalMaxSlippage) returns()
+func (_WithdrawInbox *WithdrawInboxTransactorSession) SetMinimalMaxSlippage(_minimalMaxSlippage uint32) (*types.Transaction, error) {
+	return _WithdrawInbox.Contract.SetMinimalMaxSlippage(&_WithdrawInbox.TransactOpts, _minimalMaxSlippage)
+}
+
+// SetValidityPeriod is a paid mutator transaction binding the contract method 0x87e647ed.
+//
+// Solidity: function setValidityPeriod(uint256 _validityPeriod) returns()
+func (_WithdrawInbox *WithdrawInboxTransactor) SetValidityPeriod(opts *bind.TransactOpts, _validityPeriod *big.Int) (*types.Transaction, error) {
+	return _WithdrawInbox.contract.Transact(opts, "setValidityPeriod", _validityPeriod)
+}
+
+// SetValidityPeriod is a paid mutator transaction binding the contract method 0x87e647ed.
+//
+// Solidity: function setValidityPeriod(uint256 _validityPeriod) returns()
+func (_WithdrawInbox *WithdrawInboxSession) SetValidityPeriod(_validityPeriod *big.Int) (*types.Transaction, error) {
+	return _WithdrawInbox.Contract.SetValidityPeriod(&_WithdrawInbox.TransactOpts, _validityPeriod)
+}
+
+// SetValidityPeriod is a paid mutator transaction binding the contract method 0x87e647ed.
+//
+// Solidity: function setValidityPeriod(uint256 _validityPeriod) returns()
+func (_WithdrawInbox *WithdrawInboxTransactorSession) SetValidityPeriod(_validityPeriod *big.Int) (*types.Transaction, error) {
+	return _WithdrawInbox.Contract.SetValidityPeriod(&_WithdrawInbox.TransactOpts, _validityPeriod)
+}
+
+// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
+//
+// Solidity: function transferOwnership(address newOwner) returns()
+func (_WithdrawInbox *WithdrawInboxTransactor) TransferOwnership(opts *bind.TransactOpts, newOwner common.Address) (*types.Transaction, error) {
+	return _WithdrawInbox.contract.Transact(opts, "transferOwnership", newOwner)
+}
+
+// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
+//
+// Solidity: function transferOwnership(address newOwner) returns()
+func (_WithdrawInbox *WithdrawInboxSession) TransferOwnership(newOwner common.Address) (*types.Transaction, error) {
+	return _WithdrawInbox.Contract.TransferOwnership(&_WithdrawInbox.TransactOpts, newOwner)
+}
+
+// TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
+//
+// Solidity: function transferOwnership(address newOwner) returns()
+func (_WithdrawInbox *WithdrawInboxTransactorSession) TransferOwnership(newOwner common.Address) (*types.Transaction, error) {
+	return _WithdrawInbox.Contract.TransferOwnership(&_WithdrawInbox.TransactOpts, newOwner)
+}
+
 // Withdraw is a paid mutator transaction binding the contract method 0xa4855296.
 //
 // Solidity: function withdraw(uint64 _wdSeq, address _receiver, uint64 _toChain, uint64[] _fromChains, address[] _tokens, uint32[] _ratios, uint32[] _slippages) returns()
@@ -1614,6 +1770,159 @@ func (_WithdrawInbox *WithdrawInboxSession) Withdraw(_wdSeq uint64, _receiver co
 // Solidity: function withdraw(uint64 _wdSeq, address _receiver, uint64 _toChain, uint64[] _fromChains, address[] _tokens, uint32[] _ratios, uint32[] _slippages) returns()
 func (_WithdrawInbox *WithdrawInboxTransactorSession) Withdraw(_wdSeq uint64, _receiver common.Address, _toChain uint64, _fromChains []uint64, _tokens []common.Address, _ratios []uint32, _slippages []uint32) (*types.Transaction, error) {
 	return _WithdrawInbox.Contract.Withdraw(&_WithdrawInbox.TransactOpts, _wdSeq, _receiver, _toChain, _fromChains, _tokens, _ratios, _slippages)
+}
+
+// WithdrawInboxOwnershipTransferredIterator is returned from FilterOwnershipTransferred and is used to iterate over the raw logs and unpacked data for OwnershipTransferred events raised by the WithdrawInbox contract.
+type WithdrawInboxOwnershipTransferredIterator struct {
+	Event *WithdrawInboxOwnershipTransferred // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *WithdrawInboxOwnershipTransferredIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(WithdrawInboxOwnershipTransferred)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(WithdrawInboxOwnershipTransferred)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *WithdrawInboxOwnershipTransferredIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *WithdrawInboxOwnershipTransferredIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// WithdrawInboxOwnershipTransferred represents a OwnershipTransferred event raised by the WithdrawInbox contract.
+type WithdrawInboxOwnershipTransferred struct {
+	PreviousOwner common.Address
+	NewOwner      common.Address
+	Raw           types.Log // Blockchain specific contextual infos
+}
+
+// FilterOwnershipTransferred is a free log retrieval operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
+//
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+func (_WithdrawInbox *WithdrawInboxFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, previousOwner []common.Address, newOwner []common.Address) (*WithdrawInboxOwnershipTransferredIterator, error) {
+
+	var previousOwnerRule []interface{}
+	for _, previousOwnerItem := range previousOwner {
+		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
+	}
+	var newOwnerRule []interface{}
+	for _, newOwnerItem := range newOwner {
+		newOwnerRule = append(newOwnerRule, newOwnerItem)
+	}
+
+	logs, sub, err := _WithdrawInbox.contract.FilterLogs(opts, "OwnershipTransferred", previousOwnerRule, newOwnerRule)
+	if err != nil {
+		return nil, err
+	}
+	return &WithdrawInboxOwnershipTransferredIterator{contract: _WithdrawInbox.contract, event: "OwnershipTransferred", logs: logs, sub: sub}, nil
+}
+
+// WatchOwnershipTransferred is a free log subscription operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
+//
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+func (_WithdrawInbox *WithdrawInboxFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink chan<- *WithdrawInboxOwnershipTransferred, previousOwner []common.Address, newOwner []common.Address) (event.Subscription, error) {
+
+	var previousOwnerRule []interface{}
+	for _, previousOwnerItem := range previousOwner {
+		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
+	}
+	var newOwnerRule []interface{}
+	for _, newOwnerItem := range newOwner {
+		newOwnerRule = append(newOwnerRule, newOwnerItem)
+	}
+
+	logs, sub, err := _WithdrawInbox.contract.WatchLogs(opts, "OwnershipTransferred", previousOwnerRule, newOwnerRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(WithdrawInboxOwnershipTransferred)
+				if err := _WithdrawInbox.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseOwnershipTransferred is a log parse operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
+//
+// Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+func (_WithdrawInbox *WithdrawInboxFilterer) ParseOwnershipTransferred(log types.Log) (*WithdrawInboxOwnershipTransferred, error) {
+	event := new(WithdrawInboxOwnershipTransferred)
+	if err := _WithdrawInbox.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
 }
 
 // WithdrawInboxWithdrawalRequestIterator is returned from FilterWithdrawalRequest and is used to iterate over the raw logs and unpacked data for WithdrawalRequest events raised by the WithdrawInbox contract.
@@ -1693,12 +2002,13 @@ type WithdrawInboxWithdrawalRequest struct {
 	Tokens     []common.Address
 	Ratios     []uint32
 	Slippages  []uint32
+	Deadline   *big.Int
 	Raw        types.Log // Blockchain specific contextual infos
 }
 
-// FilterWithdrawalRequest is a free log retrieval operation binding the contract event 0xf012d43fa1f6670f2290ecb8f5baea919a5b77c2129c69bde56eda320de15569.
+// FilterWithdrawalRequest is a free log retrieval operation binding the contract event 0x7e2b24139224d852dd26bdb9f06f8136f7a1c9227a386d815a4ed8f1b8d7cc95.
 //
-// Solidity: event WithdrawalRequest(uint64 seqNum, address sender, address receiver, uint64 toChain, uint64[] fromChains, address[] tokens, uint32[] ratios, uint32[] slippages)
+// Solidity: event WithdrawalRequest(uint64 seqNum, address sender, address receiver, uint64 toChain, uint64[] fromChains, address[] tokens, uint32[] ratios, uint32[] slippages, uint256 deadline)
 func (_WithdrawInbox *WithdrawInboxFilterer) FilterWithdrawalRequest(opts *bind.FilterOpts) (*WithdrawInboxWithdrawalRequestIterator, error) {
 
 	logs, sub, err := _WithdrawInbox.contract.FilterLogs(opts, "WithdrawalRequest")
@@ -1708,9 +2018,9 @@ func (_WithdrawInbox *WithdrawInboxFilterer) FilterWithdrawalRequest(opts *bind.
 	return &WithdrawInboxWithdrawalRequestIterator{contract: _WithdrawInbox.contract, event: "WithdrawalRequest", logs: logs, sub: sub}, nil
 }
 
-// WatchWithdrawalRequest is a free log subscription operation binding the contract event 0xf012d43fa1f6670f2290ecb8f5baea919a5b77c2129c69bde56eda320de15569.
+// WatchWithdrawalRequest is a free log subscription operation binding the contract event 0x7e2b24139224d852dd26bdb9f06f8136f7a1c9227a386d815a4ed8f1b8d7cc95.
 //
-// Solidity: event WithdrawalRequest(uint64 seqNum, address sender, address receiver, uint64 toChain, uint64[] fromChains, address[] tokens, uint32[] ratios, uint32[] slippages)
+// Solidity: event WithdrawalRequest(uint64 seqNum, address sender, address receiver, uint64 toChain, uint64[] fromChains, address[] tokens, uint32[] ratios, uint32[] slippages, uint256 deadline)
 func (_WithdrawInbox *WithdrawInboxFilterer) WatchWithdrawalRequest(opts *bind.WatchOpts, sink chan<- *WithdrawInboxWithdrawalRequest) (event.Subscription, error) {
 
 	logs, sub, err := _WithdrawInbox.contract.WatchLogs(opts, "WithdrawalRequest")
@@ -1745,9 +2055,9 @@ func (_WithdrawInbox *WithdrawInboxFilterer) WatchWithdrawalRequest(opts *bind.W
 	}), nil
 }
 
-// ParseWithdrawalRequest is a log parse operation binding the contract event 0xf012d43fa1f6670f2290ecb8f5baea919a5b77c2129c69bde56eda320de15569.
+// ParseWithdrawalRequest is a log parse operation binding the contract event 0x7e2b24139224d852dd26bdb9f06f8136f7a1c9227a386d815a4ed8f1b8d7cc95.
 //
-// Solidity: event WithdrawalRequest(uint64 seqNum, address sender, address receiver, uint64 toChain, uint64[] fromChains, address[] tokens, uint32[] ratios, uint32[] slippages)
+// Solidity: event WithdrawalRequest(uint64 seqNum, address sender, address receiver, uint64 toChain, uint64[] fromChains, address[] tokens, uint32[] ratios, uint32[] slippages, uint256 deadline)
 func (_WithdrawInbox *WithdrawInboxFilterer) ParseWithdrawalRequest(log types.Log) (*WithdrawInboxWithdrawalRequest, error) {
 	event := new(WithdrawInboxWithdrawalRequest)
 	if err := _WithdrawInbox.contract.UnpackLog(event, "WithdrawalRequest", log); err != nil {

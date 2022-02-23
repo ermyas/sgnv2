@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -177,6 +178,11 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		if onchev.Chainid != origin {
 			//WithdrawInbox contract should be called on the chain where lp first added their liquidity.
 			log.Errorf("%d(chainid of this event) mismatches %d(chainid recorded on sgn when sender first add liq)", onchev.Chainid, origin)
+			return false, nil
+		}
+		deadline := common.TsSecToTime(ev.Deadline.Uint64())
+		if ctx.BlockTime().After(deadline) {
+			log.Errorf("This withdrawal request has passed the deadline %s.", deadline.Format("2006.01.02 15:04:05"))
 			return false, nil
 		}
 		//construct a withdraw request for initiating withdraw

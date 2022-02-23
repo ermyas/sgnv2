@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -507,14 +508,14 @@ func (ev *OriginalTokenVaultV2Withdrawn) String() string {
 
 func (ev *WithdrawInboxWithdrawalRequest) PrettyLog(onchid uint64) string {
 	return fmt.Sprintf(
-		"wdi-withdrawalrequest-%d sender: %x receiver: %x toChain: %d fromChains: %v tokens: %v ratios: %v slippages: %v",
-		onchid, ev.Sender, ev.Receiver, ev.ToChain, ev.FromChains, ev.Tokens, ev.Ratios, ev.Slippages)
+		"wdi-withdrawalrequest-%d sender: %x receiver: %x toChain: %d fromChains: %v tokens: %v ratios: %v slippages: %v deadline: %s",
+		onchid, ev.Sender, ev.Receiver, ev.ToChain, ev.FromChains, ev.Tokens, ev.Ratios, ev.Slippages, time.Unix(ev.Deadline.Int64(), 0))
 }
 
 func (ev *WithdrawInboxWithdrawalRequest) String() string {
 	return fmt.Sprintf(
-		"sender: %x receiver: %x toChain: %d fromChains: %v tokens: %v ratios: %v slippages: %v",
-		ev.Sender, ev.Receiver, ev.ToChain, ev.FromChains, ev.Tokens, ev.Ratios, ev.Slippages)
+		"sender: %x receiver: %x toChain: %d fromChains: %v tokens: %v ratios: %v slippages: %v deadline: %s",
+		ev.Sender, ev.Receiver, ev.ToChain, ev.FromChains, ev.Tokens, ev.Ratios, ev.Slippages, time.Unix(ev.Deadline.Int64(), 0))
 }
 
 func (ev *WithdrawInboxWithdrawalRequest) Equal(b *WithdrawInboxWithdrawalRequest) bool {
@@ -528,6 +529,9 @@ func (ev *WithdrawInboxWithdrawalRequest) Equal(b *WithdrawInboxWithdrawalReques
 		return false
 	}
 	if ev.ToChain != b.ToChain {
+		return false
+	}
+	if ev.Deadline.Cmp(b.Deadline) != 0 {
 		return false
 	}
 	if len(ev.FromChains) != len(b.FromChains) {
