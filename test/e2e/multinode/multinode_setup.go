@@ -107,6 +107,21 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge, msg, manual, rep
 	viper.SetConfigFile(node0ConfigPath)
 	err := viper.ReadInConfig()
 	tc.ChkErr(err, "Failed to read config")
+	if cbridge && !manual {
+		// set node3 account as node0 transactor
+		viper.Set(common.FlagSgnTransactors, []string{tc.ValSgnAddrStrs[3]})
+		err = viper.WriteConfig()
+		tc.ChkErr(err, "Failed to write config")
+
+		node3ConfigPath := "../../../docker-volumes/node3/sgnd/config/sgn.toml"
+		configFileViper := viper.New()
+		configFileViper.SetConfigFile(node3ConfigPath)
+		err := configFileViper.ReadInConfig()
+		tc.ChkErr(err, "Failed to read node3 config")
+		configFileViper.Set(common.FlagSgnWitnessMode, true)
+		err = configFileViper.WriteConfig()
+		tc.ChkErr(err, "Failed to write config")
+	}
 
 	tc.RunCmd("make", "localnet-up-nodes")
 	if msg {

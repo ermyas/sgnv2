@@ -58,7 +58,7 @@ func messageTest(t *testing.T) {
 		tc.SgnPassphrase,
 	)
 
-	prepareValidators(t, transactor)
+	prepareValidators(t)
 	prepareCbrLiquidity(transactor)
 
 	log.Infoln("======================= Message Only Test =====================")

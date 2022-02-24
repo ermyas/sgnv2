@@ -31,15 +31,15 @@ func cbridgeTest(t *testing.T) {
 	log.Infoln("======================== Test cbridge ===========================")
 	setupBridgeTest()
 
+	prepareValidators(t)
+
 	transactor := tc.NewTestTransactor(
-		tc.SgnHomes[0],
+		tc.SgnHomes[3],
 		tc.SgnChainID,
-		tc.SgnNodeURI,
-		tc.ValSgnAddrStrs[0],
+		tc.SgnNodeURIs[3],
+		tc.ValSgnAddrStrs[3],
 		tc.SgnPassphrase,
 	)
-
-	prepareValidators(t, transactor)
 
 	cbrTest(t, transactor)
 }

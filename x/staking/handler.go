@@ -41,6 +41,7 @@ func handleMsgSetTransactors(
 
 	logEntry.Type = msg.Type()
 	logEntry.Sender = msg.Sender
+	logEntry.Staking.Transactors = msg.GetTransactors()
 	sgnAddr, err := sdk.AccAddressFromBech32(msg.Sender)
 	if err != nil {
 		return nil, fmt.Errorf("invalid sender %w", err)

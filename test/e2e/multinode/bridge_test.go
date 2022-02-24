@@ -10,7 +10,6 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
-	"github.com/celer-network/sgn-v2/transactor"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
@@ -48,16 +47,16 @@ func bridgeTest(t *testing.T) {
 	log.Infoln("============ Test Bridge (Both cBridge and pegBridge) =============")
 	setupBridgeTest()
 
+	prepareValidators(t)
+	govSyncerCandidates(t)
+
 	transactor := tc.NewTestTransactor(
-		tc.SgnHomes[0],
+		tc.SgnHomes[3],
 		tc.SgnChainID,
-		tc.SgnNodeURI,
-		tc.ValSgnAddrStrs[0],
+		tc.SgnNodeURIs[3],
+		tc.ValSgnAddrStrs[3],
 		tc.SgnPassphrase,
 	)
-
-	prepareValidators(t, transactor)
-	govSyncerCandidates(t)
 
 	tc.RunAllAndWait(
 		func() {
@@ -72,14 +71,31 @@ func bridgeTest(t *testing.T) {
 	)
 }
 
-func prepareValidators(t *testing.T, transactor *transactor.Transactor) {
+func prepareValidators(t *testing.T) {
 	log.Infoln("================== Prepare validators start =================")
+
+	transactor := tc.NewTestCliTransactor(
+		tc.SgnHomes[0],
+		tc.SgnChainID,
+		tc.SgnNodeURI,
+		tc.ValSgnAddrStrs[0],
+		tc.SgnPassphrase,
+	)
 
 	log.Infoln("================== Setup validators ======================")
 	// Make the stake amounts more realistic to test precision handling when distributing fee share
 	vAmt := new(big.Int).Mul(big.NewInt(2e8), big.NewInt(1e18))
 	vAmts := []*big.Int{vAmt, vAmt, vAmt}
 	tc.SetupValidators(t, transactor, vAmts)
+
+	// set witness node3's account addr as node0's transactor
+	setTransactorMsg := stakingtypes.NewMsgSetTransactors(
+		stakingtypes.SetTransactorsOp_Overwrite, []string{tc.ValSgnAddrStrs[3]}, transactor.Key.GetAddress().String())
+	err := setTransactorMsg.ValidateBasic()
+	if err != nil {
+		log.Fatal(err)
+	}
+	transactor.LockSendTx(&setTransactorMsg)
 
 	log.Infoln("================== Setup bridge signers ======================")
 	tc.CbrChain1.SetInitSigners(vAmts)
@@ -109,32 +125,34 @@ func prepareValidators(t *testing.T, transactor *transactor.Transactor) {
 }
 
 func govSyncerCandidates(t *testing.T) {
-	transactor0 := tc.NewTestTransactor(
+	log.Infoln("================== Gov syncer candidates =================")
+
+	transactor0 := tc.NewTestCliTransactor(
 		tc.SgnHomes[0],
 		tc.SgnChainID,
-		tc.SgnNodeURI,
+		tc.SgnNodeURIs[0],
 		tc.ValSgnAddrStrs[0],
 		tc.SgnPassphrase,
 	)
-	transactor1 := tc.NewTestTransactor(
+	transactor1 := tc.NewTestCliTransactor(
 		tc.SgnHomes[1],
 		tc.SgnChainID,
-		tc.SgnNodeURI,
+		tc.SgnNodeURIs[1],
 		tc.ValSgnAddrStrs[1],
 		tc.SgnPassphrase,
 	)
-	transactor2 := tc.NewTestTransactor(
+	transactor2 := tc.NewTestCliTransactor(
 		tc.SgnHomes[2],
 		tc.SgnChainID,
-		tc.SgnNodeURI,
+		tc.SgnNodeURIs[2],
 		tc.ValSgnAddrStrs[2],
 		tc.SgnPassphrase,
 	)
 
 	paramChanges := []govtypes.ParamChange{govtypes.NewParamChange("staking", "SyncerCandidates", fmt.Sprintf("[\"%s\", \"%s\"]", tc.ValEthAddrs[0], tc.ValEthAddrs[1]))}
 	content := govtypes.NewParameterProposal("Subscribe Param Change", "Update SyncerCandidates", paramChanges)
-	submitProposalmsg, _ := govtypes.NewMsgSubmitProposal(content, sdk.NewInt(1e18), transactor0.Key.GetAddress())
-	transactor0.AddTxMsg(submitProposalmsg)
+	submitProposalMsg, _ := govtypes.NewMsgSubmitProposal(content, sdk.NewInt(1e18), transactor0.Key.GetAddress())
+	transactor0.LockSendTx(submitProposalMsg)
 
 	proposalID := uint64(1)
 	proposal, err := tc.QueryProposal(transactor0.CliCtx, proposalID, govtypes.StatusVotingPeriod)
@@ -142,11 +160,11 @@ func govSyncerCandidates(t *testing.T) {
 
 	byteVoteOption, _ := govtypes.VoteOptionFromString("Yes")
 	voteMsg := govtypes.NewMsgVote(transactor0.Key.GetAddress(), proposal.ProposalId, byteVoteOption)
-	transactor0.AddTxMsg(voteMsg)
+	transactor0.LockSendTx(voteMsg)
 	voteMsg = govtypes.NewMsgVote(transactor1.Key.GetAddress(), proposal.ProposalId, byteVoteOption)
-	transactor1.AddTxMsg(voteMsg)
+	transactor1.LockSendTx(voteMsg)
 	voteMsg = govtypes.NewMsgVote(transactor2.Key.GetAddress(), proposal.ProposalId, byteVoteOption)
-	transactor2.AddTxMsg(voteMsg)
+	transactor2.LockSendTx(voteMsg)
 
 	time.Sleep(10 * time.Second)
 	proposal, err = tc.QueryProposal(transactor0.CliCtx, proposalID, govtypes.StatusPassed)
