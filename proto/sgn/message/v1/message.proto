@@ -120,10 +120,6 @@ message ExecutionContext {
 
   // transfer defines the optional transfer info associated with the message.
   Transfer transfer = 3 [(gogoproto.moretags) = "yaml:\"transfer\""];
-
-  // powers defines the powers of the message signers in the same order.
-  // Given as string representations of big.Int in base 10.
-  repeated string powers = 4 [(gogoproto.moretags) = "yaml:\"powers\""];
 }
 
 // FeeClaimDetails describes the fees to be claimed on the EVM chain.

@@ -154,15 +154,6 @@ func (c *ExecutionContext) MustMarshal() []byte {
 	return data
 }
 
-func (c *ExecutionContext) GetSignerPowers() []*big.Int {
-	powers := []*big.Int{}
-	for _, power := range c.Powers {
-		p, _ := new(big.Int).SetString(power, 10)
-		powers = append(powers, p)
-	}
-	return powers
-}
-
 func (c *ExecutionContext) GetRefIdBytes32() ([32]byte, error) {
 	var ret [32]byte
 	t := c.Transfer

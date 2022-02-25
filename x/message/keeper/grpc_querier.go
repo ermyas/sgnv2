@@ -120,7 +120,6 @@ func (k Keeper) ExecutionContexts(
 		execCtx := types.ExecutionContext{
 			MessageId: id.Bytes(),
 			Message:   message,
-			Powers:    chainPowers[message.DstChainId],
 		}
 		if message.TransferType != types.TRANSFER_TYPE_NULL {
 			transfer, found := k.GetTransfer(ctx, eth.Bytes2Hash(execCtx.MessageId))
