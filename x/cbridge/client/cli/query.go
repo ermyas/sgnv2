@@ -48,6 +48,7 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 		GetCmdQueryChkLiqSum(),
 		GetCmdQueryFeeShareInfo(),
 		GetCmdQueryAssetPrice(),
+		GetCmdQueryLpBalance(),
 		qDebugAnyCmd,
 	)
 	// this line is used by starport scaffolding # 1
@@ -347,6 +348,64 @@ func GetCmdQueryAssetPrice() *cobra.Command {
 				return err
 			}
 			fmt.Printf("%s price: %f USD (%d %d)\n", args[0], float64(price)/math.Pow10(4+int(extraPower10)), price, extraPower10)
+			return nil
+		},
+	}
+}
+
+func GetCmdQueryLpBalance() *cobra.Command {
+	return &cobra.Command{
+		Use:   "lp-balance [lp-addr] [symbol]",
+		Args:  cobra.ExactArgs(2),
+		Short: "Query lp balance for a certain token",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			config, err := QueryChainTokensConfig(cliCtx, &types.ChainTokensConfigRequest{})
+			if err != nil {
+				return err
+			}
+
+			decimals := make(map[uint64]int32)
+			request := &types.LiquidityDetailListRequest{LpAddr: args[0]}
+			for cidstr, tokens := range config.GetChainTokens() {
+				chainId, err := strconv.ParseUint(cidstr, 10, 64)
+				if err != nil {
+					return err
+				}
+				for _, token := range tokens.GetTokens() {
+					if token.Symbol == args[1] {
+						request.ChainToken = append(
+							request.ChainToken,
+							&types.ChainTokenAddrPair{
+								ChainId:   chainId,
+								TokenAddr: token.Address,
+							},
+						)
+						decimals[chainId] = token.GetDecimal()
+						break
+					}
+				}
+			}
+			total := big.NewFloat(0)
+			resp, err := QueryLiquidityDetailList(cliCtx, request)
+			for _, detail := range resp.GetLiquidityDetail() {
+				if detail.UsrLiquidity == "0" {
+					continue
+				}
+				f, _ := new(big.Float).SetString(detail.UsrLiquidity)
+				f = new(big.Float).Quo(f, new(big.Float).SetFloat64(math.Pow10(int(decimals[detail.ChainId]))))
+				total.Add(total, f)
+
+				fmt.Println("chainId:", detail.ChainId)
+				fmt.Println("token:", detail.Token.Address)
+				fmt.Printf("balance: %f (%s)\n\n", f, detail.UsrLiquidity)
+			}
+			fmt.Println("total balance:", total)
+
 			return nil
 		},
 	}
