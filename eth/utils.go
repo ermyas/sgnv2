@@ -1,6 +1,7 @@
 package eth
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -229,7 +230,8 @@ func (ev *MessageBusMessage) Equal(b *MessageBusMessage) bool {
 	if ev.Receiver != b.Receiver {
 		return false
 	}
-	if len(ev.Message) != len(b.Message) {
+
+	if bytes.Compare(ev.Message, b.Message) != 0 {
 		return false
 	}
 	if ev.Fee.Cmp(b.Fee) != 0 {
@@ -254,7 +256,7 @@ func (ev *MessageBusMessageWithTransfer) Equal(b *MessageBusMessageWithTransfer)
 	if ev.Receiver != b.Receiver {
 		return false
 	}
-	if len(ev.Message) != len(b.Message) {
+	if bytes.Compare(ev.Message, b.Message) != 0 {
 		return false
 	}
 	if ev.Fee.Cmp(b.Fee) != 0 {

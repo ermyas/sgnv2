@@ -86,7 +86,7 @@ func (c *CbrOneChain) verifyMessage(cliCtx client.Context, eLog *ethtypes.Log, l
 		log.Errorln(logmsg, "parse log err:", err)
 		return true, false
 	}
-	// now cmp ev and msgEv
+	// cmp ev and msgEv
 	if !ev.Equal(msgEv) {
 		log.Errorln(logmsg, "ev not equal. got:", msgEv.String(), "expect:", ev.String())
 		return true, false
