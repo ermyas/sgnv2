@@ -420,7 +420,9 @@ var qDebugAnyCmd = &cobra.Command{
 		cliCtx, _ := client.GetClientQueryContext(cmd)
 		key := args[0]
 		queryClient := types.NewQueryClient(cliCtx)
-		resp, err := queryClient.QueryDebugAny(context.Background(), &types.QueryDebugAnyRequest{Key: []byte(key)})
+		ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+		defer cancelFunc()
+		resp, err := queryClient.QueryDebugAny(ctx, &types.QueryDebugAnyRequest{Key: []byte(key)})
 		if resp == nil || err != nil {
 			log.Errorln("query err:", err)
 			return err
@@ -470,14 +472,18 @@ func pre(a, pre string) bool {
 
 func QueryChkLiqSum(cliCtx client.Context, req *types.CheckLiqSumRequest) (resp *types.CheckLiqSumResponse, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err = queryClient.QueryChkLiqSum(context.Background(), req)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err = queryClient.QueryChkLiqSum(ctx, req)
 	return
 }
 
 // Query config info
 func QueryConfig(cliCtx client.Context) (config *types.CbrConfig, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err := queryClient.QueryConfig(context.Background(), &types.EmptyRequest{})
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err := queryClient.QueryConfig(ctx, &types.EmptyRequest{})
 	if resp != nil {
 		config = resp.GetCbrConfig()
 	}
@@ -487,7 +493,9 @@ func QueryConfig(cliCtx client.Context) (config *types.CbrConfig, err error) {
 // Query params info
 func QueryParams(cliCtx client.Context) (params *types.Params, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err := queryClient.QueryParams(context.Background(), &types.EmptyRequest{})
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err := queryClient.QueryParams(ctx, &types.EmptyRequest{})
 	if resp != nil {
 		params = resp.GetParams()
 	}
@@ -496,7 +504,9 @@ func QueryParams(cliCtx client.Context) (params *types.Params, err error) {
 
 func QueryRelay(cliCtx client.Context, xrefId []byte) (relay *types.XferRelay, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err := queryClient.QueryRelay(context.Background(), &types.QueryRelayRequest{XrefId: xrefId})
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err := queryClient.QueryRelay(ctx, &types.QueryRelayRequest{XrefId: xrefId})
 	if resp != nil {
 		relay = resp.GetXferRelay()
 	}
@@ -505,73 +515,97 @@ func QueryRelay(cliCtx client.Context, xrefId []byte) (relay *types.XferRelay, e
 
 func QueryChainTokensConfig(cliCtx client.Context, request *types.ChainTokensConfigRequest) (resp *types.ChainTokensConfigResponse, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err = queryClient.ChainTokensConfig(context.Background(), request)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err = queryClient.ChainTokensConfig(ctx, request)
 	return
 }
 
 func QueryFee(cliCtx client.Context, request *types.GetFeeRequest) (resp *types.GetFeeResponse, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err = queryClient.GetFee(context.Background(), request)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err = queryClient.GetFee(ctx, request)
 	return
 }
 
 func QueryFeePerc(cliCtx client.Context, request *types.GetFeePercentageRequest) (resp *types.GetFeePercentageResponse, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err = queryClient.GetFeePercentage(context.Background(), request)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err = queryClient.GetFeePercentage(ctx, request)
 	return
 }
 
 func QueryCheckChainTokenValid(cliCtx client.Context, request *types.CheckChainTokenValidRequest) (resp *types.CheckChainTokenValidResponse, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err = queryClient.QueryCheckChainTokenValid(context.Background(), request)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err = queryClient.QueryCheckChainTokenValid(ctx, request)
 	return
 }
 
 func QueryTransferStatus(cliCtx client.Context, request *types.QueryTransferStatusRequest) (resp *types.QueryTransferStatusResponse, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err = queryClient.QueryTransferStatus(context.Background(), request)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err = queryClient.QueryTransferStatus(ctx, request)
 	return
 }
 
 func QueryLiquidityDetailList(cliCtx client.Context, request *types.LiquidityDetailListRequest) (resp *types.LiquidityDetailListResponse, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err = queryClient.LiquidityDetailList(context.Background(), request)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err = queryClient.LiquidityDetailList(ctx, request)
 	return
 }
 
 func QueryTotalLiquidity(cliCtx client.Context, request *types.QueryTotalLiquidityRequest) (resp *types.QueryTotalLiquidityResponse, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err = queryClient.QueryTotalLiquidity(context.Background(), request)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err = queryClient.QueryTotalLiquidity(ctx, request)
 	return
 }
 
 func QueryAddLiquidityStatus(cliCtx client.Context, request *types.QueryAddLiquidityStatusRequest) (resp *types.QueryLiquidityStatusResponse, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err = queryClient.QueryAddLiquidityStatus(context.Background(), request)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err = queryClient.QueryAddLiquidityStatus(ctx, request)
 	return
 }
 
 func QueryWithdrawLiquidityStatus(cliCtx client.Context, request *types.QueryWithdrawLiquidityStatusRequest) (resp *types.QueryLiquidityStatusResponse, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err = queryClient.QueryWithdrawLiquidityStatus(context.Background(), request)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err = queryClient.QueryWithdrawLiquidityStatus(ctx, request)
 	return
 }
 
 func QueryLPOrigin(cliCtx client.Context, request *types.QueryLPOriginRequest) (resp *types.QueryLPOriginResponse, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err = queryClient.QueryLPOrigin(context.Background(), request)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err = queryClient.QueryLPOrigin(ctx, request)
 	return
 }
 
 func QueryLiquidity(cliCtx client.Context, request *types.QueryLiquidityRequest) (resp *types.QueryLiquidityResponse, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err = queryClient.QueryLiquidity(context.Background(), request)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err = queryClient.QueryLiquidity(ctx, request)
 	return
 }
 
 func QueryChainSigners(cliCtx client.Context, chainId uint64) (chainSigners *types.ChainSigners, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err := queryClient.QueryChainSigners(context.Background(), &types.QueryChainSignersRequest{ChainId: chainId})
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err := queryClient.QueryChainSigners(ctx, &types.QueryChainSignersRequest{ChainId: chainId})
 	if resp != nil {
 		chainSigners = resp.GetChainSigners()
 	}
@@ -580,7 +614,9 @@ func QueryChainSigners(cliCtx client.Context, chainId uint64) (chainSigners *typ
 
 func QueryLatestSigners(cliCtx client.Context) (latestSigners *types.LatestSigners, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err := queryClient.QueryLatestSigners(context.Background(), &types.EmptyRequest{})
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err := queryClient.QueryLatestSigners(ctx, &types.EmptyRequest{})
 	if resp != nil {
 		latestSigners = resp.GetLatestSigners()
 	}
@@ -589,7 +625,9 @@ func QueryLatestSigners(cliCtx client.Context) (latestSigners *types.LatestSigne
 
 func QueryAssets(cliCtx client.Context) (assets []*types.ChainAsset, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err := queryClient.QueryAssets(context.Background(), &types.EmptyRequest{})
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err := queryClient.QueryAssets(ctx, &types.EmptyRequest{})
 	if resp != nil {
 		assets = resp.GetAssets()
 	}
@@ -598,7 +636,9 @@ func QueryAssets(cliCtx client.Context) (assets []*types.ChainAsset, err error) 
 
 func QueryAssetPrice(cliCtx client.Context, symbol string) (price, extraPower10 uint32, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err := queryClient.QueryAssetPrice(context.Background(), &types.QueryAssetPriceRequest{Symbol: symbol})
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err := queryClient.QueryAssetPrice(ctx, &types.QueryAssetPriceRequest{Symbol: symbol})
 	price = resp.GetPrice()
 	extraPower10 = resp.GetExtraPower10()
 	return
@@ -607,10 +647,12 @@ func QueryAssetPrice(cliCtx client.Context, symbol string) (price, extraPower10 
 func GenerateClaimFeeWdList(cliCtx client.Context, delAddr string, minUsd uint32, denomPrefix string, isPegbr bool) ([]string, error) {
 	var feeInfo *distrtypes.ClaimableFeesInfo
 	var err error
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
 	if isPegbr {
-		feeInfo, err = distrcli.QueryPegBridgeFeesInfo(context.Background(), cliCtx, delAddr)
+		feeInfo, err = distrcli.QueryPegBridgeFeesInfo(ctx, cliCtx, delAddr)
 	} else {
-		feeInfo, err = distrcli.QueryCBridgeFeeShareInfo(context.Background(), cliCtx, delAddr)
+		feeInfo, err = distrcli.QueryCBridgeFeeShareInfo(ctx, cliCtx, delAddr)
 	}
 	if err != nil {
 		return []string{}, err
@@ -676,7 +718,9 @@ func GenerateClaimFeeWdList(cliCtx client.Context, delAddr string, minUsd uint32
 
 func QueryAssetsSymbols(cliCtx client.Context, chainTokens []*types.ChainTokenAddrPair) (symbols []string, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err := queryClient.QueryAssetsSymbols(context.Background(), &types.QueryAssetsSymbolsRequest{ChainTokens: chainTokens})
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err := queryClient.QueryAssetsSymbols(ctx, &types.QueryAssetsSymbolsRequest{ChainTokens: chainTokens})
 	if resp != nil {
 		symbols = resp.Symbols
 	}
@@ -685,7 +729,9 @@ func QueryAssetsSymbols(cliCtx client.Context, chainTokens []*types.ChainTokenAd
 
 func QueryAssetsInfos(cliCtx client.Context, symbols []string, chainIds []uint64) (assets []*types.ChainAsset, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	resp, err := queryClient.QueryAssetsInfos(context.Background(), &types.QueryAssetsInfosRequest{Symbols: symbols, ChainIds: chainIds})
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err := queryClient.QueryAssetsInfos(ctx, &types.QueryAssetsInfosRequest{Symbols: symbols, ChainIds: chainIds})
 	if resp != nil {
 		assets = resp.Assets
 	}

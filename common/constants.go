@@ -1,6 +1,8 @@
 package common
 
 import (
+	"time"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -29,6 +31,7 @@ const (
 
 	CelrDenom     = "CELR"
 	CelrPrecision = 1e18
+	GrpcTimeOut   = 10 * time.Second
 )
 
 var (

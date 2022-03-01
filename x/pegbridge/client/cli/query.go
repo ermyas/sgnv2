@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/celer-network/sgn-v2/x/pegbridge/types"
@@ -242,7 +243,9 @@ func GetCmdQueryFeeInfo() *cobra.Command {
 
 func QueryParams(cliCtx client.Context) (params *types.Params, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	res, err := queryClient.Params(context.Background(), &types.QueryParamsRequest{})
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	res, err := queryClient.Params(ctx, &types.QueryParamsRequest{})
 	if err != nil {
 		return
 	}
@@ -252,13 +255,17 @@ func QueryParams(cliCtx client.Context) (params *types.Params, err error) {
 
 func QueryConfig(cliCtx client.Context) (config *types.PegConfig, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	config, err = queryClient.Config(context.Background(), &types.QueryConfigRequest{})
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	config, err = queryClient.Config(ctx, &types.QueryConfigRequest{})
 	return
 }
 
 func QueryDepositInfo(cliCtx client.Context, depositId string) (deposit types.DepositInfo, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	res, err := queryClient.DepositInfo(context.Background(), &types.QueryDepositInfoRequest{
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	res, err := queryClient.DepositInfo(ctx, &types.QueryDepositInfoRequest{
 		DepositId: depositId,
 	})
 	if err != nil {
@@ -270,7 +277,9 @@ func QueryDepositInfo(cliCtx client.Context, depositId string) (deposit types.De
 
 func QueryWithdrawInfo(cliCtx client.Context, wdId string) (withdraw types.WithdrawInfo, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	res, err := queryClient.WithdrawInfo(context.Background(), &types.QueryWithdrawInfoRequest{
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	res, err := queryClient.WithdrawInfo(ctx, &types.QueryWithdrawInfoRequest{
 		WithdrawId: wdId,
 	})
 	if err != nil {
@@ -282,7 +291,9 @@ func QueryWithdrawInfo(cliCtx client.Context, wdId string) (withdraw types.Withd
 
 func QueryMintInfo(cliCtx client.Context, mintId string) (mint types.MintInfo, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	res, err := queryClient.MintInfo(context.Background(), &types.QueryMintInfoRequest{
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	res, err := queryClient.MintInfo(ctx, &types.QueryMintInfoRequest{
 		MintId: mintId,
 	})
 	if err != nil {
@@ -294,7 +305,9 @@ func QueryMintInfo(cliCtx client.Context, mintId string) (mint types.MintInfo, e
 
 func QueryBurnInfo(cliCtx client.Context, burnId string) (burn types.BurnInfo, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	res, err := queryClient.BurnInfo(context.Background(), &types.QueryBurnInfoRequest{
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	res, err := queryClient.BurnInfo(ctx, &types.QueryBurnInfoRequest{
 		BurnId: burnId,
 	})
 	if err != nil {
@@ -306,7 +319,9 @@ func QueryBurnInfo(cliCtx client.Context, burnId string) (burn types.BurnInfo, e
 
 func QueryFeeClaimInfo(cliCtx client.Context, delAddr eth.Addr, nonce uint64) (feeClaim types.FeeClaimInfo, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	res, err := queryClient.FeeClaimInfo(context.Background(), &types.QueryFeeClaimInfoRequest{
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	res, err := queryClient.FeeClaimInfo(ctx, &types.QueryFeeClaimInfoRequest{
 		Address: eth.Addr2Hex(delAddr),
 		Nonce:   nonce,
 	})
@@ -319,7 +334,9 @@ func QueryFeeClaimInfo(cliCtx client.Context, delAddr eth.Addr, nonce uint64) (f
 
 func QueryOrigPeggedPairs(cliCtx client.Context, params *types.QueryOrigPeggedPairsRequest) (resp []types.OrigPeggedPair, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	res, err := queryClient.OrigPeggedPairs(context.Background(), params)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	res, err := queryClient.OrigPeggedPairs(ctx, params)
 	if err != nil {
 		return
 	}
@@ -330,7 +347,9 @@ func QueryOrigPeggedPairs(cliCtx client.Context, params *types.QueryOrigPeggedPa
 
 func QueryEstimatedAmountFees(cliCtx client.Context, params *types.QueryEstimatedAmountFeesRequest) (resp *types.QueryEstimatedAmountFeesResponse, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	res, err := queryClient.EstimatedAmountFees(context.Background(), params)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	res, err := queryClient.EstimatedAmountFees(ctx, params)
 	if err != nil {
 		return
 	}
@@ -340,7 +359,9 @@ func QueryEstimatedAmountFees(cliCtx client.Context, params *types.QueryEstimate
 
 func QuerySupplyInfo(cliCtx client.Context, peggedChainId uint64, peggedAddress eth.Addr) (cap, total string, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	res, err := queryClient.SupplyInfo(context.Background(), &types.QuerySupplyInfoRequest{
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	res, err := queryClient.SupplyInfo(ctx, &types.QuerySupplyInfoRequest{
 		PeggedChainId: peggedChainId,
 		PeggedAddress: eth.Addr2Hex(peggedAddress),
 	})
@@ -354,7 +375,9 @@ func QuerySupplyInfo(cliCtx client.Context, peggedChainId uint64, peggedAddress 
 
 func QueryRefundClaimInfo(cliCtx client.Context, depositId string) (withdrawId string, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
-	res, err := queryClient.RefundClaimInfo(context.Background(), &types.QueryRefundClaimInfoRequest{
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	res, err := queryClient.RefundClaimInfo(ctx, &types.QueryRefundClaimInfoRequest{
 		DepositId: depositId,
 	})
 	if err != nil {
