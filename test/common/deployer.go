@@ -29,14 +29,14 @@ func (c *CbrChain) DeployMessageContracts() {
 }
 
 func (c *CbrChain) DeployPegVaultContracts() {
-	log.Infof("Deploying peg vault and ")
+	log.Infof("Deploying peg vault and test token")
 	c.PegVaultAddr, c.PegVaultContract = DeployPegVaultContract(c.Ec, c.Auth, c.CbrAddr)
 	c.PegVaultV2Addr, c.PegVaultV2Contract = DeployPegVaultV2Contract(c.Ec, c.Auth, c.CbrAddr)
 	c.UNIAddr, c.UNIContract = DeployBridgeTestTokenContract(c.Ec, c.Auth, "UNI", "UNI", 18)
 }
 
 func (c *CbrChain) DeployPegBridgeContracts() {
-	log.Infof("Deploying peg vault and ")
+	log.Infof("Deploying peg bridge and test token")
 	c.PegBridgeAddr, c.PegBridgeContract = DeployPegBridgeContract(c.Ec, c.Auth, c.CbrAddr)
 	c.PegBridgeV2Addr, c.PegBridgeV2Contract = DeployPegBridgeV2Contract(c.Ec, c.Auth, c.CbrAddr)
 	c.UNIAddr, c.UNIContract = DeployBridgeTestTokenContract(c.Ec, c.Auth, "UNI", "UNI", 18)

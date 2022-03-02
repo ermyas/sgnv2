@@ -56,7 +56,7 @@ Staking and validator election process happens on the Ethereum [staking contract
 
 [Spec reference of x/bridge consensus module](../x/cbridge/spec/README.md).
 
-High-level flows and notes: 
+High-level flows and notes:
 - Liquidity providers add and withdraw assets to and from the liquidity pool through [addLiquidity](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/Pool.sol#L57) and [withdraw](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/Pool.sol#L86) contract calls.
 - User calls source chain [send](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/Bridge.sol#L56) which transfer his own asset into source chain cBridge contract, SGN will monitor and processes the event and one SGN node will call [relay](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/Bridge.sol#L122) on dest chain to send asset (after deducting fee) from the liquidity pool to receiver address.
 - The only way assets can be removed from cBridge contract is by sending a message with enough SGN nodes’ signatures. This includes both [relay](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/Bridge.sol#L122) and [withdraw](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/Pool.sol#L86).
@@ -67,7 +67,7 @@ High-level flows and notes:
 
 2. SGN catches the [Send](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/Bridge.sol#L14) event, sync the event to x/cbridge consensus module through the [event syncing](./relayer.md#sync-other-chain-events-to-sgn) flow.
 
-3. The x/cbridge module [applies the Send event](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/cbridge/keeper/apply.go#L60). 
+3. The x/cbridge module [applies the Send event](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/cbridge/keeper/apply.go#L60).
     - If the request fail due to unsupported token, unreachable slippage etc, a withdraw message will be saved for refund later.
     - If the request can go through, the following logics will be applied before a `relay message` is generated to let all validators sign.
         - Calculation of user receiving amount, including the computation of [liquidity curve](../x/cbridge/spec/01_concepts.md#price-curve), base fee according to gas usage ad price, and percentage fee according to config.
@@ -82,7 +82,7 @@ High-level flows and notes:
 
 ### Liquidity provider (LP) add assets
 
-1. Liquidity provider calls the [addLiquidty](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/Pool.sol#L57) function to put his own assets on a chain into the system.
+1. Liquidity provider calls the [addLiquidity](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/Pool.sol#L57) function to put his own assets on a chain into the system.
 
 2. SGN catches the [LiquidityAdded](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/Pool.sol#L34) event, sync the event to x/cbridge consensus module through the [event syncing](./relayer.md#sync-other-chain-events-to-sgn) flow.
 
@@ -92,7 +92,7 @@ These liquidities will be moved around different chains (and earn fees/rewards) 
 
 ### User refund or LP withdrawal
 
-The withdrawal flow is same for user tranfer refund or LP liquidity withdrawal.
+The withdrawal flow is same for user transfer refund or LP liquidity withdrawal.
 
 1. User or LP requests refund or withdrawal by sending a [withdraw request](https://github.com/celer-network/sgn-v2/blob/3b35212c68/proto/sgn/cbridge/v1/tx.proto#L68-L83) to a validator (via gateway). If x/cbridge verifies that the request is valid, it will create a withdraw message for validators to sign.
     - Note that each withdrawal request has a unique [request id](https://github.com/celer-network/sgn-v2/blob/3b35212c68/proto/sgn/cbridge/v1/tx.proto#L75), which is to make sure that each withdraw can only happen once on both SGN and the onchain smart contract.
@@ -105,9 +105,9 @@ The withdrawal flow is same for user tranfer refund or LP liquidity withdrawal.
 
 [Spec reference of x/pegbridge consensus module](../x/pegbridge/spec/README.md).
 
-Goal: Token T exists on chain A but not on chain B, and we would like to support a 1:1 pegged token T' on chain B. 
+Goal: Token T exists on chain A but not on chain B, and we would like to support a 1:1 pegged token T' on chain B.
 
-Approach: Deploy a PeggedToken ([example](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/tokens/MultiBridgeToken.sol)) on chain B with zero initial supply, and config SGN (through gov) to mark it as 1:1 pegged to the chain A’s original token. Anyone can lock original token T on chain A’s [OriginigalTokenVault contract](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/OriginalTokenVaultV2.sol) to trigger mint of pegged token T’ on chain B through the [PeggedTokenBridge contract](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/PeggedTokenBridgeV2.sol) accordingly.
+Approach: Deploy a PeggedToken ([example](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/tokens/MultiBridgeToken.sol)) on chain B with zero initial supply, and config SGN (through gov) to mark it as 1:1 pegged to the chain A’s original token. Anyone can lock original token T on chain A’s [OriginalTokenVault contract](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/OriginalTokenVaultV2.sol) to trigger mint of pegged token T’ on chain B through the [PeggedTokenBridge contract](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/PeggedTokenBridgeV2.sol) accordingly.
 
 ### Deposit original token on chain A and mint pegged token on chain B
 1. User calls [deposit](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/OriginalTokenVaultV2.sol#L65) on chain A to lock original tokens in chain A’s vault contract.
