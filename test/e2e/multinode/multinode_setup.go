@@ -176,6 +176,7 @@ func deployContractsAndPrepareSgnData(contractParams *tc.ContractParams, cbridge
 		if !report {
 			configFileViper.Set(common.FlagSgnCheckIntervalCbrPrice, 0)
 			configFileViper.Set(common.FlagSgnLivenessReportEndpoint, "")
+			configFileViper.Set(common.FlagSgnConsensusLogReportEndpoint, "")
 		}
 
 		err = configFileViper.WriteConfig()

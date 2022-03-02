@@ -48,7 +48,7 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 
 	if viper.GetBool(common.FlagSgnWitnessMode) {
 		log.Infoln("Entering witness mode")
-		// TODO: report LpEarning and BaseFee distribution in witness mode
+		startConsensusLogReport()
 		return
 	}
 
@@ -119,7 +119,7 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 	go r.monitorSgnPegWithdrawToSign()
 	go r.monitorSgnMsgDataToSign()
 
-	r.startReportSgnAnalytics()
+	r.startValidatorNodeAnalyticsReport()
 
 	go r.processPullerQueue()
 	go r.processSlashQueue()

@@ -2,6 +2,7 @@ package relayer
 
 import (
 	"fmt"
+	"gopkg.in/resty.v1"
 	"math/big"
 	"strconv"
 	"sync"
@@ -15,7 +16,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/lthibault/jitterbug"
 	"github.com/spf13/viper"
-	"gopkg.in/resty.v1"
 )
 
 var lpFeeEarningHistoryMap = make(map[uint64]*LPFeeEarningHistory)
@@ -24,35 +24,86 @@ var lpFeeEarningHistoryLock sync.RWMutex
 var baseFeeDistributionHistoryMap = make(map[uint64]*BaseFeeDistributionHistory)
 var baseFeeDistributionHistoryLock sync.RWMutex
 
-func (r *Relayer) startReportSgnAnalytics() {
+func (r *Relayer) startValidatorNodeAnalyticsReport() {
 	endpoint := viper.GetString(common.FlagSgnLivenessReportEndpoint)
 	if endpoint == "" {
-		log.Info("report current block number disabled")
+		log.Info("sgn validator node analytics report disabled")
 		return
 	}
 	go func() {
-		// let gateway start upfront
 		time.Sleep(15 * time.Second)
-		log.Infoln("start Report Current Block Number,", viper.GetString(common.FlagSgnLivenessReportEndpoint))
+		log.Infoln("start sgn validator node analytics report,", viper.GetString(common.FlagSgnLivenessReportEndpoint))
 		ticker := jitterbug.New(
 			time.Minute*5,
 			&jitterbug.Norm{Stdev: 3 * time.Second},
 		)
 		defer ticker.Stop()
 		for ; true; <-ticker.C {
-			r.reportSgnAnalytics()
+			r.reportValidatorNodeAnalytics()
 		}
 	}()
 }
 
-func (r *Relayer) reportSgnAnalytics() {
-	var report = &SgnAnalyticsReport{
-		Timestamp:                    common.TsMilli(time.Now()),
-		BlockNums:                    make(map[string]uint64),
-		SgndVersion:                  version.Version,
+func startConsensusLogReport() {
+	endpoint := viper.GetString(common.FlagSgnConsensusLogReportEndpoint)
+	if endpoint == "" {
+		log.Info("sgn consensus log report disabled")
+		return
+	}
+	go func() {
+		time.Sleep(30 * time.Second)
+		log.Infoln("start sgn consensus log report,", viper.GetString(common.FlagSgnConsensusLogReportEndpoint))
+		ticker := jitterbug.New(
+			time.Minute*5,
+			&jitterbug.Norm{Stdev: 3 * time.Second},
+		)
+		defer ticker.Stop()
+		for ; true; <-ticker.C {
+			reportConsensusLog()
+		}
+	}()
+}
+
+func reportConsensusLog() {
+	report := &SgnConsensusLogReport{
 		LpFeeEarningHistories:        getAndClearLpEarningFeeHistory(),
 		BaseFeeDistributionHistories: getAndClearBaseFeeDistributionHistory(),
-		ChainConfigs:                 r.getChainConfig(),
+	}
+	log.Debugln("try to report:", report)
+	url := viper.GetString(common.FlagSgnConsensusLogReportEndpoint)
+	if len(url) == 0 {
+		return
+	}
+	marshaler := jsonpb.Marshaler{}
+	str, err := marshaler.MarshalToString(report)
+	if err != nil {
+		log.Warnln("failed to MarshalToString: err ", err)
+		return
+	}
+	response, err := resty.New().R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(str).
+		SetResult(&ReportSgnAnalyticsResponse{}).
+		Post(url)
+	if err != nil || response.StatusCode() != 200 {
+		chainConfigReported = false
+		log.Warnln("fail to reportConsensusLog ", report, err, response)
+		return
+	}
+	resp := response.Result().(*ReportSgnAnalyticsResponse)
+	if resp.GetErr() != nil {
+		chainConfigReported = false
+		log.Warnln("fail to reportConsensusLog ", report, err, response)
+		return
+	}
+}
+
+func (r *Relayer) reportValidatorNodeAnalytics() {
+	var report = &SgnAnalyticsReport{
+		Timestamp:    common.TsMilli(time.Now()),
+		BlockNums:    make(map[string]uint64),
+		SgndVersion:  version.Version,
+		ChainConfigs: r.getChainConfig(),
 	}
 	for chainId, oneChain := range r.cbrMgr {
 		blockNumber := oneChain.mon.GetCurrentBlockNumber()
@@ -75,7 +126,6 @@ func (r *Relayer) reportSgnAnalytics() {
 		Report: bytes,
 		Sig:    sig,
 	}
-	client := resty.New()
 	marshaler := jsonpb.Marshaler{}
 	str, err := marshaler.MarshalToString(req)
 	if err != nil {
@@ -87,26 +137,26 @@ func (r *Relayer) reportSgnAnalytics() {
 	if len(url) == 0 {
 		return
 	}
-	response, err := client.R().
+	response, err := resty.New().R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(str).
 		SetResult(&ReportSgnAnalyticsResponse{}).
 		Post(url)
 	if err != nil || response.StatusCode() != 200 {
 		chainConfigReported = false
-		log.Warnln("fail to reportSgnAnalytics ", req, err, response)
+		log.Warnln("fail to reportValidatorNodeAnalytics ", req, err, response)
 		return
 	}
 	resp := response.Result().(*ReportSgnAnalyticsResponse)
 	if resp.GetErr() != nil {
 		chainConfigReported = false
-		log.Warnln("fail to reportSgnAnalytics ", req, err, response)
+		log.Warnln("fail to reportValidatorNodeAnalytics ", req, err, response)
 		return
 	}
 }
 
 func AppendLpPickHistoryLog(lpAddr, tokenAddr eth.Addr, lpAmt *big.Int, dstChainId uint64, used, earnedFee *big.Int, start time.Time) {
-	if viper.GetBool(common.FlagSgnReportLpFeeEarningFlag) {
+	if len(viper.GetString(common.FlagSgnConsensusLogReportEndpoint)) > 0 {
 		lpFeeEarningHistoryLock.Lock()
 		defer lpFeeEarningHistoryLock.Unlock()
 		t := uint64(start.UnixNano())
@@ -133,7 +183,7 @@ func AppendLpPickHistoryLog(lpAddr, tokenAddr eth.Addr, lpAmt *big.Int, dstChain
 }
 
 func ReportBaseFeeDistribution(bridgeType BridgeType, syncerAddr eth.Addr, start time.Time, baseFee *big.Int, tokenSymbol string, tokenDecimal uint32, srcChainId, dstChainId uint64) {
-	if viper.GetBool(common.FlagSgnReportLpFeeEarningFlag) {
+	if len(viper.GetString(common.FlagSgnConsensusLogReportEndpoint)) > 0 {
 		baseFeeDistributionHistoryLock.Lock()
 		defer baseFeeDistributionHistoryLock.Unlock()
 		t := uint64(start.UnixNano())
@@ -150,8 +200,8 @@ func ReportBaseFeeDistribution(bridgeType BridgeType, syncerAddr eth.Addr, start
 }
 
 func getAndClearLpEarningFeeHistory() map[uint64]*LPFeeEarningHistory {
-	// only node 0 report
-	if !viper.GetBool(common.FlagSgnReportLpFeeEarningFlag) {
+	// only witness node report
+	if len(viper.GetString(common.FlagSgnConsensusLogReportEndpoint)) == 0 {
 		return make(map[uint64]*LPFeeEarningHistory)
 	}
 	lpFeeEarningHistoryLock.Lock()
@@ -165,8 +215,8 @@ func getAndClearLpEarningFeeHistory() map[uint64]*LPFeeEarningHistory {
 }
 
 func getAndClearBaseFeeDistributionHistory() map[uint64]*BaseFeeDistributionHistory {
-	// only node 0 report
-	if !viper.GetBool(common.FlagSgnReportLpFeeEarningFlag) {
+	// only witness node report
+	if len(viper.GetString(common.FlagSgnConsensusLogReportEndpoint)) == 0 {
 		return make(map[uint64]*BaseFeeDistributionHistory)
 	}
 	baseFeeDistributionHistoryLock.Lock()

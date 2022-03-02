@@ -15,12 +15,20 @@ message SgnAnalyticsReport {
   // key is chainId, value is current block number
   map<string, uint64> block_nums = 2;
   string sgnd_version = 3;
-  // key is nanoseconds timestamp, so histories are group by transfer (lp picks belong to one transfer are the same time)
+  // deprecated
   map<uint64, LPFeeEarningHistory> lp_fee_earning_histories = 4;
-  // key is nanoseconds timestamp, so histories are group by transfer
+  // deprecated
   map<uint64, BaseFeeDistributionHistory> base_fee_distribution_histories = 5;
   // key is chainId. only report once when after node start
   map<string, ChainConfig> chain_configs = 6;
+}
+
+// move lp_fee_earning_histories and base_fee_distribution_histories to here
+message SgnConsensusLogReport {
+  // key is nanoseconds timestamp, so histories are group by transfer (lp picks belong to one transfer are the same time)
+  map<uint64, LPFeeEarningHistory> lp_fee_earning_histories = 1;
+  // key is nanoseconds timestamp, so histories are group by transfer
+  map<uint64, BaseFeeDistributionHistory> base_fee_distribution_histories = 2;
 }
 
 message ChainConfig {
