@@ -6,11 +6,11 @@ require (
 	github.com/allegro/bigcache v1.2.1
 	github.com/armon/go-metrics v0.3.10
 	github.com/celer-network/endpoint-proxy v0.1.5
-	github.com/celer-network/goutils v0.1.42
+	github.com/celer-network/goutils v0.1.43
 	github.com/cosmos/cosmos-sdk v0.44.5
 	github.com/cosmos/go-bip39 v1.0.0
-	github.com/deckarep/golang-set v1.7.1
-	github.com/ethereum/go-ethereum v1.10.13
+	github.com/deckarep/golang-set v1.8.0
+	github.com/ethereum/go-ethereum v1.10.16
 	github.com/gammazero/deque v0.1.0
 	github.com/gogo/protobuf v1.3.3
 	github.com/golang/protobuf v1.5.2

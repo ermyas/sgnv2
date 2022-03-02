@@ -1,13 +1,11 @@
 package multinode
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
-	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
@@ -49,6 +47,7 @@ func messageTest(t *testing.T) {
 	log.Infoln("******************************************************************")
 	log.Infoln("======================== Test message ============================")
 	setupMessage()
+	prepareValidators(t)
 
 	transactor := tc.NewTestTransactor(
 		tc.SgnHomes[0],
@@ -58,7 +57,6 @@ func messageTest(t *testing.T) {
 		tc.SgnPassphrase,
 	)
 
-	prepareValidators(t)
 	prepareCbrLiquidity(transactor)
 
 	log.Infoln("======================= Message Only Test =====================")
@@ -252,11 +250,8 @@ func refundTransferTest(t *testing.T, transactor *transactor.Transactor) {
 	amount := big.NewInt(300000 * 1e6)
 	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.USDTContract, 0, amount, tc.CbrChain1.TestRefundAddr)
 	tc.ChkErr(err, "approve USDT")
-	u.Auth.Value = tc.MsgFeeBase
-	tx, err := tc.CbrChain1.TestRefundContract.SendWithTransfer(u.Auth, u.Address, token, amount, tc.CbrChain2.ChainId, 1, 1, uint8(1))
+	err = tc.CbrChain1.SendWithTransfer(0, u.Address, token, amount, tc.CbrChain2.ChainId, 1, 1, uint8(1))
 	tc.ChkErr(err, "SendWithTransfer")
-	_, err = ethutils.WaitMined(context.Background(), tc.CbrChain1.Ec, tx, ethutils.WithPollingInterval(time.Second))
-	tc.ChkErr(err, "SendWithTransfer WaitMined")
 	balAfter := new(big.Int)
 	for i := 0; i < 10; i++ {
 		time.Sleep(10 * time.Second)
@@ -272,18 +267,16 @@ func refundTransferTest(t *testing.T, transactor *transactor.Transactor) {
 
 func refundPegDepositTest(t *testing.T, transactor *transactor.Transactor) {
 	log.Infoln("-------------------- Refund Peg Deposit Test ---------------------")
-	u := tc.CbrChain1.Users[0]
+	u := tc.CbrChain1.Users[1]
 	balBefore, err := tc.CbrChain1.USDTContract.BalanceOf(&bind.CallOpts{}, u.Address)
 	tc.ChkErr(err, "bal before")
 	log.Infof("bal before, %s", balBefore.String())
 	token := tc.CbrChain1.USDTAddr
 	amount := big.NewInt(10)
-	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.USDTContract, 0, amount, tc.CbrChain1.TestRefundAddr)
+	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.USDTContract, 1, amount, tc.CbrChain1.TestRefundAddr)
 	tc.ChkErr(err, "approve USDT")
-	tx, err := tc.CbrChain1.TestRefundContract.SendWithTransfer(u.Auth, u.Address, token, amount, tc.CbrChain2.ChainId, 1, 1, uint8(2))
-	tc.ChkErr(err, "SendWithTransfer")
-	_, err = ethutils.WaitMined(context.Background(), tc.CbrChain1.Ec, tx, ethutils.WithPollingInterval(time.Second))
-	tc.ChkErr(err, "SendWithTransfer WaitMined")
+	err = tc.CbrChain1.SendWithTransfer(1, u.Address, token, amount, tc.CbrChain2.ChainId, 1, 1, uint8(2))
+	tc.ChkErr(err, "SendWithTransfer, peg deposit")
 	balAfter := new(big.Int)
 	for i := 0; i < 10; i++ {
 		time.Sleep(10 * time.Second)
@@ -299,18 +292,16 @@ func refundPegDepositTest(t *testing.T, transactor *transactor.Transactor) {
 
 func refundPegBurnTest(t *testing.T, transactor *transactor.Transactor) {
 	log.Infoln("-------------------- Refund Peg Burn Test ---------------------")
-	u := tc.CbrChain1.Users[0]
+	u := tc.CbrChain1.Users[2]
 	balBefore, err := tc.CbrChain1.USDTContract.BalanceOf(&bind.CallOpts{}, u.Address)
 	tc.ChkErr(err, "bal before")
 	log.Infof("bal before, %s", balBefore.String())
 	token := tc.CbrChain1.USDTAddr
 	amount := big.NewInt(10)
-	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.USDTContract, 0, amount, tc.CbrChain1.TestRefundAddr)
+	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.USDTContract, 2, amount, tc.CbrChain1.TestRefundAddr)
 	tc.ChkErr(err, "approve USDT")
-	tx, err := tc.CbrChain1.TestRefundContract.SendWithTransfer(u.Auth, u.Address, token, amount, tc.CbrChain2.ChainId, 1, 1, uint8(2))
-	tc.ChkErr(err, "SendWithTransfer")
-	_, err = ethutils.WaitMined(context.Background(), tc.CbrChain1.Ec, tx, ethutils.WithPollingInterval(time.Second))
-	tc.ChkErr(err, "SendWithTransfer WaitMined")
+	err = tc.CbrChain1.SendWithTransfer(2, u.Address, token, amount, tc.CbrChain2.ChainId, 1, 1, uint8(3))
+	tc.ChkErr(err, "SendWithTransfer, peg burn")
 	balAfter := new(big.Int)
 	for i := 0; i < 10; i++ {
 		time.Sleep(10 * time.Second)

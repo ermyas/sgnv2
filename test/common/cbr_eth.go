@@ -2,7 +2,6 @@ package common
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -511,23 +510,18 @@ func (c *CbrChain) CheckPeggedUNIBalance(uid uint64, expectedAmt *big.Int) {
 }
 
 func (c *CbrChain) TransferMsg(uid uint64, receiver eth.Addr, dstChainId uint64, message []byte) error {
-	auth := c.Users[uid].Auth
-	auth.Value = MsgFeeBase
-	tx, err := c.TransferMessageContract.TransferMessage(
-		auth,
-		receiver,
-		dstChainId,
-		message,
+	receipt, err := c.Users[uid].Transactor.TransactWaitMined(
+		"TransferMessage",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.TransferMessageContract.TransferMessage(opts, receiver, dstChainId, message)
+		},
+		ethutils.WithEthValue(MsgFeeBase),
 	)
 	if err != nil {
-		return err
-	}
-	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
-	if err != nil {
-		return err
+		return fmt.Errorf("TransferMessage err: %w", err)
 	}
 	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
-		return errors.New("transferMessage tx failed")
+		return fmt.Errorf("transferMessage tx failed")
 	}
 	// last log is MessageWithTransfer event (NOTE: test only)
 	msgLog := receipt.Logs[len(receipt.Logs)-1]
@@ -542,30 +536,28 @@ func (c *CbrChain) TransferMsg(uid uint64, receiver eth.Addr, dstChainId uint64,
 func (c *CbrChain) BatchTransfer(
 	uid uint64, receiver eth.Addr, token eth.Addr, amount *big.Int, dstChainId uint64, maxSlippage uint32,
 	bridgeType uint8, accounts []eth.Addr, amounts []*big.Int) (xferId eth.Hash, err error) {
-
-	auth := c.Users[uid].Auth
-	auth.Value = MsgFeeBase
-	tx, err := c.BatchTransferContract.BatchTransfer(
-		auth,
-		receiver,
-		token,
-		amount,
-		dstChainId,
-		maxSlippage,
-		bridgeType,
-		accounts,
-		amounts,
+	receipt, err := c.Users[uid].Transactor.TransactWaitMined(
+		"BatchTransfer",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.BatchTransferContract.BatchTransfer(
+				opts,
+				receiver,
+				token,
+				amount,
+				dstChainId,
+				maxSlippage,
+				bridgeType,
+				accounts,
+				amounts,
+			)
+		},
+		ethutils.WithEthValue(MsgFeeBase),
 	)
-	auth.Value = big.NewInt(0)
 	if err != nil {
-		return eth.ZeroHash, err
-	}
-	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
-	if err != nil {
-		return eth.ZeroHash, err
+		return eth.ZeroHash, fmt.Errorf("BatchTransfer err: %w", err)
 	}
 	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
-		return eth.ZeroHash, errors.New("batchTransfer tx failed")
+		return eth.ZeroHash, fmt.Errorf("batchTransfer tx failed")
 	}
 	// last log is MessageWithTransfer event (NOTE: test only)
 	msgLog := receipt.Logs[len(receipt.Logs)-1]
@@ -573,50 +565,38 @@ func (c *CbrChain) BatchTransfer(
 	if err != nil {
 		return eth.ZeroHash, fmt.Errorf("parse log %+v err: %w", msgEv, err)
 	}
-	log.Infof("SendMessageWithTransfer tx success, srcTransferId: %x", msgEv.SrcTransferId)
+	log.Infof("BatchTransfer tx success, srcTransferId: %x", msgEv.SrcTransferId)
 	return msgEv.SrcTransferId, nil
 }
 
-func (c *CbrChain) BatchTransferForDeposit(
-	uid uint64, receiver eth.Addr, token eth.Addr, amount *big.Int, dstChainId uint64, maxSlippage uint32,
-	bridgeType uint8, accounts []eth.Addr, amounts []*big.Int) (xferId eth.Hash, err error) {
-
-	tx, err := c.BatchTransferContract.BatchTransfer(
-		c.Users[uid].Auth,
-		receiver,
-		token,
-		amount,
-		dstChainId,
-		maxSlippage,
-		bridgeType,
-		accounts,
-		amounts,
+func (c *CbrChain) SendWithTransfer(
+	uid uint64, receiver eth.Addr, token eth.Addr, amount *big.Int,
+	dstChainId, _nonce uint64, maxSlippage uint32, bridgeType uint8) error {
+	receipt, err := c.Users[uid].Transactor.TransactWaitMined(
+		"SendWithTransfer",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.TestRefundContract.SendWithTransfer(
+				opts,
+				receiver,
+				token,
+				amount,
+				dstChainId,
+				_nonce,
+				maxSlippage,
+				bridgeType,
+			)
+		},
+		ethutils.WithEthValue(MsgFeeBase),
 	)
 	if err != nil {
-		return eth.ZeroHash, err
-	}
-	receipt, err := ethutils.WaitMined(context.Background(), c.Ec, tx, ethutils.WithPollingInterval(time.Second))
-	if err != nil {
-		return eth.ZeroHash, err
+		return fmt.Errorf("SendWithTransfer err: %w", err)
 	}
 	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
-		return eth.ZeroHash, errors.New("batchTransfer tx failed")
+		return fmt.Errorf("SendWithTransfer tx failed")
 	}
-	// last log is MessageWithTransfer event (NOTE: test only)
-	msgLog := receipt.Logs[len(receipt.Logs)-1]
-	msgEv, err := c.MessageBusContract.ParseMessageWithTransfer(*msgLog)
-	if err != nil {
-		return eth.ZeroHash, fmt.Errorf("parse log %+v err: %w", msgEv, err)
-	}
-	log.Infof("SendMessageWithTransfer tx success, srcTransferId: %x", msgEv.SrcTransferId)
-	return msgEv.SrcTransferId, nil
+	return nil
 }
 
 func (c *CbrChain) ApproveUSDTForBatchTransfer(uid uint64, amt *big.Int) error {
 	return c.ApproveBridgeTestToken(c.USDTContract, uid, amt, c.BatchTransferAddr)
-}
-
-func (c *CbrChain) SendMessageWithTransfer(fromUid uint64, amt *big.Int, mintChainId uint64, nonce uint64) error {
-
-	return nil
 }
