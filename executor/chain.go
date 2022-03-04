@@ -177,8 +177,12 @@ func newTransactor(config *common.OneChainConfig, ec *ethclient.Client) *ethutil
 		ethutils.WithBlockDelay(config.BlkDelay),
 		ethutils.WithPollingInterval(time.Duration(config.BlkInterval)*time.Second),
 		ethutils.WithAddGasEstimateRatio(config.AddGasEstimateRatio),
+		ethutils.WithGasLimit(config.GasLimit),
 		ethutils.WithAddGasGwei(config.AddGasGwei),
+		ethutils.WithMaxGasGwei(config.MaxGasGwei),
+		ethutils.WithMinGasGwei(config.MinGasGwei),
 		ethutils.WithMaxFeePerGasGwei(config.MaxFeePerGasGwei),
+		ethutils.WithMaxPriorityFeePerGasGwei(config.MaxPriorityFeePerGasGwei),
 	)
 }
 

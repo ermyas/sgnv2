@@ -152,9 +152,13 @@ func newOneChain(chainId uint64) (*CbrOneChain, error) {
 				big.NewInt(int64(cfg.ChainID)),
 				ethutils.WithBlockDelay(cfg.BlkDelay),
 				ethutils.WithPollingInterval(time.Duration(cfg.BlkInterval)*time.Second),
+				ethutils.WithGasLimit(cfg.GasLimit),
 				ethutils.WithAddGasEstimateRatio(cfg.AddGasEstimateRatio),
 				ethutils.WithAddGasGwei(cfg.AddGasGwei),
+				ethutils.WithMaxGasGwei(cfg.MaxGasGwei),
+				ethutils.WithMinGasGwei(cfg.MinGasGwei),
 				ethutils.WithMaxFeePerGasGwei(cfg.MaxFeePerGasGwei),
+				ethutils.WithMaxPriorityFeePerGasGwei(cfg.MaxPriorityFeePerGasGwei),
 			)
 			if err != nil {
 				log.Fatalln("NewTransactor err:", err)

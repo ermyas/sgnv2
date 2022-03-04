@@ -133,8 +133,12 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 		ethutils.WithBlockDelay(cfg.BlkDelay),
 		ethutils.WithPollingInterval(time.Duration(cfg.BlkInterval)*time.Second*4),
 		ethutils.WithAddGasEstimateRatio(cfg.AddGasEstimateRatio),
+		ethutils.WithGasLimit(cfg.GasLimit),
 		ethutils.WithAddGasGwei(cfg.AddGasGwei),
+		ethutils.WithMaxGasGwei(cfg.MaxGasGwei),
+		ethutils.WithMinGasGwei(cfg.MinGasGwei),
 		ethutils.WithMaxFeePerGasGwei(cfg.MaxFeePerGasGwei),
+		ethutils.WithMaxPriorityFeePerGasGwei(cfg.MaxPriorityFeePerGasGwei),
 	)
 
 	checkIntervals := make(map[string]uint64)
