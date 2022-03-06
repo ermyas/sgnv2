@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -163,7 +164,12 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 	}
 	chainSigners, err := cbrcli.QueryChainSigners(cliCtx, cfg.ChainID)
 	if err != nil {
-		log.Warnf("failed to get chain %d signers: %s", cfg.ChainID, err)
+		errmsg := fmt.Sprintf("failed to get chain %d signers: %s", cfg.ChainID, err)
+		if strings.Contains(err.Error(), "key not found") {
+			log.Warn(errmsg)
+		} else {
+			log.Error(errmsg)
+		}
 	} else {
 		log.Infof("Set chain %d signers %s:", cfg.ChainID, chainSigners.String())
 		ret.setCurss(chainSigners.GetSortedSigners())
