@@ -34,6 +34,7 @@ type CbridgeKeeper interface {
 	GetXferRelay(ctx sdk.Context, xferId eth.Hash) (*cbrtypes.XferRelay, bool)
 	QueryXferStatus(ctx sdk.Context, srcXferId eth.Hash) cbrtypes.XferStatus
 	QueryXferRefund(ctx sdk.Context, srcXferId eth.Hash) *cbrtypes.WithdrawOnchain
+	Refund(ctx sdk.Context, xferId eth.Hash, nonce uint64) error
 }
 
 type PegbridgeKeeper interface {

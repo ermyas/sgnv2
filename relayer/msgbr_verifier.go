@@ -171,16 +171,14 @@ func (c *CbrOneChain) verifyMessageEventExecuted(cliCtx client.Context, eLog *et
 
 func (c *CbrOneChain) verifyTransferForMessageBus(cliCtx client.Context, ev *eth.MessageBusMessageWithTransfer) (done, approve bool) {
 	// check transfer from sgn
-	transferType := c.getTransferType(ev.Bridge)
+	srcBridgeType := c.getSrcBridgeType(ev.Bridge)
 	// check: bridge is either liquidity bridge, peg src vault, or peg dst bridge
-	if transferType != msgbrtypes.TRANSFER_TYPE_LIQUIDITY_SEND &&
-		transferType != msgbrtypes.TRANSFER_TYPE_PEG_MINT &&
-		transferType != msgbrtypes.TRANSFER_TYPE_PEG_WITHDRAW {
+	if srcBridgeType == msgbrtypes.BRIDGE_TYPE_NULL {
 		log.Warnf("verifyTransferForMessageBus failed, unknown bridge type, msg chainId:%d, transfer bridge:%s", c.chainid, ev.Bridge)
 		return true, false
 	}
 
-	senderInTx, dstChainIdInTx, foundRefund, err := getTransferInfo(cliCtx, ev.SrcTransferId, transferType)
+	senderInTx, dstChainIdInTx, foundRefund, err := getTransferInfo(cliCtx, ev.SrcTransferId, srcBridgeType)
 	if err != nil {
 		log.Warnf("cannot verify xfer msg (srcXferId %x) %s", ev.SrcTransferId, err.Error())
 		return false, false
@@ -195,10 +193,10 @@ func (c *CbrOneChain) verifyTransferForMessageBus(cliCtx client.Context, ev *eth
 	return verifySenderAndDstChainId(ev.Sender, senderInTx, ev.DstChainId.Uint64(), dstChainIdInTx)
 }
 
-func getTransferInfo(cliCtx client.Context, srcTransferId eth.Hash, transferType msgbrtypes.TransferType) (eth.Addr, uint64, bool, error) {
+func getTransferInfo(cliCtx client.Context, srcTransferId eth.Hash, srcBridgeType msgbrtypes.BridgeType) (eth.Addr, uint64, bool, error) {
 	xferId := srcTransferId.String()
-	switch transferType {
-	case msgbrtypes.TRANSFER_TYPE_LIQUIDITY_SEND:
+	switch srcBridgeType {
+	case msgbrtypes.BRIDGE_TYPE_LIQUIDITY:
 		req := &cbrtypes.QueryTransferStatusRequest{TransferId: []string{xferId}}
 		res, err := cbrcli.QueryTransferStatus(cliCtx, req)
 		if err != nil {
@@ -221,7 +219,7 @@ func getTransferInfo(cliCtx client.Context, srcTransferId eth.Hash, transferType
 			return makeErr(err)
 		}
 		return eth.Bytes2Addr(relayOnChain.Sender), relayOnChain.DstChainId, false, nil
-	case msgbrtypes.TRANSFER_TYPE_PEG_MINT:
+	case msgbrtypes.BRIDGE_TYPE_PEG_VAULT:
 		deposit, err := pegcli.QueryDepositInfo(cliCtx, srcTransferId.String())
 		if err != nil {
 			return makeErr(err)
@@ -240,7 +238,7 @@ func getTransferInfo(cliCtx client.Context, srcTransferId eth.Hash, transferType
 			return makeErr(err)
 		}
 		return eth.Bytes2Addr(mintOnChain.GetDepositor()), mint.GetChainId(), false, nil
-	case msgbrtypes.TRANSFER_TYPE_PEG_WITHDRAW:
+	case msgbrtypes.BRIDGE_TYPE_PEG_BRIDGE:
 		burn, err := pegcli.QueryBurnInfo(cliCtx, srcTransferId.String())
 		if err != nil {
 			return makeErr(err)
@@ -259,7 +257,7 @@ func getTransferInfo(cliCtx client.Context, srcTransferId eth.Hash, transferType
 		}
 		return eth.Bytes2Addr(withdrawOnChain.GetBurnAccount()), withdraw.GetChainId(), false, nil
 	}
-	return makeErr(fmt.Errorf("unsupported transfer type (%v)", transferType))
+	return makeErr(fmt.Errorf("unsupported transfer type (%v)", srcBridgeType))
 }
 
 func verifySenderAndDstChainId(sender, senderInTx eth.Addr, dstChainId, dstChainIdInTx uint64) (done, approve bool) {

@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
@@ -96,25 +95,6 @@ func (k Keeper) ExecutionContexts(
 	}
 
 	// 3. Populate ExecutionContexts
-	// 3.1. Get powers
-	chainIds := make(map[uint64]bool)
-	for _, message := range messages {
-		chainIds[message.DstChainId] = true
-	}
-	chainPowers := make(map[uint64][]string)
-	for chainId := range chainIds {
-		chainSigners, found := k.cbridgeKeeper.GetChainSigners(ctx, chainId)
-		if !found {
-			return nil, status.Error(codes.Internal, "powers not found")
-		}
-		var currChainPowers []string
-		for _, signer := range chainSigners.GetSortedSigners() {
-			currChainPowers = append(currChainPowers, new(big.Int).SetBytes(signer.GetPower()).String())
-		}
-		chainPowers[chainId] = currChainPowers
-	}
-
-	// 3.2. Add Transfer if applicable
 	var execCtxs []types.ExecutionContext
 	for id, message := range messages {
 		execCtx := types.ExecutionContext{
@@ -122,15 +102,43 @@ func (k Keeper) ExecutionContexts(
 			Message:   message,
 		}
 		if message.TransferType != types.TRANSFER_TYPE_NULL {
-			transfer, found := k.GetTransfer(ctx, eth.Bytes2Hash(execCtx.MessageId))
-			if !found {
-				return nil, status.Error(codes.Internal, "transfer not found")
+			//transfer := &types.Transfer{}
+			var err error
+			execCtx.Transfer, err = k.getMsssageTransferInfo(ctx, &message)
+			if err != nil {
+				log.Errorf("get transfer for message %x err: %s", id, err)
 			}
-			execCtx.Transfer = &transfer
 		}
 		execCtxs = append(execCtxs, execCtx)
 	}
 	return &types.QueryExecutionContextsResponse{ExecutionContexts: execCtxs}, nil
+}
+
+func (k Keeper) ExecutionContextBySrcTransfer(
+	c context.Context, req *types.QueryExecutionContextBySrcTransferRequest) (
+	*types.QueryExecutionContextBySrcTransferResponse, error) {
+	ctx := sdk.UnwrapSDKContext(c)
+	srcTransferId := eth.Hex2Hash(req.GetSrcTransferId())
+	messageId, found := k.GetSrcTransfer(ctx, req.GetSrcBridgeType(), srcTransferId)
+	if !found {
+		return nil, types.WrapErrNoTransferFound(srcTransferId)
+	}
+	execCtx := &types.ExecutionContext{
+		MessageId: messageId.Bytes(),
+	}
+	if !req.GetMessageIdOnly() {
+		message, found := k.GetMessage(ctx, messageId)
+		if !found {
+			return nil, types.WrapErrNoMessageFound(messageId)
+		}
+		execCtx.Message = message
+		var err error
+		execCtx.Transfer, err = k.getMsssageTransferInfo(ctx, &message)
+		if err != nil {
+			log.Errorf("get transfer for message %x err: %s", messageId, err)
+		}
+	}
+	return &types.QueryExecutionContextBySrcTransferResponse{ExecutionContext: execCtx}, nil
 }
 
 func (k Keeper) MessageExists(c context.Context, request *types.QueryMessageExistsRequest) (*types.QueryMessageExistsResponse, error) {
@@ -159,16 +167,6 @@ func (k Keeper) Message(c context.Context, req *types.QueryMessageRequest) (*typ
 		return nil, types.WrapErrNoMessageFound(messageId)
 	}
 	return &types.QueryMessageResponse{Message: msg}, nil
-}
-
-func (k Keeper) Transfer(c context.Context, req *types.QueryTransferRequest) (*types.QueryTransferResponse, error) {
-	ctx := sdk.UnwrapSDKContext(c)
-	messageId := eth.Hex2Hash(req.MessageId)
-	xfer, found := k.GetTransfer(ctx, messageId)
-	if !found {
-		return nil, types.WrapErrNoTransferFound(messageId)
-	}
-	return &types.QueryTransferResponse{Transfer: xfer}, nil
 }
 
 func (k Keeper) MessageBus(c context.Context, req *types.QueryMessageBusRequest) (*types.QueryMessageBusResponse, error) {

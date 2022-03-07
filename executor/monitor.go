@@ -57,23 +57,22 @@ func (c *Chain) monitorPegMint() {
 		}
 		log.Infof("monitorPegMint: got event Mint %v", e)
 		msg := msgtypes.Message{
-			SrcChainId:   e.RefChainId,
-			Sender:       eth.Addr2Hex(e.Depositor),
-			DstChainId:   c.ChainID,
-			Receiver:     eth.Addr2Hex(e.Account),
-			TransferType: msgtypes.TRANSFER_TYPE_PEG_MINT,
+			SrcChainId:    e.RefChainId,
+			Sender:        eth.Addr2Hex(e.Depositor),
+			DstChainId:    c.ChainID,
+			Receiver:      eth.Addr2Hex(e.Account),
+			TransferType:  msgtypes.TRANSFER_TYPE_PEG_MINT,
+			TransferRefId: e.RefId[:],
 		}
 		transfer := &msgtypes.Transfer{
 			Token:  e.Token.Bytes(),
 			Amount: e.Amount.String(),
-			RefId:  e.RefId[:],
 		}
 		execCtx := &msgtypes.ExecutionContext{
 			Message:  msg,
 			Transfer: transfer,
 		}
 		messageId := getMessageIdWithTransfer(c, execCtx)
-		execCtx.MessageId = messageId
 		err = Dal.SaveTransfer(messageId)
 		if err != nil {
 			log.Errorf("failed to update execution_context %x: %v", messageId, err)
@@ -95,23 +94,22 @@ func (c *Chain) monitorPegWithdrawn() {
 		}
 		log.Infof("monitorPegWithdrawn: got event Withdrawn %v", e)
 		msg := msgtypes.Message{
-			SrcChainId:   e.RefChainId,
-			Sender:       eth.Addr2Hex(e.BurnAccount),
-			DstChainId:   c.ChainID,
-			Receiver:     eth.Addr2Hex(e.Receiver),
-			TransferType: msgtypes.TRANSFER_TYPE_PEG_WITHDRAW,
+			SrcChainId:    e.RefChainId,
+			Sender:        eth.Addr2Hex(e.BurnAccount),
+			DstChainId:    c.ChainID,
+			Receiver:      eth.Addr2Hex(e.Receiver),
+			TransferType:  msgtypes.TRANSFER_TYPE_PEG_WITHDRAW,
+			TransferRefId: e.RefId[:],
 		}
 		transfer := &msgtypes.Transfer{
 			Token:  e.Token.Bytes(),
 			Amount: e.Amount.String(),
-			RefId:  e.RefId[:],
 		}
 		execCtx := &msgtypes.ExecutionContext{
 			Message:  msg,
 			Transfer: transfer,
 		}
 		messageId := getMessageIdWithTransfer(c, execCtx)
-		execCtx.MessageId = messageId
 		err = Dal.SaveTransfer(messageId)
 		if err != nil {
 			log.Errorf("failed to update execution_context %x: %v", messageId, err)

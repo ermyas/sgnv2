@@ -313,11 +313,11 @@ func (ev *MessageBusExecuted) String() string {
 }
 
 func (ev *MessageBusMessage) String() string {
-	return fmt.Sprintf("sender: %s,receiver: %s, dstChainId: %s, Message: %x", ev.Sender, ev.Receiver, ev.DstChainId, ev.Message)
+	return fmt.Sprintf("sender: %s, receiver: %s, dstChainId: %s, Message: %x", ev.Sender, ev.Receiver, ev.DstChainId, ev.Message)
 }
 
 func (ev *MessageBusMessageWithTransfer) String() string {
-	return fmt.Sprintf("sender: %s,receiver: %s, dstChainId: %s, bridgeAddr: %s, transferId: %x, Message: %x", ev.Sender, ev.Receiver, ev.DstChainId, ev.Bridge, ev.SrcTransferId, ev.Message)
+	return fmt.Sprintf("sender: %s, receiver: %s, dstChainId: %s, bridgeAddr: %s, transferId: %x, Message: %x", ev.Sender, ev.Receiver, ev.DstChainId, ev.Bridge, ev.SrcTransferId, ev.Message)
 }
 
 func (r *BridgeRelay) String() string {

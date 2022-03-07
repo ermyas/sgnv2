@@ -25,6 +25,10 @@ service Query {
     option (google.api.http).get = "/sgn/v1/message/execution_contexts";
   }
 
+  rpc ExecutionContextBySrcTransfer(QueryExecutionContextBySrcTransferRequest) returns (QueryExecutionContextBySrcTransferResponse) {
+    option (google.api.http).get = "/sgn/v1/message/execution_context_by_src_transfer";
+  }
+
   // Message queries the message details.
   rpc Message(QueryMessageRequest) returns (QueryMessageResponse) {
     option (google.api.http).get = "/sgn/message/v1/message/{message_id}";
@@ -42,11 +46,6 @@ service Query {
   // Message queries whether a message exists.
   rpc RefundExists(QueryRefundExistsRequest) returns (QueryRefundExistsResponse) {
     option (google.api.http).get = "/sgn/message/v1/refund_exists/{src_transfer_id}";
-  }
-
-  // Transfer queries the optional transfer details associated with a message.
-  rpc Transfer(QueryTransferRequest) returns (QueryTransferResponse) {
-    option (google.api.http).get = "/sgn/message/v1/transfer/{message_id}";
   }
 
   // MessageBus queries the message bus contract info.
@@ -81,6 +80,16 @@ message QueryExecutionContextsResponse {
   repeated ExecutionContext execution_contexts = 1 [(gogoproto.nullable) = false];
 }
 
+message QueryExecutionContextBySrcTransferRequest{
+  string src_transfer_id = 1;
+  BridgeType src_bridge_type = 2;
+  bool message_id_only = 3;
+}
+
+message QueryExecutionContextBySrcTransferResponse {
+  ExecutionContext execution_context = 1;
+}
+
 // IsMessageActiveRequest is request type for the Query/IsMessageActive RPC method.
 message IsMessageActiveRequest {
   string message_id = 1;  // message_id is from Message.ComputeMessageId()
@@ -103,7 +112,7 @@ message QueryMessageExistsResponse {
 
 // QueryRefundExistsRequest is request type for the Query/RefundExists RPC method.
 message QueryRefundExistsRequest {
-  string src_transfer_id = 1;  // message_id is from Message.ComputeMessageId()
+  string src_transfer_id = 1;
 }
 
 // QueryRefundExistsResponse is response type for the Query/RefundExists RPC method.
@@ -121,18 +130,6 @@ message QueryMessageRequest {
 message QueryMessageResponse {
   // message is the message queried
   Message message = 1 [(gogoproto.nullable) = false];
-}
-
-// QueryTransferRequest is request type for the Query/Transfer RPC method.
-message QueryTransferRequest {
-  // message_id is the message id
-  string message_id = 1;
-}
-
-// QueryTransferResponse is response type for the Query/Transfer RPC method.
-message QueryTransferResponse {
-  // transfer is the transfer queried
-  Transfer transfer = 1 [(gogoproto.nullable) = false];
 }
 
 // QueryMessageBusRequest is request type for the Query/MessageBus RPC method.

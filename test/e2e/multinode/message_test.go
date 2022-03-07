@@ -57,24 +57,39 @@ func messageTest(t *testing.T) {
 		tc.SgnPassphrase,
 	)
 
-	prepareCbrLiquidity(transactor)
+	tc.RunAllAndWait(
+		func() {
+			log.Infoln("======================= Message Only Test =====================")
+			messageOnlyTest(transactor, msgtypes.EXECUTION_STATUS_SUCCESS)
+		},
+		func() {
+			log.Infoln("======================= Batch Transfer Test =====================")
+			prepareCbrLiquidity(transactor)
+			batchTransferTest(transactor, big.NewInt(100*1000000), big.NewInt(5*1000000), msgtypes.EXECUTION_STATUS_SUCCESS)
+		},
+		func() {
+			log.Infoln("======================= Batch Pegged Transfer Test =====================")
+			batchPegTransferTest(transactor, new(big.Int).Mul(big.NewInt(50), big.NewInt(1e18)), new(big.Int).Mul(big.NewInt(10), big.NewInt(1e18)), msgtypes.EXECUTION_STATUS_SUCCESS)
 
-	log.Infoln("======================= Message Only Test =====================")
-	messageOnlyTest(transactor, msgtypes.EXECUTION_STATUS_SUCCESS)
-
-	log.Infoln("======================= Batch Transfer Test =====================")
-	batchTransferTest(transactor, big.NewInt(100*1000000), big.NewInt(5*1000000), msgtypes.EXECUTION_STATUS_SUCCESS)
-
-	log.Infoln("======================= Batch Pegged Transfer Test =====================")
-	batchPegTransferTest(transactor, new(big.Int).Mul(big.NewInt(50), big.NewInt(1e18)), new(big.Int).Mul(big.NewInt(10), big.NewInt(1e18)), msgtypes.EXECUTION_STATUS_SUCCESS)
+		},
+	)
 
 	log.Infoln("======================= Refund Tests =====================")
-	refundTransferTest(t, transactor)
-	refundPegDepositTest(t, transactor)
-	// refundPegBurnTest(t, transactor)
+	tc.RunAllAndWait(
+		func() {
+			refundTransferTest(t, transactor)
+		},
+		func() {
+			refundPegDepositTest(t, transactor)
+		},
+		func() {
+			// refundPegBurnTest(t, transactor)
+		},
+	)
 
 	log.Infoln("======================= Batch Transfer FallBack Test =====================")
 	batchTransferTest(transactor, big.NewInt(10*1000000), big.NewInt(5*1000000), msgtypes.EXECUTION_STATUS_FALLBACK)
+
 }
 
 func batchPegTransferTest(transactor *transactor.Transactor, sendAmt *big.Int, amtForEveryone *big.Int, expectedStatus msgtypes.ExecutionStatus) {
@@ -118,7 +133,7 @@ func batchPegDepositTest(transactor *transactor.Transactor, sendAmt *big.Int, am
 		log.Fatalln("refunded deposit", nil)
 	}
 	mintInfo := tc.CheckPbrMint(transactor, eth.Bytes2Hex(depositInfo.GetMintId()))
-	tc.WaitForMessageExecuted(transactor, expectedStatus)
+	tc.WaitForMessageWithTransferExecuted(transactor, msgtypes.BRIDGE_TYPE_PEG_VAULT, depositId, expectedStatus)
 
 	var mintOnChain pegbrtypes.MintOnChain
 	err = proto.Unmarshal(mintInfo.MintProtoBytes, &mintOnChain)
@@ -159,7 +174,7 @@ func batchPegBurnTest(transactor *transactor.Transactor, sendAmt *big.Int, amtFo
 	tc.ChkErr(err, "u1 chain2 batch peg transfer")
 	burnInfo := tc.WaitPbrBurn(transactor, burnId.String())
 	withdrawInfo := tc.CheckPbrWithdraw(transactor, eth.Bytes2Hex(burnInfo.WithdrawId))
-	tc.WaitForMessageExecuted(transactor, expectedStatus)
+	tc.WaitForMessageWithTransferExecuted(transactor, msgtypes.BRIDGE_TYPE_PEG_BRIDGE, burnId, expectedStatus)
 
 	var withdrawOnChain pegbrtypes.WithdrawOnChain
 	err = proto.Unmarshal(withdrawInfo.WithdrawProtoBytes, &withdrawOnChain)
@@ -198,7 +213,7 @@ func batchTransferTest(transactor *transactor.Transactor, sendAmt *big.Int, amtF
 	)
 	tc.ChkErr(err, "u0 chain1 batch transfer")
 	tc.CheckXfer(transactor, xferId[:])
-	tc.WaitForMessageExecuted(transactor, expectedStatus)
+	tc.WaitForMessageWithTransferExecuted(transactor, msgtypes.BRIDGE_TYPE_LIQUIDITY, xferId, expectedStatus)
 
 	// check balance
 	if expectedStatus == msgtypes.EXECUTION_STATUS_SUCCESS {
@@ -219,14 +234,14 @@ func batchTransferTest(transactor *transactor.Transactor, sendAmt *big.Int, amtF
 }
 
 func messageOnlyTest(transactor *transactor.Transactor, expectedStatus msgtypes.ExecutionStatus) {
-	err := tc.CbrChain1.TransferMsg(
+	messageId, err := tc.CbrChain1.TransferMsg(
 		0,
 		tc.CbrChain2.TransferMessageAddr,
 		tc.CbrChain2.ChainId,
 		new(big.Int).SetInt64(time.Now().UnixNano()).Bytes(),
 	)
 	tc.ChkErr(err, "message only test")
-	tc.WaitForMessageExecuted(transactor, expectedStatus)
+	tc.WaitForMessageOnlyExecuted(transactor, messageId, expectedStatus)
 
 	_, err = msgcli.ClaimAllFees(transactor, &msgtypes.MsgClaimAllFees{
 		DelegatorAddress: eth.Addr2Hex(tc.DelEthAddrs[0]),
@@ -316,30 +331,36 @@ func refundPegBurnTest(t *testing.T, transactor *transactor.Transactor) {
 }
 
 func prepareCbrLiquidity(transactor *transactor.Transactor) {
-	log.Infoln("------------------------ Add liquidity on chain 1 ------------------------")
 	addAmt := big.NewInt(500000 * 1e6)
-	var i uint64
-	var err error
-	for i = 0; i < 2; i++ {
-		err = tc.CbrChain1.ApproveUSDT(i, addAmt)
-		tc.ChkErr(err, fmt.Sprintf("u%d chain1 approve", i))
-		err = tc.CbrChain1.AddLiq(i, addAmt)
-		tc.ChkErr(err, fmt.Sprintf("u%d chain1 addliq", i))
-		tc.CheckAddLiquidityStatus(transactor, tc.CbrChain1.ChainId, i+1)
-		liq, err := tc.QueryTotalLiquidity(transactor, tc.CbrChain1.ChainId, tc.CbrChain1.USDTAddr)
-		tc.ChkErr(err, "check liq")
-		log.Infoln("chain 1 total liq", liq.String())
-	}
+	tc.RunAllAndWait(
+		func() {
+			var i uint64
+			log.Infoln("------------------------ Add liquidity on chain 1 ------------------------")
+			for i = 0; i < 2; i++ {
+				err := tc.CbrChain1.ApproveUSDT(i, addAmt)
+				tc.ChkErr(err, fmt.Sprintf("u%d chain1 approve", i))
+				err = tc.CbrChain1.AddLiq(i, addAmt)
+				tc.ChkErr(err, fmt.Sprintf("u%d chain1 addliq", i))
+				tc.CheckAddLiquidityStatus(transactor, tc.CbrChain1.ChainId, i+1)
+			}
+			liq, err := tc.QueryTotalLiquidity(transactor, tc.CbrChain1.ChainId, tc.CbrChain1.USDTAddr)
+			tc.ChkErr(err, "check liq")
+			log.Infoln("chain 1 total liq", liq.String())
+		},
+		func() {
+			var i uint64
+			log.Infoln("------------------------ Add liquidity on chain 2 ------------------------")
+			for i = 0; i < 2; i++ {
+				err := tc.CbrChain2.ApproveUSDT(i, addAmt)
+				tc.ChkErr(err, fmt.Sprintf("u%d chain2 approve", i))
+				err = tc.CbrChain2.AddLiq(i, addAmt)
+				tc.ChkErr(err, fmt.Sprintf("u%d chain2 addliq", i))
+				tc.CheckAddLiquidityStatus(transactor, tc.CbrChain2.ChainId, i+1)
+			}
+			liq, err := tc.QueryTotalLiquidity(transactor, tc.CbrChain2.ChainId, tc.CbrChain2.USDTAddr)
+			tc.ChkErr(err, "check liq")
+			log.Infoln("chain 2 total liq", liq.String())
+		},
+	)
 
-	log.Infoln("------------------------ Add liquidity on chain 2 ------------------------")
-	for i = 0; i < 2; i++ {
-		err = tc.CbrChain2.ApproveUSDT(i, addAmt)
-		tc.ChkErr(err, fmt.Sprintf("u%d chain2 approve", i))
-		err = tc.CbrChain2.AddLiq(i, addAmt)
-		tc.ChkErr(err, fmt.Sprintf("u%d chain2 addliq", i))
-		tc.CheckAddLiquidityStatus(transactor, tc.CbrChain2.ChainId, i+1)
-		liq, err := tc.QueryTotalLiquidity(transactor, tc.CbrChain2.ChainId, tc.CbrChain2.USDTAddr)
-		tc.ChkErr(err, "check liq")
-		log.Infoln("chain 2 total liq", liq.String())
-	}
 }

@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/binary"
+	"fmt"
 
 	"github.com/celer-network/sgn-v2/eth"
 	ec "github.com/ethereum/go-ethereum/common"
@@ -32,7 +33,7 @@ const (
 var (
 	MessageBusPrefix         = []byte{0x01}
 	MessagePrefix            = []byte{0x02}
-	TransferPrefix           = []byte{0x03}
+	SrcTransferPrefix        = []byte{0x03}
 	ActiveMessageIdsPrefix   = []byte{0x04}
 	MessageRefundNoncePrefix = []byte{0x05}
 	MessageRefundPrefix      = []byte{0x06}
@@ -61,8 +62,8 @@ func GetMessageRefundKey(srcTransferId eth.Hash) []byte {
 	return append(MessageRefundPrefix, srcTransferId.Bytes()...)
 }
 
-func GetTransferKey(messageId eth.Hash) []byte {
-	return append(TransferPrefix, messageId.Bytes()...)
+func GetSrcTransferKey(srcBridgeType BridgeType, srcTransferId eth.Hash) []byte {
+	return append(SrcTransferPrefix, []byte(fmt.Sprintf("%d-%x", srcBridgeType, srcTransferId))...)
 }
 
 func GetChainIdBytes(chainId uint64) []byte {

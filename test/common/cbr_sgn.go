@@ -522,36 +522,38 @@ func CheckMsgFeeClaimInfoSigs(txr *transactor.Transactor, claimInfo *msgtypes.Fe
 	return true
 }
 
-func WaitForMessageExecuted(transactor *transactor.Transactor, expectedStatus msgtypes.ExecutionStatus) {
+func WaitForMessageOnlyExecuted(
+	transactor *transactor.Transactor, messageId eth.Hash, expectedStatus msgtypes.ExecutionStatus) {
+	var msg msgtypes.Message
 	var err error
-	var resp *msgtypes.QueryExecutionContextsResponse
-	log.Infoln("finding active message id...")
 	for retry := 0; retry < RetryLimit; retry++ {
-		resp, err = msgcli.QueryExecutionContexts(transactor.CliCtx, &msgtypes.QueryExecutionContextsRequest{})
-		if err == nil && len(resp.ExecutionContexts) == 1 {
-			break
-		}
-		time.Sleep(RetryPeriod)
-	}
-	ChkErr(err, "failed to QueryExecutionContexts")
-	if len(resp.ExecutionContexts) == 0 {
-		log.Fatalf("QueryExecutionContexts expected more than 1 result, actual %d result", len(resp.ExecutionContexts))
-	}
-
-	msgId := eth.Bytes2Hash(resp.ExecutionContexts[0].MessageId)
-	var expected bool
-	log.Infoln("checking message", msgId)
-	for retry := 0; retry < RetryLimit; retry++ {
-		message, err := msgcli.QueryMessage(transactor.CliCtx, msgId.Hex())
-		if err == nil && message.ExecutionStatus == expectedStatus {
-			expected = true
+		msg, err = msgcli.QueryMessage(transactor.CliCtx, messageId.Hex())
+		if err == nil && msg.ExecutionStatus == expectedStatus {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
 	ChkErr(err, "failed to QueryMessage")
-	if !expected {
-		log.Fatal("message check failed")
+	if msg.ExecutionStatus != expectedStatus {
+		log.Fatalf("message status check failed, expected %s actual %s", expectedStatus, msg.ExecutionStatus)
+	}
+	log.Infof("message executed with expected status:%s", expectedStatus.String())
+}
+
+func WaitForMessageWithTransferExecuted(
+	transactor *transactor.Transactor, srcBridgeType msgtypes.BridgeType, srcTransferId eth.Hash, expectedStatus msgtypes.ExecutionStatus) {
+	var exeCtx *msgtypes.ExecutionContext
+	var err error
+	for retry := 0; retry < RetryLimit; retry++ {
+		exeCtx, err = msgcli.QueryExecutionContextBySrcTransfer(transactor.CliCtx, srcBridgeType, srcTransferId)
+		if err == nil && exeCtx.Message.ExecutionStatus == expectedStatus {
+			break
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryMessage")
+	if exeCtx.Message.ExecutionStatus != expectedStatus {
+		log.Fatalf("message status check failed, expected %s actual %s", expectedStatus, exeCtx.Message.ExecutionStatus)
 	}
 	log.Infof("message executed with expected status:%s", expectedStatus.String())
 }

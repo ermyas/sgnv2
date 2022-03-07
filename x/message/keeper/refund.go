@@ -3,14 +3,13 @@ package keeper
 import (
 	"encoding/binary"
 
-	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/message/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func (k Keeper) SetRefund(ctx sdk.Context, srcXferId eth.Hash, execCtx *types.ExecutionContext) {
-	ctx.KVStore(k.storeKey).Set(types.GetMessageRefundKey(srcXferId), execCtx.MustMarshal())
+func (k Keeper) SetRefund(ctx sdk.Context, srcXferId eth.Hash) {
+	ctx.KVStore(k.storeKey).Set(types.GetMessageRefundKey(srcXferId), []byte{0x01})
 }
 
 func (k Keeper) HasRefund(ctx sdk.Context, srcXferId eth.Hash) bool {
@@ -35,6 +34,6 @@ func (k Keeper) incrRefundNonce(ctx sdk.Context) uint64 {
 	newNonceBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(newNonceBytes, newNonce)
 	kv.Set(key, newNonceBytes)
-	log.Debugf("incremented msg refund nonce: old %d, new %d", oldNonce, newNonce)
+	//log.Debugf("incremented msg refund nonce: old %d, new %d", oldNonce, newNonce)
 	return newNonce
 }

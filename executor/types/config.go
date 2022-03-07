@@ -2,6 +2,7 @@ package types
 
 import (
 	comtypes "github.com/celer-network/sgn-v2/common/types"
+	"github.com/celer-network/sgn-v2/eth"
 )
 
 type ContractConfig struct {
@@ -28,7 +29,7 @@ func MapToContractInfos(configs []*ContractConfig) []*comtypes.ContractInfo {
 
 func GetContractConfig(configs []*ContractConfig, addr string) (*ContractConfig, bool) {
 	for _, config := range configs {
-		if config.Address == addr {
+		if eth.Hex2Addr(config.Address) == eth.Hex2Addr(addr) {
 			return config, true
 		}
 	}

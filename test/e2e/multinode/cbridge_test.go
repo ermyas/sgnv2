@@ -74,7 +74,7 @@ func cbrTest(t *testing.T, transactor *transactor.Transactor) {
 			log.Infoln("======================== Add liquidity on chain 1 ===========================")
 			var i uint64
 			for i = 0; i < 2; i++ {
-				err = tc.CbrChain1.ApproveUSDT(i, addAmt)
+				err := tc.CbrChain1.ApproveUSDT(i, addAmt)
 				tc.ChkErr(err, fmt.Sprintf("u%d chain1 approve", i))
 				err = tc.CbrChain1.AddLiq(i, addAmt)
 				tc.ChkErr(err, fmt.Sprintf("u%d chain1 addliq", i))
@@ -85,7 +85,7 @@ func cbrTest(t *testing.T, transactor *transactor.Transactor) {
 			log.Infoln("======================== Add liquidity on chain 2 ===========================")
 			var i uint64
 			for i = 0; i < 2; i++ {
-				err = tc.CbrChain2.ApproveUSDT(i, addAmt)
+				err := tc.CbrChain2.ApproveUSDT(i, addAmt)
 				tc.ChkErr(err, fmt.Sprintf("u%d chain2 approve", i))
 				err = tc.CbrChain2.AddLiq(i, addAmt)
 				tc.ChkErr(err, fmt.Sprintf("u%d chain2 addliq", i))
@@ -94,7 +94,7 @@ func cbrTest(t *testing.T, transactor *transactor.Transactor) {
 		},
 		func() {
 			log.Infoln("======================== ContractLP add liquidity on chain 1 ===========================")
-			err = tc.CbrChain1.ApproveUSDTForContractAsLP(0, addAmt)
+			err := tc.CbrChain1.ApproveUSDTForContractAsLP(0, addAmt)
 			tc.ChkErr(err, "u0 chain1 approve for ContractAsLP")
 			err = tc.CbrChain1.DepositToContractAsLP(0, addAmt)
 			tc.ChkErr(err, "u0 chain1 deposit to ContractAsLP")

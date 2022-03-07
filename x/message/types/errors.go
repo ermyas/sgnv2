@@ -27,8 +27,8 @@ func WrapErrNoMessageBusFound(chainId uint64) error {
 }
 
 // WrapErrNoTransferFound returns an error if no transfer is found for a message ID
-func WrapErrNoTransferFound(messageId eth.Hash) error {
-	return sdkerrors.Wrapf(ErrNoTransferFound, "%x", messageId)
+func WrapErrNoTransferFound(srcTransferId eth.Hash) error {
+	return sdkerrors.Wrapf(ErrNoTransferFound, "%x", srcTransferId)
 }
 
 // WrapErrClaimCooldownNotPassed returns an error if the claim cooldown has not passed

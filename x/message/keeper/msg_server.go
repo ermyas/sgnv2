@@ -52,7 +52,7 @@ func (k Keeper) SignMessage(goCtx context.Context, msg *types.MsgSignMessage) (*
 	if addSigErr != nil {
 		return nil, fmt.Errorf("failed to add sig: %s", addSigErr)
 	}
-	k.SetMessage(ctx, messageId, message)
+	k.SetMessage(ctx, messageId, &message)
 	log.Infof("x/message SignMessage add sig messageId:%x signer:%x sender:%s", messageId, validator.GetSignerAddr(), msg.Sender)
 	return &types.MsgSignMessageResponse{}, nil
 }

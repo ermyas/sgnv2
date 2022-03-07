@@ -8,7 +8,7 @@ import (
 
 func getMsgBridgeAddr(dstChain *Chain, msg *msgtypes.Message) common.Address {
 	var bridgeAddr eth.Addr
-	switch msg.TransferType {
+	switch msg.GetTransferType() {
 	case msgtypes.TRANSFER_TYPE_NULL:
 		bridgeAddr = eth.ZeroAddr
 	case msgtypes.TRANSFER_TYPE_LIQUIDITY_SEND:

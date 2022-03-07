@@ -509,7 +509,7 @@ func (c *CbrChain) CheckPeggedUNIBalance(uid uint64, expectedAmt *big.Int) {
 	}
 }
 
-func (c *CbrChain) TransferMsg(uid uint64, receiver eth.Addr, dstChainId uint64, message []byte) error {
+func (c *CbrChain) TransferMsg(uid uint64, receiver eth.Addr, dstChainId uint64, message []byte) (eth.Hash, error) {
 	receipt, err := c.Users[uid].Transactor.TransactWaitMined(
 		"TransferMessage",
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
@@ -518,19 +518,20 @@ func (c *CbrChain) TransferMsg(uid uint64, receiver eth.Addr, dstChainId uint64,
 		ethutils.WithEthValue(MsgFeeBase),
 	)
 	if err != nil {
-		return fmt.Errorf("TransferMessage err: %w", err)
+		return eth.ZeroHash, fmt.Errorf("TransferMessage err: %w", err)
 	}
 	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
-		return fmt.Errorf("transferMessage tx failed")
+		return eth.ZeroHash, fmt.Errorf("transferMessage tx failed")
 	}
 	// last log is MessageWithTransfer event (NOTE: test only)
 	msgLog := receipt.Logs[len(receipt.Logs)-1]
 	msgEv, err := c.MessageBusContract.ParseMessage(*msgLog)
 	if err != nil {
-		return fmt.Errorf("parse log %+v err: %w", msgEv, err)
+		return eth.ZeroHash, fmt.Errorf("parse log %+v err: %w", msgEv, err)
 	}
+	msgId, _ := msgtypes.NewMessage(msgEv, c.ChainId)
 	log.Infof("SendMessage tx success, message: %x", msgEv.Message)
-	return nil
+	return msgId, nil
 }
 
 func (c *CbrChain) BatchTransfer(

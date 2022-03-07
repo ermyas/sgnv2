@@ -205,6 +205,118 @@ func (m *QueryExecutionContextsResponse) GetExecutionContexts() []ExecutionConte
 	return nil
 }
 
+type QueryExecutionContextBySrcTransferRequest struct {
+	SrcTransferId string     `protobuf:"bytes,1,opt,name=src_transfer_id,json=srcTransferId,proto3" json:"src_transfer_id,omitempty"`
+	SrcBridgeType BridgeType `protobuf:"varint,2,opt,name=src_bridge_type,json=srcBridgeType,proto3,enum=sgn.message.v1.BridgeType" json:"src_bridge_type,omitempty"`
+	MessageIdOnly bool       `protobuf:"varint,3,opt,name=message_id_only,json=messageIdOnly,proto3" json:"message_id_only,omitempty"`
+}
+
+func (m *QueryExecutionContextBySrcTransferRequest) Reset() {
+	*m = QueryExecutionContextBySrcTransferRequest{}
+}
+func (m *QueryExecutionContextBySrcTransferRequest) String() string {
+	return proto.CompactTextString(m)
+}
+func (*QueryExecutionContextBySrcTransferRequest) ProtoMessage() {}
+func (*QueryExecutionContextBySrcTransferRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ed0081b532e3c802, []int{4}
+}
+func (m *QueryExecutionContextBySrcTransferRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryExecutionContextBySrcTransferRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryExecutionContextBySrcTransferRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryExecutionContextBySrcTransferRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryExecutionContextBySrcTransferRequest.Merge(m, src)
+}
+func (m *QueryExecutionContextBySrcTransferRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryExecutionContextBySrcTransferRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryExecutionContextBySrcTransferRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryExecutionContextBySrcTransferRequest proto.InternalMessageInfo
+
+func (m *QueryExecutionContextBySrcTransferRequest) GetSrcTransferId() string {
+	if m != nil {
+		return m.SrcTransferId
+	}
+	return ""
+}
+
+func (m *QueryExecutionContextBySrcTransferRequest) GetSrcBridgeType() BridgeType {
+	if m != nil {
+		return m.SrcBridgeType
+	}
+	return BRIDGE_TYPE_NULL
+}
+
+func (m *QueryExecutionContextBySrcTransferRequest) GetMessageIdOnly() bool {
+	if m != nil {
+		return m.MessageIdOnly
+	}
+	return false
+}
+
+type QueryExecutionContextBySrcTransferResponse struct {
+	ExecutionContext *ExecutionContext `protobuf:"bytes,1,opt,name=execution_context,json=executionContext,proto3" json:"execution_context,omitempty"`
+}
+
+func (m *QueryExecutionContextBySrcTransferResponse) Reset() {
+	*m = QueryExecutionContextBySrcTransferResponse{}
+}
+func (m *QueryExecutionContextBySrcTransferResponse) String() string {
+	return proto.CompactTextString(m)
+}
+func (*QueryExecutionContextBySrcTransferResponse) ProtoMessage() {}
+func (*QueryExecutionContextBySrcTransferResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_ed0081b532e3c802, []int{5}
+}
+func (m *QueryExecutionContextBySrcTransferResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryExecutionContextBySrcTransferResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryExecutionContextBySrcTransferResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryExecutionContextBySrcTransferResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryExecutionContextBySrcTransferResponse.Merge(m, src)
+}
+func (m *QueryExecutionContextBySrcTransferResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryExecutionContextBySrcTransferResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryExecutionContextBySrcTransferResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryExecutionContextBySrcTransferResponse proto.InternalMessageInfo
+
+func (m *QueryExecutionContextBySrcTransferResponse) GetExecutionContext() *ExecutionContext {
+	if m != nil {
+		return m.ExecutionContext
+	}
+	return nil
+}
+
 // IsMessageActiveRequest is request type for the Query/IsMessageActive RPC method.
 type IsMessageActiveRequest struct {
 	MessageId string `protobuf:"bytes,1,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
@@ -214,7 +326,7 @@ func (m *IsMessageActiveRequest) Reset()         { *m = IsMessageActiveRequest{}
 func (m *IsMessageActiveRequest) String() string { return proto.CompactTextString(m) }
 func (*IsMessageActiveRequest) ProtoMessage()    {}
 func (*IsMessageActiveRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0081b532e3c802, []int{4}
+	return fileDescriptor_ed0081b532e3c802, []int{6}
 }
 func (m *IsMessageActiveRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -259,7 +371,7 @@ func (m *IsMessageActiveResponse) Reset()         { *m = IsMessageActiveResponse
 func (m *IsMessageActiveResponse) String() string { return proto.CompactTextString(m) }
 func (*IsMessageActiveResponse) ProtoMessage()    {}
 func (*IsMessageActiveResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0081b532e3c802, []int{5}
+	return fileDescriptor_ed0081b532e3c802, []int{7}
 }
 func (m *IsMessageActiveResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -304,7 +416,7 @@ func (m *QueryMessageExistsRequest) Reset()         { *m = QueryMessageExistsReq
 func (m *QueryMessageExistsRequest) String() string { return proto.CompactTextString(m) }
 func (*QueryMessageExistsRequest) ProtoMessage()    {}
 func (*QueryMessageExistsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0081b532e3c802, []int{6}
+	return fileDescriptor_ed0081b532e3c802, []int{8}
 }
 func (m *QueryMessageExistsRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -349,7 +461,7 @@ func (m *QueryMessageExistsResponse) Reset()         { *m = QueryMessageExistsRe
 func (m *QueryMessageExistsResponse) String() string { return proto.CompactTextString(m) }
 func (*QueryMessageExistsResponse) ProtoMessage()    {}
 func (*QueryMessageExistsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0081b532e3c802, []int{7}
+	return fileDescriptor_ed0081b532e3c802, []int{9}
 }
 func (m *QueryMessageExistsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -394,7 +506,7 @@ func (m *QueryRefundExistsRequest) Reset()         { *m = QueryRefundExistsReque
 func (m *QueryRefundExistsRequest) String() string { return proto.CompactTextString(m) }
 func (*QueryRefundExistsRequest) ProtoMessage()    {}
 func (*QueryRefundExistsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0081b532e3c802, []int{8}
+	return fileDescriptor_ed0081b532e3c802, []int{10}
 }
 func (m *QueryRefundExistsRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -439,7 +551,7 @@ func (m *QueryRefundExistsResponse) Reset()         { *m = QueryRefundExistsResp
 func (m *QueryRefundExistsResponse) String() string { return proto.CompactTextString(m) }
 func (*QueryRefundExistsResponse) ProtoMessage()    {}
 func (*QueryRefundExistsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0081b532e3c802, []int{9}
+	return fileDescriptor_ed0081b532e3c802, []int{11}
 }
 func (m *QueryRefundExistsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -485,7 +597,7 @@ func (m *QueryMessageRequest) Reset()         { *m = QueryMessageRequest{} }
 func (m *QueryMessageRequest) String() string { return proto.CompactTextString(m) }
 func (*QueryMessageRequest) ProtoMessage()    {}
 func (*QueryMessageRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0081b532e3c802, []int{10}
+	return fileDescriptor_ed0081b532e3c802, []int{12}
 }
 func (m *QueryMessageRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -531,7 +643,7 @@ func (m *QueryMessageResponse) Reset()         { *m = QueryMessageResponse{} }
 func (m *QueryMessageResponse) String() string { return proto.CompactTextString(m) }
 func (*QueryMessageResponse) ProtoMessage()    {}
 func (*QueryMessageResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0081b532e3c802, []int{11}
+	return fileDescriptor_ed0081b532e3c802, []int{13}
 }
 func (m *QueryMessageResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -565,98 +677,6 @@ func (m *QueryMessageResponse) GetMessage() Message {
 		return m.Message
 	}
 	return Message{}
-}
-
-// QueryTransferRequest is request type for the Query/Transfer RPC method.
-type QueryTransferRequest struct {
-	// message_id is the message id
-	MessageId string `protobuf:"bytes,1,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
-}
-
-func (m *QueryTransferRequest) Reset()         { *m = QueryTransferRequest{} }
-func (m *QueryTransferRequest) String() string { return proto.CompactTextString(m) }
-func (*QueryTransferRequest) ProtoMessage()    {}
-func (*QueryTransferRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0081b532e3c802, []int{12}
-}
-func (m *QueryTransferRequest) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *QueryTransferRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_QueryTransferRequest.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *QueryTransferRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QueryTransferRequest.Merge(m, src)
-}
-func (m *QueryTransferRequest) XXX_Size() int {
-	return m.Size()
-}
-func (m *QueryTransferRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_QueryTransferRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_QueryTransferRequest proto.InternalMessageInfo
-
-func (m *QueryTransferRequest) GetMessageId() string {
-	if m != nil {
-		return m.MessageId
-	}
-	return ""
-}
-
-// QueryTransferResponse is response type for the Query/Transfer RPC method.
-type QueryTransferResponse struct {
-	// transfer is the transfer queried
-	Transfer Transfer `protobuf:"bytes,1,opt,name=transfer,proto3" json:"transfer"`
-}
-
-func (m *QueryTransferResponse) Reset()         { *m = QueryTransferResponse{} }
-func (m *QueryTransferResponse) String() string { return proto.CompactTextString(m) }
-func (*QueryTransferResponse) ProtoMessage()    {}
-func (*QueryTransferResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ed0081b532e3c802, []int{13}
-}
-func (m *QueryTransferResponse) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *QueryTransferResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_QueryTransferResponse.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *QueryTransferResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QueryTransferResponse.Merge(m, src)
-}
-func (m *QueryTransferResponse) XXX_Size() int {
-	return m.Size()
-}
-func (m *QueryTransferResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_QueryTransferResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_QueryTransferResponse proto.InternalMessageInfo
-
-func (m *QueryTransferResponse) GetTransfer() Transfer {
-	if m != nil {
-		return m.Transfer
-	}
-	return Transfer{}
 }
 
 // QueryMessageBusRequest is request type for the Query/MessageBus RPC method.
@@ -843,6 +863,8 @@ func init() {
 	proto.RegisterType((*QueryParamsResponse)(nil), "sgn.message.v1.QueryParamsResponse")
 	proto.RegisterType((*QueryExecutionContextsRequest)(nil), "sgn.message.v1.QueryExecutionContextsRequest")
 	proto.RegisterType((*QueryExecutionContextsResponse)(nil), "sgn.message.v1.QueryExecutionContextsResponse")
+	proto.RegisterType((*QueryExecutionContextBySrcTransferRequest)(nil), "sgn.message.v1.QueryExecutionContextBySrcTransferRequest")
+	proto.RegisterType((*QueryExecutionContextBySrcTransferResponse)(nil), "sgn.message.v1.QueryExecutionContextBySrcTransferResponse")
 	proto.RegisterType((*IsMessageActiveRequest)(nil), "sgn.message.v1.IsMessageActiveRequest")
 	proto.RegisterType((*IsMessageActiveResponse)(nil), "sgn.message.v1.IsMessageActiveResponse")
 	proto.RegisterType((*QueryMessageExistsRequest)(nil), "sgn.message.v1.QueryMessageExistsRequest")
@@ -851,8 +873,6 @@ func init() {
 	proto.RegisterType((*QueryRefundExistsResponse)(nil), "sgn.message.v1.QueryRefundExistsResponse")
 	proto.RegisterType((*QueryMessageRequest)(nil), "sgn.message.v1.QueryMessageRequest")
 	proto.RegisterType((*QueryMessageResponse)(nil), "sgn.message.v1.QueryMessageResponse")
-	proto.RegisterType((*QueryTransferRequest)(nil), "sgn.message.v1.QueryTransferRequest")
-	proto.RegisterType((*QueryTransferResponse)(nil), "sgn.message.v1.QueryTransferResponse")
 	proto.RegisterType((*QueryMessageBusRequest)(nil), "sgn.message.v1.QueryMessageBusRequest")
 	proto.RegisterType((*QueryMessageBusResponse)(nil), "sgn.message.v1.QueryMessageBusResponse")
 	proto.RegisterType((*QueryFeeClaimInfoRequest)(nil), "sgn.message.v1.QueryFeeClaimInfoRequest")
@@ -862,67 +882,72 @@ func init() {
 func init() { proto.RegisterFile("sgn/message/v1/query.proto", fileDescriptor_ed0081b532e3c802) }
 
 var fileDescriptor_ed0081b532e3c802 = []byte{
-	// 955 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x96, 0xcf, 0x6f, 0x1b, 0x45,
-	0x14, 0xc7, 0xbd, 0x50, 0x12, 0xf7, 0xe5, 0x47, 0xd5, 0x21, 0x38, 0xee, 0xd2, 0x6e, 0xaa, 0x21,
-	0x4d, 0xdd, 0x80, 0x77, 0xeb, 0x24, 0x10, 0x29, 0x07, 0x24, 0x1c, 0x05, 0x61, 0x21, 0x04, 0x18,
-	0xb8, 0x70, 0x31, 0x9b, 0xf5, 0xd8, 0x5d, 0x11, 0xef, 0x38, 0x3b, 0xbb, 0x6e, 0xaa, 0x28, 0x97,
-	0x1e, 0x10, 0x17, 0x24, 0x24, 0xc4, 0x05, 0x10, 0xea, 0x9d, 0x7f, 0xa4, 0xc7, 0x48, 0x5c, 0x38,
-	0x21, 0x94, 0x70, 0xe0, 0xcf, 0x40, 0x3b, 0xfb, 0x26, 0xf1, 0x8e, 0x77, 0x13, 0xdf, 0x3c, 0x33,
-	0xef, 0xbd, 0xef, 0xe7, 0xcd, 0x8f, 0xef, 0x1a, 0x4c, 0xd1, 0x0f, 0x9c, 0x01, 0x13, 0xc2, 0xed,
-	0x33, 0x67, 0xd4, 0x70, 0x0e, 0x63, 0x16, 0x3e, 0xb3, 0x87, 0x21, 0x8f, 0x38, 0x59, 0x14, 0xfd,
-	0xc0, 0xc6, 0x35, 0x7b, 0xd4, 0x30, 0x97, 0xfa, 0xbc, 0xcf, 0xe5, 0x92, 0x93, 0xfc, 0x4a, 0xa3,
-	0xcc, 0xbb, 0x7d, 0xce, 0xfb, 0x07, 0xcc, 0x71, 0x87, 0xbe, 0xe3, 0x06, 0x01, 0x8f, 0xdc, 0xc8,
-	0xe7, 0x81, 0xc0, 0x55, 0x59, 0xdf, 0xe3, 0x83, 0x01, 0x0f, 0x92, 0xf2, 0xe9, 0x2f, 0x95, 0xa9,
-	0x69, 0x2b, 0x29, 0xb9, 0x4a, 0x97, 0x80, 0x7c, 0x9e, 0xc0, 0x7c, 0xe6, 0x86, 0xee, 0x40, 0xb4,
-	0xd9, 0x61, 0xcc, 0x44, 0x44, 0x3f, 0x86, 0xd7, 0x33, 0xb3, 0x62, 0xc8, 0x03, 0xc1, 0xc8, 0x16,
-	0xcc, 0x0c, 0xe5, 0x4c, 0xd5, 0xb8, 0x6f, 0xd4, 0xe6, 0x36, 0x2a, 0x76, 0x96, 0xdd, 0x4e, 0xe3,
-	0x9b, 0x37, 0x5e, 0xfe, 0xbd, 0x52, 0x6a, 0x63, 0x2c, 0xf5, 0xe0, 0x9e, 0x2c, 0xb6, 0x77, 0xc4,
-	0xbc, 0x38, 0xa1, 0xde, 0xe5, 0x41, 0xc4, 0x8e, 0x22, 0xa5, 0x46, 0x9a, 0xb0, 0xe8, 0xf1, 0x20,
-	0x0a, 0x5d, 0x2f, 0xea, 0xf8, 0x41, 0x8f, 0x27, 0xe5, 0x5f, 0xad, 0xcd, 0x6d, 0xbc, 0x29, 0xcb,
-	0x63, 0x33, 0xa3, 0x86, 0xbd, 0x8b, 0x41, 0xad, 0xa0, 0xc7, 0xdb, 0x0b, 0xde, 0xd8, 0x48, 0xd0,
-	0xa7, 0x60, 0x15, 0x89, 0x20, 0xfc, 0x57, 0x40, 0x98, 0x5a, 0xec, 0x78, 0xb8, 0x8a, 0x4a, 0xf7,
-	0xf5, 0x46, 0xf4, 0x32, 0xd8, 0xd2, 0x6d, 0xa6, 0x97, 0xa7, 0xdb, 0x50, 0x69, 0x89, 0x4f, 0xd2,
-	0xcc, 0x0f, 0xbc, 0xc8, 0x1f, 0x31, 0xd5, 0xd6, 0x3d, 0x00, 0xac, 0xd8, 0xf1, 0xbb, 0x72, 0xc7,
-	0x6e, 0xb6, 0x6f, 0xe2, 0x4c, 0xab, 0x4b, 0x1b, 0xb0, 0x3c, 0x91, 0x88, 0xa8, 0x15, 0x98, 0x61,
-	0x47, 0xbe, 0x88, 0xd2, 0x7d, 0x2e, 0xb7, 0x71, 0x44, 0x77, 0xe0, 0x8e, 0x6c, 0x12, 0xb3, 0xf6,
-	0xe4, 0xec, 0x94, 0x72, 0x5b, 0x60, 0xe6, 0xe5, 0x5e, 0xa3, 0xd8, 0x84, 0xaa, 0xcc, 0x6a, 0xb3,
-	0x5e, 0x1c, 0x74, 0xb3, 0x82, 0x6b, 0x70, 0x4b, 0x84, 0x5e, 0x27, 0x0a, 0xdd, 0x40, 0xf4, 0x58,
-	0x78, 0xa9, 0xba, 0x20, 0x42, 0xef, 0x4b, 0x9c, 0x6d, 0x75, 0xe9, 0x26, 0x52, 0x67, 0x6b, 0x5c,
-	0x23, 0xbc, 0x85, 0x37, 0x10, 0x71, 0xa7, 0x6c, 0xf2, 0x53, 0x58, 0xca, 0x66, 0xa1, 0xca, 0x36,
-	0xcc, 0x62, 0x10, 0xde, 0xdc, 0x65, 0xfd, 0xc0, 0x31, 0x03, 0xcf, 0x59, 0x45, 0xd3, 0x77, 0xb1,
-	0xa0, 0x6a, 0x67, 0x4a, 0x8e, 0x2f, 0xe0, 0x0d, 0x2d, 0x0d, 0x41, 0x76, 0xa0, 0xac, 0xf6, 0x0b,
-	0x49, 0xaa, 0x3a, 0x89, 0xca, 0x41, 0x94, 0x8b, 0x78, 0xba, 0x09, 0x95, 0xf1, 0xe6, 0x9a, 0xf1,
-	0xc5, 0x49, 0xdc, 0x81, 0xb2, 0xf7, 0xc4, 0xf5, 0x03, 0xc5, 0x72, 0xa3, 0x3d, 0x2b, 0xc7, 0xad,
-	0x2e, 0xfd, 0x06, 0x96, 0x27, 0x92, 0x90, 0x65, 0x0f, 0xe6, 0x54, 0x0f, 0xfb, 0xb1, 0x7a, 0xd2,
-	0x56, 0xd1, 0xc6, 0xc4, 0x22, 0x79, 0x68, 0x08, 0xa5, 0x9a, 0x6f, 0xc6, 0x82, 0xbe, 0x8f, 0x57,
-	0xe4, 0x43, 0xc6, 0x76, 0x0f, 0x5c, 0x7f, 0x20, 0x5f, 0x27, 0x82, 0x55, 0x61, 0xd6, 0xed, 0x76,
-	0x43, 0x26, 0x04, 0xee, 0x91, 0x1a, 0xee, 0x94, 0xbf, 0x7f, 0xb1, 0x52, 0xfa, 0xef, 0xc5, 0x4a,
-	0x89, 0x32, 0xbc, 0x1e, 0xd9, 0x7c, 0x64, 0xfc, 0x08, 0x16, 0x7b, 0x8c, 0x75, 0xbc, 0x64, 0x41,
-	0x7a, 0x03, 0x62, 0xde, 0xd5, 0x31, 0xc7, 0xb3, 0x11, 0x72, 0xbe, 0x37, 0x36, 0xb7, 0xf1, 0x07,
-	0xc0, 0x6b, 0x52, 0x87, 0x1c, 0xc2, 0x4c, 0xea, 0x53, 0x84, 0xea, 0x55, 0x26, 0xad, 0xd0, 0x7c,
-	0xeb, 0xca, 0x98, 0x14, 0x93, 0x5a, 0xcf, 0xff, 0xfc, 0xf7, 0xa7, 0x57, 0xaa, 0xa4, 0xe2, 0x24,
-	0x66, 0x7b, 0x69, 0xb2, 0x4e, 0x6a, 0x81, 0xe4, 0x77, 0x03, 0x6e, 0x4f, 0x38, 0x13, 0xa9, 0xe7,
-	0x96, 0x2e, 0xb2, 0x49, 0xd3, 0x9e, 0x36, 0x1c, 0xa1, 0xd6, 0x25, 0xd4, 0x2a, 0xa1, 0x3a, 0xd4,
-	0xa4, 0x0d, 0x92, 0xe7, 0x06, 0xcc, 0xe2, 0x49, 0x93, 0xfc, 0x8e, 0xb3, 0x0f, 0xd1, 0x5c, 0xbd,
-	0x3a, 0x08, 0x11, 0xde, 0x91, 0x08, 0x6b, 0x64, 0xd5, 0xc9, 0xff, 0x08, 0x39, 0xc7, 0x97, 0xaf,
-	0xe8, 0x84, 0xfc, 0x6a, 0xc0, 0x42, 0xc6, 0x9e, 0xc8, 0xa3, 0xab, 0x54, 0x32, 0x6e, 0x64, 0xae,
-	0x4f, 0x13, 0x8a, 0x58, 0x9b, 0x12, 0xab, 0x4e, 0xde, 0x2e, 0xc0, 0xea, 0xa4, 0x26, 0x94, 0xa5,
-	0xfb, 0xc5, 0x80, 0x5b, 0x9a, 0x61, 0x93, 0x35, 0x5d, 0x34, 0xff, 0x53, 0x60, 0x3e, 0xbc, 0x36,
-	0x0e, 0xc9, 0xde, 0x93, 0x64, 0x8f, 0x89, 0xad, 0x93, 0xf9, 0xa2, 0xa3, 0x60, 0x5c, 0x99, 0x92,
-	0x85, 0xfb, 0xcd, 0x80, 0xf9, 0x71, 0x7f, 0x25, 0xb5, 0xdc, 0xed, 0xc8, 0xb1, 0x71, 0xf3, 0xd1,
-	0x14, 0x91, 0x48, 0xb7, 0x2d, 0xe9, 0x1a, 0xc4, 0xd1, 0xe9, 0x42, 0x19, 0x7d, 0xb1, 0x6d, 0xda,
-	0x67, 0xe1, 0x84, 0x7c, 0x67, 0x40, 0x59, 0xf9, 0x1a, 0xc9, 0xbf, 0x3a, 0x9a, 0xc3, 0x9a, 0x0f,
-	0xae, 0x89, 0x42, 0xa4, 0xba, 0x44, 0x7a, 0x48, 0x1e, 0xe8, 0x48, 0x4a, 0x3f, 0xbb, 0x4f, 0x3f,
-	0x18, 0x00, 0x97, 0x8e, 0x36, 0x79, 0x7e, 0xf9, 0x06, 0x3b, 0x79, 0x7e, 0x05, 0x9e, 0x4a, 0x6d,
-	0x89, 0x53, 0x23, 0x6b, 0x45, 0x37, 0x6b, 0x3f, 0x16, 0xce, 0xb1, 0x32, 0xeb, 0x13, 0xf2, 0xb3,
-	0x01, 0xf3, 0xe3, 0xd6, 0x55, 0x70, 0x6e, 0x39, 0xde, 0x5a, 0x70, 0x6e, 0x79, 0x2e, 0x4a, 0x1f,
-	0x4b, 0xaa, 0x75, 0x52, 0xd3, 0xa9, 0xb2, 0xde, 0xea, 0x1c, 0xa3, 0x3b, 0x9f, 0x34, 0x5b, 0x2f,
-	0xcf, 0x2c, 0xe3, 0xf4, 0xcc, 0x32, 0xfe, 0x39, 0xb3, 0x8c, 0x1f, 0xcf, 0xad, 0xd2, 0xe9, 0xb9,
-	0x55, 0xfa, 0xeb, 0xdc, 0x2a, 0x7d, 0xed, 0xf4, 0xfd, 0xe8, 0x49, 0xbc, 0x9f, 0xfc, 0x2d, 0x73,
-	0x3c, 0x76, 0xc0, 0xc2, 0x7a, 0xc0, 0xa2, 0xa7, 0x3c, 0xfc, 0x36, 0xa9, 0x5d, 0x1f, 0x6d, 0x38,
-	0x47, 0x17, 0x02, 0xd1, 0xb3, 0x21, 0x13, 0xfb, 0x33, 0xf2, 0x8f, 0xe6, 0xe6, 0xff, 0x01, 0x00,
-	0x00, 0xff, 0xff, 0xcd, 0x43, 0x87, 0xd1, 0x04, 0x0b, 0x00, 0x00,
+	// 1025 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x96, 0x4f, 0x6f, 0xe3, 0xc4,
+	0x1b, 0xc7, 0xe3, 0xdd, 0xfd, 0xb5, 0xdd, 0xa7, 0x7f, 0xf6, 0xd7, 0xa1, 0x4a, 0xb3, 0x66, 0x9b,
+	0x56, 0x43, 0x55, 0xd2, 0x42, 0xe3, 0x4d, 0x52, 0x51, 0x6d, 0x0f, 0x48, 0xb8, 0x2a, 0x22, 0x42,
+	0xab, 0x05, 0xb3, 0x5c, 0xb8, 0x18, 0xc7, 0x9e, 0x78, 0x2d, 0x12, 0x3b, 0xf5, 0xd8, 0xd9, 0x46,
+	0x55, 0x2f, 0x7b, 0xe2, 0x82, 0x84, 0x84, 0xb8, 0x00, 0x42, 0xfb, 0x4e, 0xb8, 0xee, 0x71, 0x11,
+	0x17, 0x4e, 0x08, 0xb5, 0x1c, 0x78, 0x05, 0x9c, 0x91, 0xc7, 0x8f, 0x9b, 0xd8, 0x71, 0x9a, 0x88,
+	0x9b, 0x67, 0xe6, 0xf9, 0xf3, 0x79, 0x9e, 0x19, 0x7f, 0x67, 0x40, 0xe6, 0xb6, 0xab, 0x74, 0x19,
+	0xe7, 0x86, 0xcd, 0x94, 0x7e, 0x4d, 0x39, 0x0d, 0x99, 0x3f, 0xa8, 0xf6, 0x7c, 0x2f, 0xf0, 0xc8,
+	0x0a, 0xb7, 0xdd, 0x2a, 0xae, 0x55, 0xfb, 0x35, 0x79, 0xcd, 0xf6, 0x6c, 0x4f, 0x2c, 0x29, 0xd1,
+	0x57, 0x6c, 0x25, 0x3f, 0xb0, 0x3d, 0xcf, 0xee, 0x30, 0xc5, 0xe8, 0x39, 0x8a, 0xe1, 0xba, 0x5e,
+	0x60, 0x04, 0x8e, 0xe7, 0x72, 0x5c, 0x15, 0xf1, 0x4d, 0xaf, 0xdb, 0xf5, 0xdc, 0x28, 0x7c, 0xfc,
+	0x95, 0x78, 0x66, 0x72, 0x27, 0xa9, 0xc4, 0x2a, 0x5d, 0x03, 0xf2, 0x69, 0x04, 0xf3, 0x89, 0xe1,
+	0x1b, 0x5d, 0xae, 0xb1, 0xd3, 0x90, 0xf1, 0x80, 0x7e, 0x0c, 0x6f, 0xa4, 0x66, 0x79, 0xcf, 0x73,
+	0x39, 0x23, 0x07, 0x30, 0xd7, 0x13, 0x33, 0x25, 0x69, 0x4b, 0xaa, 0x2c, 0xd6, 0x8b, 0xd5, 0x34,
+	0x7b, 0x35, 0xb6, 0x57, 0xef, 0xbc, 0xfa, 0x63, 0xb3, 0xa0, 0xa1, 0x2d, 0x35, 0x61, 0x43, 0x04,
+	0x3b, 0x39, 0x63, 0x66, 0x18, 0x51, 0x1f, 0x7b, 0x6e, 0xc0, 0xce, 0x82, 0x24, 0x1b, 0x51, 0x61,
+	0xc5, 0xf4, 0xdc, 0xc0, 0x37, 0xcc, 0x40, 0x77, 0xdc, 0xb6, 0x17, 0x85, 0xbf, 0x5d, 0x59, 0xac,
+	0xbf, 0x29, 0xc2, 0x63, 0x31, 0xfd, 0x5a, 0xf5, 0x18, 0x8d, 0x9a, 0x6e, 0xdb, 0xd3, 0x96, 0xcd,
+	0x91, 0x11, 0xa7, 0xcf, 0xa1, 0x3c, 0x29, 0x09, 0xc2, 0x7f, 0x0e, 0x84, 0x25, 0x8b, 0xba, 0x89,
+	0xab, 0x98, 0x69, 0x2b, 0x5b, 0x48, 0x36, 0x0c, 0x96, 0xb4, 0xca, 0xb2, 0xe1, 0xe9, 0x2f, 0x12,
+	0xec, 0xe6, 0x66, 0x56, 0x07, 0x9f, 0xf9, 0xe6, 0x53, 0xdf, 0x70, 0x79, 0x9b, 0xf9, 0x49, 0xa9,
+	0x3b, 0x70, 0x8f, 0xfb, 0xa6, 0x1e, 0xe0, 0xb4, 0xee, 0x58, 0xa2, 0x95, 0x77, 0xb5, 0x65, 0x3e,
+	0x34, 0x6e, 0x5a, 0x44, 0x8d, 0xed, 0x5a, 0xbe, 0x63, 0xd9, 0x4c, 0x0f, 0x06, 0x3d, 0x56, 0xba,
+	0xb5, 0x25, 0x55, 0x56, 0xea, 0x72, 0x96, 0x54, 0x15, 0x26, 0x4f, 0x07, 0x3d, 0x26, 0x62, 0x0c,
+	0x87, 0x51, 0x2e, 0xb4, 0xd3, 0x1d, 0x4b, 0xf7, 0xdc, 0xce, 0xa0, 0x74, 0x7b, 0x4b, 0xaa, 0x2c,
+	0x68, 0xcb, 0x38, 0xdd, 0xb4, 0x9e, 0xb8, 0x9d, 0x01, 0x3d, 0x87, 0xbd, 0x59, 0x0a, 0xc0, 0x36,
+	0x3e, 0x86, 0xd5, 0xb1, 0x36, 0xe2, 0x71, 0x98, 0xda, 0x45, 0xed, 0xff, 0xd9, 0xfe, 0xd1, 0x43,
+	0x28, 0x36, 0xf9, 0xe3, 0xd8, 0xe5, 0x03, 0x33, 0x70, 0xfa, 0x2c, 0x69, 0xd5, 0x06, 0xc0, 0x10,
+	0x1f, 0xbb, 0x74, 0xf7, 0x9a, 0x9c, 0xd6, 0x60, 0x7d, 0xcc, 0x11, 0x11, 0x8b, 0x30, 0xc7, 0xce,
+	0x1c, 0x1e, 0xc4, 0xc7, 0x74, 0x41, 0xc3, 0x11, 0x3d, 0x82, 0xfb, 0xa2, 0x50, 0xf4, 0x3a, 0x11,
+	0xb3, 0x33, 0xa6, 0x3b, 0x00, 0x39, 0xcf, 0x77, 0x4a, 0x46, 0x15, 0x4a, 0xc2, 0x4b, 0x63, 0xed,
+	0xd0, 0xb5, 0xd2, 0x09, 0x67, 0x3c, 0x0a, 0xb4, 0x81, 0xd4, 0xe9, 0x18, 0x53, 0x12, 0x1f, 0xe0,
+	0x0f, 0x8c, 0xb8, 0x33, 0x16, 0xf9, 0x04, 0xd6, 0xd2, 0x5e, 0x98, 0xe5, 0x10, 0xe6, 0xd1, 0x08,
+	0x77, 0x7a, 0x3d, 0xbb, 0xd3, 0xe8, 0x81, 0xbf, 0x49, 0x62, 0x4d, 0x1b, 0x50, 0x1c, 0x0d, 0xa8,
+	0x86, 0xd7, 0xd5, 0xdf, 0x87, 0x05, 0xf3, 0x99, 0xe1, 0xb8, 0x09, 0xc7, 0x1d, 0x6d, 0x5e, 0x8c,
+	0x9b, 0x16, 0xfd, 0x12, 0xd6, 0xc7, 0x9c, 0x10, 0xe4, 0x04, 0x16, 0x13, 0xfe, 0x56, 0x98, 0xa8,
+	0x50, 0x79, 0x12, 0x4c, 0xc8, 0x23, 0x6d, 0x40, 0xa6, 0xa4, 0x70, 0x35, 0xe4, 0xf4, 0x7d, 0xdc,
+	0x96, 0x0f, 0x19, 0x3b, 0xee, 0x18, 0x4e, 0x57, 0x08, 0x0a, 0x82, 0x95, 0x60, 0xde, 0xb0, 0x2c,
+	0x9f, 0x71, 0x8e, 0xfd, 0x49, 0x86, 0x47, 0x0b, 0x5f, 0xbf, 0xdc, 0x2c, 0xfc, 0xfd, 0x72, 0xb3,
+	0x40, 0x19, 0x6e, 0x49, 0xda, 0x1f, 0x19, 0x3f, 0x82, 0x95, 0x36, 0x63, 0xba, 0x19, 0x2d, 0x08,
+	0x39, 0x43, 0xcc, 0x07, 0x59, 0xcc, 0x51, 0x6f, 0x84, 0x5c, 0x6a, 0x8f, 0xcc, 0xd5, 0xff, 0x01,
+	0xf8, 0x9f, 0xc8, 0x43, 0x4e, 0x61, 0x2e, 0x96, 0x56, 0x42, 0xb3, 0x51, 0xc6, 0xd5, 0x5b, 0x7e,
+	0xeb, 0x46, 0x9b, 0x18, 0x93, 0x96, 0x5f, 0xfc, 0xf6, 0xd7, 0x77, 0xb7, 0x4a, 0xa4, 0xa8, 0x44,
+	0xf7, 0xc3, 0xf0, 0x5e, 0x50, 0x62, 0xd5, 0x26, 0x3f, 0x4b, 0xb0, 0x3a, 0x26, 0xa6, 0x64, 0x3f,
+	0x37, 0xf4, 0x24, 0x65, 0x97, 0xab, 0xb3, 0x9a, 0x23, 0xd4, 0x9e, 0x80, 0xda, 0x26, 0x34, 0x0b,
+	0x35, 0xae, 0xdc, 0xe4, 0x57, 0x09, 0x36, 0x6e, 0x94, 0x2c, 0xf2, 0x68, 0xa6, 0xec, 0x79, 0x3a,
+	0x2d, 0x1f, 0xfd, 0x17, 0x57, 0x2c, 0xe2, 0x91, 0x28, 0xa2, 0x41, 0x6a, 0x53, 0x8b, 0xd0, 0x5b,
+	0x03, 0x7d, 0x54, 0x03, 0xc8, 0x0b, 0x09, 0xe6, 0xf1, 0xf4, 0x92, 0xfc, 0x5d, 0x4c, 0xff, 0xd0,
+	0xf2, 0xf6, 0xcd, 0x46, 0x48, 0xf4, 0xae, 0x20, 0xda, 0x21, 0xdb, 0x4a, 0xfe, 0x5b, 0x40, 0x39,
+	0x1f, 0xaa, 0xc2, 0x05, 0xf9, 0x51, 0x82, 0xe5, 0x94, 0xcc, 0x91, 0xdd, 0x9b, 0xb2, 0xa4, 0x54,
+	0x4d, 0xde, 0x9b, 0xc5, 0x14, 0xb1, 0x1a, 0x02, 0x6b, 0x9f, 0xbc, 0x33, 0x01, 0x4b, 0x8f, 0xc5,
+	0x2c, 0x4d, 0xf7, 0x83, 0x04, 0xf7, 0x32, 0xc2, 0x4f, 0x76, 0xb2, 0x49, 0xf3, 0xaf, 0x14, 0xf9,
+	0xed, 0xa9, 0x76, 0x48, 0xf6, 0x9e, 0x20, 0x7b, 0x48, 0xaa, 0x59, 0x32, 0x87, 0xeb, 0x09, 0x8c,
+	0x21, 0x5c, 0xd2, 0x70, 0x3f, 0x49, 0xb0, 0x34, 0xaa, 0xd3, 0xa4, 0x92, 0xdb, 0x8e, 0x9c, 0xeb,
+	0x40, 0xde, 0x9d, 0xc1, 0x12, 0xe9, 0x0e, 0x05, 0x5d, 0x8d, 0x28, 0x59, 0x3a, 0x5f, 0x58, 0x5f,
+	0xb7, 0x2d, 0x73, 0xbd, 0x5c, 0x90, 0x6f, 0x24, 0x80, 0xa1, 0x38, 0x8e, 0xb7, 0x2d, 0x5f, 0xab,
+	0xc7, 0xdb, 0x36, 0x41, 0x9e, 0x69, 0x55, 0x80, 0x55, 0xc8, 0xce, 0xa4, 0x0d, 0x6d, 0x85, 0x5c,
+	0x39, 0x4f, 0x74, 0xff, 0x82, 0x7c, 0x2f, 0xc1, 0xd2, 0xa8, 0x0a, 0x4e, 0x68, 0x57, 0x8e, 0x4c,
+	0x4f, 0x68, 0x57, 0x9e, 0x20, 0xd3, 0x87, 0x82, 0x6a, 0x8f, 0x54, 0xb2, 0x54, 0x69, 0x99, 0x56,
+	0xce, 0x51, 0xe8, 0x2f, 0xd4, 0xe6, 0xab, 0xcb, 0xb2, 0xf4, 0xfa, 0xb2, 0x2c, 0xfd, 0x79, 0x59,
+	0x96, 0xbe, 0xbd, 0x2a, 0x17, 0x5e, 0x5f, 0x95, 0x0b, 0xbf, 0x5f, 0x95, 0x0b, 0x5f, 0x28, 0xb6,
+	0x13, 0x3c, 0x0b, 0x5b, 0xd1, 0xa3, 0x54, 0x31, 0x59, 0x87, 0xf9, 0xfb, 0x2e, 0x0b, 0x9e, 0x7b,
+	0xfe, 0x57, 0x51, 0xec, 0xfd, 0x7e, 0x5d, 0x39, 0xbb, 0x4e, 0x10, 0x3d, 0xda, 0x78, 0x6b, 0x4e,
+	0x3c, 0xb3, 0x1b, 0xff, 0x06, 0x00, 0x00, 0xff, 0xff, 0xc4, 0x55, 0xc7, 0xdc, 0x02, 0x0c, 0x00,
+	0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -946,6 +971,7 @@ type QueryClient interface {
 	//
 	// The query can be optionally filtered by destination chain IDs and / or destination contract addresses.
 	ExecutionContexts(ctx context.Context, in *QueryExecutionContextsRequest, opts ...grpc.CallOption) (*QueryExecutionContextsResponse, error)
+	ExecutionContextBySrcTransfer(ctx context.Context, in *QueryExecutionContextBySrcTransferRequest, opts ...grpc.CallOption) (*QueryExecutionContextBySrcTransferResponse, error)
 	// Message queries the message details.
 	Message(ctx context.Context, in *QueryMessageRequest, opts ...grpc.CallOption) (*QueryMessageResponse, error)
 	// Message queries whether a message exists.
@@ -954,8 +980,6 @@ type QueryClient interface {
 	IsMessageActive(ctx context.Context, in *IsMessageActiveRequest, opts ...grpc.CallOption) (*IsMessageActiveResponse, error)
 	// Message queries whether a message exists.
 	RefundExists(ctx context.Context, in *QueryRefundExistsRequest, opts ...grpc.CallOption) (*QueryRefundExistsResponse, error)
-	// Transfer queries the optional transfer details associated with a message.
-	Transfer(ctx context.Context, in *QueryTransferRequest, opts ...grpc.CallOption) (*QueryTransferResponse, error)
 	// MessageBus queries the message bus contract info.
 	MessageBus(ctx context.Context, in *QueryMessageBusRequest, opts ...grpc.CallOption) (*QueryMessageBusResponse, error)
 	// FeeClaimInfo queries the info for claiming message fees on-chain.
@@ -982,6 +1006,15 @@ func (c *queryClient) Params(ctx context.Context, in *QueryParamsRequest, opts .
 func (c *queryClient) ExecutionContexts(ctx context.Context, in *QueryExecutionContextsRequest, opts ...grpc.CallOption) (*QueryExecutionContextsResponse, error) {
 	out := new(QueryExecutionContextsResponse)
 	err := c.cc.Invoke(ctx, "/sgn.message.v1.Query/ExecutionContexts", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *queryClient) ExecutionContextBySrcTransfer(ctx context.Context, in *QueryExecutionContextBySrcTransferRequest, opts ...grpc.CallOption) (*QueryExecutionContextBySrcTransferResponse, error) {
+	out := new(QueryExecutionContextBySrcTransferResponse)
+	err := c.cc.Invoke(ctx, "/sgn.message.v1.Query/ExecutionContextBySrcTransfer", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1024,15 +1057,6 @@ func (c *queryClient) RefundExists(ctx context.Context, in *QueryRefundExistsReq
 	return out, nil
 }
 
-func (c *queryClient) Transfer(ctx context.Context, in *QueryTransferRequest, opts ...grpc.CallOption) (*QueryTransferResponse, error) {
-	out := new(QueryTransferResponse)
-	err := c.cc.Invoke(ctx, "/sgn.message.v1.Query/Transfer", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *queryClient) MessageBus(ctx context.Context, in *QueryMessageBusRequest, opts ...grpc.CallOption) (*QueryMessageBusResponse, error) {
 	out := new(QueryMessageBusResponse)
 	err := c.cc.Invoke(ctx, "/sgn.message.v1.Query/MessageBus", in, out, opts...)
@@ -1062,6 +1086,7 @@ type QueryServer interface {
 	//
 	// The query can be optionally filtered by destination chain IDs and / or destination contract addresses.
 	ExecutionContexts(context.Context, *QueryExecutionContextsRequest) (*QueryExecutionContextsResponse, error)
+	ExecutionContextBySrcTransfer(context.Context, *QueryExecutionContextBySrcTransferRequest) (*QueryExecutionContextBySrcTransferResponse, error)
 	// Message queries the message details.
 	Message(context.Context, *QueryMessageRequest) (*QueryMessageResponse, error)
 	// Message queries whether a message exists.
@@ -1070,8 +1095,6 @@ type QueryServer interface {
 	IsMessageActive(context.Context, *IsMessageActiveRequest) (*IsMessageActiveResponse, error)
 	// Message queries whether a message exists.
 	RefundExists(context.Context, *QueryRefundExistsRequest) (*QueryRefundExistsResponse, error)
-	// Transfer queries the optional transfer details associated with a message.
-	Transfer(context.Context, *QueryTransferRequest) (*QueryTransferResponse, error)
 	// MessageBus queries the message bus contract info.
 	MessageBus(context.Context, *QueryMessageBusRequest) (*QueryMessageBusResponse, error)
 	// FeeClaimInfo queries the info for claiming message fees on-chain.
@@ -1088,6 +1111,9 @@ func (*UnimplementedQueryServer) Params(ctx context.Context, req *QueryParamsReq
 func (*UnimplementedQueryServer) ExecutionContexts(ctx context.Context, req *QueryExecutionContextsRequest) (*QueryExecutionContextsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ExecutionContexts not implemented")
 }
+func (*UnimplementedQueryServer) ExecutionContextBySrcTransfer(ctx context.Context, req *QueryExecutionContextBySrcTransferRequest) (*QueryExecutionContextBySrcTransferResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExecutionContextBySrcTransfer not implemented")
+}
 func (*UnimplementedQueryServer) Message(ctx context.Context, req *QueryMessageRequest) (*QueryMessageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Message not implemented")
 }
@@ -1099,9 +1125,6 @@ func (*UnimplementedQueryServer) IsMessageActive(ctx context.Context, req *IsMes
 }
 func (*UnimplementedQueryServer) RefundExists(ctx context.Context, req *QueryRefundExistsRequest) (*QueryRefundExistsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefundExists not implemented")
-}
-func (*UnimplementedQueryServer) Transfer(ctx context.Context, req *QueryTransferRequest) (*QueryTransferResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Transfer not implemented")
 }
 func (*UnimplementedQueryServer) MessageBus(ctx context.Context, req *QueryMessageBusRequest) (*QueryMessageBusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MessageBus not implemented")
@@ -1146,6 +1169,24 @@ func _Query_ExecutionContexts_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).ExecutionContexts(ctx, req.(*QueryExecutionContextsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Query_ExecutionContextBySrcTransfer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryExecutionContextBySrcTransferRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).ExecutionContextBySrcTransfer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sgn.message.v1.Query/ExecutionContextBySrcTransfer",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).ExecutionContextBySrcTransfer(ctx, req.(*QueryExecutionContextBySrcTransferRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1222,24 +1263,6 @@ func _Query_RefundExists_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Query_Transfer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryTransferRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(QueryServer).Transfer(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/sgn.message.v1.Query/Transfer",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).Transfer(ctx, req.(*QueryTransferRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Query_MessageBus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(QueryMessageBusRequest)
 	if err := dec(in); err != nil {
@@ -1289,6 +1312,10 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Query_ExecutionContexts_Handler,
 		},
 		{
+			MethodName: "ExecutionContextBySrcTransfer",
+			Handler:    _Query_ExecutionContextBySrcTransfer_Handler,
+		},
+		{
 			MethodName: "Message",
 			Handler:    _Query_Message_Handler,
 		},
@@ -1303,10 +1330,6 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RefundExists",
 			Handler:    _Query_RefundExists_Handler,
-		},
-		{
-			MethodName: "Transfer",
-			Handler:    _Query_Transfer_Handler,
 		},
 		{
 			MethodName: "MessageBus",
@@ -1447,6 +1470,86 @@ func (m *QueryExecutionContextsResponse) MarshalToSizedBuffer(dAtA []byte) (int,
 			i--
 			dAtA[i] = 0xa
 		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryExecutionContextBySrcTransferRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryExecutionContextBySrcTransferRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryExecutionContextBySrcTransferRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.MessageIdOnly {
+		i--
+		if m.MessageIdOnly {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.SrcBridgeType != 0 {
+		i = encodeVarintQuery(dAtA, i, uint64(m.SrcBridgeType))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.SrcTransferId) > 0 {
+		i -= len(m.SrcTransferId)
+		copy(dAtA[i:], m.SrcTransferId)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.SrcTransferId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryExecutionContextBySrcTransferResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryExecutionContextBySrcTransferResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryExecutionContextBySrcTransferResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.ExecutionContext != nil {
+		{
+			size, err := m.ExecutionContext.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -1703,69 +1806,6 @@ func (m *QueryMessageResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *QueryTransferRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *QueryTransferRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *QueryTransferRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if len(m.MessageId) > 0 {
-		i -= len(m.MessageId)
-		copy(dAtA[i:], m.MessageId)
-		i = encodeVarintQuery(dAtA, i, uint64(len(m.MessageId)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *QueryTransferResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *QueryTransferResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *QueryTransferResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	{
-		size, err := m.Transfer.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = encodeVarintQuery(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0xa
-	return len(dAtA) - i, nil
-}
-
 func (m *QueryMessageBusRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1951,6 +1991,38 @@ func (m *QueryExecutionContextsResponse) Size() (n int) {
 	return n
 }
 
+func (m *QueryExecutionContextBySrcTransferRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.SrcTransferId)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	if m.SrcBridgeType != 0 {
+		n += 1 + sovQuery(uint64(m.SrcBridgeType))
+	}
+	if m.MessageIdOnly {
+		n += 2
+	}
+	return n
+}
+
+func (m *QueryExecutionContextBySrcTransferResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ExecutionContext != nil {
+		l = m.ExecutionContext.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
 func (m *IsMessageActiveRequest) Size() (n int) {
 	if m == nil {
 		return 0
@@ -2046,30 +2118,6 @@ func (m *QueryMessageResponse) Size() (n int) {
 	var l int
 	_ = l
 	l = m.Message.Size()
-	n += 1 + l + sovQuery(uint64(l))
-	return n
-}
-
-func (m *QueryTransferRequest) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.MessageId)
-	if l > 0 {
-		n += 1 + l + sovQuery(uint64(l))
-	}
-	return n
-}
-
-func (m *QueryTransferResponse) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = m.Transfer.Size()
 	n += 1 + l + sovQuery(uint64(l))
 	return n
 }
@@ -2404,6 +2452,213 @@ func (m *QueryExecutionContextsResponse) Unmarshal(dAtA []byte) error {
 			}
 			m.ExecutionContexts = append(m.ExecutionContexts, ExecutionContext{})
 			if err := m.ExecutionContexts[len(m.ExecutionContexts)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryExecutionContextBySrcTransferRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryExecutionContextBySrcTransferRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryExecutionContextBySrcTransferRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SrcTransferId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SrcTransferId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SrcBridgeType", wireType)
+			}
+			m.SrcBridgeType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.SrcBridgeType |= BridgeType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MessageIdOnly", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.MessageIdOnly = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryExecutionContextBySrcTransferResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryExecutionContextBySrcTransferResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryExecutionContextBySrcTransferResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExecutionContext", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ExecutionContext == nil {
+				m.ExecutionContext = &ExecutionContext{}
+			}
+			if err := m.ExecutionContext.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3025,171 +3280,6 @@ func (m *QueryMessageResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if err := m.Message.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipQuery(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *QueryTransferRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowQuery
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: QueryTransferRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: QueryTransferRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field MessageId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowQuery
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthQuery
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.MessageId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipQuery(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *QueryTransferResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowQuery
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: QueryTransferResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: QueryTransferResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Transfer", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowQuery
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthQuery
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Transfer.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

@@ -13,6 +13,20 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+func NewMessage(ev *eth.MessageBusMessage, srcChainId uint64) (messageId eth.Hash, message *Message) {
+	message = &Message{
+		SrcChainId:      srcChainId,
+		Sender:          eth.Addr2Hex(ev.Sender),
+		DstChainId:      ev.DstChainId.Uint64(),
+		Receiver:        eth.Addr2Hex(ev.Receiver),
+		Data:            ev.Message,
+		Fee:             ev.Fee.String(),
+		ExecutionStatus: EXECUTION_STATUS_PENDING,
+	}
+	messageId = eth.Bytes2Hash(message.ComputeMessageIdNoTransfer())
+	return
+}
+
 func (m *Message) GetSignerAddrs() []common.Address {
 	if m == nil {
 		return nil
@@ -43,7 +57,7 @@ func (m *Message) EncodeDataToSign(messageId eth.Hash, messageBusAddr common.Add
 		return append(data, m.Data...)
 	}
 	// normal msg
-	if m.TransferType == TRANSFER_TYPE_NULL {
+	if m.GetTransferType() == TRANSFER_TYPE_NULL {
 		messageId := m.ComputeMessageIdNoTransfer()
 		domain := solsha3.SoliditySHA3(
 			[]string{"uint256", "address", "string"},

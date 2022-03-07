@@ -37,6 +37,10 @@ enum TransferType {
   TRANSFER_TYPE_PEG_MINT = 3;
   // TRANSFER_TYPE_PEG_MINT defines a withdraw transfer from an original token vault.
   TRANSFER_TYPE_PEG_WITHDRAW = 4;
+  // TRANSFER_TYPE_PEG_MINT_V2 defines a mint transfer via a pegged token bridge v2.
+  TRANSFER_TYPE_PEG_MINT_V2 = 5;
+  // TRANSFER_TYPE_PEG_MINT_V2 defines a withdraw transfer from an original token vault v2.
+  TRANSFER_TYPE_PEG_WITHDRAW_V2 = 6;
 }
 
 // ExecutionStatus defines the on-chain execution status of a message.
@@ -57,6 +61,14 @@ enum ExecutionStatus {
 enum MsgType {
   MSG_TYPE_MESSAGE_WITH_TRANSFER = 0;
   MSG_TYPE_MESSAGE = 1;
+}
+
+enum BridgeType {
+  option (gogoproto.goproto_enum_prefix) = false;
+  BRIDGE_TYPE_NULL = 0;
+  BRIDGE_TYPE_LIQUIDITY = 1;
+  BRIDGE_TYPE_PEG_VAULT = 2;
+  BRIDGE_TYPE_PEG_BRIDGE = 3;
 }
 
 // Message describes the info of a cross-chain message.
@@ -82,6 +94,11 @@ message Message {
   // transfer_type defines the associated type of transfer.
   TransferType transfer_type = 7 [(gogoproto.moretags) = "yaml:\"transfer_type\""];
 
+  // transfer_ref_id defines the reference ID of the transfer.
+  // For sending via a liquidity bridge, ref_id is the src transfer ID.
+  // For mint / withdrawal via a pegged bridge, ref_id is the reference ID of the pegged transfer.
+  bytes transfer_ref_id = 11 [(gogoproto.moretags) = "yaml:\"transfer\""];
+
   // execution_status defines the on-chain execution status.
   ExecutionStatus execution_status = 8 [(gogoproto.moretags) = "yaml:\"execution_status\""];
 
@@ -91,9 +108,13 @@ message Message {
   // last_sig_req_time defines the latest timestamp a signing request was made.
   // Used for anti-dos.
   int64 last_sig_req_time = 10 [(gogoproto.moretags) = "yaml:\"last_sig_req_time\""];
+
+  // source tx hash of the message
+  string src_tx_hash = 12 [(gogoproto.moretags) = "yaml:\"receiver\""];
 }
 
 // Transfer defines the optional transfer info associated with a message.
+// This is not directly stored in consensus db.
 message Transfer {
   // token defines the token address of a transfer.
   bytes token = 1 [(gogoproto.moretags) = "yaml:\"token\""];
@@ -103,11 +124,6 @@ message Transfer {
 
   // seq_num defines the sequence number required for withdrawals from a liquidity bridge.
   uint64 seq_num = 3 [(gogoproto.moretags) = "yaml:\"seq_num\""];
-
-  // ref_id defines the reference ID of the transfer.
-  // For sending via a liquidity bridge, ref_id is the src transfer ID.
-  // For mint / withdrawal via a pegged bridge, ref_id is the reference ID of the pegged transfer.
-  bytes ref_id = 4 [(gogoproto.moretags) = "yaml:\"ref_id\""];
 }
 
 // ExecutionContext defines all the info needed for executing a message.
@@ -119,6 +135,7 @@ message ExecutionContext {
   Message message = 2 [(gogoproto.moretags) = "yaml:\"message\"", (gogoproto.nullable) = false];
 
   // transfer defines the optional transfer info associated with the message.
+  // it is not stored in consensus db, but derived from message fields.
   Transfer transfer = 3 [(gogoproto.moretags) = "yaml:\"transfer\""];
 }
 

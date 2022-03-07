@@ -4,17 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
-	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	msgbrtypes "github.com/celer-network/sgn-v2/x/message/types"
-	pegcli "github.com/celer-network/sgn-v2/x/pegbridge/client/cli"
-	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
@@ -130,104 +126,18 @@ func (c *CbrOneChain) pullMsgbrEvents(chid uint64, cliCtx client.Context, update
 	return
 }
 
-func (c *CbrOneChain) getTransferType(srcChainBridgeAddr eth.Addr) msgbrtypes.TransferType {
+func (c *CbrOneChain) getSrcBridgeType(srcChainBridgeAddr eth.Addr) msgbrtypes.BridgeType {
 	if c.cbrContract.GetAddr() == srcChainBridgeAddr {
-		return msgbrtypes.TRANSFER_TYPE_LIQUIDITY_SEND
+		return msgbrtypes.BRIDGE_TYPE_LIQUIDITY
 	} else if c.pegContracts.GetPegVaultContract().GetAddr() == srcChainBridgeAddr {
 		// srcChain: deposit
-		return msgbrtypes.TRANSFER_TYPE_PEG_MINT
+		return msgbrtypes.BRIDGE_TYPE_PEG_VAULT
 	} else if c.pegContracts.GetPegBridgeContract().GetAddr() == srcChainBridgeAddr {
 		// srcChain: burn
-		return msgbrtypes.TRANSFER_TYPE_PEG_WITHDRAW
+		return msgbrtypes.BRIDGE_TYPE_PEG_BRIDGE
 	} else {
-		return msgbrtypes.TRANSFER_TYPE_NULL
+		return msgbrtypes.BRIDGE_TYPE_NULL
 	}
-}
-
-func getTransferInfoBySrcTransferId(
-	cliCtx client.Context, srcTransferId eth.Hash, transferType msgbrtypes.TransferType) (sender eth.Addr, dstChainId uint64, token eth.Addr, amt *big.Int, isRefund bool, err error) {
-	switch transferType {
-	case msgbrtypes.TRANSFER_TYPE_LIQUIDITY_SEND:
-		xferIdStr := srcTransferId.String()
-		var resp *cbrtypes.QueryTransferStatusResponse
-		resp, err = cbrcli.QueryTransferStatus(cliCtx, &cbrtypes.QueryTransferStatusRequest{
-			TransferId: []string{xferIdStr},
-		})
-		if err == nil {
-			status := resp.GetStatus()[xferIdStr]
-			if status.GetSgnStatus() == cbrtypes.XferStatus_UNKNOWN {
-				log.Debugf("unknown xfer status: status %s", resp.GetStatus()[xferIdStr].GetSgnStatus())
-				err = fmt.Errorf("unknown xfer status: status %s", resp.GetStatus()[xferIdStr].GetSgnStatus())
-			} else if status.GetSgnStatus() != cbrtypes.XferStatus_SUCCESS ||
-				status.GetSgnStatus() != cbrtypes.XferStatus_OK_TO_RELAY {
-				isRefund = true
-			}
-		}
-		if isRefund {
-			return
-		}
-		var relay *cbrtypes.XferRelay
-		relay, err = cbrcli.QueryRelay(cliCtx, srcTransferId.Bytes())
-		relayOnChain := new(cbrtypes.RelayOnChain)
-		if err == nil {
-			err = relayOnChain.Unmarshal(relay.Relay)
-		}
-		if err == nil {
-			sender = eth.Bytes2Addr(relayOnChain.Sender)
-			dstChainId = relayOnChain.DstChainId
-			token = eth.Bytes2Addr(relayOnChain.Token)
-			amt = new(big.Int).SetBytes(relayOnChain.Amount)
-		}
-	case msgbrtypes.TRANSFER_TYPE_PEG_MINT:
-		var deposit pegbrtypes.DepositInfo
-		deposit, err = pegcli.QueryDepositInfo(cliCtx, srcTransferId.String())
-		if err == nil {
-			if deposit.GetMintId() == nil {
-				isRefund = true
-				return
-			}
-			var mint pegbrtypes.MintInfo
-			mint, err = pegcli.QueryMintInfo(cliCtx, eth.Bytes2Hash(deposit.GetMintId()).String())
-			if err == nil {
-				dstChainId = mint.GetChainId()
-				mintOnChain := new(pegbrtypes.MintOnChain)
-				err = mintOnChain.Unmarshal(mint.GetMintProtoBytes())
-				if err != nil {
-					log.Errorf("Unmarshal mintInfo.MintProtoBytes err %s", err)
-					return sender, dstChainId, eth.ZeroAddr, new(big.Int).SetUint64(0), isRefund, err
-				}
-				sender = eth.Bytes2Addr(mintOnChain.GetDepositor())
-				token = eth.Bytes2Addr(mintOnChain.GetToken())
-				amt = new(big.Int).SetBytes(mintOnChain.GetAmount())
-			}
-		}
-	case msgbrtypes.TRANSFER_TYPE_PEG_WITHDRAW:
-		var burn pegbrtypes.BurnInfo
-		burn, err = pegcli.QueryBurnInfo(cliCtx, srcTransferId.String())
-		if err == nil {
-			if burn.GetWithdrawId() == nil {
-				isRefund = true
-				return
-			}
-			var withdraw pegbrtypes.WithdrawInfo
-			withdraw, err = pegcli.QueryWithdrawInfo(cliCtx, eth.Bytes2Hash(burn.GetWithdrawId()).String())
-			if err == nil {
-				dstChainId = withdraw.GetChainId()
-				withdrawOnChain := new(pegbrtypes.WithdrawOnChain)
-				err = withdrawOnChain.Unmarshal(withdraw.GetWithdrawProtoBytes())
-				if err != nil {
-					log.Errorf("Unmarshal withdrawInfo.WithdrawProtoBytes err %s", err)
-					return sender, dstChainId, eth.ZeroAddr, new(big.Int).SetUint64(0), isRefund, err
-				}
-				sender = eth.Bytes2Addr(withdrawOnChain.GetBurnAccount())
-				token = eth.Bytes2Addr(withdrawOnChain.GetToken())
-				amt = new(big.Int).SetBytes(withdrawOnChain.GetAmount())
-			}
-		}
-	default:
-		err = fmt.Errorf("unknown transfer type")
-	}
-	return sender, dstChainId, token, amt, isRefund, err
 }
 
 func (c *CbrOneChain) skipMsgbrEvent(evn string, evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
@@ -239,7 +149,6 @@ func (c *CbrOneChain) skipMsgbrEvent(evn string, evlog *ethtypes.Log, cliCtx cli
 		if skip {
 			return skip, reason
 		}
-		skip, reason = c.skipMessageWithTransferRefund(evlog, cliCtx)
 	case msgbrtypes.MsgEventExecuted:
 		skip, reason = c.skipMessageExecuted(evlog, cliCtx)
 	}
@@ -252,64 +161,54 @@ func (c *CbrOneChain) skipMessageExecuted(evlog *ethtypes.Log, cliCtx client.Con
 		log.Errorf("getMessageId from evlog err: %s", err)
 		return
 	}
-	exist, reason := c.checkMessageActive(messageId, cliCtx)
-	skip = !exist
-	log.Debugf("check skipMessageExecuted:%s, skip:%t", messageId, skip)
+	queryClient := msgbrtypes.NewQueryClient(cliCtx)
+	resp, err := queryClient.IsMessageActive(context.Background(), &msgbrtypes.IsMessageActiveRequest{MessageId: messageId})
+	if err != nil {
+		return
+	}
+	if !resp.Exists {
+		return true, fmt.Sprintf("msgId %x not active", messageId)
+	}
 	return
 }
 
 func (c *CbrOneChain) skipMessageNoTransfer(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
-	messageId, err := c.getMessageIdFromMessageNoTransferEvent(cliCtx, evlog)
+	ev, err := c.msgContract.ParseMessage(*evlog)
 	if err != nil {
-		log.Warnf("getMessageId from message evlog err: %s", err)
-		return
+		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
 	}
-	return c.checkMessageActive(messageId, cliCtx)
-}
-
-func (c *CbrOneChain) skipMessageWithTransfer(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
-	messageId, err := c.getMessageIdFromMessageWithTransferEvent(cliCtx, evlog)
-	if err != nil {
-		reason = fmt.Sprintf("getMessageId from messageWithTransfer evlog err: %s", err)
-		log.Warnln(reason)
-		return
-	}
-	return c.checkMessageActive(messageId, cliCtx)
-}
-
-func (c *CbrOneChain) skipMessageWithTransferRefund(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
-	ev, err := c.msgContract.ParseMessageWithTransfer(*evlog)
-	if err != nil {
-		log.Warnf("getMessageId from messageWithTransfer evlog err: %s", err)
-		return
-	}
-
-	return c.checkRefundExists(eth.Bytes2Hex(ev.SrcTransferId[:]), cliCtx)
-}
-
-// if message exist, skip
-func (c *CbrOneChain) checkMessageActive(messageId string, cliCtx client.Context) (skip bool, reason string) {
+	messageId, _ := msgbrtypes.NewMessage(ev, c.chainid)
 	queryClient := msgbrtypes.NewQueryClient(cliCtx)
-	resp, err := queryClient.IsMessageActive(context.Background(), &msgbrtypes.IsMessageActiveRequest{MessageId: messageId})
+	resp, err := queryClient.MessageExists(
+		context.Background(), &msgbrtypes.QueryMessageExistsRequest{MessageId: messageId.Hex()})
 	if err != nil {
-		log.Errorf("Query MessageExists err: %s", err)
 		return
 	}
 	if resp.Exists {
-		return true, fmt.Sprintf("msg with msgId %s already synced", messageId)
+		return true, fmt.Sprintf("msgId %x already synced", messageId)
 	}
 	return
 }
 
-func (c *CbrOneChain) checkRefundExists(srcXferId string, cliCtx client.Context) (skip bool, reason string) {
-	queryClient := msgbrtypes.NewQueryClient(cliCtx)
-	resp, err := queryClient.RefundExists(context.Background(), &msgbrtypes.QueryRefundExistsRequest{SrcTransferId: srcXferId})
+func (c *CbrOneChain) skipMessageWithTransfer(evlog *ethtypes.Log, cliCtx client.Context) (skip bool, reason string) {
+	ev, err := c.msgContract.ParseMessageWithTransfer(*evlog)
 	if err != nil {
-		log.Errorf("Query MessageExists err: %s", err)
+		return true, fmt.Sprintf("fail to parse event, txHash:%x, err:%s", evlog.TxHash, err)
+	}
+	srcBridgeType := c.getSrcBridgeType(ev.Bridge)
+	queryClient := msgbrtypes.NewQueryClient(cliCtx)
+	resp, err := queryClient.ExecutionContextBySrcTransfer(context.Background(),
+		&msgbrtypes.QueryExecutionContextBySrcTransferRequest{
+			SrcTransferId: eth.Hash(ev.SrcTransferId).Hex(),
+			SrcBridgeType: srcBridgeType,
+			MessageIdOnly: true,
+		})
+	if err != nil {
 		return
 	}
-	if resp.Exists {
-		return true, fmt.Sprintf("msg refund (srcXferId %s) already applied", srcXferId)
+	messageId := eth.Bytes2Hash(resp.ExecutionContext.GetMessageId())
+	if messageId != eth.ZeroHash {
+		return true, fmt.Sprintf("srcTransfer %x with msgId %x already synced", ev.SrcTransferId, messageId)
 	}
 	return
 }
@@ -329,59 +228,8 @@ func (c *CbrOneChain) getMessageIdFromMessageNoTransferEvent(cliCtx client.Conte
 		log.Errorln("getMessageIdFromMessageEvent: cannot parse event:", err)
 		return "", err
 	}
-	message := msgbrtypes.Message{
-		SrcChainId: c.chainid,
-		Sender:     ev.Sender.String(),
-		DstChainId: ev.DstChainId.Uint64(),
-		Receiver:   ev.Receiver.String(),
-		Data:       ev.Message,
-	}
-	messageId := message.ComputeMessageIdNoTransfer()
-	return eth.Bytes2Hash(messageId).String(), nil
-}
-
-func (c *CbrOneChain) getMessageIdFromMessageWithTransferEvent(cliCtx client.Context, evlog *ethtypes.Log) (string, error) {
-	ev, err := c.msgContract.ParseMessageWithTransfer(*evlog)
-	if err != nil {
-		log.Errorln("getMessageIdFromMessageWithTransferEvent: cannot parse event:", err)
-		return "", err
-	}
-	transferType := c.getTransferType(ev.Bridge)
-	// check: bridge is either liquidity bridge, peg src vault, or peg dst bridge
-	if transferType == msgbrtypes.TRANSFER_TYPE_NULL {
-		return "", fmt.Errorf("getMessageIdFromMessageBusEvent failed, unknown bridge type, msg chainId:%d, transfer bridge:%s", c.chainid, ev.Bridge)
-	}
-
-	log.Debugf("getTransferInfoBySrcTransferId, srcTransferId:%x, type:%s", ev.SrcTransferId, transferType)
-	_, _, token, amt, _, err := getTransferInfoBySrcTransferId(cliCtx, ev.SrcTransferId, transferType)
-	if err != nil {
-		log.Warnf("getTransferInfoBySrcTransferId err:%+v", err)
-		return "", err
-	}
-	message := msgbrtypes.Message{
-		SrcChainId:   c.chainid,
-		Sender:       ev.Sender.String(),
-		DstChainId:   ev.DstChainId.Uint64(),
-		Receiver:     ev.Receiver.String(),
-		Data:         ev.Message,
-		TransferType: transferType,
-	}
-	transfer := &msgbrtypes.Transfer{
-		Token:  token.Bytes(),
-		Amount: amt.String(),
-		RefId:  ev.SrcTransferId[:],
-	}
-	execCtx := &msgbrtypes.ExecutionContext{
-		Message:  message,
-		Transfer: transfer,
-	}
-	dstChain := CbrMgrInstance[ev.DstChainId.Uint64()]
-	if dstChain == nil {
-		log.Errorf("dstChain cannot be found in CbrMgrInstance, dstChainId:%d", ev.DstChainId.Uint64())
-		return "", nil
-	}
-	messageId := execCtx.ComputeMessageId(dstChain.getBridgeAddrOnDstChain(transferType))
-	return eth.Bytes2Hash(messageId).String(), nil
+	messageId, _ := msgbrtypes.NewMessage(ev, c.chainid)
+	return messageId.String(), nil
 }
 
 func (c *CbrOneChain) getBridgeAddrOnDstChain(transferType msgbrtypes.TransferType) eth.Addr {

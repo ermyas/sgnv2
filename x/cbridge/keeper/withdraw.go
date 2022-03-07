@@ -294,3 +294,12 @@ func (k Keeper) claimFeeShare(ctx sdk.Context, wdReq *types.WithdrawReq, delAddr
 		Refid:    refId[:],
 	}, nil
 }
+
+func (k Keeper) Refund(ctx sdk.Context, xferId eth.Hash, nonce uint64) error {
+	wdReq := &types.WithdrawReq{
+		XferId:       xferId.Hex(),
+		ReqId:        nonce,
+		WithdrawType: types.RefundTransfer,
+	}
+	return k.initWithdraw(ctx, wdReq, nil, "", eth.ZeroAddr, eth.ZeroAddr)
+}

@@ -33,7 +33,6 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 	cmd.AddCommand(CmdQueryParams(),
 		CmdQueryExecutionContexts(),
 		CmdQueryMessage(),
-		CmdQueryTransfer(),
 		CmdQueryMessageBus())
 	return cmd
 }
@@ -127,30 +126,6 @@ func CmdQueryMessage() *cobra.Command {
 	}
 }
 
-func CmdQueryTransfer() *cobra.Command {
-	return &cobra.Command{
-		Use:   "transfer [transfer-id]",
-		Short: "Query transfer details",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
-
-			xferId := args[0]
-
-			xfer, err := QueryTransfer(cliCtx, xferId)
-			if err != nil {
-				log.Errorln("query transfer error", err)
-				return err
-			}
-
-			return cliCtx.PrintProto(&xfer)
-		},
-	}
-}
-
 func CmdQueryMessageBus() *cobra.Command {
 	return &cobra.Command{
 		Use:   "message-bus [chain-id]",
@@ -195,6 +170,20 @@ func QueryExecutionContexts(cliCtx client.Context, req *types.QueryExecutionCont
 	return queryClient.ExecutionContexts(context.Background(), req)
 }
 
+func QueryExecutionContextBySrcTransfer(
+	cliCtx client.Context, srcBridgeType types.BridgeType, srcTransferId eth.Hash) (*types.ExecutionContext, error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	res, err := queryClient.ExecutionContextBySrcTransfer(context.Background(),
+		&types.QueryExecutionContextBySrcTransferRequest{
+			SrcTransferId: srcTransferId.Hex(),
+			SrcBridgeType: srcBridgeType,
+		})
+	if err != nil {
+		return nil, err
+	}
+	return res.ExecutionContext, nil
+}
+
 func QueryMessage(cliCtx client.Context, messageId string) (msg types.Message, err error) {
 	queryClient := types.NewQueryClient(cliCtx)
 	res, err := queryClient.Message(context.Background(), &types.QueryMessageRequest{MessageId: messageId})
@@ -202,16 +191,6 @@ func QueryMessage(cliCtx client.Context, messageId string) (msg types.Message, e
 		return
 	}
 	msg = res.Message
-	return
-}
-
-func QueryTransfer(cliCtx client.Context, messageId string) (xfer types.Transfer, err error) {
-	queryClient := types.NewQueryClient(cliCtx)
-	res, err := queryClient.Transfer(context.Background(), &types.QueryTransferRequest{MessageId: messageId})
-	if err != nil {
-		return
-	}
-	xfer = res.Transfer
 	return
 }
 
