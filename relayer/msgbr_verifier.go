@@ -206,7 +206,7 @@ func getTransferInfo(cliCtx client.Context, srcTransferId eth.Hash, srcBridgeTyp
 		if status.GetSgnStatus() == cbrtypes.XferStatus_UNKNOWN {
 			return makeErr(fmt.Errorf("xfer status unknown"))
 		}
-		if status.GetSgnStatus() != cbrtypes.XferStatus_SUCCESS || status.GetSgnStatus() != cbrtypes.XferStatus_OK_TO_RELAY {
+		if status.GetSgnStatus() != cbrtypes.XferStatus_SUCCESS && status.GetSgnStatus() != cbrtypes.XferStatus_OK_TO_RELAY {
 			return foundRefund()
 		}
 		relay, err := cbrcli.QueryRelay(cliCtx, srcTransferId.Bytes())
