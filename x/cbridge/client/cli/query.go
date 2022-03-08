@@ -685,7 +685,6 @@ func GenerateClaimFeeWdList(cliCtx client.Context, delAddr string, minUsd uint32
 
 	var totalValue float64
 	wdLists := make(map[int][]string)
-	var chainIds []int
 	fmt.Printf("claimable fee amounts:\n\n")
 	for _, coin := range feeInfo.ClaimableFeeAmounts {
 		amount := coin.Amount
@@ -711,8 +710,11 @@ func GenerateClaimFeeWdList(cliCtx client.Context, delAddr string, minUsd uint32
 
 		if value >= float64(minUsd) {
 			wdLists[chainId] = append(wdLists[chainId], asset.Addr)
-			chainIds = append(chainIds, chainId)
 		}
+	}
+	var chainIds []int
+	for chainId := range wdLists {
+		chainIds = append(chainIds, chainId)
 	}
 	sort.Ints(chainIds)
 	var wdList []string
