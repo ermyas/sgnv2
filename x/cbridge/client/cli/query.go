@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -683,7 +684,8 @@ func GenerateClaimFeeWdList(cliCtx client.Context, delAddr string, minUsd uint32
 	ts := time.Now().Unix()
 
 	var totalValue float64
-	var wdList []string
+	wdLists := make(map[int][]string)
+	var chainIds []int
 	fmt.Printf("claimable fee amounts:\n\n")
 	for _, coin := range feeInfo.ClaimableFeeAmounts {
 		amount := coin.Amount
@@ -708,7 +710,15 @@ func GenerateClaimFeeWdList(cliCtx client.Context, delAddr string, minUsd uint32
 		fmt.Printf("usd value: %0.2f\n\n", value)
 
 		if value >= float64(minUsd) {
-			wdList = append(wdList, fmt.Sprintf("%d %d %s", ts, chainId, asset.Addr))
+			wdLists[chainId] = append(wdLists[chainId], asset.Addr)
+			chainIds = append(chainIds, chainId)
+		}
+	}
+	sort.Ints(chainIds)
+	var wdList []string
+	for _, chainId := range chainIds {
+		for _, addr := range wdLists[chainId] {
+			wdList = append(wdList, fmt.Sprintf("%d %d %s", ts, chainId, addr))
 			ts += 1
 		}
 	}
