@@ -3,7 +3,9 @@ package cli
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
+	"strings"
 
 	"github.com/celer-network/goutils/log"
 
@@ -15,6 +17,7 @@ import (
 	// "github.com/cosmos/cosmos-sdk/client/flags"
 	// sdk "github.com/cosmos/cosmos-sdk/types"
 
+	comtypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/message/types"
 )
@@ -59,39 +62,73 @@ func CmdQueryParams() *cobra.Command {
 	}
 }
 
+const flagInlineFilter = "filter"
+const flagJsonFilter = "json-filter"
+
 func CmdQueryExecutionContexts() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "exec-ctxs [request json]",
 		Short: "Query the execution contexts of all messages",
 		Long: `
-request json should be like below
+inline filter format: 
+--filter '5:0x09E4534B11D400BFcd2026b69E399763CeAfB42D,97:0x570F9c2f224b002d75F287f5430Bc9598E850E13'
+json file filter format:
+--json-filter <path-to-json>
 {
-	contract_infos:[
+	"contract_infos": [
 		{
-			"address": "3ff73bab93c505809c68b0a8e4321a2713d9255c",
-			"chain_id": 883
-		},
+			"chain_id": 5, 
+			"address": "0x09E4534B11D400BFcd2026b69E399763CeAfB42D"
+		}, 
 		{
-			"address": "58712219a4bdbb0e581dcaf6f5c4c2b2d2f42158",
-			"chain_id": 884
+			"chain_id": 97,
+			"address": "0x570F9c2f224b002d75F287f5430Bc9598E850E13"
 		}
 	]
 }
-`,
-		Args: cobra.ExactArgs(1),
+		`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx, err := client.GetClientQueryContext(cmd)
+			inlineFilterSlice, err := cmd.Flags().GetStringSlice(flagInlineFilter)
+			if err != nil {
+				return err
+			}
+			jsonFilterPath, err := cmd.Flags().GetString(flagJsonFilter)
 			if err != nil {
 				return err
 			}
 
 			req := new(types.QueryExecutionContextsRequest)
-			if args[0] != "" {
-				err := req.Unmarshal([]byte(args[0]))
+			if len(inlineFilterSlice) != 0 {
+				for _, filter := range inlineFilterSlice {
+					params := strings.Split(filter, ":")
+					if len(params) != 2 {
+						return fmt.Errorf("malformatted filter")
+					}
+					chainIdStr := strings.Trim(params[0], " ")
+					chainIdInt, err := strconv.Atoi(chainIdStr)
+					if err != nil {
+						return err
+					}
+					chainId := uint64(chainIdInt)
+					addr := strings.Trim(params[1], " ")
+					req.ContractInfos = append(req.ContractInfos, &comtypes.ContractInfo{
+						ChainId: chainId,
+						Address: addr,
+					})
+				}
+			} else if len(jsonFilterPath) != 0 {
+				filter, err := os.ReadFile(jsonFilterPath)
 				if err != nil {
 					return err
 				}
+				req.Unmarshal(filter)
 			}
+
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
 			resp, err := QueryExecutionContexts(cliCtx, req)
 			if err != nil {
 				log.Errorln("query execution contexts error", err)
@@ -100,6 +137,9 @@ request json should be like below
 			return cliCtx.PrintProto(resp)
 		},
 	}
+	cmd.Flags().StringSlice(flagInlineFilter, []string{}, "contract filters")
+	cmd.Flags().String(flagJsonFilter, "", "filter contracts with a json file")
+	return cmd
 }
 
 func CmdQueryMessage() *cobra.Command {
