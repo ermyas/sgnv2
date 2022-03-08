@@ -645,6 +645,28 @@ func QueryAssetPrice(cliCtx client.Context, symbol string) (price, extraPower10 
 	return
 }
 
+func QueryAssetsSymbols(cliCtx client.Context, chainTokens []*types.ChainTokenAddrPair) (symbols []string, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err := queryClient.QueryAssetsSymbols(ctx, &types.QueryAssetsSymbolsRequest{ChainTokens: chainTokens})
+	if resp != nil {
+		symbols = resp.Symbols
+	}
+	return
+}
+
+func QueryAssetsInfos(cliCtx client.Context, symbols []string, chainIds []uint64) (assets []*types.ChainAsset, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err := queryClient.QueryAssetsInfos(ctx, &types.QueryAssetsInfosRequest{Symbols: symbols, ChainIds: chainIds})
+	if resp != nil {
+		assets = resp.Assets
+	}
+	return
+}
+
 func GenerateClaimFeeWdList(cliCtx client.Context, delAddr string, minUsd uint32, denomPrefix string, isPegbr bool) ([]string, error) {
 	var feeInfo *distrtypes.ClaimableFeesInfo
 	var err error
@@ -681,12 +703,11 @@ func GenerateClaimFeeWdList(cliCtx client.Context, delAddr string, minUsd uint32
 		assets[asset.Symbol][asset.ChainId] = asset
 	}
 
-	ts := time.Now().Unix()
-
 	var totalValue float64
 	wdLists := make(map[int][]string)
-	fmt.Printf("claimable fee amounts:\n\n")
+	var outputs Outputs
 	for _, coin := range feeInfo.ClaimableFeeAmounts {
+		var out string
 		amount := coin.Amount
 		denom := coin.Denom
 		symch := strings.TrimPrefix(denom, denomPrefix)
@@ -696,9 +717,6 @@ func GenerateClaimFeeWdList(cliCtx client.Context, delAddr string, minUsd uint32
 			return []string{}, err
 		}
 		asset := assets[symbol][uint64(chainId)]
-		fmt.Println("token:", symbol, "-", chainId, "-", asset.Addr)
-		fmt.Println("amount: ", amount)
-
 		famt, err := amount.QuoInt(
 			sdk.NewIntFromBigInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(asset.Decimal)), nil))).Float64()
 		if err != nil {
@@ -706,18 +724,29 @@ func GenerateClaimFeeWdList(cliCtx client.Context, delAddr string, minUsd uint32
 		}
 		value := famt * float64(assetsPrice[symbol].Price) / math.Pow10(4+int(assetsPrice[symbol].ExtraPower10))
 		totalValue += value
-		fmt.Printf("usd value: %0.2f\n\n", value)
+
+		out += fmt.Sprintf("token: %s - %d - %s\n", symbol, chainId, asset.Addr)
+		out += fmt.Sprintf("amount: %s\n", amount)
+		out += fmt.Sprintf("usd value: %0.2f\n", value)
+		outputs = append(outputs, Output{out, value})
 
 		if value >= float64(minUsd) {
 			wdLists[chainId] = append(wdLists[chainId], asset.Addr)
 		}
 	}
+	fmt.Printf("claimable fee amounts:\n\n")
+	sort.Sort(outputs)
+	for _, o := range outputs {
+		fmt.Println(o.out)
+	}
+
 	var chainIds []int
 	for chainId := range wdLists {
 		chainIds = append(chainIds, chainId)
 	}
 	sort.Ints(chainIds)
 	var wdList []string
+	ts := time.Now().Unix()
 	for _, chainId := range chainIds {
 		for _, addr := range wdLists[chainId] {
 			wdList = append(wdList, fmt.Sprintf("%d %d %s", ts, chainId, addr))
@@ -728,24 +757,13 @@ func GenerateClaimFeeWdList(cliCtx client.Context, delAddr string, minUsd uint32
 	return wdList, nil
 }
 
-func QueryAssetsSymbols(cliCtx client.Context, chainTokens []*types.ChainTokenAddrPair) (symbols []string, err error) {
-	queryClient := types.NewQueryClient(cliCtx)
-	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
-	defer cancelFunc()
-	resp, err := queryClient.QueryAssetsSymbols(ctx, &types.QueryAssetsSymbolsRequest{ChainTokens: chainTokens})
-	if resp != nil {
-		symbols = resp.Symbols
-	}
-	return
+type Output struct {
+	out   string
+	value float64
 }
 
-func QueryAssetsInfos(cliCtx client.Context, symbols []string, chainIds []uint64) (assets []*types.ChainAsset, err error) {
-	queryClient := types.NewQueryClient(cliCtx)
-	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
-	defer cancelFunc()
-	resp, err := queryClient.QueryAssetsInfos(ctx, &types.QueryAssetsInfosRequest{Symbols: symbols, ChainIds: chainIds})
-	if resp != nil {
-		assets = resp.Assets
-	}
-	return
-}
+type Outputs []Output
+
+func (o Outputs) Len() int           { return len(o) }
+func (o Outputs) Swap(i, j int)      { o[i], o[j] = o[j], o[i] }
+func (o Outputs) Less(i, j int) bool { return o[i].value > o[j].value }
