@@ -378,6 +378,7 @@ Where proposal.json contains:
 					proposal.Description,
 					proposal.PoolName,
 					proposal.RewardAdjustmentInputs,
+					proposal.RemoveDuplicates,
 				)
 
 			msg, err := govtypes.NewMsgSubmitProposal(content, deposit[0].Amount, from)

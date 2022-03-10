@@ -31,6 +31,24 @@ func handleAdjustRewardProposalByAdjustRewardInfo(ctx sdk.Context, k Keeper, p *
 
 	// 3. Update existing infos with new inputs, assuming both are sorted by ascending denoms
 	// Mint AddAmount, update RemainingAmount, set RewardAmountPerBlock. For new rewards, also set RewardStartBlockHeight
+
+	// Remove possible duplicates due to a historical bug, only keeping the first one.
+	if p.RemoveDuplicates {
+		denoms := make(map[string]bool)
+		fixedTokens := []commontypes.ERC20Token{}
+		fixedInfos := []types.RewardTokenInfo{}
+		for i, info := range pool.RewardTokenInfos {
+			denom := info.RemainingAmount.Denom
+			if _, exists := denoms[denom]; !exists {
+				denoms[denom] = true
+				fixedTokens = append(fixedTokens, pool.RewardTokens[i])
+				fixedInfos = append(fixedInfos, info)
+			}
+		}
+		pool.RewardTokens = fixedTokens
+		pool.RewardTokenInfos = fixedInfos
+	}
+
 	newInfos := []types.RewardTokenInfo{}
 	newTokens := []commontypes.ERC20Token{}
 	newAccumulatedRewards := []sdk.DecCoin{}
@@ -39,12 +57,13 @@ func handleAdjustRewardProposalByAdjustRewardInfo(ctx sdk.Context, k Keeper, p *
 	for {
 		if indexInfos == lenInfos {
 			if indexInputs == lenInputs {
-				// break if both arrays are empty (should not happen but keep for completeness)
+				// break if both arrays are empty
 				break
 			}
 
-			// use inputs if infos is empty (should not happen but keep for completeness)
-			for i, input := range p.RewardAdjustmentInputs {
+			// append the rest of the inputs if infos are exhausted
+			for i := indexInputs; i < lenInputs; i++ {
+				input := p.RewardAdjustmentInputs[i]
 				newInfo, err := k.processNewInput(ctx, pool.Name, &input)
 				if err != nil {
 					return err
@@ -56,10 +75,14 @@ func handleAdjustRewardProposalByAdjustRewardInfo(ctx sdk.Context, k Keeper, p *
 			}
 			break
 		} else if indexInputs == lenInputs {
-			// use infos if inputs is empty (should not happen but keep for completeness)
-			newInfos = pool.RewardTokenInfos
-			newTokens = pool.RewardTokens
-			newAccumulatedRewards = pool.TotalAccumulatedRewards
+			// append the rest of the infos if inputs are exhausted
+			for i := indexInfos; i < lenInfos; i++ {
+				info := pool.RewardTokenInfos[i]
+				newInfos = append(newInfos, info)
+				newTokens = append(newTokens, pool.RewardTokens[i])
+				newAccumulatedRewards =
+					append(newAccumulatedRewards, updatedPool.TotalAccumulatedRewards[i])
+			}
 			break
 		}
 

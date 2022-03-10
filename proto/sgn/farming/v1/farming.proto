@@ -204,7 +204,7 @@ message AddPoolInfo {
   sgn.common.v1.ERC20Token stake_token = 2 [(gogoproto.moretags) = "yaml:\"stake_token\"", (gogoproto.nullable) = false];
   repeated sgn.common.v1.ERC20Token reward_tokens = 3 [(gogoproto.moretags) = "yaml:\"reward_tokens\"", (gogoproto.nullable) = false];
   repeated RewardAdjustmentInput initial_reward_inputs = 4
-  [(gogoproto.moretags) = "yaml:\"initial_reward_inputs\"", (gogoproto.nullable) = false];
+      [(gogoproto.moretags) = "yaml:\"initial_reward_inputs\"", (gogoproto.nullable) = false];
 }
 
 // AddPoolProposalWithDeposit defines an AddPoolProposal with a deposit, for CLI usage.
@@ -234,7 +234,8 @@ message BatchAddPoolProposalWithDeposit {
 
   string title = 1 [(gogoproto.moretags) = "yaml:\"title\""];
   string description = 2 [(gogoproto.moretags) = "yaml:\"description\""];
-  repeated AddPoolInfo add_pool_infos = 3 [(gogoproto.moretags) = "yaml:\"add_pool_infos\"", (gogoproto.jsontag) = "add_pool_infos,omitempty", (gogoproto.nullable) = false];
+  repeated AddPoolInfo add_pool_infos = 3
+      [(gogoproto.moretags) = "yaml:\"add_pool_infos\"", (gogoproto.jsontag) = "add_pool_infos,omitempty", (gogoproto.nullable) = false];
 
   string deposit = 4 [(gogoproto.moretags) = "yaml:\"deposit\""];
 }
@@ -250,6 +251,7 @@ message AdjustRewardProposal {
   string pool_name = 3 [(gogoproto.moretags) = "yaml:\"pool_name\""];
   repeated RewardAdjustmentInput reward_adjustment_inputs = 4
       [(gogoproto.moretags) = "yaml:\"reward_adjustment_inputs\"", (gogoproto.nullable) = false];
+  bool remove_duplicates = 5 [(gogoproto.moretags) = "yaml:\"remove_duplicates\""];
 }
 
 // BatchAdjustRewardProposal details a proposal to adjust reward tokens in batch pools.
@@ -267,7 +269,8 @@ message BatchAdjustRewardProposal {
 message AdjustRewardInfo {
   string pool_name = 1 [(gogoproto.moretags) = "yaml:\"pool_name\""];
   repeated RewardAdjustmentInput reward_adjustment_inputs = 2
-  [(gogoproto.moretags) = "yaml:\"reward_adjustment_inputs\"", (gogoproto.nullable) = false];
+      [(gogoproto.moretags) = "yaml:\"reward_adjustment_inputs\"", (gogoproto.nullable) = false];
+  bool remove_duplicates = 3 [(gogoproto.moretags) = "yaml:\"remove_duplicates\""];
 }
 
 // AdjustRewardProposalWithDeposit defines an AdjustRewardProposal with a deposit, for CLI usage.
@@ -280,7 +283,9 @@ message AdjustRewardProposalWithDeposit {
   string pool_name = 3 [(gogoproto.moretags) = "yaml:\"pool_name\""];
   repeated RewardAdjustmentInput reward_adjustment_inputs = 4
       [(gogoproto.moretags) = "yaml:\"reward_adjustment_inputs\"", (gogoproto.nullable) = false];
-  string deposit = 5 [(gogoproto.moretags) = "yaml:\"deposit\""];
+  bool remove_duplicates = 5 [(gogoproto.moretags) = "yaml:\"remove_duplicates\""];
+
+  string deposit = 6 [(gogoproto.moretags) = "yaml:\"deposit\""];
 }
 
 // BatchAdjustRewardProposalWithDeposit defines BatchAdjustRewardProposal with a deposit, for CLI usage.

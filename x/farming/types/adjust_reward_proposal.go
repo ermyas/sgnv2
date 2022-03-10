@@ -25,12 +25,13 @@ func init() {
 //nolint:interfacer
 func NewAdjustRewardProposal(
 	title, description, poolName string,
-	rewardAdjustmentInputs []RewardAdjustmentInput) *AdjustRewardProposal {
+	rewardAdjustmentInputs []RewardAdjustmentInput, removeDuplicates bool) *AdjustRewardProposal {
 	return &AdjustRewardProposal{
 		Title:                  title,
 		Description:            description,
 		PoolName:               poolName,
 		RewardAdjustmentInputs: rewardAdjustmentInputs,
+		RemoveDuplicates:       removeDuplicates,
 	}
 }
 
@@ -86,7 +87,8 @@ func (arp AdjustRewardProposal) String() string {
  Type:              		%s
  PoolName:					%s
  RewardAdjustmentInputs:	%v
-`, arp.Title, arp.Description, arp.ProposalType(), arp.PoolName, arp.RewardAdjustmentInputs))
+ RemoveDuplicates:          %t
+`, arp.Title, arp.Description, arp.ProposalType(), arp.PoolName, arp.RewardAdjustmentInputs, arp.RemoveDuplicates))
 	return b.String()
 }
 
@@ -94,6 +96,7 @@ func (arp AdjustRewardProposal) GetAdjustRewardInfo() AdjustRewardInfo {
 	return AdjustRewardInfo{
 		PoolName:               arp.PoolName,
 		RewardAdjustmentInputs: arp.RewardAdjustmentInputs,
+		RemoveDuplicates:       arp.RemoveDuplicates,
 	}
 }
 

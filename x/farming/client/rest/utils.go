@@ -52,6 +52,7 @@ type (
 		Description            string                        `json:"description" yaml:"description"`
 		PoolName               string                        `json:"pool_name" yaml:"pool_name"`
 		RewardAdjustmentInputs []types.RewardAdjustmentInput `json:"reward_adjustment_inputs" yaml:"reward_adjustment_inputs"`
+		RemoveDuplicates       bool                          `json:"remove_duplicates" yaml:"remove_duplicates"`
 		Proposer               sdk.AccAddress                `json:"proposer" yaml:"proposer"`
 		Deposit                sdk.Coins                     `json:"deposit" yaml:"deposit"`
 	}

@@ -157,7 +157,7 @@ func postAdjustRewardProposalHandlerFn(clientCtx client.Context) http.HandlerFun
 			return
 		}
 
-		content := types.NewAdjustRewardProposal(req.Title, req.Description, req.PoolName, req.RewardAdjustmentInputs)
+		content := types.NewAdjustRewardProposal(req.Title, req.Description, req.PoolName, req.RewardAdjustmentInputs, req.RemoveDuplicates)
 
 		msg, err := govtypes.NewMsgSubmitProposal(content, req.Deposit[0].Amount, req.Proposer)
 		if rest.CheckBadRequestError(w, err) {
