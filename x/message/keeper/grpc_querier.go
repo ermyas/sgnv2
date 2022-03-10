@@ -104,7 +104,7 @@ func (k Keeper) ExecutionContexts(
 		if message.TransferType != types.TRANSFER_TYPE_NULL {
 			//transfer := &types.Transfer{}
 			var err error
-			execCtx.Transfer, err = k.getMsssageTransferInfo(ctx, &message)
+			execCtx.Transfer, err = k.getMessageTransferInfo(ctx, &message)
 			if err != nil {
 				log.Errorf("get transfer for message %x err: %s", id, err)
 			}
@@ -133,7 +133,7 @@ func (k Keeper) ExecutionContextBySrcTransfer(
 		}
 		execCtx.Message = message
 		var err error
-		execCtx.Transfer, err = k.getMsssageTransferInfo(ctx, &message)
+		execCtx.Transfer, err = k.getMessageTransferInfo(ctx, &message)
 		if err != nil {
 			log.Errorf("get transfer for message %x err: %s", messageId, err)
 		}

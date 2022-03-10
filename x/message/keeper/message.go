@@ -51,7 +51,7 @@ func (k Keeper) IterateAllMessages(
 	}
 }
 
-func (k Keeper) getMsssageTransferInfo(ctx sdk.Context, message *types.Message) (*types.Transfer, error) {
+func (k Keeper) getMessageTransferInfo(ctx sdk.Context, message *types.Message) (*types.Transfer, error) {
 	var transfer *types.Transfer
 	srcTransferId := eth.Bytes2Hash(message.GetTransferRefId())
 	switch message.GetTransferType() {

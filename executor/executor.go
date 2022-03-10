@@ -260,7 +260,7 @@ func (e *Executor) initAndExecutePegRefundMint(execCtx *msgtypes.ExecutionContex
 	if err != nil {
 		return fmt.Errorf("failed to initAndExecutePegRefundMint: %s", err.Error())
 	}
-	mintExecutor := chain.NewExecuteRefundHandler(execCtx.MessageId, chain.ExecutePegWithdraw)
+	mintExecutor := chain.NewExecuteRefundHandler(execCtx.MessageId, chain.ExecutePegMint)
 	return e.sgn.PollAndExecutePegRefundMint(burnId, message.DstChainId, mintExecutor)
 }
 
