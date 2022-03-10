@@ -64,22 +64,23 @@ func CmdQueryParams() *cobra.Command {
 
 const flagInlineFilter = "filter"
 const flagJsonFilter = "json-filter"
+const flagAll = "all"
 
 func CmdQueryExecutionContexts() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "exec-ctxs [request json]",
 		Short: "Query the execution contexts of all messages",
 		Long: `
-inline filter format: 
+inline filter format:
 --filter '5:0x09E4534B11D400BFcd2026b69E399763CeAfB42D,97:0x570F9c2f224b002d75F287f5430Bc9598E850E13'
 json file filter format:
 --json-filter <path-to-json>
 {
 	"contract_infos": [
 		{
-			"chain_id": 5, 
+			"chain_id": 5,
 			"address": "0x09E4534B11D400BFcd2026b69E399763CeAfB42D"
-		}, 
+		},
 		{
 			"chain_id": 97,
 			"address": "0x570F9c2f224b002d75F287f5430Bc9598E850E13"
@@ -96,9 +97,15 @@ json file filter format:
 			if err != nil {
 				return err
 			}
+			all, err := cmd.Flags().GetBool(flagAll)
+			if err != nil {
+				return err
+			}
 
 			req := new(types.QueryExecutionContextsRequest)
-			if len(inlineFilterSlice) != 0 {
+			if all {
+				req.All = true
+			} else if len(inlineFilterSlice) != 0 {
 				for _, filter := range inlineFilterSlice {
 					params := strings.Split(filter, ":")
 					if len(params) != 2 {
@@ -139,6 +146,7 @@ json file filter format:
 	}
 	cmd.Flags().StringSlice(flagInlineFilter, []string{}, "contract filters")
 	cmd.Flags().String(flagJsonFilter, "", "filter contracts with a json file")
+	cmd.Flags().Bool(flagAll, false, "queries all pending execution contexts")
 	return cmd
 }
 

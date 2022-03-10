@@ -32,8 +32,8 @@ func (k Keeper) ExecutionContexts(
 
 	// 1. Process filters
 	var messageIds []eth.Hash
-	// No filters, return all
-	if len(req.ContractInfos) == 0 {
+	// Return all if requested
+	if req.All {
 		k.IterateAllActiveMessageIds(ctx, func(messageId eth.Hash) bool {
 			messageIds = append(messageIds, messageId)
 			return false

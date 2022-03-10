@@ -70,8 +70,10 @@ message QueryParamsResponse {
 
 // QueryExecutionContextsRequest is request type for the Query/ExecutionContexts RPC method.
 message QueryExecutionContextsRequest {
-  // contract_infos optionally filter request by chain IDs and / or contract addresses.
+  // contract_infos filter request by chain IDs and / or contract addresses.
   repeated sgn.common.v1.ContractInfo contract_infos = 1;
+  // all indicates a query for all pending execution contexts.
+  bool all = 2;
 }
 
 // QueryExecutionContextsRequest is response type for the Query/ExecutionContexts RPC method.
@@ -80,7 +82,7 @@ message QueryExecutionContextsResponse {
   repeated ExecutionContext execution_contexts = 1 [(gogoproto.nullable) = false];
 }
 
-message QueryExecutionContextBySrcTransferRequest{
+message QueryExecutionContextBySrcTransferRequest {
   string src_transfer_id = 1;
   BridgeType src_bridge_type = 2;
   bool message_id_only = 3;
