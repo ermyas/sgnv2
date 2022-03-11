@@ -110,7 +110,7 @@ build-node:
 
 .PHONY: build-executor
 build-executor:
-	docker build -f executor/Dockerfile --tag celer-network/executor .
+	DOCKER_BUILDKIT=1 docker build -f executor/Dockerfile --build-arg GH_TOKEN=$(GH_TOKEN) --tag celer-network/executor .
 
 # Prepare docker environment for multinode testing
 .PHONY: prepare-docker-env
