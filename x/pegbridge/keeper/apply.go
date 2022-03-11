@@ -43,6 +43,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			}
 			depositToken = flowEv.Token // human string
 			// set ev fields to flowEv values
+			ev = &eth.OriginalTokenVaultV2Deposited{}
 			ev.SetByFlow(flowEv)
 		} else {
 			version, _ := k.GetVaultVersion(ctx, onchev.Chainid, elog.Address)
@@ -112,6 +113,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			}
 			burnToken = flowEv.Token // human string
 			// set ev fields to flowEv values
+			ev = &eth.PeggedTokenBridgeV2Burn{}
 			ev.SetByFlow(flowEv)
 		} else {
 			version, _ = k.GetBridgeVersion(ctx, onchev.Chainid, elog.Address)
@@ -311,7 +313,19 @@ func (k Keeper) pegMint(
 		RefChainId: refChainId,
 		RefId:      refId.Bytes(),
 	}
-	mintProtoBytes, _ := mint.Marshal()
+
+	var mintProtoBytes []byte // to be serlized after set Token field
+	// refChainId is burn chain ID, refId is burn ID
+	if commontypes.IsFlowChain(mintChainId) {
+		mint.Token = []byte(pair.Pegged.Address)
+		mint.Account = mint.Account[12:] // only last 8 bytes for Flow account
+		mintProtoBytes, _ = mint.Marshal()
+		mintId = types.CalcFlowMintId(mintProtoBytes)
+	} else {
+		mint.Token = mintToken.Bytes()
+		mintProtoBytes, _ = mint.Marshal()
+	}
+
 	mintInfo := types.MintInfo{
 		ChainId:        mintChainId,
 		MintProtoBytes: mintProtoBytes,
@@ -362,14 +376,26 @@ func (k Keeper) vaultWithdraw(
 
 	// Record WithdrawInfo
 	withdraw := types.WithdrawOnChain{
-		Token:       eth.Hex2Bytes(wdTokenAddr),
+		// token is set later
 		Receiver:    ev.ToAccount.Bytes(),
 		Amount:      withdrawAmt.Bytes(),
 		BurnAccount: ev.Account.Bytes(),
 		RefChainId:  burnChainId,
 		RefId:       ev.BurnId[:],
 	}
-	withdrawProtoBytes, _ := withdraw.Marshal()
+
+	var withdrawProtoBytes []byte // to be serlized after set Token field
+	// refChainId is burn chain ID, refId is burn ID
+	if commontypes.IsFlowChain(withdrawChainId) {
+		withdraw.Token = []byte(wdTokenAddr)
+		withdraw.Receiver = withdraw.Receiver[12:] // only last 8 bytes for Flow account
+		withdrawProtoBytes, _ = withdraw.Marshal()
+		withdrawId = types.CalcFlowWithdrawId(withdrawProtoBytes)
+	} else {
+		withdraw.Token = eth.Hex2Bytes(wdTokenAddr)
+		withdrawProtoBytes, _ = withdraw.Marshal()
+	}
+
 	wdInfo := types.WithdrawInfo{
 		ChainId:            withdrawChainId,
 		WithdrawProtoBytes: withdrawProtoBytes,

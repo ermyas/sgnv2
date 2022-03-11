@@ -164,12 +164,12 @@ func IsValidTxHash(txHash string) bool {
 }
 
 // IsHexAddress verifies whether a string can represent a valid hex-encoded
-// Ethereum address or not.
+// Note we can't require 2*20 because flow address hex only has 2*8
 func IsHexAddress(s string) bool {
 	if has0xPrefix(s) {
 		s = s[2:]
 	}
-	return len(s) == 2*AddressLength && isHex(s)
+	return isHex(s)
 }
 
 // isHex validates whether each byte is valid hexadecimal string.

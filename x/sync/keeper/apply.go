@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"runtime/debug"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
@@ -15,7 +16,7 @@ func (k Keeper) ApplyUpdate(ctx sdk.Context, update *types.PendingUpdate) (appli
 	defer func() {
 		if r := recover(); r != nil {
 			applied = false
-			log.Errorf("panic when applying update %d: %s", update.Id, r)
+			log.Errorf("panic when applying update %d: %s, %s", update.Id, r, string(debug.Stack()))
 		}
 	}()
 
