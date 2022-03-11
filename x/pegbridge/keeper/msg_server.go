@@ -44,14 +44,32 @@ func (k msgServer) SignMint(goCtx context.Context, msg *types.MsgSignMint) (*typ
 		return nil, types.WrapErrNoPeggedTokenBridgeFound(mintInfo.ChainId)
 	}
 	msgToSign := mintInfo.EncodeDataToSign(bridgeAddr)
-	addSigErr := mintInfo.AddSig(
-		msgToSign,
-		msg.Signature,
-		validator.GetSignerAddr().String(),
-	)
-	if addSigErr != nil {
-		return nil, fmt.Errorf("failed to add sig for bridge %x: %s", bridgeAddr, addSigErr)
+	// log.Infof("bridgeAddr:%x, msgToSign:%x", bridgeAddr, msgToSign)
+
+	if commontypes.IsFlowChain(mintInfo.ChainId) {
+		// TODO, only avoid call recover, find better way later.
+		var exist bool
+		for _, s := range mintInfo.Signatures {
+			if s.Signer == validator.GetSignerAddr().String() {
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			mintInfo.Signatures = append(mintInfo.Signatures,
+				commontypes.NewSignature(validator.GetSignerAddr().String(), msg.Signature))
+		}
+	} else {
+		addSigErr := mintInfo.AddSig(
+			msgToSign,
+			msg.Signature,
+			validator.GetSignerAddr().String(),
+		)
+		if addSigErr != nil {
+			return nil, fmt.Errorf("failed to add sig: %s", addSigErr)
+		}
 	}
+
 	k.SetMintInfo(ctx, mindId, mintInfo)
 	log.Infof("x/pegbridge SignMintInfo add sig mintId:%x signer:%x :sender:%s", mindId, validator.GetSignerAddr(), msg.Sender)
 	return &types.MsgSignMintResponse{}, nil
@@ -74,13 +92,28 @@ func (k msgServer) SignWithdraw(goCtx context.Context, msg *types.MsgSignWithdra
 		return nil, types.WrapErrNoOriginalTokenVaultFound(withdrawInfo.ChainId)
 	}
 	msgToSign := withdrawInfo.EncodeDataToSign(vaultAddr)
-	addSigErr := withdrawInfo.AddSig(
-		msgToSign,
-		msg.Signature,
-		validator.GetSignerAddr().String(),
-	)
-	if addSigErr != nil {
-		return nil, fmt.Errorf("failed to add sig for vault %x: %s", vaultAddr, addSigErr)
+	if commontypes.IsFlowChain(withdrawInfo.ChainId) {
+		// TODO, only avoid call recover, find better way later.
+		var exist bool
+		for _, s := range withdrawInfo.Signatures {
+			if s.Signer == validator.GetSignerAddr().String() {
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			withdrawInfo.Signatures = append(withdrawInfo.Signatures,
+				commontypes.NewSignature(validator.GetSignerAddr().String(), msg.Signature))
+		}
+	} else {
+		addSigErr := withdrawInfo.AddSig(
+			msgToSign,
+			msg.Signature,
+			validator.GetSignerAddr().String(),
+		)
+		if addSigErr != nil {
+			return nil, fmt.Errorf("failed to add sig: %s", addSigErr)
+		}
 	}
 	k.SetWithdrawInfo(ctx, withdrawId, withdrawInfo)
 	log.Infof("x/pegbridge SignWithdrawInfo add sig withdrawId:%x signer:%x sender:%s", withdrawId, validator.GetSignerAddr(), msg.Sender)

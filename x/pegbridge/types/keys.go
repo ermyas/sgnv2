@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	fmt "fmt"
 
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 )
 
@@ -59,21 +60,26 @@ func GetPeggedTokenBridgeKey(chainId uint64) []byte {
 	return append(PeggedTokenBridgePrefix, chainIdBytes...)
 }
 
-func GetChainIdAddressBytes(chainId uint64, address eth.Addr) []byte {
-	return []byte(fmt.Sprintf("%d-%x", chainId, address))
+// address is string from config, may have 0x prefix or in Flow case, non-hex
+func GetChainIdAddressBytes(chainId uint64, address string) []byte {
+	if commontypes.IsFlowChain(chainId) {
+		// flow token address is like A.1234567812345678.SomeToken so we use string as is
+		return []byte(fmt.Sprintf("%d-%s", chainId, address))
+	}
+	return []byte(fmt.Sprintf("%d-%x", chainId, eth.Hex2Addr(address)))
 }
 
-func GetOrigPeggedPairKey(origChainId uint64, origAddress eth.Addr, peggedChainId uint64) []byte {
+func GetOrigPeggedPairKey(origChainId uint64, origAddress string, peggedChainId uint64) []byte {
 	origPeggedBytes := []byte(
 		fmt.Sprintf("%s-%d", string(GetChainIdAddressBytes(origChainId, origAddress)), peggedChainId))
 	return append(OrigPeggedPairPrefix, origPeggedBytes...)
 }
 
-func GetOrigPeggedByOrigPrefix(origChainId uint64, origAddress eth.Addr) []byte {
+func GetOrigPeggedByOrigPrefix(origChainId uint64, origAddress string) []byte {
 	return append(OrigPeggedPairPrefix, GetChainIdAddressBytes(origChainId, origAddress)...)
 }
 
-func GetOrigPeggedByOrigTokenAndPeggedChainIdPrefix(origChainId uint64, origAddress eth.Addr, peggedChainId uint64) []byte {
+func GetOrigPeggedByOrigTokenAndPeggedChainIdPrefix(origChainId uint64, origAddress string, peggedChainId uint64) []byte {
 	origTokenAndPeggedChainIdBytes := []byte(
 		fmt.Sprintf("%s-%s",
 			string(GetChainIdAddressBytes(origChainId, origAddress)),
@@ -82,6 +88,11 @@ func GetOrigPeggedByOrigTokenAndPeggedChainIdPrefix(origChainId uint64, origAddr
 }
 
 func GetPeggedOrigIndexKey(peggedChainId uint64, peggedAddress eth.Addr) []byte {
+	return append(PeggedOrigIndexPrefix, GetChainIdAddressBytes(peggedChainId, eth.Addr2Hex(peggedAddress))...)
+}
+
+// TODO better to use GetPeggedOrigIndexKey or change it
+func GetPeggedOrigIndexKeyByStrAddr(peggedChainId uint64, peggedAddress string) []byte {
 	return append(PeggedOrigIndexPrefix, GetChainIdAddressBytes(peggedChainId, peggedAddress)...)
 }
 

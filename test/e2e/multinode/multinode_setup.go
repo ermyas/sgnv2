@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"time"
 
+	flowSigner "github.com/celer-network/cbridge-flow/signer"
+	flowutils "github.com/celer-network/cbridge-flow/utils"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
@@ -39,6 +41,7 @@ func SetupMainchain() {
 	tc.RunCmd("make", "localnet-stop-geth")
 	tc.RunCmd("make", "prepare-geth-data")
 	tc.RunCmd("make", "localnet-start-geth")
+	tc.RunCmd("make", "localnet-restart-flow")
 	waitGethStart(tc.LocalGeth1)
 
 	// set up mainchain: deploy contracts, fund addrs, etc
@@ -80,6 +83,115 @@ func SetupBridgeChains() {
 	log.Infoln("set up bridge chains")
 	tc.InitCbrChainConfigs()
 	bridgeChainStarted = true
+}
+
+//Flow config
+const (
+	exampleTokenName     = "ExampleToken"
+	exampleTokenVault    = "ExampleTokenVault"
+	exampleTokenReceiver = "ExampleTokenReceiver"
+	exampleTokenBalance  = "ExampleTokenBalance"
+
+	testPegTokenName     = "PegToken"
+	testPegTokenVault    = "PegTokenVault"
+	testPegTokenReceiver = "PegTokenReceiver"
+	testPegTokenBalance  = "PegTokenBalance"
+
+	safeBoxAdmin   = "SafeBoxAdmin"
+	pegBridgeAdmin = "PegBridgeAdmin"
+)
+
+// should be invoked after geth2 and geth2 setup
+func SetupFlowChain() {
+	// create two account first
+	err := tc.SetupFlowServiceAccountClient()
+	tc.ChkErr(err, "SetupFlowServiceAccountClient")
+	// create contract acc
+	_, err = flowutils.CreateNewAccount(context.Background(), tc.FlowServiceAccountClient, tc.FlowServiceAccountSigner.FlowPubKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+	flowutils.FundAccountInEmulator(tc.FlowServiceAccountClient, tc.FlowContractAddr, 10000.0)
+	// create user acc
+	_, err = flowutils.CreateNewAccount(context.Background(), tc.FlowServiceAccountClient, tc.FlowServiceAccountSigner.FlowPubKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// reset signers of vault contract
+	newSigners := make(map[string]*big.Int)
+	flowutils.FundAccountInEmulator(tc.FlowServiceAccountClient, tc.FlowUserAddr, 10000.0)
+	for _, s := range tc.ValSignerKs {
+		vsigner, err := flowSigner.NewFlowSigner(s, "")
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, err = flowutils.CreateNewAccount(context.Background(), tc.FlowServiceAccountClient, vsigner.FlowPubKey)
+		if err != nil {
+			log.Fatal(err)
+		}
+		newSigners[vsigner.PubKey] = new(big.Int).Mul(big.NewInt(2e8), big.NewInt(1e18))
+	}
+	for _, addr := range tc.FlowSignerAddrs {
+		flowutils.FundAccountInEmulator(tc.FlowServiceAccountClient, addr, 10000.0)
+	}
+
+	log.Infof("all account flow token added")
+	tc.SetupContractFlowClient(tc.FlowContractAddr.String(), tc.FlowContractAddr.String(), tc.FlowContractAddr.String())
+	tc.SetupUserFlowClient(tc.FlowContractAddr.String(), tc.FlowContractAddr.String(), tc.FlowContractAddr.String())
+
+	flowutils.DeployAllContract(context.Background(), tc.FlowContractAccountClient, uint64(commontypes.NonEvmChainID_FLOW_EMULATOR))
+
+	// add config in bridge
+	err = flowutils.AddNewTokenInSafeBox(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr,
+		"0.0", "1000000.0", "1000000.0", tc.FlowContractAddr.String(), safeBoxAdmin, exampleTokenVault, exampleTokenReceiver, exampleTokenName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = flowutils.AddNewTokenInPegBridge(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr,
+		"0.0", "1000000.0", "1000000.0", tc.FlowContractAddr.String(), pegBridgeAdmin, testPegTokenReceiver, testPegTokenName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = flowutils.AddMinterAndBurnerInPegBridgeCdc(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr, tc.FlowContractAddr.String(), tc.FlowContractAddr.String(), tc.FlowContractAddr.String(), testPegTokenName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// reset signers of vault contract
+	err = flowutils.ResetBridgeSigners(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr.String(), newSigners)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// add token vault for acc2
+	err = flowutils.SetupTokenVault(context.Background(), tc.FlowUserAccountClient, tc.FlowContractAddr.String(),
+		exampleTokenName, exampleTokenVault, exampleTokenBalance, exampleTokenReceiver)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = flowutils.SetupTokenVault(context.Background(), tc.FlowUserAccountClient, tc.FlowContractAddr.String(),
+		testPegTokenName, testPegTokenVault, testPegTokenBalance, testPegTokenReceiver)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// test transfer
+	err = flowutils.TransferToken(context.Background(), tc.FlowContractAccountClient, "1000000.0", tc.FlowUserAddr,
+		tc.FlowContractAddr.String(), exampleTokenName, exampleTokenVault, exampleTokenReceiver)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	curuserFlowExampleBalance, err := tc.FlowContractAccountClient.QueryTokenBalance(context.Background(),
+		eth.Hex2Addr(tc.FlowUserAddr.String()), exampleTokenBalance)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Infof("curuserFlowExampleBalance:%s", curuserFlowExampleBalance)
 }
 
 func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge, msg, manual, report bool) {
@@ -424,6 +536,12 @@ func DeployPegBridgeContract() {
 				},
 				Version: 2,
 			},
+			{
+				Contract: commontypes.ContractInfo{
+					ChainId: 12340003,
+					Address: "01cf0e2f2f715450",
+				},
+			},
 		}
 		originalTokenVaults := []pegbrtypes.ContractInfo{
 			{
@@ -438,6 +556,12 @@ func DeployPegBridgeContract() {
 					Address: eth.Addr2Hex(tc.CbrChain1.PegVaultV2Addr),
 				},
 				Version: 2,
+			},
+			{
+				Contract: commontypes.ContractInfo{
+					ChainId: 12340003,
+					Address: "01cf0e2f2f715450",
+				},
 			},
 		}
 		origPeggedPairs := []pegbrtypes.OrigPeggedPair{
@@ -502,6 +626,48 @@ func DeployPegBridgeContract() {
 				BridgeVersion: 2,
 				VaultVersion:  2,
 			},
+			{
+				// flow PegBridge
+				Orig: commontypes.ERC20Token{
+					Symbol:   "UNI",
+					ChainId:  tc.CbrChain1.ChainId,
+					Address:  eth.Addr2Hex(tc.CbrChain1.UNIAddr),
+					Decimals: 18,
+				},
+				Pegged: commontypes.ERC20Token{
+					Symbol:   "UNI",
+					ChainId:  12340003,
+					Address:  "A.01cf0e2f2f715450.PegToken.Vault",
+					Decimals: 8,
+				},
+				MintFeePips: 100,
+				BurnFeePips: 500,
+				MaxMintFee:  "1000000000000000000",
+				MaxBurnFee:  "1000000000000000000",
+				SupplyCap:   "100000000000000000000",
+			},
+			/*
+				{
+					// flow SafeBox
+					Orig: commontypes.ERC20Token{
+						Symbol:   "UNI",
+						ChainId:  12340003,
+						Address:  "A.01cf0e2f2f715450.ExampleToken.Vault",
+						Decimals: 8,
+					},
+					Pegged: commontypes.ERC20Token{
+						Symbol:   "UNI",
+						ChainId:  tc.CbrChain2.ChainId,
+						Address:  eth.Addr2Hex(tc.CbrChain2.UNIAddr),
+						Decimals: 18,
+					},
+					MintFeePips: 0,
+					BurnFeePips: 0,
+					MaxMintFee:  "1000000000000000000000",
+					MaxBurnFee:  "1000000000000000000000",
+					SupplyCap:   "100000000000000000000000000",
+				},
+			*/
 		}
 		config := pegbrtypes.PegConfig{
 			PeggedTokenBridges:  peggedTokenBridges,

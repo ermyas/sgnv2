@@ -1,12 +1,14 @@
 package relayer
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/eth/monitor"
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	pegtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
@@ -232,6 +234,19 @@ func (c *CbrOneChain) SendMint(
 	logmsg := fmt.Sprintf(
 		"mint %s of token %x for user %x, refChainId %d, refId %x, mintChainId %d, depositor %x",
 		new(big.Int).SetBytes(mint.GetAmount()).String(), mint.GetToken(), mint.GetAccount(), mint.GetRefChainId(), mint.GetRefId(), c.chainid, mint.GetDepositor())
+	if types.IsFlowChain(c.chainid) {
+		// TODO only need sigs [][]byte after contract pubkey rm
+		sigMap := make(map[string][]byte)
+		for i, s := range sigs {
+			sigMap[fmt.Sprintf("%d", i)] = s
+		}
+		txHash, err := c.fcc.Mint(context.Background(), mintBytes, string(mint.Token), sigMap)
+		if err != nil {
+			return "", fmt.Errorf("%s. Failed to send flow mint: %w", logmsg, err)
+		}
+		return txHash.Hex(), nil
+	}
+	// EVM chains
 	err := c.checkPendingNonce()
 	if err != nil {
 		log.Warnf("Pending nonce check failed: %s. %s", err, logmsg)
@@ -270,6 +285,19 @@ func (c *CbrOneChain) SendWithdraw(
 	logmsg := fmt.Sprintf(
 		"withdraw %s of token %x for user %x, refChainId %d, refId %x, withdrawChainId %d, burnAccount %x",
 		new(big.Int).SetBytes(withdraw.GetAmount()).String(), withdraw.GetToken(), withdraw.GetReceiver(), withdraw.GetRefChainId(), withdraw.GetRefId(), c.chainid, withdraw.BurnAccount)
+	if types.IsFlowChain(c.chainid) {
+		// TODO only need sigs [][]byte after contract pubkey rm
+		sigMap := make(map[string][]byte)
+		for i, s := range sigs {
+			sigMap[fmt.Sprintf("%d", i)] = s
+		}
+		txHash, err := c.fcc.Withdraw(context.Background(), wdBytes, string(withdraw.Token), sigMap)
+		if err != nil {
+			return "", fmt.Errorf("%s. Failed to send flow withraw: %w", logmsg, err)
+		}
+		return txHash.Hex(), nil
+	}
+	// EVM chains
 	err := c.checkPendingNonce()
 	if err != nil {
 		log.Warnf("Pending nonce check failed: %s. %s", err, logmsg)

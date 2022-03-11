@@ -70,6 +70,11 @@ const (
 
 	FlagMultiChain = "multichain" // array of toml tables, each table represents one chain, see common/multichain.go for details
 
+	// because on flow chain, one account can have multiple pubkeys, we have to know which account and pubkey index to use for sending tx
+	// validators should use separate tool to add pubkey to their own flow account and record the index
+	FlagFlowAccount     = "nonevm.flow_account"    // hex of 8 bytes address, w/ 0x prefix, may not have leading 00, eg. 0x01 is valid
+	FlagFlowPubkeyIndex = "nonevm.flow_pubkey_idx" // index of pubkey to use. this pubkey's weight must >= 1000
+
 	FlagBridgeDefaultCheckInterval = "bridge.default_check_interval"
 )
 

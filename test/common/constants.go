@@ -4,7 +4,9 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
+	"github.com/onflow/flow-go-sdk"
 )
 
 const (
@@ -23,6 +25,12 @@ const (
 	LocalGeth1 = LocalGeth
 	LocalGeth2 = "http://127.0.0.1:8547"
 	LocalGeth3 = "http://127.0.0.1:8549"
+
+	LocalFlowChainId         = uint64(types.NonEvmChainID_FLOW_EMULATOR)
+	LocalFlow                = "127.0.0.1:3569"
+	LocalFlowServiceAccount  = "0xf8d6e0586b0a20c7"
+	LocalSgnFlowAccount      = "0x01cf0e2f2f715450"
+	LocalUserFlowFlowAccount = "0x179b6b1cb6755e31"
 
 	SgnChainID    = "sgn-localnet-1000"
 	SgnPassphrase = "12341234"
@@ -170,6 +178,15 @@ var (
 		DelEthAddrs[3],
 	}
 
+	FlowContractAddr = flow.HexToAddress("0x01cf0e2f2f715450")
+	FlowUserAddr     = flow.HexToAddress("0x179b6b1cb6755e31")
+
+	FlowSignerAddrs = [...]flow.Address{
+		flow.HexToAddress("0xf3fcd2c1a78f5eee"),
+		flow.HexToAddress("0xe03daebed8ca0615"),
+		flow.HexToAddress("0x045a1763c93006ca"),
+		flow.HexToAddress("0x120e725050340cab"),
+	}
 	MsgFeeBase = big.NewInt(1e14)
 )
 

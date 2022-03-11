@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	cbrflowtypes "github.com/celer-network/cbridge-flow/types"
 	"github.com/celer-network/goutils/log"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
@@ -21,50 +22,66 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	elog := new(ethtypes.Log)
-	err = json.Unmarshal(onchev.Elog, elog)
-	if err != nil {
-		return false, err
+	elog := new(ethtypes.Log) // only parse elog for evm
+	if !commontypes.IsNonEvm(onchev.Chainid) {
+		err = json.Unmarshal(onchev.Elog, elog)
+		if err != nil {
+			return false, err
+		}
 	}
 	switch onchev.Evtype {
 	case types.PegbrEventDeposited:
-		version, _ := k.GetVaultVersion(ctx, onchev.Chainid, elog.Address)
+		depositChainId := onchev.Chainid
+		var depositToken string // must be string as flow token is like A.xxxx.SomeToken. for evm, it's hex string
 		var ev *eth.OriginalTokenVaultV2Deposited
-		if version == 0 {
-			otvContract, _ := eth.NewOriginalTokenVaultFilterer(eth.ZeroAddr, nil)
-			ev0, err := otvContract.ParseDeposited(*elog)
+		if commontypes.IsFlowChain(depositChainId) {
+			// onchev.Elog is json serialized cbridge-flow/types/FlowVaultDeposited so we deserialize and assign to ev fields
+			flowEv := new(cbrflowtypes.FlowSafeBoxDeposited)
+			err = json.Unmarshal(onchev.Elog, flowEv)
 			if err != nil {
 				return false, err
 			}
-			ev = &eth.OriginalTokenVaultV2Deposited{
-				DepositId:   ev0.DepositId,
-				Depositor:   ev0.Depositor,
-				Token:       ev0.Token,
-				Amount:      ev0.Amount,
-				MintChainId: ev0.MintChainId,
-				MintAccount: ev0.MintAccount,
-			}
+			depositToken = flowEv.Token // human string
+			// set ev fields to flowEv values
+			ev.SetByFlow(flowEv)
 		} else {
-			ptbContract, _ := eth.NewOriginalTokenVaultV2Filterer(eth.ZeroAddr, nil)
-			ev, err = ptbContract.ParseDeposited(*elog)
-			if err != nil {
-				return false, err
+			version, _ := k.GetVaultVersion(ctx, onchev.Chainid, elog.Address)
+			if version == 0 {
+				otvContract, _ := eth.NewOriginalTokenVaultFilterer(eth.ZeroAddr, nil)
+				ev0, err := otvContract.ParseDeposited(*elog)
+				if err != nil {
+					return false, err
+				}
+				ev = &eth.OriginalTokenVaultV2Deposited{
+					DepositId:   ev0.DepositId,
+					Depositor:   ev0.Depositor,
+					Token:       ev0.Token,
+					Amount:      ev0.Amount,
+					MintChainId: ev0.MintChainId,
+					MintAccount: ev0.MintAccount,
+				}
+			} else {
+				ptbContract, _ := eth.NewOriginalTokenVaultV2Filterer(eth.ZeroAddr, nil)
+				ev, err = ptbContract.ParseDeposited(*elog)
+				if err != nil {
+					return false, err
+				}
 			}
+			depositToken = ev.Token.Hex()
 		}
 
-		depositChainId := onchev.Chainid
 		if k.HasDepositInfo(ctx, ev.DepositId) {
 			log.Infof("skip already applied pegbr deposit event. chainid %d depositId %x", depositChainId, ev.DepositId)
 			return false, nil
 		}
 
 		mintId, mintAmount, baseFee, percFee, refundMsg, err := k.pegMint(
-			ctx, depositChainId, depositChainId, ev.MintChainId, ev.Depositor, ev.MintAccount, ev.Token, ev.Amount, ev.DepositId)
+			ctx, depositChainId, depositChainId, ev.MintChainId, ev.Depositor, ev.MintAccount, depositToken, ev.Amount, ev.DepositId)
 		if err != nil {
 			return false, err
 		}
 		if refundMsg != "" {
-			k.manageDataForDepositRefund(ctx, depositChainId, ev)
+			k.manageDataForDepositRefund(ctx, depositChainId, ev, depositToken)
 			log.Warnf("deposit to be refunded, depositId:%x. %s", ev.DepositId, refundMsg)
 			return true, nil
 		}
@@ -82,36 +99,52 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		return true, nil
 
 	case types.PegbrEventBurn:
-		version, _ := k.GetBridgeVersion(ctx, onchev.Chainid, elog.Address)
+		burnChainId := onchev.Chainid
+		var burnToken string // must be string as flow token is like A.xxxx.SomeToken. for evm, it's hex
 		var ev *eth.PeggedTokenBridgeV2Burn
-		if version == 0 {
-			ptbContract, _ := eth.NewPeggedTokenBridgeFilterer(eth.ZeroAddr, nil)
-			ev0, err := ptbContract.ParseBurn(*elog)
+		var version uint32 // only needed for evm chains, will be set by GetBridgeVersion
+		if commontypes.IsFlowChain(burnChainId) {
+			// onchev.Elog is json serialized cbridge-flow/types/FlowVaultDeposited so we deserialize and assign to ev fields
+			flowEv := new(cbrflowtypes.FlowPegBridgeBurn)
+			err = json.Unmarshal(onchev.Elog, flowEv)
 			if err != nil {
 				return false, err
 			}
-			ev = &eth.PeggedTokenBridgeV2Burn{
-				BurnId:    ev0.BurnId,
-				Token:     ev0.Token,
-				Account:   ev0.Account,
-				Amount:    ev0.Amount,
-				ToAccount: ev0.WithdrawAccount,
-			}
+			burnToken = flowEv.Token // human string
+			// set ev fields to flowEv values
+			ev.SetByFlow(flowEv)
 		} else {
-			ptbContract, _ := eth.NewPeggedTokenBridgeV2Filterer(eth.ZeroAddr, nil)
-			ev, err = ptbContract.ParseBurn(*elog)
-			if err != nil {
-				return false, err
+			version, _ = k.GetBridgeVersion(ctx, onchev.Chainid, elog.Address)
+
+			if version == 0 {
+				ptbContract, _ := eth.NewPeggedTokenBridgeFilterer(eth.ZeroAddr, nil)
+				ev0, err := ptbContract.ParseBurn(*elog)
+				if err != nil {
+					return false, err
+				}
+				ev = &eth.PeggedTokenBridgeV2Burn{
+					BurnId:    ev0.BurnId,
+					Token:     ev0.Token,
+					Account:   ev0.Account,
+					Amount:    ev0.Amount,
+					ToAccount: ev0.WithdrawAccount,
+				}
+			} else {
+				ptbContract, _ := eth.NewPeggedTokenBridgeV2Filterer(eth.ZeroAddr, nil)
+				ev, err = ptbContract.ParseBurn(*elog)
+				if err != nil {
+					return false, err
+				}
 			}
+			burnToken = ev.Token.Hex()
 		}
 
-		burnChainId := onchev.Chainid
 		if k.HasBurnInfo(ctx, ev.BurnId) {
 			log.Infof("skip already applied pegbr burn event. burnChainId %d burnId %x version %d", burnChainId, ev.BurnId, version)
 			return false, nil
 		}
 
-		pair, pairFound := k.GetOrigPeggedPairByPegged(ctx, burnChainId, ev.Token)
+		pair, pairFound := k.GetOrigPeggedPairByPeggedByStrAddr(ctx, burnChainId, burnToken)
 		if !pairFound {
 			// pegged pair should be found. if not, an ERROR log would be printed.
 			// this burn couldn't be refunded, because totalSupply in sgn was not updated.
@@ -131,7 +164,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			return false, err
 		}
 		if refundMsg != "" {
-			k.manageDataForBurnRefund(ctx, burnChainId, ev, version)
+			k.manageDataForBurnRefund(ctx, burnChainId, ev, version, burnToken)
 			log.Warnf("burn to be refunded, burn:%x. %s", ev.BurnId, refundMsg)
 			return true, nil
 		}
@@ -142,11 +175,22 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		return true, nil
 
 	case types.PegbrEventMint:
-		// Mint event different bridge versions are the same
-		ptbContract, _ := eth.NewPeggedTokenBridgeFilterer(eth.ZeroAddr, nil)
-		ev, err := ptbContract.ParseMint(*elog)
-		if err != nil {
-			return false, err
+		mintChainId := onchev.Chainid
+		ev := new(eth.PeggedTokenBridgeMint)
+		if commontypes.IsFlowChain(mintChainId) {
+			flowEv := new(cbrflowtypes.FlowPegBridgeMint)
+			err = json.Unmarshal(onchev.Elog, flowEv)
+			if err != nil {
+				return false, err
+			}
+			// only need to set ev.MintId as other fields are not needed in later code
+			ev.MintId = flowEv.MintId
+		} else {
+			ptbContract, _ := eth.NewPeggedTokenBridgeFilterer(eth.ZeroAddr, nil)
+			ev, err = ptbContract.ParseMint(*elog)
+			if err != nil {
+				return false, err
+			}
 		}
 		mintInfo, found := k.GetMintInfo(ctx, ev.MintId)
 		if !found {
@@ -159,20 +203,31 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		return true, nil
 
 	case types.PegbrEventWithdrawn:
-		// Withdrawn event different vault versions are the same
-		otvContract, _ := eth.NewOriginalTokenVaultFilterer(eth.ZeroAddr, nil)
-		ev, err := otvContract.ParseWithdrawn(*elog)
-		if err != nil {
-			return false, err
+		wdChainId := onchev.Chainid
+		ev := new(eth.OriginalTokenVaultWithdrawn)
+		if commontypes.IsFlowChain(wdChainId) {
+			flowEv := new(cbrflowtypes.FlowSafeBoxWithdrawn)
+			err = json.Unmarshal(onchev.Elog, flowEv)
+			if err != nil {
+				return false, err
+			}
+			// only need to set ev.WithdrawId as other fields are not needed in later code
+			ev.WithdrawId = flowEv.WithdrawId
+		} else {
+			otvContract, _ := eth.NewOriginalTokenVaultFilterer(eth.ZeroAddr, nil)
+			ev, err = otvContract.ParseWithdrawn(*elog)
+			if err != nil {
+				return false, err
+			}
 		}
 		wdInfo, found := k.GetWithdrawInfo(ctx, ev.WithdrawId)
 		if !found {
-			log.Errorln("x/pegbr withdraw info not found", ev.PrettyLog(onchev.Chainid))
+			log.Errorln("x/pegbr withdraw info not found", ev.PrettyLog(wdChainId))
 			return false, nil
 		}
 		wdInfo.Success = true
 		k.SetWithdrawInfo(ctx, ev.WithdrawId, wdInfo)
-		log.Infoln("x/pegbr applied:", ev.PrettyLog(onchev.Chainid))
+		log.Infoln("x/pegbr applied:", ev.PrettyLog(wdChainId))
 		return true, nil
 	}
 
@@ -181,7 +236,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 
 func (k Keeper) pegMint(
 	ctx sdk.Context, depositChainId, refChainId, mintChainId uint64,
-	depositor, mintAccount, token eth.Addr, amount *big.Int, refId eth.Hash) (
+	depositor, mintAccount eth.Addr, token string, amount *big.Int, refId eth.Hash) (
 	mintId eth.Hash, mintAmount, baseFee, percFee *big.Int, refundMsg string, err error) {
 
 	pair, found := k.GetOrigPeggedPair(ctx, depositChainId, token, mintChainId)
@@ -364,7 +419,7 @@ func (k Keeper) burnMint(
 	var mintId eth.Hash
 	var mintAmount, baseFee, percFee *big.Int
 	mintId, mintAmount, baseFee, percFee, refundMsg, err = k.pegMint(ctx, pair.Orig.ChainId, burnChainId, ev.ToChainId, ev.Account,
-		ev.ToAccount, eth.Hex2Addr(pair.Orig.Address), origChainAmt, ev.BurnId)
+		ev.ToAccount, pair.Orig.Address, origChainAmt, ev.BurnId)
 	if err != nil || refundMsg != "" {
 		return
 	}
@@ -411,7 +466,8 @@ func (k Keeper) burnSupply(
 	}
 }
 
-func (k Keeper) manageDataForDepositRefund(ctx sdk.Context, depositChainId uint64, ev *eth.OriginalTokenVaultV2Deposited) {
+// for flow, we need depoToken string because ev.Token is empty
+func (k Keeper) manageDataForDepositRefund(ctx sdk.Context, depositChainId uint64, ev *eth.OriginalTokenVaultV2Deposited, depoToken string) {
 	// Record a DepositInfo without mintId
 	depositInfo := types.DepositInfo{
 		ChainId:   depositChainId,
@@ -428,10 +484,13 @@ func (k Keeper) manageDataForDepositRefund(ctx sdk.Context, depositChainId uint6
 		RefChainId:  depositChainId,
 		RefId:       ev.DepositId[:],
 	}
+	if commontypes.IsFlowChain(depositChainId) {
+		wdOnChain.Token = []byte(depoToken) // use human string as is
+	}
 	k.SetDepositRefund(ctx, ev.DepositId, wdOnChain)
 }
 
-func (k Keeper) manageDataForBurnRefund(ctx sdk.Context, burnChainId uint64, ev *eth.PeggedTokenBridgeV2Burn, version uint32) {
+func (k Keeper) manageDataForBurnRefund(ctx sdk.Context, burnChainId uint64, ev *eth.PeggedTokenBridgeV2Burn, version uint32, burnToken string) {
 	// Record a BurnInfo without withdrawId
 	burnInfo := types.BurnInfo{
 		ChainId:       burnChainId,
@@ -448,6 +507,9 @@ func (k Keeper) manageDataForBurnRefund(ctx sdk.Context, burnChainId uint64, ev 
 		Depositor:  eth.ZeroAddr.Bytes(),
 		RefChainId: burnChainId,
 		RefId:      ev.BurnId[:],
+	}
+	if commontypes.IsFlowChain(burnChainId) {
+		mintOnChain.Token = []byte(burnToken) // use human string as is
 	}
 	k.SetBurnRefund(ctx, ev.BurnId, mintOnChain)
 }

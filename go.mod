@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/allegro/bigcache v1.2.1
 	github.com/armon/go-metrics v0.3.10
+	github.com/celer-network/cbridge-flow v0.0.0-20220301231229-2b1c82ecbe64
 	github.com/celer-network/endpoint-proxy v0.1.8
 	github.com/celer-network/goutils v0.1.43
 	github.com/cosmos/cosmos-sdk v0.44.5
@@ -20,6 +21,7 @@ require (
 	github.com/iancoleman/strcase v0.2.0
 	github.com/lthibault/jitterbug v2.0.0+incompatible
 	github.com/miguelmota/go-solidity-sha3 v0.1.1
+	github.com/onflow/flow-go-sdk v0.24.0
 	github.com/rakyll/statik v0.1.7
 	github.com/regen-network/cosmos-proto v0.3.1
 	github.com/rs/zerolog v1.23.0

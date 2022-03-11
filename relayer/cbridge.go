@@ -15,6 +15,7 @@ import (
 	"github.com/celer-network/goutils/eth/watcher"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -50,6 +51,10 @@ type CbrOneChain struct {
 	chainid, blkDelay, forwardBlkDelay, blkInterval uint64
 
 	checkIntervals map[string]uint64
+
+	// all in one helper for flow chain, only set when IsFlowChain(chainid) is true
+	// above eth related fields are all nil
+	*FlowClient
 }
 
 // key is chainid
@@ -77,7 +82,22 @@ func NewCbridgeMgr(db dbm.DB, cliCtx client.Context) CbrMgr {
 	return ret
 }
 
+// return CbrOneChain for flow, no eth stuff
+func newOneChainForFlow(cfg *common.OneChainConfig, cbrDb *dbm.PrefixDB) *CbrOneChain {
+	return &CbrOneChain{
+		chainid:         cfg.ChainID,
+		blkDelay:        cfg.BlkDelay,
+		forwardBlkDelay: cfg.ForwardBlkDelay,
+		blkInterval:     cfg.BlkInterval,
+		FlowClient:      NewFlowClient(cfg, cbrDb),
+		db:              dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID))),
+	}
+}
+
 func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.PrefixDB, cliCtx client.Context) *CbrOneChain {
+	if commontypes.IsFlowChain(cfg.ChainID) {
+		return newOneChainForFlow(cfg, cbrDb)
+	}
 	var ec *ethclient.Client
 	var err error
 	if cfg.ProxyPort > 0 {

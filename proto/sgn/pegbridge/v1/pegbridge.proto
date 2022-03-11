@@ -210,7 +210,7 @@ message MintOnChain {
 message WithdrawOnChain {
   option (gogoproto.goproto_stringer) = false;
 
-  // token defines the token address.
+  // token defines the token address. for non-evm chains, value meaning is different
   bytes token = 1;
 
   // receiver defines the account address that the tokens should be withdrawn to.

@@ -879,7 +879,7 @@ func (m *MintOnChain) GetRefId() []byte {
 
 // WithdrawOnChain describes the withdraw protobuf to be submitted on-chain.
 type WithdrawOnChain struct {
-	// token defines the token address.
+	// token defines the token address. for non-evm chains, value meaning is different
 	Token []byte `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
 	// receiver defines the account address that the tokens should be withdrawn to.
 	Receiver []byte `protobuf:"bytes,2,opt,name=receiver,proto3" json:"receiver,omitempty"`

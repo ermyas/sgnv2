@@ -81,6 +81,7 @@ func cbrTest(t *testing.T, transactor *transactor.Transactor) {
 				tc.CheckAddLiquidityStatus(transactor, tc.CbrChain1.ChainId, i+1)
 			}
 		},
+
 		func() {
 			log.Infoln("======================== Add liquidity on chain 2 ===========================")
 			var i uint64

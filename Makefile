@@ -106,7 +106,7 @@ build-geth:
 
 .PHONY: build-node
 build-node:
-	DOCKER_BUILDKIT=1 docker build --tag celer-network/sgnnode . \
+	DOCKER_BUILDKIT=1 docker $(BUILDX) build $(BUILDX_FLAGS) --build-arg GH_TOKEN=$(GH_TOKEN) --tag celer-network/sgnnode . \
 
 .PHONY: build-executor
 build-executor:
@@ -200,3 +200,16 @@ start-gateway:
 .PHONY: clean-test
 clean-test:
 	rm -rf ./docker-volumes ./build
+
+# Run flow
+.PHONY: localnet-start-flow
+localnet-start-flow:
+	docker-compose up -d flow
+
+.PHONY: localnet-stop-flow
+localnet-stop-flow:
+	docker-compose stop flow
+	docker-compose rm -f flow
+
+.PHONY: localnet-restart-flow
+localnet-restart-flow: localnet-stop-flow localnet-start-flow

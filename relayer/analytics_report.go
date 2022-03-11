@@ -10,6 +10,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/gogo/protobuf/jsonpb"
@@ -106,6 +107,10 @@ func (r *Relayer) reportValidatorNodeAnalytics() {
 		ChainConfigs: r.getChainConfig(),
 	}
 	for chainId, oneChain := range r.cbrMgr {
+		if types.IsFlowChain(chainId) {
+			// TODO, now skip
+			continue
+		}
 		blockNumber := oneChain.mon.GetCurrentBlockNumber()
 		report.BlockNums[strconv.Itoa(int(chainId))] = blockNumber.Uint64()
 	}

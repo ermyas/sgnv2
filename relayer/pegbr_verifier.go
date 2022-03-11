@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/celer-network/goutils/log"
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	pegtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
@@ -23,6 +24,10 @@ func (r *Relayer) verifyPegbrEventUpdate(update *synctypes.PendingUpdate) (done,
 	if err != nil {
 		log.Errorf("failed to unmarshal %x to onchain event msg", update.Data)
 		return true, false
+	}
+	if commontypes.IsFlowChain(onchev.Chainid) {
+		// TODO: verify flow event, skip for now
+		return true, true
 	}
 	elog := new(ethtypes.Log)
 	err = json.Unmarshal(onchev.Elog, elog)

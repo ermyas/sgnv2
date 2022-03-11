@@ -162,6 +162,7 @@ func main() {
 		log.Infoln("Rebuild sgn node docker image ...")
 		cmd := exec.Command("make", "build-node")
 		cmd.Dir = repoRoot
+		cmd.Env = os.Environ()
 		if err := cmd.Run(); err != nil {
 			log.Fatal(err)
 		}

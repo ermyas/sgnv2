@@ -16,6 +16,7 @@ import (
 	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -288,6 +289,29 @@ func OnchainClaimStakingReward(claimInfo *distrtypes.StakingRewardClaimInfo) err
 	return nil
 }
 
+func (c *CbrChain) PbrDepositWithMintAccount(fromUid uint64, amt *big.Int, mintChainId uint64, mintAccount common.Address, nonce uint64) (string, error) {
+	receipt, err := c.Users[fromUid].Transactor.TransactWaitMined(
+		"PbrDeposit",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.PegVaultContract.Deposit(opts, c.UNIAddr, amt, mintChainId, mintAccount, nonce)
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return "", fmt.Errorf("tx failed")
+	}
+	// last log is Deposit event (NOTE: test only)
+	depositLog := receipt.Logs[len(receipt.Logs)-1]
+	depositEv, err := c.PegVaultContract.ParseDeposited(*depositLog)
+	if err != nil {
+		return "", fmt.Errorf("parse log %+v err: %w", depositEv, err)
+	}
+	log.Infof("Deposit tx success, depositId: %x", depositEv.DepositId)
+	return eth.Hash(depositEv.DepositId).Hex(), nil
+}
+
 func (c *CbrChain) PbrDeposit(fromUid uint64, token eth.Addr, amt *big.Int, mintChainId uint64, nonce uint64) (string, error) {
 	receipt, err := c.Users[fromUid].Transactor.TransactWaitMined(
 		"PbrDeposit",
@@ -348,6 +372,29 @@ func (c *CbrChain) PbrBurn(fromUid uint64, amt *big.Int, nonce uint64) (string, 
 		return "", fmt.Errorf("tx failed")
 	}
 	// last log is Burn event (NOTE: test only)
+	burnLog := receipt.Logs[len(receipt.Logs)-1]
+	burnEv, err := c.PegBridgeContract.ParseBurn(*burnLog)
+	if err != nil {
+		return "", fmt.Errorf("parse log %+v err: %w", burnEv, err)
+	}
+	log.Infof("Burn tx success, burnId: %x", burnEv.BurnId)
+	return eth.Hash(burnEv.BurnId).Hex(), nil
+}
+
+func (c *CbrChain) PbrBurnWithUser(fromUid uint64, amt *big.Int, nonce uint64, withdrawUserAddr common.Address) (string, error) {
+	receipt, err := c.Users[fromUid].Transactor.TransactWaitMined(
+		"PbrBurnWithUser",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.PegBridgeContract.Burn(opts, c.UNIAddr, amt, withdrawUserAddr, nonce)
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return "", fmt.Errorf("tx failed")
+	}
+	// last log is Deposit event (NOTE: test only)
 	burnLog := receipt.Logs[len(receipt.Logs)-1]
 	burnEv, err := c.PegBridgeContract.ParseBurn(*burnLog)
 	if err != nil {

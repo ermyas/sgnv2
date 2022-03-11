@@ -41,7 +41,7 @@ func CheckAddLiquidityStatus(transactor *transactor.Transactor, chainId, seqNum 
 	}
 	ChkErr(err, "failed to QueryAddLiquidityStatus")
 	if resp.Status != cbrtypes.WithdrawStatus_WD_COMPLETED {
-		log.Fatalln("incorrect status")
+		log.Fatalln(chainId, seqNum, "incorrect status")
 	}
 }
 
@@ -708,4 +708,17 @@ func GetRefundMintInfoWithSigs(
 		log.Fatalf("QueryMintInfo expected sigNum %d, actual %d", expSigNum, len(mintInfo.Signatures))
 	}
 	return mintId, mintInfo
+}
+
+func QueryPegBridgeConfig(transactor *transactor.Transactor) *pegbrtypes.PegConfig {
+	var err error
+	for retry := 0; retry < RetryLimit*2; retry++ {
+		resp, err := pegbrcli.QueryConfig(transactor.CliCtx)
+		if err == nil {
+			return resp
+		}
+		time.Sleep(RetryPeriod)
+	}
+	ChkErr(err, "failed to QueryDepositInfo")
+	return nil
 }

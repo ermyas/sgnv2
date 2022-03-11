@@ -150,20 +150,29 @@ func (r *Relayer) submitMint(mintRequest MintRequest) {
 		return
 	}
 
+	var sigsBytes [][]byte
 	curss := r.cbrMgr[mintRequest.MintChainId].getCurss()
-	curssList := make([]*cbrtypes.Signer, 0)
-	for i, addr := range curss.addrs {
-		power := curss.powers[i]
-		curssList = append(curssList, &cbrtypes.Signer{
-			Addr:  addr.Bytes(),
-			Power: power.Bytes(),
-		})
-	}
-	pass, sigsBytes := cbrtypes.ValidateSigQuorum(mintInfo.GetAddrSigs(), curssList)
-	if !pass {
-		r.requeueMint(mintRequest,
-			fmt.Sprintf("%s. Not have enough sigs %s, curss %s", logmsg, mintInfo.SignersStr(), curss.String()), false)
-		return
+	if commontypes.IsFlowChain(mintRequest.MintChainId) {
+		for _, sig := range mintInfo.GetAddrSigs() {
+			sigsBytes = append(sigsBytes, sig.Sig)
+		}
+	} else {
+		// EVM chain
+		curssList := make([]*cbrtypes.Signer, 0)
+		for i, addr := range curss.addrs {
+			power := curss.powers[i]
+			curssList = append(curssList, &cbrtypes.Signer{
+				Addr:  addr.Bytes(),
+				Power: power.Bytes(),
+			})
+		}
+		var pass bool
+		pass, sigsBytes = cbrtypes.ValidateSigQuorum(mintInfo.GetAddrSigs(), curssList)
+		if !pass {
+			r.requeueMint(mintRequest,
+				fmt.Sprintf("%s. Not have enough sigs %s, curss %s", logmsg, mintInfo.SignersStr(), curss.String()), false)
+			return
+		}
 	}
 
 	txHash, err := r.cbrMgr[mintRequest.MintChainId].SendMint(
@@ -278,20 +287,28 @@ func (r *Relayer) submitWithdraw(wdRequest WithdrawRequest) {
 		return
 	}
 
+	var sigsBytes [][]byte
 	curss := r.cbrMgr[wdRequest.WithdrawChainId].getCurss()
-	curssList := make([]*cbrtypes.Signer, 0)
-	for i, addr := range curss.addrs {
-		power := curss.powers[i]
-		curssList = append(curssList, &cbrtypes.Signer{
-			Addr:  addr.Bytes(),
-			Power: power.Bytes(),
-		})
-	}
-	pass, sigsBytes := cbrtypes.ValidateSigQuorum(wdInfo.GetAddrSigs(), curssList)
-	if !pass {
-		r.requeueWithdraw(wdRequest,
-			fmt.Sprintf("%s. Not have enough sigs %s, curss %s", logmsg, wdInfo.SignersStr(), curss.String()), false)
-		return
+	if commontypes.IsFlowChain(wdRequest.WithdrawChainId) {
+		for _, sig := range wdInfo.GetAddrSigs() {
+			sigsBytes = append(sigsBytes, sig.Sig)
+		}
+	} else {
+		curssList := make([]*cbrtypes.Signer, 0)
+		for i, addr := range curss.addrs {
+			power := curss.powers[i]
+			curssList = append(curssList, &cbrtypes.Signer{
+				Addr:  addr.Bytes(),
+				Power: power.Bytes(),
+			})
+		}
+		var pass bool
+		pass, sigsBytes = cbrtypes.ValidateSigQuorum(wdInfo.GetAddrSigs(), curssList)
+		if !pass {
+			r.requeueWithdraw(wdRequest,
+				fmt.Sprintf("%s. Not have enough sigs %s, curss %s", logmsg, wdInfo.SignersStr(), curss.String()), false)
+			return
+		}
 	}
 
 	txHash, err := r.cbrMgr[wdRequest.WithdrawChainId].SendWithdraw(
@@ -364,17 +381,20 @@ func (c *CbrOneChain) pullPegbrEvents(chid uint64, cliCtx client.Context, update
 				continue
 			}
 
-			evlog := new(ethtypes.Log)
-			err := json.Unmarshal(vals[i], evlog)
-			if err != nil {
-				log.Errorf("failed to unmarshal onchev elog, key:%s, err:%s", string(key), err.Error())
-				continue
-			}
-
-			skip, reason := c.skipPegbrEvent(evn, evlog, cliCtx, pegbrUserActionValidCache)
-			if skip {
-				log.Debugf("skip pbr event: %s, chid %d, reason: %s", string(key), c.chainid, reason)
-				continue
+			if commontypes.IsFlowChain(chid) {
+				// TODO add skip check
+			} else {
+				evlog := new(ethtypes.Log)
+				err := json.Unmarshal(vals[i], evlog)
+				if err != nil {
+					log.Errorf("failed to unmarshal onchev elog, key:%s, err:%s", string(key), err.Error())
+					continue
+				}
+				skip, reason := c.skipPegbrEvent(evn, evlog, cliCtx, pegbrUserActionValidCache)
+				if skip {
+					log.Debugf("skip pbr event: %s, chid %d, reason: %s", string(key), c.chainid, reason)
+					continue
+				}
 			}
 
 			onchev := &cbrtypes.OnChainEvent{

@@ -6,6 +6,19 @@ option (gogoproto.equal_all) = true;
 
 import "gogoproto/gogo.proto";
 
+// to make sure no chain id conflict within sgn system
+// there is no way to guarantee the chain id we choose here will NEVER be
+// used by another real evm chain in the future. we just do our best choosing
+// an unlikely range. also value should be smaller than max int32
+// corresponding value also needs to be coded in non-evm chain smart contracts
+enum NonEvmChainID {
+  UNDEFINED = 0;
+  reserved 1 to 12340000;
+  FLOW_MAINNET = 12340001;
+  FLOW_TEST = 12340002;
+  FLOW_EMULATOR = 12340003; // local emulator as FungibleToken address is different
+}
+
 // Signature is the structure representing an Ethereum ECDSA signature.
 message Signature {
   // signer defines the Ethereum address of the signer.
@@ -15,15 +28,17 @@ message Signature {
 }
 
 message ContractInfo {
-  // chain_id defines the EVM chain ID of the contract
+  // chain_id defines the chain ID of the contract
   uint64 chain_id = 1 [(gogoproto.moretags) = "yaml:\"chain_id\""];
-  // address defines the address of the contract
+  // address defines the address of the contract. Note for non-evm chains,
+  // address format is different
   string address = 2 [(gogoproto.moretags) = "yaml:\"address\""];
 }
 
 // ERC20Token describes an ERC20 token on a specific EVM-compatible chain
+// Or a similar fungible token on non-evm chains.
 message ERC20Token {
-  // chain_id defines the EVM chain ID
+  // chain_id defines the chain ID
   uint64 chain_id = 1 [(gogoproto.moretags) = "yaml:\"chain_id\""];
   // symbol defines the ERC20 token symbol
   string symbol = 2 [(gogoproto.moretags) = "yaml:\"symbol\""];

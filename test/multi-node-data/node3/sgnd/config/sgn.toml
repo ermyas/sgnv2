@@ -43,3 +43,6 @@ slash = 2
 cbridge = 2
 verifier = 1
 cbr_price = 60
+
+[nonevm]
+flow_account = "0x120e725050340cab"

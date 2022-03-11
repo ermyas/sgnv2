@@ -21,7 +21,7 @@ func (k Keeper) claimFee(
 	logmsg := fmt.Sprintf("claimFee:%x nonce:%d", delAddr, nonce)
 	// 2. Take the fee balance in the distribution module and generate a WithdrawOnchain
 	var symbol string
-	k.IterateOrigPeggedPairsByOrig(ctx, chainId, token, func(pair types.OrigPeggedPair) bool {
+	k.IterateOrigPeggedPairsByOrig(ctx, chainId, eth.Addr2Hex(token), func(pair types.OrigPeggedPair) bool {
 		symbol = pair.Orig.Symbol
 		vaultVersion = pair.VaultVersion
 		return true

@@ -61,3 +61,14 @@ cbridge = ""
 otvault = ""
 ptbridge = ""
 addgasgwei = 2
+
+[[multichain]]
+chainID = 12340003
+name = "flow"
+gateway = "192.168.10.10:3569"
+blkinterval = 1
+blkdelay = 1
+maxblkdelta = 1000
+cbridge = "01cf0e2f2f715450"
+otvault = "01cf0e2f2f715450"
+ptbridge = "01cf0e2f2f715450"

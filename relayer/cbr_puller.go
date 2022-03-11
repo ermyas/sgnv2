@@ -10,6 +10,7 @@ import (
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -545,6 +546,10 @@ func (r *Relayer) updateSigners() {
 
 	log.Infoln("update latest signers to", latestSigners.String())
 	for chainId, c := range r.cbrMgr {
+		// TODO, this will be added later, we'll need address to pubkey mapping in another smart contract
+		if types.IsFlowChain(chainId) {
+			continue
+		}
 		ssHash, err := c.cbrContract.SsHash(&bind.CallOpts{})
 		if err != nil {
 			log.Errorln("failed to get sshash", chainId, err)

@@ -10,6 +10,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	tc "github.com/celer-network/sgn-v2/test/common"
+	"github.com/celer-network/sgn-v2/transactor"
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	stakingtypes "github.com/celer-network/sgn-v2/x/staking/types"
@@ -68,10 +69,15 @@ func bridgeTest(t *testing.T) {
 		func() {
 			pbrTest2(t, transactor)
 		},
+		/*
+			func() {
+				pbrFlowTest(t, transactor)
+			},
+		*/
 	)
 }
 
-func prepareValidators(t *testing.T) {
+func prepareValidators(t *testing.T) *transactor.Transactor {
 	log.Infoln("================== Prepare validators start =================")
 
 	transactor := tc.NewTestCliTransactor(
@@ -122,6 +128,7 @@ func prepareValidators(t *testing.T) {
 	tc.CheckChainSigners(t, transactor, tc.CbrChain3.ChainId, expSigners)
 
 	log.Infoln("================== Prepare validators done =================")
+	return transactor // needed by pbrFlowTest
 }
 
 func govSyncerCandidates(t *testing.T) {

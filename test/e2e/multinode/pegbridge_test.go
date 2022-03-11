@@ -14,13 +14,13 @@ import (
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	proto "github.com/gogo/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPegbridge(t *testing.T) {
 	t.Run("e2e-pegbridge", func(t *testing.T) {
-		//t.Run("pegbridgeTest", pegbridgeTest) // comment this out when commit, as it duplicates TestBridge
+		// t.Run("pegbridgeTest", pegbridgeTest) // comment this out when commit, as it duplicates TestBridge
 	})
 }
 
@@ -110,6 +110,7 @@ func pbrTest1(t *testing.T, transactor *transactor.Transactor) {
 	burnAmt := new(big.Int).Mul(big.NewInt(50), big.NewInt(1e18))
 	burnId, err := tc.CbrChain2.PbrBurn(0, burnAmt, rand.Uint64())
 	tc.ChkErr(err, "u0 chain2 burn")
+
 	tc.RunAllAndWait(
 		func() {
 			burnInfo := tc.WaitPbrBurn(transactor, burnId[:])
@@ -226,6 +227,8 @@ func pbrTest2(t *testing.T, transactor *transactor.Transactor) {
 	depositAmt := big.NewInt(5000 * 1e6)
 	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.USDTContract, uid, depositAmt, tc.CbrChain1.PegVaultV2Addr)
 	tc.ChkErr(err, "u3 chain1 approve")
+	// chain1bal, _ := tc.CbrChain1.USDTContract.BalanceOf(nil, tc.CbrChain1.Users[uid].Address)
+	// t.Error(tc.CbrChain1.USDTAddr.Hex(), ", ", depositAmt, ", ", chain1bal)
 	depositId, err := tc.CbrChain1.PbrV2Deposit(uid, tc.CbrChain1.USDTAddr, depositAmt, tc.CbrChain2.ChainId, rand.Uint64())
 	tc.ChkErr(err, "u3 chain1 deposit")
 	depositInfo := tc.WaitPbrDeposit(transactor, depositId)

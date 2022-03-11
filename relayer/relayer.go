@@ -199,7 +199,9 @@ func (r *Relayer) monitorChain() {
 			if r.chainMonitorStatus == ChainMonitorStatusYes {
 				log.Infoln("close bridge monitoring")
 				for _, oc := range CbrMgrInstance {
-					oc.mon.Close()
+					if oc.mon != nil {
+						oc.mon.Close()
+					}
 				}
 			}
 			r.chainMonitorStatus = ChainMonitorStatusNo

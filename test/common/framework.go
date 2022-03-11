@@ -3,6 +3,8 @@ package common
 import (
 	"math/big"
 
+	"github.com/celer-network/cbridge-flow/signer"
+	flowutils "github.com/celer-network/cbridge-flow/utils"
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
@@ -13,6 +15,7 @@ import (
 
 var (
 	etherBaseKs = EnvDir + "/keystore/etherbase.json"
+	flowBaseKs  = EnvDir + "/keystore/flowbase.json"
 
 	EthClient     *ethclient.Client
 	EtherBaseAuth *bind.TransactOpts
@@ -26,6 +29,11 @@ var (
 	ValSgnAddrs []sdk.AccAddress
 
 	CbrChain1, CbrChain2, CbrChain3 *CbrChain
+
+	FlowServiceAccountClient  *flowutils.FlowCbrClient
+	FlowContractAccountClient *flowutils.FlowCbrClient
+	FlowUserAccountClient     *flowutils.FlowCbrClient
+	FlowServiceAccountSigner  *signer.FlowSigner
 )
 
 type CbrChain struct {

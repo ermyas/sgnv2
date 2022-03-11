@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	cbrflowtypes "github.com/celer-network/cbridge-flow/types"
 	"github.com/celer-network/goutils/log"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -462,6 +463,24 @@ func (ev *PeggedTokenBridgeBurn) String() string {
 func (ev *OriginalTokenVaultWithdrawn) String() string {
 	return fmt.Sprintf("withdrawId %x, receiver %x, token %x, amount %s, burnChainId %d, burnId %x, burnAccount %x",
 		ev.WithdrawId, ev.Receiver, ev.Token, ev.Amount, ev.RefChainId, ev.RefId, ev.BurnAccount)
+}
+
+// set values from Flow event, WARNING ev.Token is ZeroAddr!!! because flowev's token is human string
+func (ev *OriginalTokenVaultV2Deposited) SetByFlow(flowev *cbrflowtypes.FlowSafeBoxDeposited) {
+	ev.DepositId = flowev.DepositId
+	ev.Depositor = flowev.Depositor
+	ev.Amount = new(big.Int).Set(flowev.Amount)
+	ev.MintChainId = flowev.MintChainId
+	ev.MintAccount = flowev.MintAccount
+}
+
+// set values from Flow event, WARNING ev.Token is ZeroAddr!!! because flowev's token is human string
+// TODO: to chainid isn't supported by flow yet
+func (ev *PeggedTokenBridgeV2Burn) SetByFlow(flowev *cbrflowtypes.FlowPegBridgeBurn) {
+	ev.BurnId = flowev.BurnId
+	ev.Account = flowev.Burner
+	ev.Amount = new(big.Int).Set(flowev.Amount)
+	ev.ToAccount = flowev.ToAccount
 }
 
 func (ev *OriginalTokenVaultV2Deposited) PrettyLog(onchid uint64) string {

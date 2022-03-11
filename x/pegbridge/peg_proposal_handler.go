@@ -39,7 +39,7 @@ func handlePairDeleteProposal(ctx sdk.Context, k pegkeeper.Keeper, p *types.Pair
 	if err := pair.ValidateBasic(); err != nil {
 		return err
 	}
-	k.DeleteOrigPeggedPair(ctx, pair.Orig.ChainId, eth.Hex2Addr(pair.Orig.Address), pair.Pegged.ChainId, eth.Hex2Addr(pair.Pegged.Address))
+	k.DeleteOrigPeggedPair(ctx, pair.Orig.ChainId, pair.Orig.Address, pair.Pegged.ChainId, eth.Hex2Addr(pair.Pegged.Address))
 	return nil
 }
 
@@ -57,7 +57,7 @@ func handleTotalSupplyUpdateProposal(ctx sdk.Context, k pegkeeper.Keeper, p *typ
 	if !ok || totalSupply.Sign() == -1 {
 		return fmt.Errorf("invalid total supply string")
 	}
-	expectedPair, found := k.GetOrigPeggedPair(ctx, inputPair.Orig.ChainId, eth.Hex2Addr(inputPair.Orig.Address), inputPair.Pegged.ChainId)
+	expectedPair, found := k.GetOrigPeggedPair(ctx, inputPair.Orig.ChainId, inputPair.Orig.Address, inputPair.Pegged.ChainId)
 	if !found {
 		return fmt.Errorf("no pair found")
 	}

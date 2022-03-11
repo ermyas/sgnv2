@@ -37,6 +37,10 @@ jobs:
     - uses: actions/setup-go@v2
       with:
         go-version: '1.17'
+    - name: Configure git for private repo
+      run: |
+        export GOPRIVATE=github.com/celer-network/cbridge-flow
+        git config --global url."https://${{ secrets.GH_TOKEN }}:@github.com/".insteadOf "https://github.com/"
     - name: Install Docker
       if: steps.filter.outputs.src == 'true'
       run: |
@@ -50,5 +54,7 @@ jobs:
          sudo apt-get install docker-ce docker-ce-cli containerd.io
     - name: Run multinode tests
       if: steps.filter.outputs.src == 'true'
+      env:
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
       run: |
         go test -failfast -v -timeout 60m github.com/celer-network/sgn-v2/test/e2e/multinode -run "TestBridge"

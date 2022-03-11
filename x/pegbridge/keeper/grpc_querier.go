@@ -38,14 +38,14 @@ func (k Keeper) OrigPeggedPairs(
 	if orig != nil {
 		// If pegged chain ID specified, return single pair
 		if pegged.GetChainId() != 0 {
-			pair, found := k.GetOrigPeggedPair(ctx, orig.ChainId, eth.Hex2Addr(orig.Address), pegged.ChainId)
+			pair, found := k.GetOrigPeggedPair(ctx, orig.ChainId, orig.Address, pegged.ChainId)
 			if found {
 				pairs = append(pairs, pair)
 			}
 			return &types.QueryOrigPeggedPairsResponse{Pairs: pairs}, nil
 		}
 		// If pegged chain ID not specified, return all pairs from origin
-		k.IterateOrigPeggedPairsByOrig(ctx, orig.GetChainId(), eth.Hex2Addr(orig.GetAddress()), func(pair types.OrigPeggedPair) bool {
+		k.IterateOrigPeggedPairsByOrig(ctx, orig.GetChainId(), orig.GetAddress(), func(pair types.OrigPeggedPair) bool {
 			pairs = append(pairs, pair)
 			return false
 		})
@@ -79,7 +79,7 @@ func (k Keeper) EstimatedAmountFees(
 	}
 	// Use stored pair info to estimate fees
 	reqPair := req.GetPair()
-	pair, found := k.GetOrigPeggedPair(ctx, reqPair.Orig.ChainId, eth.Hex2Addr(reqPair.Orig.Address), reqPair.Pegged.ChainId)
+	pair, found := k.GetOrigPeggedPair(ctx, reqPair.Orig.ChainId, reqPair.Orig.Address, reqPair.Pegged.ChainId)
 	if !found {
 		return nil, errors.New("invalid pegged pair")
 	}

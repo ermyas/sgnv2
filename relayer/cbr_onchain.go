@@ -11,6 +11,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
+	pegtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
@@ -30,6 +31,15 @@ var evNames = []string{
 func (c *CbrOneChain) startMon() {
 	smallDelay := func() {
 		time.Sleep(100 * time.Millisecond)
+	}
+	if c.FlowClient != nil {
+		// TODO, use cbr config
+		c.monDeposited(c.getEventCheckInterval(pegtypes.PegbrEventDeposited))
+		c.monWithdrawn(c.getEventCheckInterval(pegtypes.PegbrEventWithdrawn))
+
+		c.monMint(c.getEventCheckInterval(pegtypes.PegbrEventWithdrawn))
+		c.monBurn(c.getEventCheckInterval(pegtypes.PegbrEventWithdrawn))
+		return
 	}
 	// avoid repeated get block number calls
 	blkNum := c.mon.GetCurrentBlockNumber()
@@ -225,6 +235,7 @@ func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
 			log.Errorln("saveEvent err:", err)
 			return true // ask to recreate to process event again
 		}
+
 		return false
 	})
 }

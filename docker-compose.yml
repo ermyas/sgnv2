@@ -106,6 +106,19 @@ services:
       localnet:
         ipv4_address: 192.168.10.8
 
+  flow:
+    container_name: flow
+    image: "gcr.io/flow-container-registry/emulator"
+    environment:
+      FLOW_SERVICEKEYSIGALGO: 'ECDSA_secp256k1'
+      FLOW_SERVICEPRIVATEKEY: '0aacb0aae0a0c939ff5fba973bbe289fe879104a980533bce669fb6c4daad628'
+      FLOW_VERBOSE: 'true'
+    ports:
+      - "3569:3569"
+    networks:
+      localnet:
+        ipv4_address: 192.168.10.10
+
 networks:
   localnet:
     driver: bridge

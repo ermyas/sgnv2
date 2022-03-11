@@ -126,6 +126,7 @@ func RunCmdNoChkErr(name string, args ...string) error {
 	argstr := strings.Join(args, " ")
 	log.Infoln(name, argstr)
 	cmd := exec.Command(name, args...)
+	cmd.Env = os.Environ()
 	cmd.Dir, _ = filepath.Abs("../../..")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

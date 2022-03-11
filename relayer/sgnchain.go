@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
@@ -184,7 +185,13 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 				case cbrtypes.SignDataType_SIGNERS.String():
 					msg.Datatype = cbrtypes.SignDataType_SIGNERS
 					for chainId, c := range r.cbrMgr {
-						dataToSign := cbrtypes.EncodeSignersUpdateToSign(chainId, c.cbrContract.GetAddr(), data)
+						var dataToSign []byte
+						if types.IsFlowChain(chainId) {
+							// TODO not needed here
+							continue
+						} else {
+							dataToSign = cbrtypes.EncodeSignersUpdateToSign(chainId, c.cbrContract.Address, data)
+						}
 						sig, err := r.EthClient.SignEthMessage(dataToSign)
 						if err != nil {
 							log.Errorf("%s, sign msg err: %s", logmsg, err)
@@ -225,6 +232,7 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 					continue
 				}
 
+				var sig []byte
 				mintOnChain := new(pegbrtypes.MintOnChain)
 				err = mintOnChain.Unmarshal(mintInfo.MintProtoBytes)
 				if err != nil {
@@ -232,29 +240,39 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 					continue
 				}
 
-				cbrOneChain := r.cbrMgr[mintInfo.ChainId]
-				if cbrOneChain == nil {
-					log.Errorf("cbrOneChain not exists, mint chainId: %d", mintInfo.ChainId)
-					continue
-				}
-				var sig []byte
-				if mintInfo.BridgeVersion == 0 {
-					sig, err = r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(cbrOneChain.pegContracts.bridge.GetAddr()))
-					if err != nil {
-						log.Error(err)
-						continue
-					}
-				} else if mintInfo.BridgeVersion == 2 {
-					sig, err = r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(cbrOneChain.pegContracts.bridge2.GetAddr()))
-					if err != nil {
-						log.Error(err)
-						continue
-					}
+				if types.IsFlowChain(mintInfo.ChainId) {
+					fcl := r.cbrMgr[mintInfo.ChainId].FlowClient
+					sig, err = fcl.fcc.SignFlowMessage(mintInfo.EncodeDataToSign(eth.Hex2Addr(fcl.PegBridgeAddr)))
 				} else {
-					log.Errorln("invalid bridge version", mintId, mintInfo.BridgeVersion)
-					continue
+					cbrOneChain := r.cbrMgr[mintInfo.ChainId]
+					if cbrOneChain == nil {
+						log.Errorf("cbrOneChain not exists, mint chainId: %d", mintInfo.ChainId)
+						continue
+					}
+					// todo: use switch and share log.Error and continue
+					if mintInfo.BridgeVersion == 0 {
+						bridgeAddr := cbrOneChain.pegContracts.bridge.GetAddr()
+						msgToSign := mintInfo.EncodeDataToSign(bridgeAddr)
+						sig, err = r.EthClient.SignEthMessage(msgToSign)
+						// log.Infof("bridgeAddr:%x, msgToSign:%x, sig:%x", bridgeAddr, msgToSign, sig)
+						if err != nil {
+							log.Error(err)
+							continue
+						}
+					} else if mintInfo.BridgeVersion == 2 {
+						bridgeAddr := cbrOneChain.pegContracts.bridge2.GetAddr()
+						msgToSign := mintInfo.EncodeDataToSign(bridgeAddr)
+						sig, err = r.EthClient.SignEthMessage(msgToSign)
+						// log.Infof("v2 bridgeAddr:%x, msgToSign:%x, sig:%x", bridgeAddr, msgToSign, sig)
+						if err != nil {
+							log.Error(err)
+							continue
+						}
+					} else {
+						log.Errorln("invalid bridge version", mintId, mintInfo.BridgeVersion)
+						continue
+					}
 				}
-
 				msg := &pegbrtypes.MsgSignMint{
 					MintId:    mintId,
 					Signature: sig,
@@ -299,6 +317,7 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 					continue
 				}
 
+				var sig []byte
 				wdOnChain := new(pegbrtypes.WithdrawOnChain)
 				err = wdOnChain.Unmarshal(wdInfo.WithdrawProtoBytes)
 				if err != nil {
@@ -306,22 +325,27 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 					continue
 				}
 
-				var sig []byte
-				if wdInfo.VaultVersion == 0 {
-					sig, err = r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(r.cbrMgr[wdInfo.ChainId].pegContracts.vault.GetAddr()))
-					if err != nil {
-						log.Error(err)
-						continue
-					}
-				} else if wdInfo.VaultVersion == 2 {
-					sig, err = r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(r.cbrMgr[wdInfo.ChainId].pegContracts.vault2.GetAddr()))
-					if err != nil {
-						log.Error(err)
-						continue
-					}
+				if types.IsFlowChain(wdInfo.ChainId) {
+					fcl := r.cbrMgr[wdInfo.ChainId].FlowClient
+					// TODO rm .vault
+					sig, err = fcl.fcc.SignFlowMessage(wdInfo.EncodeDataToSign(eth.Hex2Addr(fcl.SafeBoxAddr)))
 				} else {
-					log.Errorln("invalid vault version", wdId, wdInfo.VaultVersion)
-					continue
+					if wdInfo.VaultVersion == 0 {
+						sig, err = r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(r.cbrMgr[wdInfo.ChainId].pegContracts.vault.GetAddr()))
+						if err != nil {
+							log.Error(err)
+							continue
+						}
+					} else if wdInfo.VaultVersion == 2 {
+						sig, err = r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(r.cbrMgr[wdInfo.ChainId].pegContracts.vault2.GetAddr()))
+						if err != nil {
+							log.Error(err)
+							continue
+						}
+					} else {
+						log.Errorln("invalid vault version", wdId, wdInfo.VaultVersion)
+						continue
+					}
 				}
 
 				msg := &pegbrtypes.MsgSignWithdraw{
