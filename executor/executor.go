@@ -73,13 +73,7 @@ func (e *Executor) startFetchingExecCtxsFromSgn() {
 	log.Infoln("Start fetching execution contexts from SGN")
 	for {
 		time.Sleep(8 * time.Second)
-		var execCtxs []msgtypes.ExecutionContext
-		var err error
-		if e.testMode {
-			execCtxs, err = e.sgn.GetExecutionContexts(e.contracts)
-		} else {
-			execCtxs, err = e.gateway.GetExecutionContexts(e.contracts)
-		}
+		execCtxs, err := e.sgn.GetExecutionContexts(e.contracts)
 		if err != nil {
 			log.Errorln("failed to get messages", err)
 			continue
@@ -350,22 +344,42 @@ func (e *Executor) executeMsgWithTransferRefund(execCtx *msgtypes.ExecutionConte
 	log.Infof("executed refund (id %x): txhash %x", id, tx.Hash())
 }
 
+func (e *Executor) isTransferReady(chain *Chain, execCtx *msgtypes.ExecutionContext) (ready bool) {
+	dstTransferId := ethtypes.Bytes2Hash(execCtx.ComputeDstTransferId())
+	var err error
+	switch execCtx.Message.TransferType {
+	case msgtypes.TRANSFER_TYPE_LIQUIDITY_SEND:
+		ready, err = chain.LiqBridge.Transfers(&bind.CallOpts{}, dstTransferId)
+	case msgtypes.TRANSFER_TYPE_PEG_MINT:
+		ready, err = chain.PegBridge.Records(&bind.CallOpts{}, dstTransferId)
+	case msgtypes.TRANSFER_TYPE_PEG_MINT_V2:
+		ready, err = chain.PegBridgeV2.Records(&bind.CallOpts{}, dstTransferId)
+	case msgtypes.TRANSFER_TYPE_PEG_WITHDRAW:
+		ready, err = chain.PegVault.Records(&bind.CallOpts{}, dstTransferId)
+	case msgtypes.TRANSFER_TYPE_PEG_WITHDRAW_V2:
+		ready, err = chain.PegVaultV2.Records(&bind.CallOpts{}, dstTransferId)
+	default:
+		log.Panicf("unsupported transfer type %s", execCtx.Message.TransferType)
+	}
+	if err != nil {
+		log.Errorf("[skip execution] failed to query on-chain transfer for message (id %x, transferType %s, dstTransferId %x)",
+			execCtx.MessageId, execCtx.Message.TransferType, dstTransferId)
+	}
+	return
+}
+
 func (e *Executor) executeMsgWithTransfer(execCtx *msgtypes.ExecutionContext) {
 	chain, err := e.chains.GetChain(execCtx.Message.DstChainId)
 	if err != nil {
-		log.Errorln("cannot executeMessageWithTransfer", err)
+		log.Errorln("failed to get chain", err)
 		return
 	}
 	message := execCtx.Message
 	id := execCtx.MessageId
-	// check if the corresponding xfer has arrived
-	hasTransfer, err := Dal.HasTransfer(id)
-	if err != nil {
-		log.Errorln("cannot executeMessageWithTransfer", err)
-		return
-	}
-	if !hasTransfer {
-		log.Infof("skipping executing %x because transfer event has not arrived yet", id)
+	log.Infof("executeMsgWithTransfer %x", message.TransferRefId)
+
+	if !e.isTransferReady(chain, execCtx) {
+		log.Infof("[skip execution] message (id %x) because trasnfer is not seen on dst chain yet", execCtx.MessageId)
 		return
 	}
 

@@ -27,7 +27,9 @@ type Chain struct {
 	MsgBus      *eth.MsgBusContract
 	LiqBridge   *eth.BridgeContract
 	PegBridge   *eth.PegBridgeContract
+	PegBridgeV2 *eth.PegBridgeV2Contract
 	PegVault    *eth.PegVaultContract
+	PegVaultV2  *eth.PegVaultV2Contract
 	fwdBlkDelay uint64
 	monitor     *monitor.Service
 	startBlk    *big.Int
@@ -117,6 +119,10 @@ func (c *Chain) initContracts(ec *ethclient.Client, config *common.OneChainConfi
 	c.PegBridge, err = eth.NewPegBridgeContract(eth.Hex2Addr(config.PTBridge), ec)
 	check(err)
 	c.PegVault, err = eth.NewPegVaultContract(eth.Hex2Addr(config.OTVault), ec)
+	check(err)
+	c.PegBridgeV2, err = eth.NewPegBridgeV2Contract(eth.Hex2Addr(config.PTBridge), ec)
+	check(err)
+	c.PegVaultV2, err = eth.NewPegVaultV2Contract(eth.Hex2Addr(config.OTVault), ec)
 	check(err)
 	c.MsgBus, err = eth.NewMsgBusContract(eth.Hex2Addr(config.MsgBus), ec)
 	check(err)
@@ -231,4 +237,8 @@ func (c *Chain) ExecutePegWithdraw(
 func (c *Chain) ExecutePegMint(
 	opts *bind.TransactOpts, wdOnchain []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) (*gethtypes.Transaction, error) {
 	return c.PegBridge.PeggedTokenBridge.Mint(opts, wdOnchain, sortedSigs, signers, powers)
+}
+
+func (c *Chain) GetTransfer(xferId eth.Hash) (bool, error) {
+	return c.LiqBridge.Transfers(&bind.CallOpts{}, xferId)
 }

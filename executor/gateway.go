@@ -9,7 +9,6 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/executor/types"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
-	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
 	"google.golang.org/grpc"
 )
 
@@ -21,7 +20,7 @@ type GatewayClient struct {
 func NewGatewayClient(gatewayUrl string) *GatewayClient {
 	log.Infof("Dialing gateway grpc: %s", gatewayUrl)
 	opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
-	context, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	context, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	conn, err := grpc.DialContext(context, gatewayUrl, opts...)
 	defer cancel()
 	if err != nil {
@@ -31,19 +30,6 @@ func NewGatewayClient(gatewayUrl string) *GatewayClient {
 		conn: conn,
 		cli:  types.NewWebClient(conn),
 	}
-}
-
-func (g *GatewayClient) GetExecutionContexts(contracts []*types.ContractConfig) ([]msgtypes.ExecutionContext, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), types.GatewayTimeout)
-	defer cancel()
-	req := &msgtypes.QueryExecutionContextsRequest{
-		ContractInfos: types.MapToContractInfos(contracts),
-	}
-	res, err := g.cli.ExecutionContexts(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	return res.ExecutionContexts, nil
 }
 
 func (g *GatewayClient) InitWithdraw(srcXferId []byte, nonce uint64) error {

@@ -27,7 +27,7 @@ func NewSgnClient(sgnUrl string, testMode bool) *SgnClient {
 	txrs := newSgnTransactors(testMode)
 	log.Infof("Dialing sgn node grpc: %s", sgnUrl)
 	opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
-	context, cancel := context.WithTimeout(context.Background(), types.GatewayTimeout)
+	context, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	grpcConn, err := grpc.DialContext(context, sgnUrl, opts...)
 	defer cancel()

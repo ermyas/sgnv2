@@ -145,6 +145,11 @@ func (c *ExecutionContext) ComputeMessageId(bridgeAddr eth.Addr) []byte {
 }
 
 func (c *ExecutionContext) ComputeMessageIdWithTransfer(dstBridgeAddr common.Address) []byte {
+	dstTransferId := c.ComputeDstTransferId()
+	return ComputeMessageIdFromDstTransfer(dstTransferId, dstBridgeAddr)
+}
+
+func (c *ExecutionContext) ComputeDstTransferId() []byte {
 	var dstTransferId []byte
 	m := c.Message
 	t := c.Transfer
@@ -170,7 +175,7 @@ func (c *ExecutionContext) ComputeMessageIdWithTransfer(dstBridgeAddr common.Add
 			m.Receiver, t.Token, t.Amount, m.Sender, m.SrcChainId, m.TransferRefId,
 		)
 	}
-	return ComputeMessageIdFromDstTransfer(dstTransferId, dstBridgeAddr)
+	return dstTransferId
 }
 
 func ComputeMessageIdFromDstTransfer(dstTransferId []byte, dstBridgeAddr common.Address) []byte {

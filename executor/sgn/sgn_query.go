@@ -12,11 +12,13 @@ import (
 )
 
 func (c *SgnClient) GetExecutionContexts(contracts []*types.ContractConfig) ([]msgtypes.ExecutionContext, error) {
-	qc := msgtypes.NewQueryClient(c.txrs.GetTransactor().CliCtx)
+	qc := msgtypes.NewQueryClient(c.grpcConn)
 	req := &msgtypes.QueryExecutionContextsRequest{
 		ContractInfos: types.MapToContractInfos(contracts),
 	}
-	res, err := qc.ExecutionContexts(context.Background(), req)
+	ctx, cancel := context.WithTimeout(context.Background(), types.GatewayTimeout)
+	defer cancel()
+	res, err := qc.ExecutionContexts(ctx, req)
 	if err != nil {
 		log.Errorln("failed to query messages from sgn", err)
 		return nil, err
