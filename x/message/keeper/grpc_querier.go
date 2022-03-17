@@ -126,6 +126,7 @@ func (k Keeper) ExecutionContextBySrcTransfer(
 	execCtx := &types.ExecutionContext{
 		MessageId: messageId.Bytes(),
 	}
+	var enoughSigs bool // only valid for non message_id_only requests and if check_sigs is on
 	if !req.GetMessageIdOnly() {
 		message, found := k.GetMessage(ctx, messageId)
 		if !found {
@@ -136,9 +137,22 @@ func (k Keeper) ExecutionContextBySrcTransfer(
 		execCtx.Transfer, err = k.getMessageTransferInfo(ctx, &message)
 		if err != nil {
 			log.Errorf("get transfer for message %x err: %s", messageId, err)
+			return nil, err
+		}
+		if req.CheckSigs {
+			// check message sigs
+			curss, found := k.cbridgeKeeper.GetChainSigners(ctx, message.DstChainId)
+			if !found {
+				log.Errorf("cannot find current signers for chain %d", message.DstChainId)
+				return nil, err
+			}
+			enoughSigs, _ = cbrtypes.ValidateSignatureQuorum(message.Signatures, curss.GetSortedSigners())
 		}
 	}
-	return &types.QueryExecutionContextBySrcTransferResponse{ExecutionContext: execCtx}, nil
+	return &types.QueryExecutionContextBySrcTransferResponse{
+		ExecutionContext: execCtx,
+		HasEnoughSigs:    enoughSigs,
+	}, nil
 }
 
 func (k Keeper) MessageExists(c context.Context, request *types.QueryMessageExistsRequest) (*types.QueryMessageExistsResponse, error) {

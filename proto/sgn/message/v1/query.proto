@@ -86,10 +86,14 @@ message QueryExecutionContextBySrcTransferRequest {
   string src_transfer_id = 1;
   BridgeType src_bridge_type = 2;
   bool message_id_only = 3;
+  bool check_sigs = 4;
 }
 
 message QueryExecutionContextBySrcTransferResponse {
   ExecutionContext execution_context = 1;
+  // votes are only checked if the request is not marked as message_id_only AND 
+  // check_votes is set to true in the request
+  bool has_enough_sigs = 2;
 }
 
 // IsMessageActiveRequest is request type for the Query/IsMessageActive RPC method.
