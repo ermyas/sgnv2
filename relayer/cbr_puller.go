@@ -545,7 +545,8 @@ func (r *Relayer) updateSigners() {
 	sgnBlkTime := viper.GetDuration(common.FlagConsensusTimeoutCommit)
 
 	log.Infoln("update latest signers to", latestSigners.String())
-	for chainId, c := range r.cbrMgr {
+	for i, c := range r.cbrMgr {
+		chainId := i
 		// TODO, this will be added later, we'll need address to pubkey mapping in another smart contract
 		if types.IsFlowChain(chainId) {
 			continue
