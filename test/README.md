@@ -1,6 +1,7 @@
 # Local E2E Testing
 
 Requirements for multi-node or manual testing: Install [docker](https://docs.docker.com/install/) and [docker-compose](https://docs.docker.com/compose/install/), start Docker daemon.
+Important: do not use Docker Compose V2. In Docker app -> Preferences -> General, uncheck "Use Docker Compose V2". 
 
 ## Manual Testing
 
