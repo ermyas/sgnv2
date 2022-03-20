@@ -23,6 +23,8 @@ service Msg {
   // SyncFarming defines a method to sync the farming status for an LP.
   // Useful when a new farming pool is enabled.
   rpc SyncFarming(MsgSyncFarming) returns (MsgSyncFarmingResponse);
+
+  rpc TriggerSetRefund(MsgTriggerSetRefund) returns (MsgTriggerSetRefundResp);
 }
 
 enum SignDataType {
@@ -116,6 +118,19 @@ message MsgSyncFarming {
 }
 
 message MsgSyncFarmingResponse {}
+
+message MsgTriggerSetRefund {
+  uint64 src_chain_id = 1;
+  string sender = 2;
+  string receiver = 3;
+  string token = 4;
+  string amount = 5;
+  uint64 dst_chain_id = 6;
+  uint64 nonce = 7;
+  string creator = 9;
+}
+
+message MsgTriggerSetRefundResp {}
 
 message ErrMsg {
   ErrCode code = 1;

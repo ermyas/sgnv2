@@ -10,6 +10,7 @@ service Query {
   rpc QueryParams(EmptyRequest) returns (QueryParamsResponse) {}
   rpc QueryConfig(EmptyRequest) returns (QueryConfigResponse) {}
   rpc QueryRelay(QueryRelayRequest) returns (QueryRelayResponse) {}
+  rpc QueryRefund(QueryRefundRequest) returns (QueryRefundResponse) {}
   rpc QueryChainSigners(QueryChainSignersRequest) returns (QueryChainSignersResponse) {}
   rpc QueryLatestSigners(EmptyRequest) returns (QueryLatestSignersResponse) {}
   rpc QueryCheckChainTokenValid(CheckChainTokenValidRequest) returns (CheckChainTokenValidResponse) {}
@@ -54,6 +55,12 @@ message QueryRelayRequest {
 }
 message QueryRelayResponse {
   XferRelay xfer_relay = 1;
+}
+message QueryRefundRequest {
+  bytes xref_id = 1;
+}
+message QueryRefundResponse {
+  WithdrawOnchain wd_onchain = 1;
 }
 message QueryChainSignersRequest {
   uint64 chain_id = 1;

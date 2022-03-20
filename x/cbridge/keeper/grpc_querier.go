@@ -37,14 +37,24 @@ func (k Keeper) QueryDebugAny(c context.Context, request *types.QueryDebugAnyReq
 
 func (k Keeper) QueryRelay(c context.Context, request *types.QueryRelayRequest) (*types.QueryRelayResponse, error) {
 	ctx := sdk.UnwrapSDKContext(c)
-	var xferId eth.Hash
-	copy(xferId[:], request.XrefId)
-	relay, found := k.GetXferRelay(ctx, xferId)
+	relay, found := k.GetXferRelay(ctx, eth.Bytes2Hash(request.XrefId))
 	if !found {
 		return nil, sdkerrors.ErrKeyNotFound.Wrap("relay does not exist")
 	}
 	return &types.QueryRelayResponse{
 		XferRelay: relay,
+	}, nil
+}
+
+func (k Keeper) QueryRefund(c context.Context, request *types.QueryRefundRequest) (*types.QueryRefundResponse, error) {
+	ctx := sdk.UnwrapSDKContext(c)
+	kv := ctx.KVStore(k.storeKey)
+	wdOnchain := GetXferRefund(kv, eth.Bytes2Hash(request.XrefId))
+	if wdOnchain == nil {
+		return nil, sdkerrors.ErrKeyNotFound.Wrap("refund does not exist")
+	}
+	return &types.QueryRefundResponse{
+		WdOnchain: wdOnchain,
 	}, nil
 }
 
@@ -198,7 +208,7 @@ func (k Keeper) QueryTransferStatus(c context.Context, request *types.QueryTrans
 	status := make(map[string]*types.TransferStatus)
 
 	for _, xferId := range request.TransferId {
-		xferStatus := GetEvSendStatus(ctx.KVStore(k.storeKey), eth.Bytes2Hash(eth.Hex2Bytes(xferId)))
+		xferStatus := GetEvSendStatus(ctx.KVStore(k.storeKey), eth.Hex2Hash(xferId))
 		switch xferStatus {
 		case types.XferStatus_UNKNOWN:
 			status[xferId] = &types.TransferStatus{

@@ -140,19 +140,27 @@ func GetCmdQueryTransfer() *cobra.Command {
 			fmt.Println(res)
 
 			xferId := eth.Hex2Bytes(args[0])
-			resp, err := QueryRelay(cliCtx, xferId)
+			relay, err := QueryRelay(cliCtx, xferId)
 			if err != nil {
+				if strings.Contains(err.Error(), "key not found") {
+					wdOnchain, err2 := QueryRefund(cliCtx, xferId)
+					if err2 != nil {
+						return err2
+					}
+					fmt.Printf("refund withdrawal: %s \n", wdOnchain.String())
+					return nil
+				}
 				return err
 			}
 			relayOnChain := new(types.RelayOnChain)
-			err = relayOnChain.Unmarshal(resp.Relay)
+			err = relayOnChain.Unmarshal(relay.Relay)
 			if err != nil {
 				return err
 			}
 			fmt.Printf("relay message: %s, %s, fee base %s perc %s, last req time %s \n",
-				relayOnChain.String(), resp.SignersStr(),
-				big.NewInt(0).SetBytes(resp.BaseFee), big.NewInt(0).SetBytes(resp.PercFee),
-				common.TsSecToTime(uint64(resp.LastReqTime)))
+				relayOnChain.String(), relay.SignersStr(),
+				big.NewInt(0).SetBytes(relay.BaseFee), big.NewInt(0).SetBytes(relay.PercFee),
+				common.TsSecToTime(uint64(relay.LastReqTime)))
 			return nil
 		},
 	}
@@ -510,6 +518,17 @@ func QueryRelay(cliCtx client.Context, xrefId []byte) (relay *types.XferRelay, e
 	resp, err := queryClient.QueryRelay(ctx, &types.QueryRelayRequest{XrefId: xrefId})
 	if resp != nil {
 		relay = resp.GetXferRelay()
+	}
+	return
+}
+
+func QueryRefund(cliCtx client.Context, xrefId []byte) (refund *types.WithdrawOnchain, err error) {
+	queryClient := types.NewQueryClient(cliCtx)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), common.GrpcTimeOut)
+	defer cancelFunc()
+	resp, err := queryClient.QueryRefund(ctx, &types.QueryRefundRequest{XrefId: xrefId})
+	if resp != nil {
+		refund = resp.GetWdOnchain()
 	}
 	return
 }

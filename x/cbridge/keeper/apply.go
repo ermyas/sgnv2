@@ -90,15 +90,22 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			SetEvSendStatus(kv, ev.TransferId, sendStatus)
 		}()
 
-		if sendStatus != types.XferStatus_OK_TO_RELAY {
-			if sendStatus == types.XferStatus_BAD_LIQUIDITY ||
-				sendStatus == types.XferStatus_BAD_SLIPPAGE ||
-				sendStatus == types.XferStatus_BAD_XFER_DISABLED ||
-				sendStatus == types.XferStatus_BAD_DEST_CHAIN {
-				SetXferRefund(kv, ev.TransferId, wdOnchain)
-			}
+		// Check and set refund
+		switch sendStatus {
+		case types.XferStatus_OK_TO_RELAY:
+			// no-op
+		case types.XferStatus_BAD_LIQUIDITY,
+			types.XferStatus_BAD_SLIPPAGE,
+			types.XferStatus_BAD_XFER_DISABLED,
+			types.XferStatus_BAD_DEST_CHAIN,
+			types.XferStatus_EXCEED_MAX_OUT_AMOUNT:
+			SetXferRefund(kv, ev.TransferId, wdOnchain)
+			fallthrough
+		default:
+			// Just return for non-refundable failure cases
 			return true, nil
 		}
+
 		relayOnchain := &types.RelayOnChain{
 			Sender:        ev.Sender[:],
 			Receiver:      ev.Receiver[:],
@@ -122,7 +129,6 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			sdk.NewAttribute(types.AttributeKeyData, eth.Bytes2Hex(relayRaw)),
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 		))
-		sendStatus = types.XferStatus_OK_TO_RELAY
 	case types.CbrEventRelay:
 		// relay happened on dest chain
 		ev, err := cbrContract.ParseRelay(*elog)

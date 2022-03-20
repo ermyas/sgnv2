@@ -53,6 +53,13 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			}
 			return sdk.WrapServiceResult(ctx, res, err)
 
+		case *types.MsgTriggerSetRefund:
+			res, err := msgServer.TriggerSetRefund(sdk.WrapSDKContext(ctx), msg)
+			if err != nil {
+				log.Warn(err)
+			}
+			return sdk.WrapServiceResult(ctx, res, err)
+
 		default:
 			errMsg := fmt.Sprintf("unrecognized %s message type: %T", types.ModuleName, msg)
 			log.Error(errMsg)

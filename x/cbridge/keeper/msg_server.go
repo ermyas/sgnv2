@@ -349,3 +349,33 @@ func (k msgServer) SyncFarming(goCtx context.Context, msg *types.MsgSyncFarming)
 	log.Info(logMsg)
 	return &types.MsgSyncFarmingResponse{}, nil
 }
+
+func (k msgServer) TriggerSetRefund(goCtx context.Context, req *types.MsgTriggerSetRefund) (*types.MsgTriggerSetRefundResp, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	mockEv := &eth.BridgeSend{
+		Sender:     eth.Hex2Addr(req.GetSender()),
+		Receiver:   eth.Hex2Addr(req.GetReceiver()),
+		Token:      eth.Hex2Addr(req.GetToken()),
+		Amount:     common.Str2BigInt(req.GetAmount()),
+		DstChainId: req.GetDstChainId(),
+		Nonce:      req.GetNonce(),
+	}
+	xferId := mockEv.CalcXferId(req.GetSrcChainId())
+	xferStatus := GetEvSendStatus(ctx.KVStore(k.storeKey), xferId)
+	if xferStatus != types.XferStatus_EXCEED_MAX_OUT_AMOUNT {
+		return nil, fmt.Errorf("invalid transfer status %s", xferStatus)
+	}
+	kv := ctx.KVStore(k.storeKey)
+	if GetXferRefund(kv, xferId) != nil {
+		return nil, fmt.Errorf("refund already exists")
+	}
+	wdOnchain := &types.WithdrawOnchain{
+		Chainid:  req.GetSrcChainId(),
+		Receiver: mockEv.Sender[:],
+		Token:    mockEv.Token[:],
+		Amount:   mockEv.Amount.Bytes(),
+	}
+	SetXferRefund(kv, xferId, wdOnchain)
+	log.Infof("x/cbr handle TriggerSetRefund: %x set refund: %s", xferId, wdOnchain.String())
+	return &types.MsgTriggerSetRefundResp{}, nil
+}

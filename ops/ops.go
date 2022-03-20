@@ -74,6 +74,7 @@ func BridgeCommands() *cobra.Command {
 	cmd.AddCommand(common.PostCommands(
 		SubmitRelayCmd(),
 		SyncFarmingCommand(),
+		TriggerSetRefundCommand(),
 	)...)
 
 	return cmd
