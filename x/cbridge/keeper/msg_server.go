@@ -362,7 +362,8 @@ func (k msgServer) TriggerSetRefund(goCtx context.Context, req *types.MsgTrigger
 	}
 	xferId := mockEv.CalcXferId(req.GetSrcChainId())
 	xferStatus := GetEvSendStatus(ctx.KVStore(k.storeKey), xferId)
-	if xferStatus != types.XferStatus_EXCEED_MAX_OUT_AMOUNT {
+	if xferStatus != types.XferStatus_EXCEED_MAX_OUT_AMOUNT &&
+		xferStatus != types.XferStatus_BAD_TOKEN {
 		return nil, fmt.Errorf("invalid transfer status %s", xferStatus)
 	}
 	kv := ctx.KVStore(k.storeKey)

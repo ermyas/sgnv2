@@ -15,7 +15,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-// this is to fix a a historical bug that EXCEED_MAX_OUT_AMOUNT transfer was not refund properly
+// This is to fix a a historical bug that EXCEED_MAX_OUT_AMOUNT transfer was not refund properly.
+// It can also be used for manually refunding transfers with BAD_TOKEN.
 func TriggerSetRefundCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "trigger-set-refund",
@@ -69,7 +70,8 @@ func TriggerSetRefundCommand() *cobra.Command {
 				return fmt.Errorf("QueryTransferStatus err: %w", err)
 			}
 			status := resp.Status[xferId.Hex()].SgnStatus
-			if status != cbrtypes.XferStatus_EXCEED_MAX_OUT_AMOUNT {
+			if status != cbrtypes.XferStatus_EXCEED_MAX_OUT_AMOUNT &&
+				status != cbrtypes.XferStatus_BAD_TOKEN {
 				return fmt.Errorf("invalid xfer %x status %s", xferId, status)
 			}
 			refund, err := cbrcli.QueryRefund(cliCtx, xferId.Bytes())
