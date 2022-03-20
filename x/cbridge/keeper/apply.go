@@ -100,7 +100,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			types.XferStatus_BAD_DEST_CHAIN,
 			types.XferStatus_EXCEED_MAX_OUT_AMOUNT:
 			SetXferRefund(kv, ev.TransferId, wdOnchain)
-			fallthrough
+			return true, nil
 		default:
 			// Just return for non-refundable failure cases
 			return true, nil
