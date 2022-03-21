@@ -2,7 +2,7 @@ package types
 
 import (
 	"encoding/binary"
-	fmt "fmt"
+	"fmt"
 
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"

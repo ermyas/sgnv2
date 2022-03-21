@@ -34,6 +34,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		depositChainId := onchev.Chainid
 		var depositToken string // must be string as flow token is like A.xxxx.SomeToken. for evm, it's hex string
 		var ev *eth.OriginalTokenVaultV2Deposited
+		var version uint32 // only needed for evm chains, will be set by GetVaultVersion
 		if commontypes.IsFlowChain(depositChainId) {
 			// onchev.Elog is json serialized cbridge-flow/types/FlowVaultDeposited so we deserialize and assign to ev fields
 			flowEv := new(cbrflowtypes.FlowSafeBoxDeposited)
@@ -46,7 +47,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			ev = &eth.OriginalTokenVaultV2Deposited{}
 			ev.SetByFlow(flowEv)
 		} else {
-			version, _ := k.GetVaultVersion(ctx, onchev.Chainid, elog.Address)
+			version, _ = k.GetVaultVersion(ctx, onchev.Chainid, elog.Address)
 			if version == 0 {
 				otvContract, _ := eth.NewOriginalTokenVaultFilterer(eth.ZeroAddr, nil)
 				ev0, err := otvContract.ParseDeposited(*elog)
@@ -68,11 +69,11 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 					return false, err
 				}
 			}
-			depositToken = ev.Token.Hex()
+			depositToken = eth.Addr2Hex(ev.Token)
 		}
 
 		if k.HasDepositInfo(ctx, ev.DepositId) {
-			log.Infof("skip already applied pegbr deposit event. chainid %d depositId %x", depositChainId, ev.DepositId)
+			log.Infof("skip already applied pegbr deposit event. chainid %d depositId %x version %d", depositChainId, ev.DepositId, version)
 			return false, nil
 		}
 
@@ -82,16 +83,17 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			return false, err
 		}
 		if refundMsg != "" {
-			k.manageDataForDepositRefund(ctx, depositChainId, ev, depositToken)
+			k.manageDataForDepositRefund(ctx, depositChainId, ev, version, depositToken)
 			log.Warnf("deposit to be refunded, depositId:%x. %s", ev.DepositId, refundMsg)
 			return true, nil
 		}
 
 		// Record DepositInfo
 		depositInfo := types.DepositInfo{
-			ChainId:   depositChainId,
-			DepositId: ev.DepositId[:],
-			MintId:    mintId.Bytes(),
+			ChainId:      depositChainId,
+			DepositId:    ev.DepositId[:],
+			MintId:       mintId.Bytes(),
+			VaultVersion: version,
 		}
 		k.SetDepositInfo(ctx, depositInfo)
 
@@ -117,7 +119,6 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			ev.SetByFlow(flowEv)
 		} else {
 			version, _ = k.GetBridgeVersion(ctx, onchev.Chainid, elog.Address)
-
 			if version == 0 {
 				ptbContract, _ := eth.NewPeggedTokenBridgeFilterer(eth.ZeroAddr, nil)
 				ev0, err := ptbContract.ParseBurn(*elog)
@@ -138,7 +139,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 					return false, err
 				}
 			}
-			burnToken = ev.Token.Hex()
+			burnToken = eth.Addr2Hex(ev.Token)
 		}
 
 		if k.HasBurnInfo(ctx, ev.BurnId) {
@@ -493,12 +494,14 @@ func (k Keeper) burnSupply(
 }
 
 // for flow, we need depoToken string because ev.Token is empty
-func (k Keeper) manageDataForDepositRefund(ctx sdk.Context, depositChainId uint64, ev *eth.OriginalTokenVaultV2Deposited, depoToken string) {
+func (k Keeper) manageDataForDepositRefund(
+	ctx sdk.Context, depositChainId uint64, ev *eth.OriginalTokenVaultV2Deposited, version uint32, depoToken string) {
 	// Record a DepositInfo without mintId
 	depositInfo := types.DepositInfo{
-		ChainId:   depositChainId,
-		DepositId: ev.DepositId[:],
-		MintId:    []byte{},
+		ChainId:      depositChainId,
+		DepositId:    ev.DepositId[:],
+		MintId:       []byte{},
+		VaultVersion: version,
 	}
 	k.SetDepositInfo(ctx, depositInfo)
 	// Record a depositRefund: withdrawOnChain
@@ -516,7 +519,8 @@ func (k Keeper) manageDataForDepositRefund(ctx sdk.Context, depositChainId uint6
 	k.SetDepositRefund(ctx, ev.DepositId, wdOnChain)
 }
 
-func (k Keeper) manageDataForBurnRefund(ctx sdk.Context, burnChainId uint64, ev *eth.PeggedTokenBridgeV2Burn, version uint32, burnToken string) {
+func (k Keeper) manageDataForBurnRefund(
+	ctx sdk.Context, burnChainId uint64, ev *eth.PeggedTokenBridgeV2Burn, version uint32, burnToken string) {
 	// Record a BurnInfo without withdrawId
 	burnInfo := types.BurnInfo{
 		ChainId:       burnChainId,
