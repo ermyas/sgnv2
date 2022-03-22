@@ -7,21 +7,21 @@ import (
 )
 
 type Monitor struct {
-	Key    string
-	Blknum uint64
-	Blkidx int64
+	Key    string `json:"key"`
+	Blknum uint64 `json:"blknum"`
+	Blkidx int64  `json:"blkidx"`
 }
 
 type Nftxfer struct {
-	CreatedAt int64
-	SrcChid   uint64
-	DstChid   uint64
-	Sender    string
-	Receiver  string
-	SrcNft    string
-	DstNft    string
-	TokID     big.Int
-	SrcTx     string
-	DstTx     string
-	Status    int16
+	CreatedAt int64   `json:"createdAt"`
+	SrcChid   uint64  `json:"srcChid"`
+	DstChid   uint64  `json:"dstChid"`
+	Sender    string  `json:"sender"`
+	Receiver  string  `json:"receiver"`
+	SrcNft    string  `json:"srcNft"`
+	DstNft    string  `json:"dstNft"`
+	TokID     big.Int `json:"tokID"`
+	SrcTx     string  `json:"srcTx"`
+	DstTx     string  `json:"dstTx"`
+	Status    int16   `json:"status"`
 }

@@ -16,8 +16,8 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, '');
 SELECT src_tx FROM nftxfer WHERE src_chid = $1 AND dst_chid = $2 AND receiver = $3 AND dst_nft = $4 AND tok_id = $5 AND status = $6;
 
 -- name: NftGetBySender :many
--- user's history
-SELECT * FROM nftxfer WHERE sender = $1 ORDER BY created_at desc;
+-- user's history, support pagination
+SELECT * FROM nftxfer WHERE sender = $1 AND created_at < $2 ORDER BY created_at desc LIMIT $3;
 
 -- name: NftSetDstTx :exec
 -- also set status to 2 wait for dst tx

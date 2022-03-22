@@ -29,9 +29,9 @@ SET blknum = excluded.blknum, blkidx = excluded.blkidx
 `
 
 type MonSetParams struct {
-	Key    string
-	Blknum uint64
-	Blkidx int64
+	Key    string `json:"key"`
+	Blknum uint64 `json:"blknum"`
+	Blkidx int64  `json:"blkidx"`
 }
 
 func (q *Queries) MonSet(ctx context.Context, arg MonSetParams) error {
@@ -45,15 +45,15 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, '')
 `
 
 type NftAddSendParams struct {
-	CreatedAt int64
-	SrcChid   uint64
-	DstChid   uint64
-	Sender    string
-	Receiver  string
-	SrcNft    string
-	DstNft    string
-	TokID     big.Int
-	SrcTx     string
+	CreatedAt int64   `json:"createdAt"`
+	SrcChid   uint64  `json:"srcChid"`
+	DstChid   uint64  `json:"dstChid"`
+	Sender    string  `json:"sender"`
+	Receiver  string  `json:"receiver"`
+	SrcNft    string  `json:"srcNft"`
+	DstNft    string  `json:"dstNft"`
+	TokID     big.Int `json:"tokID"`
+	SrcTx     string  `json:"srcTx"`
 }
 
 func (q *Queries) NftAddSend(ctx context.Context, arg NftAddSendParams) error {
@@ -76,12 +76,12 @@ SELECT src_tx FROM nftxfer WHERE src_chid = $1 AND dst_chid = $2 AND receiver = 
 `
 
 type NftGetByDstInfoParams struct {
-	SrcChid  uint64
-	DstChid  uint64
-	Receiver string
-	DstNft   string
-	TokID    big.Int
-	Status   int16
+	SrcChid  uint64  `json:"srcChid"`
+	DstChid  uint64  `json:"dstChid"`
+	Receiver string  `json:"receiver"`
+	DstNft   string  `json:"dstNft"`
+	TokID    big.Int `json:"tokID"`
+	Status   int16   `json:"status"`
 }
 
 func (q *Queries) NftGetByDstInfo(ctx context.Context, arg NftGetByDstInfoParams) (string, error) {
@@ -99,12 +99,18 @@ func (q *Queries) NftGetByDstInfo(ctx context.Context, arg NftGetByDstInfoParams
 }
 
 const nftGetBySender = `-- name: NftGetBySender :many
-SELECT created_at, src_chid, dst_chid, sender, receiver, src_nft, dst_nft, tok_id, src_tx, dst_tx, status FROM nftxfer WHERE sender = $1 ORDER BY created_at desc
+SELECT created_at, src_chid, dst_chid, sender, receiver, src_nft, dst_nft, tok_id, src_tx, dst_tx, status FROM nftxfer WHERE sender = $1 AND created_at < $2 ORDER BY created_at desc LIMIT $3
 `
 
-// user's history
-func (q *Queries) NftGetBySender(ctx context.Context, sender string) ([]Nftxfer, error) {
-	rows, err := q.db.QueryContext(ctx, nftGetBySender, sender)
+type NftGetBySenderParams struct {
+	Sender    string `json:"sender"`
+	CreatedAt int64  `json:"createdAt"`
+	Limit     int32  `json:"limit"`
+}
+
+// user's history, support pagination
+func (q *Queries) NftGetBySender(ctx context.Context, arg NftGetBySenderParams) ([]Nftxfer, error) {
+	rows, err := q.db.QueryContext(ctx, nftGetBySender, arg.Sender, arg.CreatedAt, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -152,12 +158,12 @@ UPDATE nftxfer SET status = 2, dst_tx = $6 WHERE src_chid = $1 AND dst_chid = $2
 `
 
 type NftSetDstTxParams struct {
-	SrcChid  uint64
-	DstChid  uint64
-	Receiver string
-	DstNft   string
-	TokID    big.Int
-	DstTx    string
+	SrcChid  uint64  `json:"srcChid"`
+	DstChid  uint64  `json:"dstChid"`
+	Receiver string  `json:"receiver"`
+	DstNft   string  `json:"dstNft"`
+	TokID    big.Int `json:"tokID"`
+	DstTx    string  `json:"dstTx"`
 }
 
 // also set status to 2 wait for dst tx
