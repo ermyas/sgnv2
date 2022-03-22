@@ -1,4 +1,5 @@
 [executor]
+enable_auto_refund = true
 # [[executor.contracts]]
 # chain_id = 883
 # address = ""

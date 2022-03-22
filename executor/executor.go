@@ -26,6 +26,7 @@ type Executor struct {
 	contracts   []*types.ContractConfig
 	parallelism int
 	testMode    bool
+	autoRefund  bool
 }
 
 func NewExecutor(dal *DAL, testMode bool) *Executor {
@@ -49,6 +50,12 @@ func NewExecutor(dal *DAL, testMode bool) *Executor {
 		log.Infof("(chainId %d, addr %s, value %s)",
 			contract.ChainId, contract.Address, contract.PayableValue)
 	}
+	autoRefundEnabled := viper.GetBool(types.FlagEnableAutoRefund)
+	if autoRefundEnabled {
+		log.Infoln("auto refund enabled")
+	} else {
+		log.Infoln("auto refund disabled")
+	}
 	return &Executor{
 		dal:         dal,
 		chains:      chains,
@@ -57,6 +64,7 @@ func NewExecutor(dal *DAL, testMode bool) *Executor {
 		contracts:   contracts,
 		parallelism: 10,
 		testMode:    testMode,
+		autoRefund:  autoRefundEnabled,
 	}
 }
 
@@ -81,7 +89,7 @@ func (e *Executor) startFetchingExecCtxsFromSgn() {
 		if len(execCtxs) == 0 {
 			continue
 		}
-		log.Debugf("Got %d execution contexts", len(execCtxs))
+		log.Tracef("Got %d execution contexts", len(execCtxs))
 		execCtxsToSave := []*msgtypes.ExecutionContext{}
 		for i := range execCtxs {
 			execCtxsToSave = append(execCtxsToSave, &execCtxs[i])
@@ -109,7 +117,7 @@ func (e *Executor) executeInParallel(execCtxs []*msgtypes.ExecutionContext, stat
 	if chunkSize < 1 {
 		chunkSize = 1
 	}
-	log.Infof("Executing %d messages with parallelism %d, chunk size %d", len(execCtxs), e.parallelism, chunkSize)
+	log.Debugf("Executing %d messages with parallelism %d, chunk size %d", len(execCtxs), e.parallelism, chunkSize)
 	workerNum := 0
 	for i := 0; i < len(execCtxs); i += chunkSize {
 		end := i + chunkSize
@@ -119,7 +127,7 @@ func (e *Executor) executeInParallel(execCtxs []*msgtypes.ExecutionContext, stat
 		chunk := execCtxs[i:end]
 		statusChunk := statuses[i:end]
 		e.wg.Add(1)
-		log.Infof("Worker #%d executing messages [%d:%d]", workerNum, i, end)
+		log.Debugf("Worker #%d executing messages [%d:%d]", workerNum, i, end)
 		go e.execute(chunk, statusChunk)
 		workerNum++
 	}
@@ -135,29 +143,24 @@ func (e *Executor) execute(execCtxs []*msgtypes.ExecutionContext, statuses []typ
 }
 
 func (e *Executor) routeExecution(execCtx *msgtypes.ExecutionContext, status types.ExecutionStatus) {
-	if status == types.ExecutionStatus_Init_Refund_Executed {
-		e.executeMsgWithTransferRefund(execCtx)
-		return
-	}
-
-	isRefund := execCtx.Message.SrcChainId == execCtx.Message.DstChainId
-	unexecuted := status == types.ExecutionStatus_Unexecuted
-	initRefundExecuted := status == types.ExecutionStatus_Init_Refund_Executed
-
-	if isRefund && unexecuted {
-		err := e.routeInitRefund(execCtx)
-		if err != nil {
-			log.Errorln("init refund failed", err)
-			Dal.UpdateStatus(execCtx.MessageId, types.ExecutionStatus_Init_Refund_Failed)
+	// same chain ids mean it's a refund
+	if execCtx.Message.SrcChainId == execCtx.Message.DstChainId {
+		if !e.autoRefund {
+			log.Debugf("skip executing refund for message (id %x) because enable_auto_refund is off", execCtx.MessageId)
+			return
+		}
+		if status == types.ExecutionStatus_Init_Refund_Executed {
+			e.executeMsgWithTransferRefund(execCtx)
+		} else if status == types.ExecutionStatus_Unexecuted {
+			err := e.routeInitRefund(execCtx)
+			if err != nil {
+				log.Errorln("init refund failed", err)
+				Dal.UpdateStatus(execCtx.MessageId, types.ExecutionStatus_Init_Refund_Failed)
+			}
 		}
 		return
 	}
-
-	if isRefund && initRefundExecuted {
-		e.executeMsgWithTransferRefund(execCtx)
-		return
-	}
-
+	// handle normal execution
 	switch execCtx.Message.GetTransferType() {
 	case msgtypes.TRANSFER_TYPE_NULL:
 		e.executeMsgNoTransfer(execCtx)

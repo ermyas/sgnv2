@@ -6,6 +6,7 @@ import "time"
 const (
 	FlagExecutorDbUrl     = "db.url"
 	FlagExecutorContracts = "executor.contracts"
+	FlagEnableAutoRefund  = "executor.enable_auto_refund"
 	FlagGatewayGrpcUrl    = "sgnd.gateway_grpc"
 	FlagSgnGrpcUrl        = "sgnd.sgn_grpc"
 )

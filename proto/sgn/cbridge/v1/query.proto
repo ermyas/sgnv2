@@ -1,6 +1,7 @@
 syntax = "proto3";
 package sgn.cbridge.v1;
 
+import "google/api/annotations.proto";
 import "sgn/cbridge/v1/cbridge.proto";
 
 option go_package = "github.com/celer-network/sgn-v2/x/cbridge/types";
@@ -32,7 +33,9 @@ service Query {
   rpc LiquidityDetailList(LiquidityDetailListRequest) returns (LiquidityDetailListResponse) {}
   rpc QueryTotalLiquidity(QueryTotalLiquidityRequest) returns (QueryTotalLiquidityResponse) {}
   rpc QueryAddLiquidityStatus(QueryAddLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {}
-  rpc QueryWithdrawLiquidityStatus(QueryWithdrawLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {}
+  rpc QueryWithdrawLiquidityStatus(QueryWithdrawLiquidityStatusRequest) returns (QueryLiquidityStatusResponse) {
+    option (google.api.http).get = "/sgn/cbridge/v1/withdraw/status";
+  }
   rpc QueryLPOrigin(QueryLPOriginRequest) returns (QueryLPOriginResponse) {}
   rpc QueryLiquidity(QueryLiquidityRequest) returns (QueryLiquidityResponse) {}
 
