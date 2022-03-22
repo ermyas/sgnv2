@@ -27,5 +27,7 @@ protoc/
 docker-volumes
 test/e2e/manual/data/node*
 tools/cbridge/cbridge
+tools/nft-bridge/nft-bridge
+tools/nft-bridge/dal/db
 
 tmp

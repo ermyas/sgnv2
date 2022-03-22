@@ -7,7 +7,8 @@ require (
 	github.com/armon/go-metrics v0.3.10
 	github.com/celer-network/cbridge-flow v0.0.0-20220301231229-2b1c82ecbe64
 	github.com/celer-network/endpoint-proxy v0.1.8
-	github.com/celer-network/goutils v0.1.43
+	github.com/celer-network/goutils v0.1.46
+	github.com/cockroachdb/cockroach-go/v2 v2.2.8
 	github.com/cosmos/cosmos-sdk v0.44.5
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/deckarep/golang-set v1.8.0
@@ -19,6 +20,8 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/iancoleman/strcase v0.2.0
+	github.com/julienschmidt/httprouter v1.3.0
+	github.com/lib/pq v1.10.2
 	github.com/lthibault/jitterbug v2.0.0+incompatible
 	github.com/miguelmota/go-solidity-sha3 v0.1.1
 	github.com/onflow/flow-go-sdk v0.24.0

@@ -1,0 +1,32 @@
+# grpc endpoint to query available msg to send onchain
+# query cosmos-sdk grpc port directly if we run on same ec2
+sgn = "localhost:9090"
+# path to keystore json file
+kspath = "/home/ubuntu/.sgnd/eth-ks/signer.json"
+# ksphrase = ""
+# json config about nft bridges and NFTs, shared with frontend
+jsonurl = "https://get.celer.app/nftbridge/testnet.json"
+# db for monitor and nft transfer records
+db = "localhost:26257"
+# http port for serving history queries
+port = 8888
+
+# per chain config, for monitor events and send tx
+# blkinterval is larger to reduce get block num frequency
+[[multichain]]
+chainID = 5
+name = "Goerli"
+gateway = "https://goerli.infura.io/v3/c58bb2a63c1a466abb6d7b5e0b7b6828"
+blkinterval = 30
+blkdelay = 5
+maxblkdelta = 5000
+msgbus = "0x942E8e0e4b021F55b89660c886146e0Ec57F4b5B"
+
+[[multichain]]
+chainID = 97
+name = "BSC Testnet"
+gateway = "https://data-seed-prebsc-1-s1.binance.org:8545/"
+blkinterval = 15
+blkdelay = 8
+maxblkdelta = 5000
+msgbus = "0xAd204986D6cB67A5Bc76a3CB8974823F43Cb9AAA"
