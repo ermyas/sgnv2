@@ -209,43 +209,31 @@ func (k Keeper) QueryTransferStatus(c context.Context, request *types.QueryTrans
 
 	for _, xferId := range request.TransferId {
 		xferStatus := GetEvSendStatus(ctx.KVStore(k.storeKey), eth.Hex2Hash(xferId))
+		var xferHistoryStatus types.TransferHistoryStatus
 		switch xferStatus {
 		case types.XferStatus_UNKNOWN:
-			status[xferId] = &types.TransferStatus{
-				GatewayStatus: types.TransferHistoryStatus_TRANSFER_UNKNOWN,
-				SgnStatus:     xferStatus,
-			}
+			xferHistoryStatus = types.TransferHistoryStatus_TRANSFER_UNKNOWN
 		case types.XferStatus_OK_TO_RELAY:
-			status[xferId] = &types.TransferStatus{
-				GatewayStatus: types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE,
-				SgnStatus:     xferStatus,
-			}
+			xferHistoryStatus = types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE
 		case types.XferStatus_SUCCESS:
-			status[xferId] = &types.TransferStatus{
-				GatewayStatus: types.TransferHistoryStatus_TRANSFER_COMPLETED,
-				SgnStatus:     xferStatus,
-			}
-		case types.XferStatus_BAD_LIQUIDITY, types.XferStatus_BAD_SLIPPAGE, types.XferStatus_BAD_XFER_DISABLED, types.XferStatus_BAD_DEST_CHAIN, types.XferStatus_EXCEED_MAX_OUT_AMOUNT:
-			status[xferId] = &types.TransferStatus{
-				GatewayStatus: types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED,
-				SgnStatus:     xferStatus,
-			}
+			xferHistoryStatus = types.TransferHistoryStatus_TRANSFER_COMPLETED
+		case types.XferStatus_BAD_LIQUIDITY,
+			types.XferStatus_BAD_SLIPPAGE,
+			types.XferStatus_BAD_XFER_DISABLED,
+			types.XferStatus_BAD_DEST_CHAIN,
+			types.XferStatus_EXCEED_MAX_OUT_AMOUNT:
+			xferHistoryStatus = types.TransferHistoryStatus_TRANSFER_TO_BE_REFUNDED
 		case types.XferStatus_REFUND_REQUESTED:
-			status[xferId] = &types.TransferStatus{
-				GatewayStatus: types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND,
-				SgnStatus:     xferStatus,
-			}
+			xferHistoryStatus = types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND
 		case types.XferStatus_REFUND_DONE:
-			status[xferId] = &types.TransferStatus{
-				GatewayStatus: types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED,
-				SgnStatus:     xferStatus,
-			}
-		default:
+			xferHistoryStatus = types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED
+		default: // BAD_TOKEN, BAD_ADDRESS, XFER_DELAYED and UNKNOWN
 			log.Errorln("unknown status:", xferStatus)
-			status[xferId] = &types.TransferStatus{
-				GatewayStatus: types.TransferHistoryStatus_TRANSFER_UNKNOWN,
-				SgnStatus:     xferStatus,
-			}
+			xferHistoryStatus = types.TransferHistoryStatus_TRANSFER_UNKNOWN
+		}
+		status[xferId] = &types.TransferStatus{
+			GatewayStatus: xferHistoryStatus,
+			SgnStatus:     xferStatus,
 		}
 	}
 

@@ -194,6 +194,12 @@ func GetCmdQueryWithdraw() *cobra.Command {
 				return err
 			}
 			fmt.Printf("status: %s\n", resp.Status)
+			fmt.Printf("withdraw onchain: %s\n", eth.Bytes2Hex(resp.Detail.WdOnchain))
+			var sigs string
+			for _, s := range resp.Detail.GetSortedSigsBytes() {
+				sigs += fmt.Sprintf("%s ", eth.Bytes2Hex(s))
+			}
+			fmt.Printf("sigs:< %s>", sigs)
 			fmt.Printf("withdraw message: %s, %s, last req time %s \n",
 				withdrawOnChain.String(), resp.Detail.SignersStr(), common.TsSecToTime(uint64(resp.Detail.LastReqTime)))
 			return nil
