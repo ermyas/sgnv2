@@ -102,19 +102,19 @@ func (c *OneChain) MonNftBridge(addr string) {
 }
 
 func (c *OneChain) evCallback(evname string, elog types.Log) {
-	log.Infoln(c.cfg.ChainID, evname, elog)
+	log.Infoln("event:", c.cfg.ChainID, evname)
 	switch evname {
 	case "Sent":
 		evSent, err := c.nftbr.ParseSent(elog)
 		if err != nil {
-			log.Error("parse sent err:", err)
+			log.Error("parse sent err:", err, elog)
 		} else {
 			c.handleSent(evSent)
 		}
 	case "Received":
 		evRecv, err := c.nftbr.ParseReceived(elog)
 		if err != nil {
-			log.Error("parse recv err:", err)
+			log.Error("parse recv err:", err, elog)
 		} else {
 			c.handleRecv(evRecv)
 		}
