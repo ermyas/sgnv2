@@ -37,8 +37,9 @@ func (s *Server) Run(port int) {
 		if r.Header.Get("Access-Control-Request-Method") != "" {
 			// Set CORS headers
 			header := w.Header()
-			header.Set("Access-Control-Allow-Methods", header.Get("Allow"))
+			header.Set("Access-Control-Allow-Methods", header.Get("Allow")) // header["Allow"] is set by httprouter
 			header.Set("Access-Control-Allow-Origin", "*")
+			header.Set("Access-Control-Allow-Headers", "*")
 			header.Set("Access-Control-Max-Age", "7200") // 2hrs
 		}
 
