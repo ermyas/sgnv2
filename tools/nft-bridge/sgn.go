@@ -51,6 +51,7 @@ func PollSgn(intv time.Duration, ntfbrs []*ChidAddr, chainMap map[uint64]*OneCha
 				msg.PrettyLog()
 				if onech, ok := chainMap[msg.DstChainId]; ok {
 					nftMsg := DecodeNFTMsg(msg.Data)
+					log.Infoln("handle nftMsg:", nftMsg)
 					srcTx, _ := onech.db.NftGetByDstInfo(context.Background(), dal.NftGetByDstInfoParams{
 						SrcChid:  msg.SrcChainId,
 						DstChid:  msg.DstChainId,
@@ -60,8 +61,8 @@ func PollSgn(intv time.Duration, ntfbrs []*ChidAddr, chainMap map[uint64]*OneCha
 						Status:   int16(Status_WAITSGN),
 					})
 					if srcTx == "" {
-						// not found
-						log.Warn("msg not found in db", msg.SrcChainId, msg.DstChainId, nftMsg)
+						// not found could be missed event or it's already sent onchain
+						log.Infoln("msg not found in db", msg.SrcChainId, msg.DstChainId)
 						continue
 					}
 					// query sgn to get signers/powers, todo: cache by chid
@@ -85,6 +86,7 @@ func PollSgn(intv time.Duration, ntfbrs []*ChidAddr, chainMap map[uint64]*OneCha
 								Receiver: a2hex(nftMsg.User),
 								DstNft:   a2hex(nftMsg.Nft),
 								TokID:    *gobig.New(nftMsg.Id),
+								DstTx:    dstTx,
 							})
 						})
 						if err != nil {
