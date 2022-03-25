@@ -211,7 +211,11 @@ func (k Keeper) QueryTransferStatus(c context.Context, request *types.QueryTrans
 		xferStatus := GetEvSendStatus(ctx.KVStore(k.storeKey), eth.Hex2Hash(xferId))
 		var xferHistoryStatus types.TransferHistoryStatus
 		switch xferStatus {
-		case types.XferStatus_UNKNOWN:
+		case types.XferStatus_UNKNOWN,
+			types.XferStatus_BAD_ADDRESS,
+			types.XferStatus_BAD_TOKEN,
+			types.XferStatus_XFER_DELAYED:
+			// Just map to UNKNOWN history status
 			xferHistoryStatus = types.TransferHistoryStatus_TRANSFER_UNKNOWN
 		case types.XferStatus_OK_TO_RELAY:
 			xferHistoryStatus = types.TransferHistoryStatus_TRANSFER_WAITING_FOR_FUND_RELEASE
@@ -227,7 +231,7 @@ func (k Keeper) QueryTransferStatus(c context.Context, request *types.QueryTrans
 			xferHistoryStatus = types.TransferHistoryStatus_TRANSFER_REQUESTING_REFUND
 		case types.XferStatus_REFUND_DONE:
 			xferHistoryStatus = types.TransferHistoryStatus_TRANSFER_REFUND_TO_BE_CONFIRMED
-		default: // BAD_TOKEN, BAD_ADDRESS, XFER_DELAYED and UNKNOWN
+		default:
 			log.Errorln("unknown status:", xferStatus)
 			xferHistoryStatus = types.TransferHistoryStatus_TRANSFER_UNKNOWN
 		}
