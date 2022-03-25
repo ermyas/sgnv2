@@ -11,6 +11,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/tools/nft-bridge/dal"
 	"github.com/julienschmidt/httprouter"
+	"github.com/rs/cors"
 )
 
 const (
@@ -32,22 +33,8 @@ func NewServer(dal *dal.DAL) *Server {
 func (s *Server) Run(port int) {
 	router := httprouter.New()
 	router.GET("/nftbr/history/:usr", s.History)
-	// add cors support
-	router.GlobalOPTIONS = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Access-Control-Request-Method") != "" {
-			// Set CORS headers
-			header := w.Header()
-			header.Set("Access-Control-Allow-Methods", header.Get("Allow")) // header["Allow"] is set by httprouter
-			header.Set("Access-Control-Allow-Origin", "*")
-			header.Set("Access-Control-Allow-Headers", "*")
-			header.Set("Access-Control-Max-Age", "7200") // 2hrs
-		}
 
-		// Adjust status code to 204
-		w.WriteHeader(http.StatusNoContent)
-	})
-
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), router); err != nil {
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), cors.AllowAll().Handler(router)); err != nil {
 		log.Error("listen err: ", err)
 	}
 }
