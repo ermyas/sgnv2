@@ -3,6 +3,7 @@ package relayer
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
@@ -76,7 +77,7 @@ func (c *CbrOneChain) verifyMessage(cliCtx client.Context, eLog *ethtypes.Log, l
 	// check in store
 
 	// check on chain
-	done, approve, msgLog := c.verifyEventLog(eLog, eth.MsgBridge, msgbrtypes.MsgEventMessage, c.msgContract.GetAddr(), logmsg)
+	done, approve, msgLog := c.verifyEventLog(eLog, eth.ContractTypeMsgBridge, msgbrtypes.MsgEventMessage, c.msgContract.GetAddr(), logmsg)
 	if msgLog == nil {
 		return done, approve
 	}
@@ -87,7 +88,7 @@ func (c *CbrOneChain) verifyMessage(cliCtx client.Context, eLog *ethtypes.Log, l
 		return true, false
 	}
 	// cmp ev and msgEv
-	if !ev.Equal(msgEv) {
+	if !reflect.DeepEqual(ev, msgEv) {
 		log.Errorln(logmsg, "ev not equal. got:", msgEv.String(), "expect:", ev.String())
 		return true, false
 	}
@@ -107,7 +108,7 @@ func (c *CbrOneChain) verifyMessageEventTransfer(cliCtx client.Context, eLog *et
 	// check in store
 
 	// check on chain
-	done, approve, msgLog := c.verifyEventLog(eLog, eth.MsgBridge, msgbrtypes.MsgEventMessageWithTransfer, c.msgContract.GetAddr(), logmsg)
+	done, approve, msgLog := c.verifyEventLog(eLog, eth.ContractTypeMsgBridge, msgbrtypes.MsgEventMessageWithTransfer, c.msgContract.GetAddr(), logmsg)
 	if msgLog == nil {
 		return done, approve
 	}
@@ -118,7 +119,7 @@ func (c *CbrOneChain) verifyMessageEventTransfer(cliCtx client.Context, eLog *et
 		return true, false
 	}
 	// now cmp ev and msgEv
-	if !ev.Equal(msgEv) {
+	if !reflect.DeepEqual(ev, msgEv) {
 		log.Errorln(logmsg, "ev not equal. got:", msgEv.String(), "expect:", ev.String())
 		return true, false
 	}
@@ -139,7 +140,7 @@ func (c *CbrOneChain) verifyMessageEventExecuted(cliCtx client.Context, eLog *et
 	// check in store
 
 	// check on chain
-	done, approve, msgLog := c.verifyEventLog(eLog, eth.MsgBridge, msgbrtypes.MsgEventExecuted, c.msgContract.GetAddr(), logmsg)
+	done, approve, msgLog := c.verifyEventLog(eLog, eth.ContractTypeMsgBridge, msgbrtypes.MsgEventExecuted, c.msgContract.GetAddr(), logmsg)
 	if msgLog == nil {
 		return done, approve
 	}
@@ -150,7 +151,7 @@ func (c *CbrOneChain) verifyMessageEventExecuted(cliCtx client.Context, eLog *et
 		return true, false
 	}
 	// now cmp ev and msgEv
-	if !ev.Equal(msgEv) {
+	if !reflect.DeepEqual(ev, msgEv) {
 		log.Errorln(logmsg, "ev not equal. got:", msgEv.String(), "expect:", ev.String())
 		return true, false
 	}

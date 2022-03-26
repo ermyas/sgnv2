@@ -3,7 +3,7 @@ package relayer
 import (
 	"encoding/json"
 	"fmt"
-	"math/big"
+	"reflect"
 
 	"github.com/celer-network/goutils/log"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
@@ -12,7 +12,6 @@ import (
 	pegtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -82,7 +81,7 @@ func (c *CbrOneChain) verifyPegbrDeposit(eLog *ethtypes.Log, cliCtx client.Conte
 		logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
 
 		done, approve, depositLog := c.verifyEventLog(
-			eLog, eth.PegVault, pegtypes.PegbrEventDeposited, c.pegContracts.vault.GetAddr(), logmsg)
+			eLog, eth.ContractTypePegVault, pegtypes.PegbrEventDeposited, c.pegContracts.vault.GetAddr(), logmsg)
 		if depositLog == nil {
 			return done, approve
 		}
@@ -91,7 +90,7 @@ func (c *CbrOneChain) verifyPegbrDeposit(eLog *ethtypes.Log, cliCtx client.Conte
 			log.Errorln(logmsg, "parse log err:", err)
 			return true, false
 		}
-		if !ev.Equal(depositEv) {
+		if !reflect.DeepEqual(ev, depositEv) {
 			log.Errorln(logmsg, "ev not equal. got:", depositEv.String(), "expect:", ev.String())
 			return true, false
 		}
@@ -103,6 +102,22 @@ func (c *CbrOneChain) verifyPegbrDeposit(eLog *ethtypes.Log, cliCtx client.Conte
 			return true, false
 		}
 		logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+
+		done, approve, depositLog := c.verifyEventLog(
+			eLog, eth.ContractTypePegVaultV2, pegtypes.PegbrEventDeposited, c.pegContracts.vault2.GetAddr(), logmsg)
+		if depositLog == nil {
+			return done, approve
+		}
+		depositEv, err := c.pegContracts.vault2.ParseDeposited(*depositLog)
+		if err != nil {
+			log.Errorln(logmsg, "parse log err:", err)
+			return true, false
+		}
+		if !reflect.DeepEqual(ev, depositEv) {
+			log.Errorln(logmsg, "ev not equal. got:", depositEv.String(), "expect:", ev.String())
+			return true, false
+		}
+
 		depositId := pegtypes.CalcDepositIdV2(
 			ev.Depositor, ev.Token, ev.Amount, ev.MintChainId, ev.MintAccount, ev.Nonce, c.chainid, eLog.Address)
 		if depositId != ev.DepositId {
@@ -124,6 +139,23 @@ func (c *CbrOneChain) verifyPegbrWithdrawn(eLog *ethtypes.Log, cliCtx client.Con
 			return true, false
 		}
 		logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+
+		done, approve, withdrawLog := c.verifyEventLog(
+			eLog, eth.ContractTypePegVault, pegtypes.PegbrEventWithdrawn, c.pegContracts.vault.GetAddr(), logmsg)
+		if withdrawLog == nil {
+			return done, approve
+		}
+
+		withdrawEv, err := c.pegContracts.vault.ParseWithdrawn(*withdrawLog)
+		if err != nil {
+			log.Errorln(logmsg, "parse log err:", err)
+			return true, false
+		}
+		if !reflect.DeepEqual(ev, withdrawEv) {
+			log.Errorln(logmsg, "ev not equal. got:", withdrawEv.String(), "expect:", ev.String())
+			return true, false
+		}
+
 		withdrawId := pegtypes.CalcWithdrawId(ev.Receiver, ev.Token, ev.Amount, ev.BurnAccount, ev.RefChainId, ev.RefId)
 		if withdrawId != ev.WithdrawId {
 			log.Errorf("%s. mismatch withdrawId ev has %x, calc: %x", logmsg, ev.WithdrawId, withdrawId)
@@ -137,6 +169,22 @@ func (c *CbrOneChain) verifyPegbrWithdrawn(eLog *ethtypes.Log, cliCtx client.Con
 			return true, false
 		}
 		logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+
+		done, approve, withdrawLog := c.verifyEventLog(
+			eLog, eth.ContractTypePegVaultV2, pegtypes.PegbrEventWithdrawn, c.pegContracts.vault2.GetAddr(), logmsg)
+		if withdrawLog == nil {
+			return done, approve
+		}
+		withdrawEv, err := c.pegContracts.vault2.ParseWithdrawn(*withdrawLog)
+		if err != nil {
+			log.Errorln(logmsg, "parse log err:", err)
+			return true, false
+		}
+		if !reflect.DeepEqual(ev, withdrawEv) {
+			log.Errorln(logmsg, "ev not equal. got:", withdrawEv.String(), "expect:", ev.String())
+			return true, false
+		}
+
 		withdrawId := pegtypes.CalcWithdrawIdV2(
 			ev.Receiver, ev.Token, ev.Amount, ev.BurnAccount, ev.RefChainId, ev.RefId, eLog.Address)
 		if withdrawId != ev.WithdrawId {
@@ -160,7 +208,7 @@ func (c *CbrOneChain) verifyPegbrBurn(eLog *ethtypes.Log, cliCtx client.Context,
 		logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
 
 		done, approve, burnLog := c.verifyEventLog(
-			eLog, eth.PegBridge, pegtypes.PegbrEventBurn, c.pegContracts.bridge.GetAddr(), logmsg)
+			eLog, eth.ContractTypePegBridge, pegtypes.PegbrEventBurn, c.pegContracts.bridge.GetAddr(), logmsg)
 		if burnLog == nil {
 			return done, approve
 		}
@@ -169,7 +217,7 @@ func (c *CbrOneChain) verifyPegbrBurn(eLog *ethtypes.Log, cliCtx client.Context,
 			log.Errorln(logmsg, "parse log err:", err)
 			return true, false
 		}
-		if !ev.Equal(burnEv) {
+		if !reflect.DeepEqual(ev, burnEv) {
 			log.Errorln(logmsg, "ev not equal. got:", burnEv.String(), "expect:", ev.String())
 			return true, false
 		}
@@ -182,6 +230,22 @@ func (c *CbrOneChain) verifyPegbrBurn(eLog *ethtypes.Log, cliCtx client.Context,
 			return true, false
 		}
 		logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+
+		done, approve, burnLog := c.verifyEventLog(
+			eLog, eth.ContractTypePegBridgeV2, pegtypes.PegbrEventBurn, c.pegContracts.bridge2.GetAddr(), logmsg)
+		if burnLog == nil {
+			return done, approve
+		}
+		burnEv, err := c.pegContracts.bridge2.ParseBurn(*burnLog)
+		if err != nil {
+			log.Errorln(logmsg, "parse log err:", err)
+			return true, false
+		}
+		if !reflect.DeepEqual(ev, burnEv) {
+			log.Errorln(logmsg, "ev not equal. got:", burnEv.String(), "expect:", ev.String())
+			return true, false
+		}
+
 		burnId := pegtypes.CalcBurnIdV2(ev.Account, ev.Token, ev.Amount, ev.ToChainId, ev.ToAccount, ev.Nonce, c.chainid, eLog.Address)
 		if burnId != ev.BurnId {
 			log.Errorf("%s. mismatch burnId ev has %x, calc: %x", logmsg, ev.BurnId, burnId)
@@ -202,6 +266,22 @@ func (c *CbrOneChain) verifyPegbrMint(eLog *ethtypes.Log, cliCtx client.Context,
 			return true, false
 		}
 		logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+
+		done, approve, mintLog := c.verifyEventLog(
+			eLog, eth.ContractTypePegBridge, pegtypes.PegbrEventMint, c.pegContracts.bridge.GetAddr(), logmsg)
+		if mintLog == nil {
+			return done, approve
+		}
+		mintEv, err := c.pegContracts.bridge.ParseMint(*mintLog)
+		if err != nil {
+			log.Errorln(logmsg, "parse log err:", err)
+			return true, false
+		}
+		if !reflect.DeepEqual(ev, mintEv) {
+			log.Errorln(logmsg, "ev not equal. got:", mintEv.String(), "expect:", ev.String())
+			return true, false
+		}
+
 		mintId := pegtypes.CalcMintId(ev.Account, ev.Token, ev.Amount, ev.Depositor, ev.RefChainId, ev.RefId)
 		if mintId != ev.MintId {
 			log.Errorf("%s. mismatch mintId ev has %x, calc: %x", logmsg, ev.MintId, mintId)
@@ -215,6 +295,22 @@ func (c *CbrOneChain) verifyPegbrMint(eLog *ethtypes.Log, cliCtx client.Context,
 			return true, false
 		}
 		logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+
+		done, approve, mintLog := c.verifyEventLog(
+			eLog, eth.ContractTypePegBridgeV2, pegtypes.PegbrEventMint, c.pegContracts.bridge2.GetAddr(), logmsg)
+		if mintLog == nil {
+			return done, approve
+		}
+		mintEv, err := c.pegContracts.bridge2.ParseMint(*mintLog)
+		if err != nil {
+			log.Errorln(logmsg, "parse log err:", err)
+			return true, false
+		}
+		if !reflect.DeepEqual(ev, mintEv) {
+			log.Errorln(logmsg, "ev not equal. got:", mintEv.String(), "expect:", ev.String())
+			return true, false
+		}
+
 		mintId := pegtypes.CalcMintIdV2(ev.Account, ev.Token, ev.Amount, ev.Depositor, ev.RefChainId, ev.RefId, eLog.Address)
 		if mintId != ev.MintId {
 			log.Errorf("%s. mismatch mintId ev has %x, calc: %x", logmsg, ev.MintId, mintId)
@@ -228,7 +324,9 @@ func (c *CbrOneChain) verifyPegbrMint(eLog *ethtypes.Log, cliCtx client.Context,
 }
 
 func (c *CbrOneChain) verifyPeggedTokenRecord(recordId eth.Hash, blockNumber uint64, cliCtx client.Context, logmsg string, v2 bool) (done, approve bool) {
-	// check on chain
+	// event log and block delay already checked, so everything should be valid,
+	// continue to check the onchain state again for extra safety
+	// the following checks should never fail in normal cases
 	var exist bool
 	var err error
 	if v2 {
@@ -242,38 +340,18 @@ func (c *CbrOneChain) verifyPeggedTokenRecord(recordId eth.Hash, blockNumber uin
 		return false, false
 	}
 	if !exist {
-		if c.mon.GetCurrentBlockNumber().Uint64() < blockNumber {
-			log.Warnln(logmsg, "block number not passed", c.mon.GetCurrentBlockNumber(), blockNumber)
-			return false, false
-		}
 		// doesn't exist, vote no
-		log.Warnln(logmsg, "record id not found")
+		log.Errorln(logmsg, "record id not found")
 		return true, false
 	}
-	// latest has the state, now check if it has been long enough
-	safeBlkNum := c.mon.GetCurrentBlockNumber().Uint64() - c.blkDelay
-	if v2 {
-		exist, err = c.pegContracts.bridge2.Records(
-			&bind.CallOpts{BlockNumber: new(big.Int).SetUint64(safeBlkNum)}, recordId)
-	} else {
-		exist, err = c.pegContracts.bridge.Records(
-			&bind.CallOpts{BlockNumber: new(big.Int).SetUint64(safeBlkNum)}, recordId)
-	}
-	if err != nil {
-		log.Warnf("%s. query safe record err: %s", logmsg, err)
-		return false, false
-	}
-	if !exist {
-		log.Infoln(logmsg, "record id not found in safeblk")
-		return false, false
-	}
-	// now both latest and safeblk has the state, ok to vote yes
 	log.Infof("%s, success", logmsg)
 	return true, true
 }
 
 func (c *CbrOneChain) verifyOriginalTokenRecord(recordId eth.Hash, blockNumber uint64, cliCtx client.Context, logmsg string, v2 bool) (done, approve bool) {
-	// check on chain
+	// event log and block delay already checked, so everything should be valid,
+	// continue to check the onchain state again for extra safety
+	// the following checks should never fail in normal cases
 	var exist bool
 	var err error
 	if v2 {
@@ -286,30 +364,9 @@ func (c *CbrOneChain) verifyOriginalTokenRecord(recordId eth.Hash, blockNumber u
 		return false, false
 	}
 	if !exist {
-		if c.mon.GetCurrentBlockNumber().Uint64() < blockNumber {
-			log.Warnln(logmsg, "block number not passed", c.mon.GetCurrentBlockNumber(), blockNumber)
-			return false, false
-		}
 		// deposit doesn't exist, vote no
-		log.Warnln(logmsg, "record id not found")
+		log.Errorln(logmsg, "record id not found")
 		return true, false
-	}
-	// latest has the state, now check if it has been long enough
-	safeBlkNum := c.mon.GetCurrentBlockNumber().Uint64() - c.blkDelay
-	if v2 {
-		exist, err = c.pegContracts.vault2.Records(
-			&bind.CallOpts{BlockNumber: new(big.Int).SetUint64(safeBlkNum)}, recordId)
-	} else {
-		exist, err = c.pegContracts.vault.Records(
-			&bind.CallOpts{BlockNumber: new(big.Int).SetUint64(safeBlkNum)}, recordId)
-	}
-	if err != nil {
-		log.Warnf("%s. query safe record err: %s", logmsg, err)
-		return false, false
-	}
-	if !exist {
-		log.Infoln(logmsg, "record id not found in safeblk")
-		return false, false
 	}
 	// now both latest and safeblk has the state, ok to vote yes
 	log.Infof("%s, success", logmsg)

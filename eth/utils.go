@@ -1,13 +1,13 @@
 package eth
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
 	cbrflowtypes "github.com/celer-network/cbridge-flow/types"
@@ -21,15 +21,20 @@ import (
 type ContractType int
 
 const (
-	LiquidityBridge ContractType = iota
-	PegVault
-	PegBridge
-	WdInbox
-	MsgBridge
+	ContractTypeLiquidityBridge ContractType = iota
+	ContractTypePegVault
+	ContractTypePegVaultV2
+	ContractTypePegBridge
+	ContractTypePegBridgeV2
+	ContractTypeWdInbox
+	ContractTypeMsgBridge
 )
 
 var (
 	ErrPeersNotMatch = errors.New("channel peers not match")
+
+	EvIdCache     = make(map[string]Hash)
+	EvIdCacheLock sync.RWMutex
 )
 
 func ParseValStatus(valStatus uint8) string {
@@ -89,27 +94,55 @@ func SignerBytes(addrs []Addr, powers []*big.Int) []byte {
 	return packed
 }
 
+func EvIdCacheKey(ctype ContractType, evname string) string {
+	return fmt.Sprintf("%d-%s", ctype, evname)
+}
+
+func GetEvIdCache(ctype ContractType, evname string) Hash {
+	EvIdCacheLock.RLock()
+	defer EvIdCacheLock.RUnlock()
+	if evId, ok := EvIdCache[EvIdCacheKey(ctype, evname)]; ok {
+		return evId
+	}
+	return ZeroHash
+}
+
+func SetEvIdCache(ctype ContractType, evname string, evId Hash) {
+	EvIdCacheLock.Lock()
+	defer EvIdCacheLock.Unlock()
+	EvIdCache[EvIdCacheKey(ctype, evname)] = evId
+}
+
 // given evname like LiquidityAdded, return its event ID, aka. topics[0]
 // if evname not found, all 0 hash (default value) will be returned
 // as this func parse abi internally, caller should call once and save the return
 // instead of keep calling it.
 func GetContractEventID(ctype ContractType, evname string) Hash {
+	if evId := GetEvIdCache(ctype, evname); evId != ZeroHash {
+		return evId
+	}
 	var contractAbi abi.ABI
 	switch ctype {
-	case LiquidityBridge:
+	case ContractTypeLiquidityBridge:
 		contractAbi, _ = abi.JSON(strings.NewReader(BridgeABI))
-	case PegVault:
+	case ContractTypePegVault:
 		contractAbi, _ = abi.JSON(strings.NewReader(OriginalTokenVaultABI))
-	case PegBridge:
+	case ContractTypePegBridge:
 		contractAbi, _ = abi.JSON(strings.NewReader(PeggedTokenBridgeABI))
-	case WdInbox:
+	case ContractTypePegVaultV2:
+		contractAbi, _ = abi.JSON(strings.NewReader(OriginalTokenVaultV2ABI))
+	case ContractTypePegBridgeV2:
+		contractAbi, _ = abi.JSON(strings.NewReader(PeggedTokenBridgeV2ABI))
+	case ContractTypeWdInbox:
 		contractAbi, _ = abi.JSON(strings.NewReader(WithdrawInboxABI))
-	case MsgBridge:
+	case ContractTypeMsgBridge:
 		contractAbi, _ = abi.JSON(strings.NewReader(MessageBusABI))
 	default:
 		return ZeroHash
 	}
-	return contractAbi.Events[evname].ID
+	evId := contractAbi.Events[evname].ID
+	SetEvIdCache(ctype, evname, evId)
+	return evId
 }
 
 // given list of logs, find matching event (log.topics[0] == GetBridgeEventID(cbrEvName) && log.Address == expAddr)
@@ -203,80 +236,6 @@ func (ev *BridgeRelay) CalcXferId(chid uint64) Hash {
 	b = append(b, ToPadBytes(chid)...)
 	b = append(b, ev.SrcTransferId[:]...)
 	return Bytes2Hash(crypto.Keccak256(b))
-}
-
-func (ev *BridgeLiquidityAdded) Equal(b *BridgeLiquidityAdded) bool {
-	if ev.Seqnum != b.Seqnum {
-		return false
-	}
-	if ev.Provider != b.Provider {
-		return false
-	}
-	if ev.Token != b.Token {
-		return false
-	}
-	if ev.Amount.Cmp(b.Amount) != 0 {
-		return false
-	}
-	return true
-}
-
-func (ev *MessageBusMessage) Equal(b *MessageBusMessage) bool {
-	if ev.Sender != b.Sender {
-		return false
-	}
-	if ev.DstChainId.Cmp(b.DstChainId) != 0 {
-		return false
-	}
-	if ev.Receiver != b.Receiver {
-		return false
-	}
-
-	if bytes.Compare(ev.Message, b.Message) != 0 {
-		return false
-	}
-	if ev.Fee.Cmp(b.Fee) != 0 {
-		return false
-	}
-	return true
-}
-
-func (ev *MessageBusMessageWithTransfer) Equal(b *MessageBusMessageWithTransfer) bool {
-	if ev.Bridge != b.Bridge {
-		return false
-	}
-	if ev.SrcTransferId != b.SrcTransferId {
-		return false
-	}
-	if ev.Sender != b.Sender {
-		return false
-	}
-	if ev.DstChainId.Cmp(b.DstChainId) != 0 {
-		return false
-	}
-	if ev.Receiver != b.Receiver {
-		return false
-	}
-	if bytes.Compare(ev.Message, b.Message) != 0 {
-		return false
-	}
-	if ev.Fee.Cmp(b.Fee) != 0 {
-		return false
-	}
-	return true
-}
-
-func (ev *MessageBusExecuted) Equal(b *MessageBusExecuted) bool {
-	if ev.Id != b.Id {
-		return false
-	}
-	if ev.Status != b.Status {
-		return false
-	}
-	if ev.MsgType != b.MsgType {
-		return false
-	}
-	return true
 }
 
 // onchid is the chainid this event happen
@@ -377,47 +336,6 @@ func ToPadBytes(v interface{}, rlen ...int) []byte {
 	ret := make([]byte, retlen)
 	copy(ret[retlen-len(orig):], orig)
 	return ret
-}
-
-func (ev *OriginalTokenVaultDeposited) Equal(d *OriginalTokenVaultDeposited) bool {
-	if ev.DepositId != d.DepositId {
-		return false
-	}
-	if ev.Depositor != d.Depositor {
-		return false
-	}
-	if ev.Token != d.Token {
-		return false
-	}
-	if ev.Amount.Cmp(d.Amount) != 0 {
-		return false
-	}
-	if ev.MintChainId != d.MintChainId {
-		return false
-	}
-	if ev.MintAccount != d.MintAccount {
-		return false
-	}
-	return true
-}
-
-func (ev *PeggedTokenBridgeBurn) Equal(b *PeggedTokenBridgeBurn) bool {
-	if ev.BurnId != b.BurnId {
-		return false
-	}
-	if ev.Account != b.Account {
-		return false
-	}
-	if ev.Token != b.Token {
-		return false
-	}
-	if ev.Amount.Cmp(b.Amount) != 0 {
-		return false
-	}
-	if ev.WithdrawAccount != b.WithdrawAccount {
-		return false
-	}
-	return true
 }
 
 // onchid is the chainid this event happen
@@ -537,45 +455,4 @@ func (ev *WithdrawInboxWithdrawalRequest) String() string {
 	return fmt.Sprintf(
 		"sender: %x receiver: %x toChain: %d fromChains: %v tokens: %v ratios: %v slippages: %v deadline: %s",
 		ev.Sender, ev.Receiver, ev.ToChain, ev.FromChains, ev.Tokens, ev.Ratios, ev.Slippages, time.Unix(ev.Deadline.Int64(), 0))
-}
-
-func (ev *WithdrawInboxWithdrawalRequest) Equal(b *WithdrawInboxWithdrawalRequest) bool {
-	if ev.SeqNum != b.SeqNum {
-		return false
-	}
-	if ev.Sender != b.Sender {
-		return false
-	}
-	if ev.Receiver != b.Receiver {
-		return false
-	}
-	if ev.ToChain != b.ToChain {
-		return false
-	}
-	if ev.Deadline.Cmp(b.Deadline) != 0 {
-		return false
-	}
-	if len(ev.FromChains) != len(b.FromChains) {
-		return false
-	}
-	if !(len(ev.FromChains) == len(ev.Tokens) &&
-		len(ev.FromChains) == len(ev.Ratios) &&
-		len(ev.FromChains) == len(ev.Slippages)) {
-		return false
-	}
-	for i, fromChain := range ev.FromChains {
-		if fromChain != b.FromChains[i] {
-			return false
-		}
-		if ev.Tokens[i] != b.Tokens[i] {
-			return false
-		}
-		if ev.Ratios[i] != b.Ratios[i] {
-			return false
-		}
-		if ev.Slippages[i] != b.Slippages[i] {
-			return false
-		}
-	}
-	return true
 }

@@ -49,7 +49,7 @@ func TriggerSetRefundCommand() *cobra.Command {
 				return err
 			}
 
-			elog := eth.FindMatchContractEvent(eth.LiquidityBridge, cbrtypes.CbrEventSend, cbr.cbrContract.Address, txReceipt.Logs)
+			elog := eth.FindMatchContractEvent(eth.ContractTypeLiquidityBridge, cbrtypes.CbrEventSend, cbr.cbrContract.Address, txReceipt.Logs)
 			if elog == nil {
 				log.Errorln("no match event found in tx:", txhash)
 				return fmt.Errorf("no match event found in tx: %s", txhash)

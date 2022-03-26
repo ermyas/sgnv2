@@ -5,11 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/big"
+	"reflect"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
-	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -20,7 +19,6 @@ import (
 
 // to be called by r.verifyUpdate
 // decode event and check if it matches onchain
-// TODO: query x/cbridge to make sure event not processed
 func (r *Relayer) verifyCbrEventUpdate(update *synctypes.PendingUpdate) (done, approve bool) {
 	onchev := new(cbrtypes.OnChainEvent)
 	err := onchev.Unmarshal(update.Data)
@@ -118,10 +116,8 @@ func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, lo
 	}
 	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
 
-	// check in store
-
 	// check on chain
-	done, approve, addLiqLog := c.verifyEventLog(eLog, eth.LiquidityBridge, cbrtypes.CbrEventLiqAdd, c.cbrContract.GetAddr(), logmsg)
+	done, approve, addLiqLog := c.verifyEventLog(eLog, eth.ContractTypeLiquidityBridge, cbrtypes.CbrEventLiqAdd, c.cbrContract.GetAddr(), logmsg)
 	if addLiqLog == nil {
 		return done, approve
 	}
@@ -131,7 +127,7 @@ func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, lo
 		return true, false
 	}
 	// now cmp ev and addLiqEv
-	if !ev.Equal(addLiqEv) {
+	if !reflect.DeepEqual(ev, addLiqEv) {
 		log.Errorln(logmsg, "ev not equal. got:", addLiqEv.String(), "expect:", ev.String())
 		return true, false
 	}
@@ -148,45 +144,40 @@ func (c *CbrOneChain) verifySend(eLog *ethtypes.Log, cliCtx client.Context, logm
 	}
 	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
 
-	// check in store
-
 	// check on chain
+	done, approve, sendLog := c.verifyEventLog(eLog, eth.ContractTypeLiquidityBridge, cbrtypes.CbrEventSend, c.cbrContract.GetAddr(), logmsg)
+	if sendLog == nil {
+		return done, approve
+	}
+	sendEv, err := c.cbrContract.ParseSend(*sendLog)
+	if err != nil {
+		log.Errorln(logmsg, "parse log err:", err)
+		return true, false
+	}
+	if !reflect.DeepEqual(ev, sendEv) {
+		log.Errorln(logmsg, "ev not equal. got:", sendEv.String(), "expect:", ev.String())
+		return true, false
+	}
+
+	// event log and block delay already checked, so everything should be valid,
+	// continue to check the onchain state again for extra safety
+	// the following checks should never fail in normal cases
 	xferId := ev.CalcXferId(c.chainid)
 	if xferId != ev.TransferId {
 		log.Errorf("%s. mismatch xferid ev has %x, calc: %x", logmsg, ev.TransferId, xferId)
 		return true, false
 	}
-	// we must check both latest and latest-blkdelay have the state
-	// if only latest has, means too soon, if only latest-blkdelay has, means it has been reorg
 	exist, err := c.cbrContract.Transfers(nil, xferId)
 	if err != nil {
 		log.Warnf("%s. query transfers err: %s", logmsg, err)
 		return false, false
 	}
 	if !exist {
-		if c.mon.GetCurrentBlockNumber().Uint64() < eLog.BlockNumber {
-			log.Warnln(logmsg, "xferId:", xferId.String(), "block number not passed", c.mon.GetCurrentBlockNumber(), eLog.BlockNumber)
-			return false, false
-		}
 		// xfer doesn't exist, vote no
-		log.Warnln(logmsg, "xferId:", xferId.String(), "not found")
+		log.Errorln(logmsg, "xferId:", xferId.String(), "not found")
 		return true, false
 	}
-	// latest has the state, now check if it has been long enough
-	safeBlkNum := c.mon.GetCurrentBlockNumber().Uint64() - c.blkDelay
-	exist, err = c.cbrContract.Transfers(&bind.CallOpts{
-		BlockNumber: new(big.Int).SetUint64(safeBlkNum),
-	}, xferId)
-	if err != nil {
-		log.Warnf("%s. query safe transfers err: %s", logmsg, err)
-		return false, false
-	}
-	if !exist {
-		// xfer doesn't exist in history, means too soon, allow retry later
-		log.Infoln(logmsg, "xferId:", xferId.String(), "not found in safeblk")
-		return false, false
-	}
-	// now both latest and safeblk has the state, ok to vote yes
+
 	log.Infof("%s, success", logmsg)
 	return true, true
 }
@@ -200,9 +191,24 @@ func (c *CbrOneChain) verifyRelay(eLog *ethtypes.Log, cliCtx client.Context, log
 	}
 	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
 
-	// check in store
-
 	// check on chain
+	done, approve, sendLog := c.verifyEventLog(eLog, eth.ContractTypeLiquidityBridge, cbrtypes.CbrEventRelay, c.cbrContract.GetAddr(), logmsg)
+	if sendLog == nil {
+		return done, approve
+	}
+	relayEv, err := c.cbrContract.ParseRelay(*sendLog)
+	if err != nil {
+		log.Errorln(logmsg, "parse log err:", err)
+		return true, false
+	}
+	if !reflect.DeepEqual(ev, relayEv) {
+		log.Errorln(logmsg, "ev not equal. got:", relayEv.String(), "expect:", ev.String())
+		return true, false
+	}
+
+	// event log and block delay already checked, so everything should be valid,
+	// continue to check the onchain state again for extra safety
+	// the following checks should never fail in normal cases
 	xferId := ev.CalcXferId(c.chainid)
 	if xferId != ev.TransferId {
 		log.Errorf("%s. mismatch xferid ev has %x, calc: %x", logmsg, ev.TransferId, xferId)
@@ -214,16 +220,11 @@ func (c *CbrOneChain) verifyRelay(eLog *ethtypes.Log, cliCtx client.Context, log
 		return false, false
 	}
 	if !exist {
-		if c.mon.GetCurrentBlockNumber().Uint64() < eLog.BlockNumber {
-			log.Warnln(logmsg, "xferId:", xferId.String(), "block number not passed", c.mon.GetCurrentBlockNumber(), eLog.BlockNumber)
-			return false, false
-		}
 		// xfer doesn't exist, vote no
-		log.Warnln(logmsg, "xferId:", xferId.String(), "not found")
+		log.Errorln(logmsg, "xferId:", xferId.String(), "not found")
 		return true, false
 	}
-	// we don't do safeblk checking as this is event when money leaving the system, so it's safe
-	// to be more acceptable of event
+
 	log.Infof("%s, success", logmsg)
 	return true, true
 }
@@ -237,9 +238,24 @@ func (c *CbrOneChain) verifyWithdraw(eLog *ethtypes.Log, cliCtx client.Context, 
 	}
 	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
 
-	// check in store
-
 	// check on chain
+	done, approve, sendLog := c.verifyEventLog(eLog, eth.ContractTypeLiquidityBridge, cbrtypes.CbrEventWithdraw, c.cbrContract.GetAddr(), logmsg)
+	if sendLog == nil {
+		return done, approve
+	}
+	withdrawEv, err := c.cbrContract.ParseWithdrawDone(*sendLog)
+	if err != nil {
+		log.Errorln(logmsg, "parse log err:", err)
+		return true, false
+	}
+	if !reflect.DeepEqual(ev, withdrawEv) {
+		log.Errorln(logmsg, "ev not equal. got:", withdrawEv.String(), "expect:", ev.String())
+		return true, false
+	}
+
+	// event log and block delay already checked, so everything should be valid,
+	// continue to check the onchain state again for extra safety
+	// the following checks should never fail in normal cases
 	wdId := ev.CalcWdID(c.chainid)
 	if wdId != ev.WithdrawId {
 		log.Errorf("%s mismatch wdid ev has %x, calc %x", logmsg, ev.WithdrawId, wdId)
@@ -251,22 +267,17 @@ func (c *CbrOneChain) verifyWithdraw(eLog *ethtypes.Log, cliCtx client.Context, 
 		return false, false
 	}
 	if !exist {
-		if c.mon.GetCurrentBlockNumber().Uint64() < eLog.BlockNumber {
-			log.Warnln(logmsg, "wdId:", wdId.String(), "block number not passed", c.mon.GetCurrentBlockNumber(), eLog.BlockNumber)
-			return false, false
-		}
 		// wdid doesn't exist, vote no
-		log.Warnln(logmsg, "wdId:", wdId.String(), "not found")
+		log.Errorln(logmsg, "wdId:", wdId.String(), "not found")
 		return true, false
 	}
-	// we don't do safeblk checking as this is event when money leaving the system, so it's safe
-	// to be more acceptable of event
 	log.Infof("%s, success", logmsg)
 	return true, true
 }
 
 func (c *CbrOneChain) verifyEventLog(
-	eLog *ethtypes.Log, ctype eth.ContractType, evName string, expAddr eth.Addr, logmsg string) (done, approve bool, resLog *ethtypes.Log) {
+	eLog *ethtypes.Log, ctype eth.ContractType, evName string, expAddr eth.Addr, logmsg string) (
+	done, approve bool, resLog *ethtypes.Log) {
 
 	receipt, err := c.TransactionReceipt(context.Background(), eLog.TxHash)
 	if err != nil {
@@ -317,15 +328,6 @@ func (c *CbrOneChain) verifySigners(eLog *ethtypes.Log, cliCtx client.Context, l
 	}
 	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
 
-	// check in store
-	storedChainSigners, err := cbrcli.QueryChainSigners(cliCtx, c.chainid)
-	if err == nil {
-		if EqualSigners(storedChainSigners.GetSortedSigners(), ev) {
-			log.Infof("%s. already updated", logmsg)
-			return true, false
-		}
-	}
-
 	// check on chain
 	ssHash, err := c.cbrContract.SsHash(&bind.CallOpts{})
 	if err != nil {
@@ -367,10 +369,8 @@ func (c *CbrOneChain) verifyWithdrawalRequest(eLog *ethtypes.Log, cliCtx client.
 	}
 	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
 
-	// check in store
-
 	// check on chain
-	done, approve, wdReqLog := c.verifyEventLog(eLog, eth.WdInbox, cbrtypes.CbrEventWithdrawalRequest, c.wdiContract.GetAddr(), logmsg)
+	done, approve, wdReqLog := c.verifyEventLog(eLog, eth.ContractTypeWdInbox, cbrtypes.CbrEventWithdrawalRequest, c.wdiContract.GetAddr(), logmsg)
 	if wdReqLog == nil {
 		return done, approve
 	}
@@ -380,7 +380,7 @@ func (c *CbrOneChain) verifyWithdrawalRequest(eLog *ethtypes.Log, cliCtx client.
 		return true, false
 	}
 	// now cmp ev and wdReqEv
-	if !ev.Equal(wdReqEv) {
+	if !reflect.DeepEqual(ev, wdReqEv) {
 		log.Errorln(logmsg, "ev not equal. got:", wdReqEv.String(), "expect:", ev.String())
 		return true, false
 	}

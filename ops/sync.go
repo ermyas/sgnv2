@@ -67,7 +67,7 @@ $ %s ops sync signers --chainid=883 --txhash="0xxx"
 			}
 
 			elog := eth.FindMatchContractEvent(
-				eth.LiquidityBridge, cbrtypes.CbrEventSignersUpdated, cbr.cbrContract.Address, txReceipt.Logs)
+				eth.ContractTypeLiquidityBridge, cbrtypes.CbrEventSignersUpdated, cbr.cbrContract.Address, txReceipt.Logs)
 
 			if elog == nil {
 				log.Errorln("no match event found in tx:", txhash)
@@ -167,7 +167,7 @@ func SyncCbrEvent(cliCtx client.Context, chainid uint64, txhash string, evname s
 		return err
 	}
 
-	elog := eth.FindMatchContractEvent(eth.LiquidityBridge, evname, cbr.cbrContract.Address, txReceipt.Logs)
+	elog := eth.FindMatchContractEvent(eth.ContractTypeLiquidityBridge, evname, cbr.cbrContract.Address, txReceipt.Logs)
 
 	if elog == nil {
 		log.Errorln("no match event found in tx:", txhash)
@@ -203,10 +203,10 @@ func SyncPegbrEvent(cliCtx client.Context, chainid uint64, txhash string, evname
 	var contractType eth.ContractType
 	var contractAddr eth.Addr
 	if isPegvaultEv(evname) {
-		contractType = eth.PegVault
+		contractType = eth.ContractTypePegVault
 		contractAddr = cbr.pegbrContracts.Vault.Address
 	} else if isPegbridgeEv(evname) {
-		contractType = eth.PegBridge
+		contractType = eth.ContractTypePegBridge
 		contractAddr = cbr.pegbrContracts.Bridge.Address
 	} else {
 		return fmt.Errorf("not pegged evname: %s", evname)
