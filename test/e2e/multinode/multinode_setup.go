@@ -167,20 +167,20 @@ func SetupFlowChain() {
 	}
 
 	// add token vault for acc2
-	err = flowutils.SetupTokenVault(context.Background(), tc.FlowUserAccountClient, tc.FlowContractAddr.String(),
+	_, err = flowutils.SetupTokenVault(context.Background(), tc.FlowUserAccountClient, tc.FlowContractAddr.String(),
 		exampleTokenName, exampleTokenVault, exampleTokenBalance, exampleTokenReceiver)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = flowutils.SetupTokenVault(context.Background(), tc.FlowUserAccountClient, tc.FlowContractAddr.String(),
+	_, err = flowutils.SetupTokenVault(context.Background(), tc.FlowUserAccountClient, tc.FlowContractAddr.String(),
 		testPegTokenName, testPegTokenVault, testPegTokenBalance, testPegTokenReceiver)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// test transfer
-	err = flowutils.TransferToken(context.Background(), tc.FlowContractAccountClient, "1000000.0", tc.FlowUserAddr,
+	_, err = flowutils.TransferToken(context.Background(), tc.FlowContractAccountClient, "1000000.0", tc.FlowUserAddr,
 		tc.FlowContractAddr.String(), exampleTokenName, exampleTokenVault, exampleTokenReceiver)
 	if err != nil {
 		log.Fatal(err)

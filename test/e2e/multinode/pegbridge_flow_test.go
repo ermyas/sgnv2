@@ -36,7 +36,7 @@ func pbrFlowTest(t *testing.T, transactor *transactor.Transactor) {
 	log.Infoln("======================== Test SafeBox deposit -> mint ===========================")
 	log.Infof("start deposit on flow")
 	nonce := uint64(time.Now().Second())
-	err := flowutils.Deposit(context.Background(), tc.FlowUserAccountClient, 884,
+	_, err := flowutils.Deposit(context.Background(), tc.FlowUserAccountClient, 884,
 		uint64(time.Now().Second()), "100.0", tc.CbrChain1.Users[0].Address.String(), tc.FlowContractAddr.String(), exampleTokenVault)
 	if err != nil {
 		log.Fatal(err)
@@ -73,7 +73,7 @@ func pbrFlowTest(t *testing.T, transactor *transactor.Transactor) {
 	log.Infoln("======================== Test PegBridge Burn -> Withdraw ===========================")
 	log.Infof("start burn on flow")
 	nonce = uint64(time.Now().Second())
-	err = flowutils.Burn(context.Background(), tc.FlowUserAccountClient, 883,
+	_, err = flowutils.Burn(context.Background(), tc.FlowUserAccountClient, 883,
 		nonce, "1.0", tc.CbrChain1.Users[0].Address.String(), tc.FlowContractAddr.String(), testPegTokenVault)
 	if err != nil {
 		log.Fatal(err)

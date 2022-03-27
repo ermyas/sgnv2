@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
+	flowtypes "github.com/celer-network/cbridge-flow/types"
 	"github.com/celer-network/goutils/log"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
@@ -25,8 +26,18 @@ func (r *Relayer) verifyPegbrEventUpdate(update *synctypes.PendingUpdate) (done,
 		return true, false
 	}
 	if commontypes.IsFlowChain(onchev.Chainid) {
-		// TODO: verify flow event, skip for now
-		return true, true
+		ev := new(flowtypes.FlowMonitorLog)
+		err = json.Unmarshal(onchev.Elog, ev)
+		if err != nil {
+			log.Errorf("failed to unmarshal %x to FlowMonitorLog", onchev.Elog)
+			return true, false
+		}
+		ok, err := r.cbrMgr[onchev.Chainid].fcc.VerifyEvent(ev)
+		if err != nil {
+			log.Error("flow verify event err: ", err)
+			return false, false
+		}
+		return true, ok
 	}
 	elog := new(ethtypes.Log)
 	err = json.Unmarshal(onchev.Elog, elog)

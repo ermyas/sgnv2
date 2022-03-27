@@ -3,6 +3,7 @@ package relayer
 // struct/funcs for interacting with flow chain, only support peg original vault(SafeBox) for now
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -102,8 +103,9 @@ func (f *FlowClient) genEvCallback(evname string) func(*flowtypes.FlowMonitorLog
 	return func(ev *flowtypes.FlowMonitorLog) {
 		log.Infoln("Mon Flow ev", ev.Type, string(ev.Event))
 		key := fmt.Sprintf("%s-%d-%d-%d", evname, ev.Height, ev.TransactionIndex, ev.EventIndex)
+		raw, _ := json.Marshal(ev)
 		f.lock.Lock()
 		defer f.lock.Unlock()
-		f.Db.Set([]byte(key), ev.Event)
+		f.Db.Set([]byte(key), raw)
 	}
 }

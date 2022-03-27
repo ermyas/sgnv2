@@ -207,6 +207,8 @@ github.com/celer-network/cbridge-flow v0.0.0-20220325072900-aea73562dd1b h1:RVuw
 github.com/celer-network/cbridge-flow v0.0.0-20220325072900-aea73562dd1b/go.mod h1:VXa1WOB8UCYYW9HjDjDwrzkTZuoWeHJzFm6oG/xHh2o=
 github.com/celer-network/cbridge-flow v0.0.0-20220325215723-5b7e2fee22d4 h1:HnezTZOBKb9/8KHInElUTKKvPDMvbf66x5XkBTQXbTQ=
 github.com/celer-network/cbridge-flow v0.0.0-20220325215723-5b7e2fee22d4/go.mod h1:VXa1WOB8UCYYW9HjDjDwrzkTZuoWeHJzFm6oG/xHh2o=
+github.com/celer-network/cbridge-flow v0.0.0-20220327052835-f16e5e0a9ade h1:oyvG0eiEWLpR9Ai6AiRueHESjvJOPyK6IMgGqqHNJmU=
+github.com/celer-network/cbridge-flow v0.0.0-20220327052835-f16e5e0a9ade/go.mod h1:VXa1WOB8UCYYW9HjDjDwrzkTZuoWeHJzFm6oG/xHh2o=
 github.com/celer-network/endpoint-proxy v0.1.8 h1:ZJPLFhCxfBrLmP3BgQqWJ2NYVW26IN7JBSoPmSiu8bo=
 github.com/celer-network/endpoint-proxy v0.1.8/go.mod h1:zyRTvdnbG+UMp9aYJgwIeNahJv0gMqAwMcWY/mIDvlI=
 github.com/celer-network/goutils v0.1.38/go.mod h1:YLfSj4GfqY0+OZkFjnOpAdCdn2lKEXEQp37aS31sYjY=
