@@ -203,10 +203,6 @@ github.com/bytecodealliance/wasmtime-go v0.22.0/go.mod h1:q320gUxqyI8yB+ZqRuaJOE
 github.com/c-bata/go-prompt v0.2.2/go.mod h1:VzqtzE2ksDBcdln8G7mk2RX9QyGjH+OVqOCSiVIqS34=
 github.com/c-bata/go-prompt v0.2.5/go.mod h1:vFnjEGDIIA/Lib7giyE4E9c50Lvl8j0S+7FVlAwDAVw=
 github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n9yuLkIJQ=
-github.com/celer-network/cbridge-flow v0.0.0-20220325072900-aea73562dd1b h1:RVuwrVN0+ykzyzbJP9AdQpKLjagicotlLw5hyJIclpA=
-github.com/celer-network/cbridge-flow v0.0.0-20220325072900-aea73562dd1b/go.mod h1:VXa1WOB8UCYYW9HjDjDwrzkTZuoWeHJzFm6oG/xHh2o=
-github.com/celer-network/cbridge-flow v0.0.0-20220325215723-5b7e2fee22d4 h1:HnezTZOBKb9/8KHInElUTKKvPDMvbf66x5XkBTQXbTQ=
-github.com/celer-network/cbridge-flow v0.0.0-20220325215723-5b7e2fee22d4/go.mod h1:VXa1WOB8UCYYW9HjDjDwrzkTZuoWeHJzFm6oG/xHh2o=
 github.com/celer-network/cbridge-flow v0.0.0-20220327052835-f16e5e0a9ade h1:oyvG0eiEWLpR9Ai6AiRueHESjvJOPyK6IMgGqqHNJmU=
 github.com/celer-network/cbridge-flow v0.0.0-20220327052835-f16e5e0a9ade/go.mod h1:VXa1WOB8UCYYW9HjDjDwrzkTZuoWeHJzFm6oG/xHh2o=
 github.com/celer-network/endpoint-proxy v0.1.8 h1:ZJPLFhCxfBrLmP3BgQqWJ2NYVW26IN7JBSoPmSiu8bo=

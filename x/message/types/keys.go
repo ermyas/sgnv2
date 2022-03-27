@@ -31,13 +31,12 @@ const (
 )
 
 var (
-	MessageBusPrefix         = []byte{0x01}
-	MessagePrefix            = []byte{0x02}
-	SrcTransferPrefix        = []byte{0x03}
-	ActiveMessageIdsPrefix   = []byte{0x04}
-	MessageRefundNoncePrefix = []byte{0x05}
-	MessageRefundPrefix      = []byte{0x06}
-	FeeClaimInfoPrefix       = []byte{0x07}
+	MessageBusPrefix       = []byte{0x01}
+	MessagePrefix          = []byte{0x02}
+	SrcTransferPrefix      = []byte{0x03}
+	ActiveMessageIdsPrefix = []byte{0x04}
+	LqBridgeRefundNonceKey = []byte{0x05}
+	FeeClaimInfoPrefix     = []byte{0x07}
 )
 
 func KeyPrefix(p string) []byte {
@@ -52,14 +51,6 @@ func GetMessageBusKey(chainId uint64) []byte {
 
 func GetMessageKey(messageId eth.Hash) []byte {
 	return append(MessagePrefix, messageId.Bytes()...)
-}
-
-func GetRefundNonceKey() []byte {
-	return MessageRefundNoncePrefix
-}
-
-func GetMessageRefundKey(srcTransferId eth.Hash) []byte {
-	return append(MessageRefundPrefix, srcTransferId.Bytes()...)
 }
 
 func GetSrcTransferKey(srcBridgeType BridgeType, srcTransferId eth.Hash) []byte {

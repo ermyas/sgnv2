@@ -90,8 +90,10 @@ type cbrContract struct {
 }
 
 type pegbrContracts struct {
-	Bridge *eth.PegBridgeContract
-	Vault  *eth.PegVaultContract
+	Bridge   *eth.PegBridgeContract
+	Vault    *eth.PegVaultContract
+	BridgeV2 *eth.PegBridgeV2Contract
+	VaultV2  *eth.PegVaultV2Contract
 }
 
 type CbrOneChain struct {

@@ -321,16 +321,12 @@ func cbrOps() {
 	addAmt := big.NewInt(5 * 1e10)
 	var i uint64
 	for i = 0; i < 2; i++ {
-		err = tc.CbrChain1.ApproveUSDT(i, addAmt)
-		tc.ChkErr(err, fmt.Sprintf("u%d chain1 approve", i))
 		err = tc.CbrChain1.AddLiq(i, addAmt)
 		tc.ChkErr(err, fmt.Sprintf("u%d chain1 addliq", i))
 		tc.CheckAddLiquidityStatus(txr, tc.CbrChain1.ChainId, i+1)
 	}
 	log.Infoln("======================== Add liquidity on chain 2 ===========================")
 	for i = 0; i < 2; i++ {
-		err = tc.CbrChain2.ApproveUSDT(i, addAmt)
-		tc.ChkErr(err, fmt.Sprintf("u%d chain2 approve", i))
 		err = tc.CbrChain2.AddLiq(i, addAmt)
 		tc.ChkErr(err, fmt.Sprintf("u%d chain2 addliq", i))
 		tc.CheckAddLiquidityStatus(txr, tc.CbrChain2.ChainId, i+1)
@@ -354,8 +350,6 @@ func cbrOps() {
 
 	log.Infoln("======================== Xfer ===========================")
 	xferAmt := big.NewInt(1e10)
-	err = tc.CbrChain1.ApproveUSDT(0, xferAmt)
-	tc.ChkErr(err, "u0 chain1 approve")
 	xferId, err := tc.CbrChain1.Send(0, xferAmt, tc.CbrChain2.ChainId, 1)
 	tc.ChkErr(err, "u0 chain1 send")
 	tc.CheckXfer(txr, xferId[:])
@@ -382,8 +376,6 @@ func cbrOps() {
 	log.Infoln("QueryLiquidityDetailList resp:", res.String())
 
 	log.Infoln("======================== Xfer back ===========================")
-	err = tc.CbrChain2.ApproveUSDT(0, xferAmt)
-	tc.ChkErr(err, "u0 chain2 approve")
 	xferId, err = tc.CbrChain2.Send(0, xferAmt, tc.CbrChain1.ChainId, 1)
 	tc.ChkErr(err, "u0 chain2 send")
 	tc.CheckXfer(txr, xferId[:])

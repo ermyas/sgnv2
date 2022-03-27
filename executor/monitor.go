@@ -29,9 +29,9 @@ func (c *Chain) monitorBusExecuted() {
 			log.Errorln("monitorBusExecuted: ", err)
 			return false
 		}
-		err = Dal.UpdateStatus(e.Id[:], status)
+		err = Dal.UpdateStatus(e.MsgId[:], status)
 		if err != nil {
-			log.Errorf("failed to update execution_context %x: %v", e.Id[:], err)
+			log.Errorf("failed to update execution_context %x: %v", e.MsgId[:], err)
 		}
 		return false
 	})

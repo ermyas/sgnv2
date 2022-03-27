@@ -299,40 +299,42 @@ func (k Keeper) IterateAllRefunds(
 	}
 }
 
-func (k Keeper) SetRefundClaimInfo(ctx sdk.Context, depositId eth.Hash, withdrawId eth.Hash) {
+func (k Keeper) SetRefundClaimInfo(
+	ctx sdk.Context, srcId eth.Hash /* deposit or burn */, refundId eth.Hash /* withdraw or burn  */) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(types.GetRefundClaimInfoKey(depositId), withdrawId.Bytes())
+	store.Set(types.GetRefundClaimInfoKey(srcId), refundId.Bytes())
 }
 
-func (k Keeper) GetRefundClaimInfo(ctx sdk.Context, depositId eth.Hash) (withdrawId eth.Hash, found bool) {
+func (k Keeper) GetRefundClaimInfo(
+	ctx sdk.Context, srcId eth.Hash /* deposit or burn */) (refundId eth.Hash /* withdraw or burn */, found bool) {
 	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.GetRefundClaimInfoKey(depositId))
+	bz := store.Get(types.GetRefundClaimInfoKey(srcId))
 	if bz == nil {
-		return withdrawId, false
+		return refundId, false
 	}
-	withdrawId = eth.Bytes2Hash(bz)
-	return withdrawId, true
+	refundId = eth.Bytes2Hash(bz)
+	return refundId, true
 }
 
-func (k Keeper) HasRefundClaimInfo(ctx sdk.Context, depositId eth.Hash) bool {
+func (k Keeper) HasRefundClaimInfo(ctx sdk.Context, srcId eth.Hash /* deposit or burn */) bool {
 	store := ctx.KVStore(k.storeKey)
-	return store.Has(types.GetRefundClaimInfoKey(depositId))
+	return store.Has(types.GetRefundClaimInfoKey(srcId))
 }
 
-func (k Keeper) DeleteRefundClaimInfo(ctx sdk.Context, depositId eth.Hash) {
+func (k Keeper) DeleteRefundClaimInfo(ctx sdk.Context, srcId eth.Hash /* deposit or burn */) {
 	store := ctx.KVStore(k.storeKey)
-	store.Delete(types.GetRefundClaimInfoKey(depositId))
+	store.Delete(types.GetRefundClaimInfoKey(srcId))
 }
 
 func (k Keeper) IterateAllRefundClaimInfos(
-	ctx sdk.Context, handler func(withdrawId eth.Hash) (stop bool),
+	ctx sdk.Context, handler func(refundId eth.Hash /* withdraw or burn */) (stop bool),
 ) {
 	store := ctx.KVStore(k.storeKey)
 	iter := sdk.KVStorePrefixIterator(store, types.RefundClaimInfoPrefix)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
-		withdrawId := eth.Bytes2Hash(iter.Value())
-		if handler(withdrawId) {
+		refundId := eth.Bytes2Hash(iter.Value())
+		if handler(refundId) {
 			break
 		}
 	}

@@ -223,13 +223,32 @@ func (k msgServer) ClaimFee(goCtx context.Context, msg *types.MsgClaimFee) (*typ
 	if err != nil {
 		return nil, err
 	}
-	withdrawId := types.CalcWithdrawId(
-		withdrawAddr,
-		tokenAddr,
-		withdrawAmt,
-		eth.Addr{}, /* burnAccount */
-		withdrawOnChain.RefChainId,
-		eth.Bytes2Hash(withdrawOnChain.RefId))
+	var withdrawId eth.Hash
+	switch vaultVersion {
+	case 0:
+		withdrawId = types.CalcWithdrawId(
+			withdrawAddr,
+			tokenAddr,
+			withdrawAmt,
+			eth.Addr{}, /* burnAccount */
+			withdrawOnChain.RefChainId,
+			eth.Bytes2Hash(withdrawOnChain.RefId))
+	case 2:
+		vaultV2Addr, found := k.GetVersionedVault(ctx, msg.ChainId, 2)
+		if !found {
+			return nil, types.WrapErrNoOriginalTokenVaultFound(msg.ChainId)
+		}
+		withdrawId = types.CalcWithdrawIdV2(
+			withdrawAddr,
+			tokenAddr,
+			withdrawAmt,
+			eth.Addr{}, /* burnAccount */
+			withdrawOnChain.RefChainId,
+			eth.Bytes2Hash(withdrawOnChain.RefId),
+			vaultV2Addr)
+	default:
+		return nil, fmt.Errorf("invalid vault version %d", vaultVersion)
+	}
 	withdrawInfo := types.WithdrawInfo{
 		ChainId:            msg.ChainId,
 		WithdrawProtoBytes: withdrawProtoBytes,
@@ -256,92 +275,146 @@ func (k msgServer) ClaimFee(goCtx context.Context, msg *types.MsgClaimFee) (*typ
 func (k msgServer) ClaimRefund(goCtx context.Context, msg *types.MsgClaimRefund) (*types.MsgClaimRefundResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	refId := eth.Hex2Hash(msg.RefId)
-	depositInfo, isDeposit := k.GetDepositInfo(ctx, refId)
-	if !isDeposit {
-		burnInfo, isBurn := k.GetBurnInfo(ctx, refId)
-		if !isBurn {
-			return nil, types.WrapErrNoInfoFound(refId)
-		}
-		burnId := refId
-		if len(burnInfo.WithdrawId) > 0 {
-			// a non-empty withdrawId indicates a valid burn.
-			return nil, fmt.Errorf("there is no refund for this burn:%s", burnId.Hex())
-		}
-		// get burnRefund:mintOnChain
-		mint, found := k.GetBurnRefund(ctx, burnId)
-		if !found {
-			// this refund has already been claimed.
-			return nil, fmt.Errorf("this burn has already been refunded:%s", burnId.Hex())
-		}
-		mintAmount := new(big.Int).SetBytes(mint.Amount)
-
-		mintId := types.CalcMintId(eth.Bytes2Addr(mint.Account), eth.Bytes2Addr(mint.Token),
-			mintAmount, eth.Bytes2Addr(mint.Depositor), mint.RefChainId, eth.Bytes2Hash(mint.RefId))
-		// record a mintInfo
-		mintProtoBytes := k.cdc.MustMarshal(&mint)
-		mintInfo := types.MintInfo{
-			ChainId:        mint.RefChainId,
-			MintProtoBytes: mintProtoBytes,
-			Signatures:     make([]commontypes.Signature, 0),
-			BaseFee:        "",
-			PercentageFee:  "",
-			LastReqTime:    ctx.BlockTime().Unix(),
-		}
-		k.SetMintInfo(ctx, mintId, mintInfo)
-		// record a refundClaimInfo
-		// Although the invalid burnId is stored deeply in mintInfo.
-		// We'd still like to keep a forward link from invalid burnId to its corresponding mintId.
-		k.SetRefundClaimInfo(ctx, burnId, mintId)
-		// delete burnRefund:mintOnChain in case of double refunding
-		k.DeleteRefund(ctx, burnId)
-		// emit event for validators to sign
-		ctx.EventManager().EmitEvent(sdk.NewEvent(
-			types.EventTypeMintToSign,
-			sdk.NewAttribute(types.AttributeKeyMintId, mintId.Hex()),
-			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
-		))
-		log.Infof("x/pegbr claim refund, burnId: %x, mintId: %x, sender: %s",
-			burnId, mintId, msg.Sender)
-		return &types.MsgClaimRefundResponse{}, nil
-	} else {
-		depositId := refId
-		if len(depositInfo.MintId) > 0 {
-			// a non-empty mintId indicates a valid deposit.
-			return nil, fmt.Errorf("there is no refund for this deposit:%s", depositId.Hex())
-		}
-		// get depositRefund:withdrawOnChain
-		withdraw, found := k.GetDepositRefund(ctx, depositId)
-		if !found {
-			// this refund has already been claimed.
-			return nil, fmt.Errorf("this deposit has already been refunded:%s", depositId.Hex())
-		}
-		withdrawId := types.CalcWithdrawId(eth.Bytes2Addr(withdraw.Receiver), eth.Bytes2Addr(withdraw.Token),
-			new(big.Int).SetBytes(withdraw.Amount), eth.Bytes2Addr(withdraw.BurnAccount), withdraw.RefChainId, eth.Bytes2Hash(withdraw.RefId))
-		// record a withdrawInfo
-		withdrawProtoBytes := k.cdc.MustMarshal(&withdraw)
-		wdInfo := types.WithdrawInfo{
-			ChainId:            withdraw.RefChainId,
-			WithdrawProtoBytes: withdrawProtoBytes,
-			Signatures:         make([]commontypes.Signature, 0),
-			BaseFee:            "",
-			PercentageFee:      "",
-			LastReqTime:        ctx.BlockTime().Unix(),
-		}
-		k.SetWithdrawInfo(ctx, withdrawId, wdInfo)
-		// record a refundClaimInfo
-		// Although the invalid depositId is stored deeply in withdrawInfo.
-		// We'd still like to keep a forward link from invalid depositId to its corresponding withdrawId.
-		k.SetRefundClaimInfo(ctx, depositId, withdrawId)
-		// delete depositRefund:withdrawOnChain in case of double refunding
-		k.DeleteRefund(ctx, depositId)
-		// emit event for validators to sign
-		ctx.EventManager().EmitEvent(sdk.NewEvent(
-			types.EventTypeWithdrawToSign,
-			sdk.NewAttribute(types.AttributeKeyWithdrawId, withdrawId.Hex()),
-			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
-		))
-		log.Infof("x/pegbr claim refund, depositId: %x, withdrawId: %x, sender: %s",
-			depositId, withdrawId, msg.Sender)
-		return &types.MsgClaimRefundResponse{}, nil
+	_, isDeposit := k.GetDepositInfo(ctx, refId)
+	var err error
+	if isDeposit { //use deposit refund. Note that it is more efficient to pass depositInfo directly.
+		//for maintainability, we only pass refId to keep the func claimDepositRefund clean
+		err = k.claimDepositRefund(ctx, refId, msg)
+	} else { //use burn refund
+		err = k.claimBurnRefund(ctx, refId, msg)
 	}
+	if err != nil {
+		return nil, err
+	}
+	return &types.MsgClaimRefundResponse{}, nil
+}
+
+func (k Keeper) claimDepositRefund(ctx sdk.Context, depositId eth.Hash, msg *types.MsgClaimRefund) error {
+	depositInfo, found := k.GetDepositInfo(ctx, depositId)
+	if !found {
+		return fmt.Errorf("there is no refund for this deposit:%s", depositId.Hex())
+	}
+	if len(depositInfo.MintId) > 0 {
+		// a non-empty mintId indicates a valid deposit.
+		return fmt.Errorf("there is no refund for this deposit:%s", depositId.Hex())
+	}
+	// get depositRefund:withdrawOnChain
+	withdraw, found := k.GetDepositRefund(ctx, depositId)
+	if !found {
+		// this refund has already been claimed.
+		return fmt.Errorf("this deposit has already been refunded:%s", depositId.Hex())
+	}
+	var withdrawId eth.Hash
+	switch depositInfo.GetVaultVersion() {
+	case 0:
+		withdrawId = types.CalcWithdrawId(
+			eth.Bytes2Addr(withdraw.Receiver),
+			eth.Bytes2Addr(withdraw.Token),
+			new(big.Int).SetBytes(withdraw.Amount),
+			eth.Bytes2Addr(withdraw.BurnAccount),
+			withdraw.RefChainId,
+			eth.Bytes2Hash(withdraw.RefId))
+	case 2:
+		vaultAddr, found := k.GetVersionedVault(ctx, depositInfo.ChainId, 2)
+		if !found {
+			return types.WrapErrNoOriginalTokenVaultFound(depositInfo.ChainId)
+		}
+		withdrawId = types.CalcWithdrawIdV2(
+			eth.Bytes2Addr(withdraw.Receiver),
+			eth.Bytes2Addr(withdraw.Token),
+			new(big.Int).SetBytes(withdraw.Amount),
+			eth.Bytes2Addr(withdraw.BurnAccount),
+			withdraw.RefChainId,
+			eth.Bytes2Hash(withdraw.RefId),
+			vaultAddr)
+	default:
+		return fmt.Errorf("invalid vault version %d", depositInfo.GetVaultVersion())
+	}
+	// record a withdrawInfo
+	withdrawProtoBytes := k.cdc.MustMarshal(&withdraw)
+	wdInfo := types.WithdrawInfo{
+		ChainId:            withdraw.RefChainId,
+		WithdrawProtoBytes: withdrawProtoBytes,
+		Signatures:         make([]commontypes.Signature, 0),
+		BaseFee:            "",
+		PercentageFee:      "",
+		LastReqTime:        ctx.BlockTime().Unix(),
+		VaultVersion:       depositInfo.GetVaultVersion(),
+	}
+	k.SetWithdrawInfo(ctx, withdrawId, wdInfo)
+	// record a refundClaimInfo
+	// Although the invalid depositId is stored deeply in withdrawInfo.
+	// We'd still like to keep a forward link from invalid depositId to its corresponding withdrawId.
+	k.SetRefundClaimInfo(ctx, depositId, withdrawId)
+	// delete depositRefund:withdrawOnChain in case of double refunding
+	k.DeleteRefund(ctx, depositId)
+	// emit event for validators to sign
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeWithdrawToSign,
+		sdk.NewAttribute(types.AttributeKeyWithdrawId, withdrawId.Hex()),
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+	))
+	log.Infof("x/pegbr claim refund, depositId: %x, withdrawId: %x, sender: %s",
+		depositId, withdrawId, msg.Sender)
+	return nil
+}
+
+func (k Keeper) claimBurnRefund(ctx sdk.Context, burnId eth.Hash, msg *types.MsgClaimRefund) error {
+	burnInfo, isBurn := k.GetBurnInfo(ctx, burnId)
+	if !isBurn {
+		return types.WrapErrNoInfoFound(burnId)
+	}
+	if len(burnInfo.WithdrawId) > 0 {
+		// a non-empty withdrawId indicates a valid burn.
+		return fmt.Errorf("there is no refund for this burn:%s", burnId.Hex())
+	}
+	// get burnRefund:mintOnChain
+	mint, found := k.GetBurnRefund(ctx, burnId)
+	if !found {
+		// this refund has already been claimed.
+		return fmt.Errorf("this burn has already been refunded:%s", burnId.Hex())
+	}
+	mintAmount := new(big.Int).SetBytes(mint.Amount)
+	var mintId eth.Hash
+	switch burnInfo.GetBridgeVersion() {
+	case 0:
+		mintId = types.CalcMintId(eth.Bytes2Addr(mint.Account), eth.Bytes2Addr(mint.Token),
+			mintAmount, eth.Bytes2Addr(mint.Depositor), mint.RefChainId, eth.Bytes2Hash(mint.RefId))
+	case 2: //V2 peg bridge logic
+		bridgeV2Addr, found := k.GetVersionedBridge(ctx, burnInfo.ChainId, 2)
+		if !found {
+			return types.WrapErrNoPeggedTokenBridgeFound(burnInfo.ChainId)
+		}
+		mintId = types.CalcMintIdV2(eth.Bytes2Addr(mint.Account), eth.Bytes2Addr(mint.Token),
+			mintAmount, eth.Bytes2Addr(mint.Depositor), mint.RefChainId, eth.Bytes2Hash(mint.RefId), bridgeV2Addr)
+	default:
+		return fmt.Errorf("invalid bridge version %d", burnInfo.GetBridgeVersion())
+	}
+	// record a mintInfo
+	mintProtoBytes := k.cdc.MustMarshal(&mint)
+	mintInfo := types.MintInfo{
+		ChainId:        mint.RefChainId,
+		MintProtoBytes: mintProtoBytes,
+		Signatures:     make([]commontypes.Signature, 0),
+		BaseFee:        "",
+		PercentageFee:  "",
+		LastReqTime:    ctx.BlockTime().Unix(),
+		BridgeVersion:  burnInfo.GetBridgeVersion(),
+	}
+	k.SetMintInfo(ctx, mintId, mintInfo)
+	// record a refundClaimInfo
+	// Although the invalid burnId is stored deeply in mintInfo.
+	// We'd still like to keep a forward link from invalid burnId to its corresponding mintId.
+	k.SetRefundClaimInfo(ctx, burnId, mintId)
+	// delete burnRefund:mintOnChain in case of double refunding
+	k.DeleteRefund(ctx, burnId)
+	// emit event for validators to sign
+	ctx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeMintToSign,
+		sdk.NewAttribute(types.AttributeKeyMintId, mintId.Hex()),
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+	))
+	log.Infof("x/pegbr claim refund, burnId: %x, mintId: %x, sender: %s",
+		burnId, mintId, msg.Sender)
+	return nil
 }

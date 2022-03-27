@@ -47,8 +47,8 @@ enum TransferType {
 enum ExecutionStatus {
   option (gogoproto.goproto_enum_prefix) = false;
 
-  // EXECUTION_STATUS_PENDING defines the pending on-chain execution status.
-  EXECUTION_STATUS_PENDING = 0;
+  // EXECUTION_STATUS_NULL defines the init (non-exist) execution status.
+  EXECUTION_STATUS_NULL = 0;
   // EXECUTION_STATUS_SUCCESS defines the successful on-chain execution status.
   EXECUTION_STATUS_SUCCESS = 1;
   // EXECUTION_STATUS_FAILURE defines the failed on-chain execution status.
@@ -122,8 +122,8 @@ message Transfer {
   // amount defines the amount of a transfer.
   string amount = 2 [(gogoproto.moretags) = "yaml:\"amount\""];
 
-  // seq_num defines the sequence number required for withdrawals from a liquidity bridge.
-  uint64 seq_num = 3 [(gogoproto.moretags) = "yaml:\"seq_num\""];
+  // wd_seq_num defines the sequence number required for withdrawals from a liquidity bridge.
+  uint64 wd_seq_num = 3 [(gogoproto.moretags) = "yaml:\"wd_seq_num\""];
 }
 
 // ExecutionContext defines all the info needed for executing a message.

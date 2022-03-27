@@ -68,32 +68,12 @@ func cbrTest(t *testing.T, transactor *transactor.Transactor) {
 	assert.True(t, len(res.LiquidityDetail) > 0)
 	log.Infoln("QueryLiquidityDetailList resp:", res.String())
 
-	addAmt := big.NewInt(50000 * 1e6)
 	tc.RunAllAndWait(
 		func() {
-			log.Infoln("======================== Add liquidity on chain 1 ===========================")
-			var i uint64
-			for i = 0; i < 2; i++ {
-				err := tc.CbrChain1.ApproveUSDT(i, addAmt)
-				tc.ChkErr(err, fmt.Sprintf("u%d chain1 approve", i))
-				err = tc.CbrChain1.AddLiq(i, addAmt)
-				tc.ChkErr(err, fmt.Sprintf("u%d chain1 addliq", i))
-				tc.CheckAddLiquidityStatus(transactor, tc.CbrChain1.ChainId, i+1)
-			}
-		},
-
-		func() {
-			log.Infoln("======================== Add liquidity on chain 2 ===========================")
-			var i uint64
-			for i = 0; i < 2; i++ {
-				err := tc.CbrChain2.ApproveUSDT(i, addAmt)
-				tc.ChkErr(err, fmt.Sprintf("u%d chain2 approve", i))
-				err = tc.CbrChain2.AddLiq(i, addAmt)
-				tc.ChkErr(err, fmt.Sprintf("u%d chain2 addliq", i))
-				tc.CheckAddLiquidityStatus(transactor, tc.CbrChain2.ChainId, i+1)
-			}
+			prepareCbrLiquidity(transactor)
 		},
 		func() {
+			addAmt := big.NewInt(50000 * 1e6)
 			log.Infoln("======================== ContractLP add liquidity on chain 1 ===========================")
 			err := tc.CbrChain1.ApproveUSDTForContractAsLP(0, addAmt)
 			tc.ChkErr(err, "u0 chain1 approve for ContractAsLP")
@@ -112,8 +92,6 @@ func cbrTest(t *testing.T, transactor *transactor.Transactor) {
 
 	log.Infoln("======================== Xfer ===========================")
 	xferAmt := big.NewInt(10000 * 1e6)
-	err = tc.CbrChain1.ApproveUSDT(0, xferAmt)
-	tc.ChkErr(err, "u0 chain1 approve")
 	xferId, err := tc.CbrChain1.Send(0, xferAmt, tc.CbrChain2.ChainId, 1)
 	tc.ChkErr(err, "u0 chain1 send")
 	tc.CheckXfer(transactor, xferId[:])
@@ -174,8 +152,6 @@ func cbrTest(t *testing.T, transactor *transactor.Transactor) {
 		},
 		func() {
 			log.Infoln("======================== Xfer back ===========================")
-			err = tc.CbrChain2.ApproveUSDT(0, xferAmt)
-			tc.ChkErr(err, "u0 chain2 approve")
 			xferId, err = tc.CbrChain2.Send(0, xferAmt, tc.CbrChain1.ChainId, 1)
 			tc.ChkErr(err, "u0 chain2 send")
 			tc.CheckXfer(transactor, xferId[:])
@@ -248,8 +224,6 @@ func cbrTest(t *testing.T, transactor *transactor.Transactor) {
 	// transfer from chain 2 to 1 again to generate fee for testing single delegator reward claim
 	log.Infoln("======================== Xfer back 2 ===========================")
 	xferAmt = big.NewInt(10000 * 1e6)
-	err = tc.CbrChain2.ApproveUSDT(0, xferAmt)
-	tc.ChkErr(err, "u0 chain2 approve")
 	xferId, err = tc.CbrChain2.Send(0, xferAmt, tc.CbrChain1.ChainId, 2)
 	tc.ChkErr(err, "u0 chain2 send")
 	tc.CheckXfer(transactor, xferId[:])
@@ -407,6 +381,30 @@ func cbrSignersTest(t *testing.T) {
 	tc.CheckLatestSigners(t, transactor, expSigners)
 	tc.CheckChainSigners(t, transactor, tc.CbrChain1.ChainId, expSigners)
 	tc.CheckChainSigners(t, transactor, tc.CbrChain2.ChainId, expSigners)
+}
+
+func prepareCbrLiquidity(transactor *transactor.Transactor) {
+	addAmt := big.NewInt(50000 * 1e6)
+	tc.RunAllAndWait(
+		func() {
+			var i uint64
+			log.Infoln("------------------------ Add liquidity on chain 1 ------------------------")
+			for i = 0; i < 2; i++ {
+				err := tc.CbrChain1.AddLiq(i, addAmt)
+				tc.ChkErr(err, fmt.Sprintf("u%d chain1 addliq", i))
+				tc.CheckAddLiquidityStatus(transactor, tc.CbrChain1.ChainId, i+1)
+			}
+		},
+		func() {
+			var i uint64
+			log.Infoln("------------------------ Add liquidity on chain 2 ------------------------")
+			for i = 0; i < 2; i++ {
+				err := tc.CbrChain2.AddLiq(i, addAmt)
+				tc.ChkErr(err, fmt.Sprintf("u%d chain2 addliq", i))
+				tc.CheckAddLiquidityStatus(transactor, tc.CbrChain2.ChainId, i+1)
+			}
+		},
+	)
 }
 
 func genSortedSigners(addrs []eth.Addr, amts []*big.Int) []*cbrtypes.Signer {

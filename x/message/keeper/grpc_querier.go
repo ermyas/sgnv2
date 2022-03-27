@@ -119,7 +119,7 @@ func (k Keeper) ExecutionContextBySrcTransfer(
 	*types.QueryExecutionContextBySrcTransferResponse, error) {
 	ctx := sdk.UnwrapSDKContext(c)
 	srcTransferId := eth.Hex2Hash(req.GetSrcTransferId())
-	messageId, found := k.GetSrcTransfer(ctx, req.GetSrcBridgeType(), srcTransferId)
+	messageId, found := k.GetSrcTransferMessageId(ctx, req.GetSrcBridgeType(), srcTransferId)
 	if !found {
 		return nil, types.WrapErrNoTransferFound(srcTransferId)
 	}
@@ -167,10 +167,6 @@ func (k Keeper) IsMessageActive(c context.Context, request *types.IsMessageActiv
 		return &types.IsMessageActiveResponse{Exists: false}, nil
 	}
 	return &types.IsMessageActiveResponse{Exists: k.HasActiveMessageId(ctx, message.GetDstChainId(), eth.Hex2Addr(message.GetReceiver()), eth.Hex2Hash(request.GetMessageId()))}, nil
-}
-func (k Keeper) RefundExists(c context.Context, request *types.QueryRefundExistsRequest) (*types.QueryRefundExistsResponse, error) {
-	ctx := sdk.UnwrapSDKContext(c)
-	return &types.QueryRefundExistsResponse{Exists: k.HasRefund(ctx, eth.Hex2Hash(request.GetSrcTransferId()))}, nil
 }
 
 func (k Keeper) Message(c context.Context, req *types.QueryMessageRequest) (*types.QueryMessageResponse, error) {

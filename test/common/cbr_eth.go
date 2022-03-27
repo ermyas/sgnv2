@@ -9,6 +9,7 @@ import (
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
+	"github.com/celer-network/sgn-v2/test/contracts"
 	"github.com/celer-network/sgn-v2/transactor"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	distrtypes "github.com/celer-network/sgn-v2/x/distribution/types"
@@ -90,7 +91,7 @@ func (c *CbrChain) SetupTestEthClients() {
 	c.Delegators = dels
 }
 
-func (c *CbrChain) ApproveBridgeTestToken(token *eth.BridgeTestToken, uid uint64, amt *big.Int, spender eth.Addr) error {
+func (c *CbrChain) ApproveBridgeTestToken(token *contracts.BridgeTestToken, uid uint64, amt *big.Int, spender eth.Addr) error {
 	receipt, err := c.Users[uid].Transactor.TransactWaitMined(
 		"ApproveBridgeTestToken",
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
@@ -394,7 +395,7 @@ func (c *CbrChain) PbrBurnWithUser(fromUid uint64, amt *big.Int, nonce uint64, w
 	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
 		return "", fmt.Errorf("tx failed")
 	}
-	// last log is Deposit event (NOTE: test only)
+	// last log is Burn event (NOTE: test only)
 	burnLog := receipt.Logs[len(receipt.Logs)-1]
 	burnEv, err := c.PegBridgeContract.ParseBurn(*burnLog)
 	if err != nil {
@@ -417,8 +418,8 @@ func (c *CbrChain) PbrV2Burn(fromUid uint64, token eth.Addr, amt *big.Int, toCha
 	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
 		return "", fmt.Errorf("tx failed")
 	}
-	// last log is Burn event (NOTE: test only)
-	burnLog := receipt.Logs[len(receipt.Logs)-1]
+	// last but two log is v2 Burn event (NOTE: test only)
+	burnLog := receipt.Logs[len(receipt.Logs)-3]
 	burnEv, err := c.PegBridgeV2Contract.ParseBurn(*burnLog)
 	if err != nil {
 		return "", fmt.Errorf("parse log %+v err: %w", burnEv, err)
@@ -556,11 +557,11 @@ func (c *CbrChain) CheckPeggedUNIBalance(uid uint64, expectedAmt *big.Int) {
 	}
 }
 
-func (c *CbrChain) TransferMsg(uid uint64, receiver eth.Addr, dstChainId uint64, message []byte) (eth.Hash, error) {
+func (c *CbrChain) SendMsg(uid uint64, receiver eth.Addr, dstChainId uint64, message []byte) (eth.Hash, error) {
 	receipt, err := c.Users[uid].Transactor.TransactWaitMined(
 		"TransferMessage",
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
-			return c.TransferMessageContract.TransferMessage(opts, receiver, dstChainId, message)
+			return c.MsgTestContract.SendMessage(opts, receiver, dstChainId, message)
 		},
 		ethutils.WithEthValue(MsgFeeBase),
 	)
@@ -617,34 +618,114 @@ func (c *CbrChain) BatchTransfer(
 	return msgEv.SrcTransferId, nil
 }
 
-func (c *CbrChain) SendWithTransfer(
-	uid uint64, receiver eth.Addr, token eth.Addr, amount *big.Int,
-	dstChainId, _nonce uint64, maxSlippage uint32, bridgeType uint8) error {
+func (c *CbrChain) SendMessageWithLiquidityTransfer(
+	uid uint64, receiver eth.Addr, token eth.Addr, amount *big.Int, dstChainId uint64, maxSlippage uint32) (eth.Hash, error) {
 	receipt, err := c.Users[uid].Transactor.TransactWaitMined(
-		"SendWithTransfer",
+		"SendMessageWithTransfer",
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
-			return c.TestRefundContract.SendWithTransfer(
+			return c.MsgTestContract.SendMessageWithTransfer(
 				opts,
 				receiver,
 				token,
 				amount,
 				dstChainId,
-				_nonce,
 				maxSlippage,
+				[]byte{0x1},
+				BrTypeLiquidity,
+			)
+		},
+		ethutils.WithEthValue(MsgFeeBase),
+	)
+	if err != nil {
+		return eth.ZeroHash, fmt.Errorf("SendMessageWithTransfer err: %w", err)
+	}
+	return c.parseTransferId(receipt)
+}
+
+func (c *CbrChain) SendMessageWithPegTransfer(
+	uid uint64, receiver eth.Addr, token eth.Addr, amount *big.Int, dstChainId uint64, bridgeType uint8) (eth.Hash, error) {
+	receipt, err := c.Users[uid].Transactor.TransactWaitMined(
+		"SendMessageWithTransfer",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.MsgTestContract.SendMessageWithTransfer(
+				opts,
+				receiver,
+				token,
+				amount,
+				dstChainId,
+				0,
+				[]byte{0x1},
 				bridgeType,
 			)
 		},
 		ethutils.WithEthValue(MsgFeeBase),
 	)
 	if err != nil {
-		return fmt.Errorf("SendWithTransfer err: %w", err)
+		return eth.ZeroHash, fmt.Errorf("SendMessageWithTransfer err: %w", err)
 	}
+	return c.parseTransferId(receipt)
+}
+
+func (c *CbrChain) parseTransferId(receipt *ethtypes.Receipt) (eth.Hash, error) {
 	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
-		return fmt.Errorf("SendWithTransfer tx failed")
+		return eth.ZeroHash, fmt.Errorf("SendMessageWithTransfer tx failed")
 	}
-	return nil
+	// last log is MessageWithTransfer event (NOTE: test only)
+	msgLog := receipt.Logs[len(receipt.Logs)-1]
+	msgEv, err := c.MessageBusContract.ParseMessageWithTransfer(*msgLog)
+	if err != nil {
+		return eth.ZeroHash, fmt.Errorf("parse log %+v err: %w", msgEv, err)
+	}
+	log.Infof("SendWithTransfer tx success, srcTransferId: %x", msgEv.SrcTransferId)
+	return msgEv.SrcTransferId, nil
 }
 
 func (c *CbrChain) ApproveUSDTForBatchTransfer(uid uint64, amt *big.Int) error {
 	return c.ApproveBridgeTestToken(c.USDTContract, uid, amt, c.BatchTransferAddr)
+}
+
+func ApproveTestTokenToBridges() {
+	amt := NewBigInt(1, 30)
+	var funcs []func()
+	var f func()
+	for i := 0; i < 4; i++ {
+		uid := uint64(i)
+		f = func() {
+			err := CbrChain1.ApproveUSDT(uid, amt)
+			ChkErr(err, fmt.Sprintf("u%d chain1 approve USDT to liquidity bridge", uid))
+		}
+		funcs = append(funcs, f)
+		f = func() {
+			err := CbrChain2.ApproveUSDT(uid, amt)
+			ChkErr(err, fmt.Sprintf("u%d chain2 approve USDT to liquidity bridge", uid))
+		}
+		funcs = append(funcs, f)
+		f = func() {
+			err := CbrChain1.ApproveUNI(uid, amt)
+			ChkErr(err, fmt.Sprintf("u%d chain1 approve UNI to pegvault", uid))
+		}
+		funcs = append(funcs, f)
+		f = func() {
+			err := CbrChain2.ApprovePeggedUNI(uid, amt)
+			ChkErr(err, fmt.Sprintf("u%d chain2 approve UNI to pegbridge", uid))
+		}
+		funcs = append(funcs, f)
+		f = func() {
+			err := CbrChain1.ApproveBridgeTestToken(CbrChain1.USDTContract, uid, amt, CbrChain1.PegVaultV2Addr)
+			ChkErr(err, fmt.Sprintf("u%d chain1 approve USDT to pegvault v2", uid))
+		}
+		funcs = append(funcs, f)
+		f = func() {
+			err := CbrChain2.ApproveBridgeTestToken(CbrChain2.USDTContract, uid, amt, CbrChain2.PegBridgeV2Addr)
+			ChkErr(err, fmt.Sprintf("u%d chain2 approve USDT to pegbridge v2", uid))
+		}
+		funcs = append(funcs, f)
+		f = func() {
+			err := CbrChain3.ApproveBridgeTestToken(CbrChain3.USDTContract, uid, amt, CbrChain3.PegBridgeV2Addr)
+			ChkErr(err, fmt.Sprintf("u%d chain3 approve USDT to pegbridge v2", uid))
+		}
+		funcs = append(funcs, f)
+	}
+
+	RunAllAndWait(funcs...)
 }

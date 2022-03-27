@@ -120,13 +120,13 @@ func (c *Chain) initContracts(ec *ethclient.Client, config *common.OneChainConfi
 	check(err)
 	c.PegVault, err = eth.NewPegVaultContract(eth.Hex2Addr(config.OTVault), ec)
 	check(err)
-	c.PegBridgeV2, err = eth.NewPegBridgeV2Contract(eth.Hex2Addr(config.PTBridge), ec)
+	c.PegBridgeV2, err = eth.NewPegBridgeV2Contract(eth.Hex2Addr(config.PTBridge2), ec)
 	check(err)
-	c.PegVaultV2, err = eth.NewPegVaultV2Contract(eth.Hex2Addr(config.OTVault), ec)
+	c.PegVaultV2, err = eth.NewPegVaultV2Contract(eth.Hex2Addr(config.OTVault2), ec)
 	check(err)
 	c.MsgBus, err = eth.NewMsgBusContract(eth.Hex2Addr(config.MsgBus), ec)
 	check(err)
-	return []eth.Addr{c.LiqBridge.Address, c.PegBridge.Address, c.PegVault.Address, c.MsgBus.Address}
+	return []eth.Addr{c.LiqBridge.Address, c.PegBridge.Address, c.PegVault.Address, c.PegBridgeV2.Address, c.PegVaultV2.Address, c.MsgBus.Address}
 }
 
 func newEthClient(config *common.OneChainConfig) *ethclient.Client {
@@ -234,9 +234,19 @@ func (c *Chain) ExecutePegWithdraw(
 	return c.PegVault.OriginalTokenVault.Withdraw(opts, wdOnchain, sortedSigs, signers, powers)
 }
 
-func (c *Chain) ExecutePegMint(
+func (c *Chain) ExecutePegWithdrawV2(
 	opts *bind.TransactOpts, wdOnchain []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) (*gethtypes.Transaction, error) {
-	return c.PegBridge.PeggedTokenBridge.Mint(opts, wdOnchain, sortedSigs, signers, powers)
+	return c.PegVaultV2.OriginalTokenVaultV2.Withdraw(opts, wdOnchain, sortedSigs, signers, powers)
+}
+
+func (c *Chain) ExecutePegMint(
+	opts *bind.TransactOpts, mintOnChain []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) (*gethtypes.Transaction, error) {
+	return c.PegBridge.PeggedTokenBridge.Mint(opts, mintOnChain, sortedSigs, signers, powers)
+}
+
+func (c *Chain) ExecutePegMintV2(
+	opts *bind.TransactOpts, mintOnChain []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) (*gethtypes.Transaction, error) {
+	return c.PegBridgeV2.PeggedTokenBridgeV2.Mint(opts, mintOnChain, sortedSigs, signers, powers)
 }
 
 func (c *Chain) GetTransfer(xferId eth.Hash) (bool, error) {

@@ -83,7 +83,8 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		}
 
 		mintId, mintAmount, baseFee, percFee, refundMsg, err := k.pegMint(
-			ctx, depositChainId, depositChainId, ev.MintChainId, ev.Depositor, ev.MintAccount, depositToken, ev.Amount, ev.DepositId)
+			ctx, depositChainId, depositChainId, ev.MintChainId, ev.Depositor, ev.MintAccount,
+			depositToken, ev.Amount, ev.DepositId, int(version))
 		if err != nil {
 			return false, err
 		}
@@ -215,8 +216,10 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			log.Errorln("x/pegbr mint info not found", ev.PrettyLog(onchev.Chainid))
 			return false, nil
 		}
-		mintInfo.Success = true
-		k.SetMintInfo(ctx, ev.MintId, mintInfo)
+		if !mintInfo.Success {
+			mintInfo.Success = true
+			k.SetMintInfo(ctx, ev.MintId, mintInfo)
+		}
 		log.Infoln("x/pegbr applied:", ev.PrettyLog(onchev.Chainid))
 		return true, nil
 
@@ -248,8 +251,10 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			log.Errorln("x/pegbr withdraw info not found", ev.PrettyLog(wdChainId))
 			return false, nil
 		}
-		wdInfo.Success = true
-		k.SetWithdrawInfo(ctx, ev.WithdrawId, wdInfo)
+		if !wdInfo.Success {
+			wdInfo.Success = true
+			k.SetWithdrawInfo(ctx, ev.WithdrawId, wdInfo)
+		}
 		log.Infoln("x/pegbr applied:", ev.PrettyLog(wdChainId))
 		return true, nil
 	}
@@ -259,12 +264,16 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 
 func (k Keeper) pegMint(
 	ctx sdk.Context, depositChainId, refChainId, mintChainId uint64,
-	depositor, mintAccount eth.Addr, token string, amount *big.Int, refId eth.Hash) (
+	depositor, mintAccount eth.Addr, token string, amount *big.Int, refId eth.Hash, vaultVersion int) (
 	mintId eth.Hash, mintAmount, baseFee, percFee *big.Int, refundMsg string, err error) {
 
 	pair, found := k.GetOrigPeggedPair(ctx, depositChainId, token, mintChainId)
 	if !found {
 		err = fmt.Errorf("pegged pair not exists, srcChainId %d, dstChainId %d, token %x", depositChainId, mintChainId, token)
+		return
+	}
+	if vaultVersion >= 0 && uint32(vaultVersion) != pair.GetVaultVersion() {
+		refundMsg = fmt.Sprintf("vault version mismatch %d != %d", vaultVersion, pair.GetVaultVersion())
 		return
 	}
 	mintAmount, baseFee, percFee = k.CalcAmountAndFees(ctx, pair, amount, true /* isPeggedDest */)
@@ -465,8 +474,8 @@ func (k Keeper) burnMint(
 	origChainAmt, _, _ := ConvertDestAmt(pair, ev.Amount, false)
 	var mintId eth.Hash
 	var mintAmount, baseFee, percFee *big.Int
-	mintId, mintAmount, baseFee, percFee, refundMsg, err = k.pegMint(ctx, pair.Orig.ChainId, burnChainId, ev.ToChainId, ev.Account,
-		ev.ToAccount, pair.Orig.Address, origChainAmt, ev.BurnId)
+	mintId, mintAmount, baseFee, percFee, refundMsg, err = k.pegMint(
+		ctx, pair.Orig.ChainId, burnChainId, ev.ToChainId, ev.Account, ev.ToAccount, pair.Orig.Address, origChainAmt, ev.BurnId, -1)
 	if err != nil || refundMsg != "" {
 		return
 	}
@@ -541,11 +550,10 @@ func (k Keeper) manageDataForDepositRefund(
 
 func (k Keeper) manageDataForBurnRefund(
 	ctx sdk.Context, burnChainId uint64, ev *eth.PeggedTokenBridgeV2Burn, version uint32, burnToken string) {
-	// Record a BurnInfo without withdrawId
+	// Record a BurnInfo without withdrawId or mintId
 	burnInfo := types.BurnInfo{
 		ChainId:       burnChainId,
 		BurnId:        ev.BurnId[:],
-		WithdrawId:    []byte{},
 		BridgeVersion: version,
 	}
 	k.SetBurnInfo(ctx, burnInfo)

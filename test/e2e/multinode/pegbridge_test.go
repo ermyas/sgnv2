@@ -58,8 +58,6 @@ func pbrTest1(t *testing.T, transactor *transactor.Transactor) {
 	tc.CheckTotalSupply(transactor, tc.CbrChain2.ChainId, tc.CbrChain2.UNIAddr, "0")
 	log.Infoln("total supply: 0")
 	depositAmt := new(big.Int).Mul(big.NewInt(100), big.NewInt(1e18))
-	err := tc.CbrChain1.ApproveUNI(0, depositAmt)
-	tc.ChkErr(err, "u0 chain1 approve")
 	depositId, err := tc.CbrChain1.PbrDeposit(0, tc.CbrChain1.UNIAddr, depositAmt, tc.CbrChain2.ChainId, rand.Uint64())
 	tc.ChkErr(err, "u0 chain1 deposit")
 
@@ -75,8 +73,7 @@ func pbrTest1(t *testing.T, transactor *transactor.Transactor) {
 	log.Infoln("total supply:", mintAmt)
 
 	log.Infoln("======================== Deposit that would exceed supply cap===========================")
-	err = tc.CbrChain1.ApproveUNI(0, depositAmt.Mul(depositAmt, big.NewInt(2)))
-	tc.ChkErr(err, "u0 chain1 approve")
+	depositAmt.Mul(depositAmt, big.NewInt(2))
 	depositId, err = tc.CbrChain1.PbrDeposit(0, tc.CbrChain1.UNIAddr, depositAmt, tc.CbrChain2.ChainId, rand.Uint64())
 	tc.ChkErr(err, "u0 chain1 deposit")
 	err = tc.WaitPbrDepositWithEmptyMintId(transactor, depositId)
@@ -225,8 +222,6 @@ func pbrTest2(t *testing.T, transactor *transactor.Transactor) {
 	uid := uint64(3) // use user (client) 3 to avoid interference with concurrent test
 	balance, err := tc.CbrChain2.USDTContract.BalanceOf(&bind.CallOpts{}, tc.CbrChain2.Users[uid].Address)
 	depositAmt := big.NewInt(5000 * 1e6)
-	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.USDTContract, uid, depositAmt, tc.CbrChain1.PegVaultV2Addr)
-	tc.ChkErr(err, "u3 chain1 approve")
 	// chain1bal, _ := tc.CbrChain1.USDTContract.BalanceOf(nil, tc.CbrChain1.Users[uid].Address)
 	// t.Error(tc.CbrChain1.USDTAddr.Hex(), ", ", depositAmt, ", ", chain1bal)
 	depositId, err := tc.CbrChain1.PbrV2Deposit(uid, tc.CbrChain1.USDTAddr, depositAmt, tc.CbrChain2.ChainId, rand.Uint64())

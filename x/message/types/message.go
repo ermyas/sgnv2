@@ -15,13 +15,13 @@ import (
 
 func NewMessage(ev *eth.MessageBusMessage, srcChainId uint64) (messageId eth.Hash, message *Message) {
 	message = &Message{
-		SrcChainId:      srcChainId,
-		Sender:          eth.Addr2Hex(ev.Sender),
-		DstChainId:      ev.DstChainId.Uint64(),
-		Receiver:        eth.Addr2Hex(ev.Receiver),
-		Data:            ev.Message,
-		Fee:             ev.Fee.String(),
-		ExecutionStatus: EXECUTION_STATUS_PENDING,
+		SrcChainId: srcChainId,
+		Sender:     eth.Addr2Hex(ev.Sender),
+		DstChainId: ev.DstChainId.Uint64(),
+		Receiver:   eth.Addr2Hex(ev.Receiver),
+		Data:       ev.Message,
+		Fee:        ev.Fee.String(),
+		SrcTxHash:  ev.Raw.TxHash.Hex(),
 	}
 	messageId = eth.Bytes2Hash(message.ComputeMessageIdNoTransfer())
 	return
@@ -54,23 +54,22 @@ func (m *Message) EncodeDataToSign(messageId eth.Hash, messageBusAddr common.Add
 			new(big.Int).SetUint64(m.DstChainId), messageBusAddr, "MessageWithTransferRefund",
 		)
 		data := append(domain, messageId.Bytes()...)
-		return append(data, m.Data...)
+		return append(append(data, m.Data...), eth.Hex2Hash(m.SrcTxHash).Bytes()...)
 	}
 	// normal msg
 	if m.GetTransferType() == TRANSFER_TYPE_NULL {
-		messageId := m.ComputeMessageIdNoTransfer()
 		domain := solsha3.SoliditySHA3(
 			[]string{"uint256", "address", "string"},
 			new(big.Int).SetUint64(m.DstChainId), messageBusAddr, "Message",
 		)
-		return append(domain, messageId...)
+		return append(domain, messageId.Bytes()...)
 	} else {
 		domain := solsha3.SoliditySHA3(
 			[]string{"uint256", "address", "string"},
 			new(big.Int).SetUint64(m.DstChainId), messageBusAddr, "MessageWithTransfer",
 		)
 		data := append(domain, messageId.Bytes()...)
-		return append(data, m.Data...)
+		return append(append(data, m.Data...), eth.Hex2Hash(m.SrcTxHash).Bytes()...)
 	}
 }
 
@@ -85,8 +84,8 @@ func (m *Message) AddSig(data []byte, sigBytes []byte, expectedSigner common.Add
 
 func (m *Message) ComputeMessageIdNoTransfer() []byte {
 	data := solsha3.Pack(
-		[]string{"uint8", "address", "address", "uint64"},
-		[]interface{}{uint8(MsgType_MSG_TYPE_MESSAGE), m.Sender, m.Receiver, m.SrcChainId},
+		[]string{"uint8", "address", "address", "uint64", "bytes32", "uint64"},
+		[]interface{}{uint8(MsgType_MSG_TYPE_MESSAGE), m.Sender, m.Receiver, m.SrcChainId, eth.Hex2Hash(m.SrcTxHash), m.DstChainId},
 	)
 	// NOTE: Manual concatenation as solsha3 DOES NOT SUPPORT dynamic "bytes"
 	data = append(data, m.Data...)
@@ -104,7 +103,7 @@ func (m *Message) MapOnChainStatus(status eth.MessageReceiverStatus) ExecutionSt
 	case eth.MessageReceiverTxStatusFallback:
 		return EXECUTION_STATUS_FALLBACK
 	default:
-		return EXECUTION_STATUS_PENDING
+		return EXECUTION_STATUS_NULL
 	}
 }
 

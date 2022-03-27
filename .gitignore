@@ -31,3 +31,4 @@ tools/nft-bridge/nft-bridge
 tools/nft-bridge/dal/db
 
 tmp
+solc

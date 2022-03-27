@@ -47,6 +47,12 @@ const (
 
 	RetryPeriod = 500 * time.Millisecond
 	RetryLimit  = 100
+
+	BrTypeLiquidity    = uint8(1)
+	BrTypePegDeposit   = uint8(2)
+	BrTypePegBurn      = uint8(3)
+	BrTypePegDepositV2 = uint8(4)
+	BrTypePegBurnV2    = uint8(5)
 )
 
 var (

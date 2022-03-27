@@ -27,7 +27,7 @@ func (k Keeper) initWithdraw(ctx sdk.Context, wdReq *types.WithdrawReq, userSig 
 		xferId := eth.Bytes2Hash(eth.Hex2Bytes(wdReq.XferId))
 		wdOnchain := GetXferRefund(kv, xferId)
 		if wdOnchain == nil {
-			return types.Error(types.ErrCode_XFER_NOT_REFUNDABLE, "xfer %d not refundable", xferId)
+			return types.Error(types.ErrCode_XFER_NOT_REFUNDABLE, "xfer %x not refundable", xferId)
 		}
 		signer = eth.Bytes2Addr(wdOnchain.Receiver)
 	} else if wdReq.WithdrawType == types.ValidatorClaimFeeShare {
@@ -83,7 +83,7 @@ func (k Keeper) initWithdraw(ctx sdk.Context, wdReq *types.WithdrawReq, userSig 
 			return err
 		}
 	default:
-		return types.Error(types.ErrCode_INVALID_REQ, "invalid withdraw type %d", wdReq.WithdrawType)
+		return types.Error(types.ErrCode_INVALID_REQ, "invalid withdraw type %s", wdReq.WithdrawType)
 	}
 
 	// rate limit check
@@ -127,11 +127,11 @@ func (k Keeper) refund(ctx sdk.Context, wdReq *types.WithdrawReq, signer eth.Add
 	xferId := eth.Bytes2Hash(eth.Hex2Bytes(wdReq.XferId))
 	wdOnchain := GetXferRefund(kv, xferId)
 	if wdOnchain == nil {
-		return nil, types.Error(types.ErrCode_XFER_NOT_REFUNDABLE, "xfer %d not refundable", xferId)
+		return nil, types.Error(types.ErrCode_XFER_NOT_REFUNDABLE, "xfer %x not refundable", xferId)
 	}
 	if wdOnchain.Seqnum != 0 {
 		// already requested withdraw before
-		return nil, types.Error(types.ErrCode_XFER_REFUND_STARTED, "xfer %d refund started", xferId)
+		return nil, types.Error(types.ErrCode_XFER_REFUND_STARTED, "xfer %x refund started", xferId)
 	}
 	// now make sure address match
 	if eth.Bytes2Addr(wdOnchain.Receiver) != signer {

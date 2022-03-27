@@ -8,6 +8,7 @@ import (
 	ethutils "github.com/celer-network/goutils/eth"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
+	"github.com/celer-network/sgn-v2/test/contracts"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -63,17 +64,15 @@ type CbrChain struct {
 	PegBridgeV2Addr     eth.Addr
 	PegVaultV2Addr      eth.Addr
 
-	USDTContract, UNIContract *eth.BridgeTestToken
+	USDTContract, UNIContract *contracts.BridgeTestToken
 	USDTAddr, UNIAddr         eth.Addr
 
-	MessageBusContract      *eth.MessageBus
-	MessageBusAddr          eth.Addr
-	BatchTransferContract   *eth.BatchTransfer
-	BatchTransferAddr       eth.Addr
-	TransferMessageContract *eth.TransferMessage
-	TransferMessageAddr     eth.Addr
-	TestRefundContract      *eth.TestRefund
-	TestRefundAddr          eth.Addr
+	MessageBusContract    *eth.MessageBus
+	MessageBusAddr        eth.Addr
+	BatchTransferContract *contracts.BatchTransfer
+	BatchTransferAddr     eth.Addr
+	MsgTestContract       *contracts.MsgTest
+	MsgTestAddr           eth.Addr
 }
 
 type TestEthClient struct {

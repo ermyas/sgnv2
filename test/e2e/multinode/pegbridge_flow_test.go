@@ -60,8 +60,6 @@ func pbrFlowTest(t *testing.T, transactor *transactor.Transactor) {
 
 	log.Infoln("======================== Test PegBridge Deposit -> Mint ===========================")
 	depositAmt := new(big.Int).Mul(big.NewInt(10), big.NewInt(1e18))
-	err = tc.CbrChain1.ApproveUNI(0, depositAmt)
-	tc.ChkErr(err, "u0 chain1 approve")
 	depositId, err = tc.CbrChain1.PbrDepositWithMintAccount(0, depositAmt, 12340003, common.HexToAddress(tc.FlowUserAddr.String()), rand.Uint64())
 	tc.ChkErr(err, "u0 chain1 deposit")
 	log.Infof("depositId:%s", depositId)

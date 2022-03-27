@@ -129,10 +129,12 @@ func (c *CbrOneChain) pullMsgbrEvents(chid uint64, cliCtx client.Context, update
 func (c *CbrOneChain) getSrcBridgeType(srcChainBridgeAddr eth.Addr) msgbrtypes.BridgeType {
 	if c.cbrContract.GetAddr() == srcChainBridgeAddr {
 		return msgbrtypes.BRIDGE_TYPE_LIQUIDITY
-	} else if c.pegContracts.GetPegVaultContract().GetAddr() == srcChainBridgeAddr {
+	} else if c.pegContracts.GetPegVaultContract().GetAddr() == srcChainBridgeAddr ||
+		c.pegContracts.GetPegVaultV2Contract().GetAddr() == srcChainBridgeAddr {
 		// srcChain: deposit
 		return msgbrtypes.BRIDGE_TYPE_PEG_VAULT
-	} else if c.pegContracts.GetPegBridgeContract().GetAddr() == srcChainBridgeAddr {
+	} else if c.pegContracts.GetPegBridgeContract().GetAddr() == srcChainBridgeAddr ||
+		c.pegContracts.GetPegBridgeV2Contract().GetAddr() == srcChainBridgeAddr {
 		// srcChain: burn
 		return msgbrtypes.BRIDGE_TYPE_PEG_BRIDGE
 	} else {
@@ -146,9 +148,6 @@ func (c *CbrOneChain) skipMsgbrEvent(evn string, evlog *ethtypes.Log, cliCtx cli
 		skip, reason = c.skipMessageNoTransfer(evlog, cliCtx)
 	case msgbrtypes.MsgEventMessageWithTransfer:
 		skip, reason = c.skipMessageWithTransfer(evlog, cliCtx)
-		if skip {
-			return skip, reason
-		}
 	case msgbrtypes.MsgEventExecuted:
 		skip, reason = c.skipMessageExecuted(evlog, cliCtx)
 	}
@@ -167,7 +166,7 @@ func (c *CbrOneChain) skipMessageExecuted(evlog *ethtypes.Log, cliCtx client.Con
 		return
 	}
 	if !resp.Exists {
-		return true, fmt.Sprintf("msgId %x not active", messageId)
+		return true, fmt.Sprintf("msgId %s not active", messageId)
 	}
 	return
 }
@@ -219,7 +218,7 @@ func (c *CbrOneChain) getMessageIdFromExecutedEvent(evlog *ethtypes.Log) (string
 		log.Errorln("getMessageId: cannot parse event:", err)
 		return "", err
 	}
-	return eth.Hash(ev.Id).String(), nil
+	return eth.Hash(ev.MsgId).String(), nil
 }
 
 func (c *CbrOneChain) getMessageIdFromMessageNoTransferEvent(cliCtx client.Context, evlog *ethtypes.Log) (string, error) {
@@ -240,6 +239,10 @@ func (c *CbrOneChain) getBridgeAddrOnDstChain(transferType msgbrtypes.TransferTy
 		return c.pegContracts.GetPegBridgeContract().GetAddr()
 	case msgbrtypes.TRANSFER_TYPE_PEG_WITHDRAW:
 		return c.pegContracts.GetPegVaultContract().GetAddr()
+	case msgbrtypes.TRANSFER_TYPE_PEG_MINT_V2:
+		return c.pegContracts.GetPegBridgeV2Contract().GetAddr()
+	case msgbrtypes.TRANSFER_TYPE_PEG_WITHDRAW_V2:
+		return c.pegContracts.GetPegVaultV2Contract().GetAddr()
 	}
 	return eth.ZeroAddr
 }

@@ -269,15 +269,15 @@ func (ev *MessageBusExecuted) PrettyLog(onchid uint64) string {
 }
 
 func (ev *MessageBusExecuted) String() string {
-	return fmt.Sprintf("id: %s,status: %d, msgType: %d", Hash(ev.Id), ev.Status, ev.MsgType)
+	return fmt.Sprintf("msgId: %x, status: %d, msgType: %d", ev.MsgId, ev.Status, ev.MsgType)
 }
 
 func (ev *MessageBusMessage) String() string {
-	return fmt.Sprintf("sender: %s, receiver: %s, dstChainId: %s, Message: %x", ev.Sender, ev.Receiver, ev.DstChainId, ev.Message)
+	return fmt.Sprintf("sender: %x, receiver: %x, dstChainId: %s, Message: %x", ev.Sender, ev.Receiver, ev.DstChainId, ev.Message)
 }
 
 func (ev *MessageBusMessageWithTransfer) String() string {
-	return fmt.Sprintf("sender: %s, receiver: %s, dstChainId: %s, bridgeAddr: %s, transferId: %x, Message: %x", ev.Sender, ev.Receiver, ev.DstChainId, ev.Bridge, ev.SrcTransferId, ev.Message)
+	return fmt.Sprintf("sender: %x, receiver: %x, dstChainId: %s, bridgeAddr: %s, transferId: %x, Message: %x", ev.Sender, ev.Receiver, ev.DstChainId, ev.Bridge, ev.SrcTransferId, ev.Message)
 }
 
 func (r *BridgeRelay) String() string {

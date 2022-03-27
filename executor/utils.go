@@ -11,14 +11,16 @@ func getMsgBridgeAddr(dstChain *Chain, msg *msgtypes.Message) common.Address {
 	switch msg.GetTransferType() {
 	case msgtypes.TRANSFER_TYPE_NULL:
 		bridgeAddr = eth.ZeroAddr
-	case msgtypes.TRANSFER_TYPE_LIQUIDITY_SEND:
-		fallthrough
-	case msgtypes.TRANSFER_TYPE_LIQUIDITY_WITHDRAW:
+	case msgtypes.TRANSFER_TYPE_LIQUIDITY_SEND, msgtypes.TRANSFER_TYPE_LIQUIDITY_WITHDRAW:
 		bridgeAddr = dstChain.LiqBridge.Address
 	case msgtypes.TRANSFER_TYPE_PEG_MINT:
 		bridgeAddr = dstChain.PegBridge.Address
+	case msgtypes.TRANSFER_TYPE_PEG_MINT_V2:
+		bridgeAddr = dstChain.PegBridgeV2.Address
 	case msgtypes.TRANSFER_TYPE_PEG_WITHDRAW:
 		bridgeAddr = dstChain.PegVault.Address
+	case msgtypes.TRANSFER_TYPE_PEG_WITHDRAW_V2:
+		bridgeAddr = dstChain.PegVaultV2.Address
 	}
 	return bridgeAddr
 }

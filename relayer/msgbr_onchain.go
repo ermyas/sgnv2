@@ -29,7 +29,8 @@ func (c *CbrOneChain) monMessage(blk *big.Int) {
 			log.Errorln("monMessage: cannot parse event:", err)
 			return false
 		}
-		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+		log.Infof("MonEv: Message-%d: sender: %x, receiver: %x, dstChainId: %s, tx: %x index: %d",
+			c.chainid, ev.Sender, ev.Receiver, ev.DstChainId, eLog.TxHash, eLog.Index)
 
 		err = c.saveEvent(msgbrtypes.MsgEventMessage, eLog)
 		if err != nil {
@@ -59,7 +60,8 @@ func (c *CbrOneChain) monMessageWithTransfer(blk *big.Int) {
 			log.Errorln("monMessageWithTransfer: cannot parse event:", err)
 			return false
 		}
-		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+		log.Infof("MonEv: MessageWithTransfer-%d: sender: %x, receiver: %x, dstChainId: %s, bridge: %s, transferId: %x, tx: %x index: %d",
+			c.chainid, ev.Sender, ev.Receiver, ev.DstChainId, ev.Bridge, ev.SrcTransferId, eLog.TxHash, eLog.Index)
 
 		err = c.saveEvent(msgbrtypes.MsgEventMessageWithTransfer, eLog)
 		if err != nil {

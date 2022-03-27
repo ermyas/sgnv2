@@ -43,10 +43,6 @@ service Query {
   rpc IsMessageActive(IsMessageActiveRequest) returns (IsMessageActiveResponse) {
     option (google.api.http).get = "/sgn/message/v1/is_message_active/{message_id}";
   }
-  // Message queries whether a message exists.
-  rpc RefundExists(QueryRefundExistsRequest) returns (QueryRefundExistsResponse) {
-    option (google.api.http).get = "/sgn/message/v1/refund_exists/{src_transfer_id}";
-  }
 
   // MessageBus queries the message bus contract info.
   rpc MessageBus(QueryMessageBusRequest) returns (QueryMessageBusResponse) {
@@ -113,16 +109,6 @@ message QueryMessageExistsRequest {
 
 // QueryMessageExistsResponse is response type for the Query/MessageExists RPC method.
 message QueryMessageExistsResponse {
-  bool exists = 1;
-}
-
-// QueryRefundExistsRequest is request type for the Query/RefundExists RPC method.
-message QueryRefundExistsRequest {
-  string src_transfer_id = 1;
-}
-
-// QueryRefundExistsResponse is response type for the Query/RefundExists RPC method.
-message QueryRefundExistsResponse {
   bool exists = 1;
 }
 

@@ -541,21 +541,22 @@ func WaitForMessageOnlyExecuted(
 }
 
 func WaitForMessageWithTransferExecuted(
-	transactor *transactor.Transactor, srcBridgeType msgtypes.BridgeType, srcTransferId eth.Hash, expectedStatus msgtypes.ExecutionStatus) {
+	transactor *transactor.Transactor, srcBridgeType msgtypes.BridgeType, srcTransferId eth.Hash,
+	expStatus msgtypes.ExecutionStatus, expTransferType msgtypes.TransferType) {
 	var exeCtx *msgtypes.ExecutionContext
 	var err error
 	for retry := 0; retry < RetryLimit; retry++ {
 		exeCtx, err = msgcli.QueryExecutionContextBySrcTransfer(transactor.CliCtx, srcBridgeType, srcTransferId)
-		if err == nil && exeCtx.Message.ExecutionStatus == expectedStatus {
+		if err == nil && exeCtx.Message.ExecutionStatus == expStatus && exeCtx.Message.TransferType == expTransferType {
 			break
 		}
 		time.Sleep(RetryPeriod)
 	}
 	ChkErr(err, "failed to QueryMessage")
-	if exeCtx.Message.ExecutionStatus != expectedStatus {
-		log.Fatalf("message status check failed, expected %s actual %s", expectedStatus, exeCtx.Message.ExecutionStatus)
+	if exeCtx.Message.ExecutionStatus != expStatus {
+		log.Fatalf("message status check failed, expected %s actual %s", expStatus, exeCtx.Message.ExecutionStatus)
 	}
-	log.Infof("message executed with expected status:%s", expectedStatus.String())
+	log.Infof("message executed with expected status:%s", expStatus.String())
 }
 
 func CheckTotalSupply(

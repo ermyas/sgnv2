@@ -164,11 +164,11 @@ func (e *Executor) routeExecution(execCtx *msgtypes.ExecutionContext, status typ
 	switch execCtx.Message.GetTransferType() {
 	case msgtypes.TRANSFER_TYPE_NULL:
 		e.executeMsgNoTransfer(execCtx)
-	case msgtypes.TRANSFER_TYPE_LIQUIDITY_SEND:
-		e.executeMsgWithTransfer(execCtx)
-	case msgtypes.TRANSFER_TYPE_PEG_MINT:
-		e.executeMsgWithTransfer(execCtx)
-	case msgtypes.TRANSFER_TYPE_PEG_WITHDRAW:
+	case msgtypes.TRANSFER_TYPE_LIQUIDITY_SEND,
+		msgtypes.TRANSFER_TYPE_PEG_MINT,
+		msgtypes.TRANSFER_TYPE_PEG_WITHDRAW,
+		msgtypes.TRANSFER_TYPE_PEG_MINT_V2,
+		msgtypes.TRANSFER_TYPE_PEG_WITHDRAW_V2:
 		e.executeMsgWithTransfer(execCtx)
 	default:
 		log.Errorf("normal execution not possible for message (id %x) transfer type %v, status %d",
@@ -181,9 +181,13 @@ func (e *Executor) routeInitRefund(execCtx *msgtypes.ExecutionContext) error {
 	case msgtypes.TRANSFER_TYPE_LIQUIDITY_WITHDRAW:
 		return e.executeRefundWithdraw(execCtx)
 	case msgtypes.TRANSFER_TYPE_PEG_MINT:
-		return e.initAndExecutePegRefundMint(execCtx)
+		return e.initAndExecutePegRefundMint(execCtx, 0)
 	case msgtypes.TRANSFER_TYPE_PEG_WITHDRAW:
-		return e.initAndExecutePegRefundWithdraw(execCtx)
+		return e.initAndExecutePegRefundWithdraw(execCtx, 0)
+	case msgtypes.TRANSFER_TYPE_PEG_MINT_V2:
+		return e.initAndExecutePegRefundMint(execCtx, 2)
+	case msgtypes.TRANSFER_TYPE_PEG_WITHDRAW_V2:
+		return e.initAndExecutePegRefundWithdraw(execCtx, 2)
 	default:
 		return fmt.Errorf("init refund not possible for message (id %x) transfer type %v",
 			execCtx.MessageId, execCtx.Message.GetTransferType())
@@ -198,10 +202,11 @@ func (e *Executor) executeMsgNoTransfer(execCtx *msgtypes.ExecutionContext) {
 		return
 	}
 	id := execCtx.Message.ComputeMessageIdNoTransfer()
-	route := ethtypes.MessageBusReceiverRouteInfo{
+	route := ethtypes.MsgDataTypesRouteInfo{
 		Sender:     ethtypes.Hex2Addr(message.Sender),
 		Receiver:   ethtypes.Hex2Addr(message.Receiver),
 		SrcChainId: message.SrcChainId,
+		SrcTxHash:  ethtypes.Hex2Hash(message.SrcTxHash),
 	}
 
 	err = Dal.UpdateStatus(id, types.ExecutionStatus_Executing)
@@ -240,7 +245,7 @@ func (e *Executor) executeMsgNoTransfer(execCtx *msgtypes.ExecutionContext) {
 	log.Infof("executed msg (id %x): txhash %x", id, tx.Hash())
 }
 
-func (e *Executor) initAndExecutePegRefundMint(execCtx *msgtypes.ExecutionContext) error {
+func (e *Executor) initAndExecutePegRefundMint(execCtx *msgtypes.ExecutionContext, pegBridgeVersion uint32) error {
 	message := &execCtx.Message
 	burnId := message.GetTransferRefId()
 
@@ -257,11 +262,20 @@ func (e *Executor) initAndExecutePegRefundMint(execCtx *msgtypes.ExecutionContex
 	if err != nil {
 		return fmt.Errorf("failed to initAndExecutePegRefundMint: %s", err.Error())
 	}
-	mintExecutor := chain.NewExecuteRefundHandler(execCtx.MessageId, chain.ExecutePegMint)
+	var refundTxFunc types.RefundTxFunc
+	switch pegBridgeVersion {
+	case 0:
+		refundTxFunc = chain.ExecutePegMint
+	case 2:
+		refundTxFunc = chain.ExecutePegMintV2
+	default:
+		return fmt.Errorf("invalid bridge version %d", pegBridgeVersion)
+	}
+	mintExecutor := chain.NewExecuteRefundHandler(execCtx.MessageId, refundTxFunc)
 	return e.sgn.PollAndExecutePegRefundMint(burnId, message.DstChainId, mintExecutor)
 }
 
-func (e *Executor) initAndExecutePegRefundWithdraw(execCtx *msgtypes.ExecutionContext) error {
+func (e *Executor) initAndExecutePegRefundWithdraw(execCtx *msgtypes.ExecutionContext, vaultVersion uint32) error {
 	message := &execCtx.Message
 	depositId := message.GetTransferRefId()
 
@@ -278,13 +292,22 @@ func (e *Executor) initAndExecutePegRefundWithdraw(execCtx *msgtypes.ExecutionCo
 	if err != nil {
 		return fmt.Errorf("failed to initAndExecutePegRefundWithdraw: %s", err.Error())
 	}
-	withdrawExecutor := chain.NewExecuteRefundHandler(execCtx.MessageId, chain.ExecutePegWithdraw)
+	var refundTxFunc types.RefundTxFunc
+	switch vaultVersion {
+	case 0:
+		refundTxFunc = chain.ExecutePegWithdraw
+	case 2:
+		refundTxFunc = chain.ExecutePegWithdrawV2
+	default:
+		return fmt.Errorf("invalid vault version %d", vaultVersion)
+	}
+	withdrawExecutor := chain.NewExecuteRefundHandler(execCtx.MessageId, refundTxFunc)
 	return e.sgn.PollAndExecutePegRefundWithdraw(depositId, message.DstChainId, withdrawExecutor)
 }
 
 func (e *Executor) executeRefundWithdraw(execCtx *msgtypes.ExecutionContext) error {
 	receiver := execCtx.Message.Receiver
-	nonce := execCtx.GetTransfer().GetSeqNum()
+	nonce := execCtx.GetTransfer().GetWdSeqNum()
 	chainId := execCtx.Message.DstChainId
 	srcXferId := execCtx.Message.GetTransferRefId()
 
@@ -308,15 +331,16 @@ func (e *Executor) executeMsgWithTransferRefund(execCtx *msgtypes.ExecutionConte
 
 	transfer := execCtx.GetTransfer()
 	amount, _ := new(big.Int).SetString(transfer.Amount, 10)
-	xfer := ethtypes.MessageBusReceiverTransferInfo{
+	xfer := ethtypes.MsgDataTypesTransferInfo{
 		T:          uint8(message.GetTransferType()),
 		Sender:     ethtypes.Hex2Addr(message.Sender),
 		Receiver:   ethtypes.Hex2Addr(message.Receiver),
 		Token:      ethtypes.Bytes2Addr(transfer.Token),
 		Amount:     amount,
-		Seqnum:     transfer.SeqNum,
+		Wdseq:      transfer.WdSeqNum,
 		SrcChainId: message.SrcChainId,
 		RefId:      ethtypes.Bytes2Hash(execCtx.Message.GetTransferRefId()),
+		SrcTxHash:  ethtypes.Hex2Hash(message.SrcTxHash),
 	}
 
 	err = Dal.UpdateStatus(id, types.ExecutionStatus_Executing)
@@ -348,7 +372,7 @@ func (e *Executor) executeMsgWithTransferRefund(execCtx *msgtypes.ExecutionConte
 }
 
 func (e *Executor) isTransferReady(chain *Chain, execCtx *msgtypes.ExecutionContext) (ready bool) {
-	dstTransferId := ethtypes.Bytes2Hash(execCtx.ComputeDstTransferId())
+	dstTransferId := ethtypes.Bytes2Hash(execCtx.ComputeDstTransferId(getMsgBridgeAddr(chain, &execCtx.Message)))
 	var err error
 	switch execCtx.Message.TransferType {
 	case msgtypes.TRANSFER_TYPE_LIQUIDITY_SEND:
@@ -382,21 +406,22 @@ func (e *Executor) executeMsgWithTransfer(execCtx *msgtypes.ExecutionContext) {
 	log.Infof("executeMsgWithTransfer %x", message.TransferRefId)
 
 	if !e.isTransferReady(chain, execCtx) {
-		log.Infof("[skip execution] message (id %x) because trasnfer is not seen on dst chain yet", execCtx.MessageId)
+		log.Infof("[skip execution] message (id %x) because transfer is not seen on dst chain yet", execCtx.MessageId)
 		return
 	}
 
 	transfer := execCtx.GetTransfer()
 	amount, _ := new(big.Int).SetString(transfer.Amount, 10)
-	xfer := ethtypes.MessageBusReceiverTransferInfo{
+	xfer := ethtypes.MsgDataTypesTransferInfo{
 		T:          uint8(message.GetTransferType()),
 		Sender:     ethtypes.Hex2Addr(message.Sender),
 		Receiver:   ethtypes.Hex2Addr(message.Receiver),
 		Token:      ethtypes.Bytes2Addr(transfer.Token),
 		Amount:     amount,
-		Seqnum:     transfer.SeqNum,
+		Wdseq:      transfer.WdSeqNum,
 		SrcChainId: message.SrcChainId,
 		RefId:      ethtypes.Bytes2Hash(execCtx.Message.GetTransferRefId()),
+		SrcTxHash:  ethtypes.Hex2Hash(message.SrcTxHash),
 	}
 	contractConf, found := types.GetContractConfig(e.contracts, execCtx.Message.Receiver)
 	if !found {

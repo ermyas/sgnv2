@@ -9,6 +9,7 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
+	"github.com/celer-network/sgn-v2/test/contracts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -21,11 +22,9 @@ func (c *CbrChain) DeployMessageContracts() {
 	c.MessageBusAddr, c.MessageBusContract =
 		DeployMessageBusContract(c.Ec, c.Auth, c.CbrAddr, c.PegBridgeAddr, c.PegVaultAddr, c.PegBridgeV2Addr, c.PegVaultV2Addr)
 	c.BatchTransferAddr, c.BatchTransferContract =
-		DeployBatchTransferContract(c.Ec, c.Auth, c.MessageBusAddr, c.CbrAddr)
-	c.TransferMessageAddr, c.TransferMessageContract =
-		DeployTransferMessageContract(c.Ec, c.Auth, c.MessageBusAddr)
-	c.TestRefundAddr, c.TestRefundContract =
-		DeployTestRefundContract(c.Ec, c.Auth, c.MessageBusAddr)
+		DeployBatchTransferContract(c.Ec, c.Auth, c.MessageBusAddr)
+	c.MsgTestAddr, c.MsgTestContract =
+		DeployMsgTestContract(c.Ec, c.Auth, c.MessageBusAddr)
 }
 
 func (c *CbrChain) DeployPegVaultContracts() {
@@ -52,8 +51,8 @@ func DeployERC20Contract(ethClient *ethclient.Client, auth *bind.TransactOpts, n
 }
 
 func DeployBridgeTestTokenContract(
-	ethClient *ethclient.Client, auth *bind.TransactOpts, name, symbol string, decimals uint8) (eth.Addr, *eth.BridgeTestToken) {
-	tokenAddr, tx, token, err := eth.DeployBridgeTestToken(auth, ethClient, name, symbol, decimals)
+	ethClient *ethclient.Client, auth *bind.TransactOpts, name, symbol string, decimals uint8) (eth.Addr, *contracts.BridgeTestToken) {
+	tokenAddr, tx, token, err := contracts.DeployBridgeTestToken(auth, ethClient, name, symbol, decimals)
 	ChkErr(err, "failed to deploy BridgeTestToken")
 	log.Infoln("PeggedToken address:", tokenAddr.String())
 	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployBridgeTestToken")
@@ -150,27 +149,19 @@ func DeployMessageBusContract(ethClient *ethclient.Client, auth *bind.TransactOp
 	return addr, contract
 }
 
-func DeployBatchTransferContract(ethClient *ethclient.Client, auth *bind.TransactOpts, bus, bridge eth.Addr) (eth.Addr, *eth.BatchTransfer) {
-	addr, tx, contract, err := eth.DeployBatchTransfer(auth, ethClient, bus)
+func DeployBatchTransferContract(ethClient *ethclient.Client, auth *bind.TransactOpts, bus eth.Addr) (eth.Addr, *contracts.BatchTransfer) {
+	addr, tx, contract, err := contracts.DeployBatchTransfer(auth, ethClient, bus)
 	ChkErr(err, "failed to deploy BatchTransfer")
 	log.Infoln("BatchTransfer address", addr)
 	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployBatchTransferContract")
 	return addr, contract
 }
 
-func DeployTransferMessageContract(ethClient *ethclient.Client, auth *bind.TransactOpts, bus eth.Addr) (eth.Addr, *eth.TransferMessage) {
-	addr, tx, contract, err := eth.DeployTransferMessage(auth, ethClient, bus)
-	ChkErr(err, "failed to deploy TransferMessage")
-	log.Infoln("TransferMessage address", addr)
-	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployTransferMessageContract")
-	return addr, contract
-}
-
-func DeployTestRefundContract(ethClient *ethclient.Client, auth *bind.TransactOpts, bus eth.Addr) (eth.Addr, *eth.TestRefund) {
-	addr, tx, contract, err := eth.DeployTestRefund(auth, ethClient, bus)
-	ChkErr(err, "failed to deploy TestRefund")
-	log.Infoln("TestRefund address", addr)
-	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployTestRefundContract")
+func DeployMsgTestContract(ethClient *ethclient.Client, auth *bind.TransactOpts, bus eth.Addr) (eth.Addr, *contracts.MsgTest) {
+	addr, tx, contract, err := contracts.DeployMsgTest(auth, ethClient, bus)
+	ChkErr(err, "failed to deploy BatchTransfer")
+	log.Infoln("BatchTransfer address", addr)
+	WaitMinedWithChk(context.Background(), ethClient, tx, BlockDelay, PollingInterval, "DeployBatchTransferContract")
 	return addr, contract
 }
 

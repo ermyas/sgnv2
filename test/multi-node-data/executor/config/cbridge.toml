@@ -27,3 +27,18 @@ ptbridge = ""
 msgbus = ""
 addgasgwei = 2
 addgasestimateratio = 0.3
+
+[[multichain]]
+chainID = 885
+name = "test3"
+gateway = "http://192.168.10.9:8545"
+blkinterval = 1
+blkdelay = 1
+maxblkdelta = 5000
+cbridge = ""
+otvault = ""
+ptbridge = ""
+msgbus = ""
+addgasgwei = 2
+addgasestimateratio = 0.3
+

@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/binary"
 	"fmt"
 
 	"github.com/tendermint/tendermint/libs/log"
@@ -56,4 +57,26 @@ func NewKeeper(
 
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
+}
+
+func (k Keeper) genLqBridgeRefundNonce(ctx sdk.Context) uint64 {
+	kv := ctx.KVStore(k.storeKey)
+	nonceBytes := kv.Get(types.LqBridgeRefundNonceKey)
+	var nonce uint64
+	if nonceBytes == nil {
+		nonce = 0
+	} else {
+		nonce = uint64(binary.LittleEndian.Uint64(nonceBytes))
+	}
+
+	ts := uint64(ctx.BlockTime().Unix())
+	if nonce < ts {
+		nonce = ts
+	} else {
+		nonce += 1
+	}
+	nonceBytes = make([]byte, 8)
+	binary.LittleEndian.PutUint64(nonceBytes, nonce)
+	kv.Set(types.LqBridgeRefundNonceKey, nonceBytes)
+	return nonce
 }

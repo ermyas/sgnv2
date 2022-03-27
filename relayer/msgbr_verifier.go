@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
@@ -157,7 +158,7 @@ func (c *CbrOneChain) verifyMessageEventExecuted(cliCtx client.Context, eLog *et
 	}
 
 	// check status
-	executedStatus, err := c.msgContract.ExecutedMessages(&bind.CallOpts{}, ev.Id)
+	executedStatus, err := c.msgContract.ExecutedMessages(&bind.CallOpts{}, ev.MsgId)
 	if err != nil {
 		log.Errorln("could not verify MessageEventExecuted", err)
 		return true, false
@@ -181,7 +182,10 @@ func (c *CbrOneChain) verifyTransferForMessageBus(cliCtx client.Context, ev *eth
 
 	senderInTx, dstChainIdInTx, foundRefund, err := getTransferInfo(cliCtx, ev.SrcTransferId, srcBridgeType)
 	if err != nil {
-		log.Warnf("cannot verify xfer msg (srcXferId %x) %s", ev.SrcTransferId, err.Error())
+		if !strings.Contains(err.Error(), "no info found") ||
+			(c.mon.GetCurrentBlockNumber().Int64()-int64(ev.Raw.BlockNumber))*int64(c.blkInterval) > 120 {
+			log.Debugf("cannot verify msg (bridgeType %s, srcXferId %x) %s.", srcBridgeType, ev.SrcTransferId, err.Error())
+		}
 		return false, false
 	}
 
@@ -205,7 +209,7 @@ func getTransferInfo(cliCtx client.Context, srcTransferId eth.Hash, srcBridgeTyp
 		}
 		status := res.GetStatus()[xferId]
 		if status.GetSgnStatus() == cbrtypes.XferStatus_UNKNOWN {
-			return makeErr(fmt.Errorf("xfer status unknown"))
+			return makeErr(fmt.Errorf("xfer no info found")) // same err msg with peg not found
 		}
 		if status.GetSgnStatus() != cbrtypes.XferStatus_SUCCESS && status.GetSgnStatus() != cbrtypes.XferStatus_OK_TO_RELAY {
 			return foundRefund()

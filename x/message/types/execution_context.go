@@ -20,15 +20,15 @@ func NewMsgXferExecutionContext(
 	transferType TransferType) *ExecutionContext {
 
 	message := Message{
-		SrcChainId:      chainId,
-		DstChainId:      ev.DstChainId.Uint64(),
-		Sender:          eth.Addr2Hex(ev.Sender),
-		Receiver:        eth.Addr2Hex(ev.Receiver),
-		Data:            ev.Message,
-		Fee:             ev.Fee.String(),
-		TransferType:    transferType,
-		TransferRefId:   ev.SrcTransferId[:],
-		ExecutionStatus: EXECUTION_STATUS_PENDING,
+		SrcChainId:    chainId,
+		DstChainId:    ev.DstChainId.Uint64(),
+		Sender:        eth.Addr2Hex(ev.Sender),
+		Receiver:      eth.Addr2Hex(ev.Receiver),
+		Data:          ev.Message,
+		Fee:           ev.Fee.String(),
+		TransferType:  transferType,
+		TransferRefId: ev.SrcTransferId[:],
+		SrcTxHash:     ev.Raw.TxHash.Hex(),
 	}
 	transfer := &Transfer{
 		Token:  dstToken.Bytes(),
@@ -49,20 +49,20 @@ func NewMsgXferRefundExecutionContext(
 	bridge eth.Addr) *ExecutionContext {
 
 	message := Message{
-		SrcChainId:      wdOnchain.Chainid,
-		DstChainId:      wdOnchain.Chainid,
-		Sender:          eth.ZeroAddrHex,
-		Receiver:        eth.Addr2Hex(ev.Sender),
-		Data:            ev.Message,
-		TransferType:    TRANSFER_TYPE_LIQUIDITY_WITHDRAW,
-		TransferRefId:   ev.SrcTransferId[:],
-		ExecutionStatus: EXECUTION_STATUS_PENDING,
-		Fee:             ev.Fee.String(),
+		SrcChainId:    wdOnchain.Chainid,
+		DstChainId:    wdOnchain.Chainid,
+		Sender:        eth.ZeroAddrHex,
+		Receiver:      eth.Addr2Hex(ev.Sender),
+		Data:          ev.Message,
+		TransferType:  TRANSFER_TYPE_LIQUIDITY_WITHDRAW,
+		TransferRefId: ev.SrcTransferId[:],
+		Fee:           ev.Fee.String(),
+		SrcTxHash:     ev.Raw.TxHash.Hex(),
 	}
 	transfer := &Transfer{
-		Amount: new(big.Int).SetBytes(wdOnchain.Amount).String(),
-		Token:  wdOnchain.Token,
-		SeqNum: nonce,
+		Amount:   new(big.Int).SetBytes(wdOnchain.Amount).String(),
+		Token:    wdOnchain.Token,
+		WdSeqNum: nonce,
 	}
 	execCtx := &ExecutionContext{
 		Message:  message,
@@ -75,18 +75,23 @@ func NewMsgXferRefundExecutionContext(
 func NewMsgPegDepositRefundExecutionContext(
 	ev *eth.MessageBusMessageWithTransfer,
 	wdOnChain pegbrtypes.WithdrawOnChain,
-	bridge eth.Addr) *ExecutionContext {
+	pegVault eth.Addr, vaultVersion uint32) *ExecutionContext {
+
+	transferType := TRANSFER_TYPE_PEG_WITHDRAW
+	if vaultVersion == 2 {
+		transferType = TRANSFER_TYPE_PEG_WITHDRAW_V2
+	}
 
 	message := Message{
-		SrcChainId:      wdOnChain.RefChainId,
-		DstChainId:      wdOnChain.RefChainId,
-		Sender:          eth.ZeroAddrHex,
-		Receiver:        eth.Bytes2AddrHex(wdOnChain.Receiver),
-		Data:            ev.Message,
-		TransferType:    TRANSFER_TYPE_PEG_WITHDRAW,
-		TransferRefId:   wdOnChain.RefId,
-		ExecutionStatus: EXECUTION_STATUS_PENDING,
-		Fee:             ev.Fee.String(),
+		SrcChainId:    wdOnChain.RefChainId,
+		DstChainId:    wdOnChain.RefChainId,
+		Sender:        eth.ZeroAddrHex,
+		Receiver:      eth.Bytes2AddrHex(wdOnChain.Receiver),
+		Data:          ev.Message,
+		TransferType:  transferType,
+		TransferRefId: wdOnChain.RefId,
+		Fee:           ev.Fee.String(),
+		SrcTxHash:     ev.Raw.TxHash.Hex(),
 	}
 	transfer := &Transfer{
 		Amount: new(big.Int).SetBytes(wdOnChain.Amount).String(),
@@ -96,25 +101,30 @@ func NewMsgPegDepositRefundExecutionContext(
 		Message:  message,
 		Transfer: transfer,
 	}
-	execCtx.MessageId = execCtx.ComputeMessageId(bridge)
+	execCtx.MessageId = execCtx.ComputeMessageId(pegVault)
 	return execCtx
 }
 
 func NewMsgPegBurnRefundExecutionContext(
 	ev *eth.MessageBusMessageWithTransfer,
 	mintOnChain pegbrtypes.MintOnChain,
-	bridge eth.Addr) *ExecutionContext {
+	pegBridge eth.Addr, bridgeVersion uint32) *ExecutionContext {
+
+	transferType := TRANSFER_TYPE_PEG_MINT
+	if bridgeVersion == 2 {
+		transferType = TRANSFER_TYPE_PEG_MINT_V2
+	}
 
 	message := Message{
-		SrcChainId:      mintOnChain.RefChainId,
-		DstChainId:      mintOnChain.RefChainId,
-		Sender:          eth.ZeroAddrHex,
-		Receiver:        eth.Bytes2AddrHex(mintOnChain.Account),
-		Data:            ev.Message,
-		TransferType:    TRANSFER_TYPE_PEG_MINT,
-		TransferRefId:   mintOnChain.RefId,
-		ExecutionStatus: EXECUTION_STATUS_PENDING,
-		Fee:             ev.Fee.String(),
+		SrcChainId:    mintOnChain.RefChainId,
+		DstChainId:    mintOnChain.RefChainId,
+		Sender:        eth.ZeroAddrHex,
+		Receiver:      eth.Bytes2AddrHex(mintOnChain.Account),
+		Data:          ev.Message,
+		TransferType:  transferType,
+		TransferRefId: mintOnChain.RefId,
+		Fee:           ev.Fee.String(),
+		SrcTxHash:     ev.Raw.TxHash.Hex(),
 	}
 	transfer := &Transfer{
 		Amount: new(big.Int).SetBytes(mintOnChain.Amount).String(),
@@ -124,7 +134,7 @@ func NewMsgPegBurnRefundExecutionContext(
 		Message:  message,
 		Transfer: transfer,
 	}
-	execCtx.MessageId = execCtx.ComputeMessageId(bridge)
+	execCtx.MessageId = execCtx.ComputeMessageId(pegBridge)
 	return execCtx
 }
 
@@ -145,11 +155,11 @@ func (c *ExecutionContext) ComputeMessageId(bridgeAddr eth.Addr) []byte {
 }
 
 func (c *ExecutionContext) ComputeMessageIdWithTransfer(dstBridgeAddr common.Address) []byte {
-	dstTransferId := c.ComputeDstTransferId()
+	dstTransferId := c.ComputeDstTransferId(dstBridgeAddr)
 	return ComputeMessageIdFromDstTransfer(dstTransferId, dstBridgeAddr)
 }
 
-func (c *ExecutionContext) ComputeDstTransferId() []byte {
+func (c *ExecutionContext) ComputeDstTransferId(dstBridgeAddr common.Address) []byte {
 	var dstTransferId []byte
 	m := c.Message
 	t := c.Transfer
@@ -166,13 +176,19 @@ func (c *ExecutionContext) ComputeDstTransferId() []byte {
 		log.Debugf("TransferType:%s, %s, %s, %x, %s, %d, %d, %x", m.TransferType, m.Sender, m.Receiver, t.Token, t.Amount, m.SrcChainId, m.DstChainId, m.TransferRefId)
 		dstTransferId = solsha3.SoliditySHA3(
 			[]string{"uint64", "uint64", "address", "address", "uint256"},
-			m.DstChainId, t.SeqNum, m.Receiver, t.Token, t.Amount,
+			m.DstChainId, t.WdSeqNum, m.Receiver, t.Token, t.Amount,
 		)
 	case TRANSFER_TYPE_PEG_MINT, TRANSFER_TYPE_PEG_WITHDRAW:
 		log.Debugf("TransferType:%s, %s, %x, %s, %s, %d, %x", m.TransferType, m.Receiver, t.Token, t.Amount, m.Sender, m.SrcChainId, m.TransferRefId)
 		dstTransferId = solsha3.SoliditySHA3(
 			[]string{"address", "address", "uint256", "address", "uint64", "bytes32"},
 			m.Receiver, t.Token, t.Amount, m.Sender, m.SrcChainId, m.TransferRefId,
+		)
+	case TRANSFER_TYPE_PEG_MINT_V2, TRANSFER_TYPE_PEG_WITHDRAW_V2:
+		log.Debugf("TransferType:%s, %s, %x, %s, %s, %d, %x", m.TransferType, m.Receiver, t.Token, t.Amount, m.Sender, m.SrcChainId, m.TransferRefId)
+		dstTransferId = solsha3.SoliditySHA3(
+			[]string{"address", "address", "uint256", "address", "uint64", "bytes32", "address"},
+			[]interface{}{m.Receiver, t.Token, t.Amount, m.Sender, m.SrcChainId, m.TransferRefId, dstBridgeAddr},
 		)
 	}
 	return dstTransferId
