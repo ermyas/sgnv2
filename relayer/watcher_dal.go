@@ -42,6 +42,11 @@ func (dal *watcherDAL) InsertMonitor(event string, blockNum uint64, blockIdx int
 	return dal.insertMonitorBlock(event, blockNum, blockIdx, restart)
 }
 
+// goutils/mon2.DAL interface
+func (dal *watcherDAL) SetMonitorBlock(event string, blockNum uint64, blockIdx int64) error {
+	return dal.insertMonitorBlock(event, blockNum, blockIdx, false)
+}
+
 func (dal *watcherDAL) GetMonitorBlock(event string) (uint64, int64, bool, error) {
 	info, err := dal.getMonitorBlock(event)
 	if err != nil {

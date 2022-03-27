@@ -203,12 +203,14 @@ github.com/bytecodealliance/wasmtime-go v0.22.0/go.mod h1:q320gUxqyI8yB+ZqRuaJOE
 github.com/c-bata/go-prompt v0.2.2/go.mod h1:VzqtzE2ksDBcdln8G7mk2RX9QyGjH+OVqOCSiVIqS34=
 github.com/c-bata/go-prompt v0.2.5/go.mod h1:vFnjEGDIIA/Lib7giyE4E9c50Lvl8j0S+7FVlAwDAVw=
 github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n9yuLkIJQ=
-github.com/celer-network/cbridge-flow v0.0.0-20220301231229-2b1c82ecbe64 h1:o602QTbZ9q1v7z0231cVytmTvREjc1hzxmI3OQc0BmM=
-github.com/celer-network/cbridge-flow v0.0.0-20220301231229-2b1c82ecbe64/go.mod h1:3cKVronoq+Kdg3MjCKOND9FI2KbHbHUIYXAbtxWekZU=
+github.com/celer-network/cbridge-flow v0.0.0-20220325072900-aea73562dd1b h1:RVuwrVN0+ykzyzbJP9AdQpKLjagicotlLw5hyJIclpA=
+github.com/celer-network/cbridge-flow v0.0.0-20220325072900-aea73562dd1b/go.mod h1:VXa1WOB8UCYYW9HjDjDwrzkTZuoWeHJzFm6oG/xHh2o=
+github.com/celer-network/cbridge-flow v0.0.0-20220325215723-5b7e2fee22d4 h1:HnezTZOBKb9/8KHInElUTKKvPDMvbf66x5XkBTQXbTQ=
+github.com/celer-network/cbridge-flow v0.0.0-20220325215723-5b7e2fee22d4/go.mod h1:VXa1WOB8UCYYW9HjDjDwrzkTZuoWeHJzFm6oG/xHh2o=
 github.com/celer-network/endpoint-proxy v0.1.8 h1:ZJPLFhCxfBrLmP3BgQqWJ2NYVW26IN7JBSoPmSiu8bo=
 github.com/celer-network/endpoint-proxy v0.1.8/go.mod h1:zyRTvdnbG+UMp9aYJgwIeNahJv0gMqAwMcWY/mIDvlI=
 github.com/celer-network/goutils v0.1.38/go.mod h1:YLfSj4GfqY0+OZkFjnOpAdCdn2lKEXEQp37aS31sYjY=
-github.com/celer-network/goutils v0.1.42/go.mod h1:YLfSj4GfqY0+OZkFjnOpAdCdn2lKEXEQp37aS31sYjY=
+github.com/celer-network/goutils v0.1.46/go.mod h1:D1YSR2HINvGjhZJKc+as/hB9QZ2FHTIp2fW5VmuaRdY=
 github.com/celer-network/goutils v0.1.47 h1:O5Y7xjNHu6UuXPamjYtEvY7wD/ZZ1iyfvbvPMfUR5Y4=
 github.com/celer-network/goutils v0.1.47/go.mod h1:D1YSR2HINvGjhZJKc+as/hB9QZ2FHTIp2fW5VmuaRdY=
 github.com/cenkalti/backoff v2.2.1+incompatible h1:tNowT99t7UNflLxfYYSlKYsBpXdEet03Pg2g16Swow4=
@@ -348,7 +350,6 @@ github.com/envoyproxy/protoc-gen-validate v0.6.2/go.mod h1:2t7qjJNvHPx8IjnBOzl9E
 github.com/ethereum/go-ethereum v1.9.9/go.mod h1:a9TqabFudpDu1nucId+k9S8R9whYaHnGBLKFouA5EAo=
 github.com/ethereum/go-ethereum v1.9.25/go.mod h1:vMkFiYLHI4tgPw4k2j4MHKoovchFE8plZ0M9VMk4/oM=
 github.com/ethereum/go-ethereum v1.10.8/go.mod h1:pJNuIUYfX5+JKzSD/BTdNsvJSZ1TJqmz0dVyXMAbf6M=
-github.com/ethereum/go-ethereum v1.10.15/go.mod h1:W3yfrFyL9C1pHcwY5hmRHVDaorTiQxhYBkKyu5mEDHw=
 github.com/ethereum/go-ethereum v1.10.16 h1:3oPrumn0bCW/idjcxMn5YYVCdK7VzJYIvwGZUGLEaoc=
 github.com/ethereum/go-ethereum v1.10.16/go.mod h1:Anj6cxczl+AHy63o4X9O8yWNHuN5wMpfb8MAnHkWn7Y=
 github.com/facebookgo/ensure v0.0.0-20160127193407-b4ab57deab51 h1:0JZ+dUmQeA8IIVUMzysrX4/AKuQwWhV2dYQuPZdvdSQ=
@@ -744,7 +745,6 @@ github.com/jwilder/encoding v0.0.0-20170811194829-b4e1701a28ef/go.mod h1:Ct9fl0F
 github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213/go.mod h1:vNUNkEQ1e29fT/6vq2aBdFsgNPmy8qMdSay1npru+Sw=
 github.com/karalabe/usb v0.0.0-20190919080040-51dc0efba356/go.mod h1:Od972xHfMJowv7NGVDiWVxk2zxnWgjLlJzE+F4F7AGU=
 github.com/karalabe/usb v0.0.0-20191104083709-911d15fe12a9/go.mod h1:Od972xHfMJowv7NGVDiWVxk2zxnWgjLlJzE+F4F7AGU=
-github.com/karalabe/usb v0.0.0-20211005121534-4c5740d64559/go.mod h1:Od972xHfMJowv7NGVDiWVxk2zxnWgjLlJzE+F4F7AGU=
 github.com/karalabe/usb v0.0.2/go.mod h1:Od972xHfMJowv7NGVDiWVxk2zxnWgjLlJzE+F4F7AGU=
 github.com/keybase/go-keychain v0.0.0-20190712205309-48d3d31d256d h1:Z+RDyXzjKE0i2sTjZ/b1uxiGtPhFy34Ou/Tk0qwN0kM=
 github.com/keybase/go-keychain v0.0.0-20190712205309-48d3d31d256d/go.mod h1:JJNrCn9otv/2QP4D7SMJBgaleKpOf66PnW6F5WGNRIc=

@@ -11,7 +11,6 @@ import (
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
-	pegtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
@@ -30,15 +29,10 @@ var evNames = []string{
 // funcs for monitor cbridge events
 func (c *CbrOneChain) startMon() {
 	smallDelay := func() {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(20 * time.Millisecond)
 	}
 	if c.FlowClient != nil {
-		// TODO, use cbr config
-		c.monDeposited(c.getEventCheckInterval(pegtypes.PegbrEventDeposited))
-		c.monWithdrawn(c.getEventCheckInterval(pegtypes.PegbrEventWithdrawn))
-
-		c.monMint(c.getEventCheckInterval(pegtypes.PegbrEventWithdrawn))
-		c.monBurn(c.getEventCheckInterval(pegtypes.PegbrEventWithdrawn))
+		c.monitorFlow()
 		return
 	}
 	// avoid repeated get block number calls

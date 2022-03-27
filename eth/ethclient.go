@@ -161,6 +161,18 @@ func (ethClient *EthClient) SignEthMessage(data []byte) ([]byte, error) {
 // otherwise normal ks json file based signer
 const awskmsPre = "awskms"
 
+// parse ksfile string if valid awskms, return region and alias. otherwise return empty strings
+func ParseAwsKms(ksfile string) (region, alias string) {
+	if !strings.HasPrefix(ksfile, awskmsPre) {
+		return "", ""
+	}
+	kmskeyinfo := strings.SplitN(ksfile, ":", 3)
+	if len(kmskeyinfo) != 3 {
+		return "", ""
+	}
+	return kmskeyinfo[1], kmskeyinfo[2]
+}
+
 // return signer, address
 func CreateSigner(ksfile, passphrase string, chainid *big.Int) (ethutils.Signer, Addr, error) {
 	if strings.HasPrefix(ksfile, awskmsPre) {

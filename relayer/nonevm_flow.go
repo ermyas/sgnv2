@@ -5,166 +5,105 @@ package relayer
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	flowSigner "github.com/celer-network/cbridge-flow/signer"
 	flowtypes "github.com/celer-network/cbridge-flow/types"
 	flowutils "github.com/celer-network/cbridge-flow/utils"
+	"github.com/celer-network/goutils/eth/mon2"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
-	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
+	"github.com/celer-network/sgn-v2/eth"
+	pbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	"github.com/spf13/viper"
 	dbm "github.com/tendermint/tm-db"
 )
 
 // all in one helper to do everything about flow chain
 type FlowClient struct {
-	ChainID   uint64
-	Account   string
-	PubkeyIdx int // to be compatible w/ flow sdk
-	Db        *dbm.PrefixDB
-	fcc       *flowutils.FlowCbrClient
-	lock      sync.RWMutex
+	fcc  *flowutils.FlowCbrClient
+	Db   *dbm.PrefixDB // save event and monitor
+	lock sync.RWMutex  // serialize db write
 
-	BridgeAddr    string
-	SafeBoxAddr   string // string from config, just flow addr hex
-	PegBridgeAddr string // string from config, just flow addr hex
+	ChainID      uint64
+	ContractAddr string // needed for EncodeDataToSign
 }
 
-func NewFlowClient(cfg *common.OneChainConfig, cbrDb dbm.DB) *FlowClient {
-	ret := &FlowClient{
-		ChainID:   cfg.ChainID,
-		Account:   viper.GetString(common.FlagFlowAccount),
-		PubkeyIdx: viper.GetInt(common.FlagFlowPubkeyIndex),
-		Db:        dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID))),
-		// save string address to be used when sign msg
-		BridgeAddr:    cfg.CBridge, // TODO, case cbrtypes.SignDataType_SIGNERS need it?
-		SafeBoxAddr:   cfg.OTVault,
-		PegBridgeAddr: cfg.PTBridge,
-	}
+// flow chain id to monitor polling interval
+var chid2Intv = map[uint64]time.Duration{
+	12340001: time.Minute,
+	12340002: time.Minute,
+	12340003: time.Second, // emulator
+}
+
+// wdal is for persist monitor block, must impl mon2.DAL funcs. db is to save event in monitor callback and later used by puller
+func NewFlowClient(cfg *common.OneChainConfig, wdal *watcherDAL, db *dbm.PrefixDB) *FlowClient {
+	// check basic config correctness
 	if !commontypes.IsFlowChain(cfg.ChainID) {
-		log.Fatalf("find invalid flow chainId:%d", cfg.ChainID)
+		log.Fatalln("invalid flow chainId:", cfg.ChainID)
 	}
-	// todo: support awskms
-	signerKey, signerPass := viper.GetString(common.FlagEthSignerKeystore), viper.GetString(common.FlagEthSignerPassphrase)
-	signer, err := flowSigner.NewFlowSigner(signerKey, signerPass)
+	if cfg.CBridge != cfg.PTBridge || cfg.CBridge != cfg.OTVault {
+		log.Fatalln("mismatch contract addr. all flow contracts must be under same account.", cfg.CBridge, cfg.PTBridge, cfg.OTVault)
+	}
+	sender, err := buildFlowSender()
 	if err != nil {
-		log.Fatalf("init flow signer err: %s", err.Error())
+		log.Fatalln("init flow signer err:", err)
 	}
-	// net is defined enum name like FLOW_MAINNET so flowutils can replace eg. FungibleToken address correctly
-	net := commontypes.NonEvmChainID(cfg.ChainID).String()
-	// todo: pubkey idx
-	ret.fcc, err = flowutils.NewFlowCbrClient(signer, cfg.Gateway, ret.Account, cfg.CBridge, cfg.OTVault, cfg.PTBridge, net, cfg.MaxBlkDelta)
+	// now build return obj
+	ret := &FlowClient{
+		ChainID:      cfg.ChainID,
+		Db:           db,
+		ContractAddr: cfg.CBridge,
+	}
+	ret.fcc, err = flowutils.NewFlowCbrClient(cfg.ChainID, cfg.Gateway, cfg.CBridge, sender, wdal, mon2.PerChainCfg{
+		BlkIntv:     time.Duration(cfg.BlkInterval) * time.Second,
+		MaxBlkDelta: cfg.MaxBlkDelta,
+		// other fields don't apply to flow chain
+	})
 	if err != nil {
 		log.Fatalf("init flow transactor err: %s", err.Error())
 	}
 	return ret
 }
 
-func (f *FlowClient) monDeposited(interval uint64) {
-	if f.SafeBoxAddr == "" {
-		return
+// parse viper flags and return sender for NewFlowCbrClient
+func buildFlowSender() (*flowutils.FlowSender, error) {
+	// build sender
+	sender := &flowutils.FlowSender{
+		SenderHex: viper.GetString(common.FlagFlowAccount),
+		KeyIdx:    viper.GetInt(common.FlagFlowPubkeyIndex),
 	}
-	log.Infof("start monitor flow deposited, maxDelta:%d, interval:%v", f.fcc.MonMaxDelta, interval)
-	err := f.fcc.Monitor(func(eLog *flowtypes.FlowMonitorLog) {
-		log.Infof("Mon Flow deposit:%+v", eLog)
-		serr := f.saveEvent(pegbrtypes.PegbrEventDeposited, eLog)
-		if serr != nil {
-			log.Errorf("saveFlowDepositedEvent err: %s", serr.Error())
-			return
-		}
-		return
-	}, f.fcc.DepositedEventId, interval)
-	if err != nil {
-		log.Fatalf("fail mon flow deposited, err:%s", err.Error())
+	// set up sender.Signer
+	var err error
+	signerKey, signerPass := viper.GetString(common.FlagEthSignerKeystore), viper.GetString(common.FlagEthSignerPassphrase)
+	region, kayalias := eth.ParseAwsKms(signerKey)
+	if region != "" {
+		sender.Signer, err = flowSigner.NewFlowKmsSigner(region, kayalias)
+	} else {
+		sender.Signer, err = flowSigner.NewFlowSigner(signerKey, signerPass)
 	}
+	return sender, err
 }
 
-func (f *FlowClient) monWithdrawn(interval uint64) {
-	if f.SafeBoxAddr == "" {
-		return
-	}
-	log.Infof("start monitor flow withdrawn, maxDelta:%d, interval:%v", f.fcc.MonMaxDelta, interval)
-	err := f.fcc.Monitor(func(eLog *flowtypes.FlowMonitorLog) {
-		log.Infof("MonFlowWithdrawn: %x", eLog.TxHash)
-		wdEv, perr := flowtypes.FlowSafeBoxWithdrawnUnmarshal(eLog.Event)
-		if perr != nil {
-			log.Errorf("file to parse flow withdrawn event, err:%s", perr.Error())
-			return
-		}
-		log.Infof("MonFlowWithdrawn: %+v", wdEv)
-		if CurRelayerInstance == nil {
-			log.Errorln("CurRelayerInstance not initialized")
-		} else {
-			CurRelayerInstance.dbDelete(GetPegbrWdKey(f.ChainID, wdEv.RefChainId, wdEv.RefId[:]))
-		}
-
-		serr := f.saveEvent(pegbrtypes.PegbrEventWithdrawn, eLog)
-		if serr != nil {
-			log.Errorf("saveFlowWithdrawnEvent err: %s", serr.Error())
-			return
-		}
-		return
-	}, f.fcc.WithdrawnEventId, interval)
-	if err != nil {
-		log.Fatalf("fail mon flow withdrawn, err:%s", err.Error())
-	}
+// polling interval is done automatically by chainid, emulator: 1sec, test/main: 1min
+func (f *FlowClient) monitorFlow() {
+	intv := chid2Intv[f.ChainID]
+	// must async call
+	go f.fcc.Monitor(f.genEvCallback(pbrtypes.PegbrEventDeposited), flowutils.SafeBoxDepositedIdFmt, intv)
+	go f.fcc.Monitor(f.genEvCallback(pbrtypes.PegbrEventWithdrawn), flowutils.SafeBoxWithdrawnIdFmt, intv)
+	go f.fcc.Monitor(f.genEvCallback(pbrtypes.PegbrEventMint), flowutils.PegBridgeMintIdFmt, intv)
+	go f.fcc.Monitor(f.genEvCallback(pbrtypes.PegbrEventBurn), flowutils.PegBridgeBurnIdFmt, intv)
 }
 
-func (f *FlowClient) monBurn(interval uint64) {
-	if f.PegBridgeAddr == "" {
-		return
+// generate per event handler, evname is solidity event for consistency.
+// we could split flow event type and use last part, but it's not explicit and prone to future error
+func (f *FlowClient) genEvCallback(evname string) func(*flowtypes.FlowMonitorLog) {
+	return func(ev *flowtypes.FlowMonitorLog) {
+		log.Infoln("Mon Flow ev", ev.Type, string(ev.Event))
+		key := fmt.Sprintf("%s-%d-%d-%d", evname, ev.Height, ev.TransactionIndex, ev.EventIndex)
+		f.lock.Lock()
+		defer f.lock.Unlock()
+		f.Db.Set([]byte(key), ev.Event)
 	}
-	log.Infof("start monitor flow burn, maxDelta:%d, interval:%v", f.fcc.MonMaxDelta, interval)
-	err := f.fcc.Monitor(func(eLog *flowtypes.FlowMonitorLog) {
-		log.Infof("Mon Flow burn:%x", eLog.TxHash)
-		serr := f.saveEvent(pegbrtypes.PegbrEventBurn, eLog)
-		if serr != nil {
-			log.Errorf("saveFlowBurnEvent err: %s", serr.Error())
-			return
-		}
-		return
-	}, f.fcc.BurnEventId, interval)
-	if err != nil {
-		log.Fatalf("fail mon flow burn, err:%s", err.Error())
-	}
-}
-
-func (f *FlowClient) monMint(interval uint64) {
-	if f.PegBridgeAddr == "" {
-		return
-	}
-	log.Infof("start monitor flow mint, maxDelta:%d, interval:%v", f.fcc.MonMaxDelta, interval)
-	err := f.fcc.Monitor(func(eLog *flowtypes.FlowMonitorLog) {
-		log.Infof("MonFlowMint: %x", eLog.TxHash)
-		mintEv, perr := flowtypes.FlowFlowPegBridgeMintUnmarshal(eLog.Event)
-		if perr != nil {
-			log.Errorf("file to parse flow mint event, err:%s", perr.Error())
-			return
-		}
-		log.Infof("MonFlowMint: %+v", mintEv)
-		if CurRelayerInstance == nil {
-			log.Errorln("CurRelayerInstance not initialized")
-		} else {
-			CurRelayerInstance.dbDelete(GetPegbrMintKey(f.ChainID, mintEv.RefChainId, mintEv.RefId[:]))
-		}
-
-		serr := f.saveEvent(pegbrtypes.PegbrEventMint, eLog)
-		if serr != nil {
-			log.Errorf("saveFlowMintEvent err: %s", serr.Error())
-			return
-		}
-		return
-	}, f.fcc.MintEventId, interval)
-	if err != nil {
-		log.Fatalf("fail mon flow mint, err:%s", err.Error())
-	}
-}
-
-func (f *FlowClient) saveEvent(name string, eLog *flowtypes.FlowMonitorLog) error {
-	f.lock.Lock()
-	defer f.lock.Unlock()
-	// TODO, different with evm, name-blocknum-transactionid-eventid enough for unique?
-	key := fmt.Sprintf("%s-%d-%d-%d", name, eLog.Height, eLog.TransactionIndex, eLog.EventIndex)
-	return f.Db.Set([]byte(key), eLog.Event)
 }

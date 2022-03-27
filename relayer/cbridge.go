@@ -83,20 +83,21 @@ func NewCbridgeMgr(db dbm.DB, cliCtx client.Context) CbrMgr {
 }
 
 // return CbrOneChain for flow, no eth stuff
-func newOneChainForFlow(cfg *common.OneChainConfig, cbrDb *dbm.PrefixDB) *CbrOneChain {
+func newOneChainForFlow(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.PrefixDB) *CbrOneChain {
+	db := dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID)))
 	return &CbrOneChain{
 		chainid:         cfg.ChainID,
 		blkDelay:        cfg.BlkDelay,
 		forwardBlkDelay: cfg.ForwardBlkDelay,
 		blkInterval:     cfg.BlkInterval,
-		FlowClient:      NewFlowClient(cfg, cbrDb),
-		db:              dbm.NewPrefixDB(cbrDb, []byte(fmt.Sprintf("%d", cfg.ChainID))),
+		FlowClient:      NewFlowClient(cfg, wdal, db),
+		db:              db, // do we need to set db here for flow?
 	}
 }
 
 func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.PrefixDB, cliCtx client.Context) *CbrOneChain {
 	if commontypes.IsFlowChain(cfg.ChainID) {
-		return newOneChainForFlow(cfg, cbrDb)
+		return newOneChainForFlow(cfg, wdal, cbrDb) // cbrDb to save events in monitor callback
 	}
 	var ec *ethclient.Client
 	var err error

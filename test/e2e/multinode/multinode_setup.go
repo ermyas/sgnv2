@@ -142,15 +142,15 @@ func SetupFlowChain() {
 
 	flowutils.DeployAllContract(context.Background(), tc.FlowContractAccountClient, uint64(commontypes.NonEvmChainID_FLOW_EMULATOR))
 
-	// add config in bridge
-	err = flowutils.AddNewTokenInSafeBox(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr,
-		"0.0", "1000000.0", "1000000.0", tc.FlowContractAddr.String(), safeBoxAdmin, exampleTokenVault, exampleTokenReceiver, exampleTokenName)
+	// add config in bridge vaultAddr, tokenVault, tokenReceiver, tokenName
+	_, err = flowutils.AddNewTokenInSafeBox(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr,
+		"0.0", "1000000.0", "1000000.0", tc.FlowContractAddr.String(), exampleTokenVault, exampleTokenReceiver, exampleTokenName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	err = flowutils.AddNewTokenInPegBridge(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr,
-		"0.0", "1000000.0", "1000000.0", tc.FlowContractAddr.String(), pegBridgeAdmin, testPegTokenReceiver, testPegTokenName)
+		"0.0", "1000000.0", "1000000.0", tc.FlowContractAddr.String(), testPegTokenReceiver, testPegTokenName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -161,7 +161,7 @@ func SetupFlowChain() {
 	}
 
 	// reset signers of vault contract
-	err = flowutils.ResetBridgeSigners(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr.String(), newSigners)
+	_, err = flowutils.ResetBridgeSigners(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr.String(), newSigners)
 	if err != nil {
 		log.Fatal(err)
 	}

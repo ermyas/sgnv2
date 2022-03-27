@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/allegro/bigcache v1.2.1
 	github.com/armon/go-metrics v0.3.10
-	github.com/celer-network/cbridge-flow v0.0.0-20220301231229-2b1c82ecbe64
+	github.com/celer-network/cbridge-flow v0.0.0-20220325215723-5b7e2fee22d4
 	github.com/celer-network/endpoint-proxy v0.1.8
 	github.com/celer-network/goutils v0.1.47
 	github.com/cockroachdb/cockroach-go/v2 v2.2.8
@@ -27,7 +27,7 @@ require (
 	github.com/onflow/flow-go-sdk v0.24.0
 	github.com/rakyll/statik v0.1.7
 	github.com/regen-network/cosmos-proto v0.3.1
-	github.com/rs/cors v1.7.0 // indirect
+	github.com/rs/cors v1.7.0
 	github.com/rs/zerolog v1.23.0
 	github.com/spf13/cast v1.4.1
 	github.com/spf13/cobra v1.2.1
