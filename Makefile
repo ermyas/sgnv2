@@ -53,6 +53,9 @@ install: go.sum
 install-executor: go.sum
 	go build -o $(HOME)/go/bin/executor ./executor/main
 
+release-executor:
+	./scripts/release_executor.sh
+
 .PHONY: install-gateway
 install-gateway: go.sum
 	go build -o $(HOME)/go/bin/gateway ./gateway/main/main.go
