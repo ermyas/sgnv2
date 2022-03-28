@@ -98,7 +98,7 @@ func (k Keeper) applyMessageWithTransfer(ctx sdk.Context, applyEvent *cbrtypes.O
 			return false, fmt.Errorf(errMsg+"bridge addr not found for relay. dstChainId %d", dstChainId)
 		}
 		execCtx := types.NewMsgXferExecutionContext(
-			ev, srcChainId, eth.Bytes2Addr(dstToken), dstAmt, dstBridge, types.TRANSFER_TYPE_LIQUIDITY_SEND)
+			ev, srcChainId, eth.Bytes2Addr(dstToken), dstAmt, dstBridge, types.TRANSFER_TYPE_LIQUIDITY_RELAY)
 		return k.processMessageWithTransfer(ctx, execCtx, srcBridgeType)
 
 	case types.BRIDGE_TYPE_PEG_VAULT:
@@ -129,7 +129,7 @@ func (k Keeper) applyMessageWithTransfer(ctx sdk.Context, applyEvent *cbrtypes.O
 		case 0:
 			xferType = types.TRANSFER_TYPE_PEG_MINT
 		case 2:
-			xferType = types.TRANSFER_TYPE_PEG_MINT_V2
+			xferType = types.TRANSFER_TYPE_PEG_V2_MINT
 		default:
 			return false, fmt.Errorf("invalid bridge version %d", mint.BridgeVersion)
 		}
@@ -167,7 +167,7 @@ func (k Keeper) applyMessageWithTransfer(ctx sdk.Context, applyEvent *cbrtypes.O
 			case 0:
 				xferType = types.TRANSFER_TYPE_PEG_WITHDRAW
 			case 2:
-				xferType = types.TRANSFER_TYPE_PEG_WITHDRAW_V2
+				xferType = types.TRANSFER_TYPE_PEG_V2_WITHDRAW
 			default:
 				return false, fmt.Errorf("invalid vault version %d", withdraw.VaultVersion)
 			}
@@ -191,7 +191,7 @@ func (k Keeper) applyMessageWithTransfer(ctx sdk.Context, applyEvent *cbrtypes.O
 			case 0:
 				xferType = types.TRANSFER_TYPE_PEG_MINT
 			case 2:
-				xferType = types.TRANSFER_TYPE_PEG_MINT_V2
+				xferType = types.TRANSFER_TYPE_PEG_V2_MINT
 			default:
 				return false, fmt.Errorf("invalid bridge version %d", mint.BridgeVersion)
 			}

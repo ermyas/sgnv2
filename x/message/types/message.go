@@ -5,10 +5,9 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
-	"github.com/ethereum/go-ethereum/common"
 	solsha3 "github.com/miguelmota/go-solidity-sha3"
 	"golang.org/x/crypto/sha3"
 )
@@ -27,11 +26,11 @@ func NewMessage(ev *eth.MessageBusMessage, srcChainId uint64) (messageId eth.Has
 	return
 }
 
-func (m *Message) GetSignerAddrs() []common.Address {
+func (m *Message) GetSignerAddrs() []eth.Addr {
 	if m == nil {
 		return nil
 	}
-	signers := []common.Address{}
+	signers := []eth.Addr{}
 	for _, sig := range m.Signatures {
 		signers = append(signers, eth.Hex2Addr(sig.Signer))
 	}
@@ -46,7 +45,7 @@ func (m *Message) GetSigBytes() [][]byte {
 	return sigBytes
 }
 
-func (m *Message) EncodeDataToSign(messageId eth.Hash, messageBusAddr common.Address) []byte {
+func (m *Message) EncodeDataToSign(messageId eth.Hash, messageBusAddr eth.Addr) []byte {
 	// refund msg
 	if m.SrcChainId == m.DstChainId {
 		domain := solsha3.SoliditySHA3(
@@ -73,7 +72,7 @@ func (m *Message) EncodeDataToSign(messageId eth.Hash, messageBusAddr common.Add
 	}
 }
 
-func (m *Message) AddSig(data []byte, sigBytes []byte, expectedSigner common.Address) error {
+func (m *Message) AddSig(data []byte, sigBytes []byte, expectedSigner eth.Addr) error {
 	newSigs, err := commontypes.AddSig(m.GetSignatures(), data, sigBytes, expectedSigner.Hex())
 	if err != nil {
 		return err
@@ -107,19 +106,12 @@ func (m *Message) MapOnChainStatus(status eth.MessageReceiverStatus) ExecutionSt
 	}
 }
 
-func (m *Message) PrettyLog() {
-	log.Debugln("message:")
-	log.Debugf("sender %s", m.Sender)
-	log.Debugf("receiver %s", m.Receiver)
-	log.Debugf("srcChainId %d", m.SrcChainId)
-	log.Debugf("dstChainId %d", m.DstChainId)
-	log.Debugf("transferType %v", m.TransferType)
-	log.Debugf("executionStatus %v", m.ExecutionStatus)
-	log.Debugf("lastSigReqTime %d", m.LastSigReqTime)
+func (m *Message) PrettyLog() string {
 	var sigstr []string
 	for _, sig := range m.Signatures {
 		sigstr = append(sigstr, fmt.Sprintf("%s:%x", sig.Signer, sig.SigBytes))
 	}
-	log.Debugf("signatures %s", strings.Join(sigstr, ", "))
-	log.Debugf("data %x", m.Data)
+	return fmt.Sprintf("message: chain %d->%d addr %s->%s type %s status %s lastReqTime %s data %x sigs %s",
+		m.SrcChainId, m.DstChainId, m.Sender, m.Receiver, m.TransferType, m.ExecutionStatus,
+		common.TsSecToTime(uint64(m.LastSigReqTime)), m.Data, strings.Join(sigstr, ", "))
 }

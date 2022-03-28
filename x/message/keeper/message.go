@@ -55,7 +55,7 @@ func (k Keeper) getMessageTransferInfo(ctx sdk.Context, message *types.Message) 
 	var transfer *types.Transfer
 	srcTransferId := eth.Bytes2Hash(message.GetTransferRefId())
 	switch message.GetTransferType() {
-	case types.TRANSFER_TYPE_LIQUIDITY_SEND:
+	case types.TRANSFER_TYPE_LIQUIDITY_RELAY:
 		relay, found := k.cbridgeKeeper.GetXferRelay(ctx, srcTransferId)
 		if !found {
 			return nil, fmt.Errorf("relay not found for src transfer %x", srcTransferId)
@@ -81,7 +81,7 @@ func (k Keeper) getMessageTransferInfo(ctx sdk.Context, message *types.Message) 
 			WdSeqNum: wdOnchain.GetSeqnum(),
 		}
 
-	case types.TRANSFER_TYPE_PEG_MINT, types.TRANSFER_TYPE_PEG_MINT_V2:
+	case types.TRANSFER_TYPE_PEG_MINT, types.TRANSFER_TYPE_PEG_V2_MINT:
 		var mintId eth.Hash
 		if deposit, found := k.pegbridgeKeeper.GetDepositInfo(ctx, srcTransferId); found {
 			mintId = eth.Bytes2Hash(deposit.GetMintId())
@@ -116,7 +116,7 @@ func (k Keeper) getMessageTransferInfo(ctx sdk.Context, message *types.Message) 
 			Amount: new(big.Int).SetBytes(mintOnChain.GetAmount()).String(),
 		}
 
-	case types.TRANSFER_TYPE_PEG_WITHDRAW, types.TRANSFER_TYPE_PEG_WITHDRAW_V2:
+	case types.TRANSFER_TYPE_PEG_WITHDRAW, types.TRANSFER_TYPE_PEG_V2_WITHDRAW:
 		var withdrawId eth.Hash
 		burn, found := k.pegbridgeKeeper.GetBurnInfo(ctx, srcTransferId)
 		if !found {

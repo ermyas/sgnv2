@@ -7,7 +7,6 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
-	"github.com/ethereum/go-ethereum/common"
 	solsha3 "github.com/miguelmota/go-solidity-sha3"
 )
 
@@ -79,7 +78,7 @@ func NewMsgPegDepositRefundExecutionContext(
 
 	transferType := TRANSFER_TYPE_PEG_WITHDRAW
 	if vaultVersion == 2 {
-		transferType = TRANSFER_TYPE_PEG_WITHDRAW_V2
+		transferType = TRANSFER_TYPE_PEG_V2_WITHDRAW
 	}
 
 	message := Message{
@@ -112,7 +111,7 @@ func NewMsgPegBurnRefundExecutionContext(
 
 	transferType := TRANSFER_TYPE_PEG_MINT
 	if bridgeVersion == 2 {
-		transferType = TRANSFER_TYPE_PEG_MINT_V2
+		transferType = TRANSFER_TYPE_PEG_V2_MINT
 	}
 
 	message := Message{
@@ -154,19 +153,19 @@ func (c *ExecutionContext) ComputeMessageId(bridgeAddr eth.Addr) []byte {
 	return c.ComputeMessageIdWithTransfer(bridgeAddr)
 }
 
-func (c *ExecutionContext) ComputeMessageIdWithTransfer(dstBridgeAddr common.Address) []byte {
+func (c *ExecutionContext) ComputeMessageIdWithTransfer(dstBridgeAddr eth.Addr) []byte {
 	dstTransferId := c.ComputeDstTransferId(dstBridgeAddr)
 	return ComputeMessageIdFromDstTransfer(dstTransferId, dstBridgeAddr)
 }
 
-func (c *ExecutionContext) ComputeDstTransferId(dstBridgeAddr common.Address) []byte {
+func (c *ExecutionContext) ComputeDstTransferId(dstBridgeAddr eth.Addr) []byte {
 	var dstTransferId []byte
 	m := c.Message
 	t := c.Transfer
 	switch m.TransferType {
 	case TRANSFER_TYPE_NULL:
 		return nil
-	case TRANSFER_TYPE_LIQUIDITY_SEND:
+	case TRANSFER_TYPE_LIQUIDITY_RELAY:
 		log.Debugf("TransferType:%s, %s, %s, %x, %s, %d, %d, %x", m.TransferType, m.Sender, m.Receiver, t.Token, t.Amount, m.SrcChainId, m.DstChainId, m.TransferRefId)
 		dstTransferId = solsha3.SoliditySHA3(
 			[]string{"address", "address", "address", "uint256", "uint64", "uint64", "bytes32"},
@@ -184,7 +183,7 @@ func (c *ExecutionContext) ComputeDstTransferId(dstBridgeAddr common.Address) []
 			[]string{"address", "address", "uint256", "address", "uint64", "bytes32"},
 			m.Receiver, t.Token, t.Amount, m.Sender, m.SrcChainId, m.TransferRefId,
 		)
-	case TRANSFER_TYPE_PEG_MINT_V2, TRANSFER_TYPE_PEG_WITHDRAW_V2:
+	case TRANSFER_TYPE_PEG_V2_MINT, TRANSFER_TYPE_PEG_V2_WITHDRAW:
 		log.Debugf("TransferType:%s, %s, %x, %s, %s, %d, %x", m.TransferType, m.Receiver, t.Token, t.Amount, m.Sender, m.SrcChainId, m.TransferRefId)
 		dstTransferId = solsha3.SoliditySHA3(
 			[]string{"address", "address", "uint256", "address", "uint64", "bytes32", "address"},
@@ -194,7 +193,7 @@ func (c *ExecutionContext) ComputeDstTransferId(dstBridgeAddr common.Address) []
 	return dstTransferId
 }
 
-func ComputeMessageIdFromDstTransfer(dstTransferId []byte, dstBridgeAddr common.Address) []byte {
+func ComputeMessageIdFromDstTransfer(dstTransferId []byte, dstBridgeAddr eth.Addr) []byte {
 	// Prepend bridge address and hash again
 	msgId := solsha3.SoliditySHA3(
 		[]string{"uint8", "address", "bytes32"},

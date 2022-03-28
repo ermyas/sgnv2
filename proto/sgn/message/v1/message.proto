@@ -23,24 +23,24 @@ message Params {
   ];
 }
 
-// TransferType defines the type of a transfer associated with a message, if applicable.
+// TransferType defines the type of a transfer at the receiver side (dst chain) associated with a message, if applicable.
 enum TransferType {
   option (gogoproto.goproto_enum_prefix) = false;
 
   // TRANSFER_TYPE_NULL indicates no transfer association.
   TRANSFER_TYPE_NULL = 0;
-  // TRANSFER_TYPE_LIQUIDITY_SEND defines a send transfer via a liquidity bridge.
-  TRANSFER_TYPE_LIQUIDITY_SEND = 1;
+  // TRANSFER_TYPE_LIQUIDITY_RELAY defines a relay transfer via a liquidity bridge.
+  TRANSFER_TYPE_LIQUIDITY_RELAY = 1;
   // TRANSFER_TYPE_LIQUIDITY_WITHDRAW defines a withdraw transfer from a liquidity bridge.
   TRANSFER_TYPE_LIQUIDITY_WITHDRAW = 2;
   // TRANSFER_TYPE_PEG_MINT defines a mint transfer via a pegged token bridge.
   TRANSFER_TYPE_PEG_MINT = 3;
   // TRANSFER_TYPE_PEG_MINT defines a withdraw transfer from an original token vault.
   TRANSFER_TYPE_PEG_WITHDRAW = 4;
-  // TRANSFER_TYPE_PEG_MINT_V2 defines a mint transfer via a pegged token bridge v2.
-  TRANSFER_TYPE_PEG_MINT_V2 = 5;
-  // TRANSFER_TYPE_PEG_MINT_V2 defines a withdraw transfer from an original token vault v2.
-  TRANSFER_TYPE_PEG_WITHDRAW_V2 = 6;
+  // TRANSFER_TYPE_PEG_V2_MINT defines a mint transfer via a pegged token bridge v2.
+  TRANSFER_TYPE_PEG_V2_MINT = 5;
+  // TRANSFER_TYPE_PEG_V2_WITHDRAW defines a withdraw transfer from an original token vault v2.
+  TRANSFER_TYPE_PEG_V2_WITHDRAW = 6;
 }
 
 // ExecutionStatus defines the on-chain execution status of a message.

@@ -234,7 +234,7 @@ func (c *Chain) ExecutePegWithdraw(
 	return c.PegVault.OriginalTokenVault.Withdraw(opts, wdOnchain, sortedSigs, signers, powers)
 }
 
-func (c *Chain) ExecutePegWithdrawV2(
+func (c *Chain) ExecutePegV2Withdraw(
 	opts *bind.TransactOpts, wdOnchain []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) (*gethtypes.Transaction, error) {
 	return c.PegVaultV2.OriginalTokenVaultV2.Withdraw(opts, wdOnchain, sortedSigs, signers, powers)
 }
@@ -244,7 +244,7 @@ func (c *Chain) ExecutePegMint(
 	return c.PegBridge.PeggedTokenBridge.Mint(opts, mintOnChain, sortedSigs, signers, powers)
 }
 
-func (c *Chain) ExecutePegMintV2(
+func (c *Chain) ExecutePegV2Mint(
 	opts *bind.TransactOpts, mintOnChain []byte, sortedSigs [][]byte, signers []eth.Addr, powers []*big.Int) (*gethtypes.Transaction, error) {
 	return c.PegBridgeV2.PeggedTokenBridgeV2.Mint(opts, mintOnChain, sortedSigs, signers, powers)
 }

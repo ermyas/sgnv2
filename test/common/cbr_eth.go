@@ -631,7 +631,7 @@ func (c *CbrChain) SendMessageWithLiquidityTransfer(
 				dstChainId,
 				maxSlippage,
 				[]byte{0x1},
-				BrTypeLiquidity,
+				BrSendTypeLiquidity,
 			)
 		},
 		ethutils.WithEthValue(MsgFeeBase),

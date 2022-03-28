@@ -233,15 +233,15 @@ func (c *CbrOneChain) getMessageIdFromMessageNoTransferEvent(cliCtx client.Conte
 
 func (c *CbrOneChain) getBridgeAddrOnDstChain(transferType msgbrtypes.TransferType) eth.Addr {
 	switch transferType {
-	case msgbrtypes.TRANSFER_TYPE_LIQUIDITY_SEND:
+	case msgbrtypes.TRANSFER_TYPE_LIQUIDITY_RELAY:
 		return c.cbrContract.GetAddr()
 	case msgbrtypes.TRANSFER_TYPE_PEG_MINT:
 		return c.pegContracts.GetPegBridgeContract().GetAddr()
 	case msgbrtypes.TRANSFER_TYPE_PEG_WITHDRAW:
 		return c.pegContracts.GetPegVaultContract().GetAddr()
-	case msgbrtypes.TRANSFER_TYPE_PEG_MINT_V2:
+	case msgbrtypes.TRANSFER_TYPE_PEG_V2_MINT:
 		return c.pegContracts.GetPegBridgeV2Contract().GetAddr()
-	case msgbrtypes.TRANSFER_TYPE_PEG_WITHDRAW_V2:
+	case msgbrtypes.TRANSFER_TYPE_PEG_V2_WITHDRAW:
 		return c.pegContracts.GetPegVaultV2Contract().GetAddr()
 	}
 	return eth.ZeroAddr

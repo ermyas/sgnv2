@@ -9,7 +9,6 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -244,7 +243,7 @@ func (k Keeper) claimFeeShare(ctx sdk.Context, wdReq *types.WithdrawReq, delAddr
 	}
 	logmsg := fmt.Sprintf("EthAddr %x ReqId %d ExitChainId %d", delAddr, wdReq.ReqId, wdReq.ExitChainId)
 	var wdmsgs string
-	var destToken common.Address
+	var destToken eth.Addr
 	totalRecvAmt := big.NewInt(0)
 	// 2. Take the fee balance in the distribution module for each chain and generate a WithdrawOnchain
 	for _, wd := range wdReq.Withdraws {

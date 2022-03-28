@@ -3,23 +3,22 @@ package executor
 import (
 	"github.com/celer-network/sgn-v2/eth"
 	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
-	"github.com/ethereum/go-ethereum/common"
 )
 
-func getMsgBridgeAddr(dstChain *Chain, msg *msgtypes.Message) common.Address {
+func getMsgBridgeAddr(dstChain *Chain, msg *msgtypes.Message) eth.Addr {
 	var bridgeAddr eth.Addr
 	switch msg.GetTransferType() {
 	case msgtypes.TRANSFER_TYPE_NULL:
 		bridgeAddr = eth.ZeroAddr
-	case msgtypes.TRANSFER_TYPE_LIQUIDITY_SEND, msgtypes.TRANSFER_TYPE_LIQUIDITY_WITHDRAW:
+	case msgtypes.TRANSFER_TYPE_LIQUIDITY_RELAY, msgtypes.TRANSFER_TYPE_LIQUIDITY_WITHDRAW:
 		bridgeAddr = dstChain.LiqBridge.Address
 	case msgtypes.TRANSFER_TYPE_PEG_MINT:
 		bridgeAddr = dstChain.PegBridge.Address
-	case msgtypes.TRANSFER_TYPE_PEG_MINT_V2:
+	case msgtypes.TRANSFER_TYPE_PEG_V2_MINT:
 		bridgeAddr = dstChain.PegBridgeV2.Address
 	case msgtypes.TRANSFER_TYPE_PEG_WITHDRAW:
 		bridgeAddr = dstChain.PegVault.Address
-	case msgtypes.TRANSFER_TYPE_PEG_WITHDRAW_V2:
+	case msgtypes.TRANSFER_TYPE_PEG_V2_WITHDRAW:
 		bridgeAddr = dstChain.PegVaultV2.Address
 	}
 	return bridgeAddr

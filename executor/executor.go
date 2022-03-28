@@ -164,11 +164,11 @@ func (e *Executor) routeExecution(execCtx *msgtypes.ExecutionContext, status typ
 	switch execCtx.Message.GetTransferType() {
 	case msgtypes.TRANSFER_TYPE_NULL:
 		e.executeMsgNoTransfer(execCtx)
-	case msgtypes.TRANSFER_TYPE_LIQUIDITY_SEND,
+	case msgtypes.TRANSFER_TYPE_LIQUIDITY_RELAY,
 		msgtypes.TRANSFER_TYPE_PEG_MINT,
 		msgtypes.TRANSFER_TYPE_PEG_WITHDRAW,
-		msgtypes.TRANSFER_TYPE_PEG_MINT_V2,
-		msgtypes.TRANSFER_TYPE_PEG_WITHDRAW_V2:
+		msgtypes.TRANSFER_TYPE_PEG_V2_MINT,
+		msgtypes.TRANSFER_TYPE_PEG_V2_WITHDRAW:
 		e.executeMsgWithTransfer(execCtx)
 	default:
 		log.Errorf("normal execution not possible for message (id %x) transfer type %v, status %d",
@@ -184,9 +184,9 @@ func (e *Executor) routeInitRefund(execCtx *msgtypes.ExecutionContext) error {
 		return e.initAndExecutePegRefundMint(execCtx, 0)
 	case msgtypes.TRANSFER_TYPE_PEG_WITHDRAW:
 		return e.initAndExecutePegRefundWithdraw(execCtx, 0)
-	case msgtypes.TRANSFER_TYPE_PEG_MINT_V2:
+	case msgtypes.TRANSFER_TYPE_PEG_V2_MINT:
 		return e.initAndExecutePegRefundMint(execCtx, 2)
-	case msgtypes.TRANSFER_TYPE_PEG_WITHDRAW_V2:
+	case msgtypes.TRANSFER_TYPE_PEG_V2_WITHDRAW:
 		return e.initAndExecutePegRefundWithdraw(execCtx, 2)
 	default:
 		return fmt.Errorf("init refund not possible for message (id %x) transfer type %v",
@@ -267,7 +267,7 @@ func (e *Executor) initAndExecutePegRefundMint(execCtx *msgtypes.ExecutionContex
 	case 0:
 		refundTxFunc = chain.ExecutePegMint
 	case 2:
-		refundTxFunc = chain.ExecutePegMintV2
+		refundTxFunc = chain.ExecutePegV2Mint
 	default:
 		return fmt.Errorf("invalid bridge version %d", pegBridgeVersion)
 	}
@@ -297,7 +297,7 @@ func (e *Executor) initAndExecutePegRefundWithdraw(execCtx *msgtypes.ExecutionCo
 	case 0:
 		refundTxFunc = chain.ExecutePegWithdraw
 	case 2:
-		refundTxFunc = chain.ExecutePegWithdrawV2
+		refundTxFunc = chain.ExecutePegV2Withdraw
 	default:
 		return fmt.Errorf("invalid vault version %d", vaultVersion)
 	}
@@ -354,7 +354,6 @@ func (e *Executor) executeMsgWithTransferRefund(execCtx *msgtypes.ExecutionConte
 		return
 	}
 	log.Infof("executing refund (id %x)...", id)
-	execCtx.Message.PrettyLog()
 	tx, err := chain.Transactor.Transact(
 		getTransactionHandler(id, execCtx, "executeMsgWithTransferRefund"),
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*gethtypes.Transaction, error) {
@@ -375,15 +374,15 @@ func (e *Executor) isTransferReady(chain *Chain, execCtx *msgtypes.ExecutionCont
 	dstTransferId := ethtypes.Bytes2Hash(execCtx.ComputeDstTransferId(getMsgBridgeAddr(chain, &execCtx.Message)))
 	var err error
 	switch execCtx.Message.TransferType {
-	case msgtypes.TRANSFER_TYPE_LIQUIDITY_SEND:
+	case msgtypes.TRANSFER_TYPE_LIQUIDITY_RELAY:
 		ready, err = chain.LiqBridge.Transfers(&bind.CallOpts{}, dstTransferId)
 	case msgtypes.TRANSFER_TYPE_PEG_MINT:
 		ready, err = chain.PegBridge.Records(&bind.CallOpts{}, dstTransferId)
-	case msgtypes.TRANSFER_TYPE_PEG_MINT_V2:
+	case msgtypes.TRANSFER_TYPE_PEG_V2_MINT:
 		ready, err = chain.PegBridgeV2.Records(&bind.CallOpts{}, dstTransferId)
 	case msgtypes.TRANSFER_TYPE_PEG_WITHDRAW:
 		ready, err = chain.PegVault.Records(&bind.CallOpts{}, dstTransferId)
-	case msgtypes.TRANSFER_TYPE_PEG_WITHDRAW_V2:
+	case msgtypes.TRANSFER_TYPE_PEG_V2_WITHDRAW:
 		ready, err = chain.PegVaultV2.Records(&bind.CallOpts{}, dstTransferId)
 	default:
 		log.Panicf("unsupported transfer type %s", execCtx.Message.TransferType)

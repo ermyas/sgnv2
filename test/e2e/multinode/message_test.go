@@ -147,14 +147,14 @@ func batchTransferTest(transactor *transactor.Transactor, sendAmt *big.Int, amtF
 		sendAmt,
 		tc.CbrChain2.ChainId,
 		100000,
-		tc.BrTypeLiquidity,
+		tc.BrSendTypeLiquidity,
 		[]eth.Addr{u1.Address, u2.Address},
 		[]*big.Int{amtForEveryone, amtForEveryone},
 	)
 	tc.ChkErr(err, "u0 chain1 batch transfer")
 	tc.CheckXfer(transactor, xferId[:])
 	tc.WaitForMessageWithTransferExecuted(
-		transactor, msgtypes.BRIDGE_TYPE_LIQUIDITY, xferId, expectedStatus, msgtypes.TRANSFER_TYPE_LIQUIDITY_SEND)
+		transactor, msgtypes.BRIDGE_TYPE_LIQUIDITY, xferId, expectedStatus, msgtypes.TRANSFER_TYPE_LIQUIDITY_RELAY)
 
 	// check balance
 	if expectedStatus == msgtypes.EXECUTION_STATUS_SUCCESS {
@@ -205,7 +205,7 @@ func batchPegDepositTest(transactor *transactor.Transactor, sendAmt *big.Int, am
 		sendAmt,
 		tc.CbrChain2.ChainId,
 		100000,
-		tc.BrTypePegDeposit,
+		tc.BrSendTypePegDeposit,
 		[]eth.Addr{u1.Address, u2.Address},
 		[]*big.Int{amtForEveryone, amtForEveryone},
 	)
@@ -250,7 +250,7 @@ func batchPegBurnTest(transactor *transactor.Transactor, sendAmt *big.Int, amtFo
 		sendAmt,
 		tc.CbrChain1.ChainId,
 		100000,
-		tc.BrTypePegBurn,
+		tc.BrSendTypePegBurn,
 		[]eth.Addr{u1.Address, u2.Address},
 		[]*big.Int{amtForEveryone, amtForEveryone},
 	)
@@ -283,14 +283,14 @@ func pegV2DepositTest(t *testing.T, transactor *transactor.Transactor) {
 	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.USDTContract, uid, amount, tc.CbrChain1.MsgTestAddr)
 	tc.ChkErr(err, "approve USDT")
 	depositId, err := tc.CbrChain1.SendMessageWithPegTransfer(
-		uid, tc.CbrChain2.MsgTestAddr, tc.CbrChain1.USDTAddr, amount, tc.CbrChain2.ChainId, tc.BrTypePegDepositV2)
+		uid, tc.CbrChain2.MsgTestAddr, tc.CbrChain1.USDTAddr, amount, tc.CbrChain2.ChainId, tc.BrSendTypePegV2Deposit)
 	tc.ChkErr(err, "SendWithTransfer, peg deposit")
 	depositInfo := tc.WaitPbrDeposit(transactor, depositId.String())
 	if len(depositInfo.MintId) == 0 {
 		log.Fatalln("refunded deposit", nil)
 	}
 	tc.WaitForMessageWithTransferExecuted(
-		transactor, msgtypes.BRIDGE_TYPE_PEG_VAULT, depositId, msgtypes.EXECUTION_STATUS_SUCCESS, msgtypes.TRANSFER_TYPE_PEG_MINT_V2)
+		transactor, msgtypes.BRIDGE_TYPE_PEG_VAULT, depositId, msgtypes.EXECUTION_STATUS_SUCCESS, msgtypes.TRANSFER_TYPE_PEG_V2_MINT)
 
 	mintInfo := tc.CheckPbrMint(transactor, eth.Bytes2Hex(depositInfo.GetMintId()))
 	var mintOnChain pegbrtypes.MintOnChain
@@ -316,10 +316,10 @@ func pegV2BurnWithdrawTest(t *testing.T, transactor *transactor.Transactor) {
 	err = tc.CbrChain2.ApproveBridgeTestToken(tc.CbrChain2.USDTContract, 1, amount, tc.CbrChain2.MsgTestAddr)
 	tc.ChkErr(err, "approve USDT")
 	burnId, err := tc.CbrChain2.SendMessageWithPegTransfer(
-		1, tc.CbrChain1.MsgTestAddr, tc.CbrChain2.USDTAddr, amount, tc.CbrChain1.ChainId, tc.BrTypePegBurnV2)
+		1, tc.CbrChain1.MsgTestAddr, tc.CbrChain2.USDTAddr, amount, tc.CbrChain1.ChainId, tc.BrSendTypePegV2Burn)
 	tc.ChkErr(err, "SendWithTransfer, peg burn-withdraw")
 	tc.WaitForMessageWithTransferExecuted(
-		transactor, msgtypes.BRIDGE_TYPE_PEG_BRIDGE, burnId, msgtypes.EXECUTION_STATUS_SUCCESS, msgtypes.TRANSFER_TYPE_PEG_WITHDRAW_V2)
+		transactor, msgtypes.BRIDGE_TYPE_PEG_BRIDGE, burnId, msgtypes.EXECUTION_STATUS_SUCCESS, msgtypes.TRANSFER_TYPE_PEG_V2_WITHDRAW)
 
 	burnInfo := tc.WaitPbrBurn(transactor, burnId.String())
 	withdrawInfo := tc.CheckPbrWithdraw(transactor, eth.Bytes2Hex(burnInfo.WithdrawId))
@@ -346,10 +346,10 @@ func pegV2BurnMintTest(t *testing.T, transactor *transactor.Transactor) {
 	err = tc.CbrChain2.ApproveBridgeTestToken(tc.CbrChain2.USDTContract, 2, amount, tc.CbrChain2.MsgTestAddr)
 	tc.ChkErr(err, "approve USDT")
 	burnId, err := tc.CbrChain2.SendMessageWithPegTransfer(
-		2, tc.CbrChain3.MsgTestAddr, tc.CbrChain2.USDTAddr, amount, tc.CbrChain3.ChainId, tc.BrTypePegBurnV2)
+		2, tc.CbrChain3.MsgTestAddr, tc.CbrChain2.USDTAddr, amount, tc.CbrChain3.ChainId, tc.BrSendTypePegV2Burn)
 	tc.ChkErr(err, "SendWithTransfer, peg burn-mint")
 	tc.WaitForMessageWithTransferExecuted(
-		transactor, msgtypes.BRIDGE_TYPE_PEG_BRIDGE, burnId, msgtypes.EXECUTION_STATUS_SUCCESS, msgtypes.TRANSFER_TYPE_PEG_MINT_V2)
+		transactor, msgtypes.BRIDGE_TYPE_PEG_BRIDGE, burnId, msgtypes.EXECUTION_STATUS_SUCCESS, msgtypes.TRANSFER_TYPE_PEG_V2_MINT)
 
 	burnInfo := tc.WaitPbrBurn(transactor, burnId.String())
 	mintInfo := tc.CheckPbrMint(transactor, eth.Bytes2Hex(burnInfo.GetMintId()))
@@ -398,7 +398,7 @@ func refundPegDepositTest(t *testing.T, transactor *transactor.Transactor) {
 	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.UNIContract, 1, amount, tc.CbrChain1.MsgTestAddr)
 	tc.ChkErr(err, "approve UNI")
 	xferId, err := tc.CbrChain1.SendMessageWithPegTransfer(
-		1, tc.CbrChain2.MsgTestAddr, tc.CbrChain1.UNIAddr, amount, tc.CbrChain2.ChainId, tc.BrTypePegDeposit)
+		1, tc.CbrChain2.MsgTestAddr, tc.CbrChain1.UNIAddr, amount, tc.CbrChain2.ChainId, tc.BrSendTypePegDeposit)
 	tc.ChkErr(err, "SendWithTransfer, peg deposit")
 	tc.WaitForMessageWithTransferExecuted(
 		transactor, msgtypes.BRIDGE_TYPE_PEG_VAULT, xferId, msgtypes.EXECUTION_STATUS_SUCCESS, msgtypes.TRANSFER_TYPE_PEG_WITHDRAW)
@@ -420,10 +420,10 @@ func refundPegV2DepositTest(t *testing.T, transactor *transactor.Transactor) {
 	err = tc.CbrChain1.ApproveBridgeTestToken(tc.CbrChain1.USDTContract, 1, amount, tc.CbrChain1.MsgTestAddr)
 	tc.ChkErr(err, "approve USDT")
 	xferId, err := tc.CbrChain1.SendMessageWithPegTransfer(
-		1, tc.CbrChain2.MsgTestAddr, tc.CbrChain1.USDTAddr, amount, tc.CbrChain2.ChainId, tc.BrTypePegDepositV2)
+		1, tc.CbrChain2.MsgTestAddr, tc.CbrChain1.USDTAddr, amount, tc.CbrChain2.ChainId, tc.BrSendTypePegV2Deposit)
 	tc.ChkErr(err, "SendWithTransfer, peg deposit")
 	tc.WaitForMessageWithTransferExecuted(
-		transactor, msgtypes.BRIDGE_TYPE_PEG_VAULT, xferId, msgtypes.EXECUTION_STATUS_SUCCESS, msgtypes.TRANSFER_TYPE_PEG_WITHDRAW_V2)
+		transactor, msgtypes.BRIDGE_TYPE_PEG_VAULT, xferId, msgtypes.EXECUTION_STATUS_SUCCESS, msgtypes.TRANSFER_TYPE_PEG_V2_WITHDRAW)
 	balAfter, err := tc.CbrChain1.USDTContract.BalanceOf(&bind.CallOpts{}, u.Address)
 	log.Infof("bal after, %s", balAfter)
 	if balAfter.Cmp(balBefore) == 0 {
@@ -442,7 +442,7 @@ func refundPegBurnTest(t *testing.T, transactor *transactor.Transactor) {
 	err = tc.CbrChain2.ApproveBridgeTestToken(tc.CbrChain2.UNIContract, 2, amount, tc.CbrChain2.MsgTestAddr)
 	tc.ChkErr(err, "approve UNI")
 	xferId, err := tc.CbrChain2.SendMessageWithPegTransfer(
-		2, tc.CbrChain1.MsgTestAddr, tc.CbrChain2.UNIAddr, amount, tc.CbrChain1.ChainId, tc.BrTypePegBurn)
+		2, tc.CbrChain1.MsgTestAddr, tc.CbrChain2.UNIAddr, amount, tc.CbrChain1.ChainId, tc.BrSendTypePegBurn)
 	tc.ChkErr(err, "SendWithTransfer, peg burn")
 	tc.WaitForMessageWithTransferExecuted(
 		transactor, msgtypes.BRIDGE_TYPE_PEG_BRIDGE, xferId, msgtypes.EXECUTION_STATUS_SUCCESS, msgtypes.TRANSFER_TYPE_PEG_MINT)
@@ -464,10 +464,10 @@ func refundPegV2BurnTest(t *testing.T, transactor *transactor.Transactor) {
 	err = tc.CbrChain2.ApproveBridgeTestToken(tc.CbrChain2.USDTContract, 2, amount, tc.CbrChain2.MsgTestAddr)
 	tc.ChkErr(err, "approve USDT")
 	xferId, err := tc.CbrChain2.SendMessageWithPegTransfer(
-		2, tc.CbrChain1.MsgTestAddr, tc.CbrChain2.USDTAddr, amount, tc.CbrChain1.ChainId, tc.BrTypePegBurnV2)
+		2, tc.CbrChain1.MsgTestAddr, tc.CbrChain2.USDTAddr, amount, tc.CbrChain1.ChainId, tc.BrSendTypePegV2Burn)
 	tc.ChkErr(err, "SendWithTransfer, peg burn")
 	tc.WaitForMessageWithTransferExecuted(
-		transactor, msgtypes.BRIDGE_TYPE_PEG_BRIDGE, xferId, msgtypes.EXECUTION_STATUS_SUCCESS, msgtypes.TRANSFER_TYPE_PEG_MINT_V2)
+		transactor, msgtypes.BRIDGE_TYPE_PEG_BRIDGE, xferId, msgtypes.EXECUTION_STATUS_SUCCESS, msgtypes.TRANSFER_TYPE_PEG_V2_MINT)
 	balAfter, err := tc.CbrChain2.USDTContract.BalanceOf(&bind.CallOpts{}, u.Address)
 	log.Infof("bal after, %s", balAfter)
 	if balAfter.Cmp(balBefore) == 0 {
