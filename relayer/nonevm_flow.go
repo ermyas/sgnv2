@@ -3,6 +3,7 @@ package relayer
 // struct/funcs for interacting with flow chain, only support peg original vault(SafeBox) for now
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -29,6 +30,8 @@ type FlowClient struct {
 
 	ChainID      uint64
 	ContractAddr string // needed for EncodeDataToSign
+
+	txLock sync.Mutex // sgn send flow mint and withdraw serially to prevent nonce conflict
 }
 
 // flow chain id to monitor polling interval
@@ -108,4 +111,48 @@ func (f *FlowClient) genEvCallback(evname string) func(*flowtypes.FlowMonitorLog
 		defer f.lock.Unlock()
 		f.Db.Set([]byte(key), raw)
 	}
+}
+
+func (f *FlowClient) sendWithdraw(logmsg string, msg []byte, tokeId string, pubKeySig map[string][]byte) {
+	f.txLock.Lock()
+	defer f.txLock.Unlock()
+	txHash, err := f.fcc.Withdraw(context.Background(), msg, tokeId, pubKeySig)
+	if err != nil {
+		log.Errorf("Failed to send flow withdraw, msg:%s, err: %v", logmsg, err)
+		return
+	}
+	withTxErr, err := f.fcc.WaitTxSealed(context.Background(), txHash, 30*time.Second)
+	if err != nil {
+		// TODO, check error and requeue withdraw?
+		if withTxErr {
+			log.Errorf("flow withdraw is accepted on chain, but fail, msg:%s, err:%v", logmsg, err)
+		} else {
+			log.Errorf("flow withdraw send fail, msg:%s, err:%v", logmsg, err)
+		}
+		return
+	}
+	log.Infof("Send Flow withdraw success, msg:%s", logmsg)
+	return
+}
+
+func (f *FlowClient) sendMint(logmsg string, msg []byte, tokeId string, pubKeySig map[string][]byte) {
+	f.txLock.Lock()
+	defer f.txLock.Unlock()
+	txHash, err := f.fcc.Mint(context.Background(), msg, tokeId, pubKeySig)
+	if err != nil {
+		log.Errorf("Failed to send flow mint, msg:%s, err: %v", logmsg, err)
+		return
+	}
+	withTxErr, err := f.fcc.WaitTxSealed(context.Background(), txHash, 30*time.Second)
+	if err != nil {
+		// TODO, check error and requeue mint?
+		if withTxErr {
+			log.Errorf("flow mint is accepted on chain, but fail, msg:%s, err:%v", logmsg, err)
+		} else {
+			log.Errorf("flow mint send fail, msg:%s, err:%v", logmsg, err)
+		}
+		return
+	}
+	log.Infof("Send Flow mint success, msg:%s", logmsg)
+	return
 }

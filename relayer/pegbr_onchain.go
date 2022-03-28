@@ -1,7 +1,6 @@
 package relayer
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 
@@ -240,11 +239,8 @@ func (c *CbrOneChain) SendMint(
 		for i, s := range sigs {
 			sigMap[fmt.Sprintf("%d", i)] = s
 		}
-		txHash, err := c.fcc.Mint(context.Background(), mintBytes, string(mint.Token), sigMap)
-		if err != nil {
-			return "", fmt.Errorf("%s. Failed to send flow mint: %w", logmsg, err)
-		}
-		return txHash.Hex(), nil
+		go c.FlowClient.sendMint(logmsg, mintBytes, string(mint.Token), sigMap)
+		return "", nil
 	}
 	// EVM chains
 	err := c.checkPendingNonce()
@@ -291,11 +287,8 @@ func (c *CbrOneChain) SendWithdraw(
 		for i, s := range sigs {
 			sigMap[fmt.Sprintf("%d", i)] = s
 		}
-		txHash, err := c.fcc.Withdraw(context.Background(), wdBytes, string(withdraw.Token), sigMap)
-		if err != nil {
-			return "", fmt.Errorf("%s. Failed to send flow withraw: %w", logmsg, err)
-		}
-		return txHash.Hex(), nil
+		go c.FlowClient.sendWithdraw(logmsg, wdBytes, string(withdraw.Token), sigMap)
+		return "", nil
 	}
 	// EVM chains
 	err := c.checkPendingNonce()
