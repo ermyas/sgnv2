@@ -3,6 +3,7 @@ package relayer
 import (
 	"encoding/json"
 	"fmt"
+	flowtypes "github.com/celer-network/cbridge-flow/types"
 	"strings"
 	"time"
 
@@ -382,7 +383,17 @@ func (c *CbrOneChain) pullPegbrEvents(chid uint64, cliCtx client.Context, update
 			}
 
 			if commontypes.IsFlowChain(chid) {
-				// TODO add skip check
+				ev := new(flowtypes.FlowMonitorLog)
+				err := json.Unmarshal(vals[i], ev)
+				if err != nil {
+					log.Errorf("failed to unmarshal flow monitor log, key:%s, err:%v", string(key), err)
+					continue
+				}
+				skip, reason := c.skipFlowPegbrEvent(evn, ev, cliCtx, pegbrUserActionValidCache)
+				if skip {
+					log.Debugf("skip pbr event: %s, chid %d, reason: %s", string(key), c.chainid, reason)
+					continue
+				}
 			} else {
 				evlog := new(ethtypes.Log)
 				err := json.Unmarshal(vals[i], evlog)
@@ -628,6 +639,175 @@ func (c *CbrOneChain) skipSyncPegbrWithdrawn(evlog *ethtypes.Log, cliCtx client.
 	if err != nil {
 		// log only, will not skip if request failed
 		log.Errorf("QueryWithdrawInfo err: %s", err)
+		return
+	}
+	if resp.Success {
+		return true, fmt.Sprintf("withdraw %x already synced", withdrawId)
+	}
+	return
+}
+
+func (c *CbrOneChain) skipFlowPegbrEvent(evn string, fmLog *flowtypes.FlowMonitorLog, cliCtx client.Context, checkedCache map[string]bool) (skip bool, reason string) {
+	switch evn {
+	case pegbrtypes.PegbrEventDeposited:
+		skip, reason = c.skipSyncFlowPegbrDeposit(fmLog, cliCtx, checkedCache)
+	case pegbrtypes.PegbrEventBurn:
+		skip, reason = c.skipSyncFlowPegbrBurn(fmLog, cliCtx, checkedCache)
+	case pegbrtypes.PegbrEventMint:
+		skip, reason = c.skipSyncFlowPegbrMint(fmLog, cliCtx)
+	case pegbrtypes.PegbrEventWithdrawn:
+		skip, reason = c.skipSyncFlowPegbrWithdrawn(fmLog, cliCtx)
+	}
+	return
+}
+
+func (c *CbrOneChain) skipSyncFlowPegbrDeposit(
+	fmLog *flowtypes.FlowMonitorLog, cliCtx client.Context, validCache map[string]bool) (skip bool, reason string) {
+	var token string
+	var depositId eth.Hash
+	var mintChainId uint64
+
+	dp, err := flowtypes.FlowSafeBoxDepositedUnmarshal(fmLog.Event)
+	if err != nil {
+		return true, fmt.Sprintf("fail to parse flow deposit event, txHash:%x, err:%s", fmLog.TxHash, err)
+	}
+	token = dp.Token
+	depositId = dp.DepositId
+	mintChainId = dp.MintChainId
+
+	// we should check cache first
+	cacheKey := fmt.Sprintf("%d-%d-%s", c.chainid, mintChainId, token)
+
+	if validCache != nil {
+		cacheValid, found := validCache[cacheKey]
+		if found && !cacheValid {
+			return true, "invalid pegbr deposit"
+		}
+	}
+
+	req := &pegbrtypes.QueryOrigPeggedPairsRequest{
+		Orig: &commontypes.ContractInfo{
+			ChainId: c.chainid,
+			Address: token,
+		},
+		Pegged: &commontypes.ContractInfo{
+			ChainId: mintChainId,
+		},
+	}
+	pairs, err := pegbrcli.QueryOrigPeggedPairs(cliCtx, req)
+	if len(pairs) == 0 {
+		// If request failed, we will not break this flow.
+		// As if invalid token send event go to the apply flow, sgn will also check it and set it to refund process.
+		log.Errorf("fail to lookup pegged pair, ev:%s, err:%s", string(fmLog.Event), err)
+		// may be call sgn fail, we still send this ev to sgn and sgn to do the check again.
+		return
+	}
+	// Only single pair
+	pair := pairs[0]
+	// cached and can reduce some cli call
+	if validCache != nil {
+		validCache[cacheKey] = pair.Pegged.Address != ""
+	}
+
+	resp, err := pegbrcli.QueryDepositInfo(cliCtx, eth.Bytes2Hex(depositId[:]))
+	if err != nil && !strings.Contains(err.Error(), pegbrtypes.ErrNoInfoFound.Error()) {
+		// log only, will not skip if request failed
+		log.Errorf("QueryFlowDepositInfo err: %s", err)
+		return
+	}
+	if resp.DepositId != nil {
+		return true, fmt.Sprintf("deposit %x already synced", depositId)
+	}
+	return
+}
+
+func (c *CbrOneChain) skipSyncFlowPegbrBurn(
+	fmLog *flowtypes.FlowMonitorLog, cliCtx client.Context, validCache map[string]bool) (skip bool, reason string) {
+	var token string
+	var burnId eth.Hash
+
+	burn, err := flowtypes.FlowFlowPegBridgeBurnUnmarshal(fmLog.Event)
+	if err != nil {
+		return true, fmt.Sprintf("fail to parse flow burn event, txHash:%x, err:%s", fmLog.TxHash, err)
+	}
+	token = burn.Token
+	burnId = burn.BurnId
+
+	// we should check cache first
+	cacheKey := fmt.Sprintf("%d-%s", c.chainid, token)
+
+	if validCache != nil {
+		cacheValid, found := validCache[cacheKey]
+		if found && !cacheValid {
+			return true, "invalid pegbr burn"
+		}
+	}
+
+	req := &pegbrtypes.QueryOrigPeggedPairsRequest{
+		Pegged: &commontypes.ContractInfo{
+			ChainId: c.chainid,
+			Address: token,
+		},
+	}
+
+	pairs, err := pegbrcli.QueryOrigPeggedPairs(cliCtx, req)
+	if len(pairs) == 0 {
+		// If request failed, we will not break this flow.
+		// As if invalid token send event go to the apply flow, sgn will also check it and set it to refund flow.
+		log.Errorf("fail to lookup pegged pair, ev:%s, err:%s", string(fmLog.Event), err)
+		// may be call sgn fail, we still send this ev to sgn and sgn to do the check again.
+		return
+	}
+	// Only single pair
+	pair := pairs[0]
+	// cached and can reduce some cli call
+	if validCache != nil {
+		validCache[cacheKey] = pair.Orig.Address != ""
+	}
+
+	resp, err := pegbrcli.QueryBurnInfo(cliCtx, burnId.Hex())
+	if err != nil && !strings.Contains(err.Error(), "no info found") {
+		// log only, will not skip if request failed
+		log.Errorf("QueryFlowBurnInfo err: %s", err)
+		return
+	}
+	if resp.BurnId != nil {
+		return true, fmt.Sprintf("burn %x already synced", burnId)
+	}
+
+	return
+}
+
+func (c *CbrOneChain) skipSyncFlowPegbrMint(fmLog *flowtypes.FlowMonitorLog, cliCtx client.Context) (skip bool, reason string) {
+	var mintId eth.Hash
+	mint, err := flowtypes.FlowFlowPegBridgeMintUnmarshal(fmLog.Event)
+	if err != nil {
+		return true, fmt.Sprintf("fail to parse flow burn event, txHash:%x, err:%s", fmLog.TxHash, err)
+	}
+	mintId = mint.MintId
+	resp, err := pegbrcli.QueryMintInfo(cliCtx, mintId.Hex())
+	if err != nil {
+		// log only, will not skip if request failed
+		log.Errorf("QueryFlowMintInfo err: %s", err)
+		return
+	}
+	if resp.Success {
+		return true, fmt.Sprintf("mint %x already synced", mintId)
+	}
+	return
+}
+
+func (c *CbrOneChain) skipSyncFlowPegbrWithdrawn(fmLog *flowtypes.FlowMonitorLog, cliCtx client.Context) (skip bool, reason string) {
+	var withdrawId eth.Hash
+	wd, err := flowtypes.FlowSafeBoxWithdrawnUnmarshal(fmLog.Event)
+	if err != nil {
+		return true, fmt.Sprintf("fail to parse flow withdraw event, txHash:%x, err:%s", fmLog.TxHash, err)
+	}
+	withdrawId = wd.WithdrawId
+	resp, err := pegbrcli.QueryWithdrawInfo(cliCtx, withdrawId.Hex())
+	if err != nil {
+		// log only, will not skip if request failed
+		log.Errorf("QueryFlowWithdrawInfo err: %s", err)
 		return
 	}
 	if resp.Success {
