@@ -281,48 +281,51 @@ func (k Keeper) pegMint(
 		refundMsg = fmt.Sprintf("amount too small to cover fees, mintAmount %s baseFee %s percFee %s", mintAmount, baseFee, percFee)
 		return
 	}
-	mintToken := eth.Hex2Addr(pair.Pegged.Address)
-	// refChainId is deposit chain ID, refId is deposit ID
-	if pair.BridgeVersion == 0 {
-		mintId = types.CalcMintId(mintAccount, mintToken, mintAmount, depositor, refChainId, refId)
-	} else {
-		bridgeAddr, found := k.GetVersionedBridge(ctx, mintChainId, pair.BridgeVersion)
-		if !found {
-			err = fmt.Errorf("versioned bridge not found %d %d", mintChainId, pair.BridgeVersion)
-			return
+	// only check/update supplyCap for EVM chains for now
+	if !commontypes.IsFlowChain(mintChainId) {
+		mintToken := eth.Hex2Addr(pair.Pegged.Address)
+		// refChainId is deposit chain ID, refId is deposit ID
+		if pair.BridgeVersion == 0 {
+			mintId = types.CalcMintId(mintAccount, mintToken, mintAmount, depositor, refChainId, refId)
+		} else {
+			bridgeAddr, found := k.GetVersionedBridge(ctx, mintChainId, pair.BridgeVersion)
+			if !found {
+				err = fmt.Errorf("versioned bridge not found %d %d", mintChainId, pair.BridgeVersion)
+				return
+			}
+			mintId = types.CalcMintIdV2(mintAccount, mintToken, mintAmount, depositor, refChainId, refId, bridgeAddr)
 		}
-		mintId = types.CalcMintIdV2(mintAccount, mintToken, mintAmount, depositor, refChainId, refId, bridgeAddr)
-	}
 
-	// get supplyCap
-	supplyCap := new(big.Int).SetInt64(0)
-	if pair.SupplyCap != "" {
-		// supply cap string was checked during config set
-		supplyCap.SetString(pair.SupplyCap, 10)
-	}
-	// a zero supplyCap indicates infinite supply.
-	// a negative supplyCap indicates a special mod of burn ONLY, NO mint.
-	if supplyCap.Sign() == 0 {
-		// do nothing
-	} else if supplyCap.Sign() == -1 {
-		refundMsg = fmt.Sprintf("burn ONLY, negative supply cap %s", supplyCap)
-		return
-	} else {
-		// get totalSupply
-		beforeMintTotalSupply, found := k.GetTotalSupply(ctx, mintChainId, mintToken)
-		if !found {
-			beforeMintTotalSupply = new(big.Int).SetInt64(0)
+		// get supplyCap
+		supplyCap := new(big.Int).SetInt64(0)
+		if pair.SupplyCap != "" {
+			// supply cap string was checked during config set
+			supplyCap.SetString(pair.SupplyCap, 10)
 		}
-		// check if mint would exceed supply cap
-		afterMintTotalSupply := new(big.Int).Add(beforeMintTotalSupply, mintAmount)
-		if supplyCap.Cmp(afterMintTotalSupply) == -1 {
-			// in reason of big mint amount that would exceed the supply cap, this deposit would be refunded
-			refundMsg = fmt.Sprintf("hits supply cap, mintAmount %s current totalSupply %s supplyCap %s",
-				mintAmount, beforeMintTotalSupply, supplyCap)
+		// a zero supplyCap indicates infinite supply.
+		// a negative supplyCap indicates a special mod of burn ONLY, NO mint.
+		if supplyCap.Sign() == 0 {
+			// do nothing
+		} else if supplyCap.Sign() == -1 {
+			refundMsg = fmt.Sprintf("burn ONLY, negative supply cap %s", supplyCap)
 			return
+		} else {
+			// get totalSupply
+			beforeMintTotalSupply, found := k.GetTotalSupply(ctx, mintChainId, mintToken)
+			if !found {
+				beforeMintTotalSupply = new(big.Int).SetInt64(0)
+			}
+			// check if mint would exceed supply cap
+			afterMintTotalSupply := new(big.Int).Add(beforeMintTotalSupply, mintAmount)
+			if supplyCap.Cmp(afterMintTotalSupply) == -1 {
+				// in reason of big mint amount that would exceed the supply cap, this deposit would be refunded
+				refundMsg = fmt.Sprintf("hits supply cap, mintAmount %s current totalSupply %s supplyCap %s",
+					mintAmount, beforeMintTotalSupply, supplyCap)
+				return
+			}
+			// reset totalSupply
+			k.SetTotalSupply(ctx, mintChainId, mintToken, afterMintTotalSupply)
 		}
-		// reset totalSupply
-		k.SetTotalSupply(ctx, mintChainId, mintToken, afterMintTotalSupply)
 	}
 
 	err = k.MintFeeAndSendToSyncer(ctx, pair.Orig, baseFee, depositChainId, mintChainId)
@@ -336,7 +339,6 @@ func (k Keeper) pegMint(
 
 	// Record MintInfo
 	mint := types.MintOnChain{
-		Token:      mintToken.Bytes(),
 		Account:    mintAccount.Bytes(),
 		Amount:     mintAmount.Bytes(),
 		Depositor:  depositor.Bytes(),
@@ -352,7 +354,7 @@ func (k Keeper) pegMint(
 		mintProtoBytes, _ = mint.Marshal()
 		mintId = types.CalcFlowMintId(mintProtoBytes)
 	} else {
-		mint.Token = mintToken.Bytes()
+		mint.Token = eth.Hex2Addr(pair.Pegged.Address).Bytes()
 		mintProtoBytes, _ = mint.Marshal()
 	}
 
