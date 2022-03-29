@@ -2,11 +2,12 @@ package relayer
 
 import (
 	"fmt"
-	"gopkg.in/resty.v1"
 	"math/big"
 	"strconv"
 	"sync"
 	"time"
+
+	"gopkg.in/resty.v1"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
@@ -107,12 +108,13 @@ func (r *Relayer) reportValidatorNodeAnalytics() {
 		ChainConfigs: r.getChainConfig(),
 	}
 	for chainId, oneChain := range r.cbrMgr {
+		var blkNum uint64
 		if types.IsFlowChain(chainId) {
-			// TODO, now skip
-			continue
+			blkNum = oneChain.fcc.GetBlkNum()
+		} else {
+			blkNum = oneChain.mon.GetCurrentBlockNumber().Uint64()
 		}
-		blockNumber := oneChain.mon.GetCurrentBlockNumber()
-		report.BlockNums[strconv.Itoa(int(chainId))] = blockNumber.Uint64()
+		report.BlockNums[strconv.Itoa(int(chainId))] = blkNum
 	}
 	log.Debugln("try to report:", report)
 	bytes, err := proto.Marshal(report)
@@ -242,6 +244,15 @@ func (r *Relayer) getChainConfig() map[string]*ChainConfig {
 	}
 	m := make(map[string]*ChainConfig)
 	for chainId, oneChain := range r.cbrMgr {
+		if types.IsFlowChain(chainId) {
+			m[fmt.Sprintf("%d", chainId)] = &ChainConfig{
+				CbridgeContractAddr:            oneChain.ContractAddr, // all flow contracts under same account
+				OriginalTokenVaultContractAddr: oneChain.ContractAddr,
+				PeggedTokenBridgeContractAddr:  oneChain.ContractAddr,
+				// no msgbus on flow yet
+			}
+			continue
+		}
 		m[fmt.Sprintf("%d", chainId)] = &ChainConfig{
 			CbridgeContractAddr:            oneChain.cbrContract.GetAddr().Hex(),
 			OriginalTokenVaultContractAddr: oneChain.pegContracts.vault.GetAddr().Hex(),
