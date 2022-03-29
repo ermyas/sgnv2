@@ -149,13 +149,13 @@ func SetupFlowChain() {
 		log.Fatal(err)
 	}
 
-	err = flowutils.AddNewTokenInPegBridge(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr,
+	_, err = flowutils.AddNewTokenInPegBridge(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr,
 		"0.0", "1000000.0", "1000000.0", tc.FlowContractAddr.String(), testPegTokenReceiver, testPegTokenName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = flowutils.AddMinterAndBurnerInPegBridgeCdc(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr, tc.FlowContractAddr.String(), tc.FlowContractAddr.String(), tc.FlowContractAddr.String(), testPegTokenName)
+	_, err = flowutils.AddMinterAndBurnerInPegBridgeCdc(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr, tc.FlowContractAddr.String(), tc.FlowContractAddr.String(), tc.FlowContractAddr.String(), testPegTokenName)
 	if err != nil {
 		log.Fatal(err)
 	}
