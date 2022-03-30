@@ -112,21 +112,9 @@ func (k Keeper) SetPeggedOrigIndex(ctx sdk.Context, index types.PeggedOrigIndex)
 }
 
 func (k Keeper) GetPeggedOrigIndex(
-	ctx sdk.Context, peggedChainId uint64, peggedAddress eth.Addr) (index types.PeggedOrigIndex, found bool) {
+	ctx sdk.Context, peggedChainId uint64, peggedAddress interface{}) (index types.PeggedOrigIndex, found bool) {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.GetPeggedOrigIndexKey(peggedChainId, peggedAddress))
-	if bz == nil {
-		return index, false
-	}
-	k.cdc.MustUnmarshal(bz, &index)
-	return index, true
-}
-
-// TODO better to use GetPeggedOrigIndex
-func (k Keeper) GetPeggedOrigIndexByStrAddr(
-	ctx sdk.Context, peggedChainId uint64, peggedAddress string) (index types.PeggedOrigIndex, found bool) {
-	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.GetPeggedOrigIndexKeyByStrAddr(peggedChainId, peggedAddress))
 	if bz == nil {
 		return index, false
 	}
@@ -161,20 +149,10 @@ func (k Keeper) IterateAllPeggedOrigIndices(
 	}
 }
 
+// peggedAddress can be eth.Addr or string in flow's case
 func (k Keeper) GetOrigPeggedPairByPegged(
-	ctx sdk.Context, peggedChainId uint64, peggedAddress eth.Addr) (pair types.OrigPeggedPair, found bool) {
+	ctx sdk.Context, peggedChainId uint64, peggedAddress interface{}) (pair types.OrigPeggedPair, found bool) {
 	index, found := k.GetPeggedOrigIndex(ctx, peggedChainId, peggedAddress)
-	if !found {
-		return pair, false
-	}
-	origInfo := index.Orig
-	return k.GetOrigPeggedPair(ctx, origInfo.ChainId, origInfo.Address, peggedChainId)
-}
-
-// TODO better to change GetOrigPeggedPairByPegged, but find many place to change
-func (k Keeper) GetOrigPeggedPairByPeggedByStrAddr(
-	ctx sdk.Context, peggedChainId uint64, peggedAddress string) (pair types.OrigPeggedPair, found bool) {
-	index, found := k.GetPeggedOrigIndexByStrAddr(ctx, peggedChainId, peggedAddress)
 	if !found {
 		return pair, false
 	}

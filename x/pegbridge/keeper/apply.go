@@ -158,7 +158,7 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 			return false, nil
 		}
 
-		pair, pairFound := k.GetOrigPeggedPairByPeggedByStrAddr(ctx, burnChainId, burnToken)
+		pair, pairFound := k.GetOrigPeggedPairByPegged(ctx, burnChainId, burnToken)
 		if !pairFound {
 			// pegged pair should be found. if not, an ERROR log would be printed.
 			// this burn couldn't be refunded, because totalSupply in sgn was not updated.

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/big"
 
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/pegbridge/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -54,7 +55,14 @@ func (k Keeper) OrigPeggedPairs(
 
 	// If orig not specified but pegged specified, return single pair
 	if pegged != nil {
-		pair, found := k.GetOrigPeggedPairByPegged(ctx, pegged.GetChainId(), eth.Hex2Addr(pegged.GetAddress()))
+		var pegAddr interface{}
+		if commontypes.IsFlowChain(pegged.GetChainId()) {
+			pegAddr = pegged.GetAddress() // use string directly, as token string has non-hex char
+		} else {
+			// evm
+			pegAddr = eth.Hex2Addr(pegged.GetAddress())
+		}
+		pair, found := k.GetOrigPeggedPairByPegged(ctx, pegged.GetChainId(), pegAddr)
 		if found {
 			pairs = append(pairs, pair)
 		}

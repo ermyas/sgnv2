@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
+	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/relayer"
 	"github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -442,7 +443,7 @@ func CalcBaseFee(kv sdk.KVStore, assetSym string, assetChainId uint64, destChid 
 	gasCost := getUint32(kv, types.CfgKeyChain2EstimateRelayGasCost(destChid))
 
 	gasPrice := GetGasPrice(kv, destChid)
-	// formula is gasCost * gasPrice * gasTokenPrice / 1e18 / assetPrice
+	// formula is gasCost * gasPrice * gasTokenPrice / assetPrice, then consider decimal difference
 	if assetUsdPrice == 0 {
 		log.Warnln("chainid:", destChid, "asset", assetSym, "usd price is 0")
 		return // avoid div by 0
@@ -456,7 +457,19 @@ func CalcBaseFee(kv sdk.KVStore, assetSym string, assetChainId uint64, destChid 
 		baseFee.Mul(baseFee, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(assetExtP10)), nil))
 	}
 	baseFee.Div(baseFee, big.NewInt(int64(assetUsdPrice)))
-	// if gasExtP10 >0, we div here
+	if commontypes.IsFlowChain(destChid) {
+		// flow gas token has 8 decimal and 8-assetInfo.Decimal could be negative so we must handle carefully
+		expAdjust := 8 - int(assetInfo.Decimal) + int(gasExtP10)
+		if expAdjust > 0 { // divided if gas token has bigger decimal because return is in asset decimal unit
+			baseFee.Div(baseFee, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(expAdjust)), nil))
+		} else if expAdjust < 0 {
+			// div 1e(-10) equals mul 1e10
+			baseFee.Mul(baseFee, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(-expAdjust)), nil))
+		}
+		log.Debugf("basefee: %s, chid: %d, gasprice: %s, gascost: %d, gastokenusd: %d, assetusd: %d", baseFee, destChid, gasPrice, gasCost, gasTokenUsdPrice, assetUsdPrice)
+		return
+	}
+	// evm chains, adjust decimal difference if exists, also handle gasExtP10
 	baseFee.Div(baseFee, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(18-assetInfo.Decimal+gasExtP10)), nil)) // EVM gas token always 18 decimal
 	log.Debugf("basefee: %s, chid: %d, gasprice: %s, gascost: %d, gastokenusd: %d, assetusd: %d", baseFee, destChid, gasPrice, gasCost, gasTokenUsdPrice, assetUsdPrice)
 	return

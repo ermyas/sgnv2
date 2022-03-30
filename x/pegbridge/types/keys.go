@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/celer-network/goutils/log"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 )
@@ -87,8 +88,19 @@ func GetOrigPeggedByOrigTokenAndPeggedChainIdPrefix(origChainId uint64, origAddr
 	return append(OrigPeggedPairPrefix, origTokenAndPeggedChainIdBytes...)
 }
 
-func GetPeggedOrigIndexKey(peggedChainId uint64, peggedAddress eth.Addr) []byte {
-	return append(PeggedOrigIndexPrefix, GetChainIdAddressBytes(peggedChainId, eth.Addr2Hex(peggedAddress))...)
+// peggedAddress can be eth.Addr or string
+func GetPeggedOrigIndexKey(peggedChainId uint64, peggedAddress interface{}) []byte {
+	var pegKey string
+	switch peg := peggedAddress.(type) {
+	case eth.Addr:
+		pegKey = eth.Addr2Hex(peg)
+	case string:
+		pegKey = peg
+	default:
+		log.Errorf("unsupported peggedAddress type: %T", peggedAddress)
+
+	}
+	return append(PeggedOrigIndexPrefix, GetChainIdAddressBytes(peggedChainId, pegKey)...)
 }
 
 // TODO better to use GetPeggedOrigIndexKey or change it
