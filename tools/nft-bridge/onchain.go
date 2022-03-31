@@ -31,6 +31,10 @@ func a2hex(addr Addr) string {
 	return hex.EncodeToString(addr[:])
 }
 
+func hex2hash(hexstr string) common.Hash {
+	return common.HexToHash(hexstr)
+}
+
 // status in db and return to web
 type XferStatus int16
 

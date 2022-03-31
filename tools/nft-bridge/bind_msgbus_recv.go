@@ -28,28 +28,47 @@ var (
 	_ = event.NewSubscription
 )
 
-// MessageBusReceiverRouteInfo is an auto generated low-level Go binding around an user-defined struct.
-type MessageBusReceiverRouteInfo struct {
+// MsgDataTypesBridgeTransferParams is an auto generated low-level Go binding around an user-defined struct.
+type MsgDataTypesBridgeTransferParams struct {
+	Request []byte
+	Sigs    [][]byte
+	Signers []common.Address
+	Powers  []*big.Int
+}
+
+// MsgDataTypesMsgWithTransferExecutionParams is an auto generated low-level Go binding around an user-defined struct.
+type MsgDataTypesMsgWithTransferExecutionParams struct {
+	Message  []byte
+	Transfer MsgDataTypesTransferInfo
+	Sigs     [][]byte
+	Signers  []common.Address
+	Powers   []*big.Int
+}
+
+// MsgDataTypesRouteInfo is an auto generated low-level Go binding around an user-defined struct.
+type MsgDataTypesRouteInfo struct {
 	Sender     common.Address
 	Receiver   common.Address
 	SrcChainId uint64
+	SrcTxHash  [32]byte
 }
 
-// MessageBusReceiverTransferInfo is an auto generated low-level Go binding around an user-defined struct.
-type MessageBusReceiverTransferInfo struct {
+// MsgDataTypesTransferInfo is an auto generated low-level Go binding around an user-defined struct.
+type MsgDataTypesTransferInfo struct {
 	T          uint8
 	Sender     common.Address
 	Receiver   common.Address
 	Token      common.Address
 	Amount     *big.Int
-	Seqnum     uint64
+	Wdseq      uint64
 	SrcChainId uint64
 	RefId      [32]byte
+	SrcTxHash  [32]byte
 }
 
 // MsgBusRecvMetaData contains all meta data concerning the MsgBusRecv contract.
 var MsgBusRecvMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_liquidityBridge\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_pegBridge\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_pegVault\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_pegBridgeV2\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_pegVaultV2\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"enumMessageBusReceiver.MsgType\",\"name\":\"msgType\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"id\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"enumMessageBusReceiver.TxStatus\",\"name\":\"status\",\"type\":\"uint8\"}],\"name\":\"Executed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"liquidityBridge\",\"type\":\"address\"}],\"name\":\"LiquidityBridgeUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"pegBridge\",\"type\":\"address\"}],\"name\":\"PegBridgeUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"pegBridgeV2\",\"type\":\"address\"}],\"name\":\"PegBridgeV2Updated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"pegVault\",\"type\":\"address\"}],\"name\":\"PegVaultUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"pegVaultV2\",\"type\":\"address\"}],\"name\":\"PegVaultV2Updated\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint64\",\"name\":\"srcChainId\",\"type\":\"uint64\"}],\"internalType\":\"structMessageBusReceiver.RouteInfo\",\"name\":\"_route\",\"type\":\"tuple\"},{\"internalType\":\"bytes[]\",\"name\":\"_sigs\",\"type\":\"bytes[]\"},{\"internalType\":\"address[]\",\"name\":\"_signers\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_powers\",\"type\":\"uint256[]\"}],\"name\":\"executeMessage\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"},{\"components\":[{\"internalType\":\"enumMessageBusReceiver.TransferType\",\"name\":\"t\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"seqnum\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"srcChainId\",\"type\":\"uint64\"},{\"internalType\":\"bytes32\",\"name\":\"refId\",\"type\":\"bytes32\"}],\"internalType\":\"structMessageBusReceiver.TransferInfo\",\"name\":\"_transfer\",\"type\":\"tuple\"},{\"internalType\":\"bytes[]\",\"name\":\"_sigs\",\"type\":\"bytes[]\"},{\"internalType\":\"address[]\",\"name\":\"_signers\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_powers\",\"type\":\"uint256[]\"}],\"name\":\"executeMessageWithTransfer\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"},{\"components\":[{\"internalType\":\"enumMessageBusReceiver.TransferType\",\"name\":\"t\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"seqnum\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"srcChainId\",\"type\":\"uint64\"},{\"internalType\":\"bytes32\",\"name\":\"refId\",\"type\":\"bytes32\"}],\"internalType\":\"structMessageBusReceiver.TransferInfo\",\"name\":\"_transfer\",\"type\":\"tuple\"},{\"internalType\":\"bytes[]\",\"name\":\"_sigs\",\"type\":\"bytes[]\"},{\"internalType\":\"address[]\",\"name\":\"_signers\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_powers\",\"type\":\"uint256[]\"}],\"name\":\"executeMessageWithTransferRefund\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"executedMessages\",\"outputs\":[{\"internalType\":\"enumMessageBusReceiver.TxStatus\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"liquidityBridge\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pegBridge\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pegBridgeV2\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pegVault\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pegVaultV2\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"}],\"name\":\"setLiquidityBridge\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"}],\"name\":\"setPegBridge\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"}],\"name\":\"setPegBridgeV2\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"}],\"name\":\"setPegVault\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"}],\"name\":\"setPegVaultV2\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+	ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_liquidityBridge\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_pegBridge\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_pegVault\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_pegBridgeV2\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_pegVaultV2\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"reason\",\"type\":\"string\"}],\"name\":\"CallReverted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"enumMsgDataTypes.MsgType\",\"name\":\"msgType\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"msgId\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"enumMsgDataTypes.TxStatus\",\"name\":\"status\",\"type\":\"uint8\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"srcChainId\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"srcTxHash\",\"type\":\"bytes32\"}],\"name\":\"Executed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"liquidityBridge\",\"type\":\"address\"}],\"name\":\"LiquidityBridgeUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"enumMsgDataTypes.MsgType\",\"name\":\"msgType\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"msgId\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"srcChainId\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"srcTxHash\",\"type\":\"bytes32\"}],\"name\":\"NeedRetry\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"pegBridge\",\"type\":\"address\"}],\"name\":\"PegBridgeUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"pegBridgeV2\",\"type\":\"address\"}],\"name\":\"PegBridgeV2Updated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"pegVault\",\"type\":\"address\"}],\"name\":\"PegVaultUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"pegVaultV2\",\"type\":\"address\"}],\"name\":\"PegVaultV2Updated\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint64\",\"name\":\"srcChainId\",\"type\":\"uint64\"},{\"internalType\":\"bytes32\",\"name\":\"srcTxHash\",\"type\":\"bytes32\"}],\"internalType\":\"structMsgDataTypes.RouteInfo\",\"name\":\"_route\",\"type\":\"tuple\"},{\"internalType\":\"bytes[]\",\"name\":\"_sigs\",\"type\":\"bytes[]\"},{\"internalType\":\"address[]\",\"name\":\"_signers\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_powers\",\"type\":\"uint256[]\"}],\"name\":\"executeMessage\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"},{\"components\":[{\"internalType\":\"enumMsgDataTypes.TransferType\",\"name\":\"t\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"wdseq\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"srcChainId\",\"type\":\"uint64\"},{\"internalType\":\"bytes32\",\"name\":\"refId\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"srcTxHash\",\"type\":\"bytes32\"}],\"internalType\":\"structMsgDataTypes.TransferInfo\",\"name\":\"_transfer\",\"type\":\"tuple\"},{\"internalType\":\"bytes[]\",\"name\":\"_sigs\",\"type\":\"bytes[]\"},{\"internalType\":\"address[]\",\"name\":\"_signers\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_powers\",\"type\":\"uint256[]\"}],\"name\":\"executeMessageWithTransfer\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"},{\"components\":[{\"internalType\":\"enumMsgDataTypes.TransferType\",\"name\":\"t\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"wdseq\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"srcChainId\",\"type\":\"uint64\"},{\"internalType\":\"bytes32\",\"name\":\"refId\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"srcTxHash\",\"type\":\"bytes32\"}],\"internalType\":\"structMsgDataTypes.TransferInfo\",\"name\":\"_transfer\",\"type\":\"tuple\"},{\"internalType\":\"bytes[]\",\"name\":\"_sigs\",\"type\":\"bytes[]\"},{\"internalType\":\"address[]\",\"name\":\"_signers\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"_powers\",\"type\":\"uint256[]\"}],\"name\":\"executeMessageWithTransferRefund\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"executedMessages\",\"outputs\":[{\"internalType\":\"enumMsgDataTypes.TxStatus\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"liquidityBridge\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pegBridge\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pegBridgeV2\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pegVault\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pegVaultV2\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"preExecuteMessageGasUsage\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"bytes\",\"name\":\"request\",\"type\":\"bytes\"},{\"internalType\":\"bytes[]\",\"name\":\"sigs\",\"type\":\"bytes[]\"},{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"powers\",\"type\":\"uint256[]\"}],\"internalType\":\"structMsgDataTypes.BridgeTransferParams\",\"name\":\"_transferParams\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"bytes\",\"name\":\"message\",\"type\":\"bytes\"},{\"components\":[{\"internalType\":\"enumMsgDataTypes.TransferType\",\"name\":\"t\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"wdseq\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"srcChainId\",\"type\":\"uint64\"},{\"internalType\":\"bytes32\",\"name\":\"refId\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"srcTxHash\",\"type\":\"bytes32\"}],\"internalType\":\"structMsgDataTypes.TransferInfo\",\"name\":\"transfer\",\"type\":\"tuple\"},{\"internalType\":\"bytes[]\",\"name\":\"sigs\",\"type\":\"bytes[]\"},{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"powers\",\"type\":\"uint256[]\"}],\"internalType\":\"structMsgDataTypes.MsgWithTransferExecutionParams\",\"name\":\"_msgParams\",\"type\":\"tuple\"}],\"name\":\"refundAndExecuteMsg\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"}],\"name\":\"setLiquidityBridge\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"}],\"name\":\"setPegBridge\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"}],\"name\":\"setPegBridgeV2\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"}],\"name\":\"setPegVault\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"}],\"name\":\"setPegVaultV2\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_usage\",\"type\":\"uint256\"}],\"name\":\"setPreExecuteMessageGasUsage\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"bytes\",\"name\":\"request\",\"type\":\"bytes\"},{\"internalType\":\"bytes[]\",\"name\":\"sigs\",\"type\":\"bytes[]\"},{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"powers\",\"type\":\"uint256[]\"}],\"internalType\":\"structMsgDataTypes.BridgeTransferParams\",\"name\":\"_transferParams\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"bytes\",\"name\":\"message\",\"type\":\"bytes\"},{\"components\":[{\"internalType\":\"enumMsgDataTypes.TransferType\",\"name\":\"t\",\"type\":\"uint8\"},{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"wdseq\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"srcChainId\",\"type\":\"uint64\"},{\"internalType\":\"bytes32\",\"name\":\"refId\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"srcTxHash\",\"type\":\"bytes32\"}],\"internalType\":\"structMsgDataTypes.TransferInfo\",\"name\":\"transfer\",\"type\":\"tuple\"},{\"internalType\":\"bytes[]\",\"name\":\"sigs\",\"type\":\"bytes[]\"},{\"internalType\":\"address[]\",\"name\":\"signers\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"powers\",\"type\":\"uint256[]\"}],\"internalType\":\"structMsgDataTypes.MsgWithTransferExecutionParams\",\"name\":\"_msgParams\",\"type\":\"tuple\"}],\"name\":\"transferAndExecuteMsg\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
 }
 
 // MsgBusRecvABI is the input ABI used to generate the binding from.
@@ -415,67 +434,119 @@ func (_MsgBusRecv *MsgBusRecvCallerSession) PegVaultV2() (common.Address, error)
 	return _MsgBusRecv.Contract.PegVaultV2(&_MsgBusRecv.CallOpts)
 }
 
-// ExecuteMessage is a paid mutator transaction binding the contract method 0x654317bf.
+// PreExecuteMessageGasUsage is a free data retrieval call binding the contract method 0x584e45e1.
 //
-// Solidity: function executeMessage(bytes _message, (address,address,uint64) _route, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
-func (_MsgBusRecv *MsgBusRecvTransactor) ExecuteMessage(opts *bind.TransactOpts, _message []byte, _route MessageBusReceiverRouteInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
+// Solidity: function preExecuteMessageGasUsage() view returns(uint256)
+func (_MsgBusRecv *MsgBusRecvCaller) PreExecuteMessageGasUsage(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _MsgBusRecv.contract.Call(opts, &out, "preExecuteMessageGasUsage")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// PreExecuteMessageGasUsage is a free data retrieval call binding the contract method 0x584e45e1.
+//
+// Solidity: function preExecuteMessageGasUsage() view returns(uint256)
+func (_MsgBusRecv *MsgBusRecvSession) PreExecuteMessageGasUsage() (*big.Int, error) {
+	return _MsgBusRecv.Contract.PreExecuteMessageGasUsage(&_MsgBusRecv.CallOpts)
+}
+
+// PreExecuteMessageGasUsage is a free data retrieval call binding the contract method 0x584e45e1.
+//
+// Solidity: function preExecuteMessageGasUsage() view returns(uint256)
+func (_MsgBusRecv *MsgBusRecvCallerSession) PreExecuteMessageGasUsage() (*big.Int, error) {
+	return _MsgBusRecv.Contract.PreExecuteMessageGasUsage(&_MsgBusRecv.CallOpts)
+}
+
+// ExecuteMessage is a paid mutator transaction binding the contract method 0x468a2d04.
+//
+// Solidity: function executeMessage(bytes _message, (address,address,uint64,bytes32) _route, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
+func (_MsgBusRecv *MsgBusRecvTransactor) ExecuteMessage(opts *bind.TransactOpts, _message []byte, _route MsgDataTypesRouteInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
 	return _MsgBusRecv.contract.Transact(opts, "executeMessage", _message, _route, _sigs, _signers, _powers)
 }
 
-// ExecuteMessage is a paid mutator transaction binding the contract method 0x654317bf.
+// ExecuteMessage is a paid mutator transaction binding the contract method 0x468a2d04.
 //
-// Solidity: function executeMessage(bytes _message, (address,address,uint64) _route, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
-func (_MsgBusRecv *MsgBusRecvSession) ExecuteMessage(_message []byte, _route MessageBusReceiverRouteInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
+// Solidity: function executeMessage(bytes _message, (address,address,uint64,bytes32) _route, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
+func (_MsgBusRecv *MsgBusRecvSession) ExecuteMessage(_message []byte, _route MsgDataTypesRouteInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
 	return _MsgBusRecv.Contract.ExecuteMessage(&_MsgBusRecv.TransactOpts, _message, _route, _sigs, _signers, _powers)
 }
 
-// ExecuteMessage is a paid mutator transaction binding the contract method 0x654317bf.
+// ExecuteMessage is a paid mutator transaction binding the contract method 0x468a2d04.
 //
-// Solidity: function executeMessage(bytes _message, (address,address,uint64) _route, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
-func (_MsgBusRecv *MsgBusRecvTransactorSession) ExecuteMessage(_message []byte, _route MessageBusReceiverRouteInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
+// Solidity: function executeMessage(bytes _message, (address,address,uint64,bytes32) _route, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
+func (_MsgBusRecv *MsgBusRecvTransactorSession) ExecuteMessage(_message []byte, _route MsgDataTypesRouteInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
 	return _MsgBusRecv.Contract.ExecuteMessage(&_MsgBusRecv.TransactOpts, _message, _route, _sigs, _signers, _powers)
 }
 
-// ExecuteMessageWithTransfer is a paid mutator transaction binding the contract method 0xa2232213.
+// ExecuteMessageWithTransfer is a paid mutator transaction binding the contract method 0x3f395aff.
 //
-// Solidity: function executeMessageWithTransfer(bytes _message, (uint8,address,address,address,uint256,uint64,uint64,bytes32) _transfer, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
-func (_MsgBusRecv *MsgBusRecvTransactor) ExecuteMessageWithTransfer(opts *bind.TransactOpts, _message []byte, _transfer MessageBusReceiverTransferInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
+// Solidity: function executeMessageWithTransfer(bytes _message, (uint8,address,address,address,uint256,uint64,uint64,bytes32,bytes32) _transfer, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
+func (_MsgBusRecv *MsgBusRecvTransactor) ExecuteMessageWithTransfer(opts *bind.TransactOpts, _message []byte, _transfer MsgDataTypesTransferInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
 	return _MsgBusRecv.contract.Transact(opts, "executeMessageWithTransfer", _message, _transfer, _sigs, _signers, _powers)
 }
 
-// ExecuteMessageWithTransfer is a paid mutator transaction binding the contract method 0xa2232213.
+// ExecuteMessageWithTransfer is a paid mutator transaction binding the contract method 0x3f395aff.
 //
-// Solidity: function executeMessageWithTransfer(bytes _message, (uint8,address,address,address,uint256,uint64,uint64,bytes32) _transfer, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
-func (_MsgBusRecv *MsgBusRecvSession) ExecuteMessageWithTransfer(_message []byte, _transfer MessageBusReceiverTransferInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
+// Solidity: function executeMessageWithTransfer(bytes _message, (uint8,address,address,address,uint256,uint64,uint64,bytes32,bytes32) _transfer, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
+func (_MsgBusRecv *MsgBusRecvSession) ExecuteMessageWithTransfer(_message []byte, _transfer MsgDataTypesTransferInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
 	return _MsgBusRecv.Contract.ExecuteMessageWithTransfer(&_MsgBusRecv.TransactOpts, _message, _transfer, _sigs, _signers, _powers)
 }
 
-// ExecuteMessageWithTransfer is a paid mutator transaction binding the contract method 0xa2232213.
+// ExecuteMessageWithTransfer is a paid mutator transaction binding the contract method 0x3f395aff.
 //
-// Solidity: function executeMessageWithTransfer(bytes _message, (uint8,address,address,address,uint256,uint64,uint64,bytes32) _transfer, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
-func (_MsgBusRecv *MsgBusRecvTransactorSession) ExecuteMessageWithTransfer(_message []byte, _transfer MessageBusReceiverTransferInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
+// Solidity: function executeMessageWithTransfer(bytes _message, (uint8,address,address,address,uint256,uint64,uint64,bytes32,bytes32) _transfer, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
+func (_MsgBusRecv *MsgBusRecvTransactorSession) ExecuteMessageWithTransfer(_message []byte, _transfer MsgDataTypesTransferInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
 	return _MsgBusRecv.Contract.ExecuteMessageWithTransfer(&_MsgBusRecv.TransactOpts, _message, _transfer, _sigs, _signers, _powers)
 }
 
-// ExecuteMessageWithTransferRefund is a paid mutator transaction binding the contract method 0x588df416.
+// ExecuteMessageWithTransferRefund is a paid mutator transaction binding the contract method 0x7b80ab20.
 //
-// Solidity: function executeMessageWithTransferRefund(bytes _message, (uint8,address,address,address,uint256,uint64,uint64,bytes32) _transfer, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
-func (_MsgBusRecv *MsgBusRecvTransactor) ExecuteMessageWithTransferRefund(opts *bind.TransactOpts, _message []byte, _transfer MessageBusReceiverTransferInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
+// Solidity: function executeMessageWithTransferRefund(bytes _message, (uint8,address,address,address,uint256,uint64,uint64,bytes32,bytes32) _transfer, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
+func (_MsgBusRecv *MsgBusRecvTransactor) ExecuteMessageWithTransferRefund(opts *bind.TransactOpts, _message []byte, _transfer MsgDataTypesTransferInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
 	return _MsgBusRecv.contract.Transact(opts, "executeMessageWithTransferRefund", _message, _transfer, _sigs, _signers, _powers)
 }
 
-// ExecuteMessageWithTransferRefund is a paid mutator transaction binding the contract method 0x588df416.
+// ExecuteMessageWithTransferRefund is a paid mutator transaction binding the contract method 0x7b80ab20.
 //
-// Solidity: function executeMessageWithTransferRefund(bytes _message, (uint8,address,address,address,uint256,uint64,uint64,bytes32) _transfer, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
-func (_MsgBusRecv *MsgBusRecvSession) ExecuteMessageWithTransferRefund(_message []byte, _transfer MessageBusReceiverTransferInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
+// Solidity: function executeMessageWithTransferRefund(bytes _message, (uint8,address,address,address,uint256,uint64,uint64,bytes32,bytes32) _transfer, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
+func (_MsgBusRecv *MsgBusRecvSession) ExecuteMessageWithTransferRefund(_message []byte, _transfer MsgDataTypesTransferInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
 	return _MsgBusRecv.Contract.ExecuteMessageWithTransferRefund(&_MsgBusRecv.TransactOpts, _message, _transfer, _sigs, _signers, _powers)
 }
 
-// ExecuteMessageWithTransferRefund is a paid mutator transaction binding the contract method 0x588df416.
+// ExecuteMessageWithTransferRefund is a paid mutator transaction binding the contract method 0x7b80ab20.
 //
-// Solidity: function executeMessageWithTransferRefund(bytes _message, (uint8,address,address,address,uint256,uint64,uint64,bytes32) _transfer, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
-func (_MsgBusRecv *MsgBusRecvTransactorSession) ExecuteMessageWithTransferRefund(_message []byte, _transfer MessageBusReceiverTransferInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
+// Solidity: function executeMessageWithTransferRefund(bytes _message, (uint8,address,address,address,uint256,uint64,uint64,bytes32,bytes32) _transfer, bytes[] _sigs, address[] _signers, uint256[] _powers) payable returns()
+func (_MsgBusRecv *MsgBusRecvTransactorSession) ExecuteMessageWithTransferRefund(_message []byte, _transfer MsgDataTypesTransferInfo, _sigs [][]byte, _signers []common.Address, _powers []*big.Int) (*types.Transaction, error) {
 	return _MsgBusRecv.Contract.ExecuteMessageWithTransferRefund(&_MsgBusRecv.TransactOpts, _message, _transfer, _sigs, _signers, _powers)
+}
+
+// RefundAndExecuteMsg is a paid mutator transaction binding the contract method 0x40d0d026.
+//
+// Solidity: function refundAndExecuteMsg((bytes,bytes[],address[],uint256[]) _transferParams, (bytes,(uint8,address,address,address,uint256,uint64,uint64,bytes32,bytes32),bytes[],address[],uint256[]) _msgParams) returns()
+func (_MsgBusRecv *MsgBusRecvTransactor) RefundAndExecuteMsg(opts *bind.TransactOpts, _transferParams MsgDataTypesBridgeTransferParams, _msgParams MsgDataTypesMsgWithTransferExecutionParams) (*types.Transaction, error) {
+	return _MsgBusRecv.contract.Transact(opts, "refundAndExecuteMsg", _transferParams, _msgParams)
+}
+
+// RefundAndExecuteMsg is a paid mutator transaction binding the contract method 0x40d0d026.
+//
+// Solidity: function refundAndExecuteMsg((bytes,bytes[],address[],uint256[]) _transferParams, (bytes,(uint8,address,address,address,uint256,uint64,uint64,bytes32,bytes32),bytes[],address[],uint256[]) _msgParams) returns()
+func (_MsgBusRecv *MsgBusRecvSession) RefundAndExecuteMsg(_transferParams MsgDataTypesBridgeTransferParams, _msgParams MsgDataTypesMsgWithTransferExecutionParams) (*types.Transaction, error) {
+	return _MsgBusRecv.Contract.RefundAndExecuteMsg(&_MsgBusRecv.TransactOpts, _transferParams, _msgParams)
+}
+
+// RefundAndExecuteMsg is a paid mutator transaction binding the contract method 0x40d0d026.
+//
+// Solidity: function refundAndExecuteMsg((bytes,bytes[],address[],uint256[]) _transferParams, (bytes,(uint8,address,address,address,uint256,uint64,uint64,bytes32,bytes32),bytes[],address[],uint256[]) _msgParams) returns()
+func (_MsgBusRecv *MsgBusRecvTransactorSession) RefundAndExecuteMsg(_transferParams MsgDataTypesBridgeTransferParams, _msgParams MsgDataTypesMsgWithTransferExecutionParams) (*types.Transaction, error) {
+	return _MsgBusRecv.Contract.RefundAndExecuteMsg(&_MsgBusRecv.TransactOpts, _transferParams, _msgParams)
 }
 
 // SetLiquidityBridge is a paid mutator transaction binding the contract method 0x588be02b.
@@ -583,6 +654,48 @@ func (_MsgBusRecv *MsgBusRecvTransactorSession) SetPegVaultV2(_addr common.Addre
 	return _MsgBusRecv.Contract.SetPegVaultV2(&_MsgBusRecv.TransactOpts, _addr)
 }
 
+// SetPreExecuteMessageGasUsage is a paid mutator transaction binding the contract method 0x4586f331.
+//
+// Solidity: function setPreExecuteMessageGasUsage(uint256 _usage) returns()
+func (_MsgBusRecv *MsgBusRecvTransactor) SetPreExecuteMessageGasUsage(opts *bind.TransactOpts, _usage *big.Int) (*types.Transaction, error) {
+	return _MsgBusRecv.contract.Transact(opts, "setPreExecuteMessageGasUsage", _usage)
+}
+
+// SetPreExecuteMessageGasUsage is a paid mutator transaction binding the contract method 0x4586f331.
+//
+// Solidity: function setPreExecuteMessageGasUsage(uint256 _usage) returns()
+func (_MsgBusRecv *MsgBusRecvSession) SetPreExecuteMessageGasUsage(_usage *big.Int) (*types.Transaction, error) {
+	return _MsgBusRecv.Contract.SetPreExecuteMessageGasUsage(&_MsgBusRecv.TransactOpts, _usage)
+}
+
+// SetPreExecuteMessageGasUsage is a paid mutator transaction binding the contract method 0x4586f331.
+//
+// Solidity: function setPreExecuteMessageGasUsage(uint256 _usage) returns()
+func (_MsgBusRecv *MsgBusRecvTransactorSession) SetPreExecuteMessageGasUsage(_usage *big.Int) (*types.Transaction, error) {
+	return _MsgBusRecv.Contract.SetPreExecuteMessageGasUsage(&_MsgBusRecv.TransactOpts, _usage)
+}
+
+// TransferAndExecuteMsg is a paid mutator transaction binding the contract method 0x723d0a9d.
+//
+// Solidity: function transferAndExecuteMsg((bytes,bytes[],address[],uint256[]) _transferParams, (bytes,(uint8,address,address,address,uint256,uint64,uint64,bytes32,bytes32),bytes[],address[],uint256[]) _msgParams) returns()
+func (_MsgBusRecv *MsgBusRecvTransactor) TransferAndExecuteMsg(opts *bind.TransactOpts, _transferParams MsgDataTypesBridgeTransferParams, _msgParams MsgDataTypesMsgWithTransferExecutionParams) (*types.Transaction, error) {
+	return _MsgBusRecv.contract.Transact(opts, "transferAndExecuteMsg", _transferParams, _msgParams)
+}
+
+// TransferAndExecuteMsg is a paid mutator transaction binding the contract method 0x723d0a9d.
+//
+// Solidity: function transferAndExecuteMsg((bytes,bytes[],address[],uint256[]) _transferParams, (bytes,(uint8,address,address,address,uint256,uint64,uint64,bytes32,bytes32),bytes[],address[],uint256[]) _msgParams) returns()
+func (_MsgBusRecv *MsgBusRecvSession) TransferAndExecuteMsg(_transferParams MsgDataTypesBridgeTransferParams, _msgParams MsgDataTypesMsgWithTransferExecutionParams) (*types.Transaction, error) {
+	return _MsgBusRecv.Contract.TransferAndExecuteMsg(&_MsgBusRecv.TransactOpts, _transferParams, _msgParams)
+}
+
+// TransferAndExecuteMsg is a paid mutator transaction binding the contract method 0x723d0a9d.
+//
+// Solidity: function transferAndExecuteMsg((bytes,bytes[],address[],uint256[]) _transferParams, (bytes,(uint8,address,address,address,uint256,uint64,uint64,bytes32,bytes32),bytes[],address[],uint256[]) _msgParams) returns()
+func (_MsgBusRecv *MsgBusRecvTransactorSession) TransferAndExecuteMsg(_transferParams MsgDataTypesBridgeTransferParams, _msgParams MsgDataTypesMsgWithTransferExecutionParams) (*types.Transaction, error) {
+	return _MsgBusRecv.Contract.TransferAndExecuteMsg(&_MsgBusRecv.TransactOpts, _transferParams, _msgParams)
+}
+
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
 //
 // Solidity: function transferOwnership(address newOwner) returns()
@@ -602,6 +715,140 @@ func (_MsgBusRecv *MsgBusRecvSession) TransferOwnership(newOwner common.Address)
 // Solidity: function transferOwnership(address newOwner) returns()
 func (_MsgBusRecv *MsgBusRecvTransactorSession) TransferOwnership(newOwner common.Address) (*types.Transaction, error) {
 	return _MsgBusRecv.Contract.TransferOwnership(&_MsgBusRecv.TransactOpts, newOwner)
+}
+
+// MsgBusRecvCallRevertedIterator is returned from FilterCallReverted and is used to iterate over the raw logs and unpacked data for CallReverted events raised by the MsgBusRecv contract.
+type MsgBusRecvCallRevertedIterator struct {
+	Event *MsgBusRecvCallReverted // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *MsgBusRecvCallRevertedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(MsgBusRecvCallReverted)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(MsgBusRecvCallReverted)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *MsgBusRecvCallRevertedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *MsgBusRecvCallRevertedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// MsgBusRecvCallReverted represents a CallReverted event raised by the MsgBusRecv contract.
+type MsgBusRecvCallReverted struct {
+	Reason string
+	Raw    types.Log // Blockchain specific contextual infos
+}
+
+// FilterCallReverted is a free log retrieval operation binding the contract event 0xffdd6142bbb721f3400e3908b04b86f60649b2e4d191e3f4c50c32c3e6471d2f.
+//
+// Solidity: event CallReverted(string reason)
+func (_MsgBusRecv *MsgBusRecvFilterer) FilterCallReverted(opts *bind.FilterOpts) (*MsgBusRecvCallRevertedIterator, error) {
+
+	logs, sub, err := _MsgBusRecv.contract.FilterLogs(opts, "CallReverted")
+	if err != nil {
+		return nil, err
+	}
+	return &MsgBusRecvCallRevertedIterator{contract: _MsgBusRecv.contract, event: "CallReverted", logs: logs, sub: sub}, nil
+}
+
+// WatchCallReverted is a free log subscription operation binding the contract event 0xffdd6142bbb721f3400e3908b04b86f60649b2e4d191e3f4c50c32c3e6471d2f.
+//
+// Solidity: event CallReverted(string reason)
+func (_MsgBusRecv *MsgBusRecvFilterer) WatchCallReverted(opts *bind.WatchOpts, sink chan<- *MsgBusRecvCallReverted) (event.Subscription, error) {
+
+	logs, sub, err := _MsgBusRecv.contract.WatchLogs(opts, "CallReverted")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(MsgBusRecvCallReverted)
+				if err := _MsgBusRecv.contract.UnpackLog(event, "CallReverted", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseCallReverted is a log parse operation binding the contract event 0xffdd6142bbb721f3400e3908b04b86f60649b2e4d191e3f4c50c32c3e6471d2f.
+//
+// Solidity: event CallReverted(string reason)
+func (_MsgBusRecv *MsgBusRecvFilterer) ParseCallReverted(log types.Log) (*MsgBusRecvCallReverted, error) {
+	event := new(MsgBusRecvCallReverted)
+	if err := _MsgBusRecv.contract.UnpackLog(event, "CallReverted", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
 }
 
 // MsgBusRecvExecutedIterator is returned from FilterExecuted and is used to iterate over the raw logs and unpacked data for Executed events raised by the MsgBusRecv contract.
@@ -673,30 +920,43 @@ func (it *MsgBusRecvExecutedIterator) Close() error {
 
 // MsgBusRecvExecuted represents a Executed event raised by the MsgBusRecv contract.
 type MsgBusRecvExecuted struct {
-	MsgType uint8
-	Id      [32]byte
-	Status  uint8
-	Raw     types.Log // Blockchain specific contextual infos
+	MsgType    uint8
+	MsgId      [32]byte
+	Status     uint8
+	Receiver   common.Address
+	SrcChainId uint64
+	SrcTxHash  [32]byte
+	Raw        types.Log // Blockchain specific contextual infos
 }
 
-// FilterExecuted is a free log retrieval operation binding the contract event 0x29122f2c841ca2c3b2feefc4c23e90755d735d8e5b84f307151532e0f1ad62e7.
+// FilterExecuted is a free log retrieval operation binding the contract event 0xa635eb05143f74743822bbd96428928de4c8ee8cc578299749be9425c17bb34d.
 //
-// Solidity: event Executed(uint8 msgType, bytes32 id, uint8 status)
-func (_MsgBusRecv *MsgBusRecvFilterer) FilterExecuted(opts *bind.FilterOpts) (*MsgBusRecvExecutedIterator, error) {
+// Solidity: event Executed(uint8 msgType, bytes32 msgId, uint8 status, address indexed receiver, uint64 srcChainId, bytes32 srcTxHash)
+func (_MsgBusRecv *MsgBusRecvFilterer) FilterExecuted(opts *bind.FilterOpts, receiver []common.Address) (*MsgBusRecvExecutedIterator, error) {
 
-	logs, sub, err := _MsgBusRecv.contract.FilterLogs(opts, "Executed")
+	var receiverRule []interface{}
+	for _, receiverItem := range receiver {
+		receiverRule = append(receiverRule, receiverItem)
+	}
+
+	logs, sub, err := _MsgBusRecv.contract.FilterLogs(opts, "Executed", receiverRule)
 	if err != nil {
 		return nil, err
 	}
 	return &MsgBusRecvExecutedIterator{contract: _MsgBusRecv.contract, event: "Executed", logs: logs, sub: sub}, nil
 }
 
-// WatchExecuted is a free log subscription operation binding the contract event 0x29122f2c841ca2c3b2feefc4c23e90755d735d8e5b84f307151532e0f1ad62e7.
+// WatchExecuted is a free log subscription operation binding the contract event 0xa635eb05143f74743822bbd96428928de4c8ee8cc578299749be9425c17bb34d.
 //
-// Solidity: event Executed(uint8 msgType, bytes32 id, uint8 status)
-func (_MsgBusRecv *MsgBusRecvFilterer) WatchExecuted(opts *bind.WatchOpts, sink chan<- *MsgBusRecvExecuted) (event.Subscription, error) {
+// Solidity: event Executed(uint8 msgType, bytes32 msgId, uint8 status, address indexed receiver, uint64 srcChainId, bytes32 srcTxHash)
+func (_MsgBusRecv *MsgBusRecvFilterer) WatchExecuted(opts *bind.WatchOpts, sink chan<- *MsgBusRecvExecuted, receiver []common.Address) (event.Subscription, error) {
 
-	logs, sub, err := _MsgBusRecv.contract.WatchLogs(opts, "Executed")
+	var receiverRule []interface{}
+	for _, receiverItem := range receiver {
+		receiverRule = append(receiverRule, receiverItem)
+	}
+
+	logs, sub, err := _MsgBusRecv.contract.WatchLogs(opts, "Executed", receiverRule)
 	if err != nil {
 		return nil, err
 	}
@@ -728,9 +988,9 @@ func (_MsgBusRecv *MsgBusRecvFilterer) WatchExecuted(opts *bind.WatchOpts, sink 
 	}), nil
 }
 
-// ParseExecuted is a log parse operation binding the contract event 0x29122f2c841ca2c3b2feefc4c23e90755d735d8e5b84f307151532e0f1ad62e7.
+// ParseExecuted is a log parse operation binding the contract event 0xa635eb05143f74743822bbd96428928de4c8ee8cc578299749be9425c17bb34d.
 //
-// Solidity: event Executed(uint8 msgType, bytes32 id, uint8 status)
+// Solidity: event Executed(uint8 msgType, bytes32 msgId, uint8 status, address indexed receiver, uint64 srcChainId, bytes32 srcTxHash)
 func (_MsgBusRecv *MsgBusRecvFilterer) ParseExecuted(log types.Log) (*MsgBusRecvExecuted, error) {
 	event := new(MsgBusRecvExecuted)
 	if err := _MsgBusRecv.contract.UnpackLog(event, "Executed", log); err != nil {
@@ -868,6 +1128,143 @@ func (_MsgBusRecv *MsgBusRecvFilterer) WatchLiquidityBridgeUpdated(opts *bind.Wa
 func (_MsgBusRecv *MsgBusRecvFilterer) ParseLiquidityBridgeUpdated(log types.Log) (*MsgBusRecvLiquidityBridgeUpdated, error) {
 	event := new(MsgBusRecvLiquidityBridgeUpdated)
 	if err := _MsgBusRecv.contract.UnpackLog(event, "LiquidityBridgeUpdated", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// MsgBusRecvNeedRetryIterator is returned from FilterNeedRetry and is used to iterate over the raw logs and unpacked data for NeedRetry events raised by the MsgBusRecv contract.
+type MsgBusRecvNeedRetryIterator struct {
+	Event *MsgBusRecvNeedRetry // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *MsgBusRecvNeedRetryIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(MsgBusRecvNeedRetry)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(MsgBusRecvNeedRetry)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *MsgBusRecvNeedRetryIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *MsgBusRecvNeedRetryIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// MsgBusRecvNeedRetry represents a NeedRetry event raised by the MsgBusRecv contract.
+type MsgBusRecvNeedRetry struct {
+	MsgType    uint8
+	MsgId      [32]byte
+	SrcChainId uint64
+	SrcTxHash  [32]byte
+	Raw        types.Log // Blockchain specific contextual infos
+}
+
+// FilterNeedRetry is a free log retrieval operation binding the contract event 0xe49c2c954d381d1448cf824743aeff9da7a1d82078a7c9e5817269cc359bd26c.
+//
+// Solidity: event NeedRetry(uint8 msgType, bytes32 msgId, uint64 srcChainId, bytes32 srcTxHash)
+func (_MsgBusRecv *MsgBusRecvFilterer) FilterNeedRetry(opts *bind.FilterOpts) (*MsgBusRecvNeedRetryIterator, error) {
+
+	logs, sub, err := _MsgBusRecv.contract.FilterLogs(opts, "NeedRetry")
+	if err != nil {
+		return nil, err
+	}
+	return &MsgBusRecvNeedRetryIterator{contract: _MsgBusRecv.contract, event: "NeedRetry", logs: logs, sub: sub}, nil
+}
+
+// WatchNeedRetry is a free log subscription operation binding the contract event 0xe49c2c954d381d1448cf824743aeff9da7a1d82078a7c9e5817269cc359bd26c.
+//
+// Solidity: event NeedRetry(uint8 msgType, bytes32 msgId, uint64 srcChainId, bytes32 srcTxHash)
+func (_MsgBusRecv *MsgBusRecvFilterer) WatchNeedRetry(opts *bind.WatchOpts, sink chan<- *MsgBusRecvNeedRetry) (event.Subscription, error) {
+
+	logs, sub, err := _MsgBusRecv.contract.WatchLogs(opts, "NeedRetry")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(MsgBusRecvNeedRetry)
+				if err := _MsgBusRecv.contract.UnpackLog(event, "NeedRetry", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseNeedRetry is a log parse operation binding the contract event 0xe49c2c954d381d1448cf824743aeff9da7a1d82078a7c9e5817269cc359bd26c.
+//
+// Solidity: event NeedRetry(uint8 msgType, bytes32 msgId, uint64 srcChainId, bytes32 srcTxHash)
+func (_MsgBusRecv *MsgBusRecvFilterer) ParseNeedRetry(log types.Log) (*MsgBusRecvNeedRetry, error) {
+	event := new(MsgBusRecvNeedRetry)
+	if err := _MsgBusRecv.contract.UnpackLog(event, "NeedRetry", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

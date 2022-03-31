@@ -68,10 +68,11 @@ func PollSgn(intv time.Duration, ntfbrs []*ChidAddr, chainMap map[uint64]*OneCha
 					// query sgn to get signers/powers, todo: cache by chid?
 					signers, powers := getSigners(conn, msg.DstChainId)
 					// send onchain
-					tx, err := onech.msgBus.ExecuteMessage(onech.auth, msg.Data, MessageBusReceiverRouteInfo{
+					tx, err := onech.msgBus.ExecuteMessage(onech.auth, msg.Data, MsgDataTypesRouteInfo{
 						Sender:     hex2addr(msg.Sender),
 						Receiver:   hex2addr(msg.Receiver),
 						SrcChainId: msg.SrcChainId,
+						SrcTxHash:  hex2hash(msg.SrcTxHash),
 					}, msg.GetSigBytes(), signers, powers)
 					if err != nil {
 						log.Error("onchain exe msg err: ", err)
