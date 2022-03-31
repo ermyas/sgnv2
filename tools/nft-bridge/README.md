@@ -16,6 +16,8 @@
 ### update testnet.json on S3
 file is at `s3://getcelerapp/nftbridge/testnet.json`. this json file has very simple schema: bridges is a list of nftbridge's chainid and address, nfts is a list of NFTs, each has one orig and a list of pegged. See [go code](./cfg.go#L53) for details
 
+invalidate cloudfront cache so that https://get.celer.app/nftbridge/testnet.json will return latest version. go to https://us-east-1.console.aws.amazon.com/cloudfront/v3/home?region=us-west-2#/distributions/E1IWV8QKIXDYBL/invalidations to create invalidation, path is `/nftbridge/*`
+
 ## Go executor and history server
 ### toml config
 [nftbr_test.toml](./nftbr_test.toml) has example of all fields needed
