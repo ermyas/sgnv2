@@ -20,7 +20,7 @@ gateway = "https://goerli.infura.io/v3/c58bb2a63c1a466abb6d7b5e0b7b6828"
 blkinterval = 30
 blkdelay = 5
 maxblkdelta = 5000
-msgbus = "0x942E8e0e4b021F55b89660c886146e0Ec57F4b5B"
+msgbus = "0xF25170F86E4291a99a9A560032Fe9948b8BcFBB2"
 
 [[multichain]]
 chainID = 97
