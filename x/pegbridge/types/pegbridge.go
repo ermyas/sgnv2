@@ -49,6 +49,16 @@ func (m *MintInfo) String() string {
 		m.ChainId, eth.Bytes2Hex(m.MintProtoBytes), mintOnChain.String(), m.BaseFee, m.PercentageFee, m.BridgeVersion, m.LastReqTime, m.SignersStr(), m.SigsStr(), m.Success)
 }
 
+func (m *MintInfo) ShortStr() string {
+	if m == nil {
+		return "nil"
+	}
+	mintOnChain := new(MintOnChain)
+	mintOnChain.Unmarshal(m.MintProtoBytes)
+	return fmt.Sprintf("chain_id:%d mint_on_chain:[ %s ] base_fee:%s perc_fee:%s bridge_version:%d last_req_time:%d %s %s success:%t",
+		m.ChainId, mintOnChain.String(), m.BaseFee, m.PercentageFee, m.BridgeVersion, m.LastReqTime, m.SignersStr(), m.SigsStr(), m.Success)
+}
+
 func (m *MintInfo) GetSortedSigsBytes() [][]byte {
 	if m != nil {
 		sigs := make([][]byte, len(m.Signatures))
@@ -107,6 +117,16 @@ func (w *WithdrawInfo) String() string {
 	wdOnChain.Unmarshal(w.WithdrawProtoBytes)
 	return fmt.Sprintf("chain_id:%d withdraw_on_chain_bytes:%s withdraw_on_chain:[ %s ] base_fee:%s perc_fee:%s vault_version:%d last_req_time:%d %s %s success:%t",
 		w.ChainId, eth.Bytes2Hex(w.WithdrawProtoBytes), wdOnChain.String(), w.BaseFee, w.PercentageFee, w.VaultVersion, w.LastReqTime, w.SignersStr(), w.SigsStr(), w.Success)
+}
+
+func (w *WithdrawInfo) ShortStr() string {
+	if w == nil {
+		return "nil"
+	}
+	wdOnChain := new(WithdrawOnChain)
+	wdOnChain.Unmarshal(w.WithdrawProtoBytes)
+	return fmt.Sprintf("chain_id:%d withdraw_on_chain:[ %s ] base_fee:%s perc_fee:%s vault_version:%d last_req_time:%d %s %s success:%t",
+		w.ChainId, wdOnChain.String(), w.BaseFee, w.PercentageFee, w.VaultVersion, w.LastReqTime, w.SignersStr(), w.SigsStr(), w.Success)
 }
 
 func (d *DepositInfo) String() string {

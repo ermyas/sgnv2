@@ -101,6 +101,7 @@ type CbrOneChain struct {
 	*ethutils.Transactor
 	cbrContract    *cbrContract
 	pegbrContracts *pegbrContracts
+	msgContract    *eth.MsgBusContract
 }
 
 func newOneChain(chainId uint64) (*CbrOneChain, error) {
@@ -143,6 +144,10 @@ func newOneChain(chainId uint64) (*CbrOneChain, error) {
 			if err != nil {
 				log.Fatalln("pegbridge contract at", cfg.PTBridge, "err:", err)
 			}
+			msg, err := eth.NewMsgBusContract(eth.Hex2Addr(cfg.MsgBus), ec)
+			if err != nil {
+				log.Fatalln("MessageBus contract at", cfg.MsgBus, "err:", err)
+			}
 			signer, addr, err := eth.CreateSigner(signerKey, signerPass, chid)
 			if err != nil {
 				log.Fatalln("CreateSigner err:", err)
@@ -176,6 +181,7 @@ func newOneChain(chainId uint64) (*CbrOneChain, error) {
 					Vault:  otv,
 					Bridge: pegbr,
 				},
+				msgContract: msg,
 			}
 			return c, nil
 		}

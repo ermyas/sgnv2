@@ -70,20 +70,17 @@ $ %s ops sync signers --chainid=883 --txhash="0xxx"
 				eth.ContractTypeLiquidityBridge, cbrtypes.CbrEventSignersUpdated, cbr.cbrContract.Address, txReceipt.Logs)
 
 			if elog == nil {
-				log.Errorln("no match event found in tx:", txhash)
 				return fmt.Errorf("no match event found in tx: %s", txhash)
 			}
 			ev, err := cbr.cbrContract.ParseSignersUpdated(*elog)
 			if err != nil {
-				log.Errorf("ParseSignersUpdated err: %s", err)
-				return err
+				return fmt.Errorf("ParseSignersUpdated err: %w", err)
 			}
 
 			// check in store
 			storedChainSigners, err := cbrcli.QueryChainSigners(cliCtx, chainid)
 			if err != nil && !errors.Is(err, sdkerrors.ErrKeyNotFound) {
-				log.Errorf("QueryChainSigners err: %s", err)
-				return err
+				return fmt.Errorf("QueryChainSigners err: %w", err)
 			}
 
 			if storedChainSigners != nil && relayer.EqualSigners(storedChainSigners.GetSortedSigners(), ev) {
@@ -94,19 +91,16 @@ $ %s ops sync signers --chainid=883 --txhash="0xxx"
 			// check on chain
 			ssHash, err := cbr.cbrContract.SsHash(&bind.CallOpts{})
 			if err != nil {
-				log.Errorf("query ssHash err: %s", err)
-				return err
+				return fmt.Errorf("query ssHash err: %w", err)
 			}
 			curssHash := eth.Bytes2Hash(crypto.Keccak256(eth.SignerBytes(ev.Signers, ev.Powers)))
 			if curssHash != ssHash {
-				log.Errorf("curss hash %x not match onchain values: %x", curssHash, ssHash)
-				return err
+				return fmt.Errorf("curss hash %x not match onchain values: %x", curssHash, ssHash)
 			}
 
 			err = sendCbrOnchainEvent(cliCtx, chainid, cbrtypes.CbrEventSignersUpdated, *elog)
 			if err != nil {
-				log.Errorf("sendCbrOnchainEvent err: %s", err)
-				return err
+				return fmt.Errorf("sendCbrOnchainEvent err: %w", err)
 			}
 			return nil
 		},
@@ -170,26 +164,22 @@ func SyncCbrEvent(cliCtx client.Context, chainid uint64, txhash string, evname s
 	elog := eth.FindMatchContractEvent(eth.ContractTypeLiquidityBridge, evname, cbr.cbrContract.Address, txReceipt.Logs)
 
 	if elog == nil {
-		log.Errorln("no match event found in tx:", txhash)
 		return fmt.Errorf("no match event found in tx: %s", txhash)
 	}
 
 	ev := parseCbrEv(cbr.cbrContract, *elog, evname)
 	if ev == nil {
-		log.Errorf("not a valid bridge event tx: %s", txhash)
 		return fmt.Errorf("not a valid bridge event tx: %s", txhash)
 	}
 	log.Info(ev.PrettyLog(chainid))
 
 	err = verifyEvent(cliCtx, ev, chainid)
 	if err != nil {
-		log.Errorf("verifyEvent err: %s", err)
-		return err
+		return fmt.Errorf("verifyEvent err: %w", err)
 	}
 	err = sendCbrOnchainEvent(cliCtx, chainid, evname, *elog)
 	if err != nil {
-		log.Errorf("sendCbrOnchainEvent err: %s", err)
-		return err
+		return fmt.Errorf("sendCbrOnchainEvent err: %w", err)
 	}
 	return nil
 }
@@ -212,28 +202,23 @@ func SyncPegbrEvent(cliCtx client.Context, chainid uint64, txhash string, evname
 		return fmt.Errorf("not pegged evname: %s", evname)
 	}
 	elog := eth.FindMatchContractEvent(contractType, evname, contractAddr, txReceipt.Logs)
-
 	if elog == nil {
-		log.Errorln("no match event found in tx:", txhash)
 		return fmt.Errorf("no match event found in tx: %s", txhash)
 	}
 
 	ev := parsePegbrEv(cbr.pegbrContracts, *elog, evname)
 	if ev == nil {
-		log.Errorf("not a valid bridge event tx: %s", txhash)
 		return fmt.Errorf("not a valid bridge event tx: %s", txhash)
 	}
 	log.Info(ev.PrettyLog(chainid))
 
 	err = verifyEvent(cliCtx, ev, chainid)
 	if err != nil {
-		log.Errorf("verifyEvent err: %s", err)
-		return err
+		return fmt.Errorf("verifyEvent err: %w", err)
 	}
 	err = sendPegbrOnchainEvent(cliCtx, chainid, evname, *elog)
 	if err != nil {
-		log.Errorf("sendCbrOnchainEvent err: %s", err)
-		return err
+		return fmt.Errorf("sendCbrOnchainEvent err: %w", err)
 	}
 	return nil
 }

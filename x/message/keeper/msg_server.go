@@ -53,7 +53,7 @@ func (k Keeper) SignMessage(goCtx context.Context, msg *types.MsgSignMessage) (*
 		return nil, fmt.Errorf("failed to add sig: %s", addSigErr)
 	}
 	k.SetMessage(ctx, messageId, &message)
-	log.Infof("x/message SignMessage add sig messageId:%x signer:%x sender:%s", messageId, validator.GetSignerAddr(), msg.Sender)
+	log.Infof("x/message SignMessage messageId:%x signer:%x sender:%s", messageId, validator.GetSignerAddr(), msg.Sender)
 	return &types.MsgSignMessageResponse{}, nil
 }
 
@@ -130,7 +130,7 @@ func (k msgServer) SignFees(
 		}
 	}
 	k.SetFeeClaimInfo(ctx, claimInfo)
-	log.Infof("x/message SignFees add sig address:%s signer:%x :sender:%s", msg.Address, validator.GetSignerAddr(), msg.Sender)
+	log.Infof("x/message SignFees address:%s signer:%x :sender:%s", msg.Address, validator.GetSignerAddr(), msg.Sender)
 	return &types.MsgSignFeesResponse{}, nil
 }
 

@@ -41,8 +41,8 @@ func (k Keeper) applyMessage(ctx sdk.Context, applyEvent *cbrtypes.OnChainEvent)
 		log.Debugf("skip already applied message (id %x)", msgId)
 		return false, nil
 	}
-	log.Infof("message applied, msgId:%x sender:%s receiver:%s chainId:%d->%d",
-		msgId, msg.Sender, msg.Receiver, msg.SrcChainId, msg.DstChainId)
+	log.Infof("x/msg applied Message, msgId:%x sender:%s receiver:%s chainId:%d->%d srcTx:%s",
+		msgId, msg.Sender, msg.Receiver, msg.SrcChainId, msg.DstChainId, msg.SrcTxHash)
 	k.SetActiveMessageId(ctx, msg.GetDstChainId(), eth.Hex2Addr(msg.GetReceiver()), msgId)
 	k.SetMessage(ctx, msgId, msg)
 	fee, success := new(big.Int).SetString(msg.GetFee(), 10)
@@ -261,8 +261,8 @@ func (k Keeper) processMessageWithTransfer(
 	}
 
 	msg := execCtx.Message
-	log.Infof("message applied, msgId:%x sender:%s receiver:%s chainId:%d->%d srcBridge:%s transferType:%s transferRefId:%x",
-		messageId, msg.Sender, msg.Receiver, msg.SrcChainId, msg.DstChainId, srcBridgeType, msg.TransferType, msg.TransferRefId)
+	log.Infof("x/msg applied MessageWithTransfer, msgId:%x sender:%s receiver:%s chainId:%d->%d srcBridge:%s transferType:%s transferRefId:%x srcTx:%s",
+		messageId, msg.Sender, msg.Receiver, msg.SrcChainId, msg.DstChainId, srcBridgeType, msg.TransferType, msg.TransferRefId, msg.SrcTxHash)
 
 	k.SetActiveMessageId(ctx, msg.GetDstChainId(), eth.Hex2Addr(msg.GetReceiver()), messageId)
 	k.SetMessage(ctx, messageId, &msg)
@@ -294,7 +294,7 @@ func (k Keeper) applyMessageExecuted(ctx sdk.Context, applyEvent *cbrtypes.OnCha
 		log.Debugf("skip already applied message (id %x)", ev.MsgId)
 		return false, nil
 	}
-	log.Infof("applying MessageBus Executed event: %+v", ev)
+	log.Infof("x/msg applied Executed: chain %d, %s", msg.DstChainId, ev)
 
 	// remove the active message record
 	k.DeleteActiveMessageId(ctx, msg.GetDstChainId(), eth.Hex2Addr(msg.GetReceiver()), ev.MsgId)

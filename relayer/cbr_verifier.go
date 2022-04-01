@@ -45,7 +45,7 @@ func (r *Relayer) verifyCbrEventUpdate(update *synctypes.PendingUpdate) (done, a
 
 	skip, reason := cbrOneChain.skipEvent(onchev.Evtype, elog, r.Transactor.CliCtx, nil)
 	if skip {
-		log.Debugf("skip cbr event: %s, reason: %s", string(onchev.Elog), reason)
+		log.Debugf("skip cbr event: chain %d addr %x tx %x, reason: %s", onchev.Chainid, elog.Address, elog.TxHash, reason)
 		return true, false
 	}
 

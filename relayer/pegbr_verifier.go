@@ -58,7 +58,7 @@ func (r *Relayer) verifyPegbrEventUpdate(update *synctypes.PendingUpdate) (done,
 
 	skip, reason := cbrOneChain.skipPegbrEvent(onchev.Evtype, elog, r.Transactor.CliCtx, nil)
 	if skip {
-		log.Debugf("skip pbr event: %s, reason: %s", string(onchev.Elog), reason)
+		log.Debugf("skip pbr event: chain %x addr %x tx %x, reason: %s", onchev.Chainid, elog.Address, elog.TxHash, reason)
 		return true, false
 	}
 

@@ -93,7 +93,7 @@ func (c *CbrOneChain) pullMsgbrEvents(chid uint64, cliCtx client.Context, update
 
 			skip, reason := c.skipMsgbrEvent(evn, evlog, cliCtx)
 			if skip {
-				log.Debugf("skip msgbr event: %s, chid %d, reason: %s", string(key), c.chainid, reason)
+				log.Debugf("skip msg event: %s, chid %d, reason: %s", string(key), c.chainid, reason)
 				continue
 			}
 

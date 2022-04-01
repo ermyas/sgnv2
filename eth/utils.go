@@ -27,7 +27,7 @@ const (
 	ContractTypePegBridge
 	ContractTypePegBridgeV2
 	ContractTypeWdInbox
-	ContractTypeMsgBridge
+	ContractTypeMsgBus
 )
 
 var (
@@ -135,7 +135,7 @@ func GetContractEventID(ctype ContractType, evname string) Hash {
 		contractAbi, _ = abi.JSON(strings.NewReader(PeggedTokenBridgeV2ABI))
 	case ContractTypeWdInbox:
 		contractAbi, _ = abi.JSON(strings.NewReader(WithdrawInboxABI))
-	case ContractTypeMsgBridge:
+	case ContractTypeMsgBus:
 		contractAbi, _ = abi.JSON(strings.NewReader(MessageBusABI))
 	default:
 		return ZeroHash
@@ -257,27 +257,33 @@ func (ev *BridgeSignersUpdated) PrettyLog(onchid uint64) string {
 }
 
 func (ev *MessageBusMessage) PrettyLog(onchid uint64) string {
-	return fmt.Sprintf("Message-%d: %s", onchid, ev.String())
+	return fmt.Sprintf("Message-%d: sender %x, receiver %x, dstChainId %s, txHash %x",
+		onchid, ev.Sender, ev.Receiver, ev.DstChainId, ev.Raw.TxHash)
 }
 
 func (ev *MessageBusMessageWithTransfer) PrettyLog(onchid uint64) string {
-	return fmt.Sprintf("MessageWithTransfer-%d: %s", onchid, ev.String())
+	return fmt.Sprintf("MessageWithTransfer-%d: sender %x, receiver %x, dstChainId %s, bridge %x, srcTransferId %x, txHash %x",
+		onchid, ev.Sender, ev.Receiver, ev.DstChainId, ev.Bridge, ev.SrcTransferId, ev.Raw.TxHash)
 }
 
 func (ev *MessageBusExecuted) PrettyLog(onchid uint64) string {
-	return fmt.Sprintf("MessageExecuted-%d: %s", onchid, ev.String())
-}
-
-func (ev *MessageBusExecuted) String() string {
-	return fmt.Sprintf("msgId: %x, status: %d, msgType: %d", ev.MsgId, ev.Status, ev.MsgType)
+	return fmt.Sprintf("MessageExecuted-%d: msgType %d, msgId %x, status %d, receiver %x, srcChainId %d, srcTxhash %x",
+		onchid, ev.MsgType, ev.MsgId, ev.Status, ev.Receiver, ev.SrcChainId, ev.SrcTxHash)
 }
 
 func (ev *MessageBusMessage) String() string {
-	return fmt.Sprintf("sender: %x, receiver: %x, dstChainId: %s, Message: %x", ev.Sender, ev.Receiver, ev.DstChainId, ev.Message)
+	return fmt.Sprintf("sender: %x, receiver: %x, dstChainId: %s, Message: %x, Fee: %s",
+		ev.Sender, ev.Receiver, ev.DstChainId, ev.Message, ev.Fee)
 }
 
 func (ev *MessageBusMessageWithTransfer) String() string {
-	return fmt.Sprintf("sender: %x, receiver: %x, dstChainId: %s, bridgeAddr: %s, transferId: %x, Message: %x", ev.Sender, ev.Receiver, ev.DstChainId, ev.Bridge, ev.SrcTransferId, ev.Message)
+	return fmt.Sprintf("sender: %x, receiver: %x, dstChainId: %s, bridgeAddr: %x, srcTransferId: %x, Message: %x, Fee: %s",
+		ev.Sender, ev.Receiver, ev.DstChainId, ev.Bridge, ev.SrcTransferId, ev.Message, ev.Fee)
+}
+
+func (ev *MessageBusExecuted) String() string {
+	return fmt.Sprintf("msgType: %d, msgId: %x, status: %d, receiver: %x, srcChainId: %d, srcTxhash: %x",
+		ev.MsgType, ev.MsgId, ev.Status, ev.Receiver, ev.SrcChainId, ev.SrcTxHash)
 }
 
 func (r *BridgeRelay) String() string {

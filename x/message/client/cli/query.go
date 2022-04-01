@@ -8,18 +8,11 @@ import (
 	"strings"
 
 	"github.com/celer-network/goutils/log"
-
-	// "strings"
-
-	"github.com/spf13/cobra"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	// "github.com/cosmos/cosmos-sdk/client/flags"
-	// sdk "github.com/cosmos/cosmos-sdk/types"
-
 	comtypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/celer-network/sgn-v2/x/message/types"
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/spf13/cobra"
 )
 
 // GetQueryCmd returns the cli query commands for this module
@@ -35,6 +28,7 @@ func GetQueryCmd(queryRoute string) *cobra.Command {
 
 	cmd.AddCommand(CmdQueryParams(),
 		CmdQueryExecutionContexts(),
+		CmdQueryExecutionContextBySrcTransfer(),
 		CmdQueryMessage(),
 		CmdQueryMessageBus())
 	return cmd
@@ -150,6 +144,32 @@ json file filter format:
 	return cmd
 }
 
+func CmdQueryExecutionContextBySrcTransfer() *cobra.Command {
+	return &cobra.Command{
+		Use:   "exe-ctx [bridge-type] [src-transfer-id]",
+		Short: "Query execution context by bridge type (1:liquidity, 2:pegvault, 3:pegbridge) and src transferId",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+			bridgeType, err := strconv.Atoi(args[0])
+			if err != nil {
+				return err
+			}
+			transferId := eth.Hex2Hash(args[1])
+			resp, err := QueryExecutionContextBySrcTransfer(cliCtx, types.BridgeType(bridgeType), transferId)
+			if err != nil {
+				log.Errorln("query execution context error", err)
+				return err
+			}
+
+			return cliCtx.PrintProto(resp)
+		},
+	}
+}
+
 func CmdQueryMessage() *cobra.Command {
 	return &cobra.Command{
 		Use:   "message [message-id]",
@@ -160,9 +180,7 @@ func CmdQueryMessage() *cobra.Command {
 			if err != nil {
 				return err
 			}
-
 			messageId := args[0]
-
 			msg, err := QueryMessage(cliCtx, messageId)
 			if err != nil {
 				log.Errorln("query message error", err)

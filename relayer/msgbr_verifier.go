@@ -10,7 +10,7 @@ import (
 	"github.com/celer-network/sgn-v2/eth"
 	cbrcli "github.com/celer-network/sgn-v2/x/cbridge/client/cli"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
-	msgbrtypes "github.com/celer-network/sgn-v2/x/message/types"
+	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
 	pegcli "github.com/celer-network/sgn-v2/x/pegbridge/client/cli"
 	pegbrtypes "github.com/celer-network/sgn-v2/x/pegbridge/types"
 	synctypes "github.com/celer-network/sgn-v2/x/sync/types"
@@ -47,18 +47,18 @@ func (r *Relayer) verifyMsgbrEventUpdate(update *synctypes.PendingUpdate) (done,
 
 	skip, reason := cbrOneChain.skipMsgbrEvent(onchev.Evtype, elog, r.Transactor.CliCtx)
 	if skip {
-		log.Debugf("skip msgbr event: %s, reason: %s", string(onchev.Elog), reason)
+		log.Debugf("skip msg event: chain %d addr %x tx %x, reason: %s", onchev.Chainid, elog.Address, elog.TxHash, reason)
 		return true, false
 	}
 
-	logmsg := fmt.Sprintf("verify update %d cbr chain %d", update.Id, onchev.Chainid)
+	logmsg := fmt.Sprintf("verify update %d", update.Id)
 
 	switch onchev.Evtype {
-	case msgbrtypes.MsgEventMessage:
+	case msgtypes.MsgEventMessage:
 		return cbrOneChain.verifyMessage(r.Transactor.CliCtx, elog, logmsg)
-	case msgbrtypes.MsgEventMessageWithTransfer:
+	case msgtypes.MsgEventMessageWithTransfer:
 		return cbrOneChain.verifyMessageEventTransfer(r.Transactor.CliCtx, elog, logmsg)
-	case msgbrtypes.MsgEventExecuted:
+	case msgtypes.MsgEventExecuted:
 		return cbrOneChain.verifyMessageEventExecuted(r.Transactor.CliCtx, elog, logmsg)
 	default:
 		log.Errorf("%s. invalid type", logmsg)
@@ -73,12 +73,11 @@ func (c *CbrOneChain) verifyMessage(cliCtx client.Context, eLog *ethtypes.Log, l
 		log.Errorf("%s. parse eLog error %s", logmsg, err)
 		return true, false
 	}
-	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
-
-	// check in store
+	msgId, _ := msgtypes.NewMessage(ev, c.chainid)
+	logmsg = fmt.Sprintf("%s. %s, msgId %x", logmsg, ev.PrettyLog(c.chainid), msgId)
 
 	// check on chain
-	done, approve, msgLog := c.verifyEventLog(eLog, eth.ContractTypeMsgBridge, msgbrtypes.MsgEventMessage, c.msgContract.GetAddr(), logmsg)
+	done, approve, msgLog := c.verifyEventLog(eLog, eth.ContractTypeMsgBus, msgtypes.MsgEventMessage, c.msgContract.GetAddr(), logmsg)
 	if msgLog == nil {
 		return done, approve
 	}
@@ -104,12 +103,10 @@ func (c *CbrOneChain) verifyMessageEventTransfer(cliCtx client.Context, eLog *et
 		log.Errorf("%s. parse eLog error %s", logmsg, err)
 		return true, false
 	}
-	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
-
-	// check in store
+	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.PrettyLog(c.chainid))
 
 	// check on chain
-	done, approve, msgLog := c.verifyEventLog(eLog, eth.ContractTypeMsgBridge, msgbrtypes.MsgEventMessageWithTransfer, c.msgContract.GetAddr(), logmsg)
+	done, approve, msgLog := c.verifyEventLog(eLog, eth.ContractTypeMsgBus, msgtypes.MsgEventMessageWithTransfer, c.msgContract.GetAddr(), logmsg)
 	if msgLog == nil {
 		return done, approve
 	}
@@ -125,8 +122,39 @@ func (c *CbrOneChain) verifyMessageEventTransfer(cliCtx client.Context, eLog *et
 		return true, false
 	}
 
-	// check info in cbr
-	return c.verifyTransferForMessageBus(cliCtx, ev)
+	// check transfer from sgn
+	srcBridgeType := c.getSrcBridgeType(ev.Bridge)
+	// check: bridge is either liquidity bridge, peg src vault, or peg dst bridge
+	if srcBridgeType == msgtypes.BRIDGE_TYPE_NULL {
+		log.Errorln(logmsg, "unknown bridge type")
+		return true, false
+	}
+
+	xferSender, xferDstChainId, refunded, err := getTransferInfo(cliCtx, ev.SrcTransferId, srcBridgeType)
+	if err != nil {
+		if !strings.Contains(err.Error(), "no info found") ||
+			(c.mon.GetCurrentBlockNumber().Int64()-int64(ev.Raw.BlockNumber))*int64(c.blkInterval) > 120 {
+			log.Debugf("%s. getTransferInfo err: %s", logmsg, err)
+		}
+		return false, false
+	}
+
+	if refunded {
+		log.Debugf("%s. approve message because found refund", logmsg)
+		return true, true
+	}
+
+	if ev.Sender != xferSender {
+		log.Errorf("%s. transfer sender not match: %x", logmsg, xferSender)
+		return true, false
+	}
+	if ev.DstChainId.Uint64() != xferDstChainId {
+		log.Errorf("%s. transfer dst chain not match: %d", logmsg, xferDstChainId)
+		return true, false
+	}
+
+	log.Infof("%s, success", logmsg)
+	return true, true
 }
 
 func (c *CbrOneChain) verifyMessageEventExecuted(cliCtx client.Context, eLog *ethtypes.Log, logmsg string) (done, approve bool) {
@@ -136,12 +164,10 @@ func (c *CbrOneChain) verifyMessageEventExecuted(cliCtx client.Context, eLog *et
 		log.Errorf("%s. parse eLog error %s", logmsg, err)
 		return true, false
 	}
-	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
-
-	// check in store
+	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.PrettyLog(c.chainid))
 
 	// check on chain
-	done, approve, msgLog := c.verifyEventLog(eLog, eth.ContractTypeMsgBridge, msgbrtypes.MsgEventExecuted, c.msgContract.GetAddr(), logmsg)
+	done, approve, msgLog := c.verifyEventLog(eLog, eth.ContractTypeMsgBus, msgtypes.MsgEventExecuted, c.msgContract.GetAddr(), logmsg)
 	if msgLog == nil {
 		return done, approve
 	}
@@ -167,41 +193,15 @@ func (c *CbrOneChain) verifyMessageEventExecuted(cliCtx client.Context, eLog *et
 		log.Errorln(logmsg, "executedStatus is invalid. got:", executedStatus, "expect > 0")
 		return true, false
 	}
-	log.Infof("verify MessageEventExecuted success, %s", logmsg)
+
+	log.Infof("%s, success", logmsg)
 	return true, true
 }
 
-func (c *CbrOneChain) verifyTransferForMessageBus(cliCtx client.Context, ev *eth.MessageBusMessageWithTransfer) (done, approve bool) {
-	// check transfer from sgn
-	srcBridgeType := c.getSrcBridgeType(ev.Bridge)
-	// check: bridge is either liquidity bridge, peg src vault, or peg dst bridge
-	if srcBridgeType == msgbrtypes.BRIDGE_TYPE_NULL {
-		log.Warnf("verifyTransferForMessageBus failed, unknown bridge type, msg chainId:%d, transfer bridge:%s", c.chainid, ev.Bridge)
-		return true, false
-	}
-
-	senderInTx, dstChainIdInTx, foundRefund, err := getTransferInfo(cliCtx, ev.SrcTransferId, srcBridgeType)
-	if err != nil {
-		if !strings.Contains(err.Error(), "no info found") ||
-			(c.mon.GetCurrentBlockNumber().Int64()-int64(ev.Raw.BlockNumber))*int64(c.blkInterval) > 120 {
-			log.Debugf("cannot verify msg (bridgeType %s, srcXferId %x) %s.", srcBridgeType, ev.SrcTransferId, err.Error())
-		}
-		return false, false
-	}
-
-	if foundRefund {
-		log.Debugf("approve message (srcXferId %x) because found refund", ev.SrcTransferId)
-		return true, true
-	}
-
-	log.Infof("verifying message with transfer (srcTransferId %x)", ev.SrcTransferId)
-	return verifySenderAndDstChainId(ev.Sender, senderInTx, ev.DstChainId.Uint64(), dstChainIdInTx)
-}
-
-func getTransferInfo(cliCtx client.Context, srcTransferId eth.Hash, srcBridgeType msgbrtypes.BridgeType) (eth.Addr, uint64, bool, error) {
+func getTransferInfo(cliCtx client.Context, srcTransferId eth.Hash, srcBridgeType msgtypes.BridgeType) (eth.Addr, uint64, bool, error) {
 	xferId := srcTransferId.String()
 	switch srcBridgeType {
-	case msgbrtypes.BRIDGE_TYPE_LIQUIDITY:
+	case msgtypes.BRIDGE_TYPE_LIQUIDITY:
 		req := &cbrtypes.QueryTransferStatusRequest{TransferId: []string{xferId}}
 		res, err := cbrcli.QueryTransferStatus(cliCtx, req)
 		if err != nil {
@@ -224,7 +224,7 @@ func getTransferInfo(cliCtx client.Context, srcTransferId eth.Hash, srcBridgeTyp
 			return makeErr(err)
 		}
 		return eth.Bytes2Addr(relayOnChain.Sender), relayOnChain.DstChainId, false, nil
-	case msgbrtypes.BRIDGE_TYPE_PEG_VAULT:
+	case msgtypes.BRIDGE_TYPE_PEG_VAULT:
 		deposit, err := pegcli.QueryDepositInfo(cliCtx, srcTransferId.String())
 		if err != nil {
 			return makeErr(err)
@@ -243,7 +243,7 @@ func getTransferInfo(cliCtx client.Context, srcTransferId eth.Hash, srcBridgeTyp
 			return makeErr(err)
 		}
 		return eth.Bytes2Addr(mintOnChain.GetDepositor()), mint.GetChainId(), false, nil
-	case msgbrtypes.BRIDGE_TYPE_PEG_BRIDGE:
+	case msgtypes.BRIDGE_TYPE_PEG_BRIDGE:
 		burn, err := pegcli.QueryBurnInfo(cliCtx, srcTransferId.String())
 		if err != nil {
 			return makeErr(err)
@@ -263,19 +263,6 @@ func getTransferInfo(cliCtx client.Context, srcTransferId eth.Hash, srcBridgeTyp
 		return eth.Bytes2Addr(withdrawOnChain.GetBurnAccount()), withdraw.GetChainId(), false, nil
 	}
 	return makeErr(fmt.Errorf("unsupported transfer type (%v)", srcBridgeType))
-}
-
-func verifySenderAndDstChainId(sender, senderInTx eth.Addr, dstChainId, dstChainIdInTx uint64) (done, approve bool) {
-	if sender != senderInTx {
-		log.Warnf("verifyTransferForMessageBus failed, msg.sender doesn't match sender of the src transfer, msg sender:%s, transfer sender:%s", sender, senderInTx)
-		return true, false
-	}
-	// check: dstChainId matches dstChainId of the src transfer
-	if dstChainId != dstChainIdInTx {
-		log.Warnf("verifyTransferForMessageBus failed, dstChainId doesn't match dstChainId of the src transfer, msg dstChainId:%d, transfer dstChainId:%d", dstChainId, dstChainIdInTx)
-		return true, false
-	}
-	return true, true
 }
 
 func makeErr(err error) (eth.Addr, uint64, bool, error) {

@@ -249,21 +249,14 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 						log.Errorf("cbrOneChain not exists, mint chainId: %d", mintInfo.ChainId)
 						continue
 					}
-					// todo: use switch and share log.Error and continue
 					if mintInfo.BridgeVersion == 0 {
-						bridgeAddr := cbrOneChain.pegContracts.bridge.GetAddr()
-						msgToSign := mintInfo.EncodeDataToSign(bridgeAddr)
-						sig, err = r.EthClient.SignEthMessage(msgToSign)
-						// log.Infof("bridgeAddr:%x, msgToSign:%x, sig:%x", bridgeAddr, msgToSign, sig)
+						sig, err = r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(cbrOneChain.pegContracts.bridge.GetAddr()))
 						if err != nil {
 							log.Error(err)
 							continue
 						}
 					} else if mintInfo.BridgeVersion == 2 {
-						bridgeAddr := cbrOneChain.pegContracts.bridge2.GetAddr()
-						msgToSign := mintInfo.EncodeDataToSign(bridgeAddr)
-						sig, err = r.EthClient.SignEthMessage(msgToSign)
-						// log.Infof("v2 bridgeAddr:%x, msgToSign:%x, sig:%x", bridgeAddr, msgToSign, sig)
+						sig, err = r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(cbrOneChain.pegContracts.bridge2.GetAddr()))
 						if err != nil {
 							log.Error(err)
 							continue
@@ -288,7 +281,7 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 				if err != nil {
 					log.Errorf("db Set err: %s", err)
 				}
-				log.Infoln("Sign pegBridge mint:", mintInfo.String())
+				log.Infoln("Sign pegBridge mint:", mintId, mintInfo.ShortStr())
 			}
 		},
 		// Need to set outCapacity to 2 for both tx and block events
@@ -368,7 +361,7 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 				if err != nil {
 					log.Errorf("db Set err: %s", err)
 				}
-				log.Infoln("Sign pegVault withdraw:", wdInfo.String())
+				log.Infoln("Sign pegVault withdraw:", wdId, wdInfo.ShortStr())
 			}
 		},
 		// Need to set outCapacity to 2 for both tx and block events
@@ -455,6 +448,7 @@ func (r *Relayer) monitorSgnMsgDataToSign() {
 					Signature: sig,
 				}
 				r.Transactor.AddTxMsg(msg)
+				log.Infoln("Sign messageId", msgId)
 			}
 		})
 }

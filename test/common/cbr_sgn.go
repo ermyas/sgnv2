@@ -535,9 +535,9 @@ func WaitForMessageOnlyExecuted(
 	}
 	ChkErr(err, "failed to QueryMessage")
 	if msg.ExecutionStatus != expectedStatus {
-		log.Fatalf("message status check failed, expected %s actual %s", expectedStatus, msg.ExecutionStatus)
+		log.Fatalf("message %x status check failed, expected %s actual %s", messageId, expectedStatus, msg.ExecutionStatus)
 	}
-	log.Infof("message executed with expected status:%s", expectedStatus.String())
+	log.Infof("message %x executed with expected status:%s", messageId, expectedStatus)
 }
 
 func WaitForMessageWithTransferExecuted(
@@ -554,9 +554,10 @@ func WaitForMessageWithTransferExecuted(
 	}
 	ChkErr(err, "failed to QueryMessage")
 	if exeCtx.Message.ExecutionStatus != expStatus {
-		log.Fatalf("message status check failed, expected %s actual %s", expStatus, exeCtx.Message.ExecutionStatus)
+		log.Fatalf("message with xfer %x status check failed, expected %s actual %s",
+			srcTransferId, expStatus, exeCtx.Message.ExecutionStatus)
 	}
-	log.Infof("message executed with expected status:%s", expStatus.String())
+	log.Infof("message with xfer %x executed with expected status:%s", srcTransferId, expStatus)
 }
 
 func CheckTotalSupply(

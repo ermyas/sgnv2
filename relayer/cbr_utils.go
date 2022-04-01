@@ -40,7 +40,7 @@ func (c *CbrOneChain) getCurss() currentSigners {
 func (c *CbrOneChain) saveEvent(name string, elog ethtypes.Log) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	key := fmt.Sprintf("%s-%d-%d", name, elog.BlockNumber, elog.Index)
+	key := fmt.Sprintf("%s-%d-%d-%x", name, elog.BlockNumber, elog.Index, elog.TxHash)
 	val, _ := json.Marshal(elog)
 	return c.db.Set([]byte(key), val)
 }
