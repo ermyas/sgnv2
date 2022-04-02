@@ -148,7 +148,7 @@ func CmdQueryExecutionContextBySrcTransfer() *cobra.Command {
 	return &cobra.Command{
 		Use:   "exe-ctx [bridge-type] [src-transfer-id]",
 		Short: "Query execution context by bridge type (1:liquidity, 2:pegvault, 3:pegbridge) and src transferId",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx, err := client.GetClientQueryContext(cmd)
 			if err != nil {
