@@ -29,9 +29,9 @@ func (k Keeper) CalcAmountAndFees(
 	baseFeeInDest := new(big.Int).Set(baseFeeInOrig)
 	if isPeggedDest {
 		if destDecimals > srcDecimals {
-			baseFeeInDest.Div(baseFeeInDest, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(destDecimals-srcDecimals)), nil))
+			baseFeeInDest.Mul(baseFeeInDest, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(destDecimals-srcDecimals)), nil))
 		} else if destDecimals < srcDecimals {
-			baseFeeInDest.Mul(baseFeeInDest, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(srcDecimals-destDecimals)), nil))
+			baseFeeInDest.Div(baseFeeInDest, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(srcDecimals-destDecimals)), nil))
 		}
 	}
 	// Percentage fee, denominated in DEST decimals

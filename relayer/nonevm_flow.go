@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -116,40 +117,54 @@ func (f *FlowClient) genEvCallback(evname string) func(*flowtypes.FlowMonitorLog
 func (f *FlowClient) sendWithdraw(logmsg string, msg []byte, tokeId string, pubKeySig map[string][]byte) {
 	f.txLock.Lock()
 	defer f.txLock.Unlock()
+	exist, err := f.fcc.QuerySafeBoxRecordExist(context.Background(), fmt.Sprintf("%x", pbrtypes.StdSHA3Hash(msg)))
+	if err != nil {
+		log.Warnf("query flow wd fail, err:%v", err)
+		// still continue to send the tx, no break
+	} else if exist {
+		log.Infof("flow wd %s exist, skip", logmsg)
+		return
+	}
 	txHash, err := f.fcc.Withdraw(context.Background(), msg, tokeId, pubKeySig)
 	if err != nil {
-		log.Errorf("Failed to send flow withdraw, msg:%s, err: %v", logmsg, err)
+		log.Errorf("send flow wd fail, msg:%s, err: %v", logmsg, err)
 		return
 	}
 	withTxErr, err := f.fcc.WaitTxSealed(context.Background(), txHash, 30*time.Second)
 	if err != nil {
-		// TODO, check error and requeue withdraw?
-		if withTxErr {
-			log.Errorf("flow withdraw is accepted on chain, but fail, msg:%s, err:%v", logmsg, err)
+		if withTxErr && !strings.Contains(err.Error(), "wdId already exists") {
+			log.Errorf("send flow wd fail with tx err, msg:%s, err:%v", logmsg, err)
 		} else {
-			log.Errorf("flow withdraw send fail, msg:%s, err:%v", logmsg, err)
+			log.Warnf("wait flow wd fail, msg:%s, err:%v", logmsg, err)
 		}
 		return
 	}
-	log.Infof("Send Flow withdraw success, msg:%s", logmsg)
+	log.Infof("send flow wd success, msg:%s", logmsg)
 	return
 }
 
 func (f *FlowClient) sendMint(logmsg string, msg []byte, tokeId string, pubKeySig map[string][]byte) {
 	f.txLock.Lock()
 	defer f.txLock.Unlock()
+	exist, err := f.fcc.QueryPegBridgeRecordExist(context.Background(), fmt.Sprintf("%x", pbrtypes.StdSHA3Hash(msg)))
+	if err != nil {
+		log.Warnf("query flow mint fail, err:%v", err)
+		// still continue to send the tx, no break
+	} else if exist {
+		log.Infof("flow mint %s exist, skip", logmsg)
+		return
+	}
 	txHash, err := f.fcc.Mint(context.Background(), msg, tokeId, pubKeySig)
 	if err != nil {
-		log.Errorf("Failed to send flow mint, msg:%s, err: %v", logmsg, err)
+		log.Errorf("send flow mint fail, msg:%s, err: %v", logmsg, err)
 		return
 	}
 	withTxErr, err := f.fcc.WaitTxSealed(context.Background(), txHash, 30*time.Second)
 	if err != nil {
-		// TODO, check error and requeue mint?
-		if withTxErr {
-			log.Errorf("flow mint is accepted on chain, but fail, msg:%s, err:%v", logmsg, err)
+		if withTxErr && !strings.Contains(err.Error(), "mintId already exists") {
+			log.Errorf("send flow mint fail with tx err, but fail, msg:%s, err:%v", logmsg, err)
 		} else {
-			log.Errorf("flow mint send fail, msg:%s, err:%v", logmsg, err)
+			log.Warnf("wait flow mint fail, msg:%s, err:%v", logmsg, err)
 		}
 		return
 	}

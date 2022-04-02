@@ -143,14 +143,28 @@ func SetupFlowChain() {
 	flowutils.DeployAllContract(context.Background(), tc.FlowContractAccountClient, uint64(commontypes.NonEvmChainID_FLOW_EMULATOR))
 
 	// add config in bridge vaultAddr, tokenVault, tokenReceiver, tokenName
-	_, err = flowutils.AddNewTokenInSafeBox(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr,
-		"0.0", "1000000.0", "1000000.0", tc.FlowContractAddr.String(), exampleTokenVault, exampleTokenReceiver, exampleTokenName)
+	tokenCfg := flowutils.SafeBoxTokenConfig{
+		TokenAddr:      tc.FlowContractAddr,
+		MinDepo:        "0.0",
+		MaxDepo:        "10000000.0",
+		DelayThreshold: "10000000.0",
+		Cap:            "0.0",
+	}
+	_, err = flowutils.AddNewTokenInSafeBox(context.Background(), tc.FlowContractAccountClient, tokenCfg,
+		tc.FlowContractAddr.String(), exampleTokenVault, exampleTokenReceiver, exampleTokenName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_, err = flowutils.AddNewTokenInPegBridge(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr,
-		"0.0", "1000000.0", "1000000.0", tc.FlowContractAddr.String(), testPegTokenReceiver, testPegTokenName)
+	pegTokenCfg := flowutils.PegBridgeTokenConfig{
+		TokenAddr:      tc.FlowContractAddr,
+		MinBurn:        "0.0",
+		MaxBurn:        "10000000.0",
+		DelayThreshold: "10000000.0",
+		Cap:            "0.0",
+	}
+	_, err = flowutils.AddNewTokenInPegBridge(context.Background(), tc.FlowContractAccountClient, pegTokenCfg,
+		tc.FlowContractAddr.String(), testPegTokenReceiver, testPegTokenName)
 	if err != nil {
 		log.Fatal(err)
 	}
