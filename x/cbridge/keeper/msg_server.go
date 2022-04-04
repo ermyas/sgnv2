@@ -197,7 +197,7 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 			Sig:  mySig,
 		})
 		SetXferRelay(kv, xferId, xferRelay)
-		return ret, nil
+
 	} else if msg.Datatype == types.SignDataType_WITHDRAW {
 		withdraw := new(types.WithdrawOnchain)
 		err = withdraw.Unmarshal(msg.Data)
@@ -235,8 +235,8 @@ func (k msgServer) SendMySig(ctx context.Context, msg *types.MsgSendMySig) (*typ
 			Sig:  mySig,
 		})
 		SaveWithdrawDetail(kv, usrAddr, withdraw.Seqnum, wdDetail)
-	} else if msg.Datatype == types.SignDataType_SIGNERS {
 
+	} else if msg.Datatype == types.SignDataType_SIGNERS {
 		latestSigners, found := k.GetLatestSigners(sdkCtx)
 		if !found {
 			return nil, fmt.Errorf("%s, latest signers not found", logmsg)
