@@ -272,6 +272,8 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 					Sender:    r.Transactor.Key.GetAddress().String(),
 				}
 				r.Transactor.AddTxMsg(msg)
+				log.Infoln("Sign pegBridge mint:", mintId)
+
 				// a zeroAddr of depositor indicates a refund type mint.
 				if eth.Bytes2Addr(mintOnChain.Depositor) == eth.ZeroAddr {
 					continue
@@ -281,7 +283,6 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 				if err != nil {
 					log.Errorf("db Set err: %s", err)
 				}
-				log.Infoln("Sign pegBridge mint:", mintId, mintInfo.ShortStr())
 			}
 		},
 		// Need to set outCapacity to 2 for both tx and block events
@@ -347,6 +348,7 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 					Sender:     r.Transactor.Key.GetAddress().String(),
 				}
 				r.Transactor.AddTxMsg(msg)
+				log.Infoln("Sign pegVault withdraw:", wdId)
 
 				// RefChainId = 0 means fee claim, don't add a WithdrawRequest
 				if wdOnChain.RefChainId == 0 {
@@ -361,7 +363,6 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 				if err != nil {
 					log.Errorf("db Set err: %s", err)
 				}
-				log.Infoln("Sign pegVault withdraw:", wdId, wdInfo.ShortStr())
 			}
 		},
 		// Need to set outCapacity to 2 for both tx and block events
