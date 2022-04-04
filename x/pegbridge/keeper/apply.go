@@ -545,7 +545,8 @@ func (k Keeper) manageDataForDepositRefund(
 		RefId:       ev.DepositId[:],
 	}
 	if commontypes.IsFlowChain(depositChainId) {
-		wdOnChain.Token = []byte(depoToken) // use human string as is
+		wdOnChain.Token = []byte(depoToken)
+		wdOnChain.Receiver = ev.Depositor[12:] // only last 8 bytes for Flow account
 	}
 	k.SetDepositRefund(ctx, ev.DepositId, wdOnChain)
 }
@@ -570,6 +571,7 @@ func (k Keeper) manageDataForBurnRefund(
 	}
 	if commontypes.IsFlowChain(burnChainId) {
 		mintOnChain.Token = []byte(burnToken) // use human string as is
+		mintOnChain.Account = ev.Account[12:] // only last 8 bytes for Flow account
 	}
 	k.SetBurnRefund(ctx, ev.BurnId, mintOnChain)
 }
