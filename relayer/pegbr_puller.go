@@ -726,7 +726,7 @@ func (c *CbrOneChain) skipSyncFlowPegbrBurn(
 	var token string
 	var burnId eth.Hash
 
-	burn, err := flowtypes.FlowFlowPegBridgeBurnUnmarshal(fmLog.Event)
+	burn, err := flowtypes.FlowPegBridgeBurnUnmarshal(fmLog.Event)
 	if err != nil {
 		return true, fmt.Sprintf("fail to parse flow burn event, txHash:%x, err:%s", fmLog.TxHash, err)
 	}
@@ -780,7 +780,7 @@ func (c *CbrOneChain) skipSyncFlowPegbrBurn(
 
 func (c *CbrOneChain) skipSyncFlowPegbrMint(fmLog *flowtypes.FlowMonitorLog, cliCtx client.Context) (skip bool, reason string) {
 	var mintId eth.Hash
-	mint, err := flowtypes.FlowFlowPegBridgeMintUnmarshal(fmLog.Event)
+	mint, err := flowtypes.FlowPegBridgeMintUnmarshal(fmLog.Event)
 	if err != nil {
 		return true, fmt.Sprintf("fail to parse flow burn event, txHash:%x, err:%s", fmLog.TxHash, err)
 	}

@@ -661,28 +661,26 @@ func DeployPegBridgeContract() {
 				MaxBurnFee:  "1000000000000000000",
 				SupplyCap:   "100000000000000000000",
 			},
-			/*
-				{
-					// flow SafeBox
-					Orig: commontypes.ERC20Token{
-						Symbol:   "UNI",
-						ChainId:  12340003,
-						Address:  "A.01cf0e2f2f715450.ExampleToken.Vault",
-						Decimals: 8,
-					},
-					Pegged: commontypes.ERC20Token{
-						Symbol:   "UNI",
-						ChainId:  tc.CbrChain2.ChainId,
-						Address:  eth.Addr2Hex(tc.CbrChain2.UNIAddr),
-						Decimals: 18,
-					},
-					MintFeePips: 0,
-					BurnFeePips: 0,
-					MaxMintFee:  "1000000000000000000000",
-					MaxBurnFee:  "1000000000000000000000",
-					SupplyCap:   "100000000000000000000000000",
+			{
+				// flow SafeBox
+				Orig: commontypes.ERC20Token{
+					Symbol:   "FET",
+					ChainId:  12340003,
+					Address:  "A.01cf0e2f2f715450.ExampleToken.Vault",
+					Decimals: 8,
 				},
-			*/
+				Pegged: commontypes.ERC20Token{
+					Symbol:   "FET",
+					ChainId:  tc.CbrChain2.ChainId,
+					Address:  eth.Addr2Hex(tc.CbrChain2.FETAddr),
+					Decimals: 18,
+				},
+				MintFeePips: 0,
+				BurnFeePips: 0,
+				MaxMintFee:  "1000000000000000000000",
+				MaxBurnFee:  "1000000000000000000000",
+				SupplyCap:   "100000000000000000000000000",
+			},
 		}
 		config := pegbrtypes.PegConfig{
 			PeggedTokenBridges:  peggedTokenBridges,

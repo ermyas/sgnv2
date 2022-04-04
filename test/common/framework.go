@@ -64,8 +64,8 @@ type CbrChain struct {
 	PegBridgeV2Addr     eth.Addr
 	PegVaultV2Addr      eth.Addr
 
-	USDTContract, UNIContract *contracts.BridgeTestToken
-	USDTAddr, UNIAddr         eth.Addr
+	USDTContract, UNIContract, FETContract *contracts.BridgeTestToken
+	USDTAddr, UNIAddr, FETAddr             eth.Addr
 
 	MessageBusContract    *eth.MessageBus
 	MessageBusAddr        eth.Addr

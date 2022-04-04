@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/allegro/bigcache v1.2.1
 	github.com/armon/go-metrics v0.3.10
-	github.com/celer-network/cbridge-flow v0.0.0-20220402071918-b83219ab4e20
+	github.com/celer-network/cbridge-flow v0.0.0-20220403081538-ac98af9e1ebd
 	github.com/celer-network/endpoint-proxy v0.2.0
 	github.com/celer-network/goutils v0.1.49
 	github.com/cockroachdb/cockroach-go/v2 v2.2.8

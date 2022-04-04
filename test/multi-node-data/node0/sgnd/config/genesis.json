@@ -132,6 +132,13 @@
             "addr": "A.01cf0e2f2f715450.ExampleToken.Vault",
             "decimal": 8,
             "max_fee_amount": "1000000000000000000"
+          },
+          {
+            "symbol": "FLOW",
+            "chain_id": 12340003,
+            "addr": "A.0ae53cb6e3f42a79.FlowToken.Vault",
+            "decimal": 8,
+            "max_fee_amount": "1000000000000000000"
           }
         ],
         "chain_pairs": [

@@ -50,8 +50,8 @@ func pbrFlowTest(t *testing.T, transactor *transactor.Transactor) {
 	log.Infof("SafeBox Deposit related MintInfo:%+v", mintInfo)
 
 	log.Infoln("======================== Test SafeBox burn -> withdraw ===========================")
-	burnFlowAmt := new(big.Int).Mul(big.NewInt(5), big.NewInt(1e18))
-	burnFlowId, err := tc.CbrChain2.PbrBurnWithUser(0, burnFlowAmt, rand.Uint64(), common.BytesToAddress(tc.FlowUserAddr.Bytes()))
+	burnFlowAmt := new(big.Int).Mul(big.NewInt(5), big.NewInt(1e10))
+	burnFlowId, err := tc.CbrChain2.PbrBurnFlowExampleTokenWithUser(0, burnFlowAmt, rand.Uint64(), common.BytesToAddress(tc.FlowUserAddr.Bytes()))
 	tc.ChkErr(err, "u0 chain2 burn")
 	burnInfo := tc.WaitPbrBurn(transactor, burnFlowId[:])
 	log.Infof("burnInfo: %+v", burnInfo)

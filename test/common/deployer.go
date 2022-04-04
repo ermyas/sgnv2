@@ -39,6 +39,7 @@ func (c *CbrChain) DeployPegBridgeContracts() {
 	c.PegBridgeAddr, c.PegBridgeContract = DeployPegBridgeContract(c.Ec, c.Auth, c.CbrAddr)
 	c.PegBridgeV2Addr, c.PegBridgeV2Contract = DeployPegBridgeV2Contract(c.Ec, c.Auth, c.CbrAddr)
 	c.UNIAddr, c.UNIContract = DeployBridgeTestTokenContract(c.Ec, c.Auth, "UNI", "UNI", 18)
+	c.FETAddr, c.FETContract = DeployBridgeTestTokenContract(c.Ec, c.Auth, "FET", "FET", 18)
 }
 
 func DeployERC20Contract(ethClient *ethclient.Client, auth *bind.TransactOpts, name, symbol string, decimal uint8) (eth.Addr, *eth.Erc20) {

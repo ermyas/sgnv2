@@ -405,6 +405,29 @@ func (c *CbrChain) PbrBurnWithUser(fromUid uint64, amt *big.Int, nonce uint64, w
 	return eth.Hash(burnEv.BurnId).Hex(), nil
 }
 
+func (c *CbrChain) PbrBurnFlowExampleTokenWithUser(fromUid uint64, amt *big.Int, nonce uint64, withdrawUserAddr common.Address) (string, error) {
+	receipt, err := c.Users[fromUid].Transactor.TransactWaitMined(
+		"PbrBurnFlowExampleTokenWithUser",
+		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*ethtypes.Transaction, error) {
+			return c.PegBridgeContract.Burn(opts, c.FETAddr, amt, withdrawUserAddr, nonce)
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+	if receipt.Status != ethtypes.ReceiptStatusSuccessful {
+		return "", fmt.Errorf("tx failed")
+	}
+	// last log is Burn event (NOTE: test only)
+	burnLog := receipt.Logs[len(receipt.Logs)-1]
+	burnEv, err := c.PegBridgeContract.ParseBurn(*burnLog)
+	if err != nil {
+		return "", fmt.Errorf("parse log %+v err: %w", burnEv, err)
+	}
+	log.Infof("Burn tx success, burnId: %x", burnEv.BurnId)
+	return eth.Hash(burnEv.BurnId).Hex(), nil
+}
+
 func (c *CbrChain) PbrV2Burn(fromUid uint64, token eth.Addr, amt *big.Int, toChainId, nonce uint64) (string, error) {
 	receipt, err := c.Users[fromUid].Transactor.TransactWaitMined(
 		"PbrBurn",
