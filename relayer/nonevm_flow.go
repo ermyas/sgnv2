@@ -51,9 +51,16 @@ func NewFlowClient(cfg *common.OneChainConfig, wdal *watcherDAL, db *dbm.PrefixD
 	if cfg.CBridge != cfg.PTBridge || cfg.CBridge != cfg.OTVault {
 		log.Fatalln("mismatch contract addr. all flow contracts must be under same account.", cfg.CBridge, cfg.PTBridge, cfg.OTVault)
 	}
-	sender, err := buildFlowSender()
-	if err != nil {
-		log.Fatalln("init flow signer err:", err)
+	var sender *flowutils.FlowSender
+	var err error
+	// for partner, no need to send transactions on flow, then set nil sender
+	if viper.GetString(common.FlagFlowAccount) != "" {
+		sender, err = buildFlowSender()
+		if err != nil {
+			log.Fatalln("init flow signer err:", err)
+		}
+	} else {
+		log.Warnf("this node will not send tx on flow, flow sender is nil")
 	}
 	// now build return obj
 	ret := &FlowClient{
@@ -114,7 +121,7 @@ func (f *FlowClient) genEvCallback(evname string) func(*flowtypes.FlowMonitorLog
 	}
 }
 
-func (f *FlowClient) sendWithdraw(logmsg string, msg []byte, tokeId string, pubKeySig map[string][]byte) {
+func (f *FlowClient) sendWithdraw(logmsg string, msg []byte, tokeId string, pubKeySig [][]byte) {
 	f.txLock.Lock()
 	defer f.txLock.Unlock()
 	exist, err := f.fcc.QuerySafeBoxRecordExist(context.Background(), fmt.Sprintf("%x", pbrtypes.StdSHA3Hash(msg)))
@@ -143,7 +150,7 @@ func (f *FlowClient) sendWithdraw(logmsg string, msg []byte, tokeId string, pubK
 	return
 }
 
-func (f *FlowClient) sendMint(logmsg string, msg []byte, tokeId string, pubKeySig map[string][]byte) {
+func (f *FlowClient) sendMint(logmsg string, msg []byte, tokeId string, pubKeySig [][]byte) {
 	f.txLock.Lock()
 	defer f.txLock.Unlock()
 	exist, err := f.fcc.QueryPegBridgeRecordExist(context.Background(), fmt.Sprintf("%x", pbrtypes.StdSHA3Hash(msg)))

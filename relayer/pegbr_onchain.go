@@ -234,12 +234,7 @@ func (c *CbrOneChain) SendMint(
 		"mint %s of token %x for user %x, refChainId %d, refId %x, mintChainId %d, depositor %x",
 		new(big.Int).SetBytes(mint.GetAmount()).String(), mint.GetToken(), mint.GetAccount(), mint.GetRefChainId(), mint.GetRefId(), c.chainid, mint.GetDepositor())
 	if types.IsFlowChain(c.chainid) {
-		// TODO only need sigs [][]byte after contract pubkey rm
-		sigMap := make(map[string][]byte)
-		for i, s := range sigs {
-			sigMap[fmt.Sprintf("%d", i)] = s
-		}
-		go c.FlowClient.sendMint(logmsg, mintBytes, string(mint.Token), sigMap)
+		go c.FlowClient.sendMint(logmsg, mintBytes, string(mint.Token), sigs)
 		return "", nil
 	}
 	// EVM chains
@@ -282,12 +277,7 @@ func (c *CbrOneChain) SendWithdraw(
 		"withdraw %s of token %x for user %x, refChainId %d, refId %x, withdrawChainId %d, burnAccount %x",
 		new(big.Int).SetBytes(withdraw.GetAmount()).String(), withdraw.GetToken(), withdraw.GetReceiver(), withdraw.GetRefChainId(), withdraw.GetRefId(), c.chainid, withdraw.BurnAccount)
 	if types.IsFlowChain(c.chainid) {
-		// TODO only need sigs [][]byte after contract pubkey rm
-		sigMap := make(map[string][]byte)
-		for i, s := range sigs {
-			sigMap[fmt.Sprintf("%d", i)] = s
-		}
-		go c.FlowClient.sendWithdraw(logmsg, wdBytes, string(withdraw.Token), sigMap)
+		go c.FlowClient.sendWithdraw(logmsg, wdBytes, string(withdraw.Token), sigs)
 		return "", nil
 	}
 	// EVM chains
