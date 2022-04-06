@@ -384,19 +384,27 @@ func (k Keeper) claimBurnRefund(ctx sdk.Context, burnId eth.Hash, msg *types.Msg
 	}
 	mintAmount := new(big.Int).SetBytes(mint.Amount)
 	var mintId eth.Hash
-	switch burnInfo.GetBridgeVersion() {
-	case 0:
-		mintId = types.CalcMintId(eth.Bytes2Addr(mint.Account), eth.Bytes2Addr(mint.Token),
-			mintAmount, eth.Bytes2Addr(mint.Depositor), mint.RefChainId, eth.Bytes2Hash(mint.RefId))
-	case 2: //V2 peg bridge logic
-		bridgeV2Addr, found := k.GetVersionedBridge(ctx, burnInfo.ChainId, 2)
-		if !found {
-			return types.WrapErrNoPeggedTokenBridgeFound(burnInfo.ChainId)
+	if commontypes.IsFlowChain(burnInfo.ChainId) {
+		mintRawData, err := mint.Marshal()
+		if err != nil {
+			return fmt.Errorf("fail to marshal flow MintOnChain for refund, burn:%v, err:%v", burnInfo, err)
 		}
-		mintId = types.CalcMintIdV2(eth.Bytes2Addr(mint.Account), eth.Bytes2Addr(mint.Token),
-			mintAmount, eth.Bytes2Addr(mint.Depositor), mint.RefChainId, eth.Bytes2Hash(mint.RefId), bridgeV2Addr)
-	default:
-		return fmt.Errorf("invalid bridge version %d", burnInfo.GetBridgeVersion())
+		mintId = types.CalcFlowMintId(mintRawData)
+	} else {
+		switch burnInfo.GetBridgeVersion() {
+		case 0:
+			mintId = types.CalcMintId(eth.Bytes2Addr(mint.Account), eth.Bytes2Addr(mint.Token),
+				mintAmount, eth.Bytes2Addr(mint.Depositor), mint.RefChainId, eth.Bytes2Hash(mint.RefId))
+		case 2: //V2 peg bridge logic
+			bridgeV2Addr, found := k.GetVersionedBridge(ctx, burnInfo.ChainId, 2)
+			if !found {
+				return types.WrapErrNoPeggedTokenBridgeFound(burnInfo.ChainId)
+			}
+			mintId = types.CalcMintIdV2(eth.Bytes2Addr(mint.Account), eth.Bytes2Addr(mint.Token),
+				mintAmount, eth.Bytes2Addr(mint.Depositor), mint.RefChainId, eth.Bytes2Hash(mint.RefId), bridgeV2Addr)
+		default:
+			return fmt.Errorf("invalid bridge version %d", burnInfo.GetBridgeVersion())
+		}
 	}
 	// record a mintInfo
 	mintProtoBytes := k.cdc.MustMarshal(&mint)
