@@ -135,10 +135,10 @@ func (k Keeper) GetAllVersionedVaults(ctx sdk.Context) (vaults []types.ContractI
 	for ; iterator.Valid(); iterator.Next() {
 		chainId := binary.LittleEndian.Uint64(iterator.Key()[1:9])
 		version := binary.LittleEndian.Uint32(iterator.Key()[9:])
-		addrress := eth.Bytes2AddrHex(iterator.Value())
+		address := eth.Bytes2AddrHex(iterator.Value())
 		vaults = append(vaults,
 			types.ContractInfo{
-				Contract: commontypes.NewContractInfo(chainId, addrress),
+				Contract: commontypes.NewContractInfo(chainId, address),
 				Version:  version,
 			},
 		)
@@ -199,10 +199,10 @@ func (k Keeper) GetAllVersionedBridges(ctx sdk.Context) (bridges []types.Contrac
 	for ; iterator.Valid(); iterator.Next() {
 		chainId := binary.LittleEndian.Uint64(iterator.Key()[1:9])
 		version := binary.LittleEndian.Uint32(iterator.Key()[9:])
-		addrress := eth.Bytes2AddrHex(iterator.Value())
+		address := eth.Bytes2AddrHex(iterator.Value())
 		bridges = append(bridges,
 			types.ContractInfo{
-				Contract: commontypes.NewContractInfo(chainId, addrress),
+				Contract: commontypes.NewContractInfo(chainId, address),
 				Version:  version,
 			},
 		)

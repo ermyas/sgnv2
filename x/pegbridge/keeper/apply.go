@@ -346,7 +346,7 @@ func (k Keeper) pegMint(
 		RefId:      refId.Bytes(),
 	}
 
-	var mintProtoBytes []byte // to be serlized after set Token field
+	var mintProtoBytes []byte // to be serialized after set Token field
 	// refChainId is burn chain ID, refId is burn ID
 	if commontypes.IsFlowChain(mintChainId) {
 		mint.Token = []byte(pair.Pegged.Address)
@@ -416,7 +416,7 @@ func (k Keeper) vaultWithdraw(
 		RefId:       ev.BurnId[:],
 	}
 
-	var withdrawProtoBytes []byte // to be serlized after set Token field
+	var withdrawProtoBytes []byte // to be serialized after set Token field
 	// refChainId is burn chain ID, refId is burn ID
 	if commontypes.IsFlowChain(withdrawChainId) {
 		withdraw.Token = []byte(wdTokenAddr)
