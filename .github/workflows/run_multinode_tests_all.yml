@@ -3,6 +3,8 @@ name: Run multinode tests (all)
 on: 
   pull_request:
     branches:
+      - release/v1.7.x
+      - release/v1.6.x
       - prod2
 
 jobs:
@@ -16,7 +18,7 @@ jobs:
       with:
         filters: |
           src:
-            - '.github/workflows/run_multinode_tests.yml'
+            - '.github/workflows/run_multinode_tests_all.yml'
             - 'app/**'
             - 'cmd/**'
             - 'common/**'

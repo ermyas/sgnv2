@@ -3,6 +3,8 @@ name: Run multinode tests (msg)
 on: 
   pull_request:
     branches-ignore:
+      - release/v1.7.x
+      - release/v1.6.x
       - prod2
 
 jobs:
@@ -16,6 +18,7 @@ jobs:
       with:
         filters: |
           src:
+            - '.github/workflows/run_multinode_tests_msg.yml'
             - 'relayer/msgbr_*'
             - 'executor/**'
             - 'x/message/**'
