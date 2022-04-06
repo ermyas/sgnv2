@@ -1,15 +1,15 @@
-## sgnd query message transfer
+## sgnd query message exe-ctx
 
-Query transfer details
+Query execution context by bridge type (1:liquidity, 2:pegvault, 3:pegbridge) and src transferId
 
 ```
-sgnd query message transfer [transfer-id] [flags]
+sgnd query message exe-ctx [bridge-type] [src-transfer-id] [flags]
 ```
 
 ### Options
 
 ```
-  -h, --help   help for transfer
+  -h, --help   help for exe-ctx
 ```
 
 ### Options inherited from parent commands

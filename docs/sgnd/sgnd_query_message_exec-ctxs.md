@@ -5,20 +5,23 @@ Query the execution contexts of all messages
 ### Synopsis
 
 
-request json should be like below
+inline filter format:
+--filter '5:0x09E4534B11D400BFcd2026b69E399763CeAfB42D,97:0x570F9c2f224b002d75F287f5430Bc9598E850E13'
+json file filter format:
+--json-filter <path-to-json>
 {
-	contract_infos:[
+	"contract_infos": [
 		{
-			"address": "3ff73bab93c505809c68b0a8e4321a2713d9255c",
-			"chain_id": 883
+			"chain_id": 5,
+			"address": "0x09E4534B11D400BFcd2026b69E399763CeAfB42D"
 		},
 		{
-			"address": "58712219a4bdbb0e581dcaf6f5c4c2b2d2f42158",
-			"chain_id": 884
+			"chain_id": 97,
+			"address": "0x570F9c2f224b002d75F287f5430Bc9598E850E13"
 		}
 	]
 }
-
+		
 
 ```
 sgnd query message exec-ctxs [request json] [flags]
@@ -27,7 +30,10 @@ sgnd query message exec-ctxs [request json] [flags]
 ### Options
 
 ```
-  -h, --help   help for exec-ctxs
+      --all                  queries all pending execution contexts
+      --filter strings       contract filters
+  -h, --help                 help for exec-ctxs
+      --json-filter string   filter contracts with a json file
 ```
 
 ### Options inherited from parent commands
