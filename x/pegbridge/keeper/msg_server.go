@@ -305,30 +305,38 @@ func (k Keeper) claimDepositRefund(ctx sdk.Context, depositId eth.Hash, msg *typ
 		return fmt.Errorf("this deposit has already been refunded:%s", depositId.Hex())
 	}
 	var withdrawId eth.Hash
-	switch depositInfo.GetVaultVersion() {
-	case 0:
-		withdrawId = types.CalcWithdrawId(
-			eth.Bytes2Addr(withdraw.Receiver),
-			eth.Bytes2Addr(withdraw.Token),
-			new(big.Int).SetBytes(withdraw.Amount),
-			eth.Bytes2Addr(withdraw.BurnAccount),
-			withdraw.RefChainId,
-			eth.Bytes2Hash(withdraw.RefId))
-	case 2:
-		vaultAddr, found := k.GetVersionedVault(ctx, depositInfo.ChainId, 2)
-		if !found {
-			return types.WrapErrNoOriginalTokenVaultFound(depositInfo.ChainId)
+	if commontypes.IsFlowChain(depositInfo.ChainId) {
+		wdRawData, err := withdraw.Marshal()
+		if err != nil {
+			return fmt.Errorf("fail to marshal flow WithdrawOnChain for refund, deposit:%v, err:%v", depositInfo, err)
 		}
-		withdrawId = types.CalcWithdrawIdV2(
-			eth.Bytes2Addr(withdraw.Receiver),
-			eth.Bytes2Addr(withdraw.Token),
-			new(big.Int).SetBytes(withdraw.Amount),
-			eth.Bytes2Addr(withdraw.BurnAccount),
-			withdraw.RefChainId,
-			eth.Bytes2Hash(withdraw.RefId),
-			vaultAddr)
-	default:
-		return fmt.Errorf("invalid vault version %d", depositInfo.GetVaultVersion())
+		withdrawId = types.CalcFlowWithdrawId(wdRawData)
+	} else {
+		switch depositInfo.GetVaultVersion() {
+		case 0:
+			withdrawId = types.CalcWithdrawId(
+				eth.Bytes2Addr(withdraw.Receiver),
+				eth.Bytes2Addr(withdraw.Token),
+				new(big.Int).SetBytes(withdraw.Amount),
+				eth.Bytes2Addr(withdraw.BurnAccount),
+				withdraw.RefChainId,
+				eth.Bytes2Hash(withdraw.RefId))
+		case 2:
+			vaultAddr, found := k.GetVersionedVault(ctx, depositInfo.ChainId, 2)
+			if !found {
+				return types.WrapErrNoOriginalTokenVaultFound(depositInfo.ChainId)
+			}
+			withdrawId = types.CalcWithdrawIdV2(
+				eth.Bytes2Addr(withdraw.Receiver),
+				eth.Bytes2Addr(withdraw.Token),
+				new(big.Int).SetBytes(withdraw.Amount),
+				eth.Bytes2Addr(withdraw.BurnAccount),
+				withdraw.RefChainId,
+				eth.Bytes2Hash(withdraw.RefId),
+				vaultAddr)
+		default:
+			return fmt.Errorf("invalid vault version %d", depositInfo.GetVaultVersion())
+		}
 	}
 	// record a withdrawInfo
 	withdrawProtoBytes := k.cdc.MustMarshal(&withdraw)
