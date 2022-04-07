@@ -241,7 +241,16 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 				}
 
 				if types.IsFlowChain(mintInfo.ChainId) {
-					fcl := r.cbrMgr[mintInfo.ChainId].FlowClient
+					cbrOneChain := r.cbrMgr[mintInfo.ChainId]
+					if cbrOneChain == nil {
+						log.Warnf("no flow config, skip")
+						continue
+					}
+					fcl := cbrOneChain.FlowClient
+					if fcl == nil {
+						log.Warnf("no flow client, skip")
+						continue
+					}
 					sig, err = fcl.fcc.SignFlowMessage(mintInfo.EncodeDataToSign(eth.Hex2Addr(fcl.ContractAddr)))
 				} else {
 					cbrOneChain := r.cbrMgr[mintInfo.ChainId]
