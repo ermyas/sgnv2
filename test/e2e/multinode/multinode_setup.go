@@ -493,6 +493,9 @@ func DeployPegBridgeContract() {
 			tx, err := tc.CbrChain2.UNIContract.UpdateBridgeSupplyCap(
 				tc.CbrChain2.Auth, tc.CbrChain2.PegBridgeAddr, tc.NewBigInt(1, 28))
 			tc.ChkErr(err, "failed to update bridge supply cap")
+			tx, err = tc.CbrChain2.FETContract.UpdateBridgeSupplyCap(
+				tc.CbrChain2.Auth, tc.CbrChain2.PegBridgeAddr, tc.NewBigInt(1, 28))
+			tc.ChkErr(err, "failed to update bridge supply cap")
 			tx, err = tc.CbrChain2.USDTContract.UpdateBridgeSupplyCap(
 				tc.CbrChain2.Auth, tc.CbrChain2.PegBridgeV2Addr, tc.NewBigInt(1, 15))
 			tc.ChkErr(err, "failed to update bridge supply cap")

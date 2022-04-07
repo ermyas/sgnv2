@@ -127,6 +127,10 @@ func (c *CbrChain) ApprovePeggedUNI(uid uint64, amt *big.Int) error {
 	return c.ApproveBridgeTestToken(c.UNIContract, uid, amt, c.PegBridgeAddr)
 }
 
+func (c *CbrChain) ApprovePeggedFET(uid uint64, amt *big.Int) error {
+	return c.ApproveBridgeTestToken(c.FETContract, uid, amt, c.PegBridgeAddr)
+}
+
 func (c *CbrChain) ApprovePeggedUNIForBatchTransfer(uid uint64, amt *big.Int) error {
 	return c.ApproveBridgeTestToken(c.UNIContract, uid, amt, c.BatchTransferAddr)
 }
@@ -731,6 +735,11 @@ func ApproveTestTokenToBridges() {
 		f = func() {
 			err := CbrChain2.ApprovePeggedUNI(uid, amt)
 			ChkErr(err, fmt.Sprintf("u%d chain2 approve UNI to pegbridge", uid))
+		}
+		funcs = append(funcs, f)
+		f = func() {
+			err := CbrChain2.ApprovePeggedFET(uid, amt)
+			ChkErr(err, fmt.Sprintf("u%d chain2 approve FET to pegbridge", uid))
 		}
 		funcs = append(funcs, f)
 		f = func() {
