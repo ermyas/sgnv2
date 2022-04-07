@@ -144,25 +144,25 @@ func (ev *OriginalTokenVaultWithdrawn) PrettyLog(onchid uint64) string {
 
 func (ev *OriginalTokenVaultV2Deposited) PrettyLog(onchid uint64) string {
 	return fmt.Sprintf(
-		"peg-deposited2-%d depositId: %x account: %x token: %x amount: %s mintChainId: %d mintAccount: %x",
+		"peg-deposited-%d depositId: %x account: %x token: %x amount: %s mintChainId: %d mintAccount: %x",
 		onchid, ev.DepositId, ev.Depositor, ev.Token, ev.Amount, ev.MintChainId, ev.MintAccount)
 }
 
 func (ev *PeggedTokenBridgeV2Mint) PrettyLog(onchid uint64) string {
 	return fmt.Sprintf(
-		"peg-mint2-%d mintId: %x token: %x account: %x amount: %s depositChainId: %d depositId: %x depositor: %x",
+		"peg-mint-%d mintId: %x token: %x account: %x amount: %s depositChainId: %d depositId: %x depositor: %x",
 		onchid, ev.MintId, ev.Token, ev.Account, ev.Amount, ev.RefChainId, ev.RefId, ev.Depositor)
 }
 
 func (ev *PeggedTokenBridgeV2Burn) PrettyLog(onchid uint64) string {
 	return fmt.Sprintf(
-		"peg-burn2-%d burnId: %x token: %x account: %x amount: %s toChainId %d toAccount: %x",
+		"peg-burn-%d burnId: %x token: %x account: %x amount: %s toChainId %d toAccount: %x",
 		onchid, ev.BurnId, ev.Token, ev.Account, ev.Amount, ev.ToChainId, ev.ToAccount)
 }
 
 func (ev *OriginalTokenVaultV2Withdrawn) PrettyLog(onchid uint64) string {
 	return fmt.Sprintf(
-		"peg-withdrawn2-%d withdrawId: %x receiver: %x token: %x amount: %s mintChainId: %d mintId: %x burnAccount: %x",
+		"peg-withdrawn-%d withdrawId: %x receiver: %x token: %x amount: %s mintChainId: %d mintId: %x burnAccount: %x",
 		onchid, ev.WithdrawId, ev.Receiver, ev.Token, ev.Amount, ev.RefChainId, ev.RefId, ev.BurnAccount)
 }
 
