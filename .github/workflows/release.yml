@@ -65,4 +65,4 @@ jobs:
             aws-kms-tools-${{ steps.get_tag.outputs.TAG }}-linux-amd64.tar.gz
             aws-kms-tools-${{ steps.get_tag.outputs.TAG }}-linux-arm64.tar.gz
             aws-kms-tools-${{ steps.get_tag.outputs.TAG }}-darwin-amd64.tar.gz
-            aws-kms-tools-${{ steps.get_tag.outputs.TAG }}-darwin-amd64.tar.gz
+            aws-kms-tools-${{ steps.get_tag.outputs.TAG }}-darwin-arm64.tar.gz
