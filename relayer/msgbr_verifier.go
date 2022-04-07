@@ -3,7 +3,6 @@ package relayer
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/celer-network/goutils/log"
@@ -88,8 +87,8 @@ func (c *CbrOneChain) verifyMessage(cliCtx client.Context, eLog *ethtypes.Log, l
 		return true, false
 	}
 	// cmp ev and msgEv
-	if !reflect.DeepEqual(ev, msgEv) {
-		log.Errorln(logmsg, "ev not equal. got:", msgEv.String(), "expect:", ev.String())
+	if !ev.Equal(msgEv) {
+		log.Errorf("%s. ev not equal. got: %s %v. expect: %s %v", logmsg, msgEv, msgEv.Raw, ev, ev.Raw)
 		return true, false
 	}
 	log.Infof("%s, success", logmsg)
@@ -117,8 +116,8 @@ func (c *CbrOneChain) verifyMessageEventTransfer(cliCtx client.Context, eLog *et
 		return true, false
 	}
 	// now cmp ev and msgEv
-	if !reflect.DeepEqual(ev, msgEv) {
-		log.Errorln(logmsg, "ev not equal. got:", msgEv.String(), "expect:", ev.String())
+	if !ev.Equal(msgEv) {
+		log.Errorf("%s. ev not equal. got: %s %v. expect: %s %v", logmsg, msgEv, msgEv.Raw, ev, ev.Raw)
 		return true, false
 	}
 
@@ -178,8 +177,8 @@ func (c *CbrOneChain) verifyMessageEventExecuted(cliCtx client.Context, eLog *et
 		return true, false
 	}
 	// now cmp ev and msgEv
-	if !reflect.DeepEqual(ev, msgEv) {
-		log.Errorln(logmsg, "ev not equal. got:", msgEv.String(), "expect:", ev.String())
+	if !ev.Equal(msgEv) {
+		log.Errorf("%s. ev not equal. got: %s %v. expect: %s %v", logmsg, msgEv, msgEv.Raw, ev, ev.Raw)
 		return true, false
 	}
 

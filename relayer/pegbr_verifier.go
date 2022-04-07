@@ -3,7 +3,6 @@ package relayer
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 
 	flowtypes "github.com/celer-network/cbridge-flow/types"
 	"github.com/celer-network/goutils/log"
@@ -101,8 +100,8 @@ func (c *CbrOneChain) verifyPegbrDeposit(eLog *ethtypes.Log, cliCtx client.Conte
 			log.Errorln(logmsg, "parse log err:", err)
 			return true, false
 		}
-		if !reflect.DeepEqual(ev, depositEv) {
-			log.Errorln(logmsg, "ev not equal. got:", depositEv.String(), "expect:", ev.String())
+		if !ev.Equal(depositEv) {
+			log.Errorf("%s. ev not equal. got: %s %v. expect: %s %v", logmsg, depositEv, depositEv.Raw, ev, ev.Raw)
 			return true, false
 		}
 		return c.verifyOriginalTokenRecord(ev.DepositId, eLog.BlockNumber, cliCtx, logmsg, false)
@@ -124,8 +123,8 @@ func (c *CbrOneChain) verifyPegbrDeposit(eLog *ethtypes.Log, cliCtx client.Conte
 			log.Errorln(logmsg, "parse log err:", err)
 			return true, false
 		}
-		if !reflect.DeepEqual(ev, depositEv) {
-			log.Errorln(logmsg, "ev not equal. got:", depositEv.String(), "expect:", ev.String())
+		if !ev.Equal(depositEv) {
+			log.Errorf("%s. ev not equal. got: %s %v. expect: %s %v", logmsg, depositEv, depositEv.Raw, ev, ev.Raw)
 			return true, false
 		}
 
@@ -162,8 +161,8 @@ func (c *CbrOneChain) verifyPegbrWithdrawn(eLog *ethtypes.Log, cliCtx client.Con
 			log.Errorln(logmsg, "parse log err:", err)
 			return true, false
 		}
-		if !reflect.DeepEqual(ev, withdrawEv) {
-			log.Errorln(logmsg, "ev not equal. got:", withdrawEv.String(), "expect:", ev.String())
+		if !ev.Equal(withdrawEv) {
+			log.Errorf("%s. ev not equal. got: %s %v. expect: %s %v", logmsg, withdrawEv, withdrawEv.Raw, ev, ev.Raw)
 			return true, false
 		}
 
@@ -191,8 +190,8 @@ func (c *CbrOneChain) verifyPegbrWithdrawn(eLog *ethtypes.Log, cliCtx client.Con
 			log.Errorln(logmsg, "parse log err:", err)
 			return true, false
 		}
-		if !reflect.DeepEqual(ev, withdrawEv) {
-			log.Errorln(logmsg, "ev not equal. got:", withdrawEv.String(), "expect:", ev.String())
+		if !ev.Equal(withdrawEv) {
+			log.Errorf("%s. ev not equal. got: %s %v. expect: %s %v", logmsg, withdrawEv, withdrawEv.Raw, ev, ev.Raw)
 			return true, false
 		}
 
@@ -228,8 +227,8 @@ func (c *CbrOneChain) verifyPegbrBurn(eLog *ethtypes.Log, cliCtx client.Context,
 			log.Errorln(logmsg, "parse log err:", err)
 			return true, false
 		}
-		if !reflect.DeepEqual(ev, burnEv) {
-			log.Errorln(logmsg, "ev not equal. got:", burnEv.String(), "expect:", ev.String())
+		if !ev.Equal(burnEv) {
+			log.Errorf("%s. ev not equal. got: %s %v. expect: %s %v", logmsg, burnEv, burnEv.Raw, ev, ev.Raw)
 			return true, false
 		}
 		return c.verifyPeggedTokenRecord(ev.BurnId, eLog.BlockNumber, cliCtx, logmsg, false)
@@ -252,8 +251,8 @@ func (c *CbrOneChain) verifyPegbrBurn(eLog *ethtypes.Log, cliCtx client.Context,
 			log.Errorln(logmsg, "parse log err:", err)
 			return true, false
 		}
-		if !reflect.DeepEqual(ev, burnEv) {
-			log.Errorln(logmsg, "ev not equal. got:", burnEv.String(), "expect:", ev.String())
+		if !ev.Equal(burnEv) {
+			log.Errorf("%s. ev not equal. got: %s %v. expect: %s %v", logmsg, burnEv, burnEv.Raw, ev, ev.Raw)
 			return true, false
 		}
 
@@ -288,8 +287,8 @@ func (c *CbrOneChain) verifyPegbrMint(eLog *ethtypes.Log, cliCtx client.Context,
 			log.Errorln(logmsg, "parse log err:", err)
 			return true, false
 		}
-		if !reflect.DeepEqual(ev, mintEv) {
-			log.Errorln(logmsg, "ev not equal. got:", mintEv.String(), "expect:", ev.String())
+		if !ev.Equal(mintEv) {
+			log.Errorf("%s. ev not equal. got: %s %v. expect: %s %v", logmsg, mintEv, mintEv.Raw, ev, ev.Raw)
 			return true, false
 		}
 
@@ -317,8 +316,8 @@ func (c *CbrOneChain) verifyPegbrMint(eLog *ethtypes.Log, cliCtx client.Context,
 			log.Errorln(logmsg, "parse log err:", err)
 			return true, false
 		}
-		if !reflect.DeepEqual(ev, mintEv) {
-			log.Errorln(logmsg, "ev not equal. got:", mintEv.String(), "expect:", ev.String())
+		if !ev.Equal(mintEv) {
+			log.Errorf("%s. ev not equal. got: %s %v. expect: %s %v", logmsg, mintEv, mintEv.Raw, ev, ev.Raw)
 			return true, false
 		}
 

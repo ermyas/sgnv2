@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
@@ -127,8 +126,8 @@ func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, lo
 		return true, false
 	}
 	// now cmp ev and addLiqEv
-	if !reflect.DeepEqual(ev, addLiqEv) {
-		log.Errorln(logmsg, "ev not equal. got:", addLiqEv.String(), "expect:", ev.String())
+	if !ev.Equal(addLiqEv) {
+		log.Errorf("%s. ev not equal. got: %s %v. expect: %s %v", logmsg, addLiqEv, addLiqEv.Raw, ev, ev.Raw)
 		return true, false
 	}
 	log.Infof("%s, success", logmsg)
@@ -154,8 +153,8 @@ func (c *CbrOneChain) verifySend(eLog *ethtypes.Log, cliCtx client.Context, logm
 		log.Errorln(logmsg, "parse log err:", err)
 		return true, false
 	}
-	if !reflect.DeepEqual(ev, sendEv) {
-		log.Errorln(logmsg, "ev not equal. got:", sendEv.String(), "expect:", ev.String())
+	if !ev.Equal(sendEv) {
+		log.Errorf("%s. ev not equal. got: %s %v. expect: %s %v", logmsg, sendEv, sendEv.Raw, ev, ev.Raw)
 		return true, false
 	}
 
@@ -201,8 +200,8 @@ func (c *CbrOneChain) verifyRelay(eLog *ethtypes.Log, cliCtx client.Context, log
 		log.Errorln(logmsg, "parse log err:", err)
 		return true, false
 	}
-	if !reflect.DeepEqual(ev, relayEv) {
-		log.Errorln(logmsg, "ev not equal. got:", relayEv.String(), "expect:", ev.String())
+	if !ev.Equal(relayEv) {
+		log.Errorf("%s. ev not equal. got: %s %v. expect: %s %v", logmsg, relayEv, relayEv.Raw, ev, ev.Raw)
 		return true, false
 	}
 
@@ -248,8 +247,8 @@ func (c *CbrOneChain) verifyWithdraw(eLog *ethtypes.Log, cliCtx client.Context, 
 		log.Errorln(logmsg, "parse log err:", err)
 		return true, false
 	}
-	if !reflect.DeepEqual(ev, withdrawEv) {
-		log.Errorln(logmsg, "ev not equal. got:", withdrawEv.String(), "expect:", ev.String())
+	if !ev.Equal(withdrawEv) {
+		log.Errorf("%s. ev not equal. got: %s %v. expect: %s %v", logmsg, withdrawEv, withdrawEv.Raw, ev, ev.Raw)
 		return true, false
 	}
 
@@ -380,8 +379,8 @@ func (c *CbrOneChain) verifyWithdrawalRequest(eLog *ethtypes.Log, cliCtx client.
 		return true, false
 	}
 	// now cmp ev and wdReqEv
-	if !reflect.DeepEqual(ev, wdReqEv) {
-		log.Errorln(logmsg, "ev not equal. got:", wdReqEv.String(), "expect:", ev.String())
+	if !ev.Equal(wdReqEv) {
+		log.Errorf("%s. ev not equal. got: %s %v. expect: %s %v", logmsg, wdReqEv, wdReqEv.Raw, ev, ev.Raw)
 		return true, false
 	}
 	log.Infof("%s, success", logmsg)
