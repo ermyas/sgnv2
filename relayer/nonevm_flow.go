@@ -54,13 +54,9 @@ func NewFlowClient(cfg *common.OneChainConfig, wdal *watcherDAL, db *dbm.PrefixD
 	var sender *flowutils.FlowSender
 	var err error
 	// for partner, no need to send transactions on flow, then set nil sender
-	if viper.GetString(common.FlagFlowAccount) != "" {
-		sender, err = buildFlowSender()
-		if err != nil {
-			log.Fatalln("init flow signer err:", err)
-		}
-	} else {
-		log.Warnf("this node will not send tx on flow, flow sender is nil")
+	sender, err = buildFlowSender()
+	if err != nil {
+		log.Fatalln("init flow signer err:", err)
 	}
 	// now build return obj
 	ret := &FlowClient{
@@ -81,9 +77,14 @@ func NewFlowClient(cfg *common.OneChainConfig, wdal *watcherDAL, db *dbm.PrefixD
 
 // parse viper flags and return sender for NewFlowCbrClient
 func buildFlowSender() (*flowutils.FlowSender, error) {
+	senderHex := viper.GetString(common.FlagFlowAccount)
+	if senderHex == "" {
+		log.Warnf("this node will not send tx on flow, set empty sender account for signer usage")
+		senderHex = "0000000000000001"
+	}
 	// build sender
 	sender := &flowutils.FlowSender{
-		SenderHex: viper.GetString(common.FlagFlowAccount),
+		SenderHex: senderHex,
 		KeyIdx:    viper.GetInt(common.FlagFlowPubkeyIndex),
 	}
 	// set up sender.Signer
