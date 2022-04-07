@@ -33,25 +33,25 @@ jobs:
         run: |
           # sgnd-cleveldb-ubuntu-linux-amd64
           GOOS=linux GOARCH=amd64 WITH_CLEVELDB=yes make install
-          tar czf sgnd-${{ steps.get_tag.outputs.TAG }}-cleveldb-ubuntu-linux-amd64.tar.gz $HOME/go/bin/sgnd
+          tar czfC sgnd-${{ steps.get_tag.outputs.TAG }}-cleveldb-ubuntu-linux-amd64.tar.gz $HOME/go/bin sgnd
           # sgnd-goleveldb-linux-amd64
           GOOS=linux GOARCH=amd64 make install
-          tar czf sgnd-${{ steps.get_tag.outputs.TAG }}-goleveldb-linux-amd64.tar.gz $HOME/go/bin/sgnd
+          tar czfC sgnd-${{ steps.get_tag.outputs.TAG }}-goleveldb-linux-amd64.tar.gz $HOME/go/bin sgnd
           # sgnd-goleveldb-linux-arm64
           GOOS=linux GOARCH=arm64 make install
-          tar czf sgnd-${{ steps.get_tag.outputs.TAG }}-goleveldb-linux-arm64.tar.gz $HOME/go/bin/sgnd
+          tar czfC sgnd-${{ steps.get_tag.outputs.TAG }}-goleveldb-linux-arm64.tar.gz $HOME/go/bin sgnd
           # aws-kms-tools-linux-amd64
           GOOS=linux GOARCH=amd64 go build -o $HOME/go/bin/aws-kms-tools tools/aws-kms-tools/main.go
-          tar czf aws-kms-tools-${{ steps.get_tag.outputs.TAG }}-linux-amd64.tar.gz $HOME/go/bin/aws-kms-tools
+          tar czfC aws-kms-tools-${{ steps.get_tag.outputs.TAG }}-linux-amd64.tar.gz $HOME/go/bin aws-kms-tools
           # aws-kms-tools-linux-arm64
           GOOS=linux GOARCH=arm64 go build -o $HOME/go/bin/aws-kms-tools tools/aws-kms-tools/main.go
-          tar czf aws-kms-tools-${{ steps.get_tag.outputs.TAG }}-linux-arm64.tar.gz $HOME/go/bin/aws-kms-tools
+          tar czfC aws-kms-tools-${{ steps.get_tag.outputs.TAG }}-linux-arm64.tar.gz $HOME/go/bin aws-kms-tools
           # aws-kms-tools-darwin-amd64
           GOOS=darwin GOARCH=amd64 go build -o $HOME/go/bin/aws-kms-tools tools/aws-kms-tools/main.go
-          tar czf aws-kms-tools-${{ steps.get_tag.outputs.TAG }}-darwin-amd64.tar.gz $HOME/go/bin/aws-kms-tools
+          tar czfC aws-kms-tools-${{ steps.get_tag.outputs.TAG }}-darwin-amd64.tar.gz $HOME/go/bin aws-kms-tools
           # aws-kms-tools-darwin-arm64
           GOOS=darwin GOARCH=arm64 go build -o $HOME/go/bin/aws-kms-tools tools/aws-kms-tools/main.go
-          tar czf aws-kms-tools-${{ steps.get_tag.outputs.TAG }}-darwin-arm64.tar.gz $HOME/go/bin/aws-kms-tools
+          tar czfC aws-kms-tools-${{ steps.get_tag.outputs.TAG }}-darwin-arm64.tar.gz $HOME/go/bin aws-kms-tools
       - name: Create release
         id: create_release
         uses: softprops/action-gh-release@v1
