@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/cobra"
@@ -29,7 +30,16 @@ func PrintNonceCommand() *cobra.Command {
 				return err
 			}
 			if rpc == "" {
+				rpc = getCfgRpc(chainId)
+				if rpc != "" {
+					log.Debugln("use cfg rpc", rpc)
+				}
+			}
+			if rpc == "" {
 				rpc = commonChainIdRpcs[chainId]
+				if rpc != "" {
+					log.Debugln("use common rpc", rpc)
+				}
 			}
 			ec, err := ethclient.Dial(rpc)
 			if err != nil {
