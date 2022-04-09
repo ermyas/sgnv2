@@ -1,9 +1,29 @@
 # NFT Bridge
+## New Multi-Chain Native NFT
+- MCN NFT means same nft contract on all chains, only apply to new projects
+- No orig concept and no deposit, only has burn/mint
+- product also requires user interacts w/ MCN NFT contract directly instead of NFT bridge
+- another new requirement is to fail invalid nft bridge request, so we add 2 maps into nft bridge and ops need to setup. **this also applies to orig/peg tokens**
+
+### deploy NFTMCN
+similar to NFTPeg
+- make sure `NFT_BRIDGE_ADDR` is set to correct NFTBridge address, also .env must have `NFT_SYM` and `NFT_NAME` set
+- run `hardhat deploy --network goerli --tags MCNNFT`
+
+### set dest bridge map
+saving per chain id NFT Bridge address in contract simplifes deposit/burn args.
+`setDestBridge` set one chainid, nft bridge address. `setDestBridges` can set multiple in batch
+
+### set dest NFT map(also required for orig/peg tokens)
+for each nft contract we support on this chain, must set corresponding dest chain ids and NFT address.
+`setDestNFT` and `setDestNFTs` for single and batch set
+
 ## Onchain Contracts
 ### deploy NFTBridge contract
 - go to sgn-v2-contracts repo, make sure .env file has `MSG_BUS_ADDR=0x....`, msg bus address on different chains can be found at https://im-docs.celer.network/developer/contract-addresses-and-rpc-info#contracts
 - run `hardhat deploy --network goerli --tags NFTBridge`
 - record deployed contract address and set in .evn file as `NFT_BRIDGE_ADDR=0x...`, will be needed by NFTPeg token contract
+- see above [set dest bridge map](#set-dest-bridge-map) to set chainid and new nft bridge address to all existing nft bridges
 
 ### deploy NFTPeg contract
 - make sure `NFT_BRIDGE_ADDR` is set to correct NFTBridge address, also .env must have `NFT_SYM` and `NFT_NAME` set to the same as original NFT
@@ -14,7 +34,7 @@
 - `hardhat deploy --network goerli --tags OrigNFT`
 
 ### update testnet.json on S3
-file is at `s3://getcelerapp/nftbridge/testnet.json`. this json file has very simple schema: bridges is a list of nftbridge's chainid and address, nfts is a list of NFTs, each has one orig and a list of pegged. See [go code](./cfg.go#L53) for details
+file is at `s3://getcelerapp/nftbridge/testnet.json`. this json file has very simple schema: bridges is a list of nftbridge's chainid and address, nfts is a list of NFTs, each has one orig and a list of pegged. See [go code](./cfg.go#L53) for details. Note for MCN NFTs, orig is not set, only pegs.
 
 invalidate cloudfront cache so that https://get.celer.app/nftbridge/testnet.json will return latest version. go to https://us-east-1.console.aws.amazon.com/cloudfront/v3/home?region=us-west-2#/distributions/E1IWV8QKIXDYBL/invalidations to create invalidation, path is `/nftbridge/*`
 
