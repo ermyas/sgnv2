@@ -9,10 +9,11 @@
 
 2. Get the current account nonce and pending nonce:
 
+    Use sgnd config or default rpc
     ```sh
     aws-kms-tools print-nonce --chainid <chain-id> --addr <signer-address>
     ```
-    or use a more reliable private rpc endpoint if available
+    or use a specific rpc endpoint
     ```sh
     aws-kms-tools print-nonce --rpc <endpoint-url> --addr <signer-address>
     ```
@@ -20,8 +21,7 @@
 3. Send zero value transactions to the signer address itself one by one, from `account_nonce` up to `pending_nonce - 1`:
 
     ```sh
-    # <key-name> is like sgnv2-prod2-<node-id>
-    aws-kms-tools send-tx --region "us-west-2" --alias <key-name> --destination <signer-address> --nonce <nonce> --chainid <chain-id> --gasprice <gas-price-gwei>
+    aws-kms-tools send-tx --chainid <chain-id> --nonce <nonce> --gasprice <gas-price-gwei>
     ```
 
     Increase `gasprice` if you see error like "replacement transaction underpriced".
@@ -33,7 +33,7 @@
     #!/bin/bash
     for nonce in $(eval echo {$1..$2})
     do
-        aws-kms-tools send-tx --region "us-west-2" --alias <key-name> --destination <signer-address> --nonce $nonce --chainid <chain-id> --gasprice <gas-price-gwei>
+        aws-kms-tools send-tx --nonce $nonce --chainid <chain-id> --gasprice <gas-price-gwei>
     done
     ```
 
@@ -42,5 +42,3 @@
     chmod +x clear_stuck_txs.sh
     ./clear_stuck_txs <account_nonce> <pending_nonce - 1>
     ```
-
-    **Note**: replace `--chainid <chain-id>` with private `--rpc <endpoint-url>` for better reliablity.

@@ -2,9 +2,13 @@ package impl
 
 import (
 	"context"
+	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/celer-network/goutils/eth"
+	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/spf13/viper"
 )
 
@@ -18,9 +22,14 @@ const (
 	FlagAwsKey       = "awskey"
 	FlagAwsSec       = "awssec"
 	FlagRpc          = "rpc"
+	FlagCfgHome      = "cfg"
+
+	awskmsPre = "awskms"
 )
 
 var (
+	DefaultCfgHome string
+
 	bgCtx = context.Background()
 
 	// Common chain ID to JSON-RPC endpoint
@@ -54,11 +63,43 @@ var (
 )
 
 func getKmsSigner() (*eth.KmsSigner, error) {
+	chainId := new(big.Int).SetUint64(viper.GetUint64(FlagChainId))
+	ksfile, passphrase := viper.GetString(common.FlagEthSignerKeystore), viper.GetString(common.FlagEthSignerPassphrase)
+	if strings.HasPrefix(ksfile, awskmsPre) {
+		log.Debugln("use cfg kms ks", ksfile)
+		kmskeyinfo := strings.SplitN(ksfile, ":", 3)
+		if len(kmskeyinfo) != 3 {
+			return nil, fmt.Errorf("%s has wrong format", ksfile)
+		}
+		awskeysec := []string{"", ""}
+		if passphrase != "" {
+			awskeysec = strings.SplitN(passphrase, ":", 2)
+			if len(awskeysec) != 2 {
+				return nil, fmt.Errorf("%s has wrong format", passphrase)
+			}
+		}
+		return eth.NewKmsSigner(kmskeyinfo[1], kmskeyinfo[2], awskeysec[0], awskeysec[1], chainId)
+	}
 	return eth.NewKmsSigner(
 		viper.GetString(FlagRegion),
 		"alias/"+viper.GetString(FlagAlias),
 		viper.GetString(FlagAwsKey),
 		viper.GetString(FlagAwsSec),
-		new(big.Int).SetUint64(viper.GetUint64(FlagChainId)),
+		chainId,
 	)
+}
+
+func getCfgRpc(chainId uint64) string {
+	var mcc []*common.OneChainConfig
+	err := viper.UnmarshalKey(common.FlagMultiChain, &mcc)
+	if err != nil {
+		log.Warnln("fail to load multichain configs err:", err)
+		return ""
+	}
+	for _, cfg := range mcc {
+		if cfg.ChainID == chainId {
+			return cfg.Gateway
+		}
+	}
+	return ""
 }

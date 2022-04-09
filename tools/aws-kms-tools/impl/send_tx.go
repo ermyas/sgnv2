@@ -44,8 +44,7 @@ func SendTxCommand() *cobra.Command {
 	}
 	sort.Ints(chainIds)
 	cmd.Flags().String(FlagRpc, "", fmt.Sprintf("JSON-RPC endpoint to use, optional if chain ID is in: %v", chainIds))
-
-	cmd.Flags().Uint64P(FlagChainId, FlagChainIdShort, 0, "Optional chain ID")
+	cmd.Flags().Uint64P(FlagChainId, FlagChainIdShort, 0, "chain ID")
 	cmd.Flags().Uint64P(FlagNonce, FlagNonceShort, 0, "Nonce override")
 	cmd.Flags().Uint64(FlagGasPrice, 0, "Gas price override, NOTE: indicates maxPriorityFeePerGas if chain supports EIP-1559")
 	cmd.Flags().Uint64(FlagGasLimit, 21000, "Gas limit override")
@@ -53,8 +52,6 @@ func SendTxCommand() *cobra.Command {
 	cmd.Flags().String(FlagData, "", "Hex data to send with the tx")
 	cmd.Flags().Bool(FlagSendAll, false, "Whether to send the entire balance minus gas fee. Overrides value if set to true")
 	cmd.Flags().Uint64(FlagMinBalance, 0, "Minimal balance required on the address")
-
-	cmd.MarkFlagRequired(FlagDestination)
 
 	viper.BindPFlag(FlagDestination, cmd.Flags().Lookup(FlagDestination))
 	viper.BindPFlag(FlagRpc, cmd.Flags().Lookup(FlagRpc))
@@ -71,13 +68,18 @@ func SendTxCommand() *cobra.Command {
 }
 
 func SendTx() error {
-	destination := viper.GetString(FlagDestination)
-	if destination == "" {
-		return errors.New("empty destination")
-	}
 	rpc := viper.GetString(FlagRpc)
 	if rpc == "" {
+		rpc = getCfgRpc(viper.GetUint64(FlagChainId))
+		if rpc != "" {
+			log.Debugln("use cfg rpc", rpc)
+		}
+	}
+	if rpc == "" {
 		rpc = commonChainIdRpcs[viper.GetUint64(FlagChainId)]
+		if rpc != "" {
+			log.Debugln("use common rpc", rpc)
+		}
 	}
 	ec, err := ethclient.Dial(rpc)
 	if err != nil {
@@ -96,8 +98,12 @@ func SendTx() error {
 	if balance.Cmp(minBalance) <= 0 {
 		return errors.New("skip sending due to balance less than min")
 	}
+	destination := signer.Addr // sent to self by default
+	if viper.GetString(FlagDestination) != "" {
+		destination = eth.Hex2Addr(viper.GetString(FlagDestination))
+	}
 	// Now build tx and send
-	return sendTx(ec, signer.Addr, eth.Hex2Addr(destination), balance, signer.SignerFn)
+	return sendTx(ec, signer.Addr, destination, balance, signer.SignerFn)
 }
 
 func sendTx(ec *ethclient.Client, from, to eth.Addr, bal *big.Int, signer bind.SignerFn) error {
