@@ -239,7 +239,6 @@ func (c *CbrOneChain) SendRelay(relayBytes []byte, sigs [][]byte, curss currentS
 	logmsg := fmt.Sprintf("srcXferId %x chain %d->%d", relayMsg.GetSrcTransferId(), relayMsg.GetSrcChainId(), relayMsg.GetDstChainId())
 	err := c.checkPendingNonce()
 	if err != nil {
-		log.Warnf("Pending nonce check failed: %s. %s", err, logmsg)
 		return "", fmt.Errorf("Pending nonce check failed. %w", err)
 	}
 	tx, err := c.Transactor.Transact(

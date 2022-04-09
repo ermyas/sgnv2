@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	cbrflowtypes "github.com/celer-network/cbridge-flow/types"
+	flowtypes "github.com/celer-network/cbridge-flow/types"
 	"github.com/celer-network/goutils/log"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -263,7 +263,7 @@ func ToPadBytes(v interface{}, rlen ...int) []byte {
 }
 
 // set values from Flow event, WARNING ev.Token is ZeroAddr!!! because flowev's token is human string
-func (ev *OriginalTokenVaultV2Deposited) SetByFlow(flowev *cbrflowtypes.FlowSafeBoxDeposited) {
+func (ev *OriginalTokenVaultV2Deposited) SetByFlow(flowev *flowtypes.FlowSafeBoxDeposited) {
 	ev.DepositId = flowev.DepositId
 	ev.Depositor = flowev.Depositor
 	ev.Amount = new(big.Int).Set(flowev.Amount)
@@ -273,7 +273,7 @@ func (ev *OriginalTokenVaultV2Deposited) SetByFlow(flowev *cbrflowtypes.FlowSafe
 
 // set values from Flow event, WARNING ev.Token is ZeroAddr!!! because flowev's token is human string
 // TODO: to chainid isn't supported by flow yet
-func (ev *PeggedTokenBridgeV2Burn) SetByFlow(flowev *cbrflowtypes.FlowPegBridgeBurn) {
+func (ev *PeggedTokenBridgeV2Burn) SetByFlow(flowev *flowtypes.FlowPegBridgeBurn) {
 	ev.BurnId = flowev.BurnId
 	ev.Account = flowev.Burner
 	ev.Amount = new(big.Int).Set(flowev.Amount)
