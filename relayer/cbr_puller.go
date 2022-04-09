@@ -202,8 +202,7 @@ func (r *Relayer) submitRelay(relayRequest RelayRequest) {
 
 		if strings.Contains(err.Error(), "Pausable: paused") ||
 			strings.Contains(err.Error(), "volume exceeds cap") ||
-			strings.Contains(err.Error(), "Mismatch current signers") ||
-			strings.Contains(err.Error(), "Pending nonce check failed") {
+			strings.Contains(err.Error(), "Mismatch current signers") {
 			if relayRequest.RetryCount > 0 {
 				relayRequest.RetryCount -= 1
 			}

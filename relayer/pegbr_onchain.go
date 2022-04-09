@@ -240,7 +240,6 @@ func (c *CbrOneChain) SendMint(
 	// EVM chains
 	err := c.checkPendingNonce()
 	if err != nil {
-		log.Warnf("Pending nonce check failed: %s. %s", err, logmsg)
 		return "", fmt.Errorf("Pending nonce check failed. %w", err)
 	}
 	tx, err := c.Transactor.Transact(
@@ -283,7 +282,6 @@ func (c *CbrOneChain) SendWithdraw(
 	// EVM chains
 	err := c.checkPendingNonce()
 	if err != nil {
-		log.Warnf("Pending nonce check failed: %s. %s", err, logmsg)
 		return "", fmt.Errorf("Pending nonce check failed. %w", err)
 	}
 	tx, err := c.Transactor.Transact(

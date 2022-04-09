@@ -3,10 +3,10 @@ package relayer
 import (
 	"encoding/json"
 	"fmt"
-	flowtypes "github.com/celer-network/cbridge-flow/types"
 	"strings"
 	"time"
 
+	flowtypes "github.com/celer-network/cbridge-flow/types"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
@@ -186,8 +186,7 @@ func (r *Relayer) submitMint(mintRequest MintRequest) {
 
 		if strings.Contains(err.Error(), "Pausable: paused") ||
 			strings.Contains(err.Error(), "volume exceeds cap") ||
-			strings.Contains(err.Error(), "Mismatch current signers") ||
-			strings.Contains(err.Error(), "Pending nonce check failed") {
+			strings.Contains(err.Error(), "Mismatch current signers") {
 			if mintRequest.RetryCount > 0 {
 				mintRequest.RetryCount -= 1
 			}
@@ -322,8 +321,7 @@ func (r *Relayer) submitWithdraw(wdRequest WithdrawRequest) {
 
 		if strings.Contains(err.Error(), "Pausable: paused") ||
 			strings.Contains(err.Error(), "volume exceeds cap") ||
-			strings.Contains(err.Error(), "Mismatch current signers") ||
-			strings.Contains(err.Error(), "Pending nonce check failed") {
+			strings.Contains(err.Error(), "Mismatch current signers") {
 			if wdRequest.RetryCount > 0 {
 				wdRequest.RetryCount -= 1
 			}

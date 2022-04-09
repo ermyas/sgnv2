@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	cbrflowtypes "github.com/celer-network/cbridge-flow/types"
+	flowtypes "github.com/celer-network/cbridge-flow/types"
 	"github.com/celer-network/goutils/log"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
@@ -37,12 +37,12 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		var version uint32 // only needed for evm chains, will be set by GetVaultVersion
 		if commontypes.IsFlowChain(depositChainId) {
 			// onchev.Elog is json serialized cbridge-flow/types/FlowMonitorLog so we deserialize and assign to ev fields
-			flev := new(cbrflowtypes.FlowMonitorLog)
+			flev := new(flowtypes.FlowMonitorLog)
 			err = json.Unmarshal(onchev.Elog, flev)
 			if err != nil {
 				return false, err
 			}
-			flowEv := new(cbrflowtypes.FlowSafeBoxDeposited)
+			flowEv := new(flowtypes.FlowSafeBoxDeposited)
 			err = json.Unmarshal(flev.Event, flowEv)
 			if err != nil {
 				return false, err
@@ -114,12 +114,12 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		var version uint32 // only needed for evm chains, will be set by GetBridgeVersion
 		if commontypes.IsFlowChain(burnChainId) {
 			// onchev.Elog is json serialized cbridge-flow/types/FlowMonitorLog so we deserialize and assign to ev fields
-			flev := new(cbrflowtypes.FlowMonitorLog)
+			flev := new(flowtypes.FlowMonitorLog)
 			err = json.Unmarshal(onchev.Elog, flev)
 			if err != nil {
 				return false, err
 			}
-			flowEv := new(cbrflowtypes.FlowPegBridgeBurn)
+			flowEv := new(flowtypes.FlowPegBridgeBurn)
 			err = json.Unmarshal(flev.Event, flowEv)
 			if err != nil {
 				return false, err
@@ -192,12 +192,12 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		mintChainId := onchev.Chainid
 		ev := new(eth.PeggedTokenBridgeMint)
 		if commontypes.IsFlowChain(mintChainId) {
-			flev := new(cbrflowtypes.FlowMonitorLog)
+			flev := new(flowtypes.FlowMonitorLog)
 			err = json.Unmarshal(onchev.Elog, flev)
 			if err != nil {
 				return false, err
 			}
-			flowEv := new(cbrflowtypes.FlowPegBridgeMint)
+			flowEv := new(flowtypes.FlowPegBridgeMint)
 			err = json.Unmarshal(flev.Event, flowEv)
 			if err != nil {
 				return false, err
@@ -227,12 +227,12 @@ func (k Keeper) ApplyEvent(ctx sdk.Context, data []byte) (bool, error) {
 		wdChainId := onchev.Chainid
 		ev := new(eth.OriginalTokenVaultWithdrawn)
 		if commontypes.IsFlowChain(wdChainId) {
-			flev := new(cbrflowtypes.FlowMonitorLog)
+			flev := new(flowtypes.FlowMonitorLog)
 			err = json.Unmarshal(onchev.Elog, flev)
 			if err != nil {
 				return false, err
 			}
-			flowEv := new(cbrflowtypes.FlowSafeBoxWithdrawn)
+			flowEv := new(flowtypes.FlowSafeBoxWithdrawn)
 			err = json.Unmarshal(flev.Event, flowEv)
 			if err != nil {
 				return false, err
