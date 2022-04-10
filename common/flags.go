@@ -25,9 +25,10 @@ const (
 	FlagEthMaxBlockDelta          = "eth.max_block_delta"
 
 	// Legacy gas price flags
-	FlagEthMaxGasPriceGwei = "eth.max_gas_price_gwei"
-	FlagEthMinGasPriceGwei = "eth.min_gas_price_gwei"
-	FlagEthAddGasPriceGwei = "eth.add_gas_price_gwei"
+	FlagEthMaxGasPriceGwei   = "eth.max_gas_price_gwei"
+	FlagEthMinGasPriceGwei   = "eth.min_gas_price_gwei"
+	FlagEthAddGasPriceGwei   = "eth.add_gas_price_gwei"
+	FlagEthForceGasPriceGwei = "eth.force_gas_price_gwei"
 
 	// EIP-1559 gas price flags
 	FlagEthMaxFeePerGasGwei         = "eth.max_fee_per_gas_gwei"

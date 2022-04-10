@@ -42,6 +42,7 @@ type TransactorConfig struct {
 	AddGasPriceGwei      uint64
 	MinGasPriceGwei      uint64
 	MaxGasPriceGwei      uint64
+	ForceGasPriceGwei    uint64
 
 	MaxFeePerGasGwei         uint64
 	MaxPriorityFeePerGasGwei uint64
@@ -100,6 +101,7 @@ func (ethClient *EthClient) setTransactor(ksfile string, passphrase string, tcon
 		ethutils.WithAddGasGwei(tconfig.AddGasPriceGwei),
 		ethutils.WithMinGasGwei(tconfig.MinGasPriceGwei),
 		ethutils.WithMaxGasGwei(tconfig.MaxGasPriceGwei),
+		ethutils.WithForceGasGwei(tconfig.ForceGasPriceGwei),
 		ethutils.WithMaxFeePerGasGwei(tconfig.MaxFeePerGasGwei),
 		ethutils.WithMaxPriorityFeePerGasGwei(tconfig.MaxPriorityFeePerGasGwei),
 	)
