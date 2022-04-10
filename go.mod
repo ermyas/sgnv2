@@ -7,7 +7,7 @@ require (
 	github.com/armon/go-metrics v0.3.10
 	github.com/celer-network/cbridge-flow v0.0.0-20220404200707-1f6e4f62cb78
 	github.com/celer-network/endpoint-proxy v0.2.0
-	github.com/celer-network/goutils v0.1.50
+	github.com/celer-network/goutils v0.1.51
 	github.com/cockroachdb/cockroach-go/v2 v2.2.8
 	github.com/cosmos/cosmos-sdk v0.44.5
 	github.com/cosmos/go-bip39 v1.0.0

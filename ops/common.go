@@ -39,6 +39,7 @@ func newEthClient(useSigner bool) (*eth.EthClient, error) {
 			AddGasPriceGwei:          viper.GetUint64(common.FlagEthAddGasPriceGwei),
 			MinGasPriceGwei:          viper.GetUint64(common.FlagEthMinGasPriceGwei),
 			MaxGasPriceGwei:          viper.GetUint64(common.FlagEthMaxGasPriceGwei),
+			ForceGasPriceGwei:        viper.GetUint64(common.FlagEthForceGasPriceGwei),
 			MaxFeePerGasGwei:         viper.GetUint64(common.FlagEthMaxFeePerGasGwei),
 			MaxPriorityFeePerGasGwei: viper.GetUint64(common.FlagEthMaxPriorityFeePerGasGwei),
 		},

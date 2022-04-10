@@ -19,6 +19,7 @@ func NewEthClientFromConfig() (*eth.EthClient, error) {
 			AddGasPriceGwei:          viper.GetUint64(FlagEthAddGasPriceGwei),
 			MinGasPriceGwei:          viper.GetUint64(FlagEthMinGasPriceGwei),
 			MaxGasPriceGwei:          viper.GetUint64(FlagEthMaxGasPriceGwei),
+			ForceGasPriceGwei:        viper.GetUint64(FlagEthForceGasPriceGwei),
 			MaxFeePerGasGwei:         viper.GetUint64(FlagEthMaxFeePerGasGwei),
 			MaxPriorityFeePerGasGwei: viper.GetUint64(FlagEthMaxPriorityFeePerGasGwei),
 		},
