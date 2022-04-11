@@ -1,6 +1,6 @@
 # Celer State Guardian Network V2
 
-Official Golang implementation of the SGN V2 with cBridge as a built-in application.
+Official Golang implementation of the SGN V2 with cBridge and Celer IM as a built-in applications.
 
 ## [Documentation](./docs)
 

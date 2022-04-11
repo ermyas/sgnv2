@@ -9,20 +9,22 @@
 
 2. Get the current account nonce and pending nonce:
 
-    Use sgnd config or default rpc
+    Use sgnd config (cbridge.toml) or default rpc
     ```sh
-    aws-kms-tools print-nonce --chainid <chain-id> --addr <signer-address>
+    aws-kms-tools print-nonce -c <chain-id> --addr <signer-address>
     ```
     or use a specific rpc endpoint
     ```sh
     aws-kms-tools print-nonce --rpc <endpoint-url> --addr <signer-address>
     ```
+    If `--addr` is not provided, the address and nonce of local kms signer will be printed.
 
 3. Send zero value transactions to the signer address itself one by one, from `account_nonce` up to `pending_nonce - 1`:
 
     ```sh
-    aws-kms-tools send-tx --chainid <chain-id> --nonce <nonce> --gasprice <gas-price-gwei>
+    aws-kms-tools send-tx -c <chain-id> --nonce <nonce> --gasprice <gas-price-gwei>
     ```
+    If `--gasprice` is not provided, the auto-suggested gas price will be used.
 
     Increase `gasprice` if you see error like "replacement transaction underpriced".
 
@@ -33,7 +35,7 @@
     #!/bin/bash
     for nonce in $(eval echo {$1..$2})
     do
-        aws-kms-tools send-tx --nonce $nonce --chainid <chain-id> --gasprice <gas-price-gwei>
+        aws-kms-tools send-tx -n $nonce -c <chain-id> --gasprice <gas-price-gwei>
     done
     ```
 
