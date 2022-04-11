@@ -23,7 +23,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/gammazero/deque"
 	"github.com/gogo/protobuf/proto"
 	"github.com/spf13/viper"
 )
@@ -46,8 +45,8 @@ type Transactor struct {
 	CliCtx     client.Context
 	Key        keyring.Info
 	passphrase string
-	msgQueue   deque.Deque
-	lock       sync.Mutex
+	msgQueue   MsgQueue
+	sendLock   sync.Mutex
 
 	// fields used by the WaitDone mechanism
 	done     chan bool
@@ -207,7 +206,7 @@ func (t *Transactor) consumeTxMsgQueue() {
 	var msgsBytesLen int
 	var msgType string
 	for t.msgQueue.Len() != 0 {
-		msg := t.msgQueue.PopFront().(sdk.Msg)
+		msg := t.msgQueue.PopFront()
 
 		msgBytes, _ := proto.Marshal(msg)
 		msgsBytesLen += len(msgBytes)
@@ -364,8 +363,8 @@ func (t *Transactor) sendTxMsgs(msgs []sdk.Msg, gas uint64) (*sdk.TxResponse, er
 // lock to ensure req are serialized even gateway handle concurrent initwithdraw from clients
 func (t *Transactor) LockSendTx(msg sdk.Msg) (*sdk.TxResponse, error) {
 	t.checkSigner([]sdk.Msg{msg})
-	t.lock.Lock()
-	defer t.lock.Unlock()
+	t.sendLock.Lock()
+	defer t.sendLock.Unlock()
 	return t.sendTxMsgs([]sdk.Msg{msg}, 0) // 0 gas so estimate will be called
 }
 
