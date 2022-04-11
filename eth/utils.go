@@ -158,7 +158,7 @@ func FindMatchContractEvent(ctype ContractType, evName string, expAddr Addr, log
 		return nil
 	}
 	for idx := len(logs) - 1; idx >= 0; idx-- {
-		if logs[idx].Topics[0] == evID {
+		if len(logs[idx].Topics) > 0 && logs[idx].Topics[0] == evID {
 			// event ID matches and from expected contract
 			if logs[idx].Address == expAddr {
 				return logs[idx]
