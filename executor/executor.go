@@ -3,6 +3,7 @@ package executor
 import (
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -102,47 +103,49 @@ func (e *Executor) startProcessingExecCtxsFromDb() {
 	log.Infoln("Start processing execution contexts from DB")
 	for {
 		time.Sleep(3 * time.Second)
-		execCtxs, statuses := e.dal.GetExecutionContextsToExecute()
-		if len(execCtxs) == 0 {
+		requests := e.dal.GetExecutionContextsToExecute()
+		if len(requests) == 0 {
 			continue
 		}
-		e.executeInParallel(execCtxs, statuses)
+		e.executeInParallel(requests)
 	}
 }
 
-func (e *Executor) executeInParallel(execCtxs []*msgtypes.ExecutionContext, statuses []types.ExecutionStatus) {
+func (e *Executor) executeInParallel(requests []*types.ExecuteRequest) {
 	// X workers processing messages at once
 	// each worker is responsible for a chunk of the msgs
-	chunkSize := len(execCtxs) / e.parallelism
+	chunkSize := len(requests) / e.parallelism
 	if chunkSize < 1 {
 		chunkSize = 1
 	}
-	log.Debugf("Executing %d messages with parallelism %d, chunk size %d", len(execCtxs), e.parallelism, chunkSize)
+	log.Debugf("Executing %d messages with parallelism %d, chunk size %d", len(requests), e.parallelism, chunkSize)
 	workerNum := 0
-	for i := 0; i < len(execCtxs); i += chunkSize {
+	for i := 0; i < len(requests); i += chunkSize {
 		end := i + chunkSize
-		if end > len(execCtxs) {
-			end = len(execCtxs)
+		if end > len(requests) {
+			end = len(requests)
 		}
-		chunk := execCtxs[i:end]
-		statusChunk := statuses[i:end]
+		chunk := requests[i:end]
 		e.wg.Add(1)
 		log.Debugf("Worker #%d executing messages [%d:%d]", workerNum, i, end)
-		go e.execute(chunk, statusChunk)
+		go e.execute(chunk)
 		workerNum++
 	}
 	// block until the current round of msgs are all done executing
 	e.wg.Wait()
 }
 
-func (e *Executor) execute(execCtxs []*msgtypes.ExecutionContext, statuses []types.ExecutionStatus) {
+func (e *Executor) execute(requests []*types.ExecuteRequest) {
 	defer e.wg.Done()
-	for i, execCtx := range execCtxs {
-		e.routeExecution(execCtx, statuses[i])
+	for _, request := range requests {
+		e.routeExecution(request)
 	}
 }
 
-func (e *Executor) routeExecution(execCtx *msgtypes.ExecutionContext, status types.ExecutionStatus) {
+func (e *Executor) routeExecution(request *types.ExecuteRequest) {
+	execCtx := request.EC
+	status := request.SS
+	retryCount := request.RetryCount
 	// same chain ids mean it's a refund
 	if execCtx.Message.SrcChainId == execCtx.Message.DstChainId {
 		if !e.autoRefund {
@@ -150,7 +153,7 @@ func (e *Executor) routeExecution(execCtx *msgtypes.ExecutionContext, status typ
 			return
 		}
 		if status == types.ExecutionStatus_Init_Refund_Executed {
-			e.executeMsgWithTransferRefund(execCtx)
+			e.executeMsgWithTransferRefund(execCtx, retryCount)
 		} else if status == types.ExecutionStatus_Unexecuted {
 			err := e.routeInitRefund(execCtx)
 			if err != nil {
@@ -163,13 +166,13 @@ func (e *Executor) routeExecution(execCtx *msgtypes.ExecutionContext, status typ
 	// handle normal execution
 	switch execCtx.Message.GetTransferType() {
 	case msgtypes.TRANSFER_TYPE_NULL:
-		e.executeMsgNoTransfer(execCtx)
+		e.executeMsgNoTransfer(request)
 	case msgtypes.TRANSFER_TYPE_LIQUIDITY_RELAY,
 		msgtypes.TRANSFER_TYPE_PEG_MINT,
 		msgtypes.TRANSFER_TYPE_PEG_WITHDRAW,
 		msgtypes.TRANSFER_TYPE_PEG_V2_MINT,
 		msgtypes.TRANSFER_TYPE_PEG_V2_WITHDRAW:
-		e.executeMsgWithTransfer(execCtx)
+		e.executeMsgWithTransfer(request)
 	default:
 		log.Errorf("normal execution not possible for message (id %x) transfer type %v, status %d",
 			execCtx.MessageId, execCtx.Message.GetTransferType(), status)
@@ -194,7 +197,9 @@ func (e *Executor) routeInitRefund(execCtx *msgtypes.ExecutionContext) error {
 	}
 }
 
-func (e *Executor) executeMsgNoTransfer(execCtx *msgtypes.ExecutionContext) {
+func (e *Executor) executeMsgNoTransfer(request *types.ExecuteRequest) {
+	execCtx := request.EC
+	retryCount := request.RetryCount
 	message := &execCtx.Message
 	chain, err := e.chains.GetChain(message.DstChainId)
 	if err != nil {
@@ -224,9 +229,9 @@ func (e *Executor) executeMsgNoTransfer(execCtx *msgtypes.ExecutionContext) {
 		log.Errorf("message receiver (address %s) not found in contract configs", execCtx.Message.Receiver)
 		return
 	}
-	log.Infof("executing msg (id %x)...", id)
+	log.Infof("executing message (id %x, attempt [%d/%d])...", id, retryCount, types.MaxExecuteRetry)
 	tx, err := chain.Transactor.Transact(
-		getTransactionHandler(id, execCtx, "executeMsg"),
+		getTransactionHandler(id, execCtx, "execute message"),
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*gethtypes.Transaction, error) {
 			// Executor can be optionally configured to include a payable value for message execution.
 			// This value acts as message fee and is needed when calling executeMessage results in
@@ -235,10 +240,32 @@ func (e *Executor) executeMsgNoTransfer(execCtx *msgtypes.ExecutionContext) {
 			return chain.MsgBus.ExecuteMessage(opts, msg, route, sigs, signers, powers)
 		})
 	if err != nil {
-		log.Errorf("cannot execute msg (id %x): %s", id, err.Error())
-		err = Dal.UpdateStatus(id, types.ExecutionStatus_Failed)
-		if err != nil {
-			log.Errorf("cannot update execution_context (id %x): %s", id, err.Error())
+		log.Errorf("cannot execute message (id %x): %s", id, err.Error())
+		// skip directly
+		if strings.Contains(err.Error(), "message already executed") {
+			log.Errorf("message (id %x), transfer already executed", id)
+			err := Dal.UpdateStatus(id, types.ExecutionStatus_Failed)
+			if err != nil {
+				log.Errorf("cannot update message (id %x) status: %s", id, err.Error())
+			}
+		}
+		// increase retryCount
+		increasedRetryCount := retryCount + 1
+		if increasedRetryCount > types.MaxExecuteRetry {
+			log.Warnf("message (id %x) hit max retry count %d. it is marked as failed", id, types.MaxExecuteRetry)
+			err := Dal.UpdateStatus(id, types.ExecutionStatus_Failed)
+			if err != nil {
+				log.Errorf("cannot update message (id %x) status: %s", id, err.Error())
+			}
+		} else if increasedRetryCount > retryCount {
+			err := Dal.RevertStatus(id, types.ExecutionStatus_Unexecuted)
+			if err != nil {
+				log.Errorf("cannot revert message (id %x) status: %s", id, err.Error())
+			}
+			err = Dal.IncreaseRetryCount(id, increasedRetryCount)
+			if err != nil {
+				log.Errorf("cannot increase message (id %x) retry count: %s", id, err.Error())
+			}
 		}
 		return
 	}
@@ -320,7 +347,7 @@ func (e *Executor) executeRefundWithdraw(execCtx *msgtypes.ExecutionContext) err
 	return e.sgn.PollAndExecuteWithdraw(receiver, nonce, chainId, execHandler)
 }
 
-func (e *Executor) executeMsgWithTransferRefund(execCtx *msgtypes.ExecutionContext) {
+func (e *Executor) executeMsgWithTransferRefund(execCtx *msgtypes.ExecutionContext, retryCount uint64) {
 	chain, err := e.chains.GetChain(execCtx.Message.DstChainId)
 	if err != nil {
 		log.Errorln("cannot executeMsgWithTransferRefund", err)
@@ -353,17 +380,42 @@ func (e *Executor) executeMsgWithTransferRefund(execCtx *msgtypes.ExecutionConte
 		log.Errorf("failed to query chain signers with chainId %d", execCtx.Message.DstChainId)
 		return
 	}
-	log.Infof("executing refund (id %x)...", id)
+	log.Infof("executing refund (id %x, attempt [%d/%d])...", id, retryCount, types.MaxExecuteRetry)
 	tx, err := chain.Transactor.Transact(
-		getTransactionHandler(id, execCtx, "executeMsgWithTransferRefund"),
+		getTransactionHandler(id, execCtx, "execute refund"),
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*gethtypes.Transaction, error) {
 			return chain.MsgBus.ExecuteMessageWithTransferRefund(opts, msg, xfer, sigs, signers, powers)
 		})
 	if err != nil {
 		log.Errorf("cannot execute refund (id %x): %s", id, err.Error())
-		err = Dal.UpdateStatus(id, types.ExecutionStatus_Failed)
-		if err != nil {
-			log.Errorf("cannot update execution_context (id %x): %s", id, err.Error())
+		// skip directly
+		if strings.Contains(err.Error(), "transfer already executed") {
+			log.Errorf("refund (id %x), transfer already executed", id)
+			err := Dal.UpdateStatus(id, types.ExecutionStatus_Failed)
+			if err != nil {
+				log.Errorf("cannot update refund (id %x) status: %s", id, err.Error())
+			}
+		}
+		// increase retryCount
+		increasedRetryCount := retryCount + 1
+		if strings.Contains(err.Error(), "bridge relay not exist") {
+			increasedRetryCount = retryCount
+		}
+		if increasedRetryCount > types.MaxExecuteRetry {
+			log.Warnf("refund (id %x) hit max retry count %d. it is marked as failed", id, types.MaxExecuteRetry)
+			err := Dal.UpdateStatus(id, types.ExecutionStatus_Failed)
+			if err != nil {
+				log.Errorf("cannot update message (id %x) status: %s", id, err.Error())
+			}
+		} else if increasedRetryCount > retryCount {
+			err := Dal.RevertStatus(id, types.ExecutionStatus_Init_Refund_Executed)
+			if err != nil {
+				log.Errorf("cannot revert message (id %x) status: %s", id, err.Error())
+			}
+			err = Dal.IncreaseRetryCount(id, increasedRetryCount)
+			if err != nil {
+				log.Errorf("cannot increase message (id %x) retry count: %s", id, err.Error())
+			}
 		}
 		return
 	}
@@ -394,7 +446,9 @@ func (e *Executor) isTransferReady(chain *Chain, execCtx *msgtypes.ExecutionCont
 	return
 }
 
-func (e *Executor) executeMsgWithTransfer(execCtx *msgtypes.ExecutionContext) {
+func (e *Executor) executeMsgWithTransfer(request *types.ExecuteRequest) {
+	execCtx := request.EC
+	retryCount := request.RetryCount
 	chain, err := e.chains.GetChain(execCtx.Message.DstChainId)
 	if err != nil {
 		log.Errorln("failed to get chain", err)
@@ -405,7 +459,7 @@ func (e *Executor) executeMsgWithTransfer(execCtx *msgtypes.ExecutionContext) {
 	log.Infof("executeMsgWithTransfer %x", message.TransferRefId)
 
 	if !e.isTransferReady(chain, execCtx) {
-		log.Infof("[skip execution] message (id %x) because transfer is not seen on dst chain yet", execCtx.MessageId)
+		log.Infof("[skip execution] message with transfer (id %x) because transfer is not seen on dst chain yet", execCtx.MessageId)
 		return
 	}
 
@@ -430,7 +484,7 @@ func (e *Executor) executeMsgWithTransfer(execCtx *msgtypes.ExecutionContext) {
 
 	err = Dal.UpdateStatus(id, types.ExecutionStatus_Executing)
 	if err != nil {
-		log.Errorf("cannot execute xferMsg %s", err.Error())
+		log.Errorf("cannot execute message with transfer %s", err.Error())
 		return
 	}
 	msg, sigs, signers, powers, err := e.getMsgSignInfo(execCtx)
@@ -438,9 +492,9 @@ func (e *Executor) executeMsgWithTransfer(execCtx *msgtypes.ExecutionContext) {
 		log.Errorf("failed to query chain signers with chainId %d", execCtx.Message.DstChainId)
 		return
 	}
-	log.Infof("executing xferMsg (id %x)...", id)
+	log.Infof("executing message with transfer (id %x, attempt [%d/%d])...", id, retryCount, types.MaxExecuteRetry)
 	tx, err := chain.Transactor.Transact(
-		getTransactionHandler(id, execCtx, "executeMsgWithXfer"),
+		getTransactionHandler(id, execCtx, "execute message with transfer refund"),
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*gethtypes.Transaction, error) {
 			// Executor can be optionally configured to include a payable value for message execution.
 			// This value acts as message fee and is needed when calling executeMessageWithTransfer results
@@ -449,10 +503,35 @@ func (e *Executor) executeMsgWithTransfer(execCtx *msgtypes.ExecutionContext) {
 			return chain.MsgBus.ExecuteMessageWithTransfer(opts, msg, xfer, sigs, signers, powers)
 		})
 	if err != nil {
-		log.Errorf("cannot execute xferMsg (id %x): %s", id, err.Error())
-		err = Dal.UpdateStatus(id, types.ExecutionStatus_Failed)
-		if err != nil {
-			log.Errorf("cannot update execution_context (id %x): %s", id, err.Error())
+		log.Errorf("cannot execute message with transfer (id %x): %s", id, err.Error())
+		// skip directly
+		if strings.Contains(err.Error(), "transfer already executed") {
+			log.Errorf("message with transfer (id %x), transfer already executed", id)
+			err := Dal.UpdateStatus(id, types.ExecutionStatus_Failed)
+			if err != nil {
+				log.Errorf("cannot update message with transfer (id %x) status: %s", id, err.Error())
+			}
+		}
+		// increase retryCount
+		increasedRetryCount := retryCount + 1
+		if strings.Contains(err.Error(), "bridge relay not exist") {
+			increasedRetryCount = retryCount
+		}
+		if increasedRetryCount > types.MaxExecuteRetry {
+			log.Warnf("message (id %x) hit max retry count %d. it is marked as failed", id, types.MaxExecuteRetry)
+			err := Dal.UpdateStatus(id, types.ExecutionStatus_Failed)
+			if err != nil {
+				log.Errorf("cannot update message (id %x) status: %s", id, err.Error())
+			}
+		} else if increasedRetryCount > retryCount {
+			err := Dal.RevertStatus(id, types.ExecutionStatus_Unexecuted)
+			if err != nil {
+				log.Errorf("cannot revert message (id %x) status: %s", id, err.Error())
+			}
+			err = Dal.IncreaseRetryCount(id, increasedRetryCount)
+			if err != nil {
+				log.Errorf("cannot increase message (id %x) retry count: %s", id, err.Error())
+			}
 		}
 		return
 	}

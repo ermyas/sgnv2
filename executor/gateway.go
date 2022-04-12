@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/celer-network/sgn-v2/executor/types"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 type GatewayClient struct {
@@ -19,7 +21,8 @@ type GatewayClient struct {
 
 func NewGatewayClient(gatewayUrl string) *GatewayClient {
 	log.Infof("Dialing gateway grpc: %s", gatewayUrl)
-	opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})), grpc.WithBlock()}
+	//opts := []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()}
 	context, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	conn, err := grpc.DialContext(context, gatewayUrl, opts...)
 	defer cancel()

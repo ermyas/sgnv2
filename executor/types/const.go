@@ -23,4 +23,5 @@ const (
 	MaxPollingRetries = 10
 	PollingInterval   = 6 * time.Second
 	GatewayTimeout    = 5 * time.Second
+	MaxExecuteRetry   = 15
 )

@@ -1,6 +1,16 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+
+	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
+)
+
+type ExecuteRequest struct {
+	EC         *msgtypes.ExecutionContext
+	SS         ExecutionStatus
+	RetryCount uint64
+}
 
 type ExecutionStatus uint64
 

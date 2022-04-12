@@ -37,18 +37,19 @@ func NewDAL() *DAL {
 	return Dal
 }
 
-func (dal *DAL) GetExecutionContextsToExecute() ([]*msgtypes.ExecutionContext, []types.ExecutionStatus) {
-	q := `SELECT exec_ctx, status FROM execution_context WHERE status in ($1, $2)`
+func (dal *DAL) GetExecutionContextsToExecute() []*types.ExecuteRequest {
+	q := `SELECT exec_ctx, status, retry_count FROM execution_context WHERE status in ($1, $2)`
 	rows, err := dal.Db.Query(q, types.ExecutionStatus_Unexecuted, types.ExecutionStatus_Init_Refund_Executed)
 	if err != nil {
-		log.Errorf("failed to get execution context with status %d: %v", types.ExecutionStatus_Unexecuted, err)
+		log.Errorf("failed to get execution context with status %d and %d: %v", types.ExecutionStatus_Unexecuted,
+			types.ExecutionStatus_Init_Refund_Executed, err)
 	}
-	execCtxs := []*msgtypes.ExecutionContext{}
-	statuses := []types.ExecutionStatus{}
+	requests := make([]*types.ExecuteRequest, 0)
 	for rows.Next() {
 		var execCtxBytes []byte
 		var status uint64
-		err = rows.Scan(&execCtxBytes, &status)
+		var retryCount uint64
+		err = rows.Scan(&execCtxBytes, &status, &retryCount)
 		if err != nil {
 			log.Errorln("failed to scan result", err)
 			continue
@@ -59,10 +60,14 @@ func (dal *DAL) GetExecutionContextsToExecute() ([]*msgtypes.ExecutionContext, [
 			log.Errorln("failed to unmarshal execution context", err)
 			continue
 		}
-		execCtxs = append(execCtxs, execCtx)
-		statuses = append(statuses, types.ExecutionStatus(status))
+		request := &types.ExecuteRequest{
+			EC:         execCtx,
+			SS:         types.ExecutionStatus(status),
+			RetryCount: retryCount,
+		}
+		requests = append(requests, request)
 	}
-	return execCtxs, statuses
+	return requests
 }
 
 func (dal *DAL) SaveExecutionContexts(execCtxs []*msgtypes.ExecutionContext) {
@@ -109,6 +114,21 @@ func (dal *DAL) UpdateStatus(id []byte, status types.ExecutionStatus) error {
 	}
 	log.Debugf("execution_context (id %x) status changed from %v to %v", id, types.ExecutionStatus(oldStatus), status)
 	return nil
+}
+
+func (dal *DAL) RevertStatus(id []byte, status types.ExecutionStatus) error {
+	if status != types.ExecutionStatus_Unexecuted && status != types.ExecutionStatus_Init_Refund_Executed {
+		return fmt.Errorf("revert status to %d is forbidden", status)
+	}
+	q := `UPDATE execution_context SET status = $1 where id = $2`
+	res, err := dal.Db.Exec(q, status, id)
+	return sqldb.ChkExec(res, err, 1, "RevertStatus")
+}
+
+func (dal *DAL) IncreaseRetryCount(id []byte, retryCount uint64) error {
+	q := `UPDATE execution_context SET retry_count = $1 where id = $2`
+	res, err := dal.Db.Exec(q, retryCount, id)
+	return sqldb.ChkExec(res, err, 1, "IncreaseRetryCount")
 }
 
 func (dal *DAL) SaveTransfer(id []byte) error {
