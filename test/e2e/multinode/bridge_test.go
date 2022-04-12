@@ -69,11 +69,9 @@ func bridgeTest(t *testing.T) {
 		func() {
 			pbrTest2(t, transactor)
 		},
-		/*
-			func() {
-				pbrFlowTest(t, transactor)
-			},
-		*/
+		func() {
+			pbrFlowTest(t, transactor)
+		},
 	)
 }
 
