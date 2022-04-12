@@ -137,7 +137,7 @@ func SetupFlowChain() {
 	}
 
 	log.Infof("all account flow token added")
-	tc.SetupContractFlowClient(tc.FlowContractAddr.String(), tc.FlowContractAddr.String(), tc.FlowContractAddr.String())
+	tc.SetupContractFlowClient()
 	tc.SetupUserFlowClient(tc.FlowContractAddr.String(), tc.FlowContractAddr.String(), tc.FlowContractAddr.String())
 
 	flowutils.DeployAllContract(context.Background(), tc.FlowContractAccountClient, uint64(commontypes.NonEvmChainID_FLOW_EMULATOR))

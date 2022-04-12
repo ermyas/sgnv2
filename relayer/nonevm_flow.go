@@ -79,7 +79,7 @@ func NewFlowClient(cfg *common.OneChainConfig, wdal *watcherDAL, db *dbm.PrefixD
 func buildFlowSender() (*flowutils.FlowSender, error) {
 	senderHex := viper.GetString(common.FlagFlowAccount)
 	if senderHex == "" {
-		log.Warnf("this node will not send tx on flow, set empty sender account for signer usage")
+		log.Infof("this node will not send tx on flow, set empty sender account for signer usage")
 		senderHex = "0000000000000001"
 	}
 	// build sender

@@ -84,6 +84,7 @@ func pbrFlowTest(t *testing.T, transactor *transactor.Transactor) {
 	burnInfo = tc.WaitPbrBurn(transactor, burnId)
 	wdInfo = tc.CheckPbrWithdraw(transactor, eth.Bytes2Hex(burnInfo.WithdrawId))
 	log.Infof("PegBridge Burn related WdInfo:%+v", wdInfo)
-
 	log.Infoln("======================== Finish Flow Test ===========================")
+	tc.FlowContractAccountClient.Close()
+	tc.FlowUserAccountClient.Close()
 }
