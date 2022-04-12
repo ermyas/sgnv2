@@ -19,7 +19,7 @@ import (
 
 func TestFlowPegbridge(t *testing.T) {
 	t.Run("e2e-flow-pegbridge", func(t *testing.T) {
-		t.Run("pegbridgeFlowTest", pegbridgeFlowTest) // comment this out when commit, as it duplicates TestBridge
+		//t.Run("pegbridgeFlowTest", pegbridgeFlowTest) // comment this out when commit, as it duplicates TestBridge
 	})
 }
 
@@ -60,7 +60,7 @@ func pbrFlowTest(t *testing.T, transactor *transactor.Transactor) {
 
 	log.Infoln("======================== Test PegBridge Deposit -> Mint ===========================")
 	depositAmt := new(big.Int).Mul(big.NewInt(10), big.NewInt(1e18))
-	depositId, err = tc.CbrChain1.PbrDepositWithMintAccount(0, depositAmt, 12340003, common.HexToAddress(tc.FlowUserAddr.String()), rand.Uint64())
+	depositId, err = tc.CbrChain1.PbrDepositWithMintAccount(3, depositAmt, 12340003, common.HexToAddress(tc.FlowUserAddr.String()), rand.Uint64())
 	tc.ChkErr(err, "u0 chain1 deposit")
 	log.Infof("depositId:%s", depositId)
 	depositInfo = tc.WaitPbrDeposit(transactor, depositId)
@@ -72,7 +72,7 @@ func pbrFlowTest(t *testing.T, transactor *transactor.Transactor) {
 	log.Infof("start burn on flow")
 	nonce = uint64(time.Now().Second())
 	_, err = flowutils.Burn(context.Background(), tc.FlowUserAccountClient, 883,
-		nonce, "1.0", tc.CbrChain1.Users[0].Address.String(), tc.FlowContractAddr.String(), testPegTokenVault)
+		nonce, "1.0", tc.CbrChain1.Users[3].Address.String(), tc.FlowContractAddr.String(), testPegTokenVault)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -84,4 +84,6 @@ func pbrFlowTest(t *testing.T, transactor *transactor.Transactor) {
 	burnInfo = tc.WaitPbrBurn(transactor, burnId)
 	wdInfo = tc.CheckPbrWithdraw(transactor, eth.Bytes2Hex(burnInfo.WithdrawId))
 	log.Infof("PegBridge Burn related WdInfo:%+v", wdInfo)
+
+	log.Infoln("======================== Finish Flow Test ===========================")
 }
