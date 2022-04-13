@@ -107,7 +107,6 @@ func (c *OneChain) MonNftBridge(addr string) {
 }
 
 func (c *OneChain) evCallback(evname string, elog types.Log) {
-	log.Infoln("event:", c.cfg.ChainID, evname)
 	switch evname {
 	case "Sent":
 		evSent, err := c.nftbr.ParseSent(elog)
@@ -130,6 +129,7 @@ func (c *OneChain) evCallback(evname string, elog types.Log) {
 }
 
 func (c *OneChain) handleSent(ev *binding.NFTBridgeSent) {
+	log.Infoln("handle Sent on", c.cfg.ChainID, "dstChid:", ev.DstChid, "srcNft:", ev.SrcNft, "dstNft:", ev.DstNft, "tokenId:", ev.Id)
 	err := c.db.DoTx(func(tx *sql.Tx) error {
 		dtx := dal.New(tx)
 		return dtx.NftAddSend(context.Background(), dal.NftAddSendParams{
@@ -150,6 +150,7 @@ func (c *OneChain) handleSent(ev *binding.NFTBridgeSent) {
 }
 
 func (c *OneChain) handleRecv(ev *binding.NFTBridgeReceived) {
+	log.Infoln("handle Received on", c.cfg.ChainID, "srcChid:", ev.SrcChid, "dstNft:", ev.Nft, "tokenId:", ev.Id)
 	err := c.db.DoTx(func(tx *sql.Tx) error {
 		return dal.New(tx).NftSetDoneByDstTx(context.Background(), ev.Raw.TxHash.Hex())
 	})
