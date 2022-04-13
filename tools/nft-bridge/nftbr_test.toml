@@ -3,7 +3,7 @@
 sgn = "localhost:9090"
 # path to keystore json file
 kspath = "/home/ubuntu/.sgnd/eth-ks/signer.json"
-# ksphrase = ""
+ksphrase = ""
 # json config about nft bridges and NFTs, shared with frontend
 jsonurl = "https://get.celer.app/nftbridge/testnet.json"
 # db for monitor and nft transfer records
@@ -30,3 +30,13 @@ blkinterval = 15
 blkdelay = 8
 maxblkdelta = 5000
 msgbus = "0xAd204986D6cB67A5Bc76a3CB8974823F43Cb9AAA"
+
+[[multichain]]
+chainID = 4002
+name = "Fantom Testnet"
+gateway = "https://rpc.testnet.fantom.network/"
+blkinterval = 15
+blkdelay = 6
+maxblkdelta = 5000
+forwardblkdelay = 50
+msgbus = "0xb92d6933A024bcca9A21669a480C236Cbc973110"

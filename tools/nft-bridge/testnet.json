@@ -2,11 +2,15 @@
   "bridges": [
     {
       "chainid": 5,
-      "addr": "0xB0D45f5a9d63d1EafDa15F06b987a2F8Fe948E86"
+      "addr": "0x7e6B83550887A667D353B844C78f5b6A5A534CF5"
     },
     {
       "chainid": 97,
-      "addr": "0x03b83B76Bd275A342D961fa633bdaAee7C232b56"
+      "addr": "0x532a3A7258d69aEF085265bABB8975B5E646eF19"
+    },
+    {
+      "chainid": 4002,
+      "addr": "0x7A46219950d8a9bf2186549552DA35Bf6fb85b1F"
     }
   ],
   "nfts": [
@@ -21,22 +25,30 @@
       "pegs": [
         {
           "chainid": 97,
-          "addr": "0xB99e1eeF90483bC4709d0A90a4Ee9F9adC593b3e"
+          "addr": "0xe2d6444f83489b5b51e5B8559124b46a0e2B0009"
+        },
+        {
+          "chainid": 4002,
+          "addr": "0xaB2692D14898cAc8F1D5E3FB5BC95cF84092A2A6"
         }
       ]
     },
     {
-      "name": "Kitties",
-      "symbol": "KTT",
-      "url": "https://www.cryptokitties.co",
-      "orig": {
-        "chainid": 97,
-        "addr": "0x7A46219950d8a9bf2186549552DA35Bf6fb85b1F"
-      },
+      "name": "MultiChainNative",
+      "symbol": "MCN",
+      "url": "https://cbridge.celer.network",
       "pegs": [
         {
           "chainid": 5,
-          "addr": "0xB5394BA663832DeeF26E8a768bBA255a001e5a17"
+          "addr": "0xa84D5E476e1592fC8E86DBB785C72C073d3c28B7"
+        },
+        {
+          "chainid": 97,
+          "addr": "0x4C229cb50C6150BdB00e95B1E40de3cEac85a34c"
+        },
+        {
+          "chainid": 4002,
+          "addr": "0x0dB4ceE042705d47Ef6C0818E82776359c3A80Ca"
         }
       ]
     }

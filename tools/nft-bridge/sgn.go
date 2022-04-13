@@ -1,4 +1,4 @@
-package main
+package nftbr
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	gobig "github.com/celer-network/goutils/big"
 	"github.com/celer-network/goutils/log"
 	comtypes "github.com/celer-network/sgn-v2/common/types"
+	"github.com/celer-network/sgn-v2/tools/nft-bridge/binding"
 	"github.com/celer-network/sgn-v2/tools/nft-bridge/dal"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
@@ -52,11 +53,12 @@ func PollSgn(intv time.Duration, ntfbrs []*ChidAddr, chainMap map[uint64]*OneCha
 				if onech, ok := chainMap[msg.DstChainId]; ok {
 					nftMsg := DecodeNFTMsg(msg.Data)
 					log.Infoln("from:", msg.SrcChainId, "to:", msg.DstChainId, "nftMsg:", nftMsg)
+					// todo: check if dst ch is orig, nftMsg.MsgType should be withdraw
 					srcTx, _ := onech.db.NftGetByDstInfo(context.Background(), dal.NftGetByDstInfoParams{
 						SrcChid:  msg.SrcChainId,
 						DstChid:  msg.DstChainId,
-						Receiver: a2hex(nftMsg.User),
-						DstNft:   a2hex(nftMsg.Nft),
+						Receiver: A2hex(nftMsg.User),
+						DstNft:   A2hex(nftMsg.Nft),
 						TokID:    *gobig.New(nftMsg.Id),
 						Status:   int16(Status_WAITSGN),
 					})
@@ -68,9 +70,9 @@ func PollSgn(intv time.Duration, ntfbrs []*ChidAddr, chainMap map[uint64]*OneCha
 					// query sgn to get signers/powers, todo: cache by chid?
 					signers, powers := getSigners(conn, msg.DstChainId)
 					// send onchain
-					tx, err := onech.msgBus.ExecuteMessage(onech.auth, msg.Data, MsgDataTypesRouteInfo{
-						Sender:     hex2addr(msg.Sender),
-						Receiver:   hex2addr(msg.Receiver),
+					tx, err := onech.msgBus.ExecuteMessage(onech.auth, msg.Data, binding.MsgDataTypesRouteInfo{
+						Sender:     Hex2addr(msg.Sender),
+						Receiver:   Hex2addr(msg.Receiver),
 						SrcChainId: msg.SrcChainId,
 						SrcTxHash:  hex2hash(msg.SrcTxHash),
 					}, msg.GetSigBytes(), signers, powers)
@@ -84,8 +86,8 @@ func PollSgn(intv time.Duration, ntfbrs []*ChidAddr, chainMap map[uint64]*OneCha
 							return dal.New(tx).NftSetDstTx(context.Background(), dal.NftSetDstTxParams{
 								SrcChid:  msg.SrcChainId,
 								DstChid:  msg.DstChainId,
-								Receiver: a2hex(nftMsg.User),
-								DstNft:   a2hex(nftMsg.Nft),
+								Receiver: A2hex(nftMsg.User),
+								DstNft:   A2hex(nftMsg.Nft),
 								TokID:    *gobig.New(nftMsg.Id),
 								DstTx:    dstTx,
 							})

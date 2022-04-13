@@ -1,7 +1,7 @@
 // Code generated - DO NOT EDIT.
 // This file is a generated binding and any manual changes will be lost.
 
-package main
+package binding
 
 import (
 	"errors"
@@ -30,7 +30,7 @@ var (
 
 // NFTBridgeMetaData contains all meta data concerning the NFTBridge contract.
 var NFTBridgeMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_msgBus\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"messageBus\",\"type\":\"address\"}],\"name\":\"MessageBusUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"nft\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"srcChid\",\"type\":\"uint64\"}],\"name\":\"Received\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"srcNft\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"dstChid\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"dstNft\",\"type\":\"address\"}],\"name\":\"Sent\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_nft\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_id\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"_dstChid\",\"type\":\"uint64\"},{\"internalType\":\"address\",\"name\":\"_receiver\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_dstNft\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_dstBridge\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"_backToOrigin\",\"type\":\"bool\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"claimFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_nft\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_id\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"_dstChid\",\"type\":\"uint64\"},{\"internalType\":\"address\",\"name\":\"_receiver\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_dstNft\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_dstBridge\",\"type\":\"address\"}],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"}],\"name\":\"destTxFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"uint64\",\"name\":\"srcChid\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"}],\"name\":\"executeMessage\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"_srcChainId\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"}],\"name\":\"executeMessageWithTransfer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"_srcChainId\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"}],\"name\":\"executeMessageWithTransferFallback\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"}],\"name\":\"executeMessageWithTransferRefund\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"messageBus\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_messageBus\",\"type\":\"address\"}],\"name\":\"setMessageBus\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"chid\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"fee\",\"type\":\"uint256\"}],\"name\":\"setTxFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"_dstChid\",\"type\":\"uint64\"},{\"internalType\":\"address\",\"name\":\"_nft\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_id\",\"type\":\"uint256\"}],\"name\":\"totalFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+	ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_msgBus\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"messageBus\",\"type\":\"address\"}],\"name\":\"MessageBusUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"nft\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"srcChid\",\"type\":\"uint64\"}],\"name\":\"Received\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"srcNft\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"dstChid\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"dstNft\",\"type\":\"address\"}],\"name\":\"Sent\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_nft\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_id\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"_dstChid\",\"type\":\"uint64\"},{\"internalType\":\"address\",\"name\":\"_receiver\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"_backToOrigin\",\"type\":\"bool\"}],\"name\":\"burn\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"claimFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_nft\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_id\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"_dstChid\",\"type\":\"uint64\"},{\"internalType\":\"address\",\"name\":\"_receiver\",\"type\":\"address\"}],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"}],\"name\":\"destBridge\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"}],\"name\":\"destNFTAddr\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"}],\"name\":\"destTxFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"uint64\",\"name\":\"srcChid\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"executeMessage\",\"outputs\":[{\"internalType\":\"enumIMessageReceiverApp.ExecutionStatus\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"_srcChainId\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"_executor\",\"type\":\"address\"}],\"name\":\"executeMessageWithTransfer\",\"outputs\":[{\"internalType\":\"enumIMessageReceiverApp.ExecutionStatus\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"_srcChainId\",\"type\":\"uint64\"},{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"_executor\",\"type\":\"address\"}],\"name\":\"executeMessageWithTransferFallback\",\"outputs\":[{\"internalType\":\"enumIMessageReceiverApp.ExecutionStatus\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"},{\"internalType\":\"address\",\"name\":\"_executor\",\"type\":\"address\"}],\"name\":\"executeMessageWithTransferRefund\",\"outputs\":[{\"internalType\":\"enumIMessageReceiverApp.ExecutionStatus\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_msgBus\",\"type\":\"address\"}],\"name\":\"init\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"messageBus\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"_dstChid\",\"type\":\"uint64\"},{\"internalType\":\"address\",\"name\":\"_sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_id\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"_uri\",\"type\":\"string\"}],\"name\":\"sendMsg\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"dstChid\",\"type\":\"uint64\"},{\"internalType\":\"address\",\"name\":\"dstNftBridge\",\"type\":\"address\"}],\"name\":\"setDestBridge\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64[]\",\"name\":\"dstChid\",\"type\":\"uint64[]\"},{\"internalType\":\"address[]\",\"name\":\"dstNftBridge\",\"type\":\"address[]\"}],\"name\":\"setDestBridges\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"srcNft\",\"type\":\"address\"},{\"internalType\":\"uint64\",\"name\":\"dstChid\",\"type\":\"uint64\"},{\"internalType\":\"address\",\"name\":\"dstNft\",\"type\":\"address\"}],\"name\":\"setDestNFT\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"srcNft\",\"type\":\"address\"},{\"internalType\":\"uint64[]\",\"name\":\"dstChid\",\"type\":\"uint64[]\"},{\"internalType\":\"address[]\",\"name\":\"dstNft\",\"type\":\"address[]\"}],\"name\":\"setDestNFTs\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_messageBus\",\"type\":\"address\"}],\"name\":\"setMessageBus\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"chid\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"fee\",\"type\":\"uint256\"}],\"name\":\"setTxFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"_dstChid\",\"type\":\"uint64\"},{\"internalType\":\"address\",\"name\":\"_nft\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_id\",\"type\":\"uint256\"}],\"name\":\"totalFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
 }
 
 // NFTBridgeABI is the input ABI used to generate the binding from.
@@ -179,6 +179,68 @@ func (_NFTBridge *NFTBridgeTransactorRaw) Transact(opts *bind.TransactOpts, meth
 	return _NFTBridge.Contract.contract.Transact(opts, method, params...)
 }
 
+// DestBridge is a free data retrieval call binding the contract method 0x27cbe705.
+//
+// Solidity: function destBridge(uint64 ) view returns(address)
+func (_NFTBridge *NFTBridgeCaller) DestBridge(opts *bind.CallOpts, arg0 uint64) (common.Address, error) {
+	var out []interface{}
+	err := _NFTBridge.contract.Call(opts, &out, "destBridge", arg0)
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// DestBridge is a free data retrieval call binding the contract method 0x27cbe705.
+//
+// Solidity: function destBridge(uint64 ) view returns(address)
+func (_NFTBridge *NFTBridgeSession) DestBridge(arg0 uint64) (common.Address, error) {
+	return _NFTBridge.Contract.DestBridge(&_NFTBridge.CallOpts, arg0)
+}
+
+// DestBridge is a free data retrieval call binding the contract method 0x27cbe705.
+//
+// Solidity: function destBridge(uint64 ) view returns(address)
+func (_NFTBridge *NFTBridgeCallerSession) DestBridge(arg0 uint64) (common.Address, error) {
+	return _NFTBridge.Contract.DestBridge(&_NFTBridge.CallOpts, arg0)
+}
+
+// DestNFTAddr is a free data retrieval call binding the contract method 0x9e041b9d.
+//
+// Solidity: function destNFTAddr(address , uint64 ) view returns(address)
+func (_NFTBridge *NFTBridgeCaller) DestNFTAddr(opts *bind.CallOpts, arg0 common.Address, arg1 uint64) (common.Address, error) {
+	var out []interface{}
+	err := _NFTBridge.contract.Call(opts, &out, "destNFTAddr", arg0, arg1)
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// DestNFTAddr is a free data retrieval call binding the contract method 0x9e041b9d.
+//
+// Solidity: function destNFTAddr(address , uint64 ) view returns(address)
+func (_NFTBridge *NFTBridgeSession) DestNFTAddr(arg0 common.Address, arg1 uint64) (common.Address, error) {
+	return _NFTBridge.Contract.DestNFTAddr(&_NFTBridge.CallOpts, arg0, arg1)
+}
+
+// DestNFTAddr is a free data retrieval call binding the contract method 0x9e041b9d.
+//
+// Solidity: function destNFTAddr(address , uint64 ) view returns(address)
+func (_NFTBridge *NFTBridgeCallerSession) DestNFTAddr(arg0 common.Address, arg1 uint64) (common.Address, error) {
+	return _NFTBridge.Contract.DestNFTAddr(&_NFTBridge.CallOpts, arg0, arg1)
+}
+
 // DestTxFee is a free data retrieval call binding the contract method 0x151ff4eb.
 //
 // Solidity: function destTxFee(uint64 ) view returns(uint256)
@@ -303,25 +365,25 @@ func (_NFTBridge *NFTBridgeCallerSession) TotalFee(_dstChid uint64, _nft common.
 	return _NFTBridge.Contract.TotalFee(&_NFTBridge.CallOpts, _dstChid, _nft, _id)
 }
 
-// Burn is a paid mutator transaction binding the contract method 0x46622643.
+// Burn is a paid mutator transaction binding the contract method 0x7db3aaaa.
 //
-// Solidity: function burn(address _nft, uint256 _id, uint64 _dstChid, address _receiver, address _dstNft, address _dstBridge, bool _backToOrigin) payable returns()
-func (_NFTBridge *NFTBridgeTransactor) Burn(opts *bind.TransactOpts, _nft common.Address, _id *big.Int, _dstChid uint64, _receiver common.Address, _dstNft common.Address, _dstBridge common.Address, _backToOrigin bool) (*types.Transaction, error) {
-	return _NFTBridge.contract.Transact(opts, "burn", _nft, _id, _dstChid, _receiver, _dstNft, _dstBridge, _backToOrigin)
+// Solidity: function burn(address _nft, uint256 _id, uint64 _dstChid, address _receiver, bool _backToOrigin) payable returns()
+func (_NFTBridge *NFTBridgeTransactor) Burn(opts *bind.TransactOpts, _nft common.Address, _id *big.Int, _dstChid uint64, _receiver common.Address, _backToOrigin bool) (*types.Transaction, error) {
+	return _NFTBridge.contract.Transact(opts, "burn", _nft, _id, _dstChid, _receiver, _backToOrigin)
 }
 
-// Burn is a paid mutator transaction binding the contract method 0x46622643.
+// Burn is a paid mutator transaction binding the contract method 0x7db3aaaa.
 //
-// Solidity: function burn(address _nft, uint256 _id, uint64 _dstChid, address _receiver, address _dstNft, address _dstBridge, bool _backToOrigin) payable returns()
-func (_NFTBridge *NFTBridgeSession) Burn(_nft common.Address, _id *big.Int, _dstChid uint64, _receiver common.Address, _dstNft common.Address, _dstBridge common.Address, _backToOrigin bool) (*types.Transaction, error) {
-	return _NFTBridge.Contract.Burn(&_NFTBridge.TransactOpts, _nft, _id, _dstChid, _receiver, _dstNft, _dstBridge, _backToOrigin)
+// Solidity: function burn(address _nft, uint256 _id, uint64 _dstChid, address _receiver, bool _backToOrigin) payable returns()
+func (_NFTBridge *NFTBridgeSession) Burn(_nft common.Address, _id *big.Int, _dstChid uint64, _receiver common.Address, _backToOrigin bool) (*types.Transaction, error) {
+	return _NFTBridge.Contract.Burn(&_NFTBridge.TransactOpts, _nft, _id, _dstChid, _receiver, _backToOrigin)
 }
 
-// Burn is a paid mutator transaction binding the contract method 0x46622643.
+// Burn is a paid mutator transaction binding the contract method 0x7db3aaaa.
 //
-// Solidity: function burn(address _nft, uint256 _id, uint64 _dstChid, address _receiver, address _dstNft, address _dstBridge, bool _backToOrigin) payable returns()
-func (_NFTBridge *NFTBridgeTransactorSession) Burn(_nft common.Address, _id *big.Int, _dstChid uint64, _receiver common.Address, _dstNft common.Address, _dstBridge common.Address, _backToOrigin bool) (*types.Transaction, error) {
-	return _NFTBridge.Contract.Burn(&_NFTBridge.TransactOpts, _nft, _id, _dstChid, _receiver, _dstNft, _dstBridge, _backToOrigin)
+// Solidity: function burn(address _nft, uint256 _id, uint64 _dstChid, address _receiver, bool _backToOrigin) payable returns()
+func (_NFTBridge *NFTBridgeTransactorSession) Burn(_nft common.Address, _id *big.Int, _dstChid uint64, _receiver common.Address, _backToOrigin bool) (*types.Transaction, error) {
+	return _NFTBridge.Contract.Burn(&_NFTBridge.TransactOpts, _nft, _id, _dstChid, _receiver, _backToOrigin)
 }
 
 // ClaimFee is a paid mutator transaction binding the contract method 0x99d32fc4.
@@ -345,109 +407,235 @@ func (_NFTBridge *NFTBridgeTransactorSession) ClaimFee() (*types.Transaction, er
 	return _NFTBridge.Contract.ClaimFee(&_NFTBridge.TransactOpts)
 }
 
-// Deposit is a paid mutator transaction binding the contract method 0x31aba041.
+// Deposit is a paid mutator transaction binding the contract method 0xcf92a0f2.
 //
-// Solidity: function deposit(address _nft, uint256 _id, uint64 _dstChid, address _receiver, address _dstNft, address _dstBridge) payable returns()
-func (_NFTBridge *NFTBridgeTransactor) Deposit(opts *bind.TransactOpts, _nft common.Address, _id *big.Int, _dstChid uint64, _receiver common.Address, _dstNft common.Address, _dstBridge common.Address) (*types.Transaction, error) {
-	return _NFTBridge.contract.Transact(opts, "deposit", _nft, _id, _dstChid, _receiver, _dstNft, _dstBridge)
+// Solidity: function deposit(address _nft, uint256 _id, uint64 _dstChid, address _receiver) payable returns()
+func (_NFTBridge *NFTBridgeTransactor) Deposit(opts *bind.TransactOpts, _nft common.Address, _id *big.Int, _dstChid uint64, _receiver common.Address) (*types.Transaction, error) {
+	return _NFTBridge.contract.Transact(opts, "deposit", _nft, _id, _dstChid, _receiver)
 }
 
-// Deposit is a paid mutator transaction binding the contract method 0x31aba041.
+// Deposit is a paid mutator transaction binding the contract method 0xcf92a0f2.
 //
-// Solidity: function deposit(address _nft, uint256 _id, uint64 _dstChid, address _receiver, address _dstNft, address _dstBridge) payable returns()
-func (_NFTBridge *NFTBridgeSession) Deposit(_nft common.Address, _id *big.Int, _dstChid uint64, _receiver common.Address, _dstNft common.Address, _dstBridge common.Address) (*types.Transaction, error) {
-	return _NFTBridge.Contract.Deposit(&_NFTBridge.TransactOpts, _nft, _id, _dstChid, _receiver, _dstNft, _dstBridge)
+// Solidity: function deposit(address _nft, uint256 _id, uint64 _dstChid, address _receiver) payable returns()
+func (_NFTBridge *NFTBridgeSession) Deposit(_nft common.Address, _id *big.Int, _dstChid uint64, _receiver common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.Deposit(&_NFTBridge.TransactOpts, _nft, _id, _dstChid, _receiver)
 }
 
-// Deposit is a paid mutator transaction binding the contract method 0x31aba041.
+// Deposit is a paid mutator transaction binding the contract method 0xcf92a0f2.
 //
-// Solidity: function deposit(address _nft, uint256 _id, uint64 _dstChid, address _receiver, address _dstNft, address _dstBridge) payable returns()
-func (_NFTBridge *NFTBridgeTransactorSession) Deposit(_nft common.Address, _id *big.Int, _dstChid uint64, _receiver common.Address, _dstNft common.Address, _dstBridge common.Address) (*types.Transaction, error) {
-	return _NFTBridge.Contract.Deposit(&_NFTBridge.TransactOpts, _nft, _id, _dstChid, _receiver, _dstNft, _dstBridge)
+// Solidity: function deposit(address _nft, uint256 _id, uint64 _dstChid, address _receiver) payable returns()
+func (_NFTBridge *NFTBridgeTransactorSession) Deposit(_nft common.Address, _id *big.Int, _dstChid uint64, _receiver common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.Deposit(&_NFTBridge.TransactOpts, _nft, _id, _dstChid, _receiver)
 }
 
-// ExecuteMessage is a paid mutator transaction binding the contract method 0x1599d265.
+// ExecuteMessage is a paid mutator transaction binding the contract method 0x9c649fdf.
 //
-// Solidity: function executeMessage(address , uint64 srcChid, bytes _message) payable returns(bool)
-func (_NFTBridge *NFTBridgeTransactor) ExecuteMessage(opts *bind.TransactOpts, arg0 common.Address, srcChid uint64, _message []byte) (*types.Transaction, error) {
-	return _NFTBridge.contract.Transact(opts, "executeMessage", arg0, srcChid, _message)
+// Solidity: function executeMessage(address , uint64 srcChid, bytes _message, address ) payable returns(uint8)
+func (_NFTBridge *NFTBridgeTransactor) ExecuteMessage(opts *bind.TransactOpts, arg0 common.Address, srcChid uint64, _message []byte, arg3 common.Address) (*types.Transaction, error) {
+	return _NFTBridge.contract.Transact(opts, "executeMessage", arg0, srcChid, _message, arg3)
 }
 
-// ExecuteMessage is a paid mutator transaction binding the contract method 0x1599d265.
+// ExecuteMessage is a paid mutator transaction binding the contract method 0x9c649fdf.
 //
-// Solidity: function executeMessage(address , uint64 srcChid, bytes _message) payable returns(bool)
-func (_NFTBridge *NFTBridgeSession) ExecuteMessage(arg0 common.Address, srcChid uint64, _message []byte) (*types.Transaction, error) {
-	return _NFTBridge.Contract.ExecuteMessage(&_NFTBridge.TransactOpts, arg0, srcChid, _message)
+// Solidity: function executeMessage(address , uint64 srcChid, bytes _message, address ) payable returns(uint8)
+func (_NFTBridge *NFTBridgeSession) ExecuteMessage(arg0 common.Address, srcChid uint64, _message []byte, arg3 common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.ExecuteMessage(&_NFTBridge.TransactOpts, arg0, srcChid, _message, arg3)
 }
 
-// ExecuteMessage is a paid mutator transaction binding the contract method 0x1599d265.
+// ExecuteMessage is a paid mutator transaction binding the contract method 0x9c649fdf.
 //
-// Solidity: function executeMessage(address , uint64 srcChid, bytes _message) payable returns(bool)
-func (_NFTBridge *NFTBridgeTransactorSession) ExecuteMessage(arg0 common.Address, srcChid uint64, _message []byte) (*types.Transaction, error) {
-	return _NFTBridge.Contract.ExecuteMessage(&_NFTBridge.TransactOpts, arg0, srcChid, _message)
+// Solidity: function executeMessage(address , uint64 srcChid, bytes _message, address ) payable returns(uint8)
+func (_NFTBridge *NFTBridgeTransactorSession) ExecuteMessage(arg0 common.Address, srcChid uint64, _message []byte, arg3 common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.ExecuteMessage(&_NFTBridge.TransactOpts, arg0, srcChid, _message, arg3)
 }
 
-// ExecuteMessageWithTransfer is a paid mutator transaction binding the contract method 0xce35dd9a.
+// ExecuteMessageWithTransfer is a paid mutator transaction binding the contract method 0x7cd2bffc.
 //
-// Solidity: function executeMessageWithTransfer(address _sender, address _token, uint256 _amount, uint64 _srcChainId, bytes _message) payable returns(bool)
-func (_NFTBridge *NFTBridgeTransactor) ExecuteMessageWithTransfer(opts *bind.TransactOpts, _sender common.Address, _token common.Address, _amount *big.Int, _srcChainId uint64, _message []byte) (*types.Transaction, error) {
-	return _NFTBridge.contract.Transact(opts, "executeMessageWithTransfer", _sender, _token, _amount, _srcChainId, _message)
+// Solidity: function executeMessageWithTransfer(address _sender, address _token, uint256 _amount, uint64 _srcChainId, bytes _message, address _executor) payable returns(uint8)
+func (_NFTBridge *NFTBridgeTransactor) ExecuteMessageWithTransfer(opts *bind.TransactOpts, _sender common.Address, _token common.Address, _amount *big.Int, _srcChainId uint64, _message []byte, _executor common.Address) (*types.Transaction, error) {
+	return _NFTBridge.contract.Transact(opts, "executeMessageWithTransfer", _sender, _token, _amount, _srcChainId, _message, _executor)
 }
 
-// ExecuteMessageWithTransfer is a paid mutator transaction binding the contract method 0xce35dd9a.
+// ExecuteMessageWithTransfer is a paid mutator transaction binding the contract method 0x7cd2bffc.
 //
-// Solidity: function executeMessageWithTransfer(address _sender, address _token, uint256 _amount, uint64 _srcChainId, bytes _message) payable returns(bool)
-func (_NFTBridge *NFTBridgeSession) ExecuteMessageWithTransfer(_sender common.Address, _token common.Address, _amount *big.Int, _srcChainId uint64, _message []byte) (*types.Transaction, error) {
-	return _NFTBridge.Contract.ExecuteMessageWithTransfer(&_NFTBridge.TransactOpts, _sender, _token, _amount, _srcChainId, _message)
+// Solidity: function executeMessageWithTransfer(address _sender, address _token, uint256 _amount, uint64 _srcChainId, bytes _message, address _executor) payable returns(uint8)
+func (_NFTBridge *NFTBridgeSession) ExecuteMessageWithTransfer(_sender common.Address, _token common.Address, _amount *big.Int, _srcChainId uint64, _message []byte, _executor common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.ExecuteMessageWithTransfer(&_NFTBridge.TransactOpts, _sender, _token, _amount, _srcChainId, _message, _executor)
 }
 
-// ExecuteMessageWithTransfer is a paid mutator transaction binding the contract method 0xce35dd9a.
+// ExecuteMessageWithTransfer is a paid mutator transaction binding the contract method 0x7cd2bffc.
 //
-// Solidity: function executeMessageWithTransfer(address _sender, address _token, uint256 _amount, uint64 _srcChainId, bytes _message) payable returns(bool)
-func (_NFTBridge *NFTBridgeTransactorSession) ExecuteMessageWithTransfer(_sender common.Address, _token common.Address, _amount *big.Int, _srcChainId uint64, _message []byte) (*types.Transaction, error) {
-	return _NFTBridge.Contract.ExecuteMessageWithTransfer(&_NFTBridge.TransactOpts, _sender, _token, _amount, _srcChainId, _message)
+// Solidity: function executeMessageWithTransfer(address _sender, address _token, uint256 _amount, uint64 _srcChainId, bytes _message, address _executor) payable returns(uint8)
+func (_NFTBridge *NFTBridgeTransactorSession) ExecuteMessageWithTransfer(_sender common.Address, _token common.Address, _amount *big.Int, _srcChainId uint64, _message []byte, _executor common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.ExecuteMessageWithTransfer(&_NFTBridge.TransactOpts, _sender, _token, _amount, _srcChainId, _message, _executor)
 }
 
-// ExecuteMessageWithTransferFallback is a paid mutator transaction binding the contract method 0xf00f39ce.
+// ExecuteMessageWithTransferFallback is a paid mutator transaction binding the contract method 0x5ab7afc6.
 //
-// Solidity: function executeMessageWithTransferFallback(address _sender, address _token, uint256 _amount, uint64 _srcChainId, bytes _message) payable returns(bool)
-func (_NFTBridge *NFTBridgeTransactor) ExecuteMessageWithTransferFallback(opts *bind.TransactOpts, _sender common.Address, _token common.Address, _amount *big.Int, _srcChainId uint64, _message []byte) (*types.Transaction, error) {
-	return _NFTBridge.contract.Transact(opts, "executeMessageWithTransferFallback", _sender, _token, _amount, _srcChainId, _message)
+// Solidity: function executeMessageWithTransferFallback(address _sender, address _token, uint256 _amount, uint64 _srcChainId, bytes _message, address _executor) payable returns(uint8)
+func (_NFTBridge *NFTBridgeTransactor) ExecuteMessageWithTransferFallback(opts *bind.TransactOpts, _sender common.Address, _token common.Address, _amount *big.Int, _srcChainId uint64, _message []byte, _executor common.Address) (*types.Transaction, error) {
+	return _NFTBridge.contract.Transact(opts, "executeMessageWithTransferFallback", _sender, _token, _amount, _srcChainId, _message, _executor)
 }
 
-// ExecuteMessageWithTransferFallback is a paid mutator transaction binding the contract method 0xf00f39ce.
+// ExecuteMessageWithTransferFallback is a paid mutator transaction binding the contract method 0x5ab7afc6.
 //
-// Solidity: function executeMessageWithTransferFallback(address _sender, address _token, uint256 _amount, uint64 _srcChainId, bytes _message) payable returns(bool)
-func (_NFTBridge *NFTBridgeSession) ExecuteMessageWithTransferFallback(_sender common.Address, _token common.Address, _amount *big.Int, _srcChainId uint64, _message []byte) (*types.Transaction, error) {
-	return _NFTBridge.Contract.ExecuteMessageWithTransferFallback(&_NFTBridge.TransactOpts, _sender, _token, _amount, _srcChainId, _message)
+// Solidity: function executeMessageWithTransferFallback(address _sender, address _token, uint256 _amount, uint64 _srcChainId, bytes _message, address _executor) payable returns(uint8)
+func (_NFTBridge *NFTBridgeSession) ExecuteMessageWithTransferFallback(_sender common.Address, _token common.Address, _amount *big.Int, _srcChainId uint64, _message []byte, _executor common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.ExecuteMessageWithTransferFallback(&_NFTBridge.TransactOpts, _sender, _token, _amount, _srcChainId, _message, _executor)
 }
 
-// ExecuteMessageWithTransferFallback is a paid mutator transaction binding the contract method 0xf00f39ce.
+// ExecuteMessageWithTransferFallback is a paid mutator transaction binding the contract method 0x5ab7afc6.
 //
-// Solidity: function executeMessageWithTransferFallback(address _sender, address _token, uint256 _amount, uint64 _srcChainId, bytes _message) payable returns(bool)
-func (_NFTBridge *NFTBridgeTransactorSession) ExecuteMessageWithTransferFallback(_sender common.Address, _token common.Address, _amount *big.Int, _srcChainId uint64, _message []byte) (*types.Transaction, error) {
-	return _NFTBridge.Contract.ExecuteMessageWithTransferFallback(&_NFTBridge.TransactOpts, _sender, _token, _amount, _srcChainId, _message)
+// Solidity: function executeMessageWithTransferFallback(address _sender, address _token, uint256 _amount, uint64 _srcChainId, bytes _message, address _executor) payable returns(uint8)
+func (_NFTBridge *NFTBridgeTransactorSession) ExecuteMessageWithTransferFallback(_sender common.Address, _token common.Address, _amount *big.Int, _srcChainId uint64, _message []byte, _executor common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.ExecuteMessageWithTransferFallback(&_NFTBridge.TransactOpts, _sender, _token, _amount, _srcChainId, _message, _executor)
 }
 
-// ExecuteMessageWithTransferRefund is a paid mutator transaction binding the contract method 0x20be95f2.
+// ExecuteMessageWithTransferRefund is a paid mutator transaction binding the contract method 0x0bcb4982.
 //
-// Solidity: function executeMessageWithTransferRefund(address _token, uint256 _amount, bytes _message) payable returns(bool)
-func (_NFTBridge *NFTBridgeTransactor) ExecuteMessageWithTransferRefund(opts *bind.TransactOpts, _token common.Address, _amount *big.Int, _message []byte) (*types.Transaction, error) {
-	return _NFTBridge.contract.Transact(opts, "executeMessageWithTransferRefund", _token, _amount, _message)
+// Solidity: function executeMessageWithTransferRefund(address _token, uint256 _amount, bytes _message, address _executor) payable returns(uint8)
+func (_NFTBridge *NFTBridgeTransactor) ExecuteMessageWithTransferRefund(opts *bind.TransactOpts, _token common.Address, _amount *big.Int, _message []byte, _executor common.Address) (*types.Transaction, error) {
+	return _NFTBridge.contract.Transact(opts, "executeMessageWithTransferRefund", _token, _amount, _message, _executor)
 }
 
-// ExecuteMessageWithTransferRefund is a paid mutator transaction binding the contract method 0x20be95f2.
+// ExecuteMessageWithTransferRefund is a paid mutator transaction binding the contract method 0x0bcb4982.
 //
-// Solidity: function executeMessageWithTransferRefund(address _token, uint256 _amount, bytes _message) payable returns(bool)
-func (_NFTBridge *NFTBridgeSession) ExecuteMessageWithTransferRefund(_token common.Address, _amount *big.Int, _message []byte) (*types.Transaction, error) {
-	return _NFTBridge.Contract.ExecuteMessageWithTransferRefund(&_NFTBridge.TransactOpts, _token, _amount, _message)
+// Solidity: function executeMessageWithTransferRefund(address _token, uint256 _amount, bytes _message, address _executor) payable returns(uint8)
+func (_NFTBridge *NFTBridgeSession) ExecuteMessageWithTransferRefund(_token common.Address, _amount *big.Int, _message []byte, _executor common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.ExecuteMessageWithTransferRefund(&_NFTBridge.TransactOpts, _token, _amount, _message, _executor)
 }
 
-// ExecuteMessageWithTransferRefund is a paid mutator transaction binding the contract method 0x20be95f2.
+// ExecuteMessageWithTransferRefund is a paid mutator transaction binding the contract method 0x0bcb4982.
 //
-// Solidity: function executeMessageWithTransferRefund(address _token, uint256 _amount, bytes _message) payable returns(bool)
-func (_NFTBridge *NFTBridgeTransactorSession) ExecuteMessageWithTransferRefund(_token common.Address, _amount *big.Int, _message []byte) (*types.Transaction, error) {
-	return _NFTBridge.Contract.ExecuteMessageWithTransferRefund(&_NFTBridge.TransactOpts, _token, _amount, _message)
+// Solidity: function executeMessageWithTransferRefund(address _token, uint256 _amount, bytes _message, address _executor) payable returns(uint8)
+func (_NFTBridge *NFTBridgeTransactorSession) ExecuteMessageWithTransferRefund(_token common.Address, _amount *big.Int, _message []byte, _executor common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.ExecuteMessageWithTransferRefund(&_NFTBridge.TransactOpts, _token, _amount, _message, _executor)
+}
+
+// Init is a paid mutator transaction binding the contract method 0x19ab453c.
+//
+// Solidity: function init(address _msgBus) returns()
+func (_NFTBridge *NFTBridgeTransactor) Init(opts *bind.TransactOpts, _msgBus common.Address) (*types.Transaction, error) {
+	return _NFTBridge.contract.Transact(opts, "init", _msgBus)
+}
+
+// Init is a paid mutator transaction binding the contract method 0x19ab453c.
+//
+// Solidity: function init(address _msgBus) returns()
+func (_NFTBridge *NFTBridgeSession) Init(_msgBus common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.Init(&_NFTBridge.TransactOpts, _msgBus)
+}
+
+// Init is a paid mutator transaction binding the contract method 0x19ab453c.
+//
+// Solidity: function init(address _msgBus) returns()
+func (_NFTBridge *NFTBridgeTransactorSession) Init(_msgBus common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.Init(&_NFTBridge.TransactOpts, _msgBus)
+}
+
+// SendMsg is a paid mutator transaction binding the contract method 0xf0cb57ce.
+//
+// Solidity: function sendMsg(uint64 _dstChid, address _sender, address _receiver, uint256 _id, string _uri) payable returns()
+func (_NFTBridge *NFTBridgeTransactor) SendMsg(opts *bind.TransactOpts, _dstChid uint64, _sender common.Address, _receiver common.Address, _id *big.Int, _uri string) (*types.Transaction, error) {
+	return _NFTBridge.contract.Transact(opts, "sendMsg", _dstChid, _sender, _receiver, _id, _uri)
+}
+
+// SendMsg is a paid mutator transaction binding the contract method 0xf0cb57ce.
+//
+// Solidity: function sendMsg(uint64 _dstChid, address _sender, address _receiver, uint256 _id, string _uri) payable returns()
+func (_NFTBridge *NFTBridgeSession) SendMsg(_dstChid uint64, _sender common.Address, _receiver common.Address, _id *big.Int, _uri string) (*types.Transaction, error) {
+	return _NFTBridge.Contract.SendMsg(&_NFTBridge.TransactOpts, _dstChid, _sender, _receiver, _id, _uri)
+}
+
+// SendMsg is a paid mutator transaction binding the contract method 0xf0cb57ce.
+//
+// Solidity: function sendMsg(uint64 _dstChid, address _sender, address _receiver, uint256 _id, string _uri) payable returns()
+func (_NFTBridge *NFTBridgeTransactorSession) SendMsg(_dstChid uint64, _sender common.Address, _receiver common.Address, _id *big.Int, _uri string) (*types.Transaction, error) {
+	return _NFTBridge.Contract.SendMsg(&_NFTBridge.TransactOpts, _dstChid, _sender, _receiver, _id, _uri)
+}
+
+// SetDestBridge is a paid mutator transaction binding the contract method 0xda754f44.
+//
+// Solidity: function setDestBridge(uint64 dstChid, address dstNftBridge) returns()
+func (_NFTBridge *NFTBridgeTransactor) SetDestBridge(opts *bind.TransactOpts, dstChid uint64, dstNftBridge common.Address) (*types.Transaction, error) {
+	return _NFTBridge.contract.Transact(opts, "setDestBridge", dstChid, dstNftBridge)
+}
+
+// SetDestBridge is a paid mutator transaction binding the contract method 0xda754f44.
+//
+// Solidity: function setDestBridge(uint64 dstChid, address dstNftBridge) returns()
+func (_NFTBridge *NFTBridgeSession) SetDestBridge(dstChid uint64, dstNftBridge common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.SetDestBridge(&_NFTBridge.TransactOpts, dstChid, dstNftBridge)
+}
+
+// SetDestBridge is a paid mutator transaction binding the contract method 0xda754f44.
+//
+// Solidity: function setDestBridge(uint64 dstChid, address dstNftBridge) returns()
+func (_NFTBridge *NFTBridgeTransactorSession) SetDestBridge(dstChid uint64, dstNftBridge common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.SetDestBridge(&_NFTBridge.TransactOpts, dstChid, dstNftBridge)
+}
+
+// SetDestBridges is a paid mutator transaction binding the contract method 0x43a8c137.
+//
+// Solidity: function setDestBridges(uint64[] dstChid, address[] dstNftBridge) returns()
+func (_NFTBridge *NFTBridgeTransactor) SetDestBridges(opts *bind.TransactOpts, dstChid []uint64, dstNftBridge []common.Address) (*types.Transaction, error) {
+	return _NFTBridge.contract.Transact(opts, "setDestBridges", dstChid, dstNftBridge)
+}
+
+// SetDestBridges is a paid mutator transaction binding the contract method 0x43a8c137.
+//
+// Solidity: function setDestBridges(uint64[] dstChid, address[] dstNftBridge) returns()
+func (_NFTBridge *NFTBridgeSession) SetDestBridges(dstChid []uint64, dstNftBridge []common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.SetDestBridges(&_NFTBridge.TransactOpts, dstChid, dstNftBridge)
+}
+
+// SetDestBridges is a paid mutator transaction binding the contract method 0x43a8c137.
+//
+// Solidity: function setDestBridges(uint64[] dstChid, address[] dstNftBridge) returns()
+func (_NFTBridge *NFTBridgeTransactorSession) SetDestBridges(dstChid []uint64, dstNftBridge []common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.SetDestBridges(&_NFTBridge.TransactOpts, dstChid, dstNftBridge)
+}
+
+// SetDestNFT is a paid mutator transaction binding the contract method 0x95b6a191.
+//
+// Solidity: function setDestNFT(address srcNft, uint64 dstChid, address dstNft) returns()
+func (_NFTBridge *NFTBridgeTransactor) SetDestNFT(opts *bind.TransactOpts, srcNft common.Address, dstChid uint64, dstNft common.Address) (*types.Transaction, error) {
+	return _NFTBridge.contract.Transact(opts, "setDestNFT", srcNft, dstChid, dstNft)
+}
+
+// SetDestNFT is a paid mutator transaction binding the contract method 0x95b6a191.
+//
+// Solidity: function setDestNFT(address srcNft, uint64 dstChid, address dstNft) returns()
+func (_NFTBridge *NFTBridgeSession) SetDestNFT(srcNft common.Address, dstChid uint64, dstNft common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.SetDestNFT(&_NFTBridge.TransactOpts, srcNft, dstChid, dstNft)
+}
+
+// SetDestNFT is a paid mutator transaction binding the contract method 0x95b6a191.
+//
+// Solidity: function setDestNFT(address srcNft, uint64 dstChid, address dstNft) returns()
+func (_NFTBridge *NFTBridgeTransactorSession) SetDestNFT(srcNft common.Address, dstChid uint64, dstNft common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.SetDestNFT(&_NFTBridge.TransactOpts, srcNft, dstChid, dstNft)
+}
+
+// SetDestNFTs is a paid mutator transaction binding the contract method 0x2d5fa47c.
+//
+// Solidity: function setDestNFTs(address srcNft, uint64[] dstChid, address[] dstNft) returns()
+func (_NFTBridge *NFTBridgeTransactor) SetDestNFTs(opts *bind.TransactOpts, srcNft common.Address, dstChid []uint64, dstNft []common.Address) (*types.Transaction, error) {
+	return _NFTBridge.contract.Transact(opts, "setDestNFTs", srcNft, dstChid, dstNft)
+}
+
+// SetDestNFTs is a paid mutator transaction binding the contract method 0x2d5fa47c.
+//
+// Solidity: function setDestNFTs(address srcNft, uint64[] dstChid, address[] dstNft) returns()
+func (_NFTBridge *NFTBridgeSession) SetDestNFTs(srcNft common.Address, dstChid []uint64, dstNft []common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.SetDestNFTs(&_NFTBridge.TransactOpts, srcNft, dstChid, dstNft)
+}
+
+// SetDestNFTs is a paid mutator transaction binding the contract method 0x2d5fa47c.
+//
+// Solidity: function setDestNFTs(address srcNft, uint64[] dstChid, address[] dstNft) returns()
+func (_NFTBridge *NFTBridgeTransactorSession) SetDestNFTs(srcNft common.Address, dstChid []uint64, dstNft []common.Address) (*types.Transaction, error) {
+	return _NFTBridge.Contract.SetDestNFTs(&_NFTBridge.TransactOpts, srcNft, dstChid, dstNft)
 }
 
 // SetMessageBus is a paid mutator transaction binding the contract method 0x547cad12.

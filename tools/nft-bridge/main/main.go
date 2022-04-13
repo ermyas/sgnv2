@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
+	nftbr "github.com/celer-network/sgn-v2/tools/nft-bridge"
 	"github.com/celer-network/sgn-v2/tools/nft-bridge/dal"
 	"github.com/spf13/viper"
 )
@@ -22,15 +23,15 @@ func main() {
 	dal, err := dal.NewDAL(viper.GetString("db"))
 	chkErr(err, "new dal")
 
-	mcc := GetMcc("multichain")
-	jsonCfg := GetJsonCfg("jsonurl")
+	mcc := nftbr.GetMcc("multichain")
+	jsonCfg := nftbr.GetJsonCfg("jsonurl")
 
 	// chainid to *OneChain
-	chainMap := make(map[uint64]*OneChain)
+	chainMap := make(map[uint64]*nftbr.OneChain)
 	kspath := viper.GetString("kspath")
 	ksphrase := viper.GetString("ksphrase")
 	for _, cfg := range mcc {
-		oc, err := NewOneChain(*cfg, kspath, ksphrase, dal)
+		oc, err := nftbr.NewOneChain(*cfg, kspath, ksphrase, dal)
 		if err != nil {
 			log.Errorln("newOneChain err:", err, "cfg:", *cfg)
 			continue
@@ -44,7 +45,7 @@ func main() {
 		chainMap[nftbr.Chainid].MonNftBridge(nftbr.Addr)
 	}
 	// poll sgn for available msg to send
-	go PollSgn(time.Minute, jsonCfg.Bridges, chainMap)
+	go nftbr.PollSgn(time.Minute, jsonCfg.Bridges, chainMap)
 	// block serving http
 	NewServer(dal).Run(viper.GetInt("port"))
 }

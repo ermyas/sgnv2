@@ -1,4 +1,4 @@
-package main
+package nftbr
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	gobig "github.com/celer-network/goutils/big"
 	"github.com/celer-network/goutils/eth/mon2"
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/tools/nft-bridge/binding"
 	"github.com/celer-network/sgn-v2/tools/nft-bridge/dal"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -22,12 +23,12 @@ import (
 
 type Addr = common.Address
 
-func hex2addr(addr string) Addr {
+func Hex2addr(addr string) Addr {
 	return common.HexToAddress(addr)
 }
 
 // no 0x prefix, only hex, all lower case
-func a2hex(addr Addr) string {
+func A2hex(addr Addr) string {
 	return hex.EncodeToString(addr[:])
 }
 
@@ -54,8 +55,8 @@ type OneChain struct {
 	mon  *mon2.Monitor
 	db   *dal.DAL
 
-	msgBus *MsgBusRecv        // contract binding for send onchain tx
-	nftbr  *NFTBridgeFilterer // to parse event into object, set in MonNftBridge
+	msgBus *binding.MsgBusRecv        // contract binding for send onchain tx
+	nftbr  *binding.NFTBridgeFilterer // to parse event into object, set in MonNftBridge
 }
 
 // return err if dial fail or chainid mismatch
@@ -74,7 +75,7 @@ func NewOneChain(cfg OneChainConfig, kspath, pass string, dal *dal.DAL) (*OneCha
 	if chid.Uint64() != cfg.ChainID {
 		return nil, fmt.Errorf("mismatch chainid cfg: %d, rpc: %d", cfg.ChainID, chid.Uint64())
 	}
-	ret.auth, err = kspath2auth(kspath, pass, chid)
+	ret.auth, err = Kspath2auth(kspath, pass, chid)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +88,7 @@ func NewOneChain(cfg OneChainConfig, kspath, pass string, dal *dal.DAL) (*OneCha
 	if err != nil {
 		return nil, err
 	}
-	ret.msgBus, _ = NewMsgBusRecv(hex2addr(cfg.MsgBus), ret.ec)
+	ret.msgBus, _ = binding.NewMsgBusRecv(Hex2addr(cfg.MsgBus), ret.ec)
 	return ret, nil
 }
 
@@ -96,12 +97,12 @@ func (c *OneChain) Close() {
 }
 
 func (c *OneChain) MonNftBridge(addr string) {
-	nftbrAddr := hex2addr(addr)
-	c.nftbr, _ = NewNFTBridgeFilterer(nftbrAddr, nil)
+	nftbrAddr := Hex2addr(addr)
+	c.nftbr, _ = binding.NewNFTBridgeFilterer(nftbrAddr, nil)
 	go c.mon.MonAddr(mon2.PerAddrCfg{
 		Addr:    nftbrAddr,
-		ChkIntv: time.Minute,  // getlog every minute
-		AbiStr:  NFTBridgeABI, // to parse event name by topics[0]
+		ChkIntv: time.Minute,          // getlog every minute
+		AbiStr:  binding.NFTBridgeABI, // to parse event name by topics[0]
 	}, c.evCallback)
 }
 
@@ -128,17 +129,17 @@ func (c *OneChain) evCallback(evname string, elog types.Log) {
 	}
 }
 
-func (c *OneChain) handleSent(ev *NFTBridgeSent) {
+func (c *OneChain) handleSent(ev *binding.NFTBridgeSent) {
 	err := c.db.DoTx(func(tx *sql.Tx) error {
 		dtx := dal.New(tx)
 		return dtx.NftAddSend(context.Background(), dal.NftAddSendParams{
 			CreatedAt: time.Now().Unix(),
 			SrcChid:   c.cfg.ChainID,
 			DstChid:   ev.DstChid,
-			Sender:    a2hex(ev.Sender),
-			Receiver:  a2hex(ev.Receiver),
-			SrcNft:    a2hex(ev.SrcNft),
-			DstNft:    a2hex(ev.DstNft),
+			Sender:    A2hex(ev.Sender),
+			Receiver:  A2hex(ev.Receiver),
+			SrcNft:    A2hex(ev.SrcNft),
+			DstNft:    A2hex(ev.DstNft),
 			TokID:     *gobig.New(ev.Id),
 			SrcTx:     ev.Raw.TxHash.Hex(),
 		})
@@ -148,7 +149,7 @@ func (c *OneChain) handleSent(ev *NFTBridgeSent) {
 	}
 }
 
-func (c *OneChain) handleRecv(ev *NFTBridgeReceived) {
+func (c *OneChain) handleRecv(ev *binding.NFTBridgeReceived) {
 	err := c.db.DoTx(func(tx *sql.Tx) error {
 		return dal.New(tx).NftSetDoneByDstTx(context.Background(), ev.Raw.TxHash.Hex())
 	})
@@ -157,7 +158,7 @@ func (c *OneChain) handleRecv(ev *NFTBridgeReceived) {
 	}
 }
 
-func kspath2auth(kspath, pass string, chainid *big.Int) (*bind.TransactOpts, error) {
+func Kspath2auth(kspath, pass string, chainid *big.Int) (*bind.TransactOpts, error) {
 	ksjson, err := os.ReadFile(kspath)
 	if err != nil {
 		return nil, err

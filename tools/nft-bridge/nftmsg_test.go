@@ -1,4 +1,4 @@
-package main
+package nftbr
 
 import (
 	"encoding/hex"

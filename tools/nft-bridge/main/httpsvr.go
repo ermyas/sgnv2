@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/tools/nft-bridge/dal"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/julienschmidt/httprouter"
 	"github.com/rs/cors"
 )
@@ -45,8 +47,13 @@ type HistResp struct {
 	PageSize int           `json:"pageSize"`
 }
 
+func cleanup(addrStr string) string {
+	addr := common.HexToAddress(addrStr)
+	return hex.EncodeToString(addr[:])
+}
+
 func (s *Server) History(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	usr := a2hex(hex2addr(ps.ByName("usr"))) // clean up user addr
+	usr := cleanup(ps.ByName("usr")) // clean up user addr
 	nextPage, _ := strconv.Atoi(r.URL.Query().Get(paramNextPage))
 	if nextPage == 0 {
 		nextPage = int(time.Now().Unix()) // query all records so far
