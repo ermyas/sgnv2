@@ -46,6 +46,7 @@ func PollSgn(intv time.Duration, ntfbrs []*ChidAddr, chainMap map[uint64]*OneCha
 			resp, err := qc.ExecutionContexts(context.Background(), req)
 			if err != nil {
 				log.Error("query sgn err: ", err)
+				continue
 			}
 			for _, exeCtx := range resp.ExecutionContexts {
 				msg := exeCtx.Message
