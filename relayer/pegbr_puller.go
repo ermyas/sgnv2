@@ -495,12 +495,12 @@ func (c *CbrOneChain) skipSyncPegbrDeposit(
 		},
 	}
 	pairs, err := pegbrcli.QueryOrigPeggedPairs(cliCtx, req)
-	if len(pairs) == 0 {
-		// If request failed, we will not break this flow.
-		// As if invalid token send event go to the apply flow, sgn will also check it and set it to refund flow.
+	if err != nil {
 		log.Errorf("fail to lookup pegged pair, ev:%s, err:%s", evstr, err)
-		// may be call sgn fail, we still send this ev to sgn and sgn to do the check again.
 		return
+	}
+	if len(pairs) == 0 {
+		return true, "pegged pair not found"
 	}
 	// Only single pair
 	pair := pairs[0]
@@ -564,12 +564,12 @@ func (c *CbrOneChain) skipSyncPegbrBurn(
 	}
 
 	pairs, err := pegbrcli.QueryOrigPeggedPairs(cliCtx, req)
-	if len(pairs) == 0 {
-		// If request failed, we will not break this flow.
-		// As if invalid token send event go to the apply flow, sgn will also check it and set it to refund flow.
+	if err != nil {
 		log.Errorf("fail to lookup pegged pair, ev:%s, err:%s", evstr, err)
-		// may be call sgn fail, we still send this ev to sgn and sgn to do the check again.
 		return
+	}
+	if len(pairs) == 0 {
+		return true, "pegged pair not found"
 	}
 	// Only single pair
 	pair := pairs[0]
