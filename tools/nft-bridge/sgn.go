@@ -4,9 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"math/big"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	gobig "github.com/celer-network/goutils/big"
@@ -33,69 +30,60 @@ func PollSgn(intv time.Duration, ntfbrs []*ChidAddr, chainMap map[uint64]*OneCha
 	}
 	ticker := time.NewTicker(intv)
 	defer ticker.Stop()
-	sigch := make(chan os.Signal, 1)
-	signal.Notify(sigch, syscall.SIGTERM)
 
-	for {
-		select {
-		case sig := <-sigch:
-			log.Infoln("receive term signal", sig, "exiting")
-			return
-
-		case <-ticker.C:
-			resp, err := qc.ExecutionContexts(context.Background(), req)
-			if err != nil {
-				log.Error("query sgn err: ", err)
-				continue
-			}
-			for _, exeCtx := range resp.ExecutionContexts {
-				msg := exeCtx.Message
-				// msg.PrettyLog()
-				if onech, ok := chainMap[msg.DstChainId]; ok {
-					nftMsg := DecodeNFTMsg(msg.Data)
-					log.Infoln("from:", msg.SrcChainId, "to:", msg.DstChainId, "nftMsg:", nftMsg)
-					// todo: check if dst ch is orig, nftMsg.MsgType should be withdraw
-					srcTx, _ := onech.db.NftGetByDstInfo(context.Background(), dal.NftGetByDstInfoParams{
-						SrcChid:  msg.SrcChainId,
-						DstChid:  msg.DstChainId,
-						Receiver: A2hex(nftMsg.User),
-						DstNft:   A2hex(nftMsg.Nft),
-						TokID:    *gobig.New(nftMsg.Id),
-						Status:   int16(Status_WAITSGN),
-					})
-					if srcTx == "" {
-						// not found could be missed event or it's already sent onchain
-						log.Infoln("msg not found in db, miss event or pending onchain tx")
-						continue
-					}
-					// query sgn to get signers/powers, todo: cache by chid?
-					signers, powers := getSigners(conn, msg.DstChainId)
-					// send onchain
-					tx, err := onech.msgBus.ExecuteMessage(onech.auth, msg.Data, binding.MsgDataTypesRouteInfo{
-						Sender:     Hex2addr(msg.Sender),
-						Receiver:   Hex2addr(msg.Receiver),
-						SrcChainId: msg.SrcChainId,
-						SrcTxHash:  hex2hash(msg.SrcTxHash),
-					}, msg.GetSigBytes(), signers, powers)
-					if err != nil {
-						log.Error("onchain exe msg err: ", err)
-					} else {
-						// update db
-						dstTx := tx.Hash().Hex()
-						log.Infoln("chainid:", onech.cfg.ChainID, "Sent ExecuteMessage tx:", dstTx)
-						err := onech.db.DoTx(func(tx *sql.Tx) error {
-							return dal.New(tx).NftSetDstTx(context.Background(), dal.NftSetDstTxParams{
-								SrcChid:  msg.SrcChainId,
-								DstChid:  msg.DstChainId,
-								Receiver: A2hex(nftMsg.User),
-								DstNft:   A2hex(nftMsg.Nft),
-								TokID:    *gobig.New(nftMsg.Id),
-								DstTx:    dstTx,
-							})
+	for range ticker.C {
+		resp, err := qc.ExecutionContexts(context.Background(), req)
+		if err != nil {
+			log.Error("query sgn err: ", err)
+			continue
+		}
+		for _, exeCtx := range resp.ExecutionContexts {
+			msg := exeCtx.Message
+			// msg.PrettyLog()
+			if onech, ok := chainMap[msg.DstChainId]; ok {
+				nftMsg := DecodeNFTMsg(msg.Data)
+				log.Infoln("from:", msg.SrcChainId, "to:", msg.DstChainId, "nftMsg:", nftMsg)
+				// todo: check if dst ch is orig, nftMsg.MsgType should be withdraw
+				srcTx, _ := onech.db.NftGetByDstInfo(context.Background(), dal.NftGetByDstInfoParams{
+					SrcChid:  msg.SrcChainId,
+					DstChid:  msg.DstChainId,
+					Receiver: A2hex(nftMsg.User),
+					DstNft:   A2hex(nftMsg.Nft),
+					TokID:    *gobig.New(nftMsg.Id),
+					Status:   int16(Status_WAITSGN),
+				})
+				if srcTx == "" {
+					// not found could be missed event or it's already sent onchain
+					log.Infoln("msg not found in db, miss event or pending onchain tx")
+					continue
+				}
+				// query sgn to get signers/powers, todo: cache by chid?
+				signers, powers := getSigners(conn, msg.DstChainId)
+				// send onchain
+				tx, err := onech.msgBus.ExecuteMessage(onech.auth, msg.Data, binding.MsgDataTypesRouteInfo{
+					Sender:     Hex2addr(msg.Sender),
+					Receiver:   Hex2addr(msg.Receiver),
+					SrcChainId: msg.SrcChainId,
+					SrcTxHash:  hex2hash(msg.SrcTxHash),
+				}, msg.GetSigBytes(), signers, powers)
+				if err != nil {
+					log.Error("onchain exe msg err: ", err)
+				} else {
+					// update db
+					dstTx := tx.Hash().Hex()
+					log.Infoln("chainid:", onech.cfg.ChainID, "Sent ExecuteMessage tx:", dstTx)
+					err := onech.db.DoTx(func(tx *sql.Tx) error {
+						return dal.New(tx).NftSetDstTx(context.Background(), dal.NftSetDstTxParams{
+							SrcChid:  msg.SrcChainId,
+							DstChid:  msg.DstChainId,
+							Receiver: A2hex(nftMsg.User),
+							DstNft:   A2hex(nftMsg.Nft),
+							TokID:    *gobig.New(nftMsg.Id),
+							DstTx:    dstTx,
 						})
-						if err != nil {
-							log.Error("update dstTx err: ", err)
-						}
+					})
+					if err != nil {
+						log.Error("update dstTx err: ", err)
 					}
 				}
 			}
