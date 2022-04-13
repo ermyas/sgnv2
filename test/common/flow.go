@@ -44,7 +44,7 @@ func SetupFlowServiceAccountClient() error {
 	return nil
 }
 
-func SetupContractFlowClient(bridgeAddr, safeBoxAddr, pegBridgeAddr string) {
+func SetupContractFlowClient() {
 	signer, err := flowSigner.NewFlowSigner(flowBaseKs, "")
 	if err != nil {
 		log.Fatal(err)

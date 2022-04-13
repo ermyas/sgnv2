@@ -9,8 +9,7 @@ import (
 
 	"github.com/celer-network/endpoint-proxy/endpointproxy"
 	ethutils "github.com/celer-network/goutils/eth"
-	"github.com/celer-network/goutils/eth/monitor"
-	"github.com/celer-network/goutils/eth/watcher"
+	"github.com/celer-network/goutils/eth/mon2"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
@@ -31,8 +30,9 @@ type Chain struct {
 	PegVault    *eth.PegVaultContract
 	PegVaultV2  *eth.PegVaultV2Contract
 	fwdBlkDelay uint64
-	monitor     *monitor.Service
+	monitor2    *mon2.Monitor
 	startBlk    *big.Int
+	filterAddr  string
 }
 
 // key is chainid
@@ -59,6 +59,19 @@ func NewChainMgr(dal *DAL) *ChainMgr {
 		go chains.addChain(config, dal)
 	}
 	chains.initWg.Wait()
+	// add filterAddr
+	contracts := []*types.ContractConfig{}
+	err = viper.UnmarshalKey(types.FlagExecutorContracts, &contracts)
+	if err != nil {
+		log.Fatalln("failed to initialize contract filters", err)
+	}
+	contractMap := make(map[uint64]string)
+	for _, contract := range contracts {
+		contractMap[contract.ChainId] = contract.Address
+	}
+	for _, chain := range chains.chains {
+		chain.filterAddr = contractMap[chain.ChainID]
+	}
 	log.Infoln("Finished initializing all chains")
 	Chains = chains
 	return chains
@@ -70,14 +83,21 @@ func (m *ChainMgr) addChain(config *common.OneChainConfig, dal *DAL) {
 	transactor := newTransactor(config, ec)
 
 	// init monitor
-	wsvc := watcher.NewWatchService(ec, dal, config.BlkInterval, config.MaxBlkDelta)
-	mon := monitor.NewService(wsvc, config.BlkDelay, true)
-	mon.Init()
+	chainConfig := mon2.PerChainCfg{
+		BlkIntv:         time.Duration(config.BlkInterval) * time.Second,
+		BlkDelay:        config.BlkDelay,
+		MaxBlkDelta:     config.MaxBlkDelta,
+		ForwardBlkDelay: config.ForwardBlkDelay,
+	}
+	mon, err := mon2.NewMonitor(ec, dal, chainConfig)
+	if err != nil {
+		log.Fatalln("failed to create monitor: ", err)
+	}
 
 	chain := &Chain{
 		ChainID:    config.ChainID,
 		Transactor: transactor,
-		monitor:    mon,
+		monitor2:   mon,
 	}
 	addrs := chain.initContracts(ec, config)
 	m.contractAddrs = append(m.contractAddrs, addrs...)
