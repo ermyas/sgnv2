@@ -269,7 +269,7 @@ func (k Keeper) pegMint(
 
 	pair, found := k.GetOrigPeggedPair(ctx, depositChainId, token, mintChainId)
 	if !found {
-		err = fmt.Errorf("pegged pair not exists, srcChainId %d, dstChainId %d, token %x", depositChainId, mintChainId, token)
+		err = fmt.Errorf("pegged pair not exists, srcChainId %d, dstChainId %d, token %s", depositChainId, mintChainId, token)
 		return
 	}
 	if vaultVersion >= 0 && uint32(vaultVersion) != pair.GetVaultVersion() {
