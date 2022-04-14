@@ -2,7 +2,6 @@ package nftbr
 
 import (
 	"encoding/json"
-	"io"
 	"os"
 	"strings"
 
@@ -86,11 +85,9 @@ func GetJsonCfg(key string) *JsonCfg {
 	resp, err := http.Get(viper.GetString(key))
 	chkErr(err, "get json")
 	defer resp.Body.Close()
-	raw, err := io.ReadAll(resp.Body)
-	chkErr(err, "read resp.Body")
 	jsonCfg := new(JsonCfg)
-	err = json.Unmarshal(raw, jsonCfg)
-	chkErr(err, "unmarshal")
+	err = json.NewDecoder(resp.Body).Decode(jsonCfg)
+	chkErr(err, "json decode")
 	return jsonCfg
 }
 
