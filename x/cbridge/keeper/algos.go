@@ -187,7 +187,7 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 			}
 			negAmt, srcAdd := k.updateOneLP(ctx, kv, src, dest, pickedLPs[lpIdx], toAllocate, totalLpFee, srcAmount, destAmount, start)
 			usedLPs[lpIdx] = true
-			log.Infoln("use lpIdx", lpIdx, pickedLPs[lpIdx].AddrHex, negAmt)
+			log.Infoln("use lpIdx", lpIdx, pickedLPs[lpIdx].AddrHex, negAmt, srcAdd)
 			totalDestNeg.Add(totalDestNeg, negAmt) // negative!
 			totalSrcAdd.Add(totalSrcAdd, srcAdd)
 			if isZero(toAllocate) {
@@ -198,7 +198,7 @@ func (k Keeper) PickLPsAndAdjustLiquidity(
 		// from first in pickedLPs, one by one
 		for _, lp := range pickedLPs {
 			negAmt, srcAdd := k.updateOneLP(ctx, kv, src, dest, lp, toAllocate, totalLpFee, srcAmount, destAmount, start)
-			log.Infoln("use lp:", lp.AddrHex, negAmt)
+			log.Infoln("use lp:", lp.AddrHex, negAmt, srcAdd)
 			totalDestNeg.Add(totalDestNeg, negAmt) // negative!
 			totalSrcAdd.Add(totalSrcAdd, srcAdd)
 			if isZero(toAllocate) {
