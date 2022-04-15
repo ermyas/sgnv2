@@ -144,7 +144,7 @@ func (dal *DAL) RevertStatus(id []byte, status types.ExecutionStatus) error {
 	if status != types.ExecutionStatus_Unexecuted && status != types.ExecutionStatus_Init_Refund_Executed {
 		return fmt.Errorf("revert status to %d is forbidden", status)
 	}
-	log.Infof("message (id %x) status reverted to %d", status)
+	log.Infof("message (id %x) status reverted to %d", id, status)
 	q := `UPDATE execution_context SET status = $1 where id = $2`
 	res, err := dal.Db.Exec(q, status, id)
 	return sqldb.ChkExec(res, err, 1, "RevertStatus")
