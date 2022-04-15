@@ -3,9 +3,7 @@ package sgn
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"strings"
 	"time"
 
@@ -30,10 +28,6 @@ type SgnClient struct {
 func NewSgnClient(sgnUrl string, testMode bool) *SgnClient {
 	txrs := newSgnTransactors(testMode)
 	log.Infof("Dialing sgn node grpc: %s", sgnUrl)
-	//tlsCreds, err := loadTLSCredentials()
-	//if err != nil {
-	//	log.Fatalln("cannot load tls credentials: ", err)
-	//}
 	var opts []grpc.DialOption
 	if !testMode {
 		// "an empty tls.config would use aws public ca cert as instead"
@@ -49,27 +43,6 @@ func NewSgnClient(sgnUrl string, testMode bool) *SgnClient {
 		log.Fatalln("failed to initialize sgn node grpc connection", err)
 	}
 	return &SgnClient{txrs, grpcConn}
-}
-
-func loadTLSCredentials() (credentials.TransportCredentials, error) {
-	// Load certificate of the CA who signed server's certificate
-	pemServerCA, err := ioutil.ReadFile("cert/ca-cert.pem")
-	if err != nil {
-		return nil, err
-	}
-
-	certPool := x509.NewCertPool()
-	if !certPool.AppendCertsFromPEM(pemServerCA) {
-		return nil, fmt.Errorf("failed to add server CA's certificate")
-	}
-
-	// Create the credentials and return it
-	config := &tls.Config{
-		RootCAs: certPool,
-	}
-	credentials.NewTLS(&tls.Config{})
-
-	return credentials.NewTLS(config), nil
 }
 
 func newSgnTransactors(testMode bool) *transactor.TransactorPool {

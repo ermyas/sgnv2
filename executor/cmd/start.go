@@ -32,12 +32,8 @@ func GetStartCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			home, err := cmd.InheritedFlags().GetString("home")
-			if err != nil {
-				return err
-			}
 
-			start(test, home)
+			start(test)
 			return nil
 		},
 	}
@@ -59,14 +55,13 @@ func init() {
 	// startCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func start(test bool, home string) {
+func start(test bool) {
 	flag.Parse()
 	if test {
 		log.Infoln("Starting executor with test mode")
 	} else {
 		log.Infoln("Starting executor")
 	}
-	setupConfig(home)
 	dal := executor.NewDAL()
 	ex := executor.NewExecutor(dal, test)
 	ex.Start()

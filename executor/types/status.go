@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"strconv"
 
 	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
 )
@@ -13,6 +14,14 @@ type ExecuteRequest struct {
 }
 
 type ExecutionStatus uint64
+
+func (s ExecutionStatus) String() string {
+	si := uint64(s)
+	if name, ok := ExecutionStatus_name[si]; ok {
+		return name
+	}
+	return strconv.Itoa(int(si))
+}
 
 const (
 	ExecutionStatus_Unknown ExecutionStatus = iota
@@ -29,11 +38,23 @@ const (
 	ExecutionStatus_Executing
 
 	// statuses after execution at msgbus
-	ExecutionStatus_Executed
 	ExecutionStatus_Succeeded
 	ExecutionStatus_Fallback
 	ExecutionStatus_Failed
 )
+
+var ExecutionStatus_name = map[uint64]string{
+	0: "ExecutionStatus_Unknown",
+	1: "ExecutionStatus_Unexecuted",
+	2: "ExecutionStatus_Init_Refund_Executing",
+	3: "ExecutionStatus_Init_Refund_Executed",
+	4: "ExecutionStatus_Init_Refund_Failed",
+	5: "ExecutionStatus_Executing",
+	6: "ExecutionStatus_Executed",
+	7: "ExecutionStatus_Succeeded",
+	8: "ExecutionStatus_Fallback",
+	9: "ExecutionStatus_Failed",
+}
 
 // txStatus is MessageReceiver's enum TxStatus
 func NewExecutionStatus(txStatus uint8) (ExecutionStatus, error) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -222,21 +223,46 @@ func (c *Chain) NewExecuteRefundHandler(messageId []byte, execute types.RefundTx
 		}
 		tx, err := c.Transactor.Transact(&ethutils.TransactionStateHandler{
 			OnMined: func(receipt *gethtypes.Receipt) {
-				log.Infof("execute refund init (messageId %x): tx %x mined, status %v", messageId, receipt.TxHash, receipt.Status)
-				status := types.ExecutionStatus_Init_Refund_Executed
-				if receipt.Status == gethtypes.ReceiptStatusFailed {
-					status = types.ExecutionStatus_Failed
+				status := types.ExecutionStatus_Init_Refund_Failed
+				if receipt.Status == gethtypes.ReceiptStatusSuccessful {
+					log.Infof("Refund init (messageId %x) mined and succeeded: tx %x", messageId, receipt.TxHash)
+					status = types.ExecutionStatus_Init_Refund_Executed
+					// reset retry count to zero
+					Dal.UpdateRetryCount(messageId, 0)
+				} else {
+					log.Errorf("Refund init (messageId %x) mined but failed: tx %x", messageId, receipt.TxHash)
 				}
 				Dal.UpdateStatus(messageId, status)
 			},
 			OnError: func(tx *gethtypes.Transaction, err error) {
 				log.Errorf("execute refund init error: txhash %s, err %v", tx.Hash(), err)
-				Dal.UpdateStatus(messageId, types.ExecutionStatus_Failed)
+				Dal.UpdateStatus(messageId, types.ExecutionStatus_Init_Refund_Failed)
 			},
 		}, func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*gethtypes.Transaction, error) {
 			return execute(opts, req, sortedSigs, signers, powers)
 		})
 		if err != nil {
+			if strings.Contains(err.Error(), "transfer exists") ||
+				strings.Contains(err.Error(), "record exists") {
+				log.Errorf("refund transfer already executed (messageId %x)", messageId)
+				Dal.UpdateStatus(messageId, types.ExecutionStatus_Init_Refund_Executed)
+				return err
+			}
+			// increase retryCount
+			retryCount := Dal.IncreaseRetryCount(messageId)
+			// either revert its status or set it to failed due to hitting retry limit
+			if retryCount > types.MaxExecuteRetry {
+				e := Dal.UpdateStatus(messageId, types.ExecutionStatus_Init_Refund_Failed)
+				if e != nil {
+					log.Errorf("cannot update message (id %x) status: %s", messageId, e.Error())
+				}
+			} else {
+				e := Dal.RevertStatus(messageId, types.ExecutionStatus_Unexecuted)
+				if e != nil {
+					log.Errorf("cannot revert message (id %x) status: %s", messageId, e.Error())
+					return err
+				}
+			}
 			return err
 		}
 		log.Infof("executed refund init (messageId %x): txhash %x", messageId, tx.Hash())

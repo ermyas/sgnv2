@@ -14,9 +14,14 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "executor",
 	Short: "executor App",
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		home, err := cmd.InheritedFlags().GetString("home")
+		if err != nil {
+			return err
+		}
+		setupConfig(home)
+		return nil
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

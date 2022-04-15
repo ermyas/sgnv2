@@ -155,11 +155,7 @@ func (e *Executor) routeExecution(request *types.ExecuteRequest) {
 		if status == types.ExecutionStatus_Init_Refund_Executed {
 			e.executeMsgWithTransferRefund(execCtx, retryCount)
 		} else if status == types.ExecutionStatus_Unexecuted {
-			err := e.routeInitRefund(execCtx)
-			if err != nil {
-				log.Errorln("init refund failed", err)
-				Dal.UpdateStatus(execCtx.MessageId, types.ExecutionStatus_Init_Refund_Failed)
-			}
+			e.routeInitRefund(execCtx)
 		}
 		return
 	}
@@ -179,21 +175,25 @@ func (e *Executor) routeExecution(request *types.ExecuteRequest) {
 	}
 }
 
-func (e *Executor) routeInitRefund(execCtx *msgtypes.ExecutionContext) error {
+func (e *Executor) routeInitRefund(execCtx *msgtypes.ExecutionContext) {
+	var err error
 	switch execCtx.Message.GetTransferType() {
 	case msgtypes.TRANSFER_TYPE_LIQUIDITY_WITHDRAW:
-		return e.executeRefundWithdraw(execCtx)
+		err = e.executeRefundWithdraw(execCtx)
 	case msgtypes.TRANSFER_TYPE_PEG_MINT:
-		return e.initAndExecutePegRefundMint(execCtx, 0)
+		err = e.initAndExecutePegRefundMint(execCtx, 0)
 	case msgtypes.TRANSFER_TYPE_PEG_WITHDRAW:
-		return e.initAndExecutePegRefundWithdraw(execCtx, 0)
+		err = e.initAndExecutePegRefundWithdraw(execCtx, 0)
 	case msgtypes.TRANSFER_TYPE_PEG_V2_MINT:
-		return e.initAndExecutePegRefundMint(execCtx, 2)
+		err = e.initAndExecutePegRefundMint(execCtx, 2)
 	case msgtypes.TRANSFER_TYPE_PEG_V2_WITHDRAW:
-		return e.initAndExecutePegRefundWithdraw(execCtx, 2)
+		err = e.initAndExecutePegRefundWithdraw(execCtx, 2)
 	default:
-		return fmt.Errorf("init refund not possible for message (id %x) transfer type %v",
+		err = fmt.Errorf("init refund not possible for message (id %x) transfer type %v",
 			execCtx.MessageId, execCtx.Message.GetTransferType())
+	}
+	if err != nil {
+		log.Errorln("init refund failed", err)
 	}
 }
 
@@ -214,11 +214,6 @@ func (e *Executor) executeMsgNoTransfer(request *types.ExecuteRequest) {
 		SrcTxHash:  ethtypes.Hex2Hash(message.SrcTxHash),
 	}
 
-	err = Dal.UpdateStatus(id, types.ExecutionStatus_Executing)
-	if err != nil {
-		log.Errorln("cannot executeMessage", err)
-		return
-	}
 	msg, sigs, signers, powers, err := e.getMsgSignInfo(execCtx)
 	if err != nil {
 		log.Errorf("failed to query chain signers with chainId %d", execCtx.Message.DstChainId)
@@ -227,6 +222,11 @@ func (e *Executor) executeMsgNoTransfer(request *types.ExecuteRequest) {
 	contractConf, found := types.GetContractConfig(e.contracts, execCtx.Message.Receiver)
 	if !found {
 		log.Errorf("message receiver (address %s) not found in contract configs", execCtx.Message.Receiver)
+		return
+	}
+	err = Dal.UpdateStatus(id, types.ExecutionStatus_Executing)
+	if err != nil {
+		log.Errorln("cannot executeMessage", err)
 		return
 	}
 	log.Infof("executing message (id %x, attempt [%d/%d])...", id, retryCount, types.MaxExecuteRetry)
@@ -244,27 +244,25 @@ func (e *Executor) executeMsgNoTransfer(request *types.ExecuteRequest) {
 		// skip directly
 		if strings.Contains(err.Error(), "message already executed") {
 			log.Errorf("message (id %x), transfer already executed", id)
-			err := Dal.UpdateStatus(id, types.ExecutionStatus_Failed)
+			err := Dal.UpdateStatus(id, types.ExecutionStatus_Succeeded)
 			if err != nil {
 				log.Errorf("cannot update message (id %x) status: %s", id, err.Error())
 			}
+			return
 		}
 		// increase retryCount
-		increasedRetryCount := retryCount + 1
+		increasedRetryCount := Dal.IncreaseRetryCount(id)
+		// either revert its status or set it to failed due to hitting retry limit
 		if increasedRetryCount > types.MaxExecuteRetry {
-			log.Warnf("message (id %x) hit max retry count %d. it is marked as failed", id, types.MaxExecuteRetry)
+			log.Warnf("executeMsgNoTransfer (id %x) hit max retry count %d. it is marked as failed", id, types.MaxExecuteRetry)
 			err := Dal.UpdateStatus(id, types.ExecutionStatus_Failed)
 			if err != nil {
 				log.Errorf("cannot update message (id %x) status: %s", id, err.Error())
 			}
-		} else if increasedRetryCount > retryCount {
+		} else {
 			err := Dal.RevertStatus(id, types.ExecutionStatus_Unexecuted)
 			if err != nil {
 				log.Errorf("cannot revert message (id %x) status: %s", id, err.Error())
-			}
-			err = Dal.IncreaseRetryCount(id, increasedRetryCount)
-			if err != nil {
-				log.Errorf("cannot increase message (id %x) retry count: %s", id, err.Error())
 			}
 		}
 		return
@@ -370,14 +368,14 @@ func (e *Executor) executeMsgWithTransferRefund(execCtx *msgtypes.ExecutionConte
 		SrcTxHash:  ethtypes.Hex2Hash(message.SrcTxHash),
 	}
 
-	err = Dal.UpdateStatus(id, types.ExecutionStatus_Executing)
-	if err != nil {
-		log.Errorf("cannot execute refund %s", err.Error())
-		return
-	}
 	msg, sigs, signers, powers, err := e.getMsgSignInfo(execCtx)
 	if err != nil {
 		log.Errorf("failed to query chain signers with chainId %d", execCtx.Message.DstChainId)
+		return
+	}
+	err = Dal.UpdateStatus(id, types.ExecutionStatus_Executing)
+	if err != nil {
+		log.Errorf("cannot execute refund %s", err.Error())
 		return
 	}
 	log.Infof("executing refund (id %x, attempt [%d/%d])...", id, retryCount, types.MaxExecuteRetry)
@@ -391,30 +389,31 @@ func (e *Executor) executeMsgWithTransferRefund(execCtx *msgtypes.ExecutionConte
 		// skip directly
 		if strings.Contains(err.Error(), "transfer already executed") {
 			log.Errorf("refund (id %x), transfer already executed", id)
-			err := Dal.UpdateStatus(id, types.ExecutionStatus_Failed)
+			err := Dal.UpdateStatus(id, types.ExecutionStatus_Succeeded)
 			if err != nil {
 				log.Errorf("cannot update refund (id %x) status: %s", id, err.Error())
 			}
+			return
 		}
 		// increase retryCount
-		increasedRetryCount := retryCount + 1
+		var increasedRetryCount uint64
 		if strings.Contains(err.Error(), "bridge relay not exist") {
+			log.Warnf("transfer is seen by executor but upon execution relay does not exist. this can be due to inconsistency within the rpc provider, will retry execution")
 			increasedRetryCount = retryCount
+		} else {
+			increasedRetryCount = Dal.IncreaseRetryCount(id)
 		}
+		// either revert its status or set it to failed due to hitting retry limit
 		if increasedRetryCount > types.MaxExecuteRetry {
-			log.Warnf("refund (id %x) hit max retry count %d. it is marked as failed", id, types.MaxExecuteRetry)
+			log.Warnf("executeMsgWithTransferRefund (id %x) hit max retry count %d. it is marked as failed", id, types.MaxExecuteRetry)
 			err := Dal.UpdateStatus(id, types.ExecutionStatus_Failed)
 			if err != nil {
 				log.Errorf("cannot update message (id %x) status: %s", id, err.Error())
 			}
-		} else if increasedRetryCount > retryCount {
+		} else {
 			err := Dal.RevertStatus(id, types.ExecutionStatus_Init_Refund_Executed)
 			if err != nil {
 				log.Errorf("cannot revert message (id %x) status: %s", id, err.Error())
-			}
-			err = Dal.IncreaseRetryCount(id, increasedRetryCount)
-			if err != nil {
-				log.Errorf("cannot increase message (id %x) retry count: %s", id, err.Error())
 			}
 		}
 		return
@@ -440,7 +439,7 @@ func (e *Executor) isTransferReady(chain *Chain, execCtx *msgtypes.ExecutionCont
 		log.Panicf("unsupported transfer type %s", execCtx.Message.TransferType)
 	}
 	if err != nil {
-		log.Errorf("[skip execution] failed to query on-chain transfer for message (id %x, transferType %s, dstTransferId %x)",
+		log.Debugf("[skip execution] failed to query on-chain transfer for message (id %x, transferType %s, dstTransferId %x)",
 			execCtx.MessageId, execCtx.Message.TransferType, dstTransferId)
 	}
 	return
@@ -456,10 +455,9 @@ func (e *Executor) executeMsgWithTransfer(request *types.ExecuteRequest) {
 	}
 	message := execCtx.Message
 	id := execCtx.MessageId
-	log.Infof("executeMsgWithTransfer %x", message.TransferRefId)
 
 	if !e.isTransferReady(chain, execCtx) {
-		log.Infof("[skip execution] message with transfer (id %x) because transfer is not seen on dst chain yet", execCtx.MessageId)
+		log.Debugf("[skip execution] message with transfer (id %x) because transfer is not seen on dst chain yet", execCtx.MessageId)
 		return
 	}
 
@@ -482,19 +480,19 @@ func (e *Executor) executeMsgWithTransfer(request *types.ExecuteRequest) {
 		return
 	}
 
-	err = Dal.UpdateStatus(id, types.ExecutionStatus_Executing)
-	if err != nil {
-		log.Errorf("cannot execute message with transfer %s", err.Error())
-		return
-	}
 	msg, sigs, signers, powers, err := e.getMsgSignInfo(execCtx)
 	if err != nil {
 		log.Errorf("failed to query chain signers with chainId %d", execCtx.Message.DstChainId)
 		return
 	}
+	err = Dal.UpdateStatus(id, types.ExecutionStatus_Executing)
+	if err != nil {
+		log.Errorf("cannot execute message with transfer %s", err.Error())
+		return
+	}
 	log.Infof("executing message with transfer (id %x, attempt [%d/%d])...", id, retryCount, types.MaxExecuteRetry)
 	tx, err := chain.Transactor.Transact(
-		getTransactionHandler(id, execCtx, "execute message with transfer refund"),
+		getTransactionHandler(id, execCtx, "execute message with transfer"),
 		func(transactor bind.ContractTransactor, opts *bind.TransactOpts) (*gethtypes.Transaction, error) {
 			// Executor can be optionally configured to include a payable value for message execution.
 			// This value acts as message fee and is needed when calling executeMessageWithTransfer results
@@ -506,31 +504,32 @@ func (e *Executor) executeMsgWithTransfer(request *types.ExecuteRequest) {
 		log.Errorf("cannot execute message with transfer (id %x): %s", id, err.Error())
 		// skip directly
 		if strings.Contains(err.Error(), "transfer already executed") {
-			log.Errorf("message with transfer (id %x), transfer already executed", id)
-			err := Dal.UpdateStatus(id, types.ExecutionStatus_Failed)
+			log.Warnf("message with transfer (id %x), transfer already executed, marking message as executed", id)
+			err := Dal.UpdateStatus(id, types.ExecutionStatus_Succeeded)
 			if err != nil {
 				log.Errorf("cannot update message with transfer (id %x) status: %s", id, err.Error())
 			}
+			return
 		}
 		// increase retryCount
-		increasedRetryCount := retryCount + 1
+		var increasedRetryCount uint64
 		if strings.Contains(err.Error(), "bridge relay not exist") {
+			log.Warnf("message (id %x) transfer is seen by executor but upon execution relay does not exist. this can be due to inconsistency within the rpc provider, will retry execution", id)
 			increasedRetryCount = retryCount
+		} else {
+			increasedRetryCount = Dal.IncreaseRetryCount(id)
 		}
+		// either revert its status or set it to failed due to hitting retry limit
 		if increasedRetryCount > types.MaxExecuteRetry {
-			log.Warnf("message (id %x) hit max retry count %d. it is marked as failed", id, types.MaxExecuteRetry)
+			log.Warnf("executeMsgWithTransfer (id %x) hit max retry count %d. it is marked as failed", id, types.MaxExecuteRetry)
 			err := Dal.UpdateStatus(id, types.ExecutionStatus_Failed)
 			if err != nil {
 				log.Errorf("cannot update message (id %x) status: %s", id, err.Error())
 			}
-		} else if increasedRetryCount > retryCount {
+		} else {
 			err := Dal.RevertStatus(id, types.ExecutionStatus_Unexecuted)
 			if err != nil {
 				log.Errorf("cannot revert message (id %x) status: %s", id, err.Error())
-			}
-			err = Dal.IncreaseRetryCount(id, increasedRetryCount)
-			if err != nil {
-				log.Errorf("cannot increase message (id %x) retry count: %s", id, err.Error())
 			}
 		}
 		return
@@ -552,10 +551,12 @@ func (e *Executor) getMsgSignInfo(execCtx *msgtypes.ExecutionContext) (msg []byt
 func getTransactionHandler(id []byte, execCtx *msgtypes.ExecutionContext, logmsg string) *eth.TransactionStateHandler {
 	return &eth.TransactionStateHandler{
 		OnMined: func(receipt *gethtypes.Receipt) {
-			log.Infof("%s: tx %x mined, status %v message id", logmsg, receipt.TxHash, receipt.Status)
-			status := types.ExecutionStatus_Executed
-			if receipt.Status == gethtypes.ReceiptStatusFailed {
-				status = types.ExecutionStatus_Failed
+			status := types.ExecutionStatus_Failed
+			if receipt.Status == gethtypes.ReceiptStatusSuccessful {
+				status = types.ExecutionStatus_Succeeded
+				log.Infof("%s (messageId %x) mined and succeeded: tx %x", logmsg, id, receipt.TxHash)
+			} else {
+				log.Errorf("%s (messageId %x) mined but failed: tx %x", logmsg, id, receipt.TxHash)
 			}
 			Dal.UpdateStatus(id, status)
 		},

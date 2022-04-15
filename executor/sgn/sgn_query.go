@@ -92,3 +92,16 @@ func (c *SgnClient) GetChainSigners(chainId uint64) (*cbrtypes.ChainSigners, err
 	}
 	return res.GetChainSigners(), nil
 }
+
+func (c *SgnClient) GetMessage(messageId string) (*msgtypes.Message, error) {
+	qc := msgtypes.NewQueryClient(c.grpcConn)
+	req := &msgtypes.QueryMessageRequest{MessageId: messageId}
+	ctx, cancel := context.WithTimeout(context.Background(), types.GatewayTimeout)
+	defer cancel()
+	res, err := qc.Message(ctx, req)
+	if err != nil {
+		log.Errorln("failed to query message from sgn", err)
+		return &msgtypes.Message{}, err
+	}
+	return &res.Message, nil
+}

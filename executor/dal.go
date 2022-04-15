@@ -24,6 +24,7 @@ var Dal *DAL
 func NewDAL() *DAL {
 	log.Infoln("Creating DB connection")
 	url := viper.GetString(types.FlagExecutorDbUrl)
+	log.Infoln(url)
 	db, err := sqldb.NewDb("postgres", fmt.Sprintf("postgresql://root@%s/executor?sslmode=disable", url), 4)
 	if err != nil {
 		log.Fatalf("Failed to create db with url %s: %+v", url, err)
@@ -35,6 +36,29 @@ func NewDAL() *DAL {
 	}
 	Dal = &DAL{db}
 	return Dal
+}
+
+func (dal *DAL) GetExecuteContext(id []byte) *types.ExecuteRequest {
+	q := `SELECT exec_ctx, status, retry_count FROM execution_context WHERE id = $1`
+	var execCtxBytes []byte
+	var status uint64
+	var retryCount uint64
+	err := dal.Db.QueryRow(q, id).Scan(&execCtxBytes, &status, &retryCount)
+	if err != nil {
+		log.Errorln("failed to scan result", err)
+		return nil
+	}
+	execCtx := &msgtypes.ExecutionContext{}
+	err = proto.Unmarshal(execCtxBytes, execCtx)
+	if err != nil {
+		log.Errorln("failed to unmarshal execution context", err)
+		return nil
+	}
+	return &types.ExecuteRequest{
+		EC:         execCtx,
+		SS:         types.ExecutionStatus(status),
+		RetryCount: retryCount,
+	}
 }
 
 func (dal *DAL) GetExecutionContextsToExecute() []*types.ExecuteRequest {
@@ -120,15 +144,36 @@ func (dal *DAL) RevertStatus(id []byte, status types.ExecutionStatus) error {
 	if status != types.ExecutionStatus_Unexecuted && status != types.ExecutionStatus_Init_Refund_Executed {
 		return fmt.Errorf("revert status to %d is forbidden", status)
 	}
+	log.Infof("message (id %x) status reverted to %d", status)
 	q := `UPDATE execution_context SET status = $1 where id = $2`
 	res, err := dal.Db.Exec(q, status, id)
 	return sqldb.ChkExec(res, err, 1, "RevertStatus")
 }
 
-func (dal *DAL) IncreaseRetryCount(id []byte, retryCount uint64) error {
+func (dal *DAL) IncreaseRetryCount(id []byte) (newCount uint64) {
+	q := `SELECT retry_count FROM execution_context WHERE id = $1`
+	var oldCount uint64
+	err := dal.Db.QueryRow(q, id).Scan(&oldCount)
+	if err != nil {
+		log.Errorf("cannot increase message (id %x) retry count: %v", id, err)
+		return 0
+	}
+	newCount = oldCount + 1
+	q = `UPDATE execution_context SET retry_count = $1 where id = $2`
+	res, err := dal.Db.Exec(q, newCount, id)
+	if e := sqldb.ChkExec(res, err, 1, "IncreaseRetryCount"); e != nil {
+		log.Errorf("cannot increase message (id %x) retry count: %v", id, e)
+		return 0
+	}
+	return newCount
+}
+
+func (dal *DAL) UpdateRetryCount(id []byte, retryCount uint64) {
 	q := `UPDATE execution_context SET retry_count = $1 where id = $2`
 	res, err := dal.Db.Exec(q, retryCount, id)
-	return sqldb.ChkExec(res, err, 1, "IncreaseRetryCount")
+	if e := sqldb.ChkExec(res, err, 1, "UpdateRetryCount"); e != nil {
+		log.Errorf("cannot update message (id %x) retry count: %v", id, e)
+	}
 }
 
 func (dal *DAL) SaveTransfer(id []byte) error {
