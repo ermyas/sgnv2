@@ -317,7 +317,7 @@ func (c *CbrOneChain) verifyEventLog(
 		return true, false, nil
 	}
 	// make sure addLiqLog.BlockNumber isn't too recent
-	blk := c.mon.GetCurrentBlockNumber().Uint64()
+	blk := c.mon.GetBlkNum()
 	if resLog.BlockNumber > blk-c.blkDelay {
 		log.Warnf("%s evblk %d too soon, should only up to blk %d", logmsg, resLog.BlockNumber, blk-c.blkDelay)
 		return false, false, nil

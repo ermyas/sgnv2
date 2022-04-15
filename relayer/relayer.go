@@ -6,8 +6,7 @@ import (
 	"time"
 
 	"github.com/allegro/bigcache"
-	"github.com/celer-network/goutils/eth/monitor"
-	"github.com/celer-network/goutils/eth/watcher"
+	"github.com/celer-network/goutils/eth/mon2"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
@@ -23,7 +22,7 @@ var relayerInstance *Relayer // global relayer instance
 type Relayer struct {
 	*Operator
 	db                 dbm.DB
-	ethMonitor         *monitor.Service
+	mon                *mon2.Monitor
 	verifiedUpdates    *bigcache.BigCache
 	sgnAcct            sdk.AccAddress
 	bonded             bool
@@ -57,16 +56,6 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 
 	relayerDb := dbm.NewPrefixDB(db, RelayerDbPrefix)
 
-	watchService := watcher.NewWatchService(
-		operator.EthClient.Client, newWatcherDAL(relayerDb), viper.GetUint64(common.FlagEthPollInterval),
-		viper.GetUint64(common.FlagEthMaxBlockDelta))
-	if watchService == nil {
-		log.Fatalln("Cannot create watch service")
-	}
-	blkDelay := viper.GetUint64(common.FlagEthBlockDelay)
-	ethMonitor := monitor.NewService(watchService, blkDelay, true)
-	ethMonitor.Init()
-
 	validatorStatus, err :=
 		operator.EthClient.Contracts.Staking.GetValidatorStatus(&bind.CallOpts{}, operator.ValAddr)
 	if err != nil {
@@ -85,9 +74,18 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 		log.Fatalln("NewBigCache err", err)
 	}
 
+	mon, err := mon2.NewMonitor(operator.EthClient.Client, newWatcherDAL(relayerDb), mon2.PerChainCfg{
+		BlkIntv:     time.Duration(viper.GetUint64(common.FlagEthPollInterval)) * time.Second,
+		BlkDelay:    viper.GetUint64(common.FlagEthBlockDelay),
+		MaxBlkDelta: viper.GetUint64(common.FlagEthMaxBlockDelta),
+	})
+	if err != nil {
+		log.Fatalln("failed to create monitor, err:", err)
+	}
+
 	startEthBlock := big.NewInt(viper.GetInt64(common.FlagEthMonitorStartBlock))
 	if startEthBlock.Sign() == 0 {
-		startEthBlock = ethMonitor.GetCurrentBlockNumber()
+		startEthBlock = big.NewInt(int64(mon.GetBlkNum()))
 	}
 
 	blocklist := viper.GetStringSlice(common.FlagBlocklistEthAddrs)
@@ -98,7 +96,7 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 	r := Relayer{
 		Operator:        operator,
 		db:              db,
-		ethMonitor:      ethMonitor,
+		mon:             mon,
 		verifiedUpdates: verifiedUpdates,
 		bonded:          validatorStatus == eth.Bonded,
 		bootstrapped:    bondedValNum.Uint64() > 0,
@@ -113,9 +111,7 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 		log.Fatalln("sgn acct error")
 	}
 
-	r.monitorEthValidatorNotice()
-	r.monitorEthValidatorStatusUpdate()
-	r.monitorEthDelegationUpdate()
+	r.MonStaking()
 
 	go r.monitorSgnSlash()
 	go r.monitorSgnFarmingClaimAllEvent()
@@ -209,7 +205,7 @@ func (r *Relayer) monitorChain() {
 				log.Infoln("close bridge monitoring")
 				for _, oc := range CbrMgrInstance {
 					if oc.mon != nil {
-						oc.mon.Close()
+						oc.mon.StopMon()
 					}
 				}
 			}

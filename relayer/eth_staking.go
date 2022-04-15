@@ -5,146 +5,128 @@ import (
 	"time"
 
 	ethutils "github.com/celer-network/goutils/eth"
-	"github.com/celer-network/goutils/eth/monitor"
+	"github.com/celer-network/goutils/eth/mon2"
 	"github.com/celer-network/goutils/log"
+	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	validatorcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/spf13/viper"
 )
 
-func (r *Relayer) monitorEthValidatorNotice() {
-	_, err := r.ethMonitor.Monitor(
-		&monitor.Config{
-			EventName:     eth.EventValidatorNotice,
-			Contract:      r.EthClient.Contracts.Staking,
-			StartBlock:    r.startEthBlock,
-			CheckInterval: getEventCheckInterval(eth.EventValidatorNotice),
-		},
-		func(cb monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-			e, err := r.EthClient.Contracts.Staking.ParseValidatorNotice(eLog)
-			if err != nil {
-				log.Errorln("parse event err", err)
-				return false
-			}
-			if !(e.From == eth.ZeroAddr || e.From == r.EthClient.Contracts.Sgn.GetAddr()) {
-				return false
-			}
-			log.Infof("Catch event ValidatorNotice %s, val addr: %x tx hash: %x, blknum: %d",
-				e.Key, e.ValAddr, eLog.TxHash, eLog.BlockNumber)
-			if e.Key == "sgn-addr" || e.Key == "signer" || e.Key == "commission" {
-				if e.Key == "sgn-addr" {
-					// TODO: handle non-first-time sgn-addr update
-					if r.chainMonitorStatus != ChainMonitorStatusNo {
-						event := eth.NewEvent(eth.EventValidatorNotice, eLog)
-						err = r.dbSet(GetPullerKey(eLog), event.MustMarshal())
-						if err != nil {
-							log.Errorln("db Set err", err)
-						}
-					}
-					if e.ValAddr == r.Operator.ValAddr {
-						if !r.isBonded() && r.shouldBondValidator() {
-							go r.bondValidator()
-						}
-					}
-				}
-				if e.ValAddr == r.Operator.ValAddr {
-					log.Debug("Self sync validator params")
-					go r.selfSyncValidatorParams()
-					if e.Key == "sgn-addr" && r.isBootstrapped() {
-						go r.selfSyncValidatorStates()
-					}
-				}
-			}
-			return false
-		},
-	)
-	if err != nil {
-		log.Fatal(err)
+func (r *Relayer) MonStaking() {
+	go r.mon.MonAddr(mon2.PerAddrCfg{
+		Addr:    r.EthClient.Contracts.Staking.GetAddr(),
+		ChkIntv: 4 * time.Duration(viper.GetUint64(common.FlagEthPollInterval)) * time.Second,
+		AbiStr:  r.EthClient.Contracts.Staking.GetABI(), // to parse event name by topics[0]
+	}, r.stakingEvCallback)
+}
+
+func (r *Relayer) stakingEvCallback(evname string, elog ethtypes.Log) {
+	switch evname {
+	case "ValidatorNotice":
+		r.handleValidatorNotice(elog)
+	case "ValidatorStatusUpdate":
+		r.handleEthValidatorStatusUpdate(elog)
+	case "DelegationUpdate":
+		r.handleEthDelegationUpdate(elog)
+	default:
+		log.Infoln("unsupported evname: ", evname)
+		return
 	}
 }
 
-func (r *Relayer) monitorEthValidatorStatusUpdate() {
-	_, err := r.ethMonitor.Monitor(
-		&monitor.Config{
-			EventName:     eth.EventValidatorStatusUpdate,
-			Contract:      r.EthClient.Contracts.Staking,
-			StartBlock:    r.startEthBlock,
-			CheckInterval: getEventCheckInterval(eth.EventValidatorStatusUpdate),
-		},
-		func(cb monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-			e, err := r.EthClient.Contracts.Staking.ParseValidatorStatusUpdate(eLog)
-			if err != nil {
-				log.Errorf("parse event err: %s", err)
-				return false
-			}
-			logmsg := fmt.Sprintf("Catch event ValidatorStatusUpdate, val addr: %x, status: %s, tx hash: %x, blknum: %d",
-				e.ValAddr, eth.ParseValStatus(e.Status), eLog.TxHash, eLog.BlockNumber)
-
-			if e.Status == eth.Bonded {
-				r.setBootstrapped()
-				if e.ValAddr == r.Operator.ValAddr {
-					log.Infof("%s. Self sync bonded validator.", logmsg)
-					r.setBonded()
-					go r.selfSyncValidatorStates()
-				} else {
-					log.Infof("%s. Skip", logmsg)
-				}
-			} else {
-				// only put unbonding or unbonded event to puller queue
-				log.Infof("%s. Put in queue", logmsg)
-				if e.ValAddr == r.Operator.ValAddr {
-					r.clearBonded()
-				}
-				if r.chainMonitorStatus != ChainMonitorStatusNo {
-					event := eth.NewEvent(eth.EventValidatorStatusUpdate, eLog)
-					err = r.dbSet(GetPullerKey(eLog), event.MustMarshal())
-					if err != nil {
-						log.Errorln("db Set err", err)
-					}
-				}
-			}
-			return false
-		},
-	)
+func (r *Relayer) handleValidatorNotice(eLog ethtypes.Log) {
+	e, err := r.EthClient.Contracts.Staking.ParseValidatorNotice(eLog)
 	if err != nil {
-		log.Fatal(err)
+		log.Errorln("parse event err", err)
+		return
 	}
-}
-
-func (r *Relayer) monitorEthDelegationUpdate() {
-	_, err := r.ethMonitor.Monitor(
-		&monitor.Config{
-			EventName:     eth.EventDelegationUpdate,
-			Contract:      r.EthClient.Contracts.Staking,
-			StartBlock:    r.startEthBlock,
-			CheckInterval: getEventCheckInterval(eth.EventDelegationUpdate),
-		},
-		func(cb monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-			log.Infof("Catch event DelegationUpdate, tx hash: %x, blknum: %d", eLog.TxHash, eLog.BlockNumber)
+	if !(e.From == eth.ZeroAddr || e.From == r.EthClient.Contracts.Sgn.GetAddr()) {
+		return
+	}
+	log.Infof("Catch event ValidatorNotice %s, val addr: %x tx hash: %x, blknum: %d",
+		e.Key, e.ValAddr, eLog.TxHash, eLog.BlockNumber)
+	if e.Key == "sgn-addr" || e.Key == "signer" || e.Key == "commission" {
+		if e.Key == "sgn-addr" {
+			// TODO: handle non-first-time sgn-addr update
 			if r.chainMonitorStatus != ChainMonitorStatusNo {
-				event := eth.NewEvent(eth.EventDelegationUpdate, eLog)
-				err := r.dbSet(GetPullerKey(eLog), event.MustMarshal())
+				event := eth.NewEvent(eth.EventValidatorNotice, eLog)
+				err = r.dbSet(GetPullerKey(eLog), event.MustMarshal())
 				if err != nil {
 					log.Errorln("db Set err", err)
 				}
 			}
-			if !r.isBonded() {
-				e, err2 := r.EthClient.Contracts.Staking.ParseDelegationUpdate(eLog)
-				if err2 != nil {
-					log.Errorln("parse event err", err2)
-					return false
-				}
-				if e.ValAddr == r.Operator.ValAddr && r.shouldBondValidator() {
-					r.bondValidator()
+			if e.ValAddr == r.Operator.ValAddr {
+				if !r.isBonded() && r.shouldBondValidator() {
+					go r.bondValidator()
 				}
 			}
-			return false
-		},
-	)
+		}
+		if e.ValAddr == r.Operator.ValAddr {
+			log.Debug("Self sync validator params")
+			go r.selfSyncValidatorParams()
+			if e.Key == "sgn-addr" && r.isBootstrapped() {
+				go r.selfSyncValidatorStates()
+			}
+		}
+	}
+}
+
+func (r *Relayer) handleEthValidatorStatusUpdate(eLog ethtypes.Log) {
+	e, err := r.EthClient.Contracts.Staking.ParseValidatorStatusUpdate(eLog)
 	if err != nil {
-		log.Fatal(err)
+		log.Errorf("parse event err: %s", err)
+		return
+	}
+	logmsg := fmt.Sprintf("Catch event ValidatorStatusUpdate, val addr: %x, status: %s, tx hash: %x, blknum: %d",
+		e.ValAddr, eth.ParseValStatus(e.Status), eLog.TxHash, eLog.BlockNumber)
+
+	if e.Status == eth.Bonded {
+		r.setBootstrapped()
+		if e.ValAddr == r.Operator.ValAddr {
+			log.Infof("%s. Self sync bonded validator.", logmsg)
+			r.setBonded()
+			go r.selfSyncValidatorStates()
+		} else {
+			log.Infof("%s. Skip", logmsg)
+		}
+	} else {
+		// only put unbonding or unbonded event to puller queue
+		log.Infof("%s. Put in queue", logmsg)
+		if e.ValAddr == r.Operator.ValAddr {
+			r.clearBonded()
+		}
+		if r.chainMonitorStatus != ChainMonitorStatusNo {
+			event := eth.NewEvent(eth.EventValidatorStatusUpdate, eLog)
+			err = r.dbSet(GetPullerKey(eLog), event.MustMarshal())
+			if err != nil {
+				log.Errorln("db Set err", err)
+			}
+		}
+	}
+}
+
+func (r *Relayer) handleEthDelegationUpdate(eLog ethtypes.Log) {
+	log.Infof("Catch event DelegationUpdate, tx hash: %x, blknum: %d", eLog.TxHash, eLog.BlockNumber)
+	if r.chainMonitorStatus != ChainMonitorStatusNo {
+		event := eth.NewEvent(eth.EventDelegationUpdate, eLog)
+		err := r.dbSet(GetPullerKey(eLog), event.MustMarshal())
+		if err != nil {
+			log.Errorln("db Set err", err)
+		}
+	}
+	if !r.isBonded() {
+		e, err2 := r.EthClient.Contracts.Staking.ParseDelegationUpdate(eLog)
+		if err2 != nil {
+			log.Errorln("parse event err", err2)
+			return
+		}
+		if e.ValAddr == r.Operator.ValAddr && r.shouldBondValidator() {
+			r.bondValidator()
+		}
 	}
 }
 

@@ -1,110 +1,86 @@
 package relayer
 
 import (
-	"math/big"
+	"time"
 
-	"github.com/celer-network/goutils/eth/monitor"
+	"github.com/celer-network/goutils/eth/mon2"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	msgtypes "github.com/celer-network/sgn-v2/x/message/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
-func (c *CbrOneChain) monMessage(blk *big.Int) {
-	if c.msgContract.GetAddr() == eth.ZeroAddr {
-		return
+func (c *CbrOneChain) MonMessage() {
+	if c.msgContract.GetAddr() != eth.ZeroAddr {
+		go c.mon.MonAddr(mon2.PerAddrCfg{
+			Addr:    c.msgContract.GetAddr(),
+			ChkIntv: 4 * time.Duration(c.blkInterval) * time.Second,
+			AbiStr:  c.msgContract.GetABI(), // to parse event name by topics[0]
+		}, c.msgEvCallback)
 	}
-
-	cfg := &monitor.Config{
-		ChainId:       c.chainid,
-		EventName:     msgtypes.MsgEventMessage,
-		Contract:      c.msgContract,
-		StartBlock:    blk,
-		ForwardDelay:  c.forwardBlkDelay,
-		CheckInterval: c.getEventCheckInterval(msgtypes.MsgEventMessage),
-	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.msgContract.ParseMessage(eLog)
-		if err != nil {
-			log.Errorln("monMessage: cannot parse event:", err)
-			return false
-		}
-		msgId, _ := msgtypes.NewMessage(ev, c.chainid)
-		log.Infof("MonEv: %s. msgId: %x", ev.PrettyLog(c.chainid), msgId)
-		if relayerInstance.isEthAddrBlocked(ev.Sender, ev.Receiver) {
-			log.Warnln("eth addrs blocked", ev.String())
-			return false
-		}
-
-		err = c.saveEvent(msgtypes.MsgEventMessage, eLog)
-		if err != nil {
-			log.Errorln("saveEvent err:", err)
-			return true // ask to recreate to process event again
-		}
-		return false
-	})
 }
 
-func (c *CbrOneChain) monMessageWithTransfer(blk *big.Int) {
-	if c.msgContract.GetAddr() == eth.ZeroAddr {
+func (c *CbrOneChain) msgEvCallback(evname string, elog ethtypes.Log) {
+	switch evname {
+	case "Message":
+		c.handleMessage(elog)
+	case "MessageWithTransfer":
+		c.handleMessageWithTransfer(elog)
+	case "Executed":
+		c.handleMessageBusEventExecuted(elog)
+	default:
+		log.Infoln("unsupported evname: ", evname)
 		return
 	}
-
-	cfg := &monitor.Config{
-		ChainId:       c.chainid,
-		EventName:     msgtypes.MsgEventMessageWithTransfer,
-		Contract:      c.msgContract,
-		StartBlock:    blk,
-		ForwardDelay:  c.forwardBlkDelay,
-		CheckInterval: c.getEventCheckInterval(msgtypes.MsgEventMessageWithTransfer),
-	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.msgContract.ParseMessageWithTransfer(eLog)
-		if err != nil {
-			log.Errorln("monMessageWithTransfer: cannot parse event:", err)
-			return false
-		}
-		log.Infoln("MonEv:", ev.PrettyLog(c.chainid))
-		if relayerInstance.isEthAddrBlocked(ev.Sender, ev.Receiver) {
-			log.Warnln("eth addrs blocked", ev.String())
-			return false
-		}
-
-		err = c.saveEvent(msgtypes.MsgEventMessageWithTransfer, eLog)
-		if err != nil {
-			log.Errorln("saveEvent err:", err)
-			return true // ask to recreate to process event again
-		}
-		return false
-	})
 }
 
-func (c *CbrOneChain) monMessageBusEventExecuted(blk *big.Int) {
-	if c.msgContract.GetAddr() == eth.ZeroAddr {
+func (c *CbrOneChain) handleMessage(eLog ethtypes.Log) {
+	ev, err := c.msgContract.ParseMessage(eLog)
+	if err != nil {
+		log.Errorln("monMessage: cannot parse event:", err)
+		return
+	}
+	msgId, _ := msgtypes.NewMessage(ev, c.chainid)
+	log.Infof("MonEv: %s. msgId: %x", ev.PrettyLog(c.chainid), msgId)
+	if relayerInstance.isEthAddrBlocked(ev.Sender, ev.Receiver) {
+		log.Warnln("eth addrs blocked", ev.String())
 		return
 	}
 
-	cfg := &monitor.Config{
-		ChainId:       c.chainid,
-		EventName:     msgtypes.MsgEventExecuted,
-		Contract:      c.msgContract,
-		StartBlock:    blk,
-		ForwardDelay:  c.forwardBlkDelay,
-		CheckInterval: c.getEventCheckInterval(msgtypes.MsgEventExecuted),
+	err = c.saveEvent(msgtypes.MsgEventMessage, eLog)
+	if err != nil {
+		log.Errorln("saveEvent err:", err)
 	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.msgContract.ParseExecuted(eLog)
-		if err != nil {
-			log.Errorln("monMessageBusEventExecuted: cannot parse event:", err)
-			return false
-		}
-		log.Infoln("MonEv:", ev.PrettyLog(c.chainid))
+}
 
-		err = c.saveEvent(msgtypes.MsgEventExecuted, eLog)
-		if err != nil {
-			log.Errorln("saveEvent err:", err)
-			return true // ask to recreate to process event again
-		}
-		return false
-	})
+func (c *CbrOneChain) handleMessageWithTransfer(eLog ethtypes.Log) {
+	ev, err := c.msgContract.ParseMessageWithTransfer(eLog)
+	if err != nil {
+		log.Errorln("monMessageWithTransfer: cannot parse event:", err)
+		return
+	}
+	log.Infoln("MonEv:", ev.PrettyLog(c.chainid))
+	if relayerInstance.isEthAddrBlocked(ev.Sender, ev.Receiver) {
+		log.Warnln("eth addrs blocked", ev.String())
+		return
+	}
+
+	err = c.saveEvent(msgtypes.MsgEventMessageWithTransfer, eLog)
+	if err != nil {
+		log.Errorln("saveEvent err:", err)
+	}
+}
+
+func (c *CbrOneChain) handleMessageBusEventExecuted(eLog ethtypes.Log) {
+	ev, err := c.msgContract.ParseExecuted(eLog)
+	if err != nil {
+		log.Errorln("monMessageBusEventExecuted: cannot parse event:", err)
+		return
+	}
+	log.Infoln("MonEv:", ev.PrettyLog(c.chainid))
+
+	err = c.saveEvent(msgtypes.MsgEventExecuted, eLog)
+	if err != nil {
+		log.Errorln("saveEvent err:", err)
+	}
 }

@@ -3,11 +3,10 @@ package relayer
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"time"
 
 	ethutils "github.com/celer-network/goutils/eth"
-	"github.com/celer-network/goutils/eth/monitor"
+	"github.com/celer-network/goutils/eth/mon2"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
@@ -38,211 +37,162 @@ func (c *CbrOneChain) startMon() {
 		c.monitorFlow()
 		return
 	}
-	// avoid repeated get block number calls
-	blkNum := c.mon.GetCurrentBlockNumber()
-	c.monSend(blkNum)
-	smallDelay()
-	c.monRelay(blkNum)
-	smallDelay()
-	c.monLiqAdd(blkNum)
-	smallDelay()
-	c.monWithdraw(blkNum)
-	smallDelay()
-	c.monWithdrawalRequest(blkNum)
-	smallDelay()
-	c.monSignersUpdated(blkNum)
 
+	c.MonCbridge()
 	smallDelay()
-	c.monPegbrDeposited(blkNum)
+	c.MonWdInbox()
 	smallDelay()
-	c.monPegbrMint(blkNum)
+	c.MonVault()
 	smallDelay()
-	c.monPegbrBurn(blkNum)
+	c.MonPegBridge()
 	smallDelay()
-	c.monPegbrWithdrawn(blkNum)
-	smallDelay()
-	c.monMessageWithTransfer(blkNum)
-	smallDelay()
-	c.monMessageBusEventExecuted(blkNum)
-	smallDelay()
-	c.monMessage(blkNum)
+	c.MonMessage()
 }
 
-func (c *CbrOneChain) monSend(blk *big.Int) {
-	cfg := &monitor.Config{
-		ChainId:       c.chainid,
-		EventName:     cbrtypes.CbrEventSend,
-		Contract:      c.cbrContract,
-		StartBlock:    blk,
-		ForwardDelay:  c.forwardBlkDelay,
-		CheckInterval: c.getEventCheckInterval(cbrtypes.CbrEventSend),
+func (c *CbrOneChain) MonCbridge() {
+	go c.mon.MonAddr(mon2.PerAddrCfg{
+		Addr:    c.cbrContract.Address,
+		ChkIntv: 4 * time.Duration(c.blkInterval) * time.Second,
+		AbiStr:  c.cbrContract.GetABI(), // to parse event name by topics[0]
+	}, c.cbrEvCallback)
+}
+
+func (c *CbrOneChain) cbrEvCallback(evname string, elog ethtypes.Log) {
+	switch evname {
+	case "Send":
+		c.handleSend(elog)
+	case "Relay":
+		c.handleRelay(elog)
+	case "LiquidityAdded":
+		c.handleLiqAdd(elog)
+	case "WithdrawDone":
+		c.handleWithdraw(elog)
+	case "SignersUpdated":
+		c.handleSignersUpdated(elog)
+	default:
+		log.Infoln("unsupported evname: ", evname)
+		return
 	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.cbrContract.ParseSend(eLog)
-		if err != nil {
-			log.Errorf("monSend: chain %d cannot parse event: %s", c.chainid, err)
-			return false
-		}
-		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		if relayerInstance.isEthAddrBlocked(ev.Sender, ev.Receiver) {
-			log.Warnln("eth addrs blocked", ev.String())
-			return false
-		}
-
-		err = c.saveEvent(cbrtypes.CbrEventSend, eLog)
-		if err != nil {
-			log.Errorln("saveEvent err:", err)
-			return true // ask to recreate to process event again
-		}
-		return false
-	})
 }
 
-func (c *CbrOneChain) monRelay(blk *big.Int) {
-	cfg := &monitor.Config{
-		ChainId:       c.chainid,
-		EventName:     cbrtypes.CbrEventRelay,
-		Contract:      c.cbrContract,
-		StartBlock:    blk,
-		ForwardDelay:  c.forwardBlkDelay,
-		CheckInterval: c.getEventCheckInterval(cbrtypes.CbrEventRelay),
+func (c *CbrOneChain) handleSend(eLog ethtypes.Log) {
+	ev, err := c.cbrContract.ParseSend(eLog)
+	if err != nil {
+		log.Errorf("monSend: chain %d cannot parse event: %s", c.chainid, err)
+		return
 	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.cbrContract.ParseRelay(eLog)
-		if err != nil {
-			log.Errorf("monRelay: chain %d cannot parse event: %s", c.chainid, err)
-			return false
-		}
-		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-
-		// delete to-submit relay at local if have, as it's been submitted (by other nodes or me)
-		relayerInstance.dbDelete(GetCbrXferKey(ev.SrcTransferId[:], c.chainid))
-
-		err = c.saveEvent(cbrtypes.CbrEventRelay, eLog)
-		if err != nil {
-			log.Errorln("saveEvent err:", err)
-			return true // ask to recreate to process event again
-		}
-		return false
-	})
-}
-
-func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
-	cfg := &monitor.Config{
-		ChainId:       c.chainid,
-		EventName:     cbrtypes.CbrEventLiqAdd,
-		Contract:      c.cbrContract,
-		StartBlock:    blk,
-		ForwardDelay:  c.forwardBlkDelay,
-		CheckInterval: c.getEventCheckInterval(cbrtypes.CbrEventLiqAdd),
-	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.cbrContract.ParseLiquidityAdded(eLog)
-		if err != nil {
-			log.Errorf("monLiqAdd: chain %d cannot parse event: %s", c.chainid, err)
-			return false
-		}
-		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		if relayerInstance.isEthAddrBlocked(ev.Provider) {
-			log.Warnln("eth addrs blocked", ev.String())
-			return false
-		}
-
-		err = c.saveEvent(cbrtypes.CbrEventLiqAdd, eLog)
-		if err != nil {
-			log.Errorln("saveEvent err:", err)
-			return true // ask to recreate to process event again
-		}
-		return false
-	})
-}
-
-func (c *CbrOneChain) monWithdraw(blk *big.Int) {
-	cfg := &monitor.Config{
-		ChainId:       c.chainid,
-		EventName:     cbrtypes.CbrEventWithdraw,
-		Contract:      c.cbrContract,
-		StartBlock:    blk,
-		ForwardDelay:  c.forwardBlkDelay,
-		CheckInterval: c.getEventCheckInterval(cbrtypes.CbrEventWithdraw),
-	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.cbrContract.ParseWithdrawDone(eLog)
-		if err != nil {
-			log.Errorf("monWithdraw: chain %d cannot parse event: %s", c.chainid, err)
-			return false
-		}
-		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-
-		err = c.saveEvent(cbrtypes.CbrEventWithdraw, eLog)
-		if err != nil {
-			log.Errorln("saveEvent err:", err)
-			return true // ask to recreate to process event again
-		}
-		return false
-	})
-}
-
-func (c *CbrOneChain) monWithdrawalRequest(blk *big.Int) {
-	if c.wdiContract.GetAddr() == eth.ZeroAddr {
+	log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+	if relayerInstance.isEthAddrBlocked(ev.Sender, ev.Receiver) {
+		log.Warnln("eth addrs blocked", ev.String())
 		return
 	}
 
-	cfg := &monitor.Config{
-		ChainId:       c.chainid,
-		EventName:     cbrtypes.CbrEventWithdrawalRequest,
-		Contract:      c.wdiContract,
-		StartBlock:    blk,
-		ForwardDelay:  c.forwardBlkDelay,
-		CheckInterval: c.getEventCheckInterval(cbrtypes.CbrEventWithdrawalRequest),
+	err = c.saveEvent(cbrtypes.CbrEventSend, eLog)
+	if err != nil {
+		log.Errorln("saveEvent err:", err)
 	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.wdiContract.ParseWithdrawalRequest(eLog)
-		if err != nil {
-			log.Errorf("monWithdrawalRequest: chain %d cannot parse event: %s", c.chainid, err)
-			return false
-		}
-		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		if relayerInstance.isEthAddrBlocked(ev.Sender, ev.Receiver) {
-			log.Warnln("eth addrs blocked", ev.String())
-			return false
-		}
-
-		err = c.saveEvent(cbrtypes.CbrEventWithdrawalRequest, eLog)
-		if err != nil {
-			log.Errorln("saveEvent err:", err)
-			return true // ask to recreate to process event again
-		}
-		return false
-	})
 }
 
-func (c *CbrOneChain) monSignersUpdated(blk *big.Int) {
-	cfg := &monitor.Config{
-		ChainId:       c.chainid,
-		EventName:     cbrtypes.CbrEventSignersUpdated,
-		Contract:      c.cbrContract,
-		StartBlock:    blk,
-		ForwardDelay:  c.forwardBlkDelay,
-		CheckInterval: c.getEventCheckInterval(cbrtypes.CbrEventSignersUpdated),
+func (c *CbrOneChain) handleRelay(eLog ethtypes.Log) {
+	ev, err := c.cbrContract.ParseRelay(eLog)
+	if err != nil {
+		log.Errorf("monRelay: chain %d cannot parse event: %s", c.chainid, err)
+		return
 	}
-	c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-		ev, err := c.cbrContract.ParseSignersUpdated(eLog)
-		if err != nil {
-			log.Errorf("monSignersUpdated: chain %d cannot parse event: %s", c.chainid, err)
-			return false
-		}
-		c.setCurssByEvent(ev)
-		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+	log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 
-		err = c.saveEvent(cbrtypes.CbrEventSignersUpdated, eLog)
-		if err != nil {
-			log.Errorln("saveEvent err:", err)
-			return true // ask to recreate to process event again
-		}
+	// delete to-submit relay at local if have, as it's been submitted (by other nodes or me)
+	relayerInstance.dbDelete(GetCbrXferKey(ev.SrcTransferId[:], c.chainid))
 
-		return false
-	})
+	err = c.saveEvent(cbrtypes.CbrEventRelay, eLog)
+	if err != nil {
+		log.Errorln("saveEvent err:", err)
+	}
+}
+
+func (c *CbrOneChain) handleLiqAdd(eLog ethtypes.Log) {
+	ev, err := c.cbrContract.ParseLiquidityAdded(eLog)
+	if err != nil {
+		log.Errorf("monLiqAdd: chain %d cannot parse event: %s", c.chainid, err)
+		return
+	}
+	log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+	if relayerInstance.isEthAddrBlocked(ev.Provider) {
+		log.Warnln("eth addrs blocked", ev.String())
+		return
+	}
+
+	err = c.saveEvent(cbrtypes.CbrEventLiqAdd, eLog)
+	if err != nil {
+		log.Errorln("saveEvent err:", err)
+	}
+}
+
+func (c *CbrOneChain) handleWithdraw(eLog ethtypes.Log) {
+	ev, err := c.cbrContract.ParseWithdrawDone(eLog)
+	if err != nil {
+		log.Errorf("monWithdraw: chain %d cannot parse event: %s", c.chainid, err)
+		return
+	}
+	log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+
+	err = c.saveEvent(cbrtypes.CbrEventWithdraw, eLog)
+	if err != nil {
+		log.Errorln("saveEvent err:", err)
+	}
+}
+
+func (c *CbrOneChain) handleSignersUpdated(eLog ethtypes.Log) {
+	ev, err := c.cbrContract.ParseSignersUpdated(eLog)
+	if err != nil {
+		log.Errorf("monSignersUpdated: chain %d cannot parse event: %s", c.chainid, err)
+		return
+	}
+	c.setCurssByEvent(ev)
+	log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+
+	err = c.saveEvent(cbrtypes.CbrEventSignersUpdated, eLog)
+	if err != nil {
+		log.Errorln("saveEvent err:", err)
+	}
+}
+
+func (c *CbrOneChain) MonWdInbox() {
+	if c.wdiContract.GetAddr() != eth.ZeroAddr {
+		go c.mon.MonAddr(mon2.PerAddrCfg{
+			Addr:    c.wdiContract.Address,
+			ChkIntv: 4 * time.Duration(c.blkInterval) * time.Second,
+			AbiStr:  c.wdiContract.GetABI(), // to parse event name by topics[0]
+		}, c.wdiEvCallback)
+	}
+}
+
+func (c *CbrOneChain) wdiEvCallback(evname string, elog ethtypes.Log) {
+	switch evname {
+	case "WithdrawalRequest":
+		c.handleWithdrawalRequest(elog)
+	default:
+		log.Infoln("unsupported evname: ", evname)
+		return
+	}
+}
+
+func (c *CbrOneChain) handleWithdrawalRequest(eLog ethtypes.Log) {
+	ev, err := c.wdiContract.ParseWithdrawalRequest(eLog)
+	if err != nil {
+		log.Errorf("monWithdrawalRequest: chain %d cannot parse event: %s", c.chainid, err)
+		return
+	}
+	log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+	if relayerInstance.isEthAddrBlocked(ev.Sender, ev.Receiver) {
+		log.Warnln("eth addrs blocked", ev.String())
+		return
+	}
+
+	err = c.saveEvent(cbrtypes.CbrEventWithdrawalRequest, eLog)
+	if err != nil {
+		log.Errorln("saveEvent err:", err)
+	}
 }
 
 // send relay tx onchain to cbridge contract, no wait mine

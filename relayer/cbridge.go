@@ -11,8 +11,7 @@ import (
 
 	"github.com/celer-network/endpoint-proxy/endpointproxy"
 	ethutils "github.com/celer-network/goutils/eth"
-	"github.com/celer-network/goutils/eth/monitor"
-	"github.com/celer-network/goutils/eth/watcher"
+	"github.com/celer-network/goutils/eth/mon2"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
 	commontypes "github.com/celer-network/sgn-v2/common/types"
@@ -38,7 +37,7 @@ const (
 type CbrOneChain struct {
 	*ethclient.Client
 	*ethutils.Transactor
-	mon          *monitor.Service
+	mon          *mon2.Monitor
 	cbrContract  *eth.BridgeContract
 	pegContracts *PegContracts
 	wdiContract  *eth.WdInboxContract
@@ -122,9 +121,6 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 	if chid.Uint64() != cfg.ChainID {
 		log.Fatalf("chainid mismatch! cfg has %d but onchain has %d", cfg.ChainID, chid.Uint64())
 	}
-	wsvc := watcher.NewWatchService(ec, wdal, cfg.BlkInterval, cfg.MaxBlkDelta)
-	mon := monitor.NewService(wsvc, cfg.BlkDelay, true)
-	mon.Init()
 	cbr, err := eth.NewBridgeContract(eth.Hex2Addr(cfg.CBridge), ec)
 	if err != nil {
 		log.Fatalln("cbridge contract at", cfg.CBridge, "err:", err)
@@ -171,7 +167,6 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 	ret := &CbrOneChain{
 		Client:          ec,
 		Transactor:      transactor,
-		mon:             mon,
 		cbrContract:     cbr,
 		pegContracts:    pegContracts,
 		wdiContract:     wdi,
@@ -182,6 +177,15 @@ func newOneChain(cfg *common.OneChainConfig, wdal *watcherDAL, cbrDb *dbm.Prefix
 		forwardBlkDelay: cfg.ForwardBlkDelay,
 		blkInterval:     cfg.BlkInterval,
 		checkIntervals:  checkIntervals,
+	}
+	ret.mon, err = mon2.NewMonitor(ec, wdal, mon2.PerChainCfg{
+		BlkIntv:         time.Duration(cfg.BlkInterval) * time.Second,
+		BlkDelay:        cfg.BlkDelay,
+		MaxBlkDelta:     cfg.MaxBlkDelta,
+		ForwardBlkDelay: cfg.ForwardBlkDelay,
+	})
+	if err != nil {
+		log.Fatalln("failed to create monitor, err:", err)
 	}
 	chainSigners, err := cbrcli.QueryChainSigners(cliCtx, cfg.ChainID)
 	if err != nil {

@@ -112,7 +112,7 @@ func (r *Relayer) reportValidatorNodeAnalytics() {
 		if types.IsFlowChain(chainId) {
 			blkNum = oneChain.fcc.GetBlkNum()
 		} else {
-			blkNum = oneChain.mon.GetCurrentBlockNumber().Uint64()
+			blkNum = oneChain.mon.GetBlkNum()
 		}
 		report.BlockNums[strconv.Itoa(int(chainId))] = blkNum
 	}

@@ -140,7 +140,7 @@ func (c *CbrOneChain) verifyMessageEventTransfer(cliCtx client.Context, eLog *et
 	xferSender, xferDstChainId, refunded, err := getTransferInfo(cliCtx, ev.SrcTransferId, srcBridgeType)
 	if err != nil {
 		if !strings.Contains(err.Error(), "no info found") ||
-			(c.mon.GetCurrentBlockNumber().Int64()-int64(ev.Raw.BlockNumber))*int64(c.blkInterval) > 120 {
+			(int64(c.mon.GetBlkNum())-int64(ev.Raw.BlockNumber))*int64(c.blkInterval) > 120 {
 			log.Debugf("%s. getTransferInfo err: %s", logmsg, err)
 		}
 		return false, false

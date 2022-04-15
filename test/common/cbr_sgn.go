@@ -26,10 +26,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	CbrRetryLimit = RetryLimit * 3
+)
+
 func CheckAddLiquidityStatus(transactor *transactor.Transactor, chainId, seqNum uint64) {
 	var resp *cbrtypes.QueryLiquidityStatusResponse
 	var err error
-	for retry := 0; retry < RetryLimit*2; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		resp, err = cbrcli.QueryAddLiquidityStatus(transactor.CliCtx, &cbrtypes.QueryAddLiquidityStatusRequest{
 			ChainId: chainId,
 			SeqNum:  seqNum,
@@ -62,7 +66,7 @@ func CheckXfer(transactor *transactor.Transactor, xferId []byte) {
 	var err error
 	var prevXferStatus cbrtypes.TransferHistoryStatus
 	xferIdStr := eth.Bytes2Hex(xferId)
-	for retry := 0; retry < RetryLimit*2; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		resp, err = cbrcli.QueryTransferStatus(transactor.CliCtx, &cbrtypes.QueryTransferStatusRequest{
 			TransferId: []string{xferIdStr},
 		})
@@ -86,7 +90,7 @@ func WaitPbrDeposit(transactor *transactor.Transactor, depositId string) *pegbrt
 	var err error
 	var resp pegbrtypes.DepositInfo
 	log.Infoln("waiting for deposit", depositId)
-	for retry := 0; retry < RetryLimit*2; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		resp, err = pegbrcli.QueryDepositInfo(transactor.CliCtx, depositId)
 		if err == nil {
 			return &resp
@@ -102,7 +106,7 @@ func CheckPbrWithdraw(transactor *transactor.Transactor, withdrawId string) *peg
 	var expected bool
 	var resp pegbrtypes.WithdrawInfo
 	log.Infoln("checking withdraw Id", withdrawId)
-	for retry := 0; retry < RetryLimit*2; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		resp, err = pegbrcli.QueryWithdrawInfo(transactor.CliCtx, withdrawId)
 		if err == nil && resp.Success {
 			expected = true
@@ -122,7 +126,7 @@ func CheckPbrMint(transactor *transactor.Transactor, mintId string) *pegbrtypes.
 	var expected bool
 	var resp pegbrtypes.MintInfo
 	log.Infoln("checking mint Id", mintId)
-	for retry := 0; retry < RetryLimit*2; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		resp, err = pegbrcli.QueryMintInfo(transactor.CliCtx, mintId)
 		if err == nil && resp.Success {
 			expected = true
@@ -141,7 +145,7 @@ func WaitPbrBurn(transactor *transactor.Transactor, burnId string) *pegbrtypes.B
 	var err error
 	var resp pegbrtypes.BurnInfo
 	log.Infoln("waiting for burn", burnId)
-	for retry := 0; retry < RetryLimit*2; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		resp, err = pegbrcli.QueryBurnInfo(transactor.CliCtx, burnId)
 		if err == nil {
 			return &resp
@@ -155,7 +159,7 @@ func WaitPbrBurn(transactor *transactor.Transactor, burnId string) *pegbrtypes.B
 func CheckChainSigners(t *testing.T, transactor *transactor.Transactor, chainId uint64, expSigners []*cbrtypes.Signer) {
 	var err error
 	var signers *cbrtypes.ChainSigners
-	for retry := 0; retry < RetryLimit; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		signers, err = cbrcli.QueryChainSigners(transactor.CliCtx, chainId)
 		if err == nil && signers != nil && sameSortedSigners(signers.GetSortedSigners(), expSigners) {
 			break
@@ -171,7 +175,7 @@ func CheckChainSigners(t *testing.T, transactor *transactor.Transactor, chainId 
 func CheckLatestSigners(t *testing.T, transactor *transactor.Transactor, expSigners []*cbrtypes.Signer) {
 	var err error
 	var signers *cbrtypes.LatestSigners
-	for retry := 0; retry < RetryLimit; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		signers, err = cbrcli.QueryLatestSigners(transactor.CliCtx)
 		if err == nil && signers != nil && sameSortedSigners(signers.GetSortedSigners(), expSigners) {
 			break
@@ -285,7 +289,7 @@ func StartValidatorMultiWithdrawClaimCbrFeeShares(vid, reqid uint64, wdLqs []*cb
 func GetWithdrawDetailWithSigs(transactor *transactor.Transactor, usraddr eth.Addr, reqid uint64, expSigNum int) *cbrtypes.WithdrawDetail {
 	var resp *cbrtypes.QueryLiquidityStatusResponse
 	var err error
-	for retry := 0; retry < RetryLimit; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		resp, err = cbrcli.QueryWithdrawLiquidityStatus(
 			transactor.CliCtx,
 			&cbrtypes.QueryWithdrawLiquidityStatusRequest{
@@ -341,7 +345,7 @@ func GetFarmingRewardClaimInfoWithSigs(
 	transactor *transactor.Transactor, uid uint64, expSigNum int) *farmingtypes.RewardClaimInfo {
 	var info *farmingtypes.RewardClaimInfo
 	var err error
-	for retry := 0; retry < RetryLimit; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		info, err = GetFarmingRewardClaimInfo(transactor, uid)
 		if err == nil && len(info.RewardClaimDetailsList) == 1 &&
 			len(info.RewardClaimDetailsList[0].Signatures) == expSigNum {
@@ -377,7 +381,7 @@ func GetStakingRewardClaimInfoWithSigs(
 	transactor *transactor.Transactor, uid uint64, expSigNum int) *distrtypes.StakingRewardClaimInfo {
 	var info *distrtypes.StakingRewardClaimInfo
 	var err error
-	for retry := 0; retry < RetryLimit; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		info, err = GetStakingRewardClaimInfo(transactor, uid)
 		if err == nil && len(info.Signatures) == expSigNum {
 			break
@@ -458,7 +462,7 @@ func GetPegBridgeFeeClaimWithdrawInfoWithSigs(
 	var feeClaimInfo pegbrtypes.FeeClaimInfo
 	var err error
 	// First wait for FeeClaimInfo
-	for retry := 0; retry < RetryLimit; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		feeClaimInfo, err = pegbrcli.QueryFeeClaimInfo(
 			transactor.CliCtx,
 			delAddr,
@@ -473,7 +477,7 @@ func GetPegBridgeFeeClaimWithdrawInfoWithSigs(
 	withdrawId = eth.Bytes2Hex(feeClaimInfo.WithdrawId)
 	// Then wait for WithdrawInfo with enough signatures
 	var wdInfo pegbrtypes.WithdrawInfo
-	for retry := 0; retry < RetryLimit; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		wdInfo, err = pegbrcli.QueryWithdrawInfo(
 			transactor.CliCtx,
 			withdrawId,
@@ -526,7 +530,7 @@ func WaitForMessageOnlyExecuted(
 	transactor *transactor.Transactor, messageId eth.Hash, expectedStatus msgtypes.ExecutionStatus) {
 	var msg msgtypes.Message
 	var err error
-	for retry := 0; retry < RetryLimit; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		msg, err = msgcli.QueryMessage(transactor.CliCtx, messageId.Hex())
 		if err == nil && msg.ExecutionStatus == expectedStatus {
 			break
@@ -545,7 +549,7 @@ func WaitForMessageWithTransferExecuted(
 	expStatus msgtypes.ExecutionStatus, expTransferType msgtypes.TransferType) {
 	var exeCtx *msgtypes.ExecutionContext
 	var err error
-	for retry := 0; retry < RetryLimit; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		exeCtx, err = msgcli.QueryExecutionContextBySrcTransfer(transactor.CliCtx, srcBridgeType, srcTransferId)
 		if err == nil && exeCtx.Message.ExecutionStatus == expStatus && exeCtx.Message.TransferType == expTransferType {
 			break
@@ -589,7 +593,7 @@ func WaitPbrDepositWithEmptyMintId(transactor *transactor.Transactor, depositId 
 	var err error
 	var depositInfo pegbrtypes.DepositInfo
 	log.Infoln("wait for deposit with empty mint id", depositId)
-	for retry := 0; retry < RetryLimit; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		depositInfo, err = pegbrcli.QueryDepositInfo(transactor.CliCtx, depositId)
 		if err == nil {
 			if len(depositInfo.MintId) == 0 {
@@ -608,7 +612,7 @@ func WaitPbrBurnWithEmptyWithdrawId(transactor *transactor.Transactor, burnId st
 	var err error
 	var burnInfo pegbrtypes.BurnInfo
 	log.Infoln("wait for burn with empty withdraw id", burnId)
-	for retry := 0; retry < RetryLimit; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		burnInfo, err = pegbrcli.QueryBurnInfo(transactor.CliCtx, burnId)
 		if err == nil {
 			if len(burnInfo.WithdrawId) == 0 {
@@ -645,7 +649,7 @@ func GetRefundWithdrawInfoWithSigs(
 	withdrawId string, withdrawInfo *pegbrtypes.WithdrawInfo) {
 	var err error
 	// query refundClaimInfo, in order to get withdrawId
-	for retry := 0; retry < RetryLimit; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		withdrawId, err = pegbrcli.QueryRefundClaimInfo(
 			transactor.CliCtx,
 			depositId,
@@ -658,7 +662,7 @@ func GetRefundWithdrawInfoWithSigs(
 	ChkErr(err, "failed to QueryRefundClaimInfo")
 	// Then wait for WithdrawInfo with enough signatures
 	var wdInfo pegbrtypes.WithdrawInfo
-	for retry := 0; retry < RetryLimit; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		wdInfo, err = pegbrcli.QueryWithdrawInfo(
 			transactor.CliCtx,
 			withdrawId,
@@ -681,7 +685,7 @@ func GetRefundMintInfoWithSigs(
 	mintId string, mintInfo *pegbrtypes.MintInfo) {
 	var err error
 	// query refundClaimInfo, in order to get mintId
-	for retry := 0; retry < RetryLimit; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		mintId, err = pegbrcli.QueryRefundClaimInfo(
 			transactor.CliCtx,
 			burnId,
@@ -694,7 +698,7 @@ func GetRefundMintInfoWithSigs(
 	ChkErr(err, "failed to QueryRefundClaimInfo")
 	// Then wait for MintInfo with enough signatures
 	var mtInfo pegbrtypes.MintInfo
-	for retry := 0; retry < RetryLimit; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		mtInfo, err = pegbrcli.QueryMintInfo(
 			transactor.CliCtx,
 			mintId,
@@ -714,7 +718,7 @@ func GetRefundMintInfoWithSigs(
 
 func QueryPegBridgeConfig(transactor *transactor.Transactor) *pegbrtypes.PegConfig {
 	var err error
-	for retry := 0; retry < RetryLimit*2; retry++ {
+	for retry := 0; retry < CbrRetryLimit; retry++ {
 		resp, err := pegbrcli.QueryConfig(transactor.CliCtx)
 		if err == nil {
 			return resp

@@ -3,9 +3,10 @@ package relayer
 import (
 	"fmt"
 	"math/big"
+	"time"
 
 	ethutils "github.com/celer-network/goutils/eth"
-	"github.com/celer-network/goutils/eth/monitor"
+	"github.com/celer-network/goutils/eth/mon2"
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common/types"
 	"github.com/celer-network/sgn-v2/eth"
@@ -15,90 +16,159 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
-func (c *CbrOneChain) monPegbrDeposited(blk *big.Int) {
-	cfg := &monitor.Config{
-		ChainId:       c.chainid,
-		EventName:     pegtypes.PegbrEventDeposited,
-		StartBlock:    blk,
-		ForwardDelay:  c.forwardBlkDelay,
-		CheckInterval: c.getEventCheckInterval(pegtypes.PegbrEventDeposited),
-	}
+func (c *CbrOneChain) MonVault() {
 	if c.pegContracts.vault.GetAddr() != eth.ZeroAddr {
-		cfg.Contract = c.pegContracts.vault
-		c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-			return c.pbrDepositMonCb(id, eLog, 0)
-		})
+		go c.mon.MonAddr(mon2.PerAddrCfg{
+			Addr:    c.pegContracts.vault.GetAddr(),
+			ChkIntv: 4 * time.Duration(c.blkInterval) * time.Second,
+			AbiStr:  c.pegContracts.vault.GetABI(), // to parse event name by topics[0]
+		}, c.vaultEvCallback)
 	}
+
 	if c.pegContracts.vault2.GetAddr() != eth.ZeroAddr {
-		cfg.Contract = c.pegContracts.vault2
-		c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-			return c.pbrDepositMonCb(id, eLog, 2)
-		})
+		go c.mon.MonAddr(mon2.PerAddrCfg{
+			Addr:    c.pegContracts.vault2.GetAddr(),
+			ChkIntv: 4 * time.Duration(c.blkInterval) * time.Second,
+			AbiStr:  c.pegContracts.vault2.GetABI(), // to parse event name by topics[0]
+		}, c.vault2EvCallback)
 	}
 }
 
-func (c *CbrOneChain) pbrDepositMonCb(id monitor.CallbackID, eLog ethtypes.Log, version uint32) (recreate bool) {
+func (c *CbrOneChain) vaultEvCallback(evname string, elog ethtypes.Log) {
+	switch evname {
+	case "Deposited":
+		c.pbrDepositMonCb(elog, 0)
+	case "Withdrawn":
+		c.pbrWithdrawnMonCb(elog, 0)
+	default:
+		log.Infoln("unsupported evname: ", evname)
+		return
+	}
+}
+
+func (c *CbrOneChain) vault2EvCallback(evname string, elog ethtypes.Log) {
+	switch evname {
+	case "Deposited":
+		c.pbrDepositMonCb(elog, 2)
+	case "Withdrawn":
+		c.pbrWithdrawnMonCb(elog, 2)
+	default:
+		log.Infoln("unsupported evname: ", evname)
+		return
+	}
+}
+
+func (c *CbrOneChain) pbrDepositMonCb(eLog ethtypes.Log, version uint32) {
 	if version == 2 {
 		ev, err := c.pegContracts.vault2.ParseDeposited(eLog)
 		if err != nil {
 			log.Errorf("monPegbrV2Deposited: chain %d cannot parse event: %s", c.chainid, err)
-			return false
+			return
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 		if relayerInstance.isEthAddrBlocked(ev.Depositor, ev.MintAccount) {
 			log.Warnln("eth addrs blocked", ev.String())
-			return false
+			return
 		}
 	} else {
 		ev, err := c.pegContracts.vault.ParseDeposited(eLog)
 		if err != nil {
 			log.Errorf("monPegbrDeposited: chain %d cannot parse event: %s", c.chainid, err)
-			return false
+			return
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 		if relayerInstance.isEthAddrBlocked(ev.Depositor, ev.MintAccount) {
 			log.Warnln("eth addrs blocked", ev.String())
-			return false
+			return
 		}
 	}
 	err := c.saveEvent(pegtypes.PegbrEventDeposited, eLog)
 	if err != nil {
 		log.Errorln("saveEvent err:", err)
-		return true // ask to recreate to process event again
 	}
-	return false
 }
 
-func (c *CbrOneChain) monPegbrMint(blk *big.Int) {
-	cfg := &monitor.Config{
-		ChainId:       c.chainid,
-		EventName:     pegtypes.PegbrEventMint,
-		StartBlock:    blk,
-		ForwardDelay:  c.forwardBlkDelay,
-		CheckInterval: c.getEventCheckInterval(pegtypes.PegbrEventMint),
+func (c *CbrOneChain) pbrWithdrawnMonCb(eLog ethtypes.Log, version uint32) {
+	var refChainId uint64
+	var refId []byte
+	if version == 2 {
+		ev, err := c.pegContracts.vault2.ParseWithdrawn(eLog)
+		if err != nil {
+			log.Errorf("monPegbrV2Withdrawn: chain %d cannot parse event: %s", c.chainid, err)
+			return
+		}
+		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+		refChainId = ev.RefChainId
+		refId = ev.RefId[:]
+	} else {
+		ev, err := c.pegContracts.vault.ParseWithdrawn(eLog)
+		if err != nil {
+			log.Errorf("monPegbrWithdrawn: chain %d cannot parse event: %s", c.chainid, err)
+			return
+		}
+		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+		refChainId = ev.RefChainId
+		refId = ev.RefId[:]
 	}
+	// delete to-submit withdraw at local if have, as it's been submitted (by other nodes or me)
+	relayerInstance.dbDelete(GetPegbrWdKey(c.chainid, refChainId, refId))
+
+	err := c.saveEvent(pegtypes.PegbrEventWithdrawn, eLog)
+	if err != nil {
+		log.Errorln("saveEvent err:", err)
+	}
+}
+
+func (c *CbrOneChain) MonPegBridge() {
 	if c.pegContracts.bridge.GetAddr() != eth.ZeroAddr {
-		cfg.Contract = c.pegContracts.bridge
-		c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-			return c.pbrMintMonCb(id, eLog, 0)
-		})
+		go c.mon.MonAddr(mon2.PerAddrCfg{
+			Addr:    c.pegContracts.bridge.GetAddr(),
+			ChkIntv: 4 * time.Duration(c.blkInterval) * time.Second,
+			AbiStr:  c.pegContracts.bridge.GetABI(), // to parse event name by topics[0]
+		}, c.pegbrEvCallback)
 	}
+
 	if c.pegContracts.bridge2.GetAddr() != eth.ZeroAddr {
-		cfg.Contract = c.pegContracts.bridge2
-		c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-			return c.pbrMintMonCb(id, eLog, 2)
-		})
+		go c.mon.MonAddr(mon2.PerAddrCfg{
+			Addr:    c.pegContracts.bridge2.GetAddr(),
+			ChkIntv: 4 * time.Duration(c.blkInterval) * time.Second,
+			AbiStr:  c.pegContracts.bridge2.GetABI(), // to parse event name by topics[0]
+		}, c.pegbr2EvCallback)
 	}
 }
 
-func (c *CbrOneChain) pbrMintMonCb(id monitor.CallbackID, eLog ethtypes.Log, version uint32) (recreate bool) {
+func (c *CbrOneChain) pegbrEvCallback(evname string, elog ethtypes.Log) {
+	switch evname {
+	case "Mint":
+		c.pbrMintMonCb(elog, 0)
+	case "Burn":
+		c.pbrBurnMonCb(elog, 0)
+	default:
+		log.Infoln("unsupported evname: ", evname)
+		return
+	}
+}
+
+func (c *CbrOneChain) pegbr2EvCallback(evname string, elog ethtypes.Log) {
+	switch evname {
+	case "Mint":
+		c.pbrMintMonCb(elog, 2)
+	case "Burn":
+		c.pbrBurnMonCb(elog, 2)
+	default:
+		log.Infoln("unsupported evname: ", evname)
+		return
+	}
+}
+
+func (c *CbrOneChain) pbrMintMonCb(eLog ethtypes.Log, version uint32) {
 	var refChainId uint64
 	var refId []byte
 	if version == 2 {
 		ev, err := c.pegContracts.bridge2.ParseMint(eLog)
 		if err != nil {
 			log.Errorf("monPegbrV2Mint: chain %d cannot parse event: %s", c.chainid, err)
-			return false
+			return
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 		refChainId = ev.RefChainId
@@ -107,7 +177,7 @@ func (c *CbrOneChain) pbrMintMonCb(id monitor.CallbackID, eLog ethtypes.Log, ver
 		ev, err := c.pegContracts.bridge.ParseMint(eLog)
 		if err != nil {
 			log.Errorf("monPegbrMint: chain %d cannot parse event: %s", c.chainid, err)
-			return false
+			return
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 		refChainId = ev.RefChainId
@@ -120,119 +190,37 @@ func (c *CbrOneChain) pbrMintMonCb(id monitor.CallbackID, eLog ethtypes.Log, ver
 	err := c.saveEvent(pegtypes.PegbrEventMint, eLog)
 	if err != nil {
 		log.Errorln("saveEvent err:", err)
-		return true // ask to recreate to process event again
-	}
-	return false
-}
-
-func (c *CbrOneChain) monPegbrBurn(blk *big.Int) {
-	cfg := &monitor.Config{
-		ChainId:       c.chainid,
-		EventName:     pegtypes.PegbrEventBurn,
-		StartBlock:    blk,
-		ForwardDelay:  c.forwardBlkDelay,
-		CheckInterval: c.getEventCheckInterval(pegtypes.PegbrEventBurn),
-	}
-	if c.pegContracts.bridge.GetAddr() != eth.ZeroAddr {
-		cfg.Contract = c.pegContracts.bridge
-		c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-			return c.pbrBurnMonCb(id, eLog, 0)
-		})
-	}
-	if c.pegContracts.bridge2.GetAddr() != eth.ZeroAddr {
-		cfg.Contract = c.pegContracts.bridge2
-		c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-			return c.pbrBurnMonCb(id, eLog, 2)
-		})
 	}
 }
 
-func (c *CbrOneChain) pbrBurnMonCb(id monitor.CallbackID, eLog ethtypes.Log, version uint32) (recreate bool) {
+func (c *CbrOneChain) pbrBurnMonCb(eLog ethtypes.Log, version uint32) {
 	if version == 2 {
 		ev, err := c.pegContracts.bridge2.ParseBurn(eLog)
 		if err != nil {
 			log.Errorf("monPegbrV2Burn: chain %d cannot parse event: %s", c.chainid, err)
-			return false
+			return
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 		if relayerInstance.isEthAddrBlocked(ev.Account, ev.ToAccount) {
 			log.Warnln("eth addrs blocked", ev.String())
-			return false
+			return
 		}
 	} else {
 		ev, err := c.pegContracts.bridge.ParseBurn(eLog)
 		if err != nil {
 			log.Errorf("monPegbrBurn: chain %d cannot parse event: %s", c.chainid, err)
-			return false
+			return
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 		if relayerInstance.isEthAddrBlocked(ev.Account, ev.WithdrawAccount) {
 			log.Warnln("eth addrs blocked", ev.String())
-			return false
+			return
 		}
 	}
 	err := c.saveEvent(pegtypes.PegbrEventBurn, eLog)
 	if err != nil {
 		log.Errorln("saveEvent err:", err)
-		return true // ask to recreate to process event again
 	}
-	return false
-}
-
-func (c *CbrOneChain) monPegbrWithdrawn(blk *big.Int) {
-	cfg := &monitor.Config{
-		ChainId:       c.chainid,
-		EventName:     pegtypes.PegbrEventWithdrawn,
-		StartBlock:    blk,
-		ForwardDelay:  c.forwardBlkDelay,
-		CheckInterval: c.getEventCheckInterval(pegtypes.PegbrEventWithdrawn),
-	}
-	if c.pegContracts.vault.GetAddr() != eth.ZeroAddr {
-		cfg.Contract = c.pegContracts.vault
-		c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-			return c.pbrWithdrawnMonCb(id, eLog, 0)
-		})
-	}
-	if c.pegContracts.vault2.GetAddr() != eth.ZeroAddr {
-		cfg.Contract = c.pegContracts.vault2
-		c.mon.Monitor(cfg, func(id monitor.CallbackID, eLog ethtypes.Log) (recreate bool) {
-			return c.pbrWithdrawnMonCb(id, eLog, 2)
-		})
-	}
-
-}
-
-func (c *CbrOneChain) pbrWithdrawnMonCb(id monitor.CallbackID, eLog ethtypes.Log, version uint32) (recreate bool) {
-	var refChainId uint64
-	var refId []byte
-	if version == 2 {
-		ev, err := c.pegContracts.vault2.ParseWithdrawn(eLog)
-		if err != nil {
-			log.Errorf("monPegbrV2Withdrawn: chain %d cannot parse event: %s", c.chainid, err)
-			return false
-		}
-		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		refChainId = ev.RefChainId
-		refId = ev.RefId[:]
-	} else {
-		ev, err := c.pegContracts.vault.ParseWithdrawn(eLog)
-		if err != nil {
-			log.Errorf("monPegbrWithdrawn: chain %d cannot parse event: %s", c.chainid, err)
-			return false
-		}
-		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
-		refChainId = ev.RefChainId
-		refId = ev.RefId[:]
-	}
-	// delete to-submit withdraw at local if have, as it's been submitted (by other nodes or me)
-	relayerInstance.dbDelete(GetPegbrWdKey(c.chainid, refChainId, refId))
-
-	err := c.saveEvent(pegtypes.PegbrEventWithdrawn, eLog)
-	if err != nil {
-		log.Errorln("saveEvent err:", err)
-		return true // ask to recreate to process event again
-	}
-	return false
 }
 
 // SendMint sends mint tx onchain to PeggedTokenBridge contract, no wait mine

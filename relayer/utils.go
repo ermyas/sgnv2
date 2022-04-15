@@ -15,7 +15,7 @@ import (
 )
 
 func (r *Relayer) getCurrentBlockNumber() *big.Int {
-	return r.ethMonitor.GetCurrentBlockNumber()
+	return big.NewInt(int64(r.mon.GetBlkNum()))
 }
 
 func (r *Relayer) dbSet(key, val []byte) error {
