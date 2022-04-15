@@ -45,6 +45,10 @@ func (c *CbrOneChain) pbrDepositMonCb(id monitor.CallbackID, eLog ethtypes.Log, 
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+		if relayerInstance.isEthAddrBlocked(ev.Depositor, ev.MintAccount) {
+			log.Warnln("eth addrs blocked", ev.String())
+			return false
+		}
 	} else {
 		ev, err := c.pegContracts.vault.ParseDeposited(eLog)
 		if err != nil {
@@ -52,6 +56,10 @@ func (c *CbrOneChain) pbrDepositMonCb(id monitor.CallbackID, eLog ethtypes.Log, 
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+		if relayerInstance.isEthAddrBlocked(ev.Depositor, ev.MintAccount) {
+			log.Warnln("eth addrs blocked", ev.String())
+			return false
+		}
 	}
 	err := c.saveEvent(pegtypes.PegbrEventDeposited, eLog)
 	if err != nil {
@@ -107,11 +115,7 @@ func (c *CbrOneChain) pbrMintMonCb(id monitor.CallbackID, eLog ethtypes.Log, ver
 	}
 
 	// delete to-submit mint at local if have, as it's been submitted (by other nodes or me)
-	if CurRelayerInstance == nil {
-		log.Errorln("CurRelayerInstance not initialized")
-	} else {
-		CurRelayerInstance.dbDelete(GetPegbrMintKey(c.chainid, refChainId, refId[:]))
-	}
+	relayerInstance.dbDelete(GetPegbrMintKey(c.chainid, refChainId, refId[:]))
 
 	err := c.saveEvent(pegtypes.PegbrEventMint, eLog)
 	if err != nil {
@@ -151,6 +155,10 @@ func (c *CbrOneChain) pbrBurnMonCb(id monitor.CallbackID, eLog ethtypes.Log, ver
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+		if relayerInstance.isEthAddrBlocked(ev.Account, ev.ToAccount) {
+			log.Warnln("eth addrs blocked", ev.String())
+			return false
+		}
 	} else {
 		ev, err := c.pegContracts.bridge.ParseBurn(eLog)
 		if err != nil {
@@ -158,6 +166,10 @@ func (c *CbrOneChain) pbrBurnMonCb(id monitor.CallbackID, eLog ethtypes.Log, ver
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+		if relayerInstance.isEthAddrBlocked(ev.Account, ev.WithdrawAccount) {
+			log.Warnln("eth addrs blocked", ev.String())
+			return false
+		}
 	}
 	err := c.saveEvent(pegtypes.PegbrEventBurn, eLog)
 	if err != nil {
@@ -213,11 +225,7 @@ func (c *CbrOneChain) pbrWithdrawnMonCb(id monitor.CallbackID, eLog ethtypes.Log
 		refId = ev.RefId[:]
 	}
 	// delete to-submit withdraw at local if have, as it's been submitted (by other nodes or me)
-	if CurRelayerInstance == nil {
-		log.Errorln("CurRelayerInstance not initialized")
-	} else {
-		CurRelayerInstance.dbDelete(GetPegbrWdKey(c.chainid, refChainId, refId))
-	}
+	relayerInstance.dbDelete(GetPegbrWdKey(c.chainid, refChainId, refId))
 
 	err := c.saveEvent(pegtypes.PegbrEventWithdrawn, eLog)
 	if err != nil {

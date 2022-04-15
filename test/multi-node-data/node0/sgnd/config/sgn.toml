@@ -45,3 +45,9 @@ cbr_price = 60
 
 [nonevm]
 flow_account = "0xf3fcd2c1a78f5eee"
+
+[blocklist]
+eth_addrs = [
+    "0x098B716B8Aaf21512996dC57EB0615e2383E2f96", 
+    "0xe3172dc735b44893303e2fd22d1d3647271ab876"
+]

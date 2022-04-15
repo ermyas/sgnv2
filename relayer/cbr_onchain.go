@@ -28,6 +28,9 @@ var evNames = []string{
 
 // funcs for monitor cbridge events
 func (c *CbrOneChain) startMon() {
+	if relayerInstance == nil {
+		log.Fatal("relayer instance not initiated")
+	}
 	smallDelay := func() {
 		time.Sleep(20 * time.Millisecond)
 	}
@@ -81,6 +84,10 @@ func (c *CbrOneChain) monSend(blk *big.Int) {
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+		if relayerInstance.isEthAddrBlocked(ev.Sender, ev.Receiver) {
+			log.Warnln("eth addrs blocked", ev.String())
+			return false
+		}
 
 		err = c.saveEvent(cbrtypes.CbrEventSend, eLog)
 		if err != nil {
@@ -109,11 +116,7 @@ func (c *CbrOneChain) monRelay(blk *big.Int) {
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
 
 		// delete to-submit relay at local if have, as it's been submitted (by other nodes or me)
-		if CurRelayerInstance == nil {
-			log.Errorln("CurRelayerInstance not initialized", err)
-		} else {
-			CurRelayerInstance.dbDelete(GetCbrXferKey(ev.SrcTransferId[:], c.chainid))
-		}
+		relayerInstance.dbDelete(GetCbrXferKey(ev.SrcTransferId[:], c.chainid))
 
 		err = c.saveEvent(cbrtypes.CbrEventRelay, eLog)
 		if err != nil {
@@ -140,6 +143,10 @@ func (c *CbrOneChain) monLiqAdd(blk *big.Int) {
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+		if relayerInstance.isEthAddrBlocked(ev.Provider) {
+			log.Warnln("eth addrs blocked", ev.String())
+			return false
+		}
 
 		err = c.saveEvent(cbrtypes.CbrEventLiqAdd, eLog)
 		if err != nil {
@@ -196,6 +203,10 @@ func (c *CbrOneChain) monWithdrawalRequest(blk *big.Int) {
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid), "tx:", eLog.TxHash.String())
+		if relayerInstance.isEthAddrBlocked(ev.Sender, ev.Receiver) {
+			log.Warnln("eth addrs blocked", ev.String())
+			return false
+		}
 
 		err = c.saveEvent(cbrtypes.CbrEventWithdrawalRequest, eLog)
 		if err != nil {

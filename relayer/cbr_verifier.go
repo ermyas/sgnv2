@@ -114,6 +114,10 @@ func (c *CbrOneChain) verifyLiqAdd(eLog *ethtypes.Log, cliCtx client.Context, lo
 		return true, false
 	}
 	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+	if relayerInstance.isEthAddrBlocked(ev.Provider) {
+		log.Warnf("%s, eth addrs blocked", logmsg)
+		return true, false
+	}
 
 	// check on chain
 	done, approve, addLiqLog := c.verifyEventLog(eLog, eth.ContractTypeLiquidityBridge, cbrtypes.CbrEventLiqAdd, c.cbrContract.GetAddr(), logmsg)
@@ -142,6 +146,10 @@ func (c *CbrOneChain) verifySend(eLog *ethtypes.Log, cliCtx client.Context, logm
 		return true, false
 	}
 	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+	if relayerInstance.isEthAddrBlocked(ev.Sender, ev.Receiver) {
+		log.Warnf("%s, eth addrs blocked", logmsg)
+		return true, false
+	}
 
 	// check on chain
 	done, approve, sendLog := c.verifyEventLog(eLog, eth.ContractTypeLiquidityBridge, cbrtypes.CbrEventSend, c.cbrContract.GetAddr(), logmsg)
@@ -367,6 +375,10 @@ func (c *CbrOneChain) verifyWithdrawalRequest(eLog *ethtypes.Log, cliCtx client.
 		return true, false
 	}
 	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+	if relayerInstance.isEthAddrBlocked(ev.Sender, ev.Receiver) {
+		log.Warnf("%s, eth addrs blocked", logmsg)
+		return true, false
+	}
 
 	// check on chain
 	done, approve, wdReqLog := c.verifyEventLog(eLog, eth.ContractTypeWdInbox, cbrtypes.CbrEventWithdrawalRequest, c.wdiContract.GetAddr(), logmsg)

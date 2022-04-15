@@ -31,6 +31,10 @@ func (c *CbrOneChain) monMessage(blk *big.Int) {
 		}
 		msgId, _ := msgtypes.NewMessage(ev, c.chainid)
 		log.Infof("MonEv: %s. msgId: %x", ev.PrettyLog(c.chainid), msgId)
+		if relayerInstance.isEthAddrBlocked(ev.Sender, ev.Receiver) {
+			log.Warnln("eth addrs blocked", ev.String())
+			return false
+		}
 
 		err = c.saveEvent(msgtypes.MsgEventMessage, eLog)
 		if err != nil {
@@ -61,6 +65,10 @@ func (c *CbrOneChain) monMessageWithTransfer(blk *big.Int) {
 			return false
 		}
 		log.Infoln("MonEv:", ev.PrettyLog(c.chainid))
+		if relayerInstance.isEthAddrBlocked(ev.Sender, ev.Receiver) {
+			log.Warnln("eth addrs blocked", ev.String())
+			return false
+		}
 
 		err = c.saveEvent(msgtypes.MsgEventMessageWithTransfer, eLog)
 		if err != nil {

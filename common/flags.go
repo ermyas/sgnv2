@@ -77,6 +77,8 @@ const (
 	FlagFlowPubkeyIndex = "nonevm.flow_pubkey_idx" // index of pubkey to use. this pubkey's weight must >= 1000
 
 	FlagBridgeDefaultCheckInterval = "bridge.default_check_interval"
+
+	FlagBlocklistEthAddrs = "blocklist.eth_addrs"
 )
 
 const (

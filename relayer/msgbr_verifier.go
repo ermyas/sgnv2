@@ -74,6 +74,10 @@ func (c *CbrOneChain) verifyMessage(cliCtx client.Context, eLog *ethtypes.Log, l
 	}
 	msgId, _ := msgtypes.NewMessage(ev, c.chainid)
 	logmsg = fmt.Sprintf("%s. %s, msgId %x", logmsg, ev.PrettyLog(c.chainid), msgId)
+	if relayerInstance.isEthAddrBlocked(ev.Sender, ev.Receiver) {
+		log.Warnf("%s, eth addrs blocked", logmsg)
+		return true, false
+	}
 
 	// check on chain
 	done, approve, msgLog := c.verifyEventLog(eLog, eth.ContractTypeMsgBus, msgtypes.MsgEventMessage, c.msgContract.GetAddr(), logmsg)
@@ -103,6 +107,10 @@ func (c *CbrOneChain) verifyMessageEventTransfer(cliCtx client.Context, eLog *et
 		return true, false
 	}
 	logmsg = fmt.Sprintf("%s. %s", logmsg, ev.PrettyLog(c.chainid))
+	if relayerInstance.isEthAddrBlocked(ev.Sender, ev.Receiver) {
+		log.Warnf("%s, eth addrs blocked", logmsg)
+		return true, false
+	}
 
 	// check on chain
 	done, approve, msgLog := c.verifyEventLog(eLog, eth.ContractTypeMsgBus, msgtypes.MsgEventMessageWithTransfer, c.msgContract.GetAddr(), logmsg)

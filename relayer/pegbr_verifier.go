@@ -89,6 +89,10 @@ func (c *CbrOneChain) verifyPegbrDeposit(eLog *ethtypes.Log, cliCtx client.Conte
 			return true, false
 		}
 		logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+		if relayerInstance.isEthAddrBlocked(ev.Depositor, ev.MintAccount) {
+			log.Warnf("%s, eth addrs blocked", logmsg)
+			return true, false
+		}
 
 		done, approve, depositLog := c.verifyEventLog(
 			eLog, eth.ContractTypePegVault, pegtypes.PegbrEventDeposited, c.pegContracts.vault.GetAddr(), logmsg)
@@ -112,6 +116,10 @@ func (c *CbrOneChain) verifyPegbrDeposit(eLog *ethtypes.Log, cliCtx client.Conte
 			return true, false
 		}
 		logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+		if relayerInstance.isEthAddrBlocked(ev.Depositor, ev.MintAccount) {
+			log.Warnf("%s, eth addrs blocked", logmsg)
+			return true, false
+		}
 
 		done, approve, depositLog := c.verifyEventLog(
 			eLog, eth.ContractTypePegVaultV2, pegtypes.PegbrEventDeposited, c.pegContracts.vault2.GetAddr(), logmsg)
@@ -216,6 +224,10 @@ func (c *CbrOneChain) verifyPegbrBurn(eLog *ethtypes.Log, cliCtx client.Context,
 			return true, false
 		}
 		logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+		if relayerInstance.isEthAddrBlocked(ev.Account, ev.WithdrawAccount) {
+			log.Warnf("%s, eth addrs blocked", logmsg)
+			return true, false
+		}
 
 		done, approve, burnLog := c.verifyEventLog(
 			eLog, eth.ContractTypePegBridge, pegtypes.PegbrEventBurn, c.pegContracts.bridge.GetAddr(), logmsg)
@@ -240,6 +252,10 @@ func (c *CbrOneChain) verifyPegbrBurn(eLog *ethtypes.Log, cliCtx client.Context,
 			return true, false
 		}
 		logmsg = fmt.Sprintf("%s. %s", logmsg, ev.String())
+		if relayerInstance.isEthAddrBlocked(ev.Account, ev.ToAccount) {
+			log.Warnf("%s, eth addrs blocked", logmsg)
+			return true, false
+		}
 
 		done, approve, burnLog := c.verifyEventLog(
 			eLog, eth.ContractTypePegBridgeV2, pegtypes.PegbrEventBurn, c.pegContracts.bridge2.GetAddr(), logmsg)

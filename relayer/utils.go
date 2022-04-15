@@ -6,6 +6,7 @@ import (
 
 	"github.com/celer-network/goutils/log"
 	"github.com/celer-network/sgn-v2/common"
+	"github.com/celer-network/sgn-v2/eth"
 	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	mapset "github.com/deckarep/golang-set"
@@ -75,6 +76,17 @@ func (r *Relayer) isCbrSsUpdating() bool {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 	return r.cbrSsUpdating
+}
+
+func (r *Relayer) isEthAddrBlocked(addrs ...eth.Addr) bool {
+	r.cfgLock.RLock()
+	defer r.cfgLock.RUnlock()
+	for _, addr := range addrs {
+		if r.blockedEthAddrs[addr] {
+			return true
+		}
+	}
+	return false
 }
 
 func getEventCheckInterval(name string) uint64 {

@@ -18,6 +18,8 @@ import (
 	dbm "github.com/tendermint/tm-db"
 )
 
+var relayerInstance *Relayer // global relayer instance
+
 type Relayer struct {
 	*Operator
 	db                 dbm.DB
@@ -32,6 +34,9 @@ type Relayer struct {
 	cbrMgr             CbrMgr
 	cbrSsUpdating      bool
 	chainMonitorStatus ChainMonitorStatus
+
+	blockedEthAddrs map[eth.Addr]bool
+	cfgLock         sync.RWMutex // used for dynamic config reloading (not implemented yet)
 }
 
 type ChainMonitorStatus int32
@@ -41,8 +46,6 @@ const (
 	ChainMonitorStatusYes                            // monitoring
 	ChainMonitorStatusNo                             // unmonitoring
 )
-
-var CurRelayerInstance *Relayer
 
 func NewRelayer(operator *Operator, db dbm.DB) {
 
@@ -87,6 +90,11 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 		startEthBlock = ethMonitor.GetCurrentBlockNumber()
 	}
 
+	blocklist := viper.GetStringSlice(common.FlagBlocklistEthAddrs)
+	blockedEthAddrs := make(map[eth.Addr]bool)
+	for _, addr := range blocklist {
+		blockedEthAddrs[eth.Hex2Addr(addr)] = true
+	}
 	r := Relayer{
 		Operator:        operator,
 		db:              db,
@@ -95,9 +103,10 @@ func NewRelayer(operator *Operator, db dbm.DB) {
 		bonded:          validatorStatus == eth.Bonded,
 		bootstrapped:    bondedValNum.Uint64() > 0,
 		startEthBlock:   startEthBlock,
+		blockedEthAddrs: blockedEthAddrs,
 	}
 
-	CurRelayerInstance = &r
+	relayerInstance = &r
 
 	r.sgnAcct, err = sdk.AccAddressFromBech32(viper.GetString(common.FlagSgnValidatorAccount))
 	if err != nil {
