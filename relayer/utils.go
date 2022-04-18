@@ -5,13 +5,10 @@ import (
 	"time"
 
 	"github.com/celer-network/goutils/log"
-	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	stakingcli "github.com/celer-network/sgn-v2/x/staking/client/cli"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	mapset "github.com/deckarep/golang-set"
-	"github.com/iancoleman/strcase"
-	"github.com/spf13/viper"
 )
 
 func (r *Relayer) getCurrentBlockNumber() *big.Int {
@@ -87,16 +84,6 @@ func (r *Relayer) isEthAddrBlocked(addrs ...eth.Addr) bool {
 		}
 	}
 	return false
-}
-
-func getEventCheckInterval(name string) uint64 {
-	m := viper.GetStringMap(common.FlagEthCheckInterval)
-	eventNameInConfig := strcase.ToSnake(name)
-	if m[eventNameInConfig] != nil {
-		return uint64(m[eventNameInConfig].(int64))
-	}
-	// If not specified, use the default value of 0
-	return 0
 }
 
 func (r *Relayer) validateSigs(signedValidators mapset.Set) (pass bool) {

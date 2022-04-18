@@ -76,8 +76,6 @@ const (
 	FlagFlowAccount     = "nonevm.flow_account"    // hex of 8 bytes address, w/ 0x prefix, may not have leading 00, eg. 0x01 is valid
 	FlagFlowPubkeyIndex = "nonevm.flow_pubkey_idx" // index of pubkey to use. this pubkey's weight must >= 1000
 
-	FlagBridgeDefaultCheckInterval = "bridge.default_check_interval"
-
 	FlagBlocklistEthAddrs = "blocklist.eth_addrs"
 )
 

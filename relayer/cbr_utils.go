@@ -5,12 +5,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/celer-network/sgn-v2/common"
 	"github.com/celer-network/sgn-v2/eth"
 	cbrtypes "github.com/celer-network/sgn-v2/x/cbridge/types"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/iancoleman/strcase"
-	"github.com/spf13/viper"
 )
 
 func (c *CbrOneChain) setCurss(ss []*cbrtypes.Signer) {
@@ -43,19 +40,4 @@ func (c *CbrOneChain) saveEvent(name string, elog ethtypes.Log) error {
 	key := fmt.Sprintf("%s-%d-%d-%x", name, elog.BlockNumber, elog.Index, elog.TxHash)
 	val, _ := json.Marshal(elog)
 	return c.db.Set([]byte(key), val)
-}
-
-func (c *CbrOneChain) getEventCheckInterval(name string) uint64 {
-	eventNameInConfig := strcase.ToSnake(name)
-
-	var defaultInterval uint64
-	m := viper.GetStringMap(common.FlagBridgeDefaultCheckInterval)
-	if m[eventNameInConfig] != nil {
-		defaultInterval = uint64(m[eventNameInConfig].(int64))
-	}
-
-	if c.checkIntervals[eventNameInConfig] != 0 {
-		return c.checkIntervals[eventNameInConfig]
-	}
-	return defaultInterval
 }
