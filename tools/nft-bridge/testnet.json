@@ -40,15 +40,15 @@
       "pegs": [
         {
           "chainid": 5,
-          "addr": "0xa84D5E476e1592fC8E86DBB785C72C073d3c28B7"
+          "addr": "0x1FdEF15EfE0ae6e8Fe52499002cA65Ef8C893418"
         },
         {
           "chainid": 97,
-          "addr": "0x4C229cb50C6150BdB00e95B1E40de3cEac85a34c"
+          "addr": "0x44071DE32601d0FD12C22c564B2940C17E826107"
         },
         {
           "chainid": 4002,
-          "addr": "0x0dB4ceE042705d47Ef6C0818E82776359c3A80Ca"
+          "addr": "0xd1Be6B5137db9417a01b349AdA1d3cAe1eC6D212"
         }
       ]
     }
