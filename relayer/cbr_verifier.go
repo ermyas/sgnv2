@@ -180,7 +180,6 @@ func (c *CbrOneChain) verifySend(eLog *ethtypes.Log, cliCtx client.Context, logm
 		return false, false
 	}
 	if !exist {
-		// xfer doesn't exist, vote no
 		log.Warnln(logmsg, "send not found on chain")
 		return false, false
 	}
@@ -227,7 +226,6 @@ func (c *CbrOneChain) verifyRelay(eLog *ethtypes.Log, cliCtx client.Context, log
 		return false, false
 	}
 	if !exist {
-		// xfer doesn't exist, vote no
 		log.Warnln(logmsg, "relay not found on chain")
 		return false, false
 	}

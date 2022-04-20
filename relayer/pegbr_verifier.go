@@ -360,13 +360,11 @@ func (c *CbrOneChain) verifyPeggedTokenRecord(recordId eth.Hash, blockNumber uin
 	} else {
 		exist, err = c.pegContracts.bridge.Records(nil, recordId)
 	}
-
 	if err != nil {
 		log.Warnf("%s. query burn records err: %s", logmsg, err)
 		return false, false
 	}
 	if !exist {
-		// doesn't exist, vote no
 		log.Warnln(logmsg, "record not found on chain")
 		return false, false
 	}
@@ -390,11 +388,9 @@ func (c *CbrOneChain) verifyOriginalTokenRecord(recordId eth.Hash, blockNumber u
 		return false, false
 	}
 	if !exist {
-		// doesn't exist, vote no
 		log.Warnln(logmsg, "record not found on chain")
 		return false, false
 	}
-	// now both latest and safeblk has the state, ok to vote yes
 	log.Infof("%s, success", logmsg)
 	return true, true
 }
