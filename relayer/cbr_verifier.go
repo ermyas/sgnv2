@@ -181,8 +181,8 @@ func (c *CbrOneChain) verifySend(eLog *ethtypes.Log, cliCtx client.Context, logm
 	}
 	if !exist {
 		// xfer doesn't exist, vote no
-		log.Errorln(logmsg, "xferId:", xferId.String(), "not found")
-		return true, false
+		log.Warnln(logmsg, "send not found on chain")
+		return false, false
 	}
 
 	log.Infof("%s, success", logmsg)
@@ -228,8 +228,8 @@ func (c *CbrOneChain) verifyRelay(eLog *ethtypes.Log, cliCtx client.Context, log
 	}
 	if !exist {
 		// xfer doesn't exist, vote no
-		log.Errorln(logmsg, "xferId:", xferId.String(), "not found")
-		return true, false
+		log.Warnln(logmsg, "relay not found on chain")
+		return false, false
 	}
 
 	log.Infof("%s, success", logmsg)
@@ -275,8 +275,8 @@ func (c *CbrOneChain) verifyWithdraw(eLog *ethtypes.Log, cliCtx client.Context, 
 	}
 	if !exist {
 		// wdid doesn't exist, vote no
-		log.Errorln(logmsg, "wdId:", wdId.String(), "not found")
-		return true, false
+		log.Warnln(logmsg, "withdrawal not found on chain")
+		return false, false
 	}
 	log.Infof("%s, success", logmsg)
 	return true, true
