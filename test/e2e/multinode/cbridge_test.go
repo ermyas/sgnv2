@@ -29,7 +29,7 @@ func TestCbridge(t *testing.T) {
 func cbridgeTest(t *testing.T) {
 	log.Infoln("===================================================================")
 	log.Infoln("======================== Test cbridge ===========================")
-	setupBridgeTest()
+	setupBridgeTest(nil)
 
 	prepareValidators(t)
 
@@ -324,7 +324,7 @@ func cbrTest(t *testing.T, transactor *transactor.Transactor) {
 func cbrSignersTest(t *testing.T) {
 	log.Infoln("===================================================================")
 	log.Infoln("======================== Test cBridge signers ===========================")
-	setupBridgeTest()
+	setupBridgeTest(nil)
 
 	transactor := tc.NewTestTransactor(
 		tc.SgnHomes[0],

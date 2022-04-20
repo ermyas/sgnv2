@@ -9,8 +9,10 @@ RUN git config --global url."https://$GH_TOKEN:@github.com/".insteadOf "https://
 RUN git clone https://github.com/celer-network/sgn-v2-executor.git
 
 WORKDIR sgn-v2-executor
+RUN git fetch
+RUN git checkout debbb2c52573f16ecb31a0d6f67f3bce14e6e143
 RUN go mod download
-RUN go build -o /sgn-v2-executor/bin/executor ./main
+RUN go build -o /sgn-v2-executor/bin/executor ./cmd/main
 
 FROM alpine:latest
 VOLUME /executor/env

@@ -30,6 +30,10 @@ import (
 
 var bridgeChainStarted bool
 
+type TestFlags struct {
+	Bridge, Msg, Flow, Manual, Report bool
+}
+
 func BuildDockers() {
 	tc.RunCmd("make", "localnet-down")
 	tc.RunCmd("make", "build-node")
@@ -41,7 +45,6 @@ func SetupMainchain() {
 	tc.RunCmd("make", "localnet-stop-geth")
 	tc.RunCmd("make", "prepare-geth-data")
 	tc.RunCmd("make", "localnet-start-geth")
-	tc.RunCmd("make", "localnet-restart-flow")
 	waitGethStart(tc.LocalGeth1)
 
 	// set up mainchain: deploy contracts, fund addrs, etc
@@ -59,7 +62,6 @@ func SetupMainchain() {
 	tc.ChkErr(err, "fund each validator and delegator addr 1 billion CELR")
 }
 
-// should be invoked after mainchain 1 setup
 func SetupBridgeChains() {
 	if bridgeChainStarted {
 		log.Info("bridge chains already started")
@@ -85,148 +87,33 @@ func SetupBridgeChains() {
 	bridgeChainStarted = true
 }
 
-//Flow config
-const (
-	exampleTokenName     = "ExampleToken"
-	exampleTokenVault    = "ExampleTokenVault"
-	exampleTokenReceiver = "ExampleTokenReceiver"
-	exampleTokenBalance  = "ExampleTokenBalance"
-
-	testPegTokenName     = "PegToken"
-	testPegTokenVault    = "PegTokenVault"
-	testPegTokenReceiver = "PegTokenReceiver"
-	testPegTokenBalance  = "PegTokenBalance"
-
-	safeBoxAdmin   = "SafeBoxAdmin"
-	pegBridgeAdmin = "PegBridgeAdmin"
-)
-
-// should be invoked after geth2 and geth2 setup
-func SetupFlowChain() {
-	// create two account first
-	err := tc.SetupFlowServiceAccountClient()
-	tc.ChkErr(err, "SetupFlowServiceAccountClient")
-	// create contract acc
-	_, err = flowutils.CreateNewAccount(context.Background(), tc.FlowServiceAccountClient, tc.FlowServiceAccountSigner.FlowPubKey)
-	if err != nil {
-		log.Fatal(err)
+func SetupNewSgnEnv(contractParams *tc.ContractParams, tf *TestFlags) {
+	if tf == nil {
+		tf = &TestFlags{}
 	}
-	flowutils.FundAccountInEmulator(tc.FlowServiceAccountClient, tc.FlowContractAddr, 10000.0)
-	// create user acc
-	_, err = flowutils.CreateNewAccount(context.Background(), tc.FlowServiceAccountClient, tc.FlowServiceAccountSigner.FlowPubKey)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// reset signers of vault contract
-	newSigners := make(map[string]*big.Int)
-	flowutils.FundAccountInEmulator(tc.FlowServiceAccountClient, tc.FlowUserAddr, 10000.0)
-	for _, s := range tc.ValSignerKs {
-		vsigner, err := flowSigner.NewFlowSigner(s, "")
-		if err != nil {
-			log.Fatal(err)
-		}
-		_, err = flowutils.CreateNewAccount(context.Background(), tc.FlowServiceAccountClient, vsigner.FlowPubKey)
-		if err != nil {
-			log.Fatal(err)
-		}
-		newSigners[vsigner.PubKey] = new(big.Int).Mul(big.NewInt(2e8), big.NewInt(1e18))
-	}
-	for _, addr := range tc.FlowSignerAddrs {
-		flowutils.FundAccountInEmulator(tc.FlowServiceAccountClient, addr, 10000.0)
-	}
-
-	log.Infof("all account flow token added")
-	tc.SetupContractFlowClient()
-	tc.SetupUserFlowClient(tc.FlowContractAddr.String(), tc.FlowContractAddr.String(), tc.FlowContractAddr.String())
-
-	flowutils.DeployAllContract(context.Background(), tc.FlowContractAccountClient, uint64(commontypes.NonEvmChainID_FLOW_EMULATOR))
-
-	// add config in bridge vaultAddr, tokenVault, tokenReceiver, tokenName
-	tokenCfg := flowutils.SafeBoxTokenConfig{
-		TokenAddr:      tc.FlowContractAddr,
-		MinDepo:        "0.0",
-		MaxDepo:        "10000000.0",
-		DelayThreshold: "10000000.0",
-		Cap:            "0.0",
-	}
-	_, err = flowutils.AddNewTokenInSafeBox(context.Background(), tc.FlowContractAccountClient, tokenCfg,
-		tc.FlowContractAddr.String(), exampleTokenVault, exampleTokenReceiver, exampleTokenName)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	pegTokenCfg := flowutils.PegBridgeTokenConfig{
-		TokenAddr:      tc.FlowContractAddr,
-		MinBurn:        "0.0",
-		MaxBurn:        "10000000.0",
-		DelayThreshold: "10000000.0",
-		Cap:            "0.0",
-	}
-	_, err = flowutils.AddNewTokenInPegBridge(context.Background(), tc.FlowContractAccountClient, pegTokenCfg,
-		tc.FlowContractAddr.String(), testPegTokenReceiver, testPegTokenName)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = flowutils.AddMinterAndBurnerInPegBridgeCdc(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr, tc.FlowContractAddr.String(), tc.FlowContractAddr.String(), tc.FlowContractAddr.String(), testPegTokenName)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// reset signers of vault contract
-	_, err = flowutils.ResetBridgeSigners(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr.String(), newSigners)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// add token vault for acc2
-	_, err = flowutils.SetupTokenVault(context.Background(), tc.FlowUserAccountClient, tc.FlowContractAddr.String(),
-		exampleTokenName, exampleTokenVault, exampleTokenBalance, exampleTokenReceiver)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = flowutils.SetupTokenVault(context.Background(), tc.FlowUserAccountClient, tc.FlowContractAddr.String(),
-		testPegTokenName, testPegTokenVault, testPegTokenBalance, testPegTokenReceiver)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// test transfer
-	_, err = flowutils.TransferToken(context.Background(), tc.FlowContractAccountClient, "1000000.0", tc.FlowUserAddr,
-		tc.FlowContractAddr.String(), exampleTokenName, exampleTokenVault, exampleTokenReceiver)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	curuserFlowExampleBalance, err := tc.FlowContractAccountClient.QueryTokenBalance(context.Background(),
-		eth.Hex2Addr(tc.FlowUserAddr.String()), exampleTokenBalance)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Infof("curuserFlowExampleBalance:%s", curuserFlowExampleBalance)
-}
-
-func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge, msg, manual, report bool) {
 	tc.RunAllAndWait(
 		SetupBridgeChains,
 		func() {
-			deployContractsAndPrepareSgnData(contractParams, cbridge, msg, manual, report)
+			deployContractsAndPrepareSgnData(contractParams, tf)
 		},
 	)
 
-	if cbridge {
-		DeployUsdtForBridge()
-		DeployBridgeContract()
-		DeployPegBridgeContract()
-		CreateFarmingPools()
-		FundUsdtFarmingReward()
-		DeployWdInboxContract()
+	if tf.Bridge {
+		deployUsdtForBridge()
+		deployBridgeContract()
+		deployPegBridgeContract()
+		createFarmingPools()
+		fundUsdtFarmingReward()
+		deployWdInboxContract()
 		tc.ApproveTestTokenToBridges()
+		if tf.Flow {
+			setupFlowChain()
+		} else {
+			removeFlowCfg()
+		}
 	}
-	if msg {
-		DeployBatchTransferAndMessageTransferAndMessageBusContracts()
+	if tf.Msg {
+		deployMessageContracts()
 	}
 
 	// Update global viper
@@ -234,7 +121,7 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge, msg, manual, rep
 	viper.SetConfigFile(node0ConfigPath)
 	err := viper.ReadInConfig()
 	tc.ChkErr(err, "Failed to read config")
-	if cbridge && !manual {
+	if tf.Bridge && !tf.Manual {
 		// set node3 account as node0 transactor
 		viper.Set(common.FlagSgnTransactors, []string{tc.ValSgnAddrStrs[3]})
 		err = viper.WriteConfig()
@@ -251,12 +138,12 @@ func SetupNewSgnEnv(contractParams *tc.ContractParams, cbridge, msg, manual, rep
 	}
 
 	tc.RunCmd("make", "localnet-up-nodes")
-	if msg {
+	if tf.Msg {
 		PrepareExecutor()
 	}
 }
 
-func deployContractsAndPrepareSgnData(contractParams *tc.ContractParams, cbridge, msg, manual, report bool) {
+func deployContractsAndPrepareSgnData(contractParams *tc.ContractParams, tf *TestFlags) {
 	log.Infoln("Deploy Staking and SGN contracts")
 	if contractParams == nil {
 		contractParams = &tc.ContractParams{
@@ -300,7 +187,7 @@ func deployContractsAndPrepareSgnData(contractParams *tc.ContractParams, cbridge
 		configFileViper.BindEnv(common.FlagGatewayAwsS3Bucket, "GATEWAY_AWS_S3_BUCKET")
 		configFileViper.BindEnv(common.FlagGatewayAwsKey, "GATEWAY_AWS_KEY")
 		configFileViper.BindEnv(common.FlagGatewayAwsSecret, "GATEWAY_AWS_SECRET")
-		if !report {
+		if !tf.Report {
 			configFileViper.Set(common.FlagSgnCheckIntervalCbrPrice, 0)
 			configFileViper.Set(common.FlagSgnLivenessReportEndpoint, "")
 			configFileViper.Set(common.FlagSgnConsensusLogReportEndpoint, "")
@@ -309,7 +196,7 @@ func deployContractsAndPrepareSgnData(contractParams *tc.ContractParams, cbridge
 		err = configFileViper.WriteConfig()
 		tc.ChkErr(err, "Failed to write config")
 
-		if !cbridge {
+		if !tf.Bridge {
 			cbrCfgPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/cbridge.toml", i)
 			cbrViper := viper.New()
 			cbrViper.SetConfigFile(cbrCfgPath)
@@ -337,12 +224,12 @@ func deployContractsAndPrepareSgnData(contractParams *tc.ContractParams, cbridge
 		)
 		genesisViper.Set("app_state.farming.reward_contracts", farmingRewardContracts)
 
-		if manual {
+		if tf.Manual {
 			genesisViper.Set("app_state.gov.voting_params.voting_period", "120s")
 		} else {
 			genesisViper.Set("app_state.gov.voting_params.voting_period", "10s")
 		}
-		if !cbridge {
+		if !tf.Bridge {
 			genesisViper.Set("app_state.cbridge.config.assets", []string{})
 			genesisViper.Set("app_state.cbridge.config.chain_pairs", []string{})
 		}
@@ -351,7 +238,7 @@ func deployContractsAndPrepareSgnData(contractParams *tc.ContractParams, cbridge
 	}
 }
 
-func DeployUsdtForBridge() {
+func deployUsdtForBridge() {
 	tc.RunAllAndWait(
 		func() {
 			tc.CbrChain1.USDTAddr, tc.CbrChain1.USDTContract =
@@ -409,7 +296,7 @@ func DeployUsdtForBridge() {
 	}
 }
 
-func DeployBridgeContract() {
+func deployBridgeContract() {
 	tc.RunAllAndWait(
 		func() {
 			tc.CbrChain1.CbrAddr, tc.CbrChain1.CbrContract = tc.DeployBridgeContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth)
@@ -453,7 +340,7 @@ func DeployBridgeContract() {
 	}
 }
 
-func DeployWdInboxContract() {
+func deployWdInboxContract() {
 	tc.CbrChain1.WdiAddr, tc.CbrChain1.WdInboxContract = tc.DeployWithdrawInboxContract(tc.CbrChain1.Ec, tc.CbrChain1.Auth)
 	// let u0 be owner of ContractAsLP
 	tc.CbrChain1.CLPAddr, tc.CbrChain1.CLPContract =
@@ -473,7 +360,7 @@ func DeployWdInboxContract() {
 	}
 }
 
-func DeployPegBridgeContract() {
+func deployPegBridgeContract() {
 	tc.RunAllAndWait(
 		func() {
 			tc.CbrChain1.DeployPegVaultContracts()
@@ -706,7 +593,7 @@ func DeployPegBridgeContract() {
 	}
 }
 
-func DeployBatchTransferAndMessageTransferAndMessageBusContracts() {
+func deployMessageContracts() {
 	tc.RunAllAndWait(
 		func() {
 			tc.CbrChain1.DeployMessageContracts()
@@ -852,7 +739,7 @@ func SetupExecutorConfig() {
 	tc.ChkErr(err, "Failed to write config")
 }
 
-func CreateFarmingPools() {
+func createFarmingPools() {
 	log.Infoln("Creating farming pools in genesis")
 	for i := 0; i < len(tc.ValEthKs); i++ {
 		genesisPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/genesis.json", i)
@@ -967,7 +854,7 @@ func CreateFarmingPools() {
 	}
 }
 
-func FundUsdtFarmingReward() {
+func fundUsdtFarmingReward() {
 	amt := tc.NewBigInt(1, 13)
 	usdtContract := tc.CbrChain1.USDTContract
 	approveTx, err := usdtContract.Approve(tc.EtherBaseAuth, tc.Contracts.FarmingRewards.Address, amt)
@@ -977,6 +864,144 @@ func FundUsdtFarmingReward() {
 	log.Infoln("allowance to FarmingRewards", allowance.String())
 	_, err = tc.Contracts.FarmingRewards.ContributeToRewardPool(tc.EtherBaseAuth, tc.CbrChain1.USDTAddr, amt)
 	tc.ChkErr(err, "failed to contribute USDT to FarmingRewards")
+}
+
+//Flow config
+const (
+	exampleTokenName     = "ExampleToken"
+	exampleTokenVault    = "ExampleTokenVault"
+	exampleTokenReceiver = "ExampleTokenReceiver"
+	exampleTokenBalance  = "ExampleTokenBalance"
+
+	testPegTokenName     = "PegToken"
+	testPegTokenVault    = "PegTokenVault"
+	testPegTokenReceiver = "PegTokenReceiver"
+	testPegTokenBalance  = "PegTokenBalance"
+
+	safeBoxAdmin   = "SafeBoxAdmin"
+	pegBridgeAdmin = "PegBridgeAdmin"
+)
+
+func setupFlowChain() {
+	log.Info("start setup flowchain")
+	tc.RunCmd("make", "localnet-restart-flow")
+	// create two account first
+	err := tc.SetupFlowServiceAccountClient()
+	tc.ChkErr(err, "SetupFlowServiceAccountClient")
+	// create contract acc
+	_, err = flowutils.CreateNewAccount(context.Background(), tc.FlowServiceAccountClient, tc.FlowServiceAccountSigner.FlowPubKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+	flowutils.FundAccountInEmulator(tc.FlowServiceAccountClient, tc.FlowContractAddr, 10000.0)
+	// create user acc
+	_, err = flowutils.CreateNewAccount(context.Background(), tc.FlowServiceAccountClient, tc.FlowServiceAccountSigner.FlowPubKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// reset signers of vault contract
+	newSigners := make(map[string]*big.Int)
+	flowutils.FundAccountInEmulator(tc.FlowServiceAccountClient, tc.FlowUserAddr, 10000.0)
+	for _, s := range tc.ValSignerKs {
+		vsigner, err := flowSigner.NewFlowSigner(s, "")
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, err = flowutils.CreateNewAccount(context.Background(), tc.FlowServiceAccountClient, vsigner.FlowPubKey)
+		if err != nil {
+			log.Fatal(err)
+		}
+		newSigners[vsigner.PubKey] = new(big.Int).Mul(big.NewInt(2e8), big.NewInt(1e18))
+	}
+	for _, addr := range tc.FlowSignerAddrs {
+		flowutils.FundAccountInEmulator(tc.FlowServiceAccountClient, addr, 10000.0)
+	}
+
+	log.Infof("all account flow token added")
+	tc.SetupContractFlowClient()
+	tc.SetupUserFlowClient(tc.FlowContractAddr.String(), tc.FlowContractAddr.String(), tc.FlowContractAddr.String())
+
+	flowutils.DeployAllContract(context.Background(), tc.FlowContractAccountClient, uint64(commontypes.NonEvmChainID_FLOW_EMULATOR))
+
+	// add config in bridge vaultAddr, tokenVault, tokenReceiver, tokenName
+	tokenCfg := flowutils.SafeBoxTokenConfig{
+		TokenAddr:      tc.FlowContractAddr,
+		MinDepo:        "0.0",
+		MaxDepo:        "10000000.0",
+		DelayThreshold: "10000000.0",
+		Cap:            "0.0",
+	}
+	_, err = flowutils.AddNewTokenInSafeBox(context.Background(), tc.FlowContractAccountClient, tokenCfg,
+		tc.FlowContractAddr.String(), exampleTokenVault, exampleTokenReceiver, exampleTokenName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pegTokenCfg := flowutils.PegBridgeTokenConfig{
+		TokenAddr:      tc.FlowContractAddr,
+		MinBurn:        "0.0",
+		MaxBurn:        "10000000.0",
+		DelayThreshold: "10000000.0",
+		Cap:            "0.0",
+	}
+	_, err = flowutils.AddNewTokenInPegBridge(context.Background(), tc.FlowContractAccountClient, pegTokenCfg,
+		tc.FlowContractAddr.String(), testPegTokenReceiver, testPegTokenName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = flowutils.AddMinterAndBurnerInPegBridgeCdc(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr, tc.FlowContractAddr.String(), tc.FlowContractAddr.String(), tc.FlowContractAddr.String(), testPegTokenName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// reset signers of vault contract
+	_, err = flowutils.ResetBridgeSigners(context.Background(), tc.FlowContractAccountClient, tc.FlowContractAddr.String(), newSigners)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// add token vault for acc2
+	_, err = flowutils.SetupTokenVault(context.Background(), tc.FlowUserAccountClient, tc.FlowContractAddr.String(),
+		exampleTokenName, exampleTokenVault, exampleTokenBalance, exampleTokenReceiver)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = flowutils.SetupTokenVault(context.Background(), tc.FlowUserAccountClient, tc.FlowContractAddr.String(),
+		testPegTokenName, testPegTokenVault, testPegTokenBalance, testPegTokenReceiver)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// test transfer
+	_, err = flowutils.TransferToken(context.Background(), tc.FlowContractAccountClient, "1000000.0", tc.FlowUserAddr,
+		tc.FlowContractAddr.String(), exampleTokenName, exampleTokenVault, exampleTokenReceiver)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	curuserFlowExampleBalance, err := tc.FlowContractAccountClient.QueryTokenBalance(context.Background(),
+		eth.Hex2Addr(tc.FlowUserAddr.String()), exampleTokenBalance)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Infof("curuserFlowExampleBalance:%s", curuserFlowExampleBalance)
+}
+
+func removeFlowCfg() {
+	for i := 0; i < len(tc.ValEthKs); i++ {
+		cbrCfgPath := fmt.Sprintf("../../../docker-volumes/node%d/sgnd/config/cbridge.toml", i)
+		cbrViper := viper.New()
+		cbrViper.SetConfigFile(cbrCfgPath)
+		err := cbrViper.ReadInConfig()
+		tc.ChkErr(err, "Failed to read config")
+		multichains := cbrViper.Get("multichain").([]interface{})
+		cbrViper.Set("multichain", multichains[:3])
+		err = cbrViper.WriteConfig()
+		tc.ChkErr(err, "Failed to write config")
+	}
 }
 
 func ShutdownNode(node uint) {

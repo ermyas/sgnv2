@@ -27,7 +27,7 @@ func TestFlowPegbridge(t *testing.T) {
 func pegbridgeFlowTest(t *testing.T) {
 	log.Infoln("===================================================================")
 	log.Infoln("======================== Test flow pegbridge ===========================")
-	setupBridgeTest()
+	setupBridgeTest(&TestFlags{Flow: true})
 
 	pbrFlowTest(t, prepareValidators(t))
 }

@@ -57,19 +57,26 @@ func main() {
 		}
 		tc.SetupSgnchain()
 
-		p := &tc.ContractParams{
-			CelrAddr:              tc.CelrAddr,
-			ProposalDeposit:       big.NewInt(1e17),
-			VotePeriod:            big.NewInt(30),
-			UnbondingPeriod:       big.NewInt(5),
-			MaxBondedValidators:   big.NewInt(5),
-			MinValidatorTokens:    big.NewInt(5e18),
-			MinSelfDelegation:     big.NewInt(2e18),
-			AdvanceNoticePeriod:   big.NewInt(1),
-			ValidatorBondInterval: big.NewInt(0),
-			MaxSlashFactor:        big.NewInt(1e5),
-		}
-		multinode.SetupNewSgnEnv(p, *cbr, *msg, true, *report)
+		multinode.SetupNewSgnEnv(
+			&tc.ContractParams{
+				CelrAddr:              tc.CelrAddr,
+				ProposalDeposit:       big.NewInt(1e17),
+				VotePeriod:            big.NewInt(30),
+				UnbondingPeriod:       big.NewInt(5),
+				MaxBondedValidators:   big.NewInt(5),
+				MinValidatorTokens:    big.NewInt(5e18),
+				MinSelfDelegation:     big.NewInt(2e18),
+				AdvanceNoticePeriod:   big.NewInt(1),
+				ValidatorBondInterval: big.NewInt(0),
+				MaxSlashFactor:        big.NewInt(1e5),
+			},
+			&multinode.TestFlags{
+				Bridge: *cbr,
+				Msg:    *msg,
+				Manual: true,
+				Report: *report,
+			},
+		)
 		if *cbr {
 			amts := []*big.Int{big.NewInt(1e18)}
 			tc.CbrChain1.SetInitSigners(amts)

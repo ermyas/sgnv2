@@ -18,7 +18,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupBridgeTest() {
+func setupBridgeTest(tf *TestFlags) {
+	if tf == nil {
+		tf = &TestFlags{}
+	}
 	log.Infoln("Set up new sgn env")
 	p := &tc.ContractParams{
 		CelrAddr:              tc.CelrAddr,
@@ -32,7 +35,7 @@ func setupBridgeTest() {
 		ValidatorBondInterval: big.NewInt(0),
 		MaxSlashFactor:        big.NewInt(1e5),
 	}
-	SetupNewSgnEnv(p, true, false, false, false)
+	SetupNewSgnEnv(p, &TestFlags{Bridge: true, Flow: tf.Flow})
 	tc.SleepWithLog(10, "sgn being ready")
 }
 
@@ -46,7 +49,7 @@ func TestBridge(t *testing.T) {
 func bridgeTest(t *testing.T) {
 	log.Infoln("===================================================================")
 	log.Infoln("============ Test Bridge (Both cBridge and pegBridge) =============")
-	setupBridgeTest()
+	setupBridgeTest(&TestFlags{Flow: true})
 
 	prepareValidators(t)
 	govSyncerCandidates(t)

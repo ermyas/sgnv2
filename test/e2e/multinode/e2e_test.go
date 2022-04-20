@@ -21,7 +21,6 @@ func TestMain(m *testing.M) {
 	BuildDockers()
 	tc.RunAllAndWait(SetupMainchain, SetupBridgeChains)
 	tc.SetupSgnchain()
-	SetupFlowChain()
 
 	log.Infoln("run all e2e tests")
 	ret := m.Run()

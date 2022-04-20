@@ -32,7 +32,7 @@ func setupMessage() {
 		ValidatorBondInterval: big.NewInt(0),
 		MaxSlashFactor:        big.NewInt(1e5),
 	}
-	SetupNewSgnEnv(p, true, true, false, false)
+	SetupNewSgnEnv(p, &TestFlags{Bridge: true, Msg: true})
 	tc.SleepWithLog(10, "sgn being ready")
 }
 
