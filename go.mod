@@ -6,7 +6,7 @@ require (
 	github.com/allegro/bigcache v1.2.1
 	github.com/armon/go-metrics v0.3.10
 	github.com/celer-network/cbridge-flow v0.0.1
-	github.com/celer-network/endpoint-proxy v0.2.3
+	github.com/celer-network/endpoint-proxy v0.2.4
 	github.com/celer-network/goutils v0.1.53
 	github.com/cockroachdb/cockroach-go/v2 v2.2.8
 	github.com/cosmos/cosmos-sdk v0.44.5
