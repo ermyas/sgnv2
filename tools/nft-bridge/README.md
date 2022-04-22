@@ -10,6 +10,11 @@ similar to NFTPeg
 - make sure `NFT_BRIDGE_ADDR` is set to correct NFTBridge address, also .env must have `NFT_SYM` and `NFT_NAME` set
 - run `hardhat deploy --network goerli --tags MCNNFT`
 
+## Use the ops tool to set dest bridge and NFTs automatically
+ops/main.go can auto set all maps in contracts so no manual onchain tx needed. It also supports local json file so contracts can be ready before we update json file on s3.
+
+The tool reads json file from local (if `-c` is set) or from `jsonurl` in toml and will query all nft bridges and compare onchain info with what's in the json. `-f` flag will make it send onchain tx to set maps. Note the kspath/ksphrase in toml file must be bridge contract owner.
+
 ### set dest bridge map
 saving per chain id NFT Bridge address in contract simplifes deposit/burn args.
 `setDestBridge` set one chainid, nft bridge address. `setDestBridges` can set multiple in batch
@@ -73,3 +78,22 @@ location /nft {
     proxy_pass http://nftbr;
 }
 ```
+
+## Owner tool to keep track of which tokens a user has
+We plan to use 3rd party api to list which token ids a user has for specific NFT for prod. But for testnet there is no support. Frontend used to hardcode a range and loop query onchain which costs eng effort when new NFTs are minted and has slow user experience.
+
+The owner tool solves that by go over all Transfer events since a NFT contract is deployed and update per user list of token ids. (mint/burn also has Transfer event w/ zero address as from or to)
+
+Note this can also be used in prod in case we need to support NFTs which are not yet supported by 3rd party.
+
+Owner needs 2 config toml files. one is the common nftbr_test.toml for multichain related endpoint, blkdelay etc. The other is its own nfts.toml. Each entry is like
+```toml
+[[nft]]
+chainid = 5
+contract = "0xA50e5203ECa1685B4e01A8A569dd12150A8b419D"
+startblk = 6555494
+pollintv = 5
+```
+`startblk` is ONLY used when monitors this nft contract for first time (ie. monitor table has no persist) and usually should be set to blk num this NFT contract was deployed. So monitor will start from that particular block and go over all past Transfer events to keep track of ownership, and keep monitoring.
+
+`pollintv` is the interval seconds between get logs calls, when we first add a new NFT, it's likely the startblk is in the past so we want to catch up quickly, set pollintv small like 5 or even 1 will make sure we quickly go over all history events. Log will show which block number the event is from. After we go over past events, remember to remove this setting so default interval of 30 secons is used for normal monitoring. Just restart owner process w/ new nfts.toml, monitored block is persisted in db, so no worry of miss event.

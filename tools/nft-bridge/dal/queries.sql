@@ -25,3 +25,13 @@ UPDATE nftxfer SET status = 2, dst_tx = $6 WHERE src_chid = $1 AND dst_chid = $2
 
 -- name: NftSetDoneByDstTx :exec
 UPDATE nftxfer SET status = 3 WHERE dst_tx = $1;
+
+-- name: UsrGetNfts :one
+SELECT tokens FROM usrnfts WHERE chid = $1 AND nft = $2 AND usr = $3;
+
+-- name: UsrSetNfts :exec
+INSERT INTO usrnfts (chid, nft, usr, tokens) VALUES ($1, $2, $3, $4) ON CONFLICT (chid, nft, usr) DO UPDATE
+SET tokens = excluded.tokens;
+
+-- name: AllEvsAdd :exec
+INSERT INTO allevs (chid, nft, from_addr, to_addr, tok_id) VALUES ($1, $2, $3, $4, $5);

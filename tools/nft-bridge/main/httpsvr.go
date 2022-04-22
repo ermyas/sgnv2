@@ -35,6 +35,7 @@ func NewServer(dal *dal.DAL) *Server {
 func (s *Server) Run(port int) {
 	router := httprouter.New()
 	router.GET("/nftbr/history/:usr", s.History)
+	router.GET("/nftbr/own/:usr/:chid/:nft", s.Own)
 
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), cors.AllowAll().Handler(router)); err != nil {
 		log.Error("listen err: ", err)
@@ -50,6 +51,33 @@ type HistResp struct {
 func cleanup(addrStr string) string {
 	addr := common.HexToAddress(addrStr)
 	return hex.EncodeToString(addr[:])
+}
+
+func (s *Server) Own(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	usr := cleanup(ps.ByName("usr")) // clean up user addr
+	nft := cleanup(ps.ByName("nft"))
+	chid, err := strconv.Atoi(ps.ByName("chid"))
+	if err != nil {
+		http.Error(w, "invalid chain id "+ps.ByName("chid"), http.StatusBadRequest)
+		return
+	}
+	has, err := s.db.UsrGetNfts(context.Background(), dal.UsrGetNftsParams{
+		Chid: uint64(chid),
+		Nft:  nft,
+		Usr:  usr,
+	})
+	// no rows is not an error
+	_, err2 := dal.ChkQueryRow(err)
+	if err2 != nil {
+		http.Error(w, "internal db err: "+err2.Error(), http.StatusInternalServerError)
+		return
+	}
+	if len(has) == 0 {
+		w.Write([]byte("[]"))
+	} else {
+		raw, _ := json.Marshal(has)
+		w.Write(raw)
+	}
 }
 
 func (s *Server) History(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {

@@ -21,6 +21,9 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
+// poll nft bridge interval seconds
+const defaultPollSec = 20
+
 type Addr = common.Address
 
 func Hex2addr(addr string) Addr {
@@ -101,8 +104,8 @@ func (c *OneChain) MonNftBridge(addr string) {
 	c.nftbr, _ = binding.NewNFTBridgeFilterer(nftbrAddr, nil)
 	go c.mon.MonAddr(mon2.PerAddrCfg{
 		Addr:    nftbrAddr,
-		ChkIntv: time.Minute,          // getlog every minute
-		AbiStr:  binding.NFTBridgeABI, // to parse event name by topics[0]
+		ChkIntv: time.Second * defaultPollSec, // TODO: support per addr interval?
+		AbiStr:  binding.NFTBridgeABI,         // to parse event name by topics[0]
 	}, c.evCallback)
 }
 

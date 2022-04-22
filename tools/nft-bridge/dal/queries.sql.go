@@ -7,7 +7,31 @@ import (
 	"context"
 
 	"github.com/celer-network/goutils/big"
+	"github.com/lib/pq"
 )
+
+const allEvsAdd = `-- name: AllEvsAdd :exec
+INSERT INTO allevs (chid, nft, from_addr, to_addr, tok_id) VALUES ($1, $2, $3, $4, $5)
+`
+
+type AllEvsAddParams struct {
+	Chid     uint64  `json:"chid"`
+	Nft      string  `json:"nft"`
+	FromAddr string  `json:"fromAddr"`
+	ToAddr   string  `json:"toAddr"`
+	TokID    big.Int `json:"tokID"`
+}
+
+func (q *Queries) AllEvsAdd(ctx context.Context, arg AllEvsAddParams) error {
+	_, err := q.db.ExecContext(ctx, allEvsAdd,
+		arg.Chid,
+		arg.Nft,
+		arg.FromAddr,
+		arg.ToAddr,
+		arg.TokID,
+	)
+	return err
+}
 
 const monGet = `-- name: MonGet :one
 
@@ -175,6 +199,45 @@ func (q *Queries) NftSetDstTx(ctx context.Context, arg NftSetDstTxParams) error 
 		arg.DstNft,
 		arg.TokID,
 		arg.DstTx,
+	)
+	return err
+}
+
+const usrGetNfts = `-- name: UsrGetNfts :one
+SELECT tokens FROM usrnfts WHERE chid = $1 AND nft = $2 AND usr = $3
+`
+
+type UsrGetNftsParams struct {
+	Chid uint64 `json:"chid"`
+	Nft  string `json:"nft"`
+	Usr  string `json:"usr"`
+}
+
+func (q *Queries) UsrGetNfts(ctx context.Context, arg UsrGetNftsParams) ([]string, error) {
+	row := q.db.QueryRowContext(ctx, usrGetNfts, arg.Chid, arg.Nft, arg.Usr)
+	var tokens []string
+	err := row.Scan(pq.Array(&tokens))
+	return tokens, err
+}
+
+const usrSetNfts = `-- name: UsrSetNfts :exec
+INSERT INTO usrnfts (chid, nft, usr, tokens) VALUES ($1, $2, $3, $4) ON CONFLICT (chid, nft, usr) DO UPDATE
+SET tokens = excluded.tokens
+`
+
+type UsrSetNftsParams struct {
+	Chid   uint64   `json:"chid"`
+	Nft    string   `json:"nft"`
+	Usr    string   `json:"usr"`
+	Tokens []string `json:"tokens"`
+}
+
+func (q *Queries) UsrSetNfts(ctx context.Context, arg UsrSetNftsParams) error {
+	_, err := q.db.ExecContext(ctx, usrSetNfts,
+		arg.Chid,
+		arg.Nft,
+		arg.Usr,
+		pq.Array(arg.Tokens),
 	)
 	return err
 }
