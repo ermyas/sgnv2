@@ -21,6 +21,8 @@ message SgnAnalyticsReport {
   map<uint64, BaseFeeDistributionHistory> base_fee_distribution_histories = 5;
   // key is chainId. only report once when after node start
   map<string, ChainConfig> chain_configs = 6;
+  // key is chainId, value is current block time
+  map<string, uint64> block_times = 7;
 }
 
 // move lp_fee_earning_histories and base_fee_distribution_histories to here
