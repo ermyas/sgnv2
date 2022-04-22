@@ -49,17 +49,6 @@ all: lint install
 install: go.sum
 	$(ENVS) go install $(BUILD_FLAGS) ./cmd/sgnd
 
-.PHONY: install-executor
-install-executor: go.sum
-	go build -o $(HOME)/go/bin/executor ./executor/main
-
-release-executor:
-	./scripts/release_executor.sh
-
-.PHONY: install-gateway
-install-gateway: go.sum
-	go build -o $(HOME)/go/bin/gateway ./gateway/main/main.go
-
 generate-docs: go.sum
 	go run ./cmd/gendocs ./docs
 	find ./docs/sgnd -type f | xargs sed -i '' 's|'"$$HOME"'|\$$HOME|g'
