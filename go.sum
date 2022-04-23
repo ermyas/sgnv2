@@ -205,8 +205,8 @@ github.com/c-bata/go-prompt v0.2.5/go.mod h1:vFnjEGDIIA/Lib7giyE4E9c50Lvl8j0S+7F
 github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n9yuLkIJQ=
 github.com/celer-network/cbridge-flow v0.0.1 h1:Sp8N3+e75yF8LyEZDuu4yVyupTn0GEcpfj5KMOHVA20=
 github.com/celer-network/cbridge-flow v0.0.1/go.mod h1:VXa1WOB8UCYYW9HjDjDwrzkTZuoWeHJzFm6oG/xHh2o=
-github.com/celer-network/endpoint-proxy v0.2.3 h1:zryZpR5YBJFDsmuFzRNxxLp8OF3IH6fh+TCZj4/D57Y=
-github.com/celer-network/endpoint-proxy v0.2.3/go.mod h1:zyRTvdnbG+UMp9aYJgwIeNahJv0gMqAwMcWY/mIDvlI=
+github.com/celer-network/endpoint-proxy v0.2.4 h1:vzgOekzGTx1u6o3XG0cncO3Fl43Q68+xBWYu3TyVVKQ=
+github.com/celer-network/endpoint-proxy v0.2.4/go.mod h1:zyRTvdnbG+UMp9aYJgwIeNahJv0gMqAwMcWY/mIDvlI=
 github.com/celer-network/goutils v0.1.38/go.mod h1:YLfSj4GfqY0+OZkFjnOpAdCdn2lKEXEQp37aS31sYjY=
 github.com/celer-network/goutils v0.1.46/go.mod h1:D1YSR2HINvGjhZJKc+as/hB9QZ2FHTIp2fW5VmuaRdY=
 github.com/celer-network/goutils v0.1.53 h1:GIpqWaHHLV9rdc3N86J7BAbqSHISR+vDPcwYvODvu68=
