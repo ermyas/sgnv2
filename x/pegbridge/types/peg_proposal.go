@@ -1,6 +1,8 @@
 package types
 
 import (
+	"fmt"
+
 	govtypes "github.com/celer-network/sgn-v2/x/gov/types"
 )
 
@@ -28,6 +30,20 @@ func (cp *PegProposal) ProposalType() string { return ProposalTypePeg }
 
 // ValidateBasic validates the parameter change proposal
 func (cp *PegProposal) ValidateBasic() error {
+	return nil
+}
+
+func (cp *PegProposal) Validate() error {
+	for _, vc := range cp.GetPegConfig().GetOriginalTokenVaults() {
+		if vc.GetContract().ChainId == 0 || vc.GetContract().Address == "" {
+			return fmt.Errorf("invalid vault contract config")
+		}
+	}
+	for _, pc := range cp.GetPegConfig().GetPeggedTokenBridges() {
+		if pc.GetContract().ChainId == 0 || pc.GetContract().Address == "" {
+			return fmt.Errorf("invalid pegbridge contract config")
+		}
+	}
 	return nil
 }
 

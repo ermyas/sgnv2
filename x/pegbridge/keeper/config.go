@@ -13,6 +13,9 @@ func (k Keeper) SetPegConfig(ctx sdk.Context, cfg types.PegConfig) error {
 	if err != nil {
 		return err
 	}
+	if err = cfg.Validate(); err != nil {
+		return err
+	}
 	for _, pair := range cfg.OrigPeggedPairs {
 		k.SetOrigPeggedPair(ctx, pair)
 	}
