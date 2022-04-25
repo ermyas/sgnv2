@@ -67,7 +67,7 @@ func Nowms() int64 {
 func (d *DAL) GetMonitorBlock(key string) (uint64, int64, bool, error) {
 	mon, err := d.MonGet(bgCtx, key)
 	// first check if err is no rows
-	found, err2 := chkQueryRow(err)
+	found, err2 := ChkQueryRow(err)
 	return mon.Blknum, mon.Blkidx, found, err2
 }
 
@@ -80,7 +80,7 @@ func (d *DAL) SetMonitorBlock(key string, blockNum uint64, blockIdx int64) error
 }
 
 // if err is sql.ErrNoRows, return false, nil
-func chkQueryRow(err error) (bool, error) {
+func ChkQueryRow(err error) (bool, error) {
 	found := false
 	if err == nil {
 		found = true

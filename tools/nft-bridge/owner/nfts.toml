@@ -1,0 +1,44 @@
+# all supported nft contracts, only chainid, addr and startblk (eg. nft deployed block number)
+# note startblk is only used when mon table has no record
+##### MCN #####
+[[nft]]
+chainid = 5
+contract = "0x1FdEF15EfE0ae6e8Fe52499002cA65Ef8C893418"
+startblk = 6738730
+
+[[nft]]
+chainid = 97
+contract = "0x44071DE32601d0FD12C22c564B2940C17E826107"
+startblk = 18565539
+
+[[nft]]
+chainid = 4002
+contract = "0xd1Be6B5137db9417a01b349AdA1d3cAe1eC6D212"
+startblk = 8715284
+
+##### CNN #####
+[[nft]]
+chainid = 5
+contract = "0xA50e5203ECa1685B4e01A8A569dd12150A8b419D"
+startblk = 6555494
+
+[[nft]]
+chainid = 97
+contract = "0xe2d6444f83489b5b51e5B8559124b46a0e2B0009"
+startblk = 18372740
+
+[[nft]]
+chainid = 4002
+contract = "0xaB2692D14898cAc8F1D5E3FB5BC95cF84092A2A6"
+startblk = 8673459
+
+##### TNT #####
+[[nft]]
+chainid = 5
+contract = "0x390b29DF6253b1D9753c779D595f18a882F9E961"
+startblk = 6771862
+
+[[nft]]
+chainid = 97
+contract = "0x5718eC4D0d0ec9f475E64C37f2FA0FaABEa96549"
+startblk = 18718551

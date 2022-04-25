@@ -29,6 +29,7 @@ test/e2e/manual/data/node*
 tools/cbridge/cbridge
 tools/nft-bridge/nft-bridge
 tools/nft-bridge/dal/db
+tools/nft-bridge/owner/owner
 
 tmp
 solc

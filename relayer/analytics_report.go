@@ -1,6 +1,7 @@
 package relayer
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -106,15 +107,31 @@ func (r *Relayer) reportValidatorNodeAnalytics() {
 		BlockNums:    make(map[string]uint64),
 		SgndVersion:  version.Version,
 		ChainConfigs: r.getChainConfig(),
+		BlockTimes:   make(map[string]uint64),
 	}
 	for chainId, oneChain := range r.cbrMgr {
-		var blkNum uint64
+		var blkNum, blkTm uint64
 		if types.IsFlowChain(chainId) {
 			blkNum = oneChain.fcc.GetBlkNum()
+
+			blkInfo, err := oneChain.fcc.QueryLatestBlock(context.Background(), true)
+			if nil != err {
+				log.Warnf("chain %d QueryLatestBlock err: %v", chainId, err)
+			} else {
+				blkTm = uint64(blkInfo.Timestamp.Unix())
+			}
 		} else {
 			blkNum = oneChain.mon.GetBlkNum()
+
+			head, err := oneChain.HeaderByNumber(context.Background(), nil)
+			if err != nil {
+				log.Warnf("chain %d HeaderByNumber err: %v", chainId, err)
+			} else {
+				blkTm = head.Time
+			}
 		}
 		report.BlockNums[strconv.Itoa(int(chainId))] = blkNum
+		report.BlockTimes[strconv.Itoa(int(chainId))] = blkTm
 	}
 	log.Debugln("try to report:", report)
 	bytes, err := proto.Marshal(report)

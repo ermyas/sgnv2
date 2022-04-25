@@ -6,6 +6,14 @@ import (
 	"github.com/celer-network/goutils/big"
 )
 
+type Allev struct {
+	Chid     uint64  `json:"chid"`
+	Nft      string  `json:"nft"`
+	FromAddr string  `json:"fromAddr"`
+	ToAddr   string  `json:"toAddr"`
+	TokID    big.Int `json:"tokID"`
+}
+
 type Monitor struct {
 	Key    string `json:"key"`
 	Blknum uint64 `json:"blknum"`
@@ -24,4 +32,11 @@ type Nftxfer struct {
 	SrcTx     string  `json:"srcTx"`
 	DstTx     string  `json:"dstTx"`
 	Status    int16   `json:"status"`
+}
+
+type Usrnft struct {
+	Chid   uint64   `json:"chid"`
+	Nft    string   `json:"nft"`
+	Usr    string   `json:"usr"`
+	Tokens []string `json:"tokens"`
 }
