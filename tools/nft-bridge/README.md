@@ -1,4 +1,6 @@
 # NFT Bridge
+## Toml files are moved to sgn-v2-ops/node-configs/sgn-testnet-4000/nft-bridge/
+
 ## New Multi-Chain Native NFT
 - MCN NFT means same nft contract on all chains, only apply to new projects
 - No orig concept and no deposit, only has burn/mint
@@ -42,6 +44,13 @@ for each nft contract we support on this chain, must set corresponding dest chai
 file is at `s3://getcelerapp/nftbridge/testnet.json`. this json file has very simple schema: bridges is a list of nftbridge's chainid and address, nfts is a list of NFTs, each has one orig and a list of pegged. See [go code](./cfg.go#L53) for details. Note for MCN NFTs, orig is not set, only pegs.
 
 invalidate cloudfront cache so that https://get.celer.app/nftbridge/testnet.json will return latest version. go to https://us-east-1.console.aws.amazon.com/cloudfront/v3/home?region=us-west-2#/distributions/E1IWV8QKIXDYBL/invalidations to create invalidation, path is `/nftbridge/*`
+
+or use cmd line if your iam user has permission
+```
+aws cloudfront create-invalidation \
+    --distribution-id E1IWV8QKIXDYBL \
+    --paths "/nftbridge/testnet.json"
+```
 
 ## Go executor and history server
 ### toml config

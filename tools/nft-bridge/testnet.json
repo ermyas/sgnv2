@@ -59,11 +59,11 @@
       "pegs": [
         {
           "chainid": 5,
-          "addr": "0x390b29DF6253b1D9753c779D595f18a882F9E961"
+          "addr": "0xEa67dE1A2C6C1Bff401BbD31dEcA5D8092053309"
         },
         {
           "chainid": 97,
-          "addr": "0x5718eC4D0d0ec9f475E64C37f2FA0FaABEa96549"
+          "addr": "0x1c34C003426250488A3Dd6D4B5Be092E538F25a5"
         }
       ]
     }
