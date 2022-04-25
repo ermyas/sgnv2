@@ -21,16 +21,24 @@ startblk = 8715284
 chainid = 5
 contract = "0xA50e5203ECa1685B4e01A8A569dd12150A8b419D"
 startblk = 6555494
-pollintv = 5
 
 [[nft]]
 chainid = 97
 contract = "0xe2d6444f83489b5b51e5B8559124b46a0e2B0009"
 startblk = 18372740
-pollintv = 10
 
 [[nft]]
 chainid = 4002
 contract = "0xaB2692D14898cAc8F1D5E3FB5BC95cF84092A2A6"
 startblk = 8673459
-pollintv = 10
+
+##### TNT #####
+[[nft]]
+chainid = 5
+contract = "0x390b29DF6253b1D9753c779D595f18a882F9E961"
+startblk = 6771862
+
+[[nft]]
+chainid = 97
+contract = "0x5718eC4D0d0ec9f475E64C37f2FA0FaABEa96549"
+startblk = 18718551
