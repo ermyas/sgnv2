@@ -7,7 +7,7 @@ Original token refers to the existing token that is deposited to and locked in O
 Pegged token refers to the token that is minted by Pegged Token Bridge on one chain, with value 1:1 pegged to original token locked in the original token vault at a remote chain.
 
 ## Original Token Vault
-It is a smart contract to deposit (triggers remote pegged mint) and withdraw (triggered by remote pegged burn) original tokens. Each chain can has multiple vault contracts ([version 0](https://github.com/celer-network/sgn-v2-contracts/blob/main/contracts/pegged/OriginalTokenVault.sol), [version 2](https://github.com/celer-network/sgn-v2-contracts/blob/main/contracts/pegged/OriginalTokenVaultV2.sol)). Each original token can only use one vault contract.
+It is a smart contract to deposit (triggers remote pegged mint) and withdraw (triggered by remote pegged burn) original tokens. Each chain can has multiple vault contracts ([version 0](https://github.com/celer-network/sgn-v2-contracts/blob/main/contracts/pegged-bridge/OriginalTokenVault.sol), [version 2](https://github.com/celer-network/sgn-v2-contracts/blob/main/contracts/pegged-bridge/OriginalTokenVaultV2.sol)). Each original token can only use one vault contract.
 
 ### Deposit
 A deposit represents a valid transaction to Original Token Vault for depositing Original Token. Deposits differ by their Ids ([version 0](https://github.com/celer-network/sgn-v2-contracts/blob/71a195582a/contracts/pegged/OriginalTokenVault.sol#L106-L109), [version 2](https://github.com/celer-network/sgn-v2-contracts/blob/71a195582a/contracts/pegged/OriginalTokenVaultV2.sol#L109-L121)).
@@ -16,7 +16,7 @@ A deposit represents a valid transaction to Original Token Vault for depositing 
 A withdraw comes from a valid burn, and represents a transaction to Original Token Vault for withdrawing Original Token. Withdraws differ by their Ids ([version 0](https://github.com/celer-network/sgn-v2-contracts/blob/71a195582a/contracts/pegged/OriginalTokenVault.sol#L132-L142), [version 2](https://github.com/celer-network/sgn-v2-contracts/blob/71a195582a/contracts/pegged/OriginalTokenVaultV2.sol#L144-L155)).
 
 ## Pegged Token Bridge
-It is the bridge contract to mint (triggered by remote vault deposit or pegged burn) and burn (triggers remote vault withdraw) pegged token. Each chain can has multiple pegged bridge contracts ([version 0](https://github.com/celer-network/sgn-v2-contracts/blob/main/contracts/pegged/PeggedTokenBridge.sol), [version 2](https://github.com/celer-network/sgn-v2-contracts/blob/main/contracts/pegged/PeggedTokenBridgeV2.sol)).
+It is the bridge contract to mint (triggered by remote vault deposit or pegged burn) and burn (triggers remote vault withdraw) pegged token. Each chain can has multiple pegged bridge contracts ([version 0](https://github.com/celer-network/sgn-v2-contracts/blob/main/contracts/pegged-bridge/PeggedTokenBridge.sol), [version 2](https://github.com/celer-network/sgn-v2-contracts/blob/main/contracts/pegged-bridge/PeggedTokenBridgeV2.sol)).
 
 ### Mint
 A represents a transaction to Pegged Token Bridge for minting Pegged Token. Mints differ by their Ids ([version 0](https://github.com/celer-network/sgn-v2-contracts/blob/71a195582a/contracts/pegged/PeggedTokenBridge.sol#L58-L68), [version 2](https://github.com/celer-network/sgn-v2-contracts/blob/71a195582a/contracts/pegged/PeggedTokenBridgeV2.sol#L66-L77))
