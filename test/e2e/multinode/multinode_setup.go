@@ -703,38 +703,42 @@ func SetupExecutorConfig() {
 	executor.SetConfigFile("../../../docker-volumes/executor/config/executor.toml")
 	err = executor.ReadInConfig()
 	tc.ChkErr(err, "Failed to read config")
-	var contracts []interface{}
+	service := executor.Get("service").([]interface{})
+	var contracts0 []interface{}
+	var contracts1 []interface{}
 	contractInfo1 := make(map[string]interface{})
 	contractInfo1["address"] = tc.CbrChain1.BatchTransferAddr.Hex()
 	contractInfo1["chain_id"] = tc.CbrChain1.ChainId
 	contractInfo1["add_payable_value_for_execution"] = tc.MsgFeeBase
-	contracts = append(contracts, contractInfo1)
+	contracts0 = append(contracts0, contractInfo1)
 	contractInfo2 := make(map[string]interface{})
 	contractInfo2["address"] = tc.CbrChain1.MsgTestAddr.Hex()
 	contractInfo2["chain_id"] = tc.CbrChain1.ChainId
-	contracts = append(contracts, contractInfo2)
+	contracts0 = append(contracts0, contractInfo2)
 
 	contractInfo4 := make(map[string]interface{})
 	contractInfo4["address"] = tc.CbrChain2.BatchTransferAddr.Hex()
 	contractInfo4["chain_id"] = tc.CbrChain2.ChainId
 	contractInfo4["add_payable_value_for_execution"] = tc.MsgFeeBase
-	contracts = append(contracts, contractInfo4)
+	contracts1 = append(contracts1, contractInfo4)
 	contractInfo5 := make(map[string]interface{})
 	contractInfo5["address"] = tc.CbrChain2.MsgTestAddr.Hex()
 	contractInfo5["chain_id"] = tc.CbrChain2.ChainId
-	contracts = append(contracts, contractInfo5)
+	contracts1 = append(contracts1, contractInfo5)
 
 	contractInfo7 := make(map[string]interface{})
 	contractInfo7["address"] = tc.CbrChain3.BatchTransferAddr.Hex()
 	contractInfo7["chain_id"] = tc.CbrChain3.ChainId
 	contractInfo7["add_payable_value_for_execution"] = tc.MsgFeeBase
-	contracts = append(contracts, contractInfo7)
+	contracts0 = append(contracts0, contractInfo7)
 	contractInfo8 := make(map[string]interface{})
 	contractInfo8["address"] = tc.CbrChain3.MsgTestAddr.Hex()
 	contractInfo8["chain_id"] = tc.CbrChain3.ChainId
-	contracts = append(contracts, contractInfo8)
+	contracts0 = append(contracts0, contractInfo8)
+	service[0].(map[string]interface{})["contracts"] = contracts0
+	service[1].(map[string]interface{})["contracts"] = contracts1
 
-	executor.Set("executor.contracts", contracts)
+	executor.Set("service", service)
 	err = executor.WriteConfig()
 	tc.ChkErr(err, "Failed to write config")
 }

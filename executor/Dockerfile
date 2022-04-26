@@ -6,7 +6,7 @@ RUN apk add --no-cache g++ git
 ARG GH_TOKEN
 RUN git config --global url."https://$GH_TOKEN:@github.com/".insteadOf "https://github.com/"
 
-RUN git clone https://github.com/celer-network/sgn-v2-executor.git && git -C sgn-v2-executor checkout 542f7a041c3ac512aa176e4a6669b7e7c32782ac
+RUN git clone https://github.com/celer-network/sgn-v2-executor.git && git -C sgn-v2-executor checkout 0c64a93d7f6b8af0edf7e24565a7ad076b66cf1c
 
 WORKDIR sgn-v2-executor
 RUN go mod download

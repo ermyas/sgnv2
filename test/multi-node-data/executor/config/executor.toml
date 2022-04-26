@@ -15,8 +15,12 @@ sgn_grpc = "192.168.10.2:9090"
 # for production
 gateway_grpc = "localhost:20000"
 
-[eth]
+[[service]]
 signer_keystore = "./keys/signer.json"
+signer_passphrase = ""
+
+[[service]]
+signer_keystore = "./keys/vsigner1.json"
 signer_passphrase = ""
 
 [db]
