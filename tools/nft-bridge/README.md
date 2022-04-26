@@ -68,9 +68,9 @@ aws cloudfront create-invalidation \
 
 ### contract go binding
 - in sgn-v2-contracts repo, after hardhat compile or deploy, cd to `artifacts/contracts/message/apps/NFTBridge.sol` folder and run
-`jq .abi NFTBridge.json | abigen -abi - -type NFTBridge -pkg main -out bind_nftbr.go`, move bind_nftbr.go file here
+`jq .abi NFTBridge.json | abigen -abi - -type NFTBridge -pkg binding -out nftbr.go`, move nftbr.go file to binding folder
 - for execute message binding: (I didn't use sgn-v2/eth as this is supposed to be outside binary)
-`jq .abi MessageBusReceiver.json | abigen -abi - -type MsgBusRecv -pkg main -out bind_msgbus_recv.go`
+`jq .abi MessageBusReceiver.json | abigen -abi - -type MsgBusRecv -pkg binding -out msgrecv.go`
 
 ### nginx.conf
 - add upstream for nftbr, optional but make later rule in server block more obvious

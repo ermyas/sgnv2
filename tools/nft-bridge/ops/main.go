@@ -39,8 +39,13 @@ func main() {
 	}
 	// from sym to map[chid]address
 	nftMap := make(map[string]map[uint64]string)
+	// key is chainid, value is list of nft addresses whose orig is on this chain
+	origNft := make(map[uint64][]string)
 	for _, nft := range jsonCfg.Nfts {
 		nftMap[nft.Symbol] = nft.Map()
+		if nft.Orig != nil {
+			origNft[nft.Orig.Chainid] = append(origNft[nft.Orig.Chainid], nft.Orig.Addr)
+		}
 	}
 
 	mcc := nftbr.GetMcc("multichain")
@@ -55,6 +60,7 @@ func main() {
 		}
 		ooc.CheckDstBridgeMap(chid2Bridge, *ffix)
 		ooc.CheckNftMap(nftMap, *ffix)
+		ooc.CheckOrigNFT(origNft[cfg.ChainID], *ffix)
 		chainMap[cfg.ChainID] = ooc
 	}
 }
@@ -83,6 +89,30 @@ func NewOpOneCh(rpc, kspath, pass string, nftbrA common.Address) (*OpOneCh, erro
 	}
 	ret.nftbr, _ = binding.NewNFTBridge(nftbrA, ret.ec)
 	return ret, nil
+}
+
+// for this chain, query onchain for addr in origNfts and set if mismatch and sendTx is true
+// can't delete entry!
+func (o *OpOneCh) CheckOrigNFT(origNfts []string, sendTx bool) {
+	for _, onft := range origNfts {
+		nAddr := nftbr.Hex2addr(onft)
+		hasSet, err := o.nftbr.OrigNFT(nil, nAddr)
+		if err != nil {
+			log.Warn("OrigNFT err: ", err)
+			continue
+		}
+		if !hasSet {
+			log.Infoln(o.chid, "orig", onft, "not set")
+			if sendTx {
+				tx, err := o.nftbr.SetOrigNFT(o.auth, nAddr)
+				if err != nil {
+					log.Error("SetOrigNFT err: ", err)
+				} else {
+					log.Info("SetOrigNFT tx: ", tx.Hash().Hex())
+				}
+			}
+		}
+	}
 }
 
 func (o *OpOneCh) CheckDstBridgeMap(allbrs map[uint64]common.Address, sendTx bool) {
