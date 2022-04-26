@@ -8,7 +8,6 @@ require (
 	github.com/celer-network/cbridge-flow v0.0.1
 	github.com/celer-network/endpoint-proxy v0.2.4
 	github.com/celer-network/goutils v0.1.53
-	github.com/cockroachdb/cockroach-go/v2 v2.2.8
 	github.com/cosmos/cosmos-sdk v0.44.5
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/deckarep/golang-set v1.8.0
@@ -19,14 +18,11 @@ require (
 	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
-	github.com/julienschmidt/httprouter v1.3.0
-	github.com/lib/pq v1.10.2
 	github.com/lthibault/jitterbug v2.0.0+incompatible
 	github.com/miguelmota/go-solidity-sha3 v0.1.1
 	github.com/onflow/flow-go-sdk v0.24.0
 	github.com/rakyll/statik v0.1.7
 	github.com/regen-network/cosmos-proto v0.3.1
-	github.com/rs/cors v1.7.0
 	github.com/rs/zerolog v1.23.0
 	github.com/spf13/cast v1.4.1
 	github.com/spf13/cobra v1.4.0
