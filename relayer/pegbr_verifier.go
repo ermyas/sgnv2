@@ -31,7 +31,12 @@ func (r *Relayer) verifyPegbrEventUpdate(update *synctypes.PendingUpdate) (done,
 			log.Errorf("failed to unmarshal %x to FlowMonitorLog", onchev.Elog)
 			return true, false
 		}
-		ok, err := r.cbrMgr[onchev.Chainid].fcc.VerifyEvent(ev)
+		flowOneChain := r.cbrMgr[onchev.Chainid]
+		if flowOneChain == nil {
+			log.Warnf("no valid flow chain config: %d", onchev.Chainid)
+			return
+		}
+		ok, err := flowOneChain.fcc.VerifyEvent(ev)
 		if err != nil {
 			log.Error("flow verify event err: ", err)
 			return false, false
