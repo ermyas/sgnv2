@@ -164,15 +164,22 @@ func (ethClient *EthClient) SignEthMessage(data []byte) ([]byte, error) {
 const awskmsPre = "awskms"
 
 // parse ksfile string if valid awskms, return region and alias. otherwise return empty strings
-func ParseAwsKms(ksfile string) (region, alias string) {
+func ParseAwsKms(ksfile, passphrase string) (region, alias, awsKey, awsSec string) {
 	if !strings.HasPrefix(ksfile, awskmsPre) {
-		return "", ""
+		return "", "", "", ""
 	}
 	kmskeyinfo := strings.SplitN(ksfile, ":", 3)
 	if len(kmskeyinfo) != 3 {
-		return "", ""
+		return "", "", "", ""
 	}
-	return kmskeyinfo[1], kmskeyinfo[2]
+	awskeysec := []string{"", ""}
+	if passphrase != "" {
+		awskeysec = strings.SplitN(passphrase, ":", 2)
+		if len(awskeysec) != 2 {
+			return "", "", "", ""
+		}
+	}
+	return kmskeyinfo[1], kmskeyinfo[2], awskeysec[0], awskeysec[1]
 }
 
 // return signer, address

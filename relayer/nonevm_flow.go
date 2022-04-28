@@ -90,9 +90,9 @@ func buildFlowSender() (*flowutils.FlowSender, error) {
 	// set up sender.Signer
 	var err error
 	signerKey, signerPass := viper.GetString(common.FlagEthSignerKeystore), viper.GetString(common.FlagEthSignerPassphrase)
-	region, kayalias := eth.ParseAwsKms(signerKey)
+	region, kayalias, awsKey, awsSec := eth.ParseAwsKms(signerKey, signerPass)
 	if region != "" {
-		sender.Signer, err = flowSigner.NewFlowKmsSigner(region, kayalias)
+		sender.Signer, err = flowSigner.NewFlowKmsSigner(region, kayalias, awsKey, awsSec)
 	} else {
 		sender.Signer, err = flowSigner.NewFlowSigner(signerKey, signerPass)
 	}

@@ -329,9 +329,12 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 				}
 
 				if types.IsFlowChain(wdInfo.ChainId) {
-					fcl := r.cbrMgr[wdInfo.ChainId].FlowClient
-					// TODO rm .vault
-					sig, err = fcl.fcc.SignFlowMessage(wdInfo.EncodeDataToSign(eth.Hex2Addr(fcl.ContractAddr)))
+					cbrOneChain := r.cbrMgr[wdInfo.ChainId]
+					if cbrOneChain == nil {
+						log.Warnf("no flow config, skip")
+						continue
+					}
+					sig, err = cbrOneChain.fcc.SignFlowMessage(wdInfo.EncodeDataToSign(eth.Hex2Addr(cbrOneChain.ContractAddr)))
 				} else {
 					if wdInfo.VaultVersion == 0 {
 						sig, err = r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(r.cbrMgr[wdInfo.ChainId].pegContracts.vault.GetAddr()))
