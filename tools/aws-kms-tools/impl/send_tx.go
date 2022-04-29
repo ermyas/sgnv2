@@ -45,7 +45,7 @@ func SendTxCommand() *cobra.Command {
 	sort.Ints(chainIds)
 	cmd.Flags().String(FlagRpc, "", fmt.Sprintf("JSON-RPC endpoint to use, optional if chain ID is in: %v", chainIds))
 	cmd.Flags().Uint64P(FlagChainId, FlagChainIdShort, 0, "chain ID")
-	cmd.Flags().Uint64P(FlagNonce, FlagNonceShort, 0, "Nonce override")
+	cmd.Flags().Int64P(FlagNonce, FlagNonceShort, 0, "Nonce override, if -1 use account nonce")
 	cmd.Flags().Uint64(FlagGasPrice, 0, "Gas price override, NOTE: indicates maxPriorityFeePerGas if chain supports EIP-1559")
 	cmd.Flags().Uint64(FlagGasLimit, 21000, "Gas limit override")
 	cmd.Flags().Uint64(FlagValue, 0, "Native gas value to send with the tx")
@@ -113,9 +113,14 @@ func sendTx(ec *ethclient.Client, from, to eth.Addr, bal *big.Int, signer bind.S
 		return fmt.Errorf("HeaderByNumber err %w", err)
 	}
 	var nonce uint64
-	nonceFlag := viper.GetUint64(FlagNonce)
-	if nonceFlag != 0 {
-		nonce = nonceFlag
+	nonceFlag := viper.GetInt64(FlagNonce)
+	if nonceFlag > 0 {
+		nonce = uint64(nonceFlag)
+	} else if nonceFlag == -1 {
+		nonce, err = ec.NonceAt(bgCtx, from, nil)
+		if err != nil {
+			return fmt.Errorf("NonceAt %w", err)
+		}
 	} else {
 		nonce, err = ec.PendingNonceAt(bgCtx, from)
 		if err != nil {
