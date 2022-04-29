@@ -190,3 +190,13 @@ func GetCmdValidatorClaimFee() *cobra.Command {
 
 	return cmd
 }
+
+// if err not nil, should return immediately when estimate gas
+func SignAgainWithdraw(txr *transactor.Transactor, msg *types.MsgTriggerSignWithdraw) (err error) {
+	err = msg.ValidateBasic()
+	if err != nil {
+		return
+	}
+	txr.CliSendTxMsgWaitMined(msg)
+	return
+}
