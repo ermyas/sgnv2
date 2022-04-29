@@ -143,7 +143,7 @@ func (r *Relayer) monitorSgnCbrDataToSign() {
 					}
 					chain := r.cbrMgr[relay.DstChainId]
 					if chain == nil {
-						log.Errorf("%s, no cbrMgr %d found", logmsg, relay.DstChainId)
+						log.Errorf("%s, no cbrMgr for chain %d found", logmsg, relay.DstChainId)
 						continue
 					}
 					dataToSign := cbrtypes.EncodeRelayOnChainToSign(relay.DstChainId, chain.cbrContract.GetAddr(), data)
@@ -240,32 +240,27 @@ func (r *Relayer) monitorSgnPegMintToSign() {
 					continue
 				}
 
+				chain := r.cbrMgr[mintInfo.ChainId]
+				if chain == nil {
+					log.Errorf("cbrMgr for chain %d not configured", mintInfo.ChainId)
+					continue
+				}
 				if types.IsFlowChain(mintInfo.ChainId) {
-					cbrOneChain := r.cbrMgr[mintInfo.ChainId]
-					if cbrOneChain == nil {
-						log.Warnf("no flow config, skip")
-						continue
-					}
-					fcl := cbrOneChain.FlowClient
+					fcl := chain.FlowClient
 					if fcl == nil {
 						log.Warnf("no flow client, skip")
 						continue
 					}
 					sig, err = fcl.fcc.SignFlowMessage(mintInfo.EncodeDataToSign(eth.Hex2Addr(fcl.ContractAddr)))
 				} else {
-					cbrOneChain := r.cbrMgr[mintInfo.ChainId]
-					if cbrOneChain == nil {
-						log.Errorf("cbrOneChain not exists, mint chainId: %d", mintInfo.ChainId)
-						continue
-					}
 					if mintInfo.BridgeVersion == 0 {
-						sig, err = r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(cbrOneChain.pegContracts.bridge.GetAddr()))
+						sig, err = r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(chain.pegContracts.bridge.GetAddr()))
 						if err != nil {
 							log.Error(err)
 							continue
 						}
 					} else if mintInfo.BridgeVersion == 2 {
-						sig, err = r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(cbrOneChain.pegContracts.bridge2.GetAddr()))
+						sig, err = r.EthClient.SignEthMessage(mintInfo.EncodeDataToSign(chain.pegContracts.bridge2.GetAddr()))
 						if err != nil {
 							log.Error(err)
 							continue
@@ -328,22 +323,27 @@ func (r *Relayer) monitorSgnPegWithdrawToSign() {
 					continue
 				}
 
+				chain := r.cbrMgr[wdInfo.ChainId]
+				if chain == nil {
+					log.Errorf("cbrMgr for chain %d not configured", wdInfo.ChainId)
+					continue
+				}
 				if types.IsFlowChain(wdInfo.ChainId) {
-					cbrOneChain := r.cbrMgr[wdInfo.ChainId]
-					if cbrOneChain == nil {
-						log.Warnf("no flow config, skip")
+					fcl := chain.FlowClient
+					if fcl == nil {
+						log.Warnf("no flow client, skip")
 						continue
 					}
-					sig, err = cbrOneChain.fcc.SignFlowMessage(wdInfo.EncodeDataToSign(eth.Hex2Addr(cbrOneChain.ContractAddr)))
+					sig, err = fcl.fcc.SignFlowMessage(wdInfo.EncodeDataToSign(eth.Hex2Addr(fcl.ContractAddr)))
 				} else {
 					if wdInfo.VaultVersion == 0 {
-						sig, err = r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(r.cbrMgr[wdInfo.ChainId].pegContracts.vault.GetAddr()))
+						sig, err = r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(chain.pegContracts.vault.GetAddr()))
 						if err != nil {
 							log.Error(err)
 							continue
 						}
 					} else if wdInfo.VaultVersion == 2 {
-						sig, err = r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(r.cbrMgr[wdInfo.ChainId].pegContracts.vault2.GetAddr()))
+						sig, err = r.EthClient.SignEthMessage(wdInfo.EncodeDataToSign(chain.pegContracts.vault2.GetAddr()))
 						if err != nil {
 							log.Error(err)
 							continue
@@ -448,8 +448,13 @@ func (r *Relayer) monitorSgnMsgDataToSign() {
 					log.Error(err)
 					continue
 				}
+				chain := r.cbrMgr[messageInfo.DstChainId]
+				if chain == nil {
+					log.Errorf("cbrMgr for chain %d not configured", messageInfo.DstChainId)
+					continue
+				}
 				sig, err := r.EthClient.SignEthMessage(
-					messageInfo.EncodeDataToSign(eth.Hex2Hash(msgId), r.cbrMgr[messageInfo.DstChainId].msgContract.GetAddr()))
+					messageInfo.EncodeDataToSign(eth.Hex2Hash(msgId), chain.msgContract.GetAddr()))
 				if err != nil {
 					log.Error(err)
 					continue
