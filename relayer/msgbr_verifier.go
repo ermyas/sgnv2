@@ -198,7 +198,7 @@ func (c *CbrOneChain) verifyMessageEventExecuted(cliCtx client.Context, eLog *et
 	}
 	if executedStatus == 0 {
 		log.Errorln(logmsg, "executedStatus is invalid. got:", executedStatus, "expect > 0")
-		return true, false
+		return false, false
 	}
 
 	log.Infof("%s, success", logmsg)
