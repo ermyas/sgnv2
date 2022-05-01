@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/celer-network/goutils/log"
@@ -191,6 +192,23 @@ func (c *ExecutionContext) ComputeDstTransferId(dstBridgeAddr eth.Addr) []byte {
 		)
 	}
 	return dstTransferId
+}
+
+func (c *ExecutionContext) PrettyPrint() {
+	if c == nil {
+		fmt.Println("nil execution context")
+		return
+	}
+	fmt.Printf("message_id: %x\n\n", c.MessageId)
+	c.Message.PrettyPrint()
+	if c.Transfer != nil {
+		fmt.Println()
+		fmt.Printf("token: %x\n", c.Transfer.Token)
+		fmt.Printf("amount: %s\n", c.Transfer.Amount)
+		if c.Transfer.WdSeqNum != 0 {
+			fmt.Printf("wd_seq_num: %d\n", c.Transfer.WdSeqNum)
+		}
+	}
 }
 
 func ComputeMessageIdFromDstTransfer(dstTransferId []byte, dstBridgeAddr eth.Addr) []byte {

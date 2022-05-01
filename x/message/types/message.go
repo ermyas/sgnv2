@@ -115,3 +115,25 @@ func (m *Message) PrettyLog() string {
 		m.SrcChainId, m.DstChainId, m.Sender, m.Receiver, m.TransferType, m.ExecutionStatus,
 		common.TsSecToTime(uint64(m.LastSigReqTime)), m.Data, strings.Join(sigstr, ", "))
 }
+
+func (m *Message) PrettyPrint() {
+	if m == nil {
+		fmt.Println("nil message")
+	}
+	fmt.Printf("src_chain_id: %d\n", m.SrcChainId)
+	fmt.Printf("dst_chain_id: %d\n", m.DstChainId)
+	fmt.Printf("sender: %s\n", m.Sender)
+	fmt.Printf("receiver: %s\n", m.Sender)
+	fmt.Printf("fee: %s\n", m.Fee)
+	fmt.Printf("transfer_type: %s\n", m.TransferType.String())
+	fmt.Printf("transfer_ref_id: %x\n", m.TransferRefId)
+	fmt.Printf("src_tx_hash: %s\n", m.SrcTxHash)
+	fmt.Printf("execution_status: %s\n", m.ExecutionStatus.String())
+	fmt.Printf("last_sig_req_time: %s\n", common.TsSecToTime(uint64(m.LastSigReqTime)))
+	var signers []string
+	for _, sig := range m.Signatures {
+		signers = append(signers, sig.Signer)
+	}
+	fmt.Println("signers:", signers)
+	fmt.Printf("data: 0x%x\n", m.Data)
+}

@@ -146,7 +146,7 @@ json file filter format:
 
 func CmdQueryExecutionContextBySrcTransfer() *cobra.Command {
 	return &cobra.Command{
-		Use:   "exe-ctx [bridge-type] [src-transfer-id]",
+		Use:   "ctx-xfer [bridge-type] [src-transfer-id]",
 		Short: "Query execution context by bridge type (1:liquidity, 2:pegvault, 3:pegbridge) and src transferId",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -165,14 +165,15 @@ func CmdQueryExecutionContextBySrcTransfer() *cobra.Command {
 				return err
 			}
 
-			return cliCtx.PrintProto(resp)
+			resp.PrettyPrint()
+			return nil
 		},
 	}
 }
 
 func CmdQueryMessage() *cobra.Command {
 	return &cobra.Command{
-		Use:   "message [message-id]",
+		Use:   "msg [message-id]",
 		Short: "Query message details",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -186,8 +187,8 @@ func CmdQueryMessage() *cobra.Command {
 				log.Errorln("query message error", err)
 				return err
 			}
-
-			return cliCtx.PrintProto(&msg)
+			msg.PrettyPrint()
+			return nil
 		},
 	}
 }
