@@ -34,10 +34,10 @@ func (k msgServer) SignMint(goCtx context.Context, msg *types.MsgSignMint) (*typ
 	if err != nil {
 		return nil, err
 	}
-	mindId := eth.Hex2Hash(msg.MintId)
-	mintInfo, found := k.GetMintInfo(ctx, mindId)
+	mintId := eth.Hex2Hash(msg.MintId)
+	mintInfo, found := k.GetMintInfo(ctx, mintId)
 	if !found {
-		return nil, types.WrapErrNoInfoFound(mindId)
+		return nil, types.WrapErrNoInfoFound(mintId)
 	}
 	bridgeAddr, found := k.GetPeggedBridge(ctx, mintInfo.ChainId, mintInfo.BridgeVersion)
 	if !found {
@@ -70,8 +70,8 @@ func (k msgServer) SignMint(goCtx context.Context, msg *types.MsgSignMint) (*typ
 		}
 	}
 
-	k.SetMintInfo(ctx, mindId, mintInfo)
-	log.Infof("x/pegbridge SignMintInfo add sig mintId:%x signer:%x :sender:%s", mindId, validator.GetSignerAddr(), msg.Sender)
+	k.SetMintInfo(ctx, mintId, mintInfo)
+	log.Infof("x/pegbridge SignMintInfo add sig mintId:%x signer:%x :sender:%s", mintId, validator.GetSignerAddr(), msg.Sender)
 	return &types.MsgSignMintResponse{}, nil
 }
 
@@ -126,13 +126,13 @@ func (k msgServer) TriggerSignMint(goCtx context.Context, msg *types.MsgTriggerS
 	}
 	sdkCtx := sdk.UnwrapSDKContext(goCtx)
 
-	mindId := eth.Hex2Hash(msg.MintId)
-	mintInfo, found := k.GetMintInfo(sdkCtx, mindId)
+	mintId := eth.Hex2Hash(msg.MintId)
+	mintInfo, found := k.GetMintInfo(sdkCtx, mintId)
 	if !found {
-		return nil, types.WrapErrNoInfoFound(mindId)
+		return nil, types.WrapErrNoInfoFound(mintId)
 	}
 	if mintInfo.Success {
-		return nil, fmt.Errorf("mint %x already completed", mindId)
+		return nil, fmt.Errorf("mint %x already completed", mintId)
 	}
 	now := sdkCtx.BlockTime()
 	if now.Before(common.TsSecToTime(uint64(mintInfo.LastReqTime)).Add(k.Keeper.GetTriggerSignCooldown(sdkCtx))) {
@@ -141,13 +141,13 @@ func (k msgServer) TriggerSignMint(goCtx context.Context, msg *types.MsgTriggerS
 	// remove all previous sigs
 	mintInfo.Signatures = nil
 	mintInfo.LastReqTime = now.Unix()
-	k.SetMintInfo(sdkCtx, mindId, mintInfo)
+	k.SetMintInfo(sdkCtx, mintId, mintInfo)
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeMintToSign,
 		sdk.NewAttribute(types.AttributeKeyMintId, msg.MintId),
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 	))
-	log.Infof("x/pegbr trigger sign mint, mintId %x", mindId)
+	log.Infof("x/pegbr trigger sign mint, mintId %x", mintId)
 
 	return &types.MsgTriggerSignMintResponse{}, nil
 }
