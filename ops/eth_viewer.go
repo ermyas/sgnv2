@@ -95,6 +95,12 @@ func ViewParamsCommand() *cobra.Command {
 			}
 			fmt.Printf("Voting period: %s eth block\n", res)
 
+			res, err = ethClient.Contracts.Staking.GetParamValue(&bind.CallOpts{}, 6)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Advance notice period: %s eth block\n", res)
+
 			return nil
 		},
 	}
