@@ -9,7 +9,7 @@ parent:
 
 ## Overview
 
-The staking module manages the underlying [tendermint validators](https://docs.tendermint.com/master/nodes/validators.html) of the SGN chain by following the staking changes on the Ethereum [staking contract](https://github.com/celer-network/sgn-v2-contracts/blob/main/contracts/Staking.sol). Whenever staking status is updated on Ethereum, the [sync](../../sync) module would be informed and send instructions to update the stating module's validator and delegation states accordingly.
+The staking module manages the underlying [tendermint validators](https://docs.tendermint.com/v0.34/tendermint-core/validators.html) of the SGN chain by following the staking changes on the Ethereum [staking contract](https://github.com/celer-network/sgn-v2-contracts/blob/main/contracts/staking/Staking.sol). Whenever staking status is updated on Ethereum, the [sync](../../sync) module would be informed and send instructions to update the stating module's validator and delegation states accordingly.
 
 ## Contents
 
