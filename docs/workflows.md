@@ -34,23 +34,23 @@ Staking and validator election process happens on the Ethereum [staking contract
 
 1. Validator calls the [initializeValidator](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/Staking.sol#L100) on staking contract to initialize itself as a validator, and [updateSgnAddr](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/SGN.sol#L42) on the sgn contract to set the sgnchain (cosmos-sdk) account address.
 
-2. The current validators catch the `ValidatorNotice` event about [sgn address update](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/SGN.sol#L54), sync the sgn address to x/staking module and [create an sgn account](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/sync/keeper/apply.go#L72) for the new validator's sgn address.
+2. The current validators catch the `ValidatorNotice` event about [sgn address update](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/SGN.sol#L54), sync the sgn address to x/staking module and [create an sgn account](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/sync/keeper/apply.go#L72) for the new validator's sgn address.
 
-3. The new validator then [sync its params](https://github.com/celer-network/sgn-v2/blob/3b35212c68/relayer/eth_staking.go#L54) to x/staking module to [create a new unbonded validator](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/sync/keeper/apply.go#L80) with required [initial information](https://github.com/celer-network/sgn-v2/blob/3b35212c68/relayer/operator.go#L168-L174) in the sgn chain.
+3. The new validator then [sync its params](https://github.com/celer-network/sgnv2/blob/3b35212c68/relayer/eth_staking.go#L54) to x/staking module to [create a new unbonded validator](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/sync/keeper/apply.go#L80) with required [initial information](https://github.com/celer-network/sgnv2/blob/3b35212c68/relayer/operator.go#L168-L174) in the sgn chain.
 
-4. The new validator then [sync its states](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/sync/keeper/apply.go#L129) to update its status (e.g., bonded, unbonded), tokens, and shares in the sgnchain.
+4. The new validator then [sync its states](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/sync/keeper/apply.go#L129) to update its status (e.g., bonded, unbonded), tokens, and shares in the sgnchain.
 
-5. At abci.EndBlocker, [the tendermint validator set is updated](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/staking/keeper/validator.go#L211) to include the new validator with voting power proportional to its tokens.
+5. At abci.EndBlocker, [the tendermint validator set is updated](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/staking/keeper/validator.go#L211) to include the new validator with voting power proportional to its tokens.
 
 ### Delegate and undelegate
 
 1. Delegator calls the [delegate](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/Staking.sol#L209) or [undelegate](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/Staking.sol#L249) functions on the staking contract.
 
-2. Validators catch the `DelegationUpdate` event, and [sync the delegator and validator states](https://github.com/celer-network/sgn-v2/blob/3b35212c68/relayer/eth_puller.go#L86-L98) to x/staking module.
+2. Validators catch the `DelegationUpdate` event, and [sync the delegator and validator states](https://github.com/celer-network/sgnv2/blob/3b35212c68/relayer/eth_puller.go#L86-L98) to x/staking module.
 
-3. [Delegation share update](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/staking/keeper/delegation.go#L104) would trigger staking reward distribution.
+3. [Delegation share update](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/staking/keeper/delegation.go#L104) would trigger staking reward distribution.
 
-4. [Validator states update](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/staking/keeper/validator.go#L55) may trigger [signer updates](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/cbridge/keeper/hooks.go#L18-L28) in the bridge contracts.
+4. [Validator states update](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/staking/keeper/validator.go#L55) may trigger [signer updates](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/cbridge/keeper/hooks.go#L18-L28) in the bridge contracts.
 
 ## Liquidity Pool Bridge
 
@@ -67,7 +67,7 @@ High-level flows and notes:
 
 2. SGN catches the [Send](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/Bridge.sol#L14) event, sync the event to x/cbridge consensus module through the [event syncing](./relayer.md#sync-other-chain-events-to-sgn) flow.
 
-3. The x/cbridge module [applies the Send event](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/cbridge/keeper/apply.go#L60).
+3. The x/cbridge module [applies the Send event](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/cbridge/keeper/apply.go#L60).
     - If the request fail due to unsupported token, unreachable slippage etc, a withdraw message will be saved for refund later.
     - If the request can go through, the following logics will be applied before a `relay message` is generated to let all validators sign.
         - Calculation of user receiving amount, including the computation of [liquidity curve](../x/cbridge/spec/01_concepts.md#price-curve), base fee according to gas usage ad price, and percentage fee according to config.
@@ -86,7 +86,7 @@ High-level flows and notes:
 
 2. SGN catches the [LiquidityAdded](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/Pool.sol#L34) event, sync the event to x/cbridge consensus module through the [event syncing](./relayer.md#sync-other-chain-events-to-sgn) flow.
 
-3. The x/cbridge module [applies the LiquidityAdded event](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/cbridge/keeper/apply.go#L41), records the new liquidity, and sync the liquidity farming status (if enabled).
+3. The x/cbridge module [applies the LiquidityAdded event](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/cbridge/keeper/apply.go#L41), records the new liquidity, and sync the liquidity farming status (if enabled).
 
 These liquidities will be moved around different chains (and earn fees/rewards) along with the transfer process stated above.
 
@@ -94,8 +94,8 @@ These liquidities will be moved around different chains (and earn fees/rewards) 
 
 The withdrawal flow is same for user transfer refund or LP liquidity withdrawal.
 
-1. User or LP requests refund or withdrawal by sending a [withdraw request](https://github.com/celer-network/sgn-v2/blob/3b35212c68/proto/sgn/cbridge/v1/tx.proto#L68-L83) to a validator (via gateway). If x/cbridge verifies that the request is valid, it will create a withdraw message for validators to sign.
-    - Note that each withdrawal request has a unique [request id](https://github.com/celer-network/sgn-v2/blob/3b35212c68/proto/sgn/cbridge/v1/tx.proto#L75), which is to make sure that each withdraw can only happen once on both SGN and the onchain smart contract.
+1. User or LP requests refund or withdrawal by sending a [withdraw request](https://github.com/celer-network/sgnv2/blob/3b35212c68/proto/sgn/cbridge/v1/tx.proto#L68-L83) to a validator (via gateway). If x/cbridge verifies that the request is valid, it will create a withdraw message for validators to sign.
+    - Note that each withdrawal request has a unique [request id](https://github.com/celer-network/sgnv2/blob/3b35212c68/proto/sgn/cbridge/v1/tx.proto#L75), which is to make sure that each withdraw can only happen once on both SGN and the onchain smart contract.
 
 2. SGN nodes see the withdraw msg and add its own signature, similar to the relay msg above.
 
@@ -114,37 +114,37 @@ Approach: Deploy a PeggedToken ([example](https://github.com/celer-network/sgn-v
 
 2. SGN relayers sync the [deposit event](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/OriginalTokenVaultV2.sol#L31) to the x/pegbridge module.
 
-3. x/pegbridge [processes the deposit event](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L30) and [generate Mint proto msg](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L251-L275) for validators to sign.
+3. x/pegbridge [processes the deposit event](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L30) and [generate Mint proto msg](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L251-L275) for validators to sign.
 
 4. SGN syncer call [mint](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/PeggedTokenBridgeV2.sol#L57) function on chain B with the signed Mint proto msg. User receives the newly minted pegged tokens.
 
-5. SGN catch the [mint event](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/PeggedTokenBridgeV2.sol#L24), sync it to x/pegbridge to [mark the process is done](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L156-L157).
+5. SGN catch the [mint event](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/PeggedTokenBridgeV2.sol#L24), sync it to x/pegbridge to [mark the process is done](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L156-L157).
 
 ### Burn pegged token on chain B and withdraw original token on chain A
 1. User calls [burn](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/PeggedTokenBridgeV2.sol#L109) on chain B to burn the pegged token.
 
 2. SGN relayers sync the [burn event](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/PeggedTokenBridgeV2.sol#L33) to the x/pegbridge module
 
-3. x/pegbridge [processes the burn event](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L84) and [generate Withdraw proto msg](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L123-L125) for validators to sign.
+3. x/pegbridge [processes the burn event](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L84) and [generate Withdraw proto msg](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L123-L125) for validators to sign.
 
 4. SGN syncer call [withdraw](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/OriginalTokenVaultV2.sol#L135) function on chain A with the signed Withdraw proto msg
 
-5. SGN catches the [withdraw event](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/OriginalTokenVaultV2.sol#L40), sync it to x/pegbridge to [mark the process is done](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L173-L174).
+5. SGN catches the [withdraw event](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/OriginalTokenVaultV2.sol#L40), sync it to x/pegbridge to [mark the process is done](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L173-L174).
 
 ### Burn pegged token on chain B and mint pegged token on chain C
 1. User calls [burn](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/PeggedTokenBridgeV2.sol#L109) on chain B to burn the pegged token, specifying chain C's chainId as `toChainId`
 
 2. SGN relayers sync the [burn event](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/PeggedTokenBridgeV2.sol#L33) to the x/pegbridge module
 
-3. x/pegbridge [processes the burn event](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L84) and [generate mint proto msg](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L126-L128) for validators to sign.
+3. x/pegbridge [processes the burn event](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L84) and [generate mint proto msg](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L126-L128) for validators to sign.
 
 4. SGN syncer call [mint](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/PeggedTokenBridgeV2.sol#L57) function on chain C with the signed Mint proto msg. User receives the newly minted pegged tokens.
 
-5. SGN catches the [mint event](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/PeggedTokenBridgeV2.sol#L24), sync it to x/pegbridge to [mark the process is done](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L156-L157).
+5. SGN catches the [mint event](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/PeggedTokenBridgeV2.sol#L24), sync it to x/pegbridge to [mark the process is done](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/pegbridge/keeper/apply.go#L156-L157).
 
 ### SGN delegators claim fee shares on chain A
 1. Delegator requests withdrawal of fee shares via gateway.
 
-2. SGN validates the request and [generates co-signed Withdraw proto msg](https://github.com/celer-network/sgn-v2/blob/3b35212c68/x/pegbridge/keeper/msg_server.go#L193-L218).
+2. SGN validates the request and [generates co-signed Withdraw proto msg](https://github.com/celer-network/sgnv2/blob/3b35212c68/x/pegbridge/keeper/msg_server.go#L193-L218).
 
 3. Delegator get the Withdraw proto msg from gateway and call [withdraw](https://github.com/celer-network/sgn-v2-contracts/blob/a75ac8dc8b/contracts/pegged/OriginalTokenVaultV2.sol#L135) function on chain A with it.

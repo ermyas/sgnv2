@@ -14,7 +14,7 @@ Follow instructions in [e2e/manual](./e2e/manual/README.md) for local manual tes
 Run the following command from the sgn-v2 repo root folder
 
 ```sh
-go test -failfast -v -timeout 30m github.com/celer-network/sgn-v2/test/e2e/singlenode
+go test -failfast -v -timeout 30m github.com/celer-network/sgnv2/test/e2e/singlenode
 ```
 
 To run a single test (e.g., staking test), run following command in `test/e2e/singlenode` folder
@@ -28,7 +28,7 @@ go test -failfast -v -run ^TestStaking$
 Run the following command from the sgn-v2 repo root folder
 
 ```sh
-go test -failfast -v -timeout 30m github.com/celer-network/sgn-v2/test/e2e/multinode
+go test -failfast -v -timeout 30m github.com/celer-network/sgnv2/test/e2e/multinode
 ```
 Logs are located at
 

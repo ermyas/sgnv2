@@ -19,7 +19,7 @@ In Cosmos SDK, the `FeePool` is reserved for distributions from passed community
 
 - FeePool: `0x00 | CommunitySpendProposalID -> ProtocolBuffer(FeePool)`
 
-[Protobuf reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/distribution.proto#L88)
+[Protobuf reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/distribution.proto#L88)
 
 ## PreviousProposer
 
@@ -33,7 +33,7 @@ This key records the outstanding rewards for a validator.
 
 - ValidatorOutstandingRewards: `0x02 | ValEthAddrLen (1 byte) | ValEthAddr -> ProtocolBuffer(ValidatorOutstandingRewards)`
 
-[Protobuf reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/distribution.proto#L79)
+[Protobuf reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/distribution.proto#L79)
 
 ## DelegatorWithdrawAddress
 
@@ -47,7 +47,7 @@ This key records the delegator starting info.
 
 - DelegatorStartingInfo: `0x04 | ValEthAddrLen (1 byte) | ValEthAddr | DelAddrLen (1 byte) | DelAddr -> ProtocolBuffer(DelegatorStartingInfo)`
 
-[Protobuf reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/distribution.proto#L114)
+[Protobuf reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/distribution.proto#L114)
 
 ## ValidatorHistoricalRewards
 
@@ -55,7 +55,7 @@ This key records the historical rewards for a validator.
 
 - ValidatorHistoricalRewards: `0x05 | ValEthAddrLen (1 byte) | ValEthAddr | Period -> ProtocolBuffer(ValidatorHistoricalRewards)`
 
-[Protobuf reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/distribution.proto#L52)
+[Protobuf reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/distribution.proto#L52)
 
 ## ValidatorCurrentRewards
 
@@ -63,7 +63,7 @@ This key records the rewards for a validator in the current period.
 
 - ValidatorCurrentRewards: `0x06 | ValEthAddrLen (1 byte) | ValEthAddr -> ProtocolBuffer(ValidatorCurrentRewards)`
 
-[Protobuf reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/distribution.proto#L64)
+[Protobuf reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/distribution.proto#L64)
 
 ## ValidatorAccumulatedCommission
 
@@ -71,7 +71,7 @@ This key records the current accumulated commission for a validator.
 
 - ValidatorAccumulatedCommission: `0x07 | ValEthAddrLen (1 byte) | ValEthAddr -> ProtocolBuffer(ValidatorAccumulatedCommission)`
 
-[Protobuf reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/distribution.proto#L72)
+[Protobuf reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/distribution.proto#L72)
 
 ## StakingRewardClaimInfo
 
@@ -79,4 +79,4 @@ This key describes the staking reward claim metadata for a delegator.
 
 - StakingRewardClaimInfo: `0x08 | DelAddr -> ProtocolBuffer(StakingRewardClaimInfo)`
 
-[Protobuf reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/distribution.proto#L147)
+[Protobuf reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/distribution.proto#L147)

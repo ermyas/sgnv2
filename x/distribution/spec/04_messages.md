@@ -11,7 +11,7 @@ Changing the withdraw address is possible only if the parameter `WithdrawAddrEna
 
 The withdraw address cannot be any of the module accounts. These accounts are blocked from being withdraw addresses by being added to the distribution keeper's `blockedAddrs` array at initialization.
 
-[Msg reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/tx.proto#L38)
+[Msg reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/tx.proto#L38)
 
 ## MsgWithdrawDelegatorReward
 
@@ -29,7 +29,7 @@ Then the rewards for all the delegators for staking between periods `A` and `B` 
 
 The final calculated stake is equivalent to the actual staked coins in the delegation with a margin of error due to rounding errors.
 
-[Msg reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/tx.proto#L55)
+[Msg reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/tx.proto#L55)
 
 ## MsgWithdrawValidatorCommission
 
@@ -38,7 +38,7 @@ The commission is calculated in every block during `BeginBlock`, so no iteration
 The amount withdrawn is deducted from the `ValidatorOutstandingRewards` variable for the validator.
 Only integer amounts can be sent. If the accumulated awards have decimals, the amount is truncated before the withdrawal is sent, and the remainder is left to be withdrawn later.
 
-[Msg reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/tx.proto#L72)
+[Msg reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/tx.proto#L72)
 
 ## MsgFundCommunityPool
 
@@ -46,19 +46,19 @@ This message sends coins directly from the sender to the community pool.
 
 The message fails if the amount cannot be transferred from the sender to the distribution module account.
 
-[Msg reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/tx.proto#L87)
+[Msg reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/tx.proto#L87)
 
 ## MsgClaimAllStakingReward
 
 This message claims rewards for a delegator from all the validators they have delegated to.
 
-[Msg reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/tx.proto#L102)
+[Msg reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/tx.proto#L102)
 
 ## MsgSignStakingReward
 
 This message is sent by the validators to co-sign staking rewards upon seeing a valid claim from a user.
 
-[Msg reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/tx.proto#L116)
+[Msg reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/distribution/v1/tx.proto#L116)
 
 ## Common Operations
 
@@ -69,4 +69,4 @@ These operations take place during many different messages.
 Each time a delegation is changed, the rewards are withdrawn and the delegation is reinitialized.
 Initializing a delegation increments the validator period and keeps track of the starting period of the delegation.
 
-[Code reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/x/distribution/keeper/delegation.go#L15)
+[Code reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/x/distribution/keeper/delegation.go#L15)

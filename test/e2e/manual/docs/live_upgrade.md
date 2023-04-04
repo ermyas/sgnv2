@@ -40,7 +40,7 @@ sgnd query gov proposal 1 --home data/node0/sgnd
 go run localnet.go -stopall
 ```
 
-2. Switch to the new code, add upgrade handler and migration code. [Example: add new staking param](https://github.com/celer-network/sgn-v2/commit/1fadc4e3f2c21b449222c24174dd13963ba805ee)
+2. Switch to the new code, add upgrade handler and migration code. [Example: add new staking param](https://github.com/celer-network/sgnv2/commit/1fadc4e3f2c21b449222c24174dd13963ba805ee)
 
 3. Rebuild container images and restart:
 

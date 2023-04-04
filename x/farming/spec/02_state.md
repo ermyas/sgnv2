@@ -16,7 +16,7 @@ When coins are distributed from the pool they are truncated back to
 
 - FarmingPool: `0x01 | PoolName -> ProtocolBuffer(FarmingPool)`
 
-[Protobuf reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/farming.proto#L27)
+[Protobuf reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/farming.proto#L27)
 
 ## AddressInFarmingPool
 
@@ -30,7 +30,7 @@ This key tracks the stake of a user in a farming pool.
 
 - StakeInfo: `0x03 | UserAddr | PoolName -> ProtocolBuffer(StakeInfo)`
 
-[Protobuf reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/farming.proto#L63)
+[Protobuf reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/farming.proto#L63)
 
 ## PoolHistoricalRewards
 
@@ -38,7 +38,7 @@ This key records the reward ratio of one user in a pool.
 
 - PoolHistoricalRewards: `0x04 | PoolName -> ProtocolBuffer(PoolHistoricalRewards)`
 
-[Protobuf reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/farming.proto#L72)
+[Protobuf reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/farming.proto#L72)
 
 ## PoolCurrentRewards
 
@@ -46,7 +46,7 @@ This key records the rewards in the current period.
 
 - PoolCurrentRewards: `0x05 | PoolName -> ProtocolBuffer(PoolCurrentRewards)`
 
-[Protobuf reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/farming.proto#L82)
+[Protobuf reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/farming.proto#L82)
 
 ## RewardClaimInfo
 
@@ -54,7 +54,7 @@ This key describes the reward claim metadata and details for a recipient.
 
 - RewardClaimInfo: `0x06 | UserAddr -> ProtocolBuffer(RewardClaimInfo)`
 
-[Protobuf reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/farming.proto#L139)
+[Protobuf reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/farming.proto#L139)
 
 ## ERC20Token
 
@@ -62,7 +62,7 @@ This key describes an ERC20 token on a specific EVM-compatible chain.
 
 - ERC20Token: `0x07 | ChainId | Symbol -> ProtocolBuffer(ERC20Token)`
 
-[Protobuf reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/common/v1/common.proto#L257)
+[Protobuf reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/common/v1/common.proto#L257)
 
 ## RewardContract
 
@@ -70,4 +70,4 @@ This key is used to store the info about the farming reward contracts.
 
 - RewardContract: `0x08 | ChainId -> ProtocolBuffer(ContractInfo)`
 
-[Protobuf reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/common/v1/common.proto#L17)
+[Protobuf reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/common/v1/common.proto#L17)

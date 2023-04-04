@@ -17,19 +17,19 @@ Then the rewards for all the users for staking between periods `A` and `B` are `
 
 The final calculated stake is equivalent to the actual staked coins with a margin of error due to rounding errors.
 
-[Msg reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/tx.proto#L23)
+[Msg reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/tx.proto#L23)
 
 ## MsgClaimAllRewards
 
 This message claims rewards for a user from all the pools they have stakes in.
 
-[Msg reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/tx.proto#L40)
+[Msg reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/tx.proto#L40)
 
 ## MsgSignRewards
 
 This message is sent by the validators to co-sign farming rewards upon seeing a valid claim from a user.
 
-[Msg reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/tx.proto#L62)
+[Msg reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/proto/sgn/farming/v1/tx.proto#L62)
 
 ## Common Operations
 
@@ -40,4 +40,4 @@ These operations take place during different messages.
 Each time a user's stake is changed, the rewards are withdrawn and the `StakeInfo` is updated.
 Updating a `StakeInfo` increments the pool period and keeps track of the starting period of the `StakeInfo`.
 
-[Code reference](https://github.com/celer-network/sgn-v2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/x/farming/keeper/calc.go#L174)
+[Code reference](https://github.com/celer-network/sgnv2/blob/7083316f71a4e794c89a737cd09eb7c1ae38106f/x/farming/keeper/calc.go#L174)
